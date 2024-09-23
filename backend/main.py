@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from typing import List
 import os
 import logging
+import bcrypt
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -66,12 +67,18 @@ class PDFDocument(BaseModel):
     upload_date: datetime
     retrieved_by: List[str] = []
 
-# Helper functions
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
+# Hash a password using bcrypt
 def get_password_hash(password):
-    return pwd_context.hash(password)
+    pwd_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password=pwd_bytes, salt=salt)
+    return hashed_password.decode('utf-8')  # Return as string for storage
+
+# Check if the provided password matches the stored password (hashed)
+def verify_password(plain_password, hashed_password):
+    password_byte_enc = plain_password.encode('utf-8')
+    hashed_password_bytes = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(password=password_byte_enc, hashed_password=hashed_password_bytes)
 
 async def get_user(username: str):
     user = await db.users.find_one({"username": username})
@@ -134,6 +141,8 @@ async def register_user(user: UserCreate):
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    logger.info(f"Login user: {form_data}")
+
     user = await authenticate_user(form_data.username, form_data.password)
     if not user:
         logger.warning(f"Login failed: Invalid credentials for user {form_data.username}")
