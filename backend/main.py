@@ -9,6 +9,11 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from typing import List
 import os
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -113,11 +118,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 # Routes
 @app.post("/register", response_model=User)
 async def register_user(user: UserCreate):
-    # Log the user request
-    print(f"Registering user: {user}")
-
+    logger.info(f"Registering user: {user.username}")
     existing_user = await get_user(user.username)
     if existing_user:
+        logger.warning(f"Registration failed: Username {user.username} already exists")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already registered"
@@ -125,12 +129,14 @@ async def register_user(user: UserCreate):
     hashed_password = get_password_hash(user.password)
     new_user = User(username=user.username, email=user.email, hashed_password=hashed_password)
     await db.users.insert_one(new_user.dict())
+    logger.info(f"User {user.username} registered successfully")
     return new_user
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await authenticate_user(form_data.username, form_data.password)
     if not user:
+        logger.warning(f"Login failed: Invalid credentials for user {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -140,6 +146,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
+    logger.info(f"User {form_data.username} logged in successfully")
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/upload")
@@ -153,6 +160,7 @@ async def upload_pdf(file: UploadFile = File(...), current_user: User = Depends(
         "upload_date": datetime.utcnow(),
         "retrieved_by": []
     })
+    logger.info(f"User {current_user.username} uploaded document: {file.filename}")
     return {"document_id": str(pdf_id)}
 
 @app.get("/documents", response_model=List[PDFDocument])
@@ -170,13 +178,16 @@ async def get_documents(current_user: User = Depends(get_current_user)):
             {"_id": doc["_id"]},
             {"$addToSet": {"retrieved_by": current_user.username}}
         )
+    logger.info(f"User {current_user.username} retrieved {len(documents)} documents")
     return documents
 
 @app.get("/document/{document_id}")
 async def get_document(document_id: str, current_user: User = Depends(get_current_user)):
     doc = await db.pdfs.find_one({"_id": ObjectId(document_id)})
     if not doc:
+        logger.warning(f"Document not found: {document_id}")
         raise HTTPException(status_code=404, detail="Document not found")
+    logger.info(f"User {current_user.username} retrieved document: {doc['filename']}")
     return PDFDocument(
         id=str(doc["_id"]),
         filename=doc["filename"],
@@ -195,8 +206,10 @@ async def list_documents(current_user: User = Depends(get_current_user)):
             upload_date=doc["upload_date"],
             retrieved_by=doc["retrieved_by"]
         ))
+    logger.info(f"User {current_user.username} listed all documents")
     return documents
 
 if __name__ == "__main__":
     import uvicorn
+    logger.info("Starting the application")
     uvicorn.run(app, host="0.0.0.0", port=8000)
