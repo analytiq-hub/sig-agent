@@ -1,41 +1,58 @@
-from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile
+# main.py
+
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from typing import List
+from typing import Optional
 import os
 import logging
+import json
 import bcrypt
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Environment variables
+DOCP_MONGODB_URI = os.getenv("DOCP_MONGODB_URI", "mongodb://localhost:27017")
+DOCP_ENV = os.getenv("DOCP_ENV", "dev")
+DOCP_AWS_ACCT = os.getenv("DOCP_AWS_ACCT", "")
+
+# JWT settings
+SECRET_KEY = "aabx88sasda8903232234,2342,svc"  # Replace with a secure secret key
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 app = FastAPI()
 
-# Add CORS middleware
+# CORS configuration
+origins = [
+    "http://localhost:5173",  # Add your frontend origin here
+    "http://localhost:3000",  # Add any other origins you need
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # MongoDB connection
-MONGO_URL = "mongodb://localhost:27017"
-client = AsyncIOMotorClient(MONGO_URL)
-db = client.doc_proxy
+client = AsyncIOMotorClient(DOCP_MONGODB_URI)
+db = client.prod if DOCP_ENV == "prod" else client.dev
+pdf_collection = db.pdf_manager.pdfs
+user_collection = db.pdf_manager.users
 
-# JWT settings
-SECRET_KEY = "your-secret-key"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+logger.info(f"Connected to {DOCP_MONGODB_URI}")
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -43,29 +60,22 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# Models
+# Ensure the 'pdfs' directory exists
+os.makedirs("pdfs", exist_ok=True)
+
+# Pydantic models
 class User(BaseModel):
     username: str
-    email: str
-    hashed_password: str
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    disabled: Optional[bool] = None
 
-class UserCreate(BaseModel):
-    username: str
-    email: str
-    password: str
+class UserInDB(User):
+    hashed_password: str
 
 class Token(BaseModel):
     access_token: str
     token_type: str
-
-class TokenData(BaseModel):
-    username: str = None
-
-class PDFDocument(BaseModel):
-    id: str
-    filename: str
-    upload_date: datetime
-    retrieved_by: List[str] = []
 
 # Hash a password using bcrypt
 def get_password_hash(password):
@@ -81,9 +91,9 @@ def verify_password(plain_password, hashed_password):
     return bcrypt.checkpw(password=password_byte_enc, hashed_password=hashed_password_bytes)
 
 async def get_user(username: str):
-    user = await db.users.find_one({"username": username})
-    if user:
-        return User(**user)
+    user_dict = await user_collection.find_one({"username": username})
+    if user_dict:
+        return UserInDB(**user_dict)
 
 async def authenticate_user(username: str, password: str):
     user = await get_user(username)
@@ -93,12 +103,12 @@ async def authenticate_user(username: str, password: str):
         return False
     return user
 
-def create_access_token(data: dict, expires_delta: timedelta = None):
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.now(UTC) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -114,38 +124,39 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = await get_user(username=token_data.username)
+    user = await get_user(username)
     if user is None:
         raise credentials_exception
     return user
 
-# Routes
+# Authentication endpoints
 @app.post("/register", response_model=User)
-async def register_user(user: UserCreate):
-    logger.info(f"Registering user: {user.username}")
-    existing_user = await get_user(user.username)
-    if existing_user:
-        logger.warning(f"Registration failed: Username {user.username} already exists")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered"
-        )
-    hashed_password = get_password_hash(user.password)
-    new_user = User(username=user.username, email=user.email, hashed_password=hashed_password)
-    await db.users.insert_one(new_user.dict())
-    logger.info(f"User {user.username} registered successfully")
-    return new_user
+async def register(form_data: OAuth2PasswordRequestForm = Depends()):
+    # Log the full form data as JSON
+    logger.info(f"Registering new user: {json.dumps(form_data.__dict__, default=str, indent=2)}")
+
+    user = await get_user(form_data.username)
+    if user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    hashed_password = get_password_hash(form_data.password)
+    user_dict = {
+        "username": form_data.username,
+        "hashed_password": hashed_password,
+        "email": None,
+        "full_name": None,
+        "disabled": False
+    }
+    logger.info(f"New user registered: {json.dumps(user_dict, default=str, indent=2)}")
+    await user_collection.insert_one(user_dict)
+    return user_dict
 
 @app.post("/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    logger.info(f"Login user: {form_data}")
-
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    logger.info(f"Login new user: {json.dumps(form_data.__dict__, default=str, indent=2)}")
     user = await authenticate_user(form_data.username, form_data.password)
     if not user:
-        logger.warning(f"Login failed: Invalid credentials for user {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -155,70 +166,77 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    logger.info(f"User {form_data.username} logged in successfully")
     return {"access_token": access_token, "token_type": "bearer"}
 
+# PDF management endpoints
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
-    content = await file.read()
-    pdf_id = ObjectId()
-    await db.pdfs.insert_one({
-        "_id": pdf_id,
+    if not file.filename.endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    
+    contents = await file.read()
+    file_path = f"pdfs/{file.filename}"
+    
+    with open(file_path, "wb") as f:
+        f.write(contents)
+    
+    document = {
         "filename": file.filename,
-        "content": content,
-        "upload_date": datetime.utcnow(),
+        "path": file_path,
+        "upload_date": datetime.now(UTC),
+        "uploaded_by": current_user.username,
         "retrieved_by": []
-    })
-    logger.info(f"User {current_user.username} uploaded document: {file.filename}")
-    return {"document_id": str(pdf_id)}
+    }
+    
+    result = await pdf_collection.insert_one(document)
+    return {"document_id": str(result.inserted_id)}
 
-@app.get("/documents", response_model=List[PDFDocument])
-async def get_documents(current_user: User = Depends(get_current_user)):
-    cursor = db.pdfs.find({"retrieved_by": {"$nin": [current_user.username]}}).sort("upload_date", 1)
-    documents = []
-    async for doc in cursor:
-        documents.append(PDFDocument(
-            id=str(doc["_id"]),
-            filename=doc["filename"],
-            upload_date=doc["upload_date"],
-            retrieved_by=doc["retrieved_by"]
-        ))
-        await db.pdfs.update_one(
-            {"_id": doc["_id"]},
-            {"$addToSet": {"retrieved_by": current_user.username}}
-        )
-    logger.info(f"User {current_user.username} retrieved {len(documents)} documents")
-    return documents
-
-@app.get("/document/{document_id}")
-async def get_document(document_id: str, current_user: User = Depends(get_current_user)):
-    doc = await db.pdfs.find_one({"_id": ObjectId(document_id)})
-    if not doc:
-        logger.warning(f"Document not found: {document_id}")
-        raise HTTPException(status_code=404, detail="Document not found")
-    logger.info(f"User {current_user.username} retrieved document: {doc['filename']}")
-    return PDFDocument(
-        id=str(doc["_id"]),
-        filename=doc["filename"],
-        upload_date=doc["upload_date"],
-        retrieved_by=doc["retrieved_by"]
+@app.get("/retrieve")
+async def retrieve_pdf(current_user: User = Depends(get_current_user)):
+    document = await pdf_collection.find_one(
+        {"retrieved_by": {"$nin": [current_user.username]}},
+        sort=[("upload_date", 1)]
     )
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="No unretrieved documents found")
+    
+    await pdf_collection.update_one(
+        {"_id": document["_id"]},
+        {"$push": {"retrieved_by": current_user.username}}
+    )
+    
+    return FileResponse(document["path"], filename=document["filename"])
 
-@app.get("/list_documents")
-async def list_documents(current_user: User = Depends(get_current_user)):
-    cursor = db.pdfs.find().sort("upload_date", -1)
-    documents = []
-    async for doc in cursor:
-        documents.append(PDFDocument(
-            id=str(doc["_id"]),
-            filename=doc["filename"],
-            upload_date=doc["upload_date"],
-            retrieved_by=doc["retrieved_by"]
-        ))
-    logger.info(f"User {current_user.username} listed all documents")
-    return documents
+@app.get("/lookup/{document_id}")
+async def lookup_pdf(document_id: str, current_user: User = Depends(get_current_user)):
+    document = await pdf_collection.find_one({"_id": ObjectId(document_id)})
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    return FileResponse(document["path"], filename=document["filename"])
+
+@app.get("/list")
+async def list_pdfs(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    current_user: User = Depends(get_current_user)
+):
+    cursor = pdf_collection.find().sort("upload_date", 1).skip(skip).limit(limit)
+    documents = await cursor.to_list(length=limit)
+    
+    return [
+        {
+            "id": str(doc["_id"]),
+            "filename": doc["filename"],
+            "upload_date": doc["upload_date"],
+            "uploaded_by": doc["uploaded_by"],
+            "retrieved_by": doc["retrieved_by"]
+        }
+        for doc in documents
+    ]
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info("Starting the application")
     uvicorn.run(app, host="0.0.0.0", port=8000)
