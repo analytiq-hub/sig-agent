@@ -16,7 +16,17 @@
   ```
   * When running: `. ~/.venv/doc-proxy/bin/activate`
 
-
+* Start the back end
+  ```bash
+  cd backedn
+  uvicorn main:app --host 0.0.0.0 --port 8000
+  ```
+* Open [http://localhost:8000/docs] to experiment with the FastAPI
+* Start the front end
+  ```bash
+  cd frontend
+  npm run dev
+  ```
 
 ## Macbook
 TO DO
