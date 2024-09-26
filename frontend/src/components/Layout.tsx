@@ -30,40 +30,38 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 w-full">
+    <div className="min-h-screen bg-gray-100 flex flex-col w-full">
       <nav className="bg-white shadow-sm w-full">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
               <Link href="/" className="flex-shrink-0 flex items-center">
-                Doc Proxy
+                PDF Manager
               </Link>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 {isLoggedIn && (
                   <>
-                    <Link href="/upload" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                      Upload
-                    </Link>
-                    <Link href="/documents" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                      Documents
-                    </Link>
+                    <Link href="/upload" className="...">Upload</Link>
+                    <Link href="/documents" className="...">Documents</Link>
                   </>
                 )}
               </div>
             </div>
-            <div className="hidden sm:ml-6 sm:flex sm:items-center">
-              <button
-                onClick={handleAuthAction}
-                className="ml-4 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
+            <div className="flex items-center">
+              <Link href={isLoggedIn ? "/" : "/login"} className="...">
                 {isLoggedIn ? 'Logout' : 'Login'}
-              </button>
+              </Link>
+              {!isLoggedIn && (
+                <Link href="/register" className="ml-4 ...">
+                  Register
+                </Link>
+              )}
             </div>
           </div>
         </div>
       </nav>
-      <main className="w-full">
-        <div className="mx-auto py-6 px-4 sm:px-6 lg:px-8 w-full">
+      <main className="flex-grow w-full">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
           <ErrorBoundary>
             {children}
           </ErrorBoundary>
