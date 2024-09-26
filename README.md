@@ -18,7 +18,7 @@
 
 * Start the back end
   ```bash
-  cd backedn
+  cd backend
   uvicorn main:app --host 0.0.0.0 --port 8000
   ```
 * Open [http://localhost:8000/docs] to experiment with the FastAPI
