@@ -19,14 +19,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     setIsLoggedIn(!!token);
   }, []);
 
-  const handleAuthAction = () => {
-    if (isLoggedIn) {
-      logout();
-      setIsLoggedIn(false);
-      router.push('/');
-    } else {
-      router.push('/login');
-    }
+  const handleLogout = () => {
+    logout();
+    setIsLoggedIn(false);
+    router.push('/');
   };
 
   return (
@@ -48,13 +44,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </div>
             <div className="flex items-center">
-              <Link href={isLoggedIn ? "/" : "/login"} className="...">
-                {isLoggedIn ? 'Logout' : 'Login'}
-              </Link>
-              {!isLoggedIn && (
-                <Link href="/register" className="ml-4 ...">
-                  Register
-                </Link>
+              {isLoggedIn ? (
+                <button onClick={handleLogout} className="...">Logout</button>
+              ) : (
+                <>
+                  <Link href="/login" className="...">Login</Link>
+                  <Link href="/register" className="ml-4 ...">Register</Link>
+                </>
               )}
             </div>
           </div>
