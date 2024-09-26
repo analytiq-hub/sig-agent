@@ -30,8 +30,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
+    <div className="min-h-screen bg-gray-100 w-full">
+      <nav className="bg-white shadow-sm w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
@@ -62,8 +62,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </div>
       </nav>
-      <main>
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="w-full">
+        <div className="mx-auto py-6 px-4 sm:px-6 lg:px-8 w-full">
           <ErrorBoundary>
             {children}
           </ErrorBoundary>
