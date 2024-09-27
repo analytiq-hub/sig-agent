@@ -35,7 +35,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" style={{ flexGrow: 1 }}>
-            PDF Manager
+            File Proxy
           </Typography>
           {isLoggedIn && (
             <IconButton color="inherit" onClick={handleLogout}>
