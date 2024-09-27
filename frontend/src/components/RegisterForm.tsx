@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import { TextField, Button, Box } from '@mui/material';
 import { register } from '../utils/api';
-import { useRouter } from 'next/router';
 
-const RegisterForm: React.FC = () => {
+interface RegisterFormProps {
+  onRegisterSuccess: () => void;
+}
+
+const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await register(username, password);
-      router.push('/login');
+      onRegisterSuccess();
     } catch (error) {
       console.error('Registration failed:', error);
       // Handle error (e.g., show error message to user)
