@@ -1,10 +1,8 @@
 import React from 'react';
 import { Box, Typography, TextField, Button } from '@mui/material';
-import Layout from '../../components/Layout';
 
 export default function LoginPage() {
   return (
-    <Layout>
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 8 }}>
       <Typography component="h1" variant="h5">
         Login
@@ -40,6 +38,5 @@ export default function LoginPage() {
         </Button>
       </Box>
     </Box>
-    </Layout>
   );
 }
