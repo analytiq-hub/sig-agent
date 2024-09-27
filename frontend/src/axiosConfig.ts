@@ -1,7 +1,0 @@
-import axios from 'axios';
-
-const instance = axios.create({
-  baseURL: import.meta.env.PDFM_API_URL || 'http://localhost:8000',
-});
-
-export default instance;
