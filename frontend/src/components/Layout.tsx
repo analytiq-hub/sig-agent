@@ -42,7 +42,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            File Proxy
+            Doc Proxy
           </Typography>
           {isLoggedIn && (
             <IconButton color="inherit" onClick={handleLogout}>
