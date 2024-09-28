@@ -1,6 +1,7 @@
 "use client";
 
-import React, { ReactNode, useState } from 'react';
+import React, { useState, ReactNode } from 'react';
+import { useSession, signOut } from "next-auth/react";
 import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box } from '@mui/material';
 import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Login as LoginIcon, PersonAdd as PersonAddIcon, Dashboard as DashboardIcon } from '@mui/icons-material';
 import Link from 'next/link';
@@ -10,16 +11,15 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [drawerOpen, setDrawerOpen] = useState(true);  // Changed to true
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // This should be managed by your auth system
+  const [drawerOpen, setDrawerOpen] = useState(true);
+  const { data: session } = useSession();
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
   };
 
   const handleLogout = () => {
-    // Implement logout logic here
-    setIsLoggedIn(false);
+    signOut();
   };
 
   const menuItems = [
@@ -44,7 +44,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Doc Proxy
           </Typography>
-          {isLoggedIn && (
+          {session && (
             <IconButton color="inherit" onClick={handleLogout}>
               <LogoutIcon />
             </IconButton>
@@ -66,7 +66,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       >
         <Toolbar /> {/* This empty Toolbar acts as a spacer */}
         <List>
-          {isLoggedIn ? (
+          {session ? (
             menuItems.map((item) => (
               <ListItem
                 key={item.text}
