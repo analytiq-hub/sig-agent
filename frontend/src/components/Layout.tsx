@@ -10,7 +10,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(true);  // Changed to true
   const [isLoggedIn, setIsLoggedIn] = useState(false); // This should be managed by your auth system
 
   const toggleDrawer = () => {
@@ -68,7 +68,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {isLoggedIn ? (
             menuItems.map((item) => (
               <Link href={item.href} key={item.text} passHref legacyBehavior>
-                <ListItem button component="a" onClick={toggleDrawer}>
+                <ListItem button component="a">
                   <ListItemIcon>{item.icon}</ListItemIcon>
                   <ListItemText primary={item.text} />
                 </ListItem>
@@ -76,7 +76,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             ))
           ) : (
             <Link href="/login" passHref legacyBehavior>
-              <ListItem button component="a" onClick={toggleDrawer}>
+              <ListItem button component="a">
                 <ListItemIcon><LoginIcon /></ListItemIcon>
                 <ListItemText primary="Login" />
               </ListItem>
