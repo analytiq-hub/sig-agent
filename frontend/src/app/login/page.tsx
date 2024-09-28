@@ -3,16 +3,55 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import LoginForm from '@/components/LoginForm';
+import { useState } from 'react';
 
 export default function LoginPage() {
-  const handleLogin = (username: string, password: string) => {
-    // TODO: Implement login logic
-    console.log('Login:', username, password);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleLogin = async (username: string, password: string) => {
+    try {
+      const response = await fetch('http://localhost:8000/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
+      const data = await response.json();
+      console.log('Login successful:', data);
+      // TODO: Store the token and redirect the user
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Login failed. Please try again.');
+    }
   };
 
-  const handleRegister = (username: string, password: string) => {
-    // TODO: Implement registration logic
-    console.log('Register:', username, password);
+  const handleRegister = async (username: string, password: string) => {
+    try {
+      const response = await fetch('http://localhost:8000/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Registration failed');
+      }
+
+      const data = await response.json();
+      console.log('Registration successful:', data);
+      // TODO: Automatically log in the user or redirect to login page
+    } catch (error) {
+      console.error('Registration error:', error);
+      setError('Registration failed. Please try again.');
+    }
   };
 
   return (
@@ -20,6 +59,11 @@ export default function LoginPage() {
       <Typography component="h1" variant="h5">
         Login or Register
       </Typography>
+      {error && (
+        <Typography color="error" sx={{ mt: 2 }}>
+          {error}
+        </Typography>
+      )}
       <LoginForm onLogin={handleLogin} onRegister={handleRegister} />
     </Box>
   );

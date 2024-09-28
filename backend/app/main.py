@@ -1,7 +1,7 @@
 # main.py
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body
+from fastapi.security import OAuth2PasswordBearer
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -78,6 +78,10 @@ class Token(BaseModel):
     token_type: str
 
 class UserRegister(BaseModel):
+    username: str
+    password: str
+
+class LoginData(BaseModel):
     username: str
     password: str
 
@@ -169,9 +173,9 @@ async def register(user_data: UserRegister):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/token", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    logger.info(f"Login new user: {json.dumps(form_data.__dict__, default=str, indent=2)}")
-    user = await authenticate_user(form_data.username, form_data.password)
+async def login(login_data: LoginData):
+    logger.info(f"Login attempt for user: {login_data.username}")
+    user = await authenticate_user(login_data.username, login_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
