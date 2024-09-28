@@ -35,4 +35,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/pfds/*
+# Any file in backend/pfds/
+backend/pfds/*
