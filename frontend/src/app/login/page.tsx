@@ -7,6 +7,7 @@ import { useState } from 'react';
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
+  const [isLoginMode, setIsLoginMode] = useState(true);
 
   const handleLogin = async (username: string, password: string) => {
     try {
@@ -45,10 +46,8 @@ export default function LoginPage() {
 
       if (response.ok) {
         console.log('Registration successful:', data);
-        setError(null); // Clear any previous errors
-        // TODO: Automatically log in the user or redirect to login page
-        // For now, we'll just set a success message
-        setError('Registration successful! You can now log in.');
+        setIsLoginMode(true); // Switch to login mode
+        setError('Registration successful! Please log in with your new account.');
       } else {
         throw new Error(data.detail || 'Registration failed');
       }
@@ -61,14 +60,14 @@ export default function LoginPage() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 8 }}>
       <Typography component="h1" variant="h5">
-        Login or Register
+        {isLoginMode ? 'Login' : 'Register'}
       </Typography>
       {error && (
         <Typography color="error" sx={{ mt: 2 }}>
           {error}
         </Typography>
       )}
-      <LoginForm onLogin={handleLogin} onRegister={handleRegister} />
+      <LoginForm onLogin={handleLogin} onRegister={handleRegister} isLoginMode={isLoginMode} setIsLoginMode={setIsLoginMode} />
     </Box>
   );
 }
