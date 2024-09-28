@@ -77,6 +77,10 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+class UserRegister(BaseModel):
+    username: str
+    password: str
+
 # Hash a password using bcrypt
 def get_password_hash(password):
     pwd_bytes = password.encode('utf-8')
@@ -133,24 +137,36 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 # Authentication endpoints
 @app.post("/register", response_model=User)
-async def register(form_data: OAuth2PasswordRequestForm = Depends()):
-    # Log the full form data as JSON
-    logger.info(f"Registering new user: {json.dumps(form_data.__dict__, default=str, indent=2)}")
+async def register(user_data: UserRegister):
+    # Log the full user data as JSON
+    logger.info(f"Registering new user: {json.dumps(user_data.dict(), default=str, indent=2)}")
 
-    user = await get_user(form_data.username)
+    # Validate input
+    if not user_data.username or not user_data.password:
+        logger.error("Registration failed: Missing username or password")
+        raise HTTPException(status_code=400, detail="Username and password are required")
+
+    user = await get_user(user_data.username)
     if user:
+        logger.error(f"Registration failed: Username '{user_data.username}' already exists")
         raise HTTPException(status_code=400, detail="Username already registered")
-    hashed_password = get_password_hash(form_data.password)
+
+    hashed_password = get_password_hash(user_data.password)
     user_dict = {
-        "username": form_data.username,
+        "username": user_data.username,
         "hashed_password": hashed_password,
         "email": None,
         "full_name": None,
         "disabled": False
     }
-    logger.info(f"New user registered: {json.dumps(user_dict, default=str, indent=2)}")
-    await user_collection.insert_one(user_dict)
-    return user_dict
+    
+    try:
+        await user_collection.insert_one(user_dict)
+        logger.info(f"New user registered: {json.dumps({**user_dict, 'hashed_password': '[REDACTED]'}, default=str, indent=2)}")
+        return User(**user_dict)
+    except Exception as e:
+        logger.error(f"Registration failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/token", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
