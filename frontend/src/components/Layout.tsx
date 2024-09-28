@@ -67,20 +67,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <List>
           {isLoggedIn ? (
             menuItems.map((item) => (
-              <Link href={item.href} key={item.text} passHref legacyBehavior>
-                <ListItem button component="a">
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.text} />
-                </ListItem>
-              </Link>
+              <ListItem
+                key={item.text}
+                component={Link}
+                href={item.href}
+                sx={{ textDecoration: 'none', color: 'inherit' }}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.text} />
+              </ListItem>
             ))
           ) : (
-            <Link href="/login" passHref legacyBehavior>
-              <ListItem button component="a">
-                <ListItemIcon><LoginIcon /></ListItemIcon>
-                <ListItemText primary="Login" />
-              </ListItem>
-            </Link>
+            <ListItem
+              component={Link}
+              href="/login"
+              sx={{ textDecoration: 'none', color: 'inherit' }}
+            >
+              <ListItemIcon><LoginIcon /></ListItemIcon>
+              <ListItemText primary="Login" />
+            </ListItem>
           )}
         </List>
       </Drawer>
