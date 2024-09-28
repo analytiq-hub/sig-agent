@@ -41,13 +41,17 @@ export default function LoginPage() {
         body: JSON.stringify({ username, password }),
       });
 
-      if (!response.ok) {
-        throw new Error('Registration failed');
-      }
-
       const data = await response.json();
-      console.log('Registration successful:', data);
-      // TODO: Automatically log in the user or redirect to login page
+
+      if (response.ok) {
+        console.log('Registration successful:', data);
+        setError(null); // Clear any previous errors
+        // TODO: Automatically log in the user or redirect to login page
+        // For now, we'll just set a success message
+        setError('Registration successful! You can now log in.');
+      } else {
+        throw new Error(data.detail || 'Registration failed');
+      }
     } catch (error) {
       console.error('Registration error:', error);
       setError('Registration failed. Please try again.');
