@@ -2,7 +2,7 @@
 
 import React, { ReactNode, useState } from 'react';
 import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box } from '@mui/material';
-import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Login as LoginIcon, PersonAdd as PersonAddIcon } from '@mui/icons-material';
+import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Login as LoginIcon, PersonAdd as PersonAddIcon, Dashboard as DashboardIcon } from '@mui/icons-material';
 import Link from 'next/link';
 
 interface LayoutProps {
@@ -23,6 +23,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const menuItems = [
+    { text: 'Dashboard', icon: <DashboardIcon />, href: '/dashboard' },
     { text: 'Upload', icon: <UploadIcon />, href: '/upload' },
     { text: 'List Files', icon: <ListIcon />, href: '/list' },
   ];
@@ -78,24 +79,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </ListItem>
             ))
           ) : (
-            <>
-              <ListItem
-                component={Link}
-                href="/login"
-                sx={{ textDecoration: 'none', color: 'inherit' }}
-              >
-                <ListItemIcon><LoginIcon /></ListItemIcon>
-                <ListItemText primary="Login" />
-              </ListItem>
-              <ListItem
-                component={Link}
-                href="/register"
-                sx={{ textDecoration: 'none', color: 'inherit' }}
-              >
-                <ListItemIcon><PersonAddIcon /></ListItemIcon>
-                <ListItemText primary="Register" />
-              </ListItem>
-            </>
+            <ListItem
+              component={Link}
+              href="/login"
+              sx={{ textDecoration: 'none', color: 'inherit' }}
+            >
+              <ListItemIcon><LoginIcon /></ListItemIcon>
+              <ListItemText primary="Login" />
+            </ListItem>
           )}
         </List>
       </Drawer>
