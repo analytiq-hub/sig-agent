@@ -2,8 +2,8 @@
 
 import React, { useState, ReactNode, useEffect } from 'react';
 import { useSession, signOut } from "next-auth/react";
-import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box } from '@mui/material';
-import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Login as LoginIcon, PersonAdd as PersonAddIcon, Dashboard as DashboardIcon } from '@mui/icons-material';
+import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box, Button } from '@mui/material';
+import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Dashboard as DashboardIcon } from '@mui/icons-material';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -40,7 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, backgroundColor: '#2c3e50' }}>
         <Toolbar>
           <IconButton
             edge="start"
@@ -54,10 +54,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Doc Proxy
           </Typography>
-          {session && (
-            <IconButton color="inherit" onClick={handleLogout}>
-              <LogoutIcon />
-            </IconButton>
+          {status === 'authenticated' ? (
+            <Button color="inherit" onClick={handleLogout} startIcon={<LogoutIcon />}>
+              Logout
+            </Button>
+          ) : (
+            <Button color="inherit" component={Link} href="/login">
+              Login
+            </Button>
           )}
         </Toolbar>
       </AppBar>
@@ -71,37 +75,34 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           '& .MuiDrawer-paper': {
             width: 240,
             boxSizing: 'border-box',
+            backgroundColor: '#34495e',
+            color: 'white',
           },
         }}
       >
-        <Toolbar /> {/* This empty Toolbar acts as a spacer */}
+        <Toolbar />
         <List>
-          {status === 'authenticated' ? (
-            menuItems.map((item) => (
-              <ListItem
-                key={item.text}
-                component={Link}
-                href={item.href}
-                sx={{ textDecoration: 'none', color: 'inherit' }}
-              >
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItem>
-            ))
-          ) : (
+          {status === 'authenticated' && menuItems.map((item) => (
             <ListItem
+              key={item.text}
               component={Link}
-              href="/login"
-              sx={{ textDecoration: 'none', color: 'inherit' }}
+              href={item.href}
+              sx={{ 
+                textDecoration: 'none', 
+                color: 'inherit',
+                '&:hover': {
+                  backgroundColor: '#2c3e50',
+                },
+              }}
             >
-              <ListItemIcon><LoginIcon /></ListItemIcon>
-              <ListItemText primary="Login" />
+              <ListItemIcon sx={{ color: 'white' }}>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
             </ListItem>
-          )}
+          ))}
         </List>
       </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - 240px)` } }}>
-        <Toolbar /> {/* This empty Toolbar acts as a spacer */}
+      <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - 240px)` }, backgroundColor: '#ecf0f1' }}>
+        <Toolbar />
         {children}
       </Box>
     </Box>
