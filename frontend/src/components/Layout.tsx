@@ -102,7 +102,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           ))}
         </List>
       </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - 240px)` }, backgroundColor: '#ecf0f1' }}>
+      <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - 240px)` } }}>
         <Toolbar />
         {children}
       </Box>
