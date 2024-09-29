@@ -35,7 +35,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, href: '/dashboard' },
     { text: 'Upload', icon: <UploadIcon />, href: '/upload' },
-    { text: 'List Files', icon: <ListIcon />, href: '/list' },
+    { text: 'List Files', icon: <ListIcon />, href: '/listFiles' },
     { text: 'Test', icon: <ScienceIcon />, href: '/test' },
   ];
 
