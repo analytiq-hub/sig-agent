@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, ReactNode } from 'react';
+import React, { useState, ReactNode, useEffect } from 'react';
 import { useSession, signOut } from "next-auth/react";
 import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box } from '@mui/material';
 import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Login as LoginIcon, PersonAdd as PersonAddIcon, Dashboard as DashboardIcon } from '@mui/icons-material';
@@ -12,7 +12,12 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [drawerOpen, setDrawerOpen] = useState(true);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+
+  useEffect(() => {
+    console.log('Session status:', status);
+    console.log('Session data:', session);
+  }, [session, status]);
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
@@ -66,7 +71,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       >
         <Toolbar /> {/* This empty Toolbar acts as a spacer */}
         <List>
-          {session ? (
+          {status === 'authenticated' ? (
             menuItems.map((item) => (
               <ListItem
                 key={item.text}

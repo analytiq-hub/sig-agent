@@ -21,8 +21,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onRegister, isLoginMode,
     }
   };
 
-  console.log(`isLoginMode: ${isLoginMode}`);
-
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
       <TextField
