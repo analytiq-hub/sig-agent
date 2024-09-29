@@ -213,6 +213,7 @@ async def upload_pdf(file: UploadFile = File(...), current_user: User = Depends(
 
 @app.get("/retrieve")
 async def retrieve_pdf(current_user: User = Depends(get_current_user)):
+    logger.info(f"Retrieving PDF for user: {current_user.username}")
     document = await pdf_collection.find_one(
         {"retrieved_by": {"$nin": [current_user.username]}},
         sort=[("upload_date", 1)]
@@ -230,6 +231,7 @@ async def retrieve_pdf(current_user: User = Depends(get_current_user)):
 
 @app.get("/lookup/{document_id}")
 async def lookup_pdf(document_id: str, current_user: User = Depends(get_current_user)):
+    logger.info(f"Looking up PDF for user: {current_user.username}")
     document = await pdf_collection.find_one({"_id": ObjectId(document_id)})
     
     if not document:
@@ -243,6 +245,7 @@ async def list_pdfs(
     limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_user)
 ):
+    logger.info(f"Listing PDFs for user: {current_user.username}")
     cursor = pdf_collection.find().sort("upload_date", 1).skip(skip).limit(limit)
     documents = await cursor.to_list(length=limit)
     
