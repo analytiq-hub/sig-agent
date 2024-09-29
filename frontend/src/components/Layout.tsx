@@ -3,7 +3,7 @@
 import React, { useState, ReactNode, useEffect } from 'react';
 import { useSession, signOut } from "next-auth/react";
 import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box, Button } from '@mui/material';
-import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Dashboard as DashboardIcon, Login as LoginIcon } from '@mui/icons-material';
+import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Dashboard as DashboardIcon, Login as LoginIcon, Science as ScienceIcon } from '@mui/icons-material';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -36,6 +36,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { text: 'Dashboard', icon: <DashboardIcon />, href: '/dashboard' },
     { text: 'Upload', icon: <UploadIcon />, href: '/upload' },
     { text: 'List Files', icon: <ListIcon />, href: '/list' },
+    { text: 'Test', icon: <ScienceIcon />, href: '/test' },
   ];
 
   return (
