@@ -67,7 +67,12 @@ export default function LoginPage() {
           {error}
         </Typography>
       )}
-      <LoginForm onLogin={handleLogin} onRegister={handleRegister} isLoginMode={isLoginMode} setIsLoginMode={setIsLoginMode} />
+      <LoginForm 
+        onLogin={handleLogin} 
+        onRegister={handleRegister} 
+        isLoginMode={isLoginMode} 
+        setIsLoginMode={setIsLoginMode}
+      />
     </Box>
   );
 }

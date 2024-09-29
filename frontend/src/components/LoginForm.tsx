@@ -4,21 +4,24 @@ import { TextField, Button, Typography, Box } from '@mui/material';
 interface LoginFormProps {
   onLogin: (username: string, password: string) => void;
   onRegister: (username: string, password: string) => void;
+  isLoginMode: boolean;
+  setIsLoginMode: (isLoginMode: boolean) => void;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onRegister }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onRegister, isLoginMode, setIsLoginMode }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isRegistering, setIsRegistering] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isRegistering) {
-      onRegister(username, password);
-    } else {
+    if (isLoginMode) {
       onLogin(username, password);
+    } else {
+      onRegister(username, password);
     }
   };
+
+  console.log(`isLoginMode: ${isLoginMode}`);
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
@@ -47,12 +50,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onRegister }) => {
         onChange={(e) => setPassword(e.target.value)}
       />
       <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
-        {isRegistering ? 'Register' : 'Login'}
+        {isLoginMode ? 'Login' : 'Register'}
       </Button>
       <Typography variant="body2" align="center">
-        {isRegistering ? 'Already have an account? ' : "Don't have an account? "}
-        <Button onClick={() => setIsRegistering(!isRegistering)}>
-          {isRegistering ? 'Login' : 'Register'}
+        {isLoginMode ? "Don't have an account? " : "Already have an account? "}
+        <Button onClick={() => setIsLoginMode(!isLoginMode)}>
+          {isLoginMode ? "Register" : "Login"}
         </Button>
       </Typography>
     </Box>
