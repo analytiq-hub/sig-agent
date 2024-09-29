@@ -5,6 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box } from '@mui/material';
 import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Login as LoginIcon, PersonAdd as PersonAddIcon, Dashboard as DashboardIcon } from '@mui/icons-material';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface LayoutProps {
   children: ReactNode;
@@ -13,11 +14,15 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const { data: session, status } = useSession();
+  const router = useRouter();
 
   useEffect(() => {
     console.log('Session status:', status);
     console.log('Session data:', session);
-  }, [session, status]);
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [session, status, router]);
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
