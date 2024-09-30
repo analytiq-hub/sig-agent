@@ -10,6 +10,8 @@ export default NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        console.log(`authorize() called with credentials: ${JSON.stringify(credentials)}`);
+        
         // You can implement your own logic here to validate credentials
         // For now, we'll just return the user object with the access token
         if (credentials?.username && credentials?.password && credentials?.accessToken) {
@@ -24,6 +26,10 @@ export default NextAuth({
     }),
   ],
   callbacks: {
+    async signIn({ user, account, profile, email, credentials }) {
+        console.log("signIn() called with user:", user, "account:", account, "profile:", profile, "email:", email, "credentials:", credentials);
+        return true
+      },
     async jwt({ token, user }) {
       if (user) {
         token.accessToken = user.accessToken;

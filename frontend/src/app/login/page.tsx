@@ -36,6 +36,7 @@ export default function LoginPage() {
         password,
         accessToken: data.access_token,
       });
+      console.log('NextAuth signIn result:', result);
 
       if (result?.error) {
         setError(result.error);
