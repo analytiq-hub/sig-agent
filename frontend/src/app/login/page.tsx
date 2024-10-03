@@ -1,10 +1,11 @@
 "use client"
 
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Button, Divider } from '@mui/material';
 import LoginForm from '@/components/LoginForm';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +75,10 @@ export default function LoginPage() {
     }
   };
 
+  const handleSocialLogin = (provider: string) => {
+    signIn(provider, { callbackUrl: '/dashboard' });
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 8 }}>
       <Typography component="h1" variant="h5">
@@ -90,6 +95,23 @@ export default function LoginPage() {
         isLoginMode={isLoginMode} 
         setIsLoginMode={setIsLoginMode}
       />
+      <Divider sx={{ width: '100%', my: 2 }}>Or</Divider>
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, width: '100%' }}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => handleSocialLogin('github')}
+        >
+          Sign in with GitHub
+        </Button>
+        <Button
+          variant="contained"
+          color="secondary"
+          onClick={() => handleSocialLogin('google')}
+        >
+          Sign in with Google
+        </Button>
+      </Box>
     </Box>
   );
 }

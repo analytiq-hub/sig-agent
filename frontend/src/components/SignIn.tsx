@@ -13,7 +13,7 @@ export default function SignIn() {
       color="primary"
       onClick={handleSignIn}
     >
-      Sign in with Google
+      Sign In
     </Button>
   )
 }
