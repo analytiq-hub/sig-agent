@@ -6,6 +6,8 @@ import LoginForm from '@/components/LoginForm';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import GitHubIcon from '@mui/icons-material/GitHub';
+import GoogleIcon from '@mui/icons-material/Google';
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -96,21 +98,26 @@ export default function LoginPage() {
         setIsLoginMode={setIsLoginMode}
       />
       <Divider sx={{ width: '100%', my: 2 }}>Or</Divider>
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, width: '100%' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', maxWidth: '300px' }}>
         <Button
           variant="contained"
           color="primary"
-          onClick={() => handleSocialLogin('github')}
+          onClick={() => handleSocialLogin('google')}
+          fullWidth
+          startIcon={<GoogleIcon />}
         >
-          Sign in with GitHub
+          Sign in with Google
         </Button>
         <Button
           variant="contained"
           color="secondary"
-          onClick={() => handleSocialLogin('google')}
+          onClick={() => handleSocialLogin('github')}
+          fullWidth
+          startIcon={<GitHubIcon />}
         >
-          Sign in with Google
+          Sign in with GitHub
         </Button>
+
       </Box>
     </Box>
   );
