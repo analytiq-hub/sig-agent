@@ -2,7 +2,7 @@ import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 
 export const authOptions = {
-    secret: process.env.AUTH_SECRET ?? "",
+    secret: process.env.NEXTAUTH_SECRET ?? "", // Needed else we get JWT Google error
     providers: [
       GithubProvider({
         clientId: process.env.AUTH_GITHUB_ID ?? "", // ?? only considers null or undefined as false
