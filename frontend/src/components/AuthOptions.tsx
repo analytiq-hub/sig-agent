@@ -2,6 +2,7 @@ import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 
 export const authOptions = {
+    secret: process.env.AUTH_SECRET ?? "",
     providers: [
       GithubProvider({
         clientId: process.env.AUTH_GITHUB_ID ?? "", // ?? only considers null or undefined as false
