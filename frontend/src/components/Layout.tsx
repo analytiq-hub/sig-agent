@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, ReactNode, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useSession, signOut } from "next-auth/react";
 import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box, Button } from '@mui/material';
 import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Dashboard as DashboardIcon, Login as LoginIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import {SignIn} from "@/components/SignIn"
 
 interface LayoutProps {
   children: ReactNode;
