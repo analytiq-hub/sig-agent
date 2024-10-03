@@ -3,13 +3,32 @@
 import React, { useState, ReactNode, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-//import { useSession, signOut } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box, Button } from '@mui/material';
 import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Dashboard as DashboardIcon, Login as LoginIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material';
 //import SignIn from "@/components/SignIn"
 
 interface LayoutProps {
   children: ReactNode;
+}
+
+function AuthButton() {
+  const { data: session } = useSession();
+
+  if (session) {
+    return (
+      <>
+        {session?.user?.name} <br />
+        <Button color="inherit" onClick={() => signOut()}>Sign out</Button>
+      </>
+    );
+  }
+  return (
+    <>
+      Not signed in <br />
+      <Button color="inherit" onClick={() => signIn()}>Sign in</Button>
+    </>
+  );
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
@@ -72,6 +91,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               Login
             </Button>
           )}
+          <AuthButton />
         </Toolbar>
       </AppBar>
       <Drawer
