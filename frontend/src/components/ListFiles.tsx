@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Test: React.FC = () => {
+const ListFiles: React.FC = () => {
   return (
     <div>
       <h1>Hello World</h1>
@@ -8,4 +8,4 @@ const Test: React.FC = () => {
   );
 };
 
-export default Test;
+export default ListFiles;
