@@ -4,7 +4,6 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import LoginForm from '@/components/LoginForm';
 import { useState } from 'react';
-import { signIn } from "next-auth/react";
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -30,19 +29,20 @@ export default function LoginPage() {
       console.log('Login successful:', data);
       
       // Sign in using NextAuth and store the token
-      const result = await signIn("credentials", {
-        redirect: false,
-        username,
-        password,
-        accessToken: data.access_token,
-      });
-      console.log('NextAuth signIn result:', result);
+      // const result = await signIn("credentials", {
+      //   redirect: false,
+      //   username,
+      //   password,
+      //   accessToken: data.access_token,
+      // });
+      // console.log('NextAuth signIn result:', result);
 
-      if (result?.error) {
-        setError(result.error);
-      } else {
-        router.push('/dashboard');
-      }
+      // if (result?.error) {
+      //   setError(result.error);
+      // } else {
+      //   router.push('/dashboard');
+      // }
+      router.push('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       setError('Login failed. Please try again.');
