@@ -3,7 +3,7 @@
 import React, { useState, ReactNode, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useSession, signOut } from "next-auth/react";
+//import { useSession, signOut } from "next-auth/react";
 import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box, Button } from '@mui/material';
 import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Dashboard as DashboardIcon, Login as LoginIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material';
 import SignIn from "@/components/SignIn"
@@ -14,16 +14,22 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [drawerOpen, setDrawerOpen] = useState(true);
-  const { data: session, status } = useSession();
+ // const { data: session, status } = useSession();
+ const status = "authenticated";
   const router = useRouter();
 
+  // useEffect(() => {
+  //   console.log('Session status:', status);
+  //   console.log('Session data:', session);
+  //   if (status === 'unauthenticated') {
+  //     router.push('/login');
+  //   }
+  // }, [session, status, router]);
+
   useEffect(() => {
-    console.log('Session status:', status);
-    console.log('Session data:', session);
-    if (status === 'unauthenticated') {
       router.push('/login');
-    }
-  }, [session, status, router]);
+  }, [router]);
+
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
