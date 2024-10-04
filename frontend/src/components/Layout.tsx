@@ -15,13 +15,20 @@ interface LayoutProps {
 function AuthButton() {
   const { data: session } = useSession();
 
+  const buttonStyle = {
+    color: 'inherit',
+    '&:hover': {
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    },
+  };
+
   if (session) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <Typography variant="body1" sx={{ mr: 2 }}>
           {session?.user?.name}
         </Typography>
-        <Button color="inherit" onClick={() => signOut()}>Sign out</Button>
+        <Button sx={buttonStyle} onClick={() => signOut()}>Sign out</Button>
       </Box>
     );
   }
@@ -30,7 +37,7 @@ function AuthButton() {
       <Typography variant="body1" sx={{ mr: 2 }}>
         Not signed in
       </Typography>
-      <Button color="inherit" onClick={() => signIn()}>Sign in</Button>
+      <Button sx={buttonStyle} onClick={() => signIn()}>Sign in</Button>
     </Box>
   );
 }
