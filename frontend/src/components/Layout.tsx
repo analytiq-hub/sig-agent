@@ -18,6 +18,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { data: session, status } = useSession(); // Use next-auth hook
   const router = useRouter();
 
+  // Log session data
+  console.log('Session data:', session);
+  console.log('Session status:', status);
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
