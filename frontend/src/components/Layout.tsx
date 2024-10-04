@@ -35,7 +35,6 @@ function AuthButton() {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <Typography variant="body1" sx={{ mr: 2 }}>
-        Not signed in
       </Typography>
       <Button sx={buttonStyle} onClick={() => signIn()}>Sign in</Button>
     </Box>
