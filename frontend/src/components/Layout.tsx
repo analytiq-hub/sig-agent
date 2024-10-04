@@ -43,8 +43,8 @@ function AuthButton() {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [drawerOpen, setDrawerOpen] = useState(true);
- // const { data: session, status } = useSession();
- const status = "authenticated";
+  // const { data: session, status } = useSession();
+  const status = "authenticated";
   const router = useRouter();
 
   // useEffect(() => {
