@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box, Button } from '@mui/material';
 import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Dashboard as DashboardIcon, Login as LoginIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material';
 import AuthButton from './AuthButton';
+import { useSession, signOut } from 'next-auth/react'; // Add this import
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,29 +15,21 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [drawerOpen, setDrawerOpen] = useState(true);
-  // const { data: session, status } = useSession();
-  const status = "authenticated";
+  const { data: session, status } = useSession(); // Use next-auth hook
   const router = useRouter();
 
-  // useEffect(() => {
-  //   console.log('Session status:', status);
-  //   console.log('Session data:', session);
-  //   if (status === 'unauthenticated') {
-  //     router.push('/login');
-  //   }
-  // }, [session, status, router]);
-
   useEffect(() => {
+    if (status === 'unauthenticated') {
       router.push('/login');
-  }, [router]);
-
+    }
+  }, [status, router]);
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
   };
 
   const handleLogout = () => {
-    //signOut();
+    signOut(); // Use next-auth signOut function
   };
 
   const menuItems = [
