@@ -3,43 +3,14 @@
 import React, { useState, ReactNode, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signIn, signOut, useSession } from "next-auth/react";
 import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box, Button } from '@mui/material';
 import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Dashboard as DashboardIcon, Login as LoginIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material';
-//import SignIn from "@/components/SignIn"
+import AuthButton from './AuthButton';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-function AuthButton() {
-  const { data: session } = useSession();
-
-  const buttonStyle = {
-    color: 'inherit',
-    '&:hover': {
-      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    },
-  };
-
-  if (session) {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <Typography variant="body1" sx={{ mr: 2 }}>
-          {session?.user?.name}
-        </Typography>
-        <Button sx={buttonStyle} onClick={() => signOut()}>Sign out</Button>
-      </Box>
-    );
-  }
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-      <Typography variant="body1" sx={{ mr: 2 }}>
-      </Typography>
-      <Button sx={buttonStyle} onClick={() => signIn()}>Sign in</Button>
-    </Box>
-  );
-}
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [drawerOpen, setDrawerOpen] = useState(true);
