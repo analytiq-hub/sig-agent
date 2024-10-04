@@ -2,6 +2,7 @@
 
 import { signIn, signOut, useSession } from "next-auth/react";
 import { Typography, Box, Button } from '@mui/material';
+import { ExitToApp as LogoutIcon, Login as LoginIcon } from '@mui/icons-material';
 
 function AuthButton() {
   const { data: session } = useSession();
@@ -19,7 +20,7 @@ function AuthButton() {
         <Typography variant="body1" sx={{ mr: 2 }}>
           {session?.user?.name}
         </Typography>
-        <Button sx={buttonStyle} onClick={() => signOut()}>Sign out</Button>
+        <Button sx={buttonStyle} startIcon={<LogoutIcon /> }onClick={() => signOut()}>Sign out</Button>
       </Box>
     );
   }
@@ -27,7 +28,7 @@ function AuthButton() {
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <Typography variant="body1" sx={{ mr: 2 }}>
       </Typography>
-      <Button sx={buttonStyle} onClick={() => signIn()}>Sign in</Button>
+      <Button sx={buttonStyle} startIcon={<LoginIcon />} onClick={() => signIn()}>Sign in</Button>
     </Box>
   );
 }
