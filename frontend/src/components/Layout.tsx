@@ -17,17 +17,21 @@ function AuthButton() {
 
   if (session) {
     return (
-      <>
-        {session?.user?.name} <br />
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Typography variant="body1" sx={{ mr: 2 }}>
+          {session?.user?.name}
+        </Typography>
         <Button color="inherit" onClick={() => signOut()}>Sign out</Button>
-      </>
+      </Box>
     );
   }
   return (
-    <>
-      Not signed in <br />
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <Typography variant="body1" sx={{ mr: 2 }}>
+        Not signed in
+      </Typography>
       <Button color="inherit" onClick={() => signIn()}>Sign in</Button>
-    </>
+    </Box>
   );
 }
 
