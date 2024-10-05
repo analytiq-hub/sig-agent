@@ -2,7 +2,6 @@ import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import { JWT } from "next-auth/jwt";
 import { Account } from "next-auth";
-import type { Session } from "next-auth";
 import { Session } from "next-auth";
 
 interface CustomSession extends Session {
