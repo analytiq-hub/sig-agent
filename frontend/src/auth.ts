@@ -12,7 +12,7 @@ interface CustomSession extends Session {
   accessToken?: string;
 }
 
-export const authOptions = {
+const authOptions = {
     secret: process.env.NEXTAUTH_SECRET ?? "", // Needed else we get JWT Google error
     providers: [
       GithubProvider({
@@ -42,6 +42,8 @@ export const authOptions = {
     }
   };
  
+  export const handler = NextAuth(authOptions);
+
 // export const { handlers, auth, signIn, signOut } = NextAuth({
 //   adapter: MongoDBAdapter(client),
 //   providers: [],
