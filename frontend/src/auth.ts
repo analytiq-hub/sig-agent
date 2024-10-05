@@ -42,9 +42,4 @@ const authOptions = {
     }
   };
  
-  export const handlers = NextAuth(authOptions);
-
-// export const { handlers, auth, signIn, signOut } = NextAuth({
-//   adapter: MongoDBAdapter(client),
-//   providers: [],
-// })
+export const handlers = NextAuth(authOptions);
