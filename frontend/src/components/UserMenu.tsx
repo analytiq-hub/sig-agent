@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Avatar, Menu, MenuItem, IconButton } from '@mui/material';
+import { Avatar, Menu, MenuItem, IconButton, Divider, Typography } from '@mui/material';
 import { Settings as SettingsIcon, ExitToApp as LogoutIcon } from '@mui/icons-material';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
@@ -39,10 +39,16 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
         onClose={handleClose}
         onClick={handleClose}
       >
+        <MenuItem sx={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+          <Typography variant="subtitle1">{user?.name || 'User'}</Typography>
+          <Typography variant="body2" color="text.secondary">{user?.email || ''}</Typography>
+        </MenuItem>
+        <Divider />
         <MenuItem component={Link} href="/settings">
           <SettingsIcon fontSize="small" sx={{ mr: 1 }} />
           Settings
         </MenuItem>
+        <Divider />
         <MenuItem onClick={handleLogout}>
           <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
           Log out
