@@ -1,20 +1,19 @@
-import NextAuth from "next-auth"
+import NextAuth, { NextAuthOptions } from "next-auth"
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import client from "./lib/mongodb"
 
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import { JWT } from "next-auth/jwt";
-import { Account } from "next-auth";
-import { Session } from "next-auth";
+import { Account, Session } from "next-auth";
 
 interface CustomSession extends Session {
   accessToken?: string;
 }
 
-const authOptions = {
+const authOptions: NextAuthOptions = {
     session: {
-        strategy: 'jwt',
+        strategy: 'jwt' as const,
     },
     adapter: MongoDBAdapter(client),
     secret: process.env.NEXTAUTH_SECRET ?? "", // Needed else we get JWT Google error
