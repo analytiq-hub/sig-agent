@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Box, Typography, Button, Divider } from '@mui/material';
-import LoginForm from '@/components/LoginForm';
+import AuthForm from '@/components/AuthForm';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
@@ -91,7 +91,7 @@ export default function LoginPage() {
           {error}
         </Typography>
       )}
-      <LoginForm 
+      <AuthForm 
         onLogin={handleLogin} 
         onRegister={handleRegister} 
         isLoginMode={isLoginMode} 
