@@ -3,6 +3,14 @@ import Layout from '@/components/Layout';
 import { getServerSession } from "next-auth/next"
 import SessionProvider from "@/components/SessionProvider"
 
+export const metadata = {
+  title: 'Doc Proxy',
+  description: 'Smart Document Router',
+  icons: {
+    icon: '/favicon.ico',
+  },
+};
+
 export default async function RootLayout({
   children,
 }: {
