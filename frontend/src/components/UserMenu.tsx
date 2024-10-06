@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Avatar, Menu, MenuItem, IconButton, Divider, Typography } from '@mui/material';
+import { Avatar, Menu, MenuItem, IconButton, Divider, Typography, Tooltip } from '@mui/material';
 import { Settings as SettingsIcon, ExitToApp as LogoutIcon } from '@mui/icons-material';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
@@ -28,20 +28,32 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
     handleClose();
   };
 
+  const getInitials = (name: string | null | undefined): string => {
+    if (!name) return 'U';
+    return name.split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <>
-      <IconButton 
-        onClick={handleClick} 
-        size="small" 
-        sx={{ ml: 2 }}
-        aria-label={`User menu for ${user?.name || 'User'}`}
-      >
-        <Avatar 
-          alt={user?.name || 'User'} 
-          src={user?.image || ''} 
-          title={user?.name || 'User'}
-        />
-      </IconButton>
+      <Tooltip title={user?.name || 'User'}>
+        <IconButton 
+          onClick={handleClick} 
+          size="small" 
+          sx={{ ml: 2 }}
+          aria-label={`User menu for ${user?.name || 'User'}`}
+        >
+          <Avatar 
+            alt={user?.name || 'User'} 
+            src={user?.image || ''}
+          >
+            {getInitials(user?.name)}
+          </Avatar>
+        </IconButton>
+      </Tooltip>
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
