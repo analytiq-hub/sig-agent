@@ -30,8 +30,17 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
 
   return (
     <>
-      <IconButton onClick={handleClick} size="small" sx={{ ml: 2 }}>
-        <Avatar alt={user?.name || 'User'} src={user?.image || ''} />
+      <IconButton 
+        onClick={handleClick} 
+        size="small" 
+        sx={{ ml: 2 }}
+        aria-label={`User menu for ${user?.name || 'User'}`}
+      >
+        <Avatar 
+          alt={user?.name || 'User'} 
+          src={user?.image || ''} 
+          title={user?.name || 'User'}
+        />
       </IconButton>
       <Menu
         anchorEl={anchorEl}
