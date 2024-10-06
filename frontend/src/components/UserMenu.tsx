@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState } from 'react';
 import { Avatar, Menu, MenuItem, IconButton, Divider, Typography, Tooltip } from '@mui/material';
 import { Settings as SettingsIcon, ExitToApp as LogoutIcon } from '@mui/icons-material';
