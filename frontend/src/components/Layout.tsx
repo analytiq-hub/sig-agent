@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box, Button } from '@mui/material';
 import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Dashboard as DashboardIcon, Login as LoginIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material';
-import AuthButton from './AuthButton';
+//import AuthButtonSocialMedia from './AuthButtonSocialMedia'; // Enable for social media-only login
 import { useSession, signOut } from 'next-auth/react'; // Add this import
 
 interface LayoutProps {
@@ -69,7 +69,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               Sign In
             </Button>
           )}
-          {/* <AuthButton /> */ /* Enable for social media-only login */}
+          {/* <AuthButtonSocialMedia /> */ /* Enable for social media-only login */}
         </Toolbar>
       </AppBar>
       <Drawer

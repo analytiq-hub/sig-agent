@@ -4,7 +4,7 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import { Typography, Box, Button } from '@mui/material';
 import { ExitToApp as LogoutIcon, Login as LoginIcon } from '@mui/icons-material';
 
-function AuthButtonSocialMedia() {
+function AuthButtonSocialMediaOnly() {
   const { data: session } = useSession();
 
   const buttonStyle = {
@@ -33,4 +33,4 @@ function AuthButtonSocialMedia() {
   );
 }
 
-export default AuthButtonSocialMedia;
+export default AuthButtonSocialMediaOnly;
