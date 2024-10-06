@@ -65,7 +65,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               Logout
             </Button>
           ) : (
-            <Button color="inherit" component={Link} href="/login" startIcon={<LoginIcon />}>
+            <Button color="inherit" component={Link} href="/signin" startIcon={<LoginIcon />}>
               Login
             </Button>
           )}
