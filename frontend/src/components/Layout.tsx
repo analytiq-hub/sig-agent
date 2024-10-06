@@ -33,6 +33,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     setDrawerOpen(!drawerOpen);
   };
 
+  const handleLogout = () => {
+    signOut(); // Use next-auth signOut function
+  };
+
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, href: '/dashboard' },
     { text: 'Upload', icon: <UploadIcon />, href: '/upload' },
