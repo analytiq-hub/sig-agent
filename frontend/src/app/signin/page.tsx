@@ -9,7 +9,7 @@ import { signIn } from 'next-auth/react';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import GoogleIcon from '@mui/icons-material/Google';
 
-export default function LoginPage() {
+export default function SigninPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoginMode, setIsLoginMode] = useState(true);
   const router = useRouter();
@@ -84,7 +84,7 @@ export default function LoginPage() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 8 }}>
       <Typography component="h1" variant="h5">
-        {isLoginMode ? 'Login' : 'Register'}
+        {isLoginMode ? 'Sign In' : 'Register'}
       </Typography>
       {error && (
         <Typography color="error" sx={{ mt: 2 }}>
