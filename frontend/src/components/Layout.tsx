@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box} from '@mui/material';
 import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, Dashboard as DashboardIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material';
-//import AuthButtonSocialMedia from './AuthButtonSocialMedia'; // Enable for social media-only login
-import AuthButton from './AuthButton'; // Enable for social media-only login
-import { useSession } from 'next-auth/react'; // Add this import
+import AuthButton from './AuthButton';
+import { useSession } from 'next-auth/react';
+import UserMenu from './UserMenu'; // Add this import
 
 interface LayoutProps {
   children: ReactNode;
@@ -57,8 +57,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Doc Proxy
           </Typography>
-          <AuthButton />
-          {/* <AuthButtonSocialMedia /> */ /* Enable for social media-only login */}
+          {session ? (
+            <UserMenu user={session?.user} />
+          ) : (
+            <AuthButton />
+          )}
         </Toolbar>
       </AppBar>
       <Drawer
