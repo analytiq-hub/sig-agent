@@ -3,11 +3,11 @@
 import React, { useState, ReactNode, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box, Button } from '@mui/material';
-import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Dashboard as DashboardIcon, Login as LoginIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material';
+import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box} from '@mui/material';
+import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, Dashboard as DashboardIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material';
 //import AuthButtonSocialMedia from './AuthButtonSocialMedia'; // Enable for social media-only login
 import AuthButton from './AuthButton'; // Enable for social media-only login
-import { useSession, signOut } from 'next-auth/react'; // Add this import
+import { useSession } from 'next-auth/react'; // Add this import
 
 interface LayoutProps {
   children: ReactNode;
@@ -31,10 +31,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
-  };
-
-  const handleLogout = () => {
-    signOut(); // Use next-auth signOut function
   };
 
   const menuItems = [
