@@ -62,14 +62,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Typography>
           {status === 'authenticated' ? (
             <Button color="inherit" onClick={handleLogout} startIcon={<LogoutIcon />}>
-              Logout
+              Sign Out
             </Button>
           ) : (
             <Button color="inherit" component={Link} href="/signin" startIcon={<LoginIcon />}>
-              Login
+              Sign In
             </Button>
           )}
-          <AuthButton />
+          {/* <AuthButton /> */ /* Enable for social media-only login */}
         </Toolbar>
       </AppBar>
       <Drawer
