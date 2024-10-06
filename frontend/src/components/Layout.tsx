@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, Box, Button } from '@mui/material';
 import { Menu as MenuIcon, Upload as UploadIcon, List as ListIcon, ExitToApp as LogoutIcon, Dashboard as DashboardIcon, Login as LoginIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material';
 //import AuthButtonSocialMedia from './AuthButtonSocialMedia'; // Enable for social media-only login
+import AuthButton from './AuthButton'; // Enable for social media-only login
 import { useSession, signOut } from 'next-auth/react'; // Add this import
 
 interface LayoutProps {
@@ -32,10 +33,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     setDrawerOpen(!drawerOpen);
   };
 
-  const handleLogout = () => {
-    signOut(); // Use next-auth signOut function
-  };
-
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, href: '/dashboard' },
     { text: 'Upload', icon: <UploadIcon />, href: '/upload' },
@@ -60,15 +57,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Doc Proxy
           </Typography>
-          {status === 'authenticated' ? (
-            <Button color="inherit" onClick={handleLogout} startIcon={<LogoutIcon />}>
-              Sign Out
-            </Button>
-          ) : (
-            <Button color="inherit" component={Link} href="/signin" startIcon={<LoginIcon />}>
-              Sign In
-            </Button>
-          )}
+          <AuthButton />
           {/* <AuthButtonSocialMedia /> */ /* Enable for social media-only login */}
         </Toolbar>
       </AppBar>
