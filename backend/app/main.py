@@ -91,6 +91,7 @@ class LoginData(BaseModel):
 
 class TokenData(BaseModel):
     user_id: str
+    user_name: str
     email: str
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -104,11 +105,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
         userId: str = payload.get("userId")
+        userName: str = payload.get("userName")
         email: str = payload.get("email")
-        logger.info(f"userId: {userId}, email: {email}")
-        if userId is None or email is None:
+        logger.info(f"get_current_user(): userId: {userId}, userName: {userName}, email: {email}")
+        if userId is None or userName is None or email is None:
             raise credentials_exception
-        token_data = TokenData(user_id=userId, email=email)
+        token_data = TokenData(user_id=userId, user_name=userName, email=email)
         logger.info(f"token_data: {token_data}")
     except JWTError as e:
         logger.error(f"JWTError: {str(e)}")
@@ -279,9 +281,9 @@ async def lookup_pdf(
 async def list_pdfs(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
-    current_user: User = Depends(get_current_user)
+    user: User = Depends(get_current_user)
 ):
-    logger.info(f"Listing PDFs for user: {current_user.email}")
+    logger.info(f"Listing PDFs for user: {user}")
     cursor = pdf_collection.find().sort("upload_date", 1).skip(skip).limit(limit)
     documents = await cursor.to_list(length=limit)
     
