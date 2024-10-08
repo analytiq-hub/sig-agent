@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
 import { ApiSession } from '@/app/types/ApiSession';
@@ -18,11 +18,7 @@ const Dashboard: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    fetchFiles();
-  }, [currentPage]);
-
-  const fetchFiles = async () => {
+  const fetchFiles = useCallback(async () => {
     try {
       if (session?.apiAccessToken) {
         const response = await axios.get<File[]>(
@@ -40,7 +36,11 @@ const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Error fetching files:', error);
     }
-  };
+  }, [currentPage, session?.apiAccessToken]);
+
+  useEffect(() => {
+    fetchFiles();
+  }, [currentPage, fetchFiles]);
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
