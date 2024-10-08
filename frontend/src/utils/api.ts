@@ -10,16 +10,6 @@ const api = axios.create({
   withCredentials: true,  // This is the important line
 });
 
-export const login = async (username: string, password: string) => {
-  const response = await api.post('/token', { username, password });
-  return response.data;
-};
-
-export const register = async (username: string, password: string) => {
-  const response = await api.post('/register', { username, password });
-  return response.data;
-};
-
 export const uploadFile = async (file: File, token: string) => {
   const formData = new FormData();
   formData.append('file', file);
