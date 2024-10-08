@@ -35,13 +35,13 @@ const authOptions: NextAuthOptions = {
         // Generate our own access token
         if (!token.apiAccessToken) {
           token.apiAccessToken = jwt.sign(
-            { userId: token.sub, email: token.email },
+            { userId: token.sub, userName: token.name, email: token.email },
             process.env.JWT_SECRET!, // Make sure to set this in your environment variables
             { expiresIn: '1h' } // Set an expiration time as needed
           );
         }
 
-        console.log('token1', token);
+        console.log('token', token);
         return token
       },
       async session({ session, token }: { session: Session; token: JWT }) {
