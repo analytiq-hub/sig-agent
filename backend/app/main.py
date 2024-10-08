@@ -15,7 +15,6 @@ from typing import Optional
 import os
 import logging
 import json
-import bcrypt
 from dotenv import load_dotenv
 
 # Load the .env file
@@ -119,109 +118,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         logger.error(f"JWTError: {str(e)}")
         raise credentials_exception
     return token_data
-
-# Hash a password using bcrypt
-def get_password_hash(password):
-    pwd_bytes = password.encode('utf-8')
-    salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(password=pwd_bytes, salt=salt)
-    return hashed_password.decode('utf-8')  # Return as string for storage
-
-# Check if the provided password matches the stored password (hashed)
-def verify_password(plain_password, hashed_password):
-    password_byte_enc = plain_password.encode('utf-8')
-    hashed_password_bytes = hashed_password.encode('utf-8')
-    return bcrypt.checkpw(password=password_byte_enc, hashed_password=hashed_password_bytes)
-
-async def get_user(username: str):
-    user_dict = await user_collection.find_one({"username": username})
-    if user_dict:
-        return UserInDB(**user_dict)
-
-async def authenticate_user(username: str, password: str):
-    user = await get_user(username)
-    if not user:
-        return False
-    if not verify_password(password, user.hashed_password):
-        return False
-    return user
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(UTC) + expires_delta
-    else:
-        expire = datetime.now(UTC) + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-# async def get_current_user(session: str = Depends(cookie_scheme)):
-#     credentials_exception = HTTPException(
-#         status_code=status.HTTP_401_UNAUTHORIZED,
-#         detail="Could not validate credentials",
-#         headers={"WWW-Authenticate": "Bearer"},
-#     )
-#     try:
-#         payload = jwt.decode(session, SECRET_KEY, algorithms=[ALGORITHM])
-#         username: str = payload.get("sub")
-#         if username is None:
-#             raise credentials_exception
-#     except JWTError:
-#         raise credentials_exception
-#     user = await get_user(username)
-#     if user is None:
-#         raise credentials_exception
-#     return user
-
-# Authentication endpoints
-@app.post("/register", response_model=User)
-async def register(user_data: UserRegister):
-    # Log the full user data as JSON
-    logger.info(f"Registering new user: {json.dumps(user_data.dict(), default=str, indent=2)}")
-
-    # Validate input
-    if not user_data.username or not user_data.password:
-        logger.error("Registration failed: Missing username or password")
-        raise HTTPException(status_code=400, detail="Username and password are required")
-
-    user = await get_user(user_data.username)
-    if user:
-        logger.error(f"Registration failed: Username '{user_data.username}' already exists")
-        raise HTTPException(status_code=400, detail="Username already registered")
-
-    hashed_password = get_password_hash(user_data.password)
-    user_dict = {
-        "username": user_data.username,
-        "hashed_password": hashed_password,
-        "email": None,
-        "full_name": None,
-        "disabled": False
-    }
-    
-    try:
-        await user_collection.insert_one(user_dict)
-        logger.info(f"New user registered: {json.dumps({**user_dict, 'hashed_password': '[REDACTED]'}, default=str, indent=2)}")
-        return User(**user_dict)
-    except Exception as e:
-        logger.error(f"Registration failed: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-@app.post("/token", response_model=Token)
-async def login(login_data: LoginData):
-    logger.info(f"Login attempt for user: {login_data.username}")
-    user = await authenticate_user(login_data.username, login_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
 
 # PDF management endpoints
 @app.post("/upload")
