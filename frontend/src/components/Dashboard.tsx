@@ -18,6 +18,8 @@ const Dashboard: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
+  console.log('session', session);
+
   const fetchFiles = useCallback(async () => {
     try {
       if (session?.apiAccessToken) {

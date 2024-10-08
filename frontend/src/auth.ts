@@ -41,7 +41,7 @@ const authOptions: NextAuthOptions = {
           );
         }
 
-        console.log('token', token);
+        console.log('token1', token);
         return token
       },
       async session({ session, token }: { session: Session; token: JWT }) {

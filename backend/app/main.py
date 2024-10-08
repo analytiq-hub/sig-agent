@@ -90,7 +90,7 @@ class LoginData(BaseModel):
     password: str
 
 class TokenData(BaseModel):
-    id: str
+    user_id: str
     email: str
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -103,12 +103,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     logger.info(f"token: {token}")
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
-        id: str = payload.get("id")
+        userId: str = payload.get("userId")
         email: str = payload.get("email")
-        logger.info(f"id: {id}, email: {email}")
-        if id is None or email is None:
+        logger.info(f"userId: {userId}, email: {email}")
+        if userId is None or email is None:
             raise credentials_exception
-        token_data = TokenData(id=id, email=email)
+        token_data = TokenData(user_id=userId, email=email)
         logger.info(f"token_data: {token_data}")
     except JWTError as e:
         logger.error(f"JWTError: {str(e)}")
@@ -281,7 +281,7 @@ async def list_pdfs(
     limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_user)
 ):
-    logger.info(f"Listing PDFs for user: {current_user.username}")
+    logger.info(f"Listing PDFs for user: {current_user.email}")
     cursor = pdf_collection.find().sort("upload_date", 1).skip(skip).limit(limit)
     documents = await cursor.to_list(length=limit)
     
