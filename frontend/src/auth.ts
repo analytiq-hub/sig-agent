@@ -10,7 +10,7 @@ import jwt from 'jsonwebtoken'; // You'll need to install this package
 
 interface CustomSession extends Session {
   providerAccessToken?: string;
-  customAccessToken?: string;
+  apiAccessToken?: string;
 }
 
 const authOptions: NextAuthOptions = {
@@ -37,8 +37,8 @@ const authOptions: NextAuthOptions = {
         }
 
         // Generate our own access token
-        if (!token.customAccessToken) {
-          token.customAccessToken = jwt.sign(
+        if (!token.apiAccessToken) {
+          token.apiAccessToken = jwt.sign(
             { userId: token.sub, email: token.email },
             process.env.JWT_SECRET!, // Make sure to set this in your environment variables
             { expiresIn: '1h' } // Set an expiration time as needed
@@ -51,7 +51,7 @@ const authOptions: NextAuthOptions = {
       async session({ session, token }: { session: Session; token: JWT }) {
         // Send properties to the client, like an access_token from a provider.
         (session as CustomSession).providerAccessToken = token.providerAccessToken as string;
-        (session as CustomSession).customAccessToken = token.customAccessToken as string;
+        (session as CustomSession).apiAccessToken = token.apiAccessToken as string;
         console.log('session', session);
         return session as CustomSession;
       }
