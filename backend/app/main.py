@@ -16,6 +16,10 @@ import os
 import logging
 import json
 import bcrypt
+from dotenv import load_dotenv
+
+# Load the .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -28,7 +32,7 @@ DOCP_AWS_ACCT = os.getenv("DOCP_AWS_ACCT", "")
 
 # JWT settings
 SECRET_KEY = "aabx88sasda8903232234,2342,svc" # Obsolete
-JWT_SECRET = "aabx88sasda8903232234,2342,svc" # TO DO: read from .env
+JWT_SECRET = os.getenv("JWT_SECRET")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
