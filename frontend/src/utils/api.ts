@@ -7,6 +7,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,  // This is the important line
 });
 
 export const login = async (username: string, password: string) => {

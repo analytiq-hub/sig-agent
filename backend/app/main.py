@@ -1,7 +1,7 @@
 # main.py
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import APIKeyCookie
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -57,8 +57,8 @@ logger.info(f"Connected to {DOCP_MONGODB_URI}")
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# Use this instead of OAuth2PasswordBearer
+cookie_scheme = APIKeyCookie(name="session")
 
 # Ensure the 'pdfs' directory exists
 os.makedirs("pdfs", exist_ok=True)
@@ -121,14 +121,14 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(session: str = Depends(cookie_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(session, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -190,7 +190,10 @@ async def login(login_data: LoginData):
 
 # PDF management endpoints
 @app.post("/upload")
-async def upload_pdf(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
+async def upload_pdf(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
     if not file.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
     
@@ -230,7 +233,10 @@ async def retrieve_pdf(current_user: User = Depends(get_current_user)):
     return FileResponse(document["path"], filename=document["filename"])
 
 @app.get("/lookup/{document_id}")
-async def lookup_pdf(document_id: str, current_user: User = Depends(get_current_user)):
+async def lookup_pdf(
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
     logger.info(f"Looking up PDF for user: {current_user.username}")
     document = await pdf_collection.find_one({"_id": ObjectId(document_id)})
     
