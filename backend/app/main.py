@@ -26,9 +26,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Environment variables
-DOCP_MONGODB_URI = os.getenv("DOCP_MONGODB_URI", "mongodb://localhost:27017")
-DOCP_ENV = os.getenv("DOCP_ENV", "dev")
-DOCP_AWS_ACCT = os.getenv("DOCP_AWS_ACCT", "")
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+ENV = os.getenv("ENV", "dev")
 
 # JWT settings
 SECRET_KEY = "aabx88sasda8903232234,2342,svc" # Obsolete
@@ -55,12 +54,12 @@ app.add_middleware(
 )
 
 # MongoDB connection
-client = AsyncIOMotorClient(DOCP_MONGODB_URI)
-db = client.prod if DOCP_ENV == "prod" else client.dev
+client = AsyncIOMotorClient(MONGODB_URI)
+db = client.prod if ENV == "prod" else client.dev
 pdf_collection = db.pdf_manager.pdfs
 user_collection = db.pdf_manager.users
 
-logger.info(f"Connected to {DOCP_MONGODB_URI}")
+logger.info(f"Connected to {MONGODB_URI}")
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
