@@ -6,12 +6,8 @@ import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import { JWT } from "next-auth/jwt";
 import { Account, Session } from "next-auth";
-import jwt from 'jsonwebtoken'; // You'll need to install this package
-
-interface CustomSession extends Session {
-  providerAccessToken?: string;
-  apiAccessToken?: string;
-}
+import jwt from 'jsonwebtoken';
+import { ApiSession } from '@/app/types/ApiSession';
 
 const authOptions: NextAuthOptions = {
     session: {
@@ -50,10 +46,10 @@ const authOptions: NextAuthOptions = {
       },
       async session({ session, token }: { session: Session; token: JWT }) {
         // Send properties to the client, like an access_token from a provider.
-        (session as CustomSession).providerAccessToken = token.providerAccessToken as string;
-        (session as CustomSession).apiAccessToken = token.apiAccessToken as string;
+        (session as ApiSession).providerAccessToken = token.providerAccessToken as string;
+        (session as ApiSession).apiAccessToken = token.apiAccessToken as string;
         console.log('session', session);
-        return session as CustomSession;
+        return session as ApiSession;
       }
     }
   };

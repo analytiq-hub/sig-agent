@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useSession } from 'next-auth/react';
+import { ApiSession } from '@/app/types/ApiSession';
 
 interface File {
   id: string;
@@ -10,6 +12,7 @@ interface File {
 }
 
 const Dashboard: React.FC = () => {
+  const { data: session } = useSession() as { data: ApiSession | null };
   const [files, setFiles] = useState<File[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -21,14 +24,19 @@ const Dashboard: React.FC = () => {
 
   const fetchFiles = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get<File[]>(`http://localhost:8000/list?skip=${(currentPage - 1) * itemsPerPage}&limit=${itemsPerPage}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setFiles(response.data);
-      // Assuming the API returns a total count. If not, you'll need to modify this.
-      const totalCount = parseInt(response.headers['x-total-count'] || '0', 10);
-      setTotalPages(Math.ceil(totalCount / itemsPerPage));
+      if (session?.apiAccessToken) {
+        const response = await axios.get<File[]>(
+          `http://localhost:8000/list?skip=${(currentPage - 1) * itemsPerPage}&limit=${itemsPerPage}`,
+          {
+            headers: { Authorization: `Bearer ${session.apiAccessToken}` }
+          }
+        );
+        setFiles(response.data);
+        const totalCount = parseInt(response.headers['x-total-count'] || '0', 10);
+        setTotalPages(Math.ceil(totalCount / itemsPerPage));
+      } else {
+        console.error('No API access token available');
+      }
     } catch (error) {
       console.error('Error fetching files:', error);
     }
