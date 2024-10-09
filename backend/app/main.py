@@ -2,7 +2,6 @@
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body, Security
 from fastapi.security import APIKeyCookie
-from fastapi.security import OAuth2PasswordBearer
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,8 +36,6 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 app = FastAPI()
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 security = HTTPBearer()
 
 # CORS configuration
