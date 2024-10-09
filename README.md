@@ -21,6 +21,7 @@
   cd backend/app
   uvicorn main:app --host 0.0.0.0 --port 8000
   ```
+  * To test in Swagger UI, open [http://localhost:8000/docs], authenticate with a user token, and execute any API calls.
 * Open [http://localhost:8000/docs] to experiment with the FastAPI
 * Start the front end
   ```bash
