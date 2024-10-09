@@ -1,8 +1,9 @@
 # main.py
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body, Security
 from fastapi.security import APIKeyCookie
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -38,6 +39,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 app = FastAPI()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+security = HTTPBearer()
 
 # CORS configuration
 origins = [
@@ -96,7 +98,7 @@ class LoginData(BaseModel):
 class TokenData(BaseModel):
     user_id: str
     user_name: str
-    email: str
+    token_type: str
 
 class ApiToken(BaseModel):
     id: str
@@ -123,11 +125,32 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         logger.info(f"get_current_user(): userId: {userId}, userName: {userName}, email: {email}")
         if userId is None or userName is None or email is None:
             raise credentials_exception
-        token_data = TokenData(user_id=userId, user_name=userName, email=email)
+        token_data = TokenData(user_id=userId, user_name=userName, token_type="jwt")
     except JWTError as e:
         logger.error(f"JWTError: {str(e)}")
         raise credentials_exception
     return token_data
+
+async def get_current_user2(credentials: HTTPAuthorizationCredentials = Security(security)):
+    token = credentials.credentials
+    try:
+        # First, try to validate as JWT
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        userId: str = payload.get("userId")
+        userName: str = payload.get("userName")
+        email: str = payload.get("email")
+        logger.info(f"get_current_user2(): userId: {userId}, userName: {userName}, email: {email}")
+        if userName is None:
+            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        return TokenData(user_id=userId, user_name=userName, token_type="jwt")
+    except JWTError:
+        # If JWT validation fails, check if it's an API token
+        api_token = api_token_collection.find_one({"token": token})
+        if api_token:
+            return TokenData(user_id=api_token["user_id"],
+                             user_name=api_token["name"],
+                             token_type="api")
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
 # PDF management endpoints
 @app.post("/upload")
@@ -190,7 +213,7 @@ async def lookup_pdf(
 async def list_pdfs(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
-    user: User = Depends(get_current_user)
+    user: User = Depends(get_current_user2)
 ):
     logger.info(f"Listing PDFs for user: {user}")
     cursor = pdf_collection.find().sort("upload_date", 1).skip(skip).limit(limit)
