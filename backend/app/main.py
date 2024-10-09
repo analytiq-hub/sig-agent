@@ -9,7 +9,6 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 from datetime import datetime, timedelta, UTC
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from pydantic import BaseModel
 from typing import Optional
 import os
@@ -59,9 +58,6 @@ user_collection = db.pdf_manager.users
 api_token_collection = db.api_tokens
 
 logger.info(f"Connected to {MONGODB_URI}")
-
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Use this instead of OAuth2PasswordBearer
 cookie_scheme = APIKeyCookie(name="session")
