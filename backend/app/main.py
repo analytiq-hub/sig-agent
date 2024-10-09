@@ -134,7 +134,7 @@ async def upload_pdf(
         "filename": file.filename,
         "path": file_path,
         "upload_date": datetime.now(UTC),
-        "uploaded_by": current_user.username,
+        "uploaded_by": current_user.user_name,
         "retrieved_by": []
     }
     
@@ -143,9 +143,9 @@ async def upload_pdf(
 
 @app.get("/retrieve")
 async def retrieve_pdf(current_user: User = Depends(get_current_user)):
-    logger.info(f"Retrieving PDF for user: {current_user.username}")
+    logger.info(f"Retrieving PDF for user: {current_user.user_name}")
     document = await pdf_collection.find_one(
-        {"retrieved_by": {"$nin": [current_user.username]}},
+        {"retrieved_by": {"$nin": [current_user.user_name]}},
         sort=[("upload_date", 1)]
     )
     
@@ -154,7 +154,7 @@ async def retrieve_pdf(current_user: User = Depends(get_current_user)):
     
     await pdf_collection.update_one(
         {"_id": document["_id"]},
-        {"$push": {"retrieved_by": current_user.username}}
+        {"$push": {"retrieved_by": current_user.user_name}}
     )
     
     return FileResponse(document["path"], filename=document["filename"])
@@ -164,7 +164,7 @@ async def lookup_pdf(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    logger.info(f"Looking up PDF for user: {current_user.username}")
+    logger.info(f"Looking up PDF for user: {current_user.user_name}")
     document = await pdf_collection.find_one({"_id": ObjectId(document_id)})
     
     if not document:
