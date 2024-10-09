@@ -110,28 +110,28 @@ class ApiToken(BaseModel):
 class CreateApiTokenRequest(BaseModel):
     name: str
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=401,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    logger.info(f"token: {token}")
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
-        userId: str = payload.get("userId")
-        userName: str = payload.get("userName")
-        email: str = payload.get("email")
-        logger.info(f"get_current_user(): userId: {userId}, userName: {userName}, email: {email}")
-        if userId is None or userName is None or email is None:
-            raise credentials_exception
-        token_data = TokenData(user_id=userId, user_name=userName, token_type="jwt")
-    except JWTError as e:
-        logger.error(f"JWTError: {str(e)}")
-        raise credentials_exception
-    return token_data
+# async def get_current_user(token: str = Depends(oauth2_scheme)):
+#     credentials_exception = HTTPException(
+#         status_code=401,
+#         detail="Could not validate credentials",
+#         headers={"WWW-Authenticate": "Bearer"},
+#     )
+#     logger.info(f"token: {token}")
+#     try:
+#         payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
+#         userId: str = payload.get("userId")
+#         userName: str = payload.get("userName")
+#         email: str = payload.get("email")
+#         logger.info(f"get_current_user(): userId: {userId}, userName: {userName}, email: {email}")
+#         if userId is None or userName is None or email is None:
+#             raise credentials_exception
+#         token_data = TokenData(user_id=userId, user_name=userName, token_type="jwt")
+#     except JWTError as e:
+#         logger.error(f"JWTError: {str(e)}")
+#         raise credentials_exception
+#     return token_data
 
-async def get_current_user2(credentials: HTTPAuthorizationCredentials = Security(security)):
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
     try:
         # First, try to validate as JWT
@@ -139,13 +139,14 @@ async def get_current_user2(credentials: HTTPAuthorizationCredentials = Security
         userId: str = payload.get("userId")
         userName: str = payload.get("userName")
         email: str = payload.get("email")
-        logger.info(f"get_current_user2(): userId: {userId}, userName: {userName}, email: {email}")
+        logger.info(f"get_current_user(): userId: {userId}, userName: {userName}, email: {email}")
         if userName is None:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
         return TokenData(user_id=userId, user_name=userName, token_type="jwt")
     except JWTError:
         # If JWT validation fails, check if it's an API token
-        api_token = api_token_collection.find_one({"token": token})
+        api_token = await api_token_collection.find_one({"token": token})
+        logger.info(f"get_current_user(): api_token: {api_token}")
         if api_token:
             return TokenData(user_id=api_token["user_id"],
                              user_name=api_token["name"],
@@ -213,7 +214,7 @@ async def lookup_pdf(
 async def list_pdfs(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
-    user: User = Depends(get_current_user2)
+    user: User = Depends(get_current_user)
 ):
     logger.info(f"Listing PDFs for user: {user}")
     cursor = pdf_collection.find().sort("upload_date", 1).skip(skip).limit(limit)
