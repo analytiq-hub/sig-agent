@@ -1,7 +1,6 @@
 # main.py
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body, Security
-from fastapi.security import APIKeyCookie
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -58,9 +57,6 @@ user_collection = db.pdf_manager.users
 api_token_collection = db.api_tokens
 
 logger.info(f"Connected to {MONGODB_URI}")
-
-# Use this instead of OAuth2PasswordBearer
-cookie_scheme = APIKeyCookie(name="session")
 
 # Ensure the 'pdfs' directory exists
 os.makedirs("pdfs", exist_ok=True)
