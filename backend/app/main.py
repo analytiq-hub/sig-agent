@@ -83,14 +83,6 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-class UserRegister(BaseModel):
-    username: str
-    password: str
-
-class LoginData(BaseModel):
-    username: str
-    password: str
-
 class TokenData(BaseModel):
     user_id: str
     user_name: str
