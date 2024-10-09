@@ -16,6 +16,7 @@ import os
 import logging
 import json
 from dotenv import load_dotenv
+import secrets
 
 # Load the .env file
 load_dotenv()
@@ -57,6 +58,7 @@ client = AsyncIOMotorClient(MONGODB_URI)
 db = client.prod if ENV == "prod" else client.dev
 pdf_collection = db.pdf_manager.pdfs
 user_collection = db.pdf_manager.users
+api_token_collection = db.api_tokens
 
 logger.info(f"Connected to {MONGODB_URI}")
 
@@ -96,6 +98,16 @@ class TokenData(BaseModel):
     user_name: str
     email: str
 
+class ApiToken(BaseModel):
+    id: str
+    user_id: str
+    name: str
+    token: str
+    created_at: datetime
+
+class CreateApiTokenRequest(BaseModel):
+    name: str
+
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=401,
@@ -112,7 +124,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         if userId is None or userName is None or email is None:
             raise credentials_exception
         token_data = TokenData(user_id=userId, user_name=userName, email=email)
-        logger.info(f"token_data: {token_data}")
     except JWTError as e:
         logger.error(f"JWTError: {str(e)}")
         raise credentials_exception
@@ -195,6 +206,51 @@ async def list_pdfs(
         }
         for doc in documents
     ]
+
+@app.post("/api/tokens", response_model=ApiToken)
+async def create_api_token(
+    request: CreateApiTokenRequest,
+    current_user: TokenData = Depends(get_current_user)
+):
+    logger.info(f"Creating API token for user: {current_user} name: {request.name}")
+    token = secrets.token_urlsafe(32)
+    new_token = {
+        "user_id": current_user.user_id,
+        "name": request.name,
+        "token": token,
+        "created_at": datetime.now(UTC)
+    }
+    result = await api_token_collection.insert_one(new_token)
+    new_token["id"] = str(result.inserted_id)
+    return new_token
+
+@app.get("/api/tokens", response_model=list[ApiToken])
+async def list_api_tokens(current_user: TokenData = Depends(get_current_user)):
+    cursor = api_token_collection.find({"user_id": current_user.user_id})
+    tokens = await cursor.to_list(length=None)
+    return [
+        {
+            "id": str(token["_id"]),
+            "user_id": token["user_id"],
+            "name": token["name"],
+            "token": token["token"],
+            "created_at": token["created_at"]
+        }
+        for token in tokens
+    ]
+
+@app.delete("/api/tokens/{token_id}")
+async def delete_api_token(
+    token_id: str,
+    current_user: TokenData = Depends(get_current_user)
+):
+    result = await api_token_collection.delete_one({
+        "_id": ObjectId(token_id),
+        "user_id": current_user.user_id
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Token not found")
+    return {"message": "Token deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn
