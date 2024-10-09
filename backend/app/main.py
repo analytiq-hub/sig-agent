@@ -30,7 +30,6 @@ MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 ENV = os.getenv("ENV", "dev")
 
 # JWT settings
-SECRET_KEY = "aabx88sasda8903232234,2342,svc" # Obsolete
 JWT_SECRET = os.getenv("JWT_SECRET")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -132,7 +131,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
     token = credentials.credentials
     try:
         # First, try to validate as JWT
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
         userId: str = payload.get("userId")
         userName: str = payload.get("userName")
         email: str = payload.get("email")
