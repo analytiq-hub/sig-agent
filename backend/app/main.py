@@ -70,20 +70,13 @@ cookie_scheme = APIKeyCookie(name="session")
 os.makedirs("pdfs", exist_ok=True)
 
 # Pydantic models
+# class User(BaseModel):
+#     username: str
+#     email: Optional[str] = None
+#     full_name: Optional[str] = None
+#     disabled: Optional[bool] = None
+
 class User(BaseModel):
-    username: str
-    email: Optional[str] = None
-    full_name: Optional[str] = None
-    disabled: Optional[bool] = None
-
-class UserInDB(User):
-    hashed_password: str
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-class TokenData(BaseModel):
     user_id: str
     user_name: str
     token_type: str
@@ -109,15 +102,17 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
         logger.info(f"get_current_user(): userId: {userId}, userName: {userName}, email: {email}")
         if userName is None:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-        return TokenData(user_id=userId, user_name=userName, token_type="jwt")
+        return User(user_id=userId,
+                    user_name=userName,
+                    token_type="jwt")
     except JWTError:
         # If JWT validation fails, check if it's an API token
         api_token = await api_token_collection.find_one({"token": token})
         logger.info(f"get_current_user(): api_token: {api_token}")
         if api_token:
-            return TokenData(user_id=api_token["user_id"],
-                             user_name=api_token["name"],
-                             token_type="api")
+            return User(user_id=api_token["user_id"],
+                        user_name=api_token["name"],
+                        token_type="api")
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
 # PDF management endpoints
@@ -201,7 +196,7 @@ async def list_pdfs(
 @app.post("/api/tokens", response_model=ApiToken)
 async def create_api_token(
     request: CreateApiTokenRequest,
-    current_user: TokenData = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     logger.info(f"Creating API token for user: {current_user} name: {request.name}")
     token = secrets.token_urlsafe(32)
@@ -216,7 +211,7 @@ async def create_api_token(
     return new_token
 
 @app.get("/api/tokens", response_model=list[ApiToken])
-async def list_api_tokens(current_user: TokenData = Depends(get_current_user)):
+async def list_api_tokens(current_user: User = Depends(get_current_user)):
     cursor = api_token_collection.find({"user_id": current_user.user_id})
     tokens = await cursor.to_list(length=None)
     return [
@@ -233,7 +228,7 @@ async def list_api_tokens(current_user: TokenData = Depends(get_current_user)):
 @app.delete("/api/tokens/{token_id}")
 async def delete_api_token(
     token_id: str,
-    current_user: TokenData = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     result = await api_token_collection.delete_one({
         "_id": ObjectId(token_id),
