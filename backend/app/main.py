@@ -106,27 +106,6 @@ class ApiToken(BaseModel):
 class CreateApiTokenRequest(BaseModel):
     name: str
 
-# async def get_current_user(token: str = Depends(oauth2_scheme)):
-#     credentials_exception = HTTPException(
-#         status_code=401,
-#         detail="Could not validate credentials",
-#         headers={"WWW-Authenticate": "Bearer"},
-#     )
-#     logger.info(f"token: {token}")
-#     try:
-#         payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
-#         userId: str = payload.get("userId")
-#         userName: str = payload.get("userName")
-#         email: str = payload.get("email")
-#         logger.info(f"get_current_user(): userId: {userId}, userName: {userName}, email: {email}")
-#         if userId is None or userName is None or email is None:
-#             raise credentials_exception
-#         token_data = TokenData(user_id=userId, user_name=userName, token_type="jwt")
-#     except JWTError as e:
-#         logger.error(f"JWTError: {str(e)}")
-#         raise credentials_exception
-#     return token_data
-
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
     try:
