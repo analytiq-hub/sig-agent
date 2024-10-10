@@ -2,6 +2,7 @@
 
 import React from 'react';
 import ApiTokenManager from '@/components/ApiTokenManager';
+import Link from 'next/link';
 
 const UserSettingsPage: React.FC = () => {
   return (
@@ -16,9 +17,9 @@ const UserSettingsPage: React.FC = () => {
             Set up secure API authentication using access tokens
           </p>
         </div>
-        <button className="bg-white border border-gray-300 rounded px-4 py-2">
+        <Link href="/settings/user/access-tokens" className="bg-white border border-gray-300 rounded px-4 py-2">
           Manage
-        </button>
+        </Link>
       </div>
       <ApiTokenManager />
     </div>
