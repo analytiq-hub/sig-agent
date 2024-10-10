@@ -14,20 +14,6 @@ interface ApiToken {
   expiration?: string;
 }
 
-// Styled button component
-const StyledButton = styled(Button)`
-  background-color: #007bff;
-  color: white;
-  padding: 10px 20px;
-  font-size: 16px;
-  font-weight: bold;
-  text-transform: none;
-  border-radius: 5px;
-  &:hover {
-    background-color: #0056b3;
-  }
-`;
-
 const AccessTokenManager: React.FC = () => {
   const { data: session } = useSession() as { data: ApiSession | null };
   const [tokens, setTokens] = useState<ApiToken[]>([]);
@@ -90,7 +76,7 @@ const AccessTokenManager: React.FC = () => {
 
   return (
     <div>
-      <StyledButton onClick={() => setOpenModal(true)}>Generate new token</StyledButton>
+      <Button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"onClick={() => setOpenModal(true)}>Generate new token</Button>
       <List>
         {tokens.map((token) => (
           <ListItem key={token.id} secondaryAction={
@@ -131,12 +117,7 @@ const AccessTokenManager: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenModal(false)}>Cancel</Button>
-          <StyledButton 
-            onClick={createToken} 
-            disabled={!newTokenName}
-          >
-            Generate
-          </StyledButton>
+          <Button onClick={createToken} disabled={!newTokenName}>Generate</Button>
         </DialogActions>
       </Dialog>
     </div>
