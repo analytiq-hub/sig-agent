@@ -1,15 +1,7 @@
 'use client'
 
-import React, { useState } from 'react';
-import { TextField, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import AccessTokenManager from '@/components/AccessTokenManager';
 
-interface AccessToken {
-  id: string;
-  name: string;
-  expiration: number | null;
-  createdAt: string;
-}
 
 const AccessTokensPage: React.FC = () => {
   return (
