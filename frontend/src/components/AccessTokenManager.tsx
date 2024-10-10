@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextField, List, ListItem, ListItemText, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button, TextField, List, ListItem, ListItemText, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useSession } from 'next-auth/react';
 import { ApiSession } from '@/app/types/ApiSession';
 import axios from 'axios';
-import styled from '@emotion/styled';
 
 interface ApiToken {
   id: string;
@@ -76,21 +75,35 @@ const AccessTokenManager: React.FC = () => {
 
   return (
     <div>
-      <Button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"onClick={() => setOpenModal(true)}>Generate new token</Button>
-      <List>
-        {tokens.map((token) => (
-          <ListItem key={token.id} secondaryAction={
-            <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteToken(token.id)}>
-              <DeleteIcon />
-            </IconButton>
-          }>
-            <ListItemText 
-              primary={token.name} 
-              secondary={`Created: ${new Date(token.created_at).toLocaleString()} | Expiration: ${token.expiration ? new Date(token.expiration).toLocaleString() : 'Never'}`} 
-            />
-          </ListItem>
-        ))}
-      </List>
+      <Button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mb-4" onClick={() => setOpenModal(true)}>
+        Generate new token
+      </Button>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Comment</TableCell>
+              <TableCell>Creation</TableCell>
+              <TableCell>Expiration</TableCell>
+              <TableCell align="right">Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {tokens.map((token) => (
+              <TableRow key={token.id}>
+                <TableCell>{token.name}</TableCell>
+                <TableCell>{new Date(token.created_at).toLocaleString()}</TableCell>
+                <TableCell>{token.expiration ? new Date(token.expiration).toLocaleString() : 'Never'}</TableCell>
+                <TableCell align="right">
+                  <IconButton aria-label="delete" onClick={() => handleDeleteToken(token.id)}>
+                    <DeleteIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <Dialog open={openModal} onClose={() => setOpenModal(false)}>
         <DialogTitle>Generate new token</DialogTitle>
