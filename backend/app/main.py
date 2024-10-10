@@ -16,6 +16,10 @@ import json
 from dotenv import load_dotenv
 import secrets
 
+import api
+import models
+import schemas
+
 # Load the .env file
 load_dotenv()
 
