@@ -85,7 +85,7 @@ const AccessTokenManager: React.FC = () => {
               <TableCell>Comment</TableCell>
               <TableCell>Creation</TableCell>
               <TableCell>Expiration</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableCell></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -93,8 +93,8 @@ const AccessTokenManager: React.FC = () => {
               <TableRow key={token.id} sx={{ '&:last-child td, &:last-child th': { border: 0 }, height: '30px' }}>
                 <TableCell sx={{ py: 0.5 }}>{token.name}</TableCell>
                 <TableCell sx={{ py: 0.5 }}>{new Date(token.created_at).toLocaleString()}</TableCell>
-                <TableCell sx={{ py: 0.5 }}>{token.expiration}</TableCell>
-                <TableCell sx={{ py: 0.5 }}>
+                <TableCell sx={{ py: 0.5 }}>{token.expiration ? new Date(token.expiration).toLocaleString() : 'Never'}</TableCell>
+                <TableCell sx={{ py: 0.5 }} align="right">
                   <IconButton aria-label="delete" onClick={() => handleDeleteToken(token.id)}>
                     <DeleteIcon />
                   </IconButton>
