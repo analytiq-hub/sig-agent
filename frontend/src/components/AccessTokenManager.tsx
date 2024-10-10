@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextField, List, ListItem, ListItemText, IconButton } from '@mui/material';
+import { Button, TextField, List, ListItem, ListItemText, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useSession } from 'next-auth/react';
 import { ApiSession } from '@/app/types/ApiSession';
@@ -10,12 +10,15 @@ interface ApiToken {
   name: string;
   token: string;
   created_at: string;
+  expiration?: string;
 }
 
 const AccessTokenManager: React.FC = () => {
   const { data: session } = useSession() as { data: ApiSession | null };
   const [tokens, setTokens] = useState<ApiToken[]>([]);
+  const [openModal, setOpenModal] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');
+  const [tokenLifetime, setTokenLifetime] = useState('90');
 
   useEffect(() => {
     fetchTokens();
@@ -35,7 +38,10 @@ const AccessTokenManager: React.FC = () => {
   const createToken = async () => {
     try {
       const response = await axios.post('http://localhost:8000/api/tokens', 
-        { name: newTokenName.trim() }, 
+        { 
+          name: newTokenName.trim(),
+          lifetime: parseInt(tokenLifetime)
+        }, 
         {   
           headers: { 
             Authorization: `Bearer ${session?.apiAccessToken}`,
@@ -44,7 +50,9 @@ const AccessTokenManager: React.FC = () => {
         }
       );
       setTokens([...tokens, response.data]);
+      setOpenModal(false);
       setNewTokenName('');
+      setTokenLifetime('90');
     } catch (error) {
       console.error('Error creating token:', error);
     }
@@ -67,13 +75,7 @@ const AccessTokenManager: React.FC = () => {
 
   return (
     <div>
-      <h2>API Tokens</h2>
-      <TextField
-        label="New Token Name"
-        value={newTokenName}
-        onChange={(e) => setNewTokenName(e.target.value)}
-      />
-      <Button onClick={createToken} disabled={!newTokenName}>Create Token</Button>
+      <Button onClick={() => setOpenModal(true)}>Generate new token</Button>
       <List>
         {tokens.map((token) => (
           <ListItem key={token.id} secondaryAction={
@@ -81,10 +83,42 @@ const AccessTokenManager: React.FC = () => {
               <DeleteIcon />
             </IconButton>
           }>
-            <ListItemText primary={token.name} secondary={`Created: ${new Date(token.created_at).toLocaleString()}`} />
+            <ListItemText 
+              primary={token.name} 
+              secondary={`Created: ${new Date(token.created_at).toLocaleString()} | Expiration: ${token.expiration ? new Date(token.expiration).toLocaleString() : 'Never'}`} 
+            />
           </ListItem>
         ))}
       </List>
+
+      <Dialog open={openModal} onClose={() => setOpenModal(false)}>
+        <DialogTitle>Generate new token</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Comment"
+            fullWidth
+            variant="outlined"
+            value={newTokenName}
+            onChange={(e) => setNewTokenName(e.target.value)}
+            placeholder="What's this token for?"
+          />
+          <TextField
+            margin="dense"
+            label="Lifetime (days)"
+            type="number"
+            fullWidth
+            variant="outlined"
+            value={tokenLifetime}
+            onChange={(e) => setTokenLifetime(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenModal(false)}>Cancel</Button>
+          <Button onClick={createToken} disabled={!newTokenName}>Generate</Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
