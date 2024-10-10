@@ -79,7 +79,7 @@ const AccessTokenManager: React.FC = () => {
         Generate new token
       </Button>
       <TableContainer component={Paper}>
-        <Table>
+        <Table size="small">
           <TableHead>
             <TableRow>
               <TableCell>Comment</TableCell>
@@ -90,11 +90,11 @@ const AccessTokenManager: React.FC = () => {
           </TableHead>
           <TableBody>
             {tokens.map((token) => (
-              <TableRow key={token.id}>
-                <TableCell>{token.name}</TableCell>
-                <TableCell>{new Date(token.created_at).toLocaleString()}</TableCell>
-                <TableCell>{token.expiration ? new Date(token.expiration).toLocaleString() : 'Never'}</TableCell>
-                <TableCell align="right">
+              <TableRow key={token.id} sx={{ '&:last-child td, &:last-child th': { border: 0 }, height: '30px' }}>
+                <TableCell sx={{ py: 0.5 }}>{token.name}</TableCell>
+                <TableCell sx={{ py: 0.5 }}>{new Date(token.created_at).toLocaleString()}</TableCell>
+                <TableCell sx={{ py: 0.5 }}>{token.expiration}</TableCell>
+                <TableCell sx={{ py: 0.5 }}>
                   <IconButton aria-label="delete" onClick={() => handleDeleteToken(token.id)}>
                     <DeleteIcon />
                   </IconButton>
