@@ -55,7 +55,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Doc Proxy
+            <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>
+              Doc Proxy
+            </Link>
           </Typography>
           {session ? (
             <UserMenu user={session?.user} />
