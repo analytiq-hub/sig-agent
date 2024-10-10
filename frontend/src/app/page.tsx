@@ -1,4 +1,4 @@
-import "@/app/globals.css";
+import "@/styles/globals.css";
 import React from 'react';
 import Link from 'next/link';
 
