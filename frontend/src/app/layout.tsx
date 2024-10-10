@@ -1,3 +1,4 @@
+import "@/styles/globals.css";
 import React from 'react';
 import Layout from '@/components/Layout';
 import { getServerSession } from "next-auth/next"
