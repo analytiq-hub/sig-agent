@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react';
-import ApiTokenManager from '@/components/ApiTokenManager';
 import Link from 'next/link';
 
 const UserSettingsPage: React.FC = () => {
@@ -21,7 +20,6 @@ const UserSettingsPage: React.FC = () => {
           Manage
         </Link>
       </div>
-      <ApiTokenManager />
     </div>
   );
 };
