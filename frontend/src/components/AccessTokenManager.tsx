@@ -4,6 +4,7 @@ import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useSession } from 'next-auth/react';
 import { ApiSession } from '@/app/types/ApiSession';
 import axios from 'axios';
+import styled from '@emotion/styled';
 
 interface ApiToken {
   id: string;
@@ -12,6 +13,20 @@ interface ApiToken {
   created_at: string;
   expiration?: string;
 }
+
+// Styled button component
+const StyledButton = styled(Button)`
+  background-color: #007bff;
+  color: white;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  text-transform: none;
+  border-radius: 5px;
+  &:hover {
+    background-color: #0056b3;
+  }
+`;
 
 const AccessTokenManager: React.FC = () => {
   const { data: session } = useSession() as { data: ApiSession | null };
@@ -75,7 +90,7 @@ const AccessTokenManager: React.FC = () => {
 
   return (
     <div>
-      <Button onClick={() => setOpenModal(true)}>Generate new token</Button>
+      <StyledButton onClick={() => setOpenModal(true)}>Generate new token</StyledButton>
       <List>
         {tokens.map((token) => (
           <ListItem key={token.id} secondaryAction={
@@ -116,7 +131,12 @@ const AccessTokenManager: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenModal(false)}>Cancel</Button>
-          <Button onClick={createToken} disabled={!newTokenName}>Generate</Button>
+          <StyledButton 
+            onClick={createToken} 
+            disabled={!newTokenName}
+          >
+            Generate
+          </StyledButton>
         </DialogActions>
       </Dialog>
     </div>
