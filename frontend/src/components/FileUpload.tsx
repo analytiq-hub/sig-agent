@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useDropzone, DropzoneOptions } from 'react-dropzone';
 import { Button, Typography, Box, CircularProgress } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useSession } from 'next-auth/react';
@@ -34,13 +34,19 @@ const FileUpload: React.FC = () => {
     Promise.all(readFiles).then(setFiles);
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const dropzoneOptions: DropzoneOptions = {
     onDrop,
     accept: {
       'application/pdf': ['.pdf']
     },
-    multiple: true
-  });
+    multiple: true,
+    // Add these properties to satisfy the DropzoneOptions type
+    onDragEnter: () => {},
+    onDragOver: () => {},
+    onDragLeave: () => {},
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone(dropzoneOptions);
 
   const handleUpload = async () => {
     if (files.length === 0) return;
