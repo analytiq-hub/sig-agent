@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
@@ -30,13 +32,20 @@ const FileList: React.FC = () => {
             headers: { Authorization: `Bearer ${session.apiAccessToken}` }
           }
         );
+
+        // Log the entire headers object
         console.log('response headers', response.headers);
-        setFiles(response.data);
+
+        // Access specific headers
+        const totalCount = parseInt(response.headers['x-total-count'] || '0', 10);
         const skipCount = parseInt(response.headers['x-skip'] || '0', 10);
-        const totalRowsCount = parseInt(response.headers['x-total-count'] || '0', 10);
+        console.log('Total Count:', totalCount);
+        console.log('Skip Count:', skipCount);
+
+        setFiles(response.data);
         setSkipRows(skipCount);
         setCountRows(response.data.length);
-        setTotalRows(totalRowsCount);
+        setTotalRows(totalCount);
       } else {
         console.error('No API access token available');
       }
