@@ -1,54 +1,114 @@
-import React, { useState } from 'react';
-import { Button, Typography, Box } from '@mui/material';
-import { Upload as UploadIcon } from '@mui/icons-material';
+import React, { useCallback, useState } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Button, Typography, Box, CircularProgress } from '@mui/material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { useSession } from 'next-auth/react';
+import axios from 'axios';
 
-interface FileUploadProps {
-  onUpload: (file: File) => void;
+interface FileWithContent {
+  name: string;
+  content: string;
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+const FileUpload: React.FC = () => {
+  const [files, setFiles] = useState<FileWithContent[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const { data: session } = useSession();
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      setSelectedFile(event.target.files[0]);
-    }
-  };
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    const readFiles = acceptedFiles.map(file => 
+      new Promise<FileWithContent>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          resolve({
+            name: file.name,
+            content: reader.result as string
+          });
+        };
+        reader.readAsDataURL(file);
+      })
+    );
 
-  const handleUpload = () => {
-    if (selectedFile) {
-      onUpload(selectedFile);
+    Promise.all(readFiles).then(setFiles);
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf']
+    },
+    multiple: true
+  });
+
+  const handleUpload = async () => {
+    if (files.length === 0) return;
+
+    setUploading(true);
+    setUploadStatus(null);
+
+    try {
+      const response = await axios.post('http://localhost:8000/upload', { files }, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.apiAccessToken}`
+        }
+      });
+      setUploadStatus(`Successfully uploaded ${response.data.uploaded_files.length} file(s)`);
+      setFiles([]);
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      setUploadStatus('Error uploading files. Please try again.');
+    } finally {
+      setUploading(false);
     }
   };
 
   return (
-    <Box>
-      <input
-        accept="application/pdf"
-        style={{ display: 'none' }}
-        id="raised-button-file"
-        type="file"
-        onChange={handleFileChange}
-      />
-      <label htmlFor="raised-button-file">
-        <Button variant="contained" component="span" startIcon={<UploadIcon />}>
-          Select PDF
-        </Button>
-      </label>
-      {selectedFile && (
-        <Typography variant="body1" sx={{ mt: 2 }}>
-          Selected file: {selectedFile.name}
-        </Typography>
+    <Box sx={{ textAlign: 'center' }}>
+      <Box
+        {...getRootProps()}
+        sx={{
+          border: '2px dashed #cccccc',
+          borderRadius: 2,
+          p: 3,
+          mb: 2,
+          cursor: 'pointer',
+          '&:hover': {
+            backgroundColor: '#f0f0f0'
+          }
+        }}
+      >
+        <input {...getInputProps()} />
+        <CloudUploadIcon sx={{ fontSize: 48, mb: 2 }} />
+        {isDragActive ? (
+          <Typography>Drop the PDF files here ...</Typography>
+        ) : (
+          <Typography>Drag 'n' drop some PDF files here, or click to select files</Typography>
+        )}
+      </Box>
+      {files.length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle1">Selected files:</Typography>
+          {files.map((file) => (
+            <Typography key={file.name}>{file.name}</Typography>
+          ))}
+        </Box>
       )}
       <Button
         variant="contained"
         color="primary"
         onClick={handleUpload}
-        disabled={!selectedFile}
-        sx={{ mt: 2 }}
+        disabled={files.length === 0 || uploading}
+        startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <CloudUploadIcon />}
       >
-        Upload
+        {uploading ? 'Uploading...' : 'Upload'}
       </Button>
+      {uploadStatus && (
+        <Typography sx={{ mt: 2 }} color={uploadStatus.includes('Error') ? 'error' : 'success'}>
+          {uploadStatus}
+        </Typography>
+      )}
     </Box>
   );
 };
