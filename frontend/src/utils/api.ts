@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { FileWithContent } from '@/app/types/FileWithContent';
 
 const API_URL = 'http://localhost:8000';
 
@@ -10,12 +11,11 @@ const api = axios.create({
   withCredentials: true,  // This is the important line
 });
 
-export const uploadFile = async (file: File, token: string) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  const response = await api.post('/upload', formData, {
+
+export const uploadFiles = async (files: FileWithContent[], token: string) => {
+  const response = await api.post('/upload', { files }, {
     headers: {
-      'Content-Type': 'multipart/form-data',
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
   });

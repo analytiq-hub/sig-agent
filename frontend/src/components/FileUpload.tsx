@@ -5,6 +5,7 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 import axios from 'axios';
+import { uploadFiles } from '@/utils/api';
 
 interface FileWithContent {
   name: string;
