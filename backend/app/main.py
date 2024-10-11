@@ -81,9 +81,8 @@ class ApiToken(BaseModel):
     id: str
     user_id: str
     name: str
-    token: str
     created_at: datetime
-
+    lifetime: int
 class CreateApiTokenRequest(BaseModel):
     name: str
     lifetime: int
@@ -212,17 +211,18 @@ async def create_api_token(
 async def list_api_tokens(current_user: User = Depends(get_current_user)):
     cursor = api_token_collection.find({"user_id": current_user.user_id})
     tokens = await cursor.to_list(length=None)
-    return [
+    ret = [
         {
             "id": str(token["_id"]),
             "user_id": token["user_id"],
             "name": token["name"],
-            "token": token["token"],
             "created_at": token["created_at"],
             "lifetime": token["lifetime"]
         }
         for token in tokens
     ]
+    logger.info(f"list_api_tokens(): {ret}")
+    return ret
 
 @app.delete("/api/tokens/{token_id}")
 async def delete_api_token(

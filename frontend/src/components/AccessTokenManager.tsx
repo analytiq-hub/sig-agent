@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextField, List, ListItem, ListItemText, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell } from '@mui/material';
+import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useSession } from 'next-auth/react';
 import { ApiSession } from '@/app/types/ApiSession';
@@ -8,9 +8,8 @@ import axios from 'axios';
 interface ApiToken {
   id: string;
   name: string;
-  token: string;
   created_at: string;
-  expiration?: string;
+  lifetime?: number;
 }
 
 const AccessTokenManager: React.FC = () => {
@@ -94,7 +93,7 @@ const AccessTokenManager: React.FC = () => {
               <TableRow key={token.id} sx={{ '&:last-child td, &:last-child th': { border: 0 }, height: '30px' }}>
                 <TableCell sx={{ py: 0.5 }}>{token.name}</TableCell>
                 <TableCell sx={{ py: 0.5 }}>{new Date(token.created_at).toLocaleString()}</TableCell>
-                <TableCell sx={{ py: 0.5 }}>{token.expiration ? new Date(token.expiration).toLocaleString() : 'Never'}</TableCell>
+                <TableCell sx={{ py: 0.5 }}>{token.lifetime ? new Date(token.created_at).toLocaleString() + ' + ' + token.lifetime + ' days' : 'Never'}</TableCell>
                 <TableCell sx={{ py: 0.5 }} align="right">
                   <IconButton aria-label="delete" onClick={() => handleDeleteToken(token.id)}>
                     <DeleteIcon />
