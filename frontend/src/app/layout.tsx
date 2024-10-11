@@ -1,8 +1,9 @@
 import "@/styles/globals.css";
 import React from 'react';
-import Layout from '@/components/Layout';
 import { getServerSession } from "next-auth/next"
 import SessionProvider from "@/components/SessionProvider"
+import Layout from '@/components/Layout';
+import ThemeRegistry from '@/components/ThemeRegistry';
 
 export const metadata = {
   title: 'Doc Proxy',
@@ -21,9 +22,11 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
-      <SessionProvider session={session}>
-          <Layout>{children}</Layout>
-        </SessionProvider>
+        <ThemeRegistry>
+          <SessionProvider session={session}>
+            <Layout>{children}</Layout>
+          </SessionProvider>
+        </ThemeRegistry>
       </body>
     </html>
   );
