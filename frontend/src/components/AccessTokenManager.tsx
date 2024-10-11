@@ -107,8 +107,15 @@ const AccessTokenManager: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {tokens.map((token) => (
-              <TableRow key={token.id} sx={{ '&:last-child td, &:last-child th': { border: 0 }, height: '30px' }}>
+            {tokens.map((token, index) => (
+              <TableRow 
+                key={token.id} 
+                sx={{ 
+                  '&:last-child td, &:last-child th': { border: 0 }, 
+                  height: '30px',
+                  backgroundColor: index % 2 === 0 ? 'inherit' : '#f5f5f5'  // Add zebra striping
+                }}
+              >
                 <TableCell sx={{ py: 0.5 }}>{token.name}</TableCell>
                 <TableCell sx={{ py: 0.5 }}>{new Date(token.created_at).toLocaleString()}</TableCell>
                 <TableCell sx={{ py: 0.5 }}>
