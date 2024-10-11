@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
@@ -170,19 +170,34 @@ async def list_pdfs(
     user: User = Depends(get_current_user)
 ):
     logger.info(f"Listing PDFs for user: {user}")
+    
+    # Get the total count of documents
+    total_count = await pdf_collection.count_documents({})
+    
     cursor = pdf_collection.find().sort("upload_date", 1).skip(skip).limit(limit)
     documents = await cursor.to_list(length=limit)
     
-    return [
-        {
-            "id": str(doc["_id"]),
-            "filename": doc["filename"],
-            "upload_date": doc["upload_date"],
-            "uploaded_by": doc["uploaded_by"],
-            "retrieved_by": doc["retrieved_by"]
-        }
-        for doc in documents
-    ]
+    # Create a response with headers
+    response = JSONResponse(
+        content=[
+            {
+                "id": str(doc["_id"]),
+                "filename": doc["filename"],
+                "upload_date": doc["upload_date"].isoformat(),  # Serialize to ISO format
+                "uploaded_by": doc["uploaded_by"],
+                "retrieved_by": doc["retrieved_by"]
+            }
+            for doc in documents
+        ]
+    )
+    
+    # Set the headers
+    response.headers["x-total-count"] = str(total_count)
+    response.headers["x-skip"] = str(skip)
+
+    logger.info(f"list_pdfs(): response: {response.headers}")
+    
+    return response
 
 @app.post("/api/tokens", response_model=ApiToken)
 async def create_api_token(

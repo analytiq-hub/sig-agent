@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 
 interface File {
   id: string;
@@ -16,13 +16,10 @@ interface File {
 const FileList: React.FC = () => {
   const { data: session } = useSession() as { data: AppSession | null };
   const [files, setFiles] = useState<File[]>([]);
-  const [totalRows, setTotalRows] = useState(0);
-  const [paginationModel, setPaginationModel] = useState({
-    pageSize: 10,
-    page: 0,
-  });
-
-  console.log('session', session);
+  const [skipRows, setSkipRows] = useState<number>(0);
+  const [countRows, setCountRows] = useState<number>(0);
+  const [totalRows, setTotalRows] = useState<number>(0);
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -33,10 +30,13 @@ const FileList: React.FC = () => {
             headers: { Authorization: `Bearer ${session.apiAccessToken}` }
           }
         );
+        console.log('response headers', response.headers);
         setFiles(response.data);
-        // Ensure the total count is correctly parsed and set
-        const totalCount = parseInt(response.headers['x-total-count'] || '0', 10);
-        setTotalRows(totalCount); // Ensure this is set correctly
+        const skipCount = parseInt(response.headers['x-skip'] || '0', 10);
+        const totalRowsCount = parseInt(response.headers['x-total-count'] || '0', 10);
+        setSkipRows(skipCount);
+        setCountRows(response.data.length);
+        setTotalRows(totalRowsCount);
       } else {
         console.error('No API access token available');
       }
@@ -47,7 +47,11 @@ const FileList: React.FC = () => {
 
   useEffect(() => {
     fetchFiles();
-  }, [paginationModel, fetchFiles]);
+  }, [fetchFiles]);
+
+  // Calculate the current range
+  const startRange = skipRows + 1;
+  const endRange = Math.min(startRange + countRows - 1, totalRows);
 
   const columns: GridColDef[] = [
     { field: 'filename', headerName: 'Filename', flex: 1 },
@@ -78,7 +82,7 @@ const FileList: React.FC = () => {
         paginationModel={paginationModel}
         onPaginationModelChange={setPaginationModel}
         pageSizeOptions={[5, 10, 25]}
-        rowCount={totalRows} // Ensure this is set to the correct total count
+        rowCount={totalRows}
         paginationMode="server"
         disableRowSelectionOnClick
         getRowId={(row) => row.id}
@@ -91,6 +95,9 @@ const FileList: React.FC = () => {
           },
         }}
       />
+      <div>
+        {totalRows > 0 ? `Showing ${startRange}-${endRange} of ${totalRows} documents` : 'No documents found'}
+      </div>
     </Box>
   );
 };
