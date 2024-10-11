@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell } from '@mui/material';
-import { Delete as DeleteIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { useSession } from 'next-auth/react';
 import { ApiSession } from '@/app/types/ApiSession';
 import axios from 'axios';
@@ -10,6 +10,7 @@ interface ApiToken {
   name: string;
   created_at: string;
   lifetime?: number;
+  token?: string; // Add this line
 }
 
 const AccessTokenManager: React.FC = () => {
@@ -18,7 +19,9 @@ const AccessTokenManager: React.FC = () => {
   const [openModal, setOpenModal] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');
   const [tokenLifetime, setTokenLifetime] = useState('90');
-  
+  const [newToken, setNewToken] = useState<ApiToken | null>(null);
+  const [showTokenModal, setShowTokenModal] = useState(false);
+
   useEffect(() => {
     const fetchTokens = async () => {
       try {
@@ -49,13 +52,28 @@ const AccessTokenManager: React.FC = () => {
           }
         }
       );
-      setTokens([...tokens, response.data]);
+      setNewToken(response.data);
+      setShowTokenModal(true);
       setOpenModal(false);
       setNewTokenName('');
       setTokenLifetime('90');
     } catch (error) {
       console.error('Error creating token:', error);
     }
+  };
+
+  const saveToken = () => {
+    if (newToken) {
+      setTokens([...tokens, newToken]);
+      setNewToken(null);
+      setShowTokenModal(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      // Optionally, you can show a success message here
+    });
   };
 
   const deleteToken = async (tokenId: string) => {
@@ -136,6 +154,23 @@ const AccessTokenManager: React.FC = () => {
         <DialogActions>
           <Button onClick={() => setOpenModal(false)}>Cancel</Button>
           <Button onClick={createToken} disabled={!newTokenName.trim()}>Generate</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* New Token Modal */}
+      <Dialog open={showTokenModal} onClose={saveToken}>
+        <DialogTitle>New Token Created</DialogTitle>
+        <DialogContent>
+          <p>Please copy your new token. You won't be able to see it again!</p>
+          <div className="flex items-center justify-between mt-2 p-2 bg-gray-100 rounded">
+            <span className="font-mono">{newToken?.token}</span>
+            <IconButton onClick={() => newToken?.token && copyToClipboard(newToken.token)}>
+              <ContentCopyIcon />
+            </IconButton>
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={saveToken}>I've copied it, save token</Button>
         </DialogActions>
       </Dialog>
     </div>

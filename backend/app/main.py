@@ -193,6 +193,7 @@ async def list_api_tokens(current_user: User = Depends(get_current_user)):
             "id": str(token["_id"]),
             "user_id": token["user_id"],
             "name": token["name"],
+            "token": token["token"],
             "created_at": token["created_at"],
             "lifetime": token["lifetime"]
         }

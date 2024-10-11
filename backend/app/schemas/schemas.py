@@ -10,8 +10,10 @@ class ApiToken(BaseModel):
     id: str
     user_id: str
     name: str
+    token: str
     created_at: datetime
     lifetime: int
+    
 class CreateApiTokenRequest(BaseModel):
     name: str
     lifetime: int
