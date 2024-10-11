@@ -82,7 +82,10 @@ const FileList: React.FC = () => {
         getRowId={(row) => row.id}
         sx={{
           '& .MuiDataGrid-row:nth-of-type(odd)': {
-            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+            backgroundColor: 'rgba(0, 0, 0, 0.04)', // Zebra stripe color
+          },
+          '& .MuiDataGrid-row:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.1)', // Darker gray for hover
           },
         }}
       />
