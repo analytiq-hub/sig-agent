@@ -1,11 +1,11 @@
-import ListFiles from './ListFiles';
+import FileList from './FileList';
 
 const Dashboard: React.FC = () => {
 
   return (
     <div className="dashboard">
       <h2>File Dashboard</h2>
-      <ListFiles />
+      <FileList />
     </div>
   );
 };
