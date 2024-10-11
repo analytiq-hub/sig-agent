@@ -34,7 +34,9 @@ const FileList: React.FC = () => {
           }
         );
         setFiles(response.data);
-        setTotalRows(parseInt(response.headers['x-total-count'] || '0', 10));
+        // Ensure the total count is correctly parsed and set
+        const totalCount = parseInt(response.headers['x-total-count'] || '0', 10);
+        setTotalRows(totalCount); // Ensure this is set correctly
       } else {
         console.error('No API access token available');
       }
@@ -76,7 +78,7 @@ const FileList: React.FC = () => {
         paginationModel={paginationModel}
         onPaginationModelChange={setPaginationModel}
         pageSizeOptions={[5, 10, 25]}
-        rowCount={totalRows}
+        rowCount={totalRows} // Ensure this is set to the correct total count
         paginationMode="server"
         disableRowSelectionOnClick
         getRowId={(row) => row.id}
