@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell } from '@mui/material';
+import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { useSession } from 'next-auth/react';
 import { ApiSession } from '@/app/types/ApiSession';
@@ -21,6 +21,7 @@ const AccessTokenManager: React.FC = () => {
   const [tokenLifetime, setTokenLifetime] = useState('90');
   const [newToken, setNewToken] = useState<ApiToken | null>(null);
   const [showTokenModal, setShowTokenModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTokens = async () => {
@@ -39,10 +40,16 @@ const AccessTokenManager: React.FC = () => {
 
   const createToken = async () => {
     try {
+      const trimmedName = newTokenName.trim();
+      if (tokens.some(token => token.name === trimmedName)) {
+        setError('A token with this name already exists. Please choose a different name.');
+        return;
+      }
+
       const lifetime = tokenLifetime.trim() === '' ? 0 : parseInt(tokenLifetime);
       const response = await axios.post('http://localhost:8000/api/tokens', 
         { 
-          name: newTokenName.trim(),
+          name: trimmedName,
           lifetime: lifetime
         }, 
         {   
@@ -59,6 +66,7 @@ const AccessTokenManager: React.FC = () => {
       setTokenLifetime('90');
     } catch (error) {
       console.error('Error creating token:', error);
+      setError('An error occurred while creating the token. Please try again.');
     }
   };
 
@@ -168,7 +176,7 @@ const AccessTokenManager: React.FC = () => {
       <Dialog open={showTokenModal} onClose={saveToken}>
         <DialogTitle>New Token Created</DialogTitle>
         <DialogContent>
-          <p>Please copy your new token. You won't be able to see it again!</p>
+          <p>Copy your new token. It is displayed only once.</p>
           <div className="flex items-center justify-between mt-2 p-2 bg-gray-100 rounded">
             <span className="font-mono">{newToken?.token}</span>
             <IconButton onClick={() => newToken?.token && copyToClipboard(newToken.token)}>
@@ -177,9 +185,15 @@ const AccessTokenManager: React.FC = () => {
           </div>
         </DialogContent>
         <DialogActions>
-          <Button onClick={saveToken}>I've copied it, save token</Button>
+          <Button onClick={saveToken}>Save token</Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
+        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };
