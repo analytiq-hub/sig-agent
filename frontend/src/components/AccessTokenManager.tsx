@@ -93,7 +93,11 @@ const AccessTokenManager: React.FC = () => {
               <TableRow key={token.id} sx={{ '&:last-child td, &:last-child th': { border: 0 }, height: '30px' }}>
                 <TableCell sx={{ py: 0.5 }}>{token.name}</TableCell>
                 <TableCell sx={{ py: 0.5 }}>{new Date(token.created_at).toLocaleString()}</TableCell>
-                <TableCell sx={{ py: 0.5 }}>{token.lifetime ? new Date(token.created_at).toLocaleString() + ' + ' + token.lifetime + ' days' : 'Never'}</TableCell>
+                <TableCell sx={{ py: 0.5 }}>
+                  {token.lifetime
+                    ? new Date(new Date(token.created_at).getTime() + token.lifetime * 24 * 60 * 60 * 1000).toLocaleString()
+                    : 'None'}
+                </TableCell>
                 <TableCell sx={{ py: 0.5 }} align="right">
                   <IconButton aria-label="delete" onClick={() => handleDeleteToken(token.id)}>
                     <DeleteIcon />
