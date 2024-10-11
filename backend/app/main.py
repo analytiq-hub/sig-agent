@@ -14,6 +14,7 @@ import logging
 import json
 from dotenv import load_dotenv
 import secrets
+import base64
 import analytiq_data as ad
 
 import api
@@ -35,6 +36,7 @@ ENV = os.getenv("ENV", "dev")
 JWT_SECRET = os.getenv("JWT_SECRET")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+UPLOAD_DIR = "data"
 
 app = FastAPI()
 security = HTTPBearer()
@@ -65,6 +67,15 @@ logger.info(f"Connected to {MONGODB_URI}")
 # Ensure the 'pdfs' directory exists
 os.makedirs("data", exist_ok=True)
 
+from pydantic import BaseModel
+
+class FileUpload(BaseModel):
+    name: str
+    content: str
+
+class FilesUpload(BaseModel):
+    files: List[FileUpload]
+
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
     try:
@@ -92,31 +103,32 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
 # PDF management endpoints
 @app.post("/upload")
 async def upload_pdf(
-    files: List[UploadFile] = File(...),
+    files_upload: FilesUpload = Body(...),
     current_user: User = Depends(get_current_user)
 ):
-    logger.info(f"upload_pdf(): files: {files}")
+    logger.info(f"upload_pdf(): files: {[file.name for file in files_upload.files]}")
     uploaded_files = []
-    for file in files:
-        if not file.filename.endswith('.pdf'):
-            raise HTTPException(status_code=400, detail=f"File {file.filename} is not a PDF")
+    for file in files_upload.files:
+        if not file.name.endswith('.pdf'):
+            raise HTTPException(status_code=400, detail=f"File {file.name} is not a PDF")
         
-        contents = await file.read()
-        file_path = f"pdfs/{file.filename}"
+        file_path = os.path.join(UPLOAD_DIR, file.name)
         
-        with open(file_path, "wb") as f:
-            f.write(contents)
+        # Decode and save the file
+        content = base64.b64decode(file.content.split(',')[1])
+        with open(file_path, "wb") as buffer:
+            buffer.write(content)
         
         document = {
-            "filename": file.filename,
+            "filename": file.name,
             "path": file_path,
-            "upload_date": datetime.now(UTC),
+            "upload_date": datetime.utcnow(),
             "uploaded_by": current_user.user_name,
             "retrieved_by": []
         }
         
         result = await pdf_collection.insert_one(document)
-        uploaded_files.append({"filename": file.filename, "document_id": str(result.inserted_id)})
+        uploaded_files.append({"filename": file.name, "document_id": str(result.inserted_id)})
     
     return {"uploaded_files": uploaded_files}
 

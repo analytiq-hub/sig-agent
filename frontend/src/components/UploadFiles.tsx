@@ -1,18 +1,36 @@
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button, Typography, Box, CircularProgress } from '@mui/material';
-import { CloudUpload as UploadIcon } from '@mui/icons-material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useSession } from 'next-auth/react';
 import axios from 'axios';
 
+interface FileWithContent {
+  name: string;
+  content: string;
+}
+
 const UploadFiles: React.FC = () => {
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<FileWithContent[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const { data: session } = useSession();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    setFiles(acceptedFiles);
+    const readFiles = acceptedFiles.map(file => 
+      new Promise<FileWithContent>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          resolve({
+            name: file.name,
+            content: reader.result as string
+          });
+        };
+        reader.readAsDataURL(file);
+      })
+    );
+
+    Promise.all(readFiles).then(setFiles);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -29,15 +47,10 @@ const UploadFiles: React.FC = () => {
     setUploading(true);
     setUploadStatus(null);
 
-    const formData = new FormData();
-    files.forEach((file) => {
-      formData.append('files', file);
-    });
-
     try {
-      const response = await axios.post('http://localhost:8000/upload', formData, {
+      const response = await axios.post('http://localhost:8000/upload', { files }, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${session?.apiAccessToken}`
         }
       });
@@ -67,7 +80,7 @@ const UploadFiles: React.FC = () => {
         }}
       >
         <input {...getInputProps()} />
-        <UploadIcon sx={{ fontSize: 48, mb: 2 }} />
+        <CloudUploadIcon sx={{ fontSize: 48, mb: 2 }} />
         {isDragActive ? (
           <Typography>Drop the PDF files here ...</Typography>
         ) : (
@@ -87,7 +100,7 @@ const UploadFiles: React.FC = () => {
         color="primary"
         onClick={handleUpload}
         disabled={files.length === 0 || uploading}
-        startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <UploadIcon />}
+        startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <CloudUploadIcon />}
       >
         {uploading ? 'Uploading...' : 'Upload'}
       </Button>
