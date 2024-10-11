@@ -1,6 +1,6 @@
 # main.py
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body, Security, JSONResponse
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +19,7 @@ import analytiq_data as ad
 
 import api
 import models
-from schemas import User, ApiToken, CreateApiTokenRequest
+from schemas import User, ApiToken, CreateApiTokenRequest, ListPDFsResponse
 
 # Load the .env file
 load_dotenv()
@@ -163,7 +163,7 @@ async def lookup_pdf(
     
     return FileResponse(document["path"], filename=document["filename"])
 
-@app.get("/list")
+@app.get("/list", response_model=ListPDFsResponse)
 async def list_pdfs(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
@@ -177,16 +177,20 @@ async def list_pdfs(
     cursor = pdf_collection.find().sort("upload_date", 1).skip(skip).limit(limit)
     documents = await cursor.to_list(length=limit)
     
-    return [
-        {
-            "id": str(doc["_id"]),
-            "filename": doc["filename"],
-            "upload_date": doc["upload_date"],
-            "uploaded_by": doc["uploaded_by"],
-            "retrieved_by": doc["retrieved_by"]
-        }
-        for doc in documents
-    ]
+    return ListPDFsResponse(
+        pdfs=[
+            {
+                "id": str(doc["_id"]),
+                "filename": doc["filename"],
+                "upload_date": doc["upload_date"].isoformat(),
+                "uploaded_by": doc["uploaded_by"],
+                "retrieved_by": doc["retrieved_by"]
+            }
+            for doc in documents
+        ],
+        total_count=total_count,
+        skip=skip
+    )
 
 @app.post("/api/tokens", response_model=ApiToken)
 async def create_api_token(

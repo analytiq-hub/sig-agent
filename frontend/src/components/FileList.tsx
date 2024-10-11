@@ -15,6 +15,12 @@ interface File {
   retrieved_by: string[];
 }
 
+interface ListPDFsResponse {
+  pdfs: File[];
+  total_count: number;
+  skip: number;
+}
+
 const FileList: React.FC = () => {
   const { data: session } = useSession() as { data: AppSession | null };
   const [files, setFiles] = useState<File[]>([]);
@@ -26,26 +32,17 @@ const FileList: React.FC = () => {
   const fetchFiles = useCallback(async () => {
     try {
       if (session?.apiAccessToken) {
-        const response = await axios.get<File[]>(
+        const response = await axios.get<ListPDFsResponse>(
           `http://localhost:8000/list?skip=${paginationModel.page * paginationModel.pageSize}&limit=${paginationModel.pageSize}`,
           {
             headers: { Authorization: `Bearer ${session.apiAccessToken}` }
           }
         );
 
-        // Log the entire headers object
-        console.log('response headers', response.headers);
-
-        // Access specific headers
-        const totalCount = parseInt(response.headers['x-total-count'] || '0', 10);
-        const skipCount = parseInt(response.headers['x-skip'] || '0', 10);
-        console.log('Total Count:', totalCount);
-        console.log('Skip Count:', skipCount);
-
-        setFiles(response.data);
-        setSkipRows(skipCount);
-        setCountRows(response.data.length);
-        setTotalRows(totalCount);
+        setFiles(response.data.pdfs);
+        setCountRows(response.data.pdfs.length);
+        setSkipRows(response.data.skip);
+        setTotalRows(response.data.total_count);
       } else {
         console.error('No API access token available');
       }
