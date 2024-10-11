@@ -84,7 +84,7 @@ const FileUpload: React.FC = () => {
         {isDragActive ? (
           <Typography>Drop the PDF files here ...</Typography>
         ) : (
-          <Typography>Drag 'n' drop some PDF files here, or click to select files</Typography>
+          <Typography>Drag PDF files here, or click to select files</Typography>
         )}
       </Box>
       {files.length > 0 && (
