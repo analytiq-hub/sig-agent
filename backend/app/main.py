@@ -63,15 +63,9 @@ api_token_collection = db.api_tokens
 logger.info(f"Connected to {MONGODB_URI}")
 
 # Ensure the 'pdfs' directory exists
-os.makedirs("pdfs", exist_ok=True)
+os.makedirs("data", exist_ok=True)
 
 # Pydantic models
-# class User(BaseModel):
-#     username: str
-#     email: Optional[str] = None
-#     full_name: Optional[str] = None
-#     disabled: Optional[bool] = None
-
 class User(BaseModel):
     user_id: str
     user_name: str
