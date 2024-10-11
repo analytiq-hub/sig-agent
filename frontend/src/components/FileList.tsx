@@ -70,9 +70,6 @@ const FileList: React.FC = () => {
 
   return (
     <Box sx={{ height: 400, width: '100%' }}>
-      <Typography variant="h4" gutterBottom>
-        File List
-      </Typography>
       <DataGrid
         rows={files}
         columns={columns}
