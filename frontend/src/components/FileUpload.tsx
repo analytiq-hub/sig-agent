@@ -56,13 +56,8 @@ const FileUpload: React.FC = () => {
     setUploadStatus(null);
 
     try {
-      const response = await axios.post('http://localhost:8000/upload', { files }, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.apiAccessToken}`
-        }
-      });
-      setUploadStatus(`Successfully uploaded ${response.data.uploaded_files.length} file(s)`);
+      const response = await uploadFiles(files, session?.apiAccessToken as string);
+      setUploadStatus(`Successfully uploaded ${response.uploaded_files.length} file(s)`);
       setFiles([]);
     } catch (error) {
       console.error('Error uploading files:', error);
