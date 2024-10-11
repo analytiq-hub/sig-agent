@@ -65,8 +65,9 @@ const FileList: React.FC = () => {
       field: 'upload_date',
       headerName: 'Upload Date',
       flex: 1,
-      valueGetter: (params: { row: { upload_date: string } }) =>
-        params.row ? new Date(params.row['upload_date']).toLocaleString() : '',
+      valueGetter: (params: string) =>
+        params ? new Date(params).toLocaleString()
+       : '',
     },
     { field: 'uploaded_by', headerName: 'Uploaded By', flex: 1 },
     {
