@@ -1,15 +1,15 @@
 'use client'
 
 import React from 'react';
-import Test from '@/components/Upload';
+import UploadFiles from '@/components/UploadFiles';
 
-const UploadPage: React.FC = () => {
+const UploadFilesPage: React.FC = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Upload Page</h1>
-      <Test />
+      <UploadFiles />
     </div>
   );
 };
 
-export default UploadPage
+export default UploadFilesPage
