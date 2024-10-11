@@ -86,7 +86,7 @@ const FileUpload: React.FC = () => {
           }
         }}
       >
-        <input {...getInputProps()} />
+        <input {...getInputProps()} accept="application/pdf" />
         <CloudUploadIcon sx={{ fontSize: 48, mb: 2 }} />
         {isDragActive ? (
           <Typography>Drop the PDF files here ...</Typography>
