@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { FileWithContent } from '@/app/types/FileWithContent';
+import { getSession } from 'next-auth/react';
+import { AppSession } from '@/app/types/AppSession';
 
 const API_URL = 'http://localhost:8000';
 
@@ -11,14 +13,16 @@ const api = axios.create({
   withCredentials: true,  // This is the important line
 });
 
+api.interceptors.request.use(async (config) => {
+  const session = await getSession() as AppSession | null;
+  if (session?.apiAccessToken) {
+    config.headers.Authorization = `Bearer ${session.apiAccessToken}`;
+  }
+  return config;
+});
 
-export const uploadFiles = async (files: FileWithContent[], token: string) => {
-  const response = await api.post('/upload', { files }, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const uploadFiles = async (files: FileWithContent[]) => {
+  const response = await api.post('/upload', { files });
   return response.data;
 };
 

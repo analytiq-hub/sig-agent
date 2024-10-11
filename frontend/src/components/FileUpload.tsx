@@ -4,7 +4,6 @@ import { Button, Typography, Box, CircularProgress } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
-import axios from 'axios';
 import { uploadFiles } from '@/utils/api';
 
 interface FileWithContent {
@@ -56,7 +55,7 @@ const FileUpload: React.FC = () => {
     setUploadStatus(null);
 
     try {
-      const response = await uploadFiles(files, session?.apiAccessToken as string);
+      const response = await uploadFiles(files);
       setUploadStatus(`Successfully uploaded ${response.uploaded_files.length} file(s)`);
       setFiles([]);
     } catch (error) {
