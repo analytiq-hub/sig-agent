@@ -41,7 +41,7 @@ const FileList: React.FC = () => {
     } catch (error) {
       console.error('Error fetching files:', error);
     }
-  }, [paginationModel, session?.apiAccessToken]);
+  }, [paginationModel.page, paginationModel.pageSize, session?.apiAccessToken]);
 
   useEffect(() => {
     fetchFiles();
