@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
-import { ApiSession } from '@/app/types/ApiSession';
+import { AppSession } from '@/app/types/AppSession';
 
 interface File {
   id: string;
@@ -12,7 +12,7 @@ interface File {
 }
 
 const Dashboard: React.FC = () => {
-  const { data: session } = useSession() as { data: ApiSession | null };
+  const { data: session } = useSession() as { data: AppSession | null };
   const [files, setFiles] = useState<File[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);

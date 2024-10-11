@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { useSession } from 'next-auth/react';
-import { ApiSession } from '@/app/types/ApiSession';
+import { AppSession } from '@/app/types/AppSession';
 import axios from 'axios';
 
 interface ApiToken {
@@ -14,7 +14,7 @@ interface ApiToken {
 }
 
 const AccessTokenManager: React.FC = () => {
-  const { data: session } = useSession() as { data: ApiSession | null };
+  const { data: session } = useSession() as { data: AppSession | null };
   const [tokens, setTokens] = useState<ApiToken[]>([]);
   const [openModal, setOpenModal] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');

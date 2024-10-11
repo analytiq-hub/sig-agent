@@ -7,7 +7,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { JWT } from "next-auth/jwt";
 import { Account, Session } from "next-auth";
 import jwt from 'jsonwebtoken';
-import { ApiSession } from '@/app/types/ApiSession';
+import { AppSession } from '@/app/types/AppSession';
 
 const authOptions: NextAuthOptions = {
     session: {
@@ -46,10 +46,10 @@ const authOptions: NextAuthOptions = {
       },
       async session({ session, token }: { session: Session; token: JWT }) {
         // Send properties to the client, like an access_token from a provider.
-        (session as ApiSession).providerAccessToken = token.providerAccessToken as string;
-        (session as ApiSession).apiAccessToken = token.apiAccessToken as string;
+        (session as AppSession).providerAccessToken = token.providerAccessToken as string;
+        (session as AppSession).apiAccessToken = token.apiAccessToken as string;
         console.log('session', session);
-        return session as ApiSession;
+        return session as AppSession;
       }
     }
   };
