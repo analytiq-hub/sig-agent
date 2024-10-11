@@ -65,9 +65,21 @@ const FileList: React.FC = () => {
       field: 'upload_date',
       headerName: 'Upload Date',
       flex: 1,
-      valueGetter: (params: string) =>
-        params ? new Date(params).toLocaleString()
-       : '',
+      valueGetter: (params: string) => {
+        const date = params ? new Date(params) : null;
+        return date ? {
+          value: date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+          tooltip: date.toLocaleString()
+        } : '';
+      },
+      renderCell: (params) => {
+        const { value, tooltip } = params.value;
+        return (
+          <div title={tooltip}>
+            {value}
+          </div>
+        );
+      },
     },
     { field: 'uploaded_by', headerName: 'Uploaded By', flex: 1 },
     {
