@@ -94,7 +94,7 @@ const AccessTokenManager: React.FC = () => {
   return (
     <div>
       <Button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mb-4" onClick={() => setOpenModal(true)}>
-        Generate new token
+        Generate token
       </Button>
       <TableContainer component={Paper}>
         <Table size="small">
@@ -135,7 +135,7 @@ const AccessTokenManager: React.FC = () => {
       </TableContainer>
 
       <Dialog open={openModal} onClose={() => setOpenModal(false)}>
-        <DialogTitle>Generate new token</DialogTitle>
+        <DialogTitle>Generate token</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
