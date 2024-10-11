@@ -37,10 +37,11 @@ const AccessTokenManager: React.FC = () => {
 
   const createToken = async () => {
     try {
+      const lifetime = tokenLifetime.trim() === '' ? 0 : parseInt(tokenLifetime);
       const response = await axios.post('http://localhost:8000/api/tokens', 
         { 
           name: newTokenName.trim(),
-          lifetime: parseInt(tokenLifetime)
+          lifetime: lifetime
         }, 
         {   
           headers: { 
@@ -126,11 +127,12 @@ const AccessTokenManager: React.FC = () => {
             variant="outlined"
             value={tokenLifetime}
             onChange={(e) => setTokenLifetime(e.target.value)}
+            placeholder="Leave empty for no expiration"
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenModal(false)}>Cancel</Button>
-          <Button onClick={createToken} disabled={!newTokenName}>Generate</Button>
+          <Button onClick={createToken} disabled={!newTokenName.trim()}>Generate</Button>
         </DialogActions>
       </Dialog>
     </div>
