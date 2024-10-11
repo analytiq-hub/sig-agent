@@ -8,7 +8,6 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 from datetime import datetime, timedelta, UTC
 from jose import JWTError, jwt
-from pydantic import BaseModel
 from typing import Optional
 import os
 import logging
@@ -18,7 +17,7 @@ import secrets
 
 import api
 import models
-import schemas
+from schemas import User, ApiToken, CreateApiTokenRequest
 
 # Load the .env file
 load_dotenv()
@@ -64,22 +63,6 @@ logger.info(f"Connected to {MONGODB_URI}")
 
 # Ensure the 'pdfs' directory exists
 os.makedirs("data", exist_ok=True)
-
-# Pydantic models
-class User(BaseModel):
-    user_id: str
-    user_name: str
-    token_type: str
-
-class ApiToken(BaseModel):
-    id: str
-    user_id: str
-    name: str
-    created_at: datetime
-    lifetime: int
-class CreateApiTokenRequest(BaseModel):
-    name: str
-    lifetime: int
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
