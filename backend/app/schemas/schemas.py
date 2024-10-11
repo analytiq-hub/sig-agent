@@ -26,7 +26,7 @@ class PDFMetadata(BaseModel):
     filename: str
     upload_date: datetime
     uploaded_by: str
-    retrieved_by: List[str]
+    state: str
 
 class ListPDFsResponse(BaseModel):
     pdfs: List[PDFMetadata]

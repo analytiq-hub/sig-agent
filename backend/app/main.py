@@ -124,7 +124,7 @@ async def upload_pdf(
             "path": file_path,
             "upload_date": datetime.utcnow(),
             "uploaded_by": current_user.user_name,
-            "retrieved_by": []
+            "state": "Uploaded"
         }
         
         result = await pdf_collection.insert_one(document)
@@ -136,17 +136,11 @@ async def upload_pdf(
 async def retrieve_pdf(current_user: User = Depends(get_current_user)):
     logger.info(f"Retrieving PDF for user: {current_user.user_name}")
     document = await pdf_collection.find_one(
-        {"retrieved_by": {"$nin": [current_user.user_name]}},
         sort=[("upload_date", 1)]
     )
     
     if not document:
         raise HTTPException(status_code=404, detail="No unretrieved documents found")
-    
-    await pdf_collection.update_one(
-        {"_id": document["_id"]},
-        {"$push": {"retrieved_by": current_user.user_name}}
-    )
     
     return FileResponse(document["path"], filename=document["filename"])
 
@@ -184,7 +178,7 @@ async def list_pdfs(
                 "filename": doc["filename"],
                 "upload_date": doc["upload_date"].isoformat(),
                 "uploaded_by": doc["uploaded_by"],
-                "retrieved_by": doc["retrieved_by"]
+                "state": doc.get("state", "")
             }
             for doc in documents
         ],

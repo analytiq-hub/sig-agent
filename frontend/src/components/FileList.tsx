@@ -12,7 +12,7 @@ interface File {
   filename: string;
   upload_date: string;
   uploaded_by: string;
-  retrieved_by: string[];
+  state: string;
 }
 
 interface ListPDFsResponse {
@@ -82,15 +82,7 @@ const FileList: React.FC = () => {
       },
     },
     { field: 'uploaded_by', headerName: 'Uploaded By', flex: 1 },
-    {
-      field: 'retrieved_by',
-      headerName: 'Retrieved By',
-      flex: 1,
-      valueGetter: (params: { row?: { retrieved_by?: string[] } }) =>
-        params.row && Array.isArray(params.row['retrieved_by'])
-          ? params.row['retrieved_by'].join(', ')
-          : '',
-    },
+    { field: 'state', headerName: 'State', flex: 1 },
   ];
 
   return (
