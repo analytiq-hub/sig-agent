@@ -2,20 +2,13 @@ import React, { useCallback, useState } from 'react';
 import { useDropzone, DropzoneOptions } from 'react-dropzone';
 import { Button, Typography, Box, CircularProgress } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { useSession } from 'next-auth/react';
-import { AppSession } from '@/app/types/AppSession';
+import { FileWithContent } from '@/app/types/Api';
 import { uploadFiles } from '@/utils/api';
-
-interface FileWithContent {
-  name: string;
-  content: string;
-}
 
 const FileUpload: React.FC = () => {
   const [files, setFiles] = useState<FileWithContent[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-  const { data: session } = useSession() as { data: AppSession | null };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const readFiles = acceptedFiles.map(file => 

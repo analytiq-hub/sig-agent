@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { FileWithContent } from '@/app/types/FileWithContent';
+import { FileWithContent } from '@/app/types/Api';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 
@@ -13,6 +13,7 @@ const api = axios.create({
   withCredentials: true,  // This is the important line
 });
 
+// Add authorization header to all requests
 api.interceptors.request.use(async (config) => {
   const session = await getSession() as AppSession | null;
   if (session?.apiAccessToken) {
