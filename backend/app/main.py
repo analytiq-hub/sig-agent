@@ -86,6 +86,7 @@ class ApiToken(BaseModel):
 
 class CreateApiTokenRequest(BaseModel):
     name: str
+    lifetime: int
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
@@ -194,13 +195,14 @@ async def create_api_token(
     request: CreateApiTokenRequest,
     current_user: User = Depends(get_current_user)
 ):
-    logger.info(f"Creating API token for user: {current_user} name: {request.name}")
+    logger.info(f"Creating API token for user: {current_user} request: {request}")
     token = secrets.token_urlsafe(32)
     new_token = {
         "user_id": current_user.user_id,
         "name": request.name,
         "token": token,
-        "created_at": datetime.now(UTC)
+        "created_at": datetime.now(UTC),
+        "lifetime": request.lifetime
     }
     result = await api_token_collection.insert_one(new_token)
     new_token["id"] = str(result.inserted_id)
@@ -216,7 +218,8 @@ async def list_api_tokens(current_user: User = Depends(get_current_user)):
             "user_id": token["user_id"],
             "name": token["name"],
             "token": token["token"],
-            "created_at": token["created_at"]
+            "created_at": token["created_at"],
+            "lifetime": token["lifetime"]
         }
         for token in tokens
     ]

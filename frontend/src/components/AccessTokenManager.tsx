@@ -19,21 +19,21 @@ const AccessTokenManager: React.FC = () => {
   const [openModal, setOpenModal] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');
   const [tokenLifetime, setTokenLifetime] = useState('90');
-
+  
   useEffect(() => {
-    fetchTokens();
-  }, []);
+    const fetchTokens = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/tokens', {
+          headers: { Authorization: `Bearer ${session?.apiAccessToken}` }
+        });
+        setTokens(response.data);
+      } catch (error) {
+        console.error('Error fetching tokens:', error);
+      }
+    };
 
-  const fetchTokens = async () => {
-    try {
-      const response = await axios.get('http://localhost:8000/api/tokens', {
-        headers: { Authorization: `Bearer ${session?.apiAccessToken}` }
-      });
-      setTokens(response.data);
-    } catch (error) {
-      console.error('Error fetching tokens:', error);
-    }
-  };
+    fetchTokens();
+  }, [session]);
 
   const createToken = async () => {
     try {
