@@ -8,7 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 from datetime import datetime, timedelta, UTC
 from jose import JWTError, jwt
-from typing import Optional
+from typing import Optional, List
 import os
 import logging
 import json
@@ -92,28 +92,33 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
 # PDF management endpoints
 @app.post("/upload")
 async def upload_pdf(
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
     current_user: User = Depends(get_current_user)
 ):
-    if not file.filename.endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    logger.info(f"upload_pdf(): files: {files}")
+    uploaded_files = []
+    for file in files:
+        if not file.filename.endswith('.pdf'):
+            raise HTTPException(status_code=400, detail=f"File {file.filename} is not a PDF")
+        
+        contents = await file.read()
+        file_path = f"pdfs/{file.filename}"
+        
+        with open(file_path, "wb") as f:
+            f.write(contents)
+        
+        document = {
+            "filename": file.filename,
+            "path": file_path,
+            "upload_date": datetime.now(UTC),
+            "uploaded_by": current_user.user_name,
+            "retrieved_by": []
+        }
+        
+        result = await pdf_collection.insert_one(document)
+        uploaded_files.append({"filename": file.filename, "document_id": str(result.inserted_id)})
     
-    contents = await file.read()
-    file_path = f"pdfs/{file.filename}"
-    
-    with open(file_path, "wb") as f:
-        f.write(contents)
-    
-    document = {
-        "filename": file.filename,
-        "path": file_path,
-        "upload_date": datetime.now(UTC),
-        "uploaded_by": current_user.user_name,
-        "retrieved_by": []
-    }
-    
-    result = await pdf_collection.insert_one(document)
-    return {"document_id": str(result.inserted_id)}
+    return {"uploaded_files": uploaded_files}
 
 @app.get("/retrieve")
 async def retrieve_pdf(current_user: User = Depends(get_current_user)):
