@@ -3,6 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { Button, Typography, Box, CircularProgress } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useSession } from 'next-auth/react';
+import { ApiSession } from '@/app/types/ApiSession';
 import axios from 'axios';
 
 interface FileWithContent {
@@ -14,7 +15,7 @@ const FileUpload: React.FC = () => {
   const [files, setFiles] = useState<FileWithContent[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-  const { data: session } = useSession();
+  const { data: session } = useSession() as { data: ApiSession | null };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const readFiles = acceptedFiles.map(file => 
