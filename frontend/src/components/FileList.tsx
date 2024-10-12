@@ -60,7 +60,18 @@ const FileList: React.FC = () => {
   const endRange = Math.min(startRange + countRows - 1, totalRows);
 
   const columns: GridColDef[] = [
-    { field: 'filename', headerName: 'Filename', flex: 1 },
+    {
+      field: 'filename',
+      headerName: 'Filename',
+      flex: 1,
+      renderCell: (params) => {
+        return (
+          <a href={`/pdf-viewer/${params.row.id}`} className="pdf-link">
+            {params.value}
+          </a>
+        );
+      },
+    },
     {
       field: 'upload_date',
       headerName: 'Upload Date',
