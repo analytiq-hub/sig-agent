@@ -13,13 +13,14 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 const PDFViewer = ({ id }: { id: string }) => {
-  const [numPages, setNumPages] = useState(null);
+  const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [error, setError] = useState<string | null>(null); // State to hold error messages
   const canvasRef = useRef(null);
 
-  const handleLoadSuccess = ({ numPages }) => {
+  const handleLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
+    setPageNumber(1);
   };
 
   const handleLoadError = (error) => {
@@ -76,7 +77,9 @@ const PDFViewer = ({ id }: { id: string }) => {
   }, []);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div>
+      {/* Display total number of pages if available */}
+      {numPages && <p>Total Pages: {numPages}</p>}
       {error && <div style={{ color: 'red' }}>Error: {error}</div>} {/* Display error message */}
       <Document file={file} onLoadSuccess={handleLoadSuccess} onLoadError={handleLoadError}>
         <Page pageNumber={pageNumber} />
