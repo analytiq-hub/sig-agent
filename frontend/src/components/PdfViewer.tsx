@@ -11,10 +11,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
-const PDFViewer = ({ file }: { file: string }) => {
+const PDFViewer = ({ id }: { id: string }) => {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
-  const [error, setError] = useState(null); // State to hold error messages
+  const [error, setError] = useState<string | null>(null); // State to hold error messages
   const canvasRef = useRef(null);
 
   const handleLoadSuccess = ({ numPages }) => {
@@ -24,6 +24,41 @@ const PDFViewer = ({ file }: { file: string }) => {
   const handleLoadError = (error) => {
     setError(error.message); // Capture the error message
   };
+
+  const [file, setFile] = useState<string | null>(null); // Update type to accept string
+
+  useEffect(() => {
+    const fetchPDF = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/download/${id}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${sessionStorage.getItem('token')}`, // Assuming you store the token in sessionStorage
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch PDF');
+        }
+
+        const blob = await response.blob();
+        const fileURL = URL.createObjectURL(blob);
+        setFile(fileURL);
+      } catch (error) {
+        console.error('Error fetching PDF:', error);
+        setError('Failed to load PDF. Please try again.');
+      }
+    };
+
+    fetchPDF();
+
+    // Cleanup function to revoke the object URL
+    return () => {
+      if (file) {
+        URL.revokeObjectURL(file);
+      }
+    };
+  }, [id]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
