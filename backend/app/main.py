@@ -58,8 +58,7 @@ app.add_middleware(
 # MongoDB connection
 client = AsyncIOMotorClient(MONGODB_URI)
 db = client.prod if ENV == "prod" else client.dev
-pdf_collection = db.pdf_manager.pdfs
-user_collection = db.pdf_manager.users
+docs_collection = db.docs
 api_token_collection = db.api_tokens
 
 logger.info(f"Connected to {MONGODB_URI}")
@@ -127,7 +126,7 @@ async def upload_pdf(
             "state": "Uploaded"
         }
         
-        result = await pdf_collection.insert_one(document)
+        result = await docs_collection.insert_one(document)
         uploaded_files.append({"filename": file.name, "document_id": str(result.inserted_id)})
     
     return {"uploaded_files": uploaded_files}
@@ -135,7 +134,7 @@ async def upload_pdf(
 @app.get("/retrieve")
 async def retrieve_pdf(current_user: User = Depends(get_current_user)):
     logger.info(f"Retrieving PDF for user: {current_user.user_name}")
-    document = await pdf_collection.find_one(
+    document = await docs_collection.find_one(
         sort=[("upload_date", 1)]
     )
     
@@ -150,7 +149,7 @@ async def lookup_pdf(
     current_user: User = Depends(get_current_user)
 ):
     logger.info(f"Looking up PDF for user: {current_user.user_name}")
-    document = await pdf_collection.find_one({"_id": ObjectId(document_id)})
+    document = await docs_collection.find_one({"_id": ObjectId(document_id)})
     
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -166,9 +165,9 @@ async def list_pdfs(
     logger.info(f"Listing PDFs for user: {user}")
     
     # Get the total count of documents
-    total_count = await pdf_collection.count_documents({})
+    total_count = await docs_collection.count_documents({})
     
-    cursor = pdf_collection.find().sort("upload_date", 1).skip(skip).limit(limit)
+    cursor = docs_collection.find().sort("upload_date", 1).skip(skip).limit(limit)
     documents = await cursor.to_list(length=limit)
     
     return ListPDFsResponse(
