@@ -19,7 +19,10 @@ import analytiq_data as ad
 
 import api
 import models
-from schemas import User, ApiToken, CreateApiTokenRequest, ListPDFsResponse
+from schemas import (
+    User, ApiToken, CreateApiTokenRequest, ListPDFsResponse,
+    PDFMetadata, FileUpload, FilesUpload
+)
 
 # Load the .env file
 load_dotenv()
@@ -67,13 +70,6 @@ logger.info(f"Connected to {MONGODB_URI}")
 os.makedirs("data", exist_ok=True)
 
 from pydantic import BaseModel
-
-class FileUpload(BaseModel):
-    name: str
-    content: str
-
-class FilesUpload(BaseModel):
-    files: List[FileUpload]
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
@@ -162,8 +158,6 @@ async def list_pdfs(
     limit: int = Query(10, ge=1, le=100),
     user: User = Depends(get_current_user)
 ):
-    logger.info(f"Listing PDFs for user: {user}")
-    
     # Get the total count of documents
     total_count = await docs_collection.count_documents({})
     

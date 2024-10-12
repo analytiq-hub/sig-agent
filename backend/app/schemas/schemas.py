@@ -20,6 +20,13 @@ class CreateApiTokenRequest(BaseModel):
     name: str
     lifetime: int
 
+class FileUpload(BaseModel):
+    name: str
+    content: str
+
+class FilesUpload(BaseModel):
+    files: List[FileUpload]
+
 # Response model for the PDF documents
 class PDFMetadata(BaseModel):
     id: str
