@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Box } from '@mui/material';
+import { listFiles } from '@/utils/api';
 import Link from 'next/link';
 
 interface File {
@@ -32,21 +33,11 @@ const FileList: React.FC = () => {
 
   const fetchFiles = useCallback(async () => {
     try {
-      if (session?.apiAccessToken) {
-        const response = await axios.get<ListPDFsResponse>(
-          `http://localhost:8000/api/list?skip=${paginationModel.page * paginationModel.pageSize}&limit=${paginationModel.pageSize}`,
-          {
-            headers: { Authorization: `Bearer ${session.apiAccessToken}` }
-          }
-        );
-
-        setFiles(response.data.pdfs);
-        setCountRows(response.data.pdfs.length);
-        setSkipRows(response.data.skip);
-        setTotalRows(response.data.total_count);
-      } else {
-        console.error('No API access token available');
-      }
+      const response = await listFiles();
+      setFiles(response.pdfs);
+      setCountRows(response.pdfs.length);
+      setSkipRows(response.skip);
+      setTotalRows(response.total_count);
     } catch (error) {
       console.error('Error fetching files:', error);
     }

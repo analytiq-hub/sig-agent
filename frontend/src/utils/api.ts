@@ -27,22 +27,13 @@ export const uploadFiles = async (files: FileWithContent[]) => {
   return response.data;
 };
 
-export const listFiles = async (token: string) => {
-  const response = await api.get('/api/list', {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const listFiles = async () => {
+  const response = await api.get('/api/list');
   return response.data;
 };
 
-export const downloadFile = async (id: string, token: string) => {
-  const response = await api.get(`/api/download/${id}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    responseType: 'blob',
-  });
+export const downloadFile = async (id: string) => {
+  const response = await api.get(`/api/download/${id}`) 
   return response.data;
 };
 
