@@ -16,7 +16,7 @@ const PDFViewer = ({ id }: { id: string }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [error, setError] = useState<string | null>(null); // State to hold error messages
-  const canvasRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null); // Specify the type for canvasRef
 
   const handleLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
