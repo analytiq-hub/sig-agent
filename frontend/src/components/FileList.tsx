@@ -34,7 +34,7 @@ const FileList: React.FC = () => {
     try {
       if (session?.apiAccessToken) {
         const response = await axios.get<ListPDFsResponse>(
-          `http://localhost:8000/list?skip=${paginationModel.page * paginationModel.pageSize}&limit=${paginationModel.pageSize}`,
+          `http://localhost:8000/api/list?skip=${paginationModel.page * paginationModel.pageSize}&limit=${paginationModel.pageSize}`,
           {
             headers: { Authorization: `Bearer ${session.apiAccessToken}` }
           }

@@ -23,12 +23,12 @@ api.interceptors.request.use(async (config) => {
 });
 
 export const uploadFiles = async (files: FileWithContent[]) => {
-  const response = await api.post('/upload', { files });
+  const response = await api.post('/api/upload', { files });
   return response.data;
 };
 
 export const listFiles = async (token: string) => {
-  const response = await api.get('/list', {
+  const response = await api.get('/api/list', {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -37,7 +37,7 @@ export const listFiles = async (token: string) => {
 };
 
 export const downloadFile = async (id: string, token: string) => {
-  const response = await api.get(`/lookup/${id}`, {
+  const response = await api.get(`/api/download/${id}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
