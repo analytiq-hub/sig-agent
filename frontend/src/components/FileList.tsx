@@ -14,12 +14,6 @@ interface File {
   state: string;
 }
 
-interface ListPDFsResponse {
-  pdfs: File[];
-  total_count: number;
-  skip: number;
-}
-
 const FileList: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [skipRows, setSkipRows] = useState<number>(0);
