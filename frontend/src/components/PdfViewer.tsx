@@ -61,7 +61,7 @@ const PDFViewer = ({ id }: { id: string }) => {
     if (canvas) {
       const ctx = canvas.getContext('2d');
       
-      const drawRectangle = (e) => {
+      const drawRectangle = (e: MouseEvent) => { // Specify the type for e
         // Draw a rectangle based on mouse coordinates
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
