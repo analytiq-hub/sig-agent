@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
+import { downloadFile } from '@/utils/api';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -30,18 +31,9 @@ const PDFViewer = ({ id }: { id: string }) => {
   useEffect(() => {
     const fetchPDF = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/download/${id}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${sessionStorage.getItem('token')}`, // Assuming you store the token in sessionStorage
-          },
-        });
+        const response = await downloadFile(id);
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch PDF');
-        }
-
-        const blob = await response.blob();
+        const blob = response.data
         const fileURL = URL.createObjectURL(blob);
         setFile(fileURL);
       } catch (error) {
