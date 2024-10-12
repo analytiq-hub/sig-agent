@@ -1,18 +1,28 @@
 // components/PDFViewer.js
+"use client"
+
 import { useEffect, useRef, useState } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
-const PDFViewer = ({ file }) => {
+const PDFViewer = ({ file }: { file: string }) => {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
+  const [error, setError] = useState(null); // State to hold error messages
   const canvasRef = useRef(null);
 
   const handleLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
+  };
+
+  const handleLoadError = (error) => {
+    setError(error.message); // Capture the error message
   };
 
   useEffect(() => {
@@ -39,7 +49,8 @@ const PDFViewer = ({ file }) => {
 
   return (
     <div style={{ position: 'relative' }}>
-      <Document file={file} onLoadSuccess={handleLoadSuccess}>
+      {error && <div style={{ color: 'red' }}>Error: {error}</div>} {/* Display error message */}
+      <Document file={file} onLoadSuccess={handleLoadSuccess} onLoadError={handleLoadError}>
         <Page pageNumber={pageNumber} />
       </Document>
       <canvas

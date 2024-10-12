@@ -1,7 +1,13 @@
 "use client"
 
-import PDFViewer from '@/components/PdfViewer';
+//import PDFViewer from '@/components/PdfViewer';
 import { useSearchParams } from 'next/navigation';
+
+// Dynamic import of PDFViewer component
+import dynamic from 'next/dynamic'
+ const PDFViewer = dynamic(() => import('@/components/PdfViewer'), {
+  ssr: false,
+})
 
 const PdfViewerPage: React.FC = () => {
   const searchParams = useSearchParams();
@@ -10,7 +16,7 @@ const PdfViewerPage: React.FC = () => {
   return (
     <div>
       <h1>PDF Viewer</h1>
-      <PDFViewer file="/home/andrei/Downloads/Your\ ParkWhiz\ Purchase.pdf" />
+      <PDFViewer file="/SummaryBillApr2024.pdf" />
     </div>
   );
 };
