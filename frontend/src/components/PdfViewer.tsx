@@ -23,7 +23,7 @@ const PDFViewer = ({ id }: { id: string }) => {
     setPageNumber(1);
   };
 
-  const handleLoadError = (error) => {
+  const handleLoadError = (error: { message: string }) => { // Specify the type for error
     setError(error.message); // Capture the error message
   };
 
