@@ -33,7 +33,8 @@ const PDFViewer = ({ id }: { id: string }) => {
       try {
         const response = await downloadFile(id);
 
-        const blob = response.data
+        // Ensure the response is a Blob
+        const blob = new Blob([response], { type: 'application/pdf' });
         const fileURL = URL.createObjectURL(blob);
         setFile(fileURL);
       } catch (error) {
