@@ -66,10 +66,12 @@ const PDFViewer = ({ id }: { id: string }) => {
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = 'red';
-        ctx.strokeRect(x, y, 100, 100); // Example: 100x100 rectangle
+
+        if (ctx) { // Check if ctx is not null
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.strokeStyle = 'red';
+          ctx.strokeRect(x, y, 100, 100); // Example: 100x100 rectangle
+        }
       };
 
       canvas.addEventListener('mousedown', drawRectangle);
