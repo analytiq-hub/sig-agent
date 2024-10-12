@@ -76,8 +76,25 @@ const PDFViewer = ({ id }: { id: string }) => {
     };
   }, []);
 
+  const goToNextPage = () => {
+    if (pageNumber < numPages!) {
+      setPageNumber(pageNumber + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (pageNumber > 1) {
+      setPageNumber(pageNumber - 1);
+    }
+  };
+
   return (
     <div>
+      {/* Add discreet navigation buttons */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <button onClick={goToPrevPage} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>&lt;</button>
+        <button onClick={goToNextPage} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>&gt;</button>
+      </div>
       {/* Display total number of pages if available */}
       {numPages && <p>Total Pages: {numPages}</p>}
       {error && <div style={{ color: 'red' }}>Error: {error}</div>} {/* Display error message */}
