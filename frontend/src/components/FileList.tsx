@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Box } from '@mui/material';
+import Link from 'next/link';
 
 interface File {
   id: string;
@@ -66,9 +67,10 @@ const FileList: React.FC = () => {
       flex: 1,
       renderCell: (params) => {
         return (
-          <a href={`/pdf-viewer/${params.row.id}`} className="pdf-link">
+          <Link href={`/pdf-viewer/${params.row.id}`}
+            style={{ color: 'blue', textDecoration: 'underline' }}>
             {params.value}
-          </a>
+          </Link>
         );
       },
     },
