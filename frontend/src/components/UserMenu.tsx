@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Avatar, Menu, MenuItem, IconButton, Divider, Typography, Tooltip } from '@mui/material';
-import { Settings as SettingsIcon, ExitToApp as LogoutIcon } from '@mui/icons-material';
+import { Settings as SettingsIcon, ExitToApp as SignoutIcon } from '@mui/icons-material';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 
@@ -73,8 +73,8 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleLogout}>
-          <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
-          Log out
+          <SignoutIcon fontSize="small" sx={{ mr: 1 }} />
+          Sign out
         </MenuItem>
       </Menu>
     </>
