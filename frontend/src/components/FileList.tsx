@@ -1,9 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { useSession } from 'next-auth/react';
-import { AppSession } from '@/app/types/AppSession';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Box } from '@mui/material';
 import { listFiles } from '@/utils/api';
@@ -24,7 +21,6 @@ interface ListPDFsResponse {
 }
 
 const FileList: React.FC = () => {
-  const { data: session } = useSession() as { data: AppSession | null };
   const [files, setFiles] = useState<File[]>([]);
   const [skipRows, setSkipRows] = useState<number>(0);
   const [countRows, setCountRows] = useState<number>(0);
