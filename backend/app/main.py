@@ -127,24 +127,11 @@ async def upload_pdf(
     
     return {"uploaded_files": uploaded_files}
 
-@app.get("/retrieve")
-async def retrieve_pdf(current_user: User = Depends(get_current_user)):
-    logger.info(f"Retrieving PDF for user: {current_user.user_name}")
-    document = await docs_collection.find_one(
-        sort=[("upload_date", 1)]
-    )
-    
-    if not document:
-        raise HTTPException(status_code=404, detail="No unretrieved documents found")
-    
-    return FileResponse(document["path"], filename=document["filename"])
-
-@app.get("/lookup/{document_id}")
-async def lookup_pdf(
+@app.get("/download")
+async def download_pdf(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    logger.info(f"Looking up PDF for user: {current_user.user_name}")
     document = await docs_collection.find_one({"_id": ObjectId(document_id)})
     
     if not document:
