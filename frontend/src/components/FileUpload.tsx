@@ -77,9 +77,9 @@ const FileUpload: React.FC = () => {
         <input {...getInputProps()} accept="application/pdf" />
         <CloudUploadIcon sx={{ fontSize: 48, mb: 2 }} />
         {isDragActive ? (
-          <Typography>Drop the PDF files here ...</Typography>
+          <Typography>Drop multiple PDF files here ...</Typography>
         ) : (
-          <Typography>Drag PDF files here, or click to select files</Typography>
+          <Typography>Drag multiple PDF files here, or click to select files</Typography>
         )}
       </Box>
       {files.length > 0 && (
