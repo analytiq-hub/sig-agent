@@ -56,24 +56,28 @@ const PDFViewer = ({ id }: { id: string }) => {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    
-    const drawRectangle = (e) => {
-      // Draw a rectangle based on mouse coordinates
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+
+    // Check if canvas is not null before accessing getContext
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
       
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = 'red';
-      ctx.strokeRect(x, y, 100, 100); // Example: 100x100 rectangle
-    };
+      const drawRectangle = (e) => {
+        // Draw a rectangle based on mouse coordinates
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = 'red';
+        ctx.strokeRect(x, y, 100, 100); // Example: 100x100 rectangle
+      };
 
-    canvas.addEventListener('mousedown', drawRectangle);
+      canvas.addEventListener('mousedown', drawRectangle);
 
-    return () => {
-      canvas.removeEventListener('mousedown', drawRectangle);
-    };
+      return () => {
+        canvas.removeEventListener('mousedown', drawRectangle);
+      };
+    }
   }, []);
 
   const goToNextPage = () => {
