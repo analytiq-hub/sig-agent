@@ -130,7 +130,7 @@ const renderMenuItem = (item: { text: string; icon: JSX.Element; href: string },
              open ? { justifyContent: 'initial' } : { justifyContent: 'center' }
         ]}
       >
-        <Tooltip title={item.text} arrow>
+        <Tooltip title={item.text} arrow disableHoverListener={open}>
           <ListItemIcon
             sx={[{minWidth: 0, justifyContent: 'center'},
                open ? {mr: 3} : {mr: 'auto'},
