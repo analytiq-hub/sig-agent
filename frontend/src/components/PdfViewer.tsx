@@ -77,14 +77,18 @@ const PDFViewer = ({ id }: { id: string }) => {
         </Toolbar>
       <div style={{ overflowY: 'scroll', height: '80vh', padding: '16px' }}>
         {error && <div style={{ color: 'red' }}>Error: {error}</div>}
-        <Document file={file} onLoadSuccess={handleLoadSuccess} onLoadError={handleLoadError}>
-          {Array.from(new Array(numPages), (el, index) => (
-            <div key={`page_container_${index + 1}`}>
-              <Page key={`page_${index + 1}`} pageNumber={index + 1} width={window.innerWidth} />
-              {index < numPages! - 1 && <hr style={{ border: '2px solid black' }} />} {/* Add thicker horizontal line between pages */}
-            </div>
-          ))}
-        </Document>
+        {file ? (
+          <Document file={file} onLoadSuccess={handleLoadSuccess} onLoadError={handleLoadError}>
+            {Array.from(new Array(numPages), (el, index) => (
+              <div key={`page_container_${index + 1}`}>
+                <Page key={`page_${index + 1}`} pageNumber={index + 1} width={window.innerWidth} />
+                {index < numPages! - 1 && <hr style={{ border: '2px solid black' }} />}
+              </div>
+            ))}
+          </Document>
+        ) : (
+          <div>Loading PDF...</div>
+        )}
       </div>
     </div>
   );
