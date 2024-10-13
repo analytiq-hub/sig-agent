@@ -125,22 +125,22 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 
 const renderMenuItem = (item: { text: string; icon: JSX.Element; href: string }) => (
   <ListItem key={item.text} component={Link} href={item.href} disablePadding sx={{ display: 'block' }}>
-    <Tooltip title={item.text} arrow>
       <ListItemButton 
         sx={[{minHeight: 48, px: 2.5}, 
              open ? { justifyContent: 'initial' } : { justifyContent: 'center' }
         ]}
       >
-        <ListItemIcon
-          sx={[{minWidth: 0, justifyContent: 'center'},
+        <Tooltip title={item.text} arrow>
+          <ListItemIcon
+            sx={[{minWidth: 0, justifyContent: 'center'},
                open ? {mr: 3} : {mr: 'auto'},
           ]}
-        >
-          {item.icon}
-        </ListItemIcon>
+          >
+            {item.icon}
+          </ListItemIcon>
+        </Tooltip>
         {open && (<ListItemText primary={item.text} />)}
       </ListItemButton>
-    </Tooltip>
   </ListItem>
 );
 
