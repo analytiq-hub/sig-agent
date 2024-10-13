@@ -89,11 +89,14 @@ const AppBar = styled(MuiAppBar, {
   ],
 }));
 
-const menuItems = [
+const authenticatedMenuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, href: '/dashboard' },
   { text: 'Upload', icon: <UploadIcon />, href: '/upload' },
   { text: 'List Files', icon: <ListIcon />, href: '/list' },
   { text: 'Workflows', icon: <AccountTreeIcon />, href: '/workflows' },
+];
+
+const debugMenuItems = [
   { text: 'Test', icon: <ScienceIcon />, href: '/test' },
 ];
 
@@ -120,6 +123,27 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
       },
     ],
   }),
+);
+
+const renderMenuItem = (item: { text: string; icon: JSX.Element; href: string }) => (
+  <ListItem key={item.text} component={Link} href={item.href} disablePadding sx={{ display: 'block' }}>
+    <Tooltip title={item.text} arrow>
+      <ListItemButton 
+        sx={[{minHeight: 48, px: 2.5}, 
+             open ? { justifyContent: 'initial' } : { justifyContent: 'center' }
+        ]}
+      >
+        <ListItemIcon
+          sx={[{minWidth: 0, justifyContent: 'center'},
+               open ? {mr: 3} : {mr: 'auto'},
+          ]}
+        >
+          {item.icon}
+        </ListItemIcon>
+        {open && (<ListItemText primary={item.text} />)}
+      </ListItemButton>
+    </Tooltip>
+  </ListItem>
 );
 
 export default function Layout2({ children }: { children: ReactNode }) {
@@ -181,136 +205,11 @@ export default function Layout2({ children }: { children: ReactNode }) {
         </DrawerHeader>
         <Divider />
         <List>
-          {status === 'authenticated' && menuItems.map((item) => (
-            <ListItem
-              key={item.text}
-              component={Link}
-              href={item.href}
-              disablePadding
-              sx={{ display: 'block' }}
-            >
-              <Tooltip title={item.text} arrow>
-                <ListItemButton 
-                  sx={[{minHeight: 48, px: 2.5}, 
-                       open ? { justifyContent: 'initial' } : { justifyContent: 'center' }
-                  ]}
-                >
-                  <ListItemIcon
-                    sx={[{minWidth: 0, justifyContent: 'center'},
-                         open ? {mr: 3} : {mr: 'auto'},
-                    ]}
-                  >
-                    {item.icon}
-                  </ListItemIcon>
-                  {open && (<ListItemText primary={item.text} />)}
-                </ListItemButton>
-              </Tooltip>
-            </ListItem>
-          ))}
+          {status === 'authenticated' && authenticatedMenuItems.map(renderMenuItem)}
         </List>
         <Divider />
         <List>
-          {['Inbox', 'Starred', 'Send email', 'Drafts'].map((text, index) => (
-            <ListItem key={text} disablePadding sx={{ display: 'block' }}>
-              <ListItemButton
-                sx={[
-                  {
-                    minHeight: 48,
-                    px: 2.5,
-                  },
-                  open
-                    ? {
-                        justifyContent: 'initial',
-                      }
-                    : {
-                        justifyContent: 'center',
-                      },
-                ]}
-              >
-                <ListItemIcon
-                  sx={[
-                    {
-                      minWidth: 0,
-                      justifyContent: 'center',
-                    },
-                    open
-                      ? {
-                          mr: 3,
-                        }
-                      : {
-                          mr: 'auto',
-                        },
-                  ]}
-                >
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-                </ListItemIcon>
-                <ListItemText
-                  primary={text}
-                  sx={[
-                    open
-                      ? {
-                          opacity: 1,
-                        }
-                      : {
-                          opacity: 0,
-                        },
-                  ]}
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-        <Divider />
-        <List>
-          {['All mail', 'Trash', 'Spam'].map((text, index) => (
-            <ListItem key={text} disablePadding sx={{ display: 'block' }}>
-              <ListItemButton
-                sx={[
-                  {
-                    minHeight: 48,
-                    px: 2.5,
-                  },
-                  open
-                    ? {
-                        justifyContent: 'initial',
-                      }
-                    : {
-                        justifyContent: 'center',
-                      },
-                ]}
-              >
-                <ListItemIcon
-                  sx={[
-                    {
-                      minWidth: 0,
-                      justifyContent: 'center',
-                    },
-                    open
-                      ? {
-                          mr: 3,
-                        }
-                      : {
-                          mr: 'auto',
-                        },
-                  ]}
-                >
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-                </ListItemIcon>
-                <ListItemText
-                  primary={text}
-                  sx={[
-                    open
-                      ? {
-                          opacity: 1,
-                        }
-                      : {
-                          opacity: 0,
-                        },
-                  ]}
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
+          {debugMenuItems.map(renderMenuItem)}
         </List>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - 240px)` }, marginBottom: 2 }}>
