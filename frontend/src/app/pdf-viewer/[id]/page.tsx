@@ -18,7 +18,6 @@ const PdfViewerPage: React.FC = () => {
 
   return (
       <div>
-        <h1>PDF Viewer</h1>
         <PDFViewer id={Array.isArray(id) ? id[0] : id} />
       </div>
   );
