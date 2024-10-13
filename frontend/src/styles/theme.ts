@@ -28,6 +28,29 @@ const theme = createTheme({
       main: '#2ecc71', // Success color
     },
   },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: '4px', // Customize border radius if needed
+        },
+        containedPrimary: {
+          backgroundColor: '#2c3e50', // Primary button background
+          color: '#ffffff', // Primary button text color
+          '&:hover': {
+            backgroundColor: '#4a6b8c', // Primary button hover background
+          },
+        },
+        containedSecondary: {
+          backgroundColor: '#34495e', // Secondary button background
+          color: '#ffffff', // Secondary button text color
+          '&:hover': {
+            backgroundColor: '#4f6272', // Secondary button hover background
+          },
+        },
+      },
+    },
+  },
   // Add more customizations as needed
 });
 

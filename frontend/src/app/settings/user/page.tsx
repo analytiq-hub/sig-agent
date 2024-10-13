@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { Button } from '@mui/material';
 
 const UserSettingsPage: React.FC = () => {
   return (
@@ -16,8 +17,10 @@ const UserSettingsPage: React.FC = () => {
             Set up secure API authentication using access tokens
           </p>
         </div>
-        <Link href="/settings/user/access-tokens" className="bg-white border border-gray-300 rounded px-4 py-2">
-          Manage
+        <Link href="/settings/user/access-tokens" passHref>
+          <Button variant="contained" color="secondary"> {/* Use primary MuiButton style */}
+            Manage
+          </Button>
         </Link>
       </div>
     </div>
