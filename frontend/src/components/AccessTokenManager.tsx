@@ -90,9 +90,15 @@ const AccessTokenManager: React.FC = () => {
 
   return (
     <div>
-      <Button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mb-4" onClick={() => setOpenModal(true)}>
+      <Button
+        variant="contained"
+        color="secondary"
+        className="mb-4"
+        onClick={() => setOpenModal(true)}
+      >
         Generate token
       </Button>
+      <div className="mb-6"></div>
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
