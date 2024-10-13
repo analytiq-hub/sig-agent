@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from 'react';
+import { useState, ReactNode, useEffect } from 'react';
+
 import { styled, useTheme, Theme, CSSObject } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import MuiDrawer from '@mui/material/Drawer';
@@ -20,6 +21,12 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import InboxIcon from '@mui/icons-material/MoveToInbox';
 import MailIcon from '@mui/icons-material/Mail';
+
+import { useRouter } from 'next/navigation';
+import AuthButton from './AuthButton';
+import { useSession } from 'next-auth/react';
+import UserMenu from './UserMenu'; // Add this import
+
 
 const drawerWidth = 240;
 
@@ -105,9 +112,11 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
   }),
 );
 
-export default function Layout2({ children }: { children: React.ReactNode }) {
+export default function Layout2({ children }: { children: ReactNode }) {
   const theme = useTheme();
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
+  const { data: session, status } = useSession(); // Use next-auth hook
+  const router = useRouter();
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -116,6 +125,12 @@ export default function Layout2({ children }: { children: React.ReactNode }) {
   const handleDrawerClose = () => {
     setOpen(false);
   };
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/signin');
+    }
+  }, [status, router]);
 
   return (
     <Box sx={{ display: 'flex' }}>
