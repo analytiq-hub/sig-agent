@@ -39,4 +39,9 @@ export const downloadFile = async (id: string) => {
   return response.data;
 };
 
+export const getTokens = async () => {
+  const response = await api.get('/api/tokens');
+  return response.data;
+};
+
 export default api;

@@ -4,6 +4,7 @@ import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons
 import { useSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 import axios from 'axios';
+import { getTokens } from '@/utils/api'; // Import the new function
 
 interface ApiToken {
   id: string;
@@ -24,19 +25,17 @@ const AccessTokenManager: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchTokens = async () => {
+    const loadTokens = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/tokens', {
-          headers: { Authorization: `Bearer ${session?.apiAccessToken}` }
-        });
-        setTokens(response.data);
+        const tokensData = await getTokens(); // Call the new function
+        setTokens(tokensData);
       } catch (error) {
         console.error('Error fetching tokens:', error);
       }
     };
 
-    fetchTokens();
-  }, [session]);
+    loadTokens();
+  }, []);
 
   const createToken = async () => {
     try {
