@@ -211,7 +211,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         </List>
         <Divider />
         <List>
-          {debugMenuItems.map(renderMenuItem)}
+          {debugMenuItems.map(item => renderMenuItem(item, open))}
         </List>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - 240px)` }, marginBottom: 2 }}>
