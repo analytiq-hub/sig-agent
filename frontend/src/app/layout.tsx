@@ -3,6 +3,7 @@ import React from 'react';
 import { getServerSession } from "next-auth/next"
 import SessionProvider from "@/components/SessionProvider"
 import Layout from '@/components/Layout';
+import Layout2 from "@/components/Layout2";
 import ThemeRegistry from '@/components/ThemeRegistry';
 
 export const metadata = {
@@ -24,7 +25,7 @@ export default async function RootLayout({
       <body>
         <ThemeRegistry>
           <SessionProvider session={session}>
-            <Layout>{children}</Layout>
+            <Layout2>{children}</Layout2>
           </SessionProvider>
         </ThemeRegistry>
       </body>

@@ -4,14 +4,13 @@ const theme = createTheme({
   // Customize your theme here
   palette: {
     primary: {
-      main: '#1976d2',
+      main: '#2c3e50', // AppBar color
     },
     secondary: {
-      main: '#dc004e',
+      main: '#34495e', // Drawer color
     },
   },
   // Add more customizations as needed
 });
 
 export default theme;
-
