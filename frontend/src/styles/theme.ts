@@ -33,6 +33,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: '4px', // Customize border radius if needed
+          textTransform: 'none', // Prevent text from being converted to uppercase
         },
         containedPrimary: {
           backgroundColor: '#2c3e50', // Primary button background
