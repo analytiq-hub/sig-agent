@@ -190,46 +190,25 @@ export default function Layout2({ children }: { children: ReactNode }) {
               sx={{ display: 'block' }}
             >
               <Tooltip title={item.text} arrow>
-                <ListItemButton
-                  sx={[
-                    {
-                      minHeight: 48,
-                      px: 2.5,
-                    },
-                    open
-                      ? {
-                          justifyContent: 'initial',
-                        }
-                      : {
-                          justifyContent: 'center',
-                        },
+                <ListItemButton 
+                  sx={[{minHeight: 48, px: 2.5}, 
+                       open ? { justifyContent: 'initial' } : { justifyContent: 'center' }
                   ]}
                 >
                   <ListItemIcon
-                    sx={[
-                      {
-                        minWidth: 0,
-                        justifyContent: 'center',
-                      },
-                      open
-                        ? {
-                            mr: 3,
-                          }
-                        : {
-                            mr: 'auto',
-                          },
+                    sx={[{minWidth: 0, justifyContent: 'center'},
+                         open ? {mr: 3} : {mr: 'auto'},
                     ]}
                   >
                     {item.icon}
                   </ListItemIcon>
-                  {open && (
-                    <ListItemText primary={item.text} />
-                  )}
+                  {open && (<ListItemText primary={item.text} />)}
                 </ListItemButton>
               </Tooltip>
             </ListItem>
           ))}
         </List>
+        <Divider />
         <List>
           {['Inbox', 'Starred', 'Send email', 'Drafts'].map((text, index) => (
             <ListItem key={text} disablePadding sx={{ display: 'block' }}>
