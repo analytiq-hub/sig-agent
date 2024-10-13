@@ -4,7 +4,7 @@ import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons
 import { useSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 import axios from 'axios';
-import { getTokens } from '@/utils/api'; // Import the new function
+import { getTokens, deleteToken } from '@/utils/api';
 
 interface ApiToken {
   id: string;
@@ -83,19 +83,9 @@ const AccessTokenManager: React.FC = () => {
     });
   };
 
-  const deleteToken = async (tokenId: string) => {
-    try {
-      await axios.delete(`http://localhost:8000/api/tokens/${tokenId}`, {
-        headers: { Authorization: `Bearer ${session?.apiAccessToken}` }
-      });
-      setTokens(tokens.filter(token => token.id !== tokenId));
-    } catch (error) {
-      console.error('Error deleting token:', error);
-    }
-  };
-
   const handleDeleteToken = (tokenId: string) => {
     deleteToken(tokenId);
+    setTokens(tokens.filter(token => token.id !== tokenId));
   };
 
   return (

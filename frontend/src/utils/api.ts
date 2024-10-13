@@ -44,4 +44,9 @@ export const getTokens = async () => {
   return response.data;
 };
 
+export const deleteToken = async (tokenId: string) => {
+  const response = await api.delete(`/api/tokens/${tokenId}`);
+  return response.data;
+};
+
 export default api;
