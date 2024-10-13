@@ -146,7 +146,7 @@ const renderMenuItem = (item: { text: string; icon: JSX.Element; href: string })
 
 export default function Layout({ children }: { children: ReactNode }) {
   const theme = useTheme();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true); // Change initial state to true
   const { data: session, status } = useSession(); // Use next-auth hook
   const router = useRouter();
 
