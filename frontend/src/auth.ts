@@ -41,14 +41,14 @@ const authOptions: NextAuthOptions = {
           );
         }
 
-        console.log('token', token);
+        //console.log('token', token);
         return token
       },
       async session({ session, token }: { session: Session; token: JWT }) {
         // Send properties to the client, like an access_token from a provider.
         (session as AppSession).providerAccessToken = token.providerAccessToken as string;
         (session as AppSession).apiAccessToken = token.apiAccessToken as string;
-        console.log('session', session);
+        //console.log('session', session);
         return session as AppSession;
       }
     }
