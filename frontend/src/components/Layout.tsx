@@ -123,7 +123,7 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
   }),
 );
 
-const renderMenuItem = (item: { text: string; icon: JSX.Element; href: string }) => (
+const renderMenuItem = (item: { text: string; icon: JSX.Element; href: string }, open: boolean) => (
   <ListItem key={item.text} component={Link} href={item.href} disablePadding sx={{ display: 'block' }}>
       <ListItemButton 
         sx={[{minHeight: 48, px: 2.5}, 
@@ -181,7 +181,9 @@ export default function Layout({ children }: { children: ReactNode }) {
               open && { display: 'none' },
             ]}
           >
-            <MenuIcon />
+            <Tooltip title={"Open Drawer"} arrow>
+              <MenuIcon />
+            </Tooltip>
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>
@@ -205,7 +207,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         </DrawerHeader>
         <Divider />
         <List>
-          {status === 'authenticated' && authenticatedMenuItems.map(renderMenuItem)}
+          {status === 'authenticated' && authenticatedMenuItems.map(item => renderMenuItem(item, open))}
         </List>
         <Divider />
         <List>
