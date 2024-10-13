@@ -6,7 +6,7 @@ import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { downloadFile } from '@/utils/api';
-import { AppBar, Toolbar, Button, Typography } from '@mui/material';
+import { Toolbar, Button, Typography } from '@mui/material';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -64,19 +64,17 @@ const PDFViewer = ({ id }: { id: string }) => {
 
   return (
     <div>
-      <AppBar position="static">
-        <Toolbar>
-          <Button onClick={goToPrevPage} disabled={pageNumber <= 1} sx={{ color: 'white' }}>
+        <Toolbar sx={{ backgroundColor: theme => theme.palette.primary.main }}>
+          <Button onClick={goToPrevPage} disabled={pageNumber <= 1} sx={{ color: theme => theme.palette.secondary.contrastText, backgroundColor: theme => theme.palette.secondary.main }}>
             Prev
           </Button>
-          <Typography variant="h6" style={{ flexGrow: 1, textAlign: 'center', color: 'white' }}>
+          <Typography variant="h6" style={{ flexGrow: 1, textAlign: 'center'}} sx={{ color: theme => theme.palette.secondary.contrastText }}>
             Page {pageNumber} of {numPages}
           </Typography>
-          <Button onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} sx={{ color: 'white' }}>
+          <Button onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} sx={{ color: theme => theme.palette.secondary.contrastText, backgroundColor: theme => theme.palette.secondary.main }}>
             Next
           </Button>
         </Toolbar>
-      </AppBar>
       <div style={{ overflowY: 'scroll', height: '80vh', padding: '16px' }}>
         {error && <div style={{ color: 'red' }}>Error: {error}</div>}
         <Document file={file} onLoadSuccess={handleLoadSuccess} onLoadError={handleLoadError}>

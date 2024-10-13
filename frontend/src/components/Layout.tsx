@@ -186,7 +186,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             </Tooltip>
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>
+            <Link href="/" style={{ color: theme.palette.primary.contrastText, textDecoration: 'none' }}>
               Doc Proxy
             </Link>
           </Typography>
