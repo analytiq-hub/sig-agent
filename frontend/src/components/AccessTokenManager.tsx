@@ -162,8 +162,9 @@ const AccessTokenManager: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenModal(false)}>Cancel</Button>
-          <Button onClick={createToken} disabled={!newTokenName.trim()}>Generate</Button>
+          <Button variant="outlined" color="secondary" className="mb-4"
+            onClick={() => setOpenModal(false)}>Cancel</Button>
+          <Button variant="contained" color="secondary" onClick={createToken} disabled={!newTokenName.trim()}>Generate</Button>
         </DialogActions>
       </Dialog>
 
@@ -180,7 +181,7 @@ const AccessTokenManager: React.FC = () => {
           </div>
         </DialogContent>
         <DialogActions>
-          <Button onClick={saveToken}>Save token</Button>
+          <Button variant="contained" color="secondary" onClick={saveToken}>Save token</Button>
         </DialogActions>
       </Dialog>
 
