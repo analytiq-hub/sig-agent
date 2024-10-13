@@ -28,7 +28,7 @@ import Link from 'next/link';
 import { Upload as UploadIcon, List as ListIcon, Dashboard as DashboardIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material';
 import { Tooltip } from '@mui/material';
 
-const drawerWidth = 240;
+const drawerWidth = 180;
 
 const openedMixin = (theme: Theme): CSSObject => ({
   width: drawerWidth,
