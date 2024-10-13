@@ -27,6 +27,7 @@ import AuthButton from './AuthButton';
 import { useSession } from 'next-auth/react';
 import UserMenu from './UserMenu'; // Add this import
 import Link from 'next/link';
+import { Upload as UploadIcon, List as ListIcon, Dashboard as DashboardIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material';
 
 
 const drawerWidth = 240;
@@ -87,6 +88,14 @@ const AppBar = styled(MuiAppBar, {
     },
   ],
 }));
+
+const menuItems = [
+  { text: 'Dashboard', icon: <DashboardIcon />, href: '/dashboard' },
+  { text: 'Upload', icon: <UploadIcon />, href: '/upload' },
+  { text: 'List Files', icon: <ListIcon />, href: '/list' },
+  { text: 'Workflows', icon: <AccountTreeIcon />, href: '/workflows' },
+  { text: 'Test', icon: <ScienceIcon />, href: '/test' },
+];
 
 const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
   ({ theme }) => ({
