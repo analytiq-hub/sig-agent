@@ -48,6 +48,22 @@ const theme = createTheme({
             backgroundColor: '#4f6272', // Secondary button hover background
           },
         },
+        outlinedPrimary: {
+          color: '#2c3e50', // Primary color
+          borderColor: '#2c3e50', // Primary color for border
+          '&:hover': {
+            backgroundColor: 'rgba(44, 62, 80, 0.04)', // Light primary color background on hover
+            borderColor: '#4a6b8c', // Lighter primary color for border on hover
+          },
+        },
+        outlinedSecondary: {
+          color: '#34495e', // Secondary color
+          borderColor: '#34495e', // Secondary color for border
+          '&:hover': {
+            backgroundColor: 'rgba(52, 73, 94, 0.04)', // Light secondary color background on hover
+            borderColor: '#4f6272', // Lighter secondary color for border on hover
+          },
+        },
       },
     },
   },

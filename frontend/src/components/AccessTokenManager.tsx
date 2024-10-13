@@ -91,7 +91,7 @@ const AccessTokenManager: React.FC = () => {
   return (
     <div>
       <Button
-        variant="contained"
+        variant="outlined"
         color="secondary"
         className="mb-4"
         onClick={() => setOpenModal(true)}
