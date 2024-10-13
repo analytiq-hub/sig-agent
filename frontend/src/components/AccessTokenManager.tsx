@@ -25,16 +25,16 @@ const AccessTokenManager: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadTokens = async () => {
+    const getTokensData = async () => {
       try {
-        const tokensData = await getTokens(); // Call the new function
+        const tokensData = await getTokens();
         setTokens(tokensData);
       } catch (error) {
         console.error('Error fetching tokens:', error);
       }
     };
 
-    loadTokens();
+    getTokensData();
   }, []);
 
   const createToken = async () => {
