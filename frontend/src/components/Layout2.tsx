@@ -28,7 +28,7 @@ import { useSession } from 'next-auth/react';
 import UserMenu from './UserMenu'; // Add this import
 import Link from 'next/link';
 import { Upload as UploadIcon, List as ListIcon, Dashboard as DashboardIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material';
-
+import { Tooltip } from '@mui/material';
 
 const drawerWidth = 240;
 
@@ -180,6 +180,56 @@ export default function Layout2({ children }: { children: ReactNode }) {
           </IconButton>
         </DrawerHeader>
         <Divider />
+        <List>
+          {status === 'authenticated' && menuItems.map((item) => (
+            <ListItem
+              key={item.text}
+              component={Link}
+              href={item.href}
+              disablePadding
+              sx={{ display: 'block' }}
+            >
+              <Tooltip title={item.text} arrow>
+                <ListItemButton
+                  sx={[
+                    {
+                      minHeight: 48,
+                      px: 2.5,
+                    },
+                    open
+                      ? {
+                          justifyContent: 'initial',
+                        }
+                      : {
+                          justifyContent: 'center',
+                        },
+                  ]}
+                >
+                  <ListItemIcon
+                    sx={[
+                      {
+                        minWidth: 0,
+                        justifyContent: 'center',
+                      },
+                      open
+                        ? {
+                            mr: 3,
+                          }
+                        : {
+                            mr: 'auto',
+                          },
+                    ]}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  {open && (
+                    <ListItemText primary={item.text} />
+                  )}
+                </ListItemButton>
+              </Tooltip>
+            </ListItem>
+          ))}
+        </List>
         <List>
           {['Inbox', 'Starred', 'Send email', 'Drafts'].map((text, index) => (
             <ListItem key={text} disablePadding sx={{ display: 'block' }}>
