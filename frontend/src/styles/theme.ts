@@ -41,19 +41,19 @@ const theme = createTheme({
             backgroundColor: '#4a6b8c', // Primary button hover background
           },
         },
-        containedSecondary: {
-          backgroundColor: '#34495e', // Secondary button background
-          color: '#ffffff', // Secondary button text color
-          '&:hover': {
-            backgroundColor: '#4f6272', // Secondary button hover background
-          },
-        },
         outlinedPrimary: {
           color: '#2c3e50', // Primary color
           borderColor: '#2c3e50', // Primary color for border
           '&:hover': {
             backgroundColor: 'rgba(44, 62, 80, 0.04)', // Light primary color background on hover
             borderColor: '#4a6b8c', // Lighter primary color for border on hover
+          },
+        },
+        containedSecondary: {
+          backgroundColor: '#34495e', // Secondary button background
+          color: '#ffffff', // Secondary button text color
+          '&:hover': {
+            backgroundColor: '#4f6272', // Secondary button hover background
           },
         },
         outlinedSecondary: {
