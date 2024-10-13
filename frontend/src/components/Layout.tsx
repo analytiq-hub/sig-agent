@@ -197,9 +197,11 @@ export default function Layout({ children }: { children: ReactNode }) {
       </AppBar>
       <Drawer variant="permanent" open={open}>
         <DrawerHeader>
+          <Tooltip title={"Minimize Drawer"} arrow>
           <IconButton onClick={handleDrawerClose}>
             {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-          </IconButton>
+            </IconButton>
+          </Tooltip>
         </DrawerHeader>
         <Divider />
         <List>
