@@ -3,11 +3,16 @@ import { FileWithContent } from '@/app/types/Api';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 
-const API_URL = "http://localhost:8000"
-console.log("API_URL", API_URL)
+//const API_URL = "http://localhost:8000"
+const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL
+if (!NEXT_PUBLIC_API_URL) {
+  throw new Error('NEXT_PUBLIC_API_URL is not set');
+}
+
+console.log("NEXT_PUBLIC_API_URL", NEXT_PUBLIC_API_URL)
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: NEXT_PUBLIC_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
