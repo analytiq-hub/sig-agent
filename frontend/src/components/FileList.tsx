@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Box } from '@mui/material';
-import { listFiles } from '@/utils/api';
+import { listFilesApi } from '@/utils/api';
 import Link from 'next/link';
 
 interface File {
@@ -23,7 +23,7 @@ const FileList: React.FC = () => {
 
   const fetchFiles = useCallback(async () => {
     try {
-      const response = await listFiles();
+      const response = await listFilesApi();
       setFiles(response.pdfs);
       setCountRows(response.pdfs.length);
       setSkipRows(response.skip);

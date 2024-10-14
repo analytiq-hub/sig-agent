@@ -25,17 +25,17 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-export const uploadFiles = async (files: FileWithContent[]) => {
+export const uploadFilesApi = async (files: FileWithContent[]) => {
   const response = await api.post('/api/upload', { files });
   return response.data;
 };
 
-export const listFiles = async () => {
+export const listFilesApi = async () => {
   const response = await api.get('/api/list');
   return response.data;
 };
 
-export const downloadFile = async (id: string) => {
+export const downloadFileApi = async (id: string) => {
   const response = await api.get(`/api/download/${id}`, {
     responseType: 'arraybuffer' // Spent an evening figuring out why this was necessary
   }) 

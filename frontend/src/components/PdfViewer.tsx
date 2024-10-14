@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import { downloadFile } from '@/utils/api';
+import { downloadFileApi } from '@/utils/api';
 import { Toolbar, Button, Typography } from '@mui/material';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -36,7 +36,7 @@ const PDFViewer = ({ id }: { id: string }) => {
     const fetchPDF = async () => {
       try {
         //console.log('Fetching PDF for id:', id);
-        const response = await downloadFile(id);
+        const response = await downloadFileApi(id);
         //console.log('PDF download complete for id:', id);
         const blob = new Blob([response], { type: 'application/pdf' });
         const fileURL = URL.createObjectURL(blob);

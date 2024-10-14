@@ -3,7 +3,7 @@ import { useDropzone, DropzoneOptions } from 'react-dropzone';
 import { Button, Typography, Box, CircularProgress } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { FileWithContent } from '@/app/types/Api';
-import { uploadFiles } from '@/utils/api';
+import { uploadFilesApi } from '@/utils/api';
 
 const FileUpload: React.FC = () => {
   const [files, setFiles] = useState<FileWithContent[]>([]);
@@ -48,7 +48,7 @@ const FileUpload: React.FC = () => {
     setUploadStatus(null);
 
     try {
-      const response = await uploadFiles(files);
+      const response = await uploadFilesApi(files);
       setUploadStatus(`Successfully uploaded ${response.uploaded_files.length} file(s)`);
       setFiles([]);
     } catch (error) {
