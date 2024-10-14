@@ -42,12 +42,12 @@ export const downloadFile = async (id: string) => {
   return response.data;
 };
 
-export interface CreateApiTokenRequest {
+export interface CreateTokenRequest {
   name: string;
   lifetime: number;
 }
 
-export const createTokenApi = async (token: CreateApiTokenRequest) => {
+export const createTokenApi = async (token: CreateTokenRequest) => {
   const response = await api.post('/api/tokens', token);
   return response.data;
 };

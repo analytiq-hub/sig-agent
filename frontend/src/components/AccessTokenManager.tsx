@@ -43,7 +43,7 @@ const AccessTokenManager: React.FC = () => {
 
       const lifetime = tokenLifetime.trim() === '' ? 0 : parseInt(tokenLifetime);
 
-      const request: CreateApiTokenRequest = {
+      const request: CreateTokenRequest = {
         name: trimmedName,
         lifetime: lifetime
       }
