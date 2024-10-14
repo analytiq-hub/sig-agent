@@ -1,7 +1,7 @@
 // components/PDFViewer.js
 "use client"
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -19,6 +19,7 @@ const PDFViewer = ({ id }: { id: string }) => {
   const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const fileRef = useRef<string | null>(null);
 
   // This is a tricky effect hook. It needs to clean up
   // the file URL when the component unmounts. The hook cleanup can be called while
@@ -26,7 +27,6 @@ const PDFViewer = ({ id }: { id: string }) => {
   // We handle this by checking if isMounted is true before setting the file URL.
   useEffect(() => {
     let isMounted = true;
-    let fileURL: string | null = null;
     //console.log('PDF effect running for id:', id);
 
     const fetchPDF = async () => {
@@ -35,9 +35,10 @@ const PDFViewer = ({ id }: { id: string }) => {
         const response = await downloadFile(id);
         //console.log('PDF download complete for id:', id);
         const blob = new Blob([response], { type: 'application/pdf' });
-        fileURL = URL.createObjectURL(blob);
+        const fileURL = URL.createObjectURL(blob);
         if (isMounted) {
           setFile(fileURL);
+          fileRef.current = fileURL;
           setLoading(false);
           //console.log('PDF loaded successfully for id:', id);
         } else {
@@ -63,14 +64,11 @@ const PDFViewer = ({ id }: { id: string }) => {
       
       //console.log('PDF effect cleaning up for id:', id);
       isMounted = false;
-      if (file) {
-        URL.revokeObjectURL(file);
+      if (fileRef.current) {
+        URL.revokeObjectURL(fileRef.current);
         //console.log('PDF unloaded from state for id:', id);
       }
-      if (fileURL && fileURL !== file) {
-        URL.revokeObjectURL(fileURL);
-        //console.log('PDF unloaded from local variable for id:', id);
-      }
+      
       setFile(null);
     };
   }, [id]);
