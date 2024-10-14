@@ -20,31 +20,30 @@ const PDFViewer = ({ id }: { id: string }) => {
   const [file, setFile] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const handleLoadSuccess = ({ numPages }: { numPages: number }) => {
-    setNumPages(numPages);
-    setPageNumber(1);
-  };
-
-  const handleLoadError = (error: { message: string }) => {
-    setError(error.message);
-    console.error('PDF Load Error:', error);
-  };
-
   useEffect(() => {
     let isMounted = true;
+    let fileURL: string | null = null;
+    console.log('PDF effect running for id:', id);
 
     const fetchPDF = async () => {
       try {
+        console.log('Fetching PDF for id:', id);
         const response = await downloadFile(id);
+        console.log('PDF download complete for id:', id);
         const blob = new Blob([response], { type: 'application/pdf' });
-        const fileURL = URL.createObjectURL(blob);
+        fileURL = URL.createObjectURL(blob);
         if (isMounted) {
           setFile(fileURL);
           setLoading(false);
-          console.log('PDF loaded successfully');
+          console.log('PDF loaded successfully for id:', id);
+        } else {
+          console.log('Component unmounted before PDF could be set, cleaning up');
+          if (fileURL) {
+            URL.revokeObjectURL(fileURL);
+          }
         }
       } catch (error) {
-        console.error('Error fetching PDF:', error);
+        console.error('Error fetching PDF for id:', id, error);
         if (isMounted) {
           setError('Failed to load PDF. Please try again.');
           setLoading(false);
@@ -55,13 +54,29 @@ const PDFViewer = ({ id }: { id: string }) => {
     fetchPDF();
 
     return () => {
+      console.log('PDF effect cleaning up for id:', id);
       isMounted = false;
       if (file) {
         URL.revokeObjectURL(file);
-        console.log('PDF unloaded');
+        console.log('PDF unloaded from state for id:', id);
       }
+      if (fileURL && fileURL !== file) {
+        URL.revokeObjectURL(fileURL);
+        console.log('PDF unloaded from local variable for id:', id);
+      }
+      setFile(null);
     };
   }, [id]);
+
+  const handleLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPages(numPages);
+    setPageNumber(1);
+  };
+
+  const handleLoadError = (error: { message: string }) => {
+    setError(error.message);
+    console.error('PDF Load Error:', error);
+  };
 
   const goToNextPage = () => {
     if (pageNumber < numPages!) {
