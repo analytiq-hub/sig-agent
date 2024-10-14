@@ -42,17 +42,22 @@ export const downloadFile = async (id: string) => {
   return response.data;
 };
 
-export const createTokenApi = async (token: ApiToken) => {
+export interface CreateApiTokenRequest {
+  name: string;
+  lifetime: number;
+}
+
+export const createTokenApi = async (token: CreateApiTokenRequest) => {
   const response = await api.post('/api/tokens', token);
   return response.data;
 };
 
-export const getTokens = async () => {
+export const getTokensApi = async () => {
   const response = await api.get('/api/tokens');
   return response.data;
 };
 
-export const deleteToken = async (tokenId: string) => {
+export const deleteTokenApi = async (tokenId: string) => {
   const response = await api.delete(`/api/tokens/${tokenId}`);
   return response.data;
 };

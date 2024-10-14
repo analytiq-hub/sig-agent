@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
-import { useSession } from 'next-auth/react';
-import { AppSession } from '@/app/types/AppSession';
-import axios from 'axios';
-import { createTokenApi, getTokens, deleteToken } from '@/utils/api';
+import { createTokenApi, getTokensApi, deleteTokenApi, CreateApiTokenRequest } from '@/utils/api';
 
 export interface ApiToken {
   id: string;
   name: string;
   created_at: string;
   lifetime?: number;
-  token?: string; // Add this line
+  token?: string;
 }
 
 const AccessTokenManager: React.FC = () => {
-  const { data: session } = useSession() as { data: AppSession | null };
   const [tokens, setTokens] = useState<ApiToken[]>([]);
   const [openModal, setOpenModal] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');
@@ -27,7 +23,7 @@ const AccessTokenManager: React.FC = () => {
   useEffect(() => {
     const getTokensData = async () => {
       try {
-        const tokensData = await getTokens();
+        const tokensData = await getTokensApi();
         setTokens(tokensData);
       } catch (error) {
         console.error('Error fetching tokens:', error);
@@ -46,10 +42,12 @@ const AccessTokenManager: React.FC = () => {
       }
 
       const lifetime = tokenLifetime.trim() === '' ? 0 : parseInt(tokenLifetime);
-      const response = await createTokenApi({
+
+      const request: CreateApiTokenRequest = {
         name: trimmedName,
         lifetime: lifetime
-      });
+      }
+      const response = await createTokenApi(request)
 
       setNewToken(response);
       setShowTokenModal(true);
@@ -77,7 +75,7 @@ const AccessTokenManager: React.FC = () => {
   };
 
   const handleDeleteToken = (tokenId: string) => {
-    deleteToken(tokenId);
+    deleteTokenApi(tokenId);
     setTokens(tokens.filter(token => token.id !== tokenId));
   };
 
