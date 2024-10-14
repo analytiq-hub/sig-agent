@@ -20,24 +20,28 @@ const PDFViewer = ({ id }: { id: string }) => {
   const [file, setFile] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // This is a tricky effect hook. It needs to clean up
+  // the file URL when the component unmounts. The hook cleanup can be called while
+  // the hook is still running, for example, before the axios request completes.
+  // We handle this by checking if isMounted is true before setting the file URL.
   useEffect(() => {
     let isMounted = true;
     let fileURL: string | null = null;
-    console.log('PDF effect running for id:', id);
+    //console.log('PDF effect running for id:', id);
 
     const fetchPDF = async () => {
       try {
-        console.log('Fetching PDF for id:', id);
+        //console.log('Fetching PDF for id:', id);
         const response = await downloadFile(id);
-        console.log('PDF download complete for id:', id);
+        //console.log('PDF download complete for id:', id);
         const blob = new Blob([response], { type: 'application/pdf' });
         fileURL = URL.createObjectURL(blob);
         if (isMounted) {
           setFile(fileURL);
           setLoading(false);
-          console.log('PDF loaded successfully for id:', id);
+          //console.log('PDF loaded successfully for id:', id);
         } else {
-          console.log('Component unmounted before PDF could be set, cleaning up');
+          //console.log('Component unmounted before PDF could be set, cleaning up');
           if (fileURL) {
             URL.revokeObjectURL(fileURL);
           }
@@ -45,7 +49,7 @@ const PDFViewer = ({ id }: { id: string }) => {
       } catch (error) {
         console.error('Error fetching PDF for id:', id, error);
         if (isMounted) {
-          setError('Failed to load PDF. Please try again.');
+          //setError('Failed to load PDF. Please try again.');
           setLoading(false);
         }
       }
@@ -54,15 +58,18 @@ const PDFViewer = ({ id }: { id: string }) => {
     fetchPDF();
 
     return () => {
-      console.log('PDF effect cleaning up for id:', id);
+      // The hook cleanup function - called when the component unmounts.
+      // It can be called while the hook is still running.
+      
+      //console.log('PDF effect cleaning up for id:', id);
       isMounted = false;
       if (file) {
         URL.revokeObjectURL(file);
-        console.log('PDF unloaded from state for id:', id);
+        //console.log('PDF unloaded from state for id:', id);
       }
       if (fileURL && fileURL !== file) {
         URL.revokeObjectURL(fileURL);
-        console.log('PDF unloaded from local variable for id:', id);
+        //console.log('PDF unloaded from local variable for id:', id);
       }
       setFile(null);
     };
