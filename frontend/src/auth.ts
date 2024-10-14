@@ -37,7 +37,7 @@ const authOptions: NextAuthOptions = {
           token.apiAccessToken = jwt.sign(
             { userId: token.sub, userName: token.name, email: token.email },
             process.env.JWT_SECRET!, // Make sure to set this in your environment variables
-            { expiresIn: '1h' } // Set an expiration time as needed
+            //{ expiresIn: '1h' } // Let it never expire for now
           );
         }
 
