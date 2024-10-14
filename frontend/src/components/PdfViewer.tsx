@@ -18,6 +18,7 @@ const PDFViewer = ({ id }: { id: string }) => {
   const [pageNumber, setPageNumber] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const handleLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
@@ -26,26 +27,38 @@ const PDFViewer = ({ id }: { id: string }) => {
 
   const handleLoadError = (error: { message: string }) => {
     setError(error.message);
+    console.error('PDF Load Error:', error);
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchPDF = async () => {
       try {
         const response = await downloadFile(id);
         const blob = new Blob([response], { type: 'application/pdf' });
         const fileURL = URL.createObjectURL(blob);
-        setFile(fileURL);
+        if (isMounted) {
+          setFile(fileURL);
+          setLoading(false);
+          console.log('PDF loaded successfully');
+        }
       } catch (error) {
         console.error('Error fetching PDF:', error);
-        setError('Failed to load PDF. Please try again.');
+        if (isMounted) {
+          setError('Failed to load PDF. Please try again.');
+          setLoading(false);
+        }
       }
     };
 
     fetchPDF();
 
     return () => {
+      isMounted = false;
       if (file) {
         URL.revokeObjectURL(file);
+        console.log('PDF unloaded');
       }
     };
   }, [id]);
@@ -76,9 +89,14 @@ const PDFViewer = ({ id }: { id: string }) => {
           </Button>
         </Toolbar>
       <div style={{ overflowY: 'scroll', height: '80vh', padding: '16px' }}>
-        {error && <div style={{ color: 'red' }}>Error: {error}</div>}
-        {file ? (
-          <Document file={file} onLoadSuccess={handleLoadSuccess} onLoadError={handleLoadError}>
+        {loading ? (
+          <div>Loading PDF...</div>
+        ) : file ? (
+          <Document
+            file={file}
+            onLoadSuccess={handleLoadSuccess}
+            onLoadError={handleLoadError}
+          >
             {Array.from(new Array(numPages), (el, index) => (
               <div key={`page_container_${index + 1}`}>
                 <Page key={`page_${index + 1}`} pageNumber={index + 1} width={window.innerWidth} />
@@ -87,7 +105,7 @@ const PDFViewer = ({ id }: { id: string }) => {
             ))}
           </Document>
         ) : (
-          <div>Loading PDF...</div>
+          <div>Error loading PDF.</div>
         )}
       </div>
     </div>
