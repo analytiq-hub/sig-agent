@@ -3,7 +3,10 @@ import { FileWithContent } from '@/app/types/Api';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 
-const API_URL = 'http://localhost:8000';
+if (!process.env.API_URL) {
+  throw new Error('API_URL is not set');
+}
+const API_URL = process.env.API_URL
 
 const api = axios.create({
   baseURL: API_URL,
