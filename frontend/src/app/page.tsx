@@ -24,13 +24,6 @@ const Home = () => {
             <li>ERP support (future): SAP, Oracle, JD Edwards</li>
           </ul>
         </section>
-        
-        <section>
-          <h2 className="text-2xl font-semibold mb-4">Get Started</h2>
-          <Link href="/signup" className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
-            Sign Up Now
-          </Link>
-        </section>
       </main>
       
       <footer className="mt-8 text-center text-gray-500">
