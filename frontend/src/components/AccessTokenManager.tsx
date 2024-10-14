@@ -4,9 +4,9 @@ import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons
 import { useSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 import axios from 'axios';
-import { getTokens, deleteToken } from '@/utils/api';
+import { createTokenApi, getTokens, deleteToken } from '@/utils/api';
 
-interface ApiToken {
+export interface ApiToken {
   id: string;
   name: string;
   created_at: string;
@@ -46,19 +46,12 @@ const AccessTokenManager: React.FC = () => {
       }
 
       const lifetime = tokenLifetime.trim() === '' ? 0 : parseInt(tokenLifetime);
-      const response = await axios.post('http://localhost:8000/api/tokens', 
-        { 
-          name: trimmedName,
-          lifetime: lifetime
-        }, 
-        {   
-          headers: { 
-            Authorization: `Bearer ${session?.apiAccessToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      setNewToken(response.data);
+      const response = await createTokenApi({
+        name: trimmedName,
+        lifetime: lifetime
+      });
+
+      setNewToken(response);
       setShowTokenModal(true);
       setOpenModal(false);
       setNewTokenName('');

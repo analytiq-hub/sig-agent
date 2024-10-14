@@ -167,7 +167,7 @@ async def list_pdfs(
     )
 
 @app.post("/api/tokens", response_model=ApiToken)
-async def create_api_token(
+async def api_token_create(
     request: CreateApiTokenRequest,
     current_user: User = Depends(get_current_user)
 ):
@@ -185,7 +185,7 @@ async def create_api_token(
     return new_token
 
 @app.get("/api/tokens", response_model=list[ApiToken])
-async def list_api_tokens(current_user: User = Depends(get_current_user)):
+async def api_token_list(current_user: User = Depends(get_current_user)):
     cursor = api_token_collection.find({"user_id": current_user.user_id})
     tokens = await cursor.to_list(length=None)
     ret = [
@@ -203,7 +203,7 @@ async def list_api_tokens(current_user: User = Depends(get_current_user)):
     return ret
 
 @app.delete("/api/tokens/{token_id}")
-async def delete_api_token(
+async def api_token_delete(
     token_id: str,
     current_user: User = Depends(get_current_user)
 ):
