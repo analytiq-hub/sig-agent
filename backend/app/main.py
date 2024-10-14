@@ -20,7 +20,7 @@ import analytiq_data as ad
 import api
 import models
 from schemas import (
-    User, ApiToken, CreateApiTokenRequest, ListPDFsResponse,
+    User, ApiToken, CreateTokenRequest, ListPDFsResponse,
     PDFMetadata, FileUpload, FilesUpload
 )
 
@@ -168,7 +168,7 @@ async def list_pdfs(
 
 @app.post("/api/tokens", response_model=ApiToken)
 async def api_token_create(
-    request: CreateApiTokenRequest,
+    request: CreateTokenRequest,
     current_user: User = Depends(get_current_user)
 ):
     logger.info(f"Creating API token for user: {current_user} request: {request}")
