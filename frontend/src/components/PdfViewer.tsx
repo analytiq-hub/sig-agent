@@ -19,6 +19,10 @@ const PDFViewer = ({ id }: { id: string }) => {
   const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Use a fileRef to store the file URL, which doesn't trigger re-renders when it changes.
+  // The cleanup function now uses this ref to revoke the URL.
+  //This approach resolves the dependency warning without causing unnecessary re-renders.
   const fileRef = useRef<string | null>(null);
 
   // This is a tricky effect hook. It needs to clean up
@@ -50,7 +54,7 @@ const PDFViewer = ({ id }: { id: string }) => {
       } catch (error) {
         console.error('Error fetching PDF for id:', id, error);
         if (isMounted) {
-          //setError('Failed to load PDF. Please try again.');
+          setError('Failed to load PDF. Please try again.');
           setLoading(false);
         }
       }
@@ -97,20 +101,24 @@ const PDFViewer = ({ id }: { id: string }) => {
 
   return (
     <div>
-        <Toolbar sx={{ backgroundColor: theme => theme.palette.primary.main }}>
-          <Button onClick={goToPrevPage} disabled={pageNumber <= 1} sx={{ color: theme => theme.palette.secondary.contrastText, backgroundColor: theme => theme.palette.secondary.main }}>
-            Prev
-          </Button>
-          <Typography variant="h6" style={{ flexGrow: 1, textAlign: 'center'}} sx={{ color: theme => theme.palette.secondary.contrastText }}>
-            Page {pageNumber} of {numPages}
-          </Typography>
-          <Button onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} sx={{ color: theme => theme.palette.secondary.contrastText, backgroundColor: theme => theme.palette.secondary.main }}>
-            Next
-          </Button>
-        </Toolbar>
+      <Toolbar sx={{ backgroundColor: theme => theme.palette.primary.main }}>
+        <Button onClick={goToPrevPage} disabled={pageNumber <= 1} sx={{ color: theme => theme.palette.secondary.contrastText, backgroundColor: theme => theme.palette.secondary.main }}>
+          Prev
+        </Button>
+        <Typography variant="h6" style={{ flexGrow: 1, textAlign: 'center'}} sx={{ color: theme => theme.palette.secondary.contrastText }}>
+          Page {pageNumber} of {numPages}
+        </Typography>
+        <Button onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} sx={{ color: theme => theme.palette.secondary.contrastText, backgroundColor: theme => theme.palette.secondary.main }}>
+          Next
+        </Button>
+      </Toolbar>
       <div style={{ overflowY: 'scroll', height: '80vh', padding: '16px' }}>
         {loading ? (
           <div>Loading PDF...</div>
+        ) : error ? (
+          <Typography color="error" align="center">
+            {error}
+          </Typography>
         ) : file ? (
           <Document
             file={file}
@@ -125,7 +133,9 @@ const PDFViewer = ({ id }: { id: string }) => {
             ))}
           </Document>
         ) : (
-          <div>Error loading PDF.</div>
+          <Typography color="error" align="center">
+            No PDF file available.
+          </Typography>
         )}
       </div>
     </div>
