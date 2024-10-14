@@ -1,7 +1,7 @@
 // components/PDFViewer.js
 "use client"
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -77,9 +77,22 @@ const PDFViewer = ({ id }: { id: string }) => {
     };
   }, [id]);
 
+  const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const scrollToPage = useCallback((pageNum: number) => {
+    if (pageRefs.current[pageNum - 1]) {
+      pageRefs.current[pageNum - 1]?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
+
+  useEffect(() => {
+    scrollToPage(pageNumber);
+  }, [pageNumber, scrollToPage]);
+
   const handleLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
     setPageNumber(1);
+    pageRefs.current = new Array(numPages).fill(null);
   };
 
   const handleLoadError = (error: { message: string }) => {
@@ -126,7 +139,10 @@ const PDFViewer = ({ id }: { id: string }) => {
             onLoadError={handleLoadError}
           >
             {Array.from(new Array(numPages), (el, index) => (
-              <div key={`page_container_${index + 1}`}>
+              <div 
+                key={`page_container_${index + 1}`}
+                ref={el => pageRefs.current[index] = el}
+              >
                 <Page key={`page_${index + 1}`} pageNumber={index + 1} width={window.innerWidth} />
                 {index < numPages! - 1 && <hr style={{ border: '2px solid black' }} />}
               </div>
