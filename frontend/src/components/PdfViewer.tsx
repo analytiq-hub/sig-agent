@@ -118,13 +118,17 @@ const PDFViewer = ({ id }: { id: string }) => {
 
   const goToNextPage = () => {
     if (pageNumber < numPages!) {
-      setPageNumber(pageNumber + 1);
+      const newPageNumber = pageNumber + 1;
+      setPageNumber(newPageNumber);
+      setInputPageNumber(newPageNumber.toString());
     }
   };
 
   const goToPrevPage = () => {
     if (pageNumber > 1) {
-      setPageNumber(pageNumber - 1);
+      const newPageNumber = pageNumber - 1;
+      setPageNumber(newPageNumber);
+      setInputPageNumber(newPageNumber.toString());
     }
   };
 
