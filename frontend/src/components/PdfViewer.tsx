@@ -20,7 +20,7 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { styled } from '@mui/material/styles';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
-import PanToolIcon from '@mui/icons-material/PanTool';
+import PanToolOutlinedIcon from '@mui/icons-material/PanToolOutlined';
 import DescriptionIcon from '@mui/icons-material/Description';
 import { alpha } from '@mui/material/styles';
 
@@ -367,7 +367,7 @@ const PDFViewer = ({ id }: { id: string }) => {
             Text Selection Tool
           </StyledMenuItem>
           <StyledMenuItem onClick={handleHandTool}>
-            <PanToolIcon fontSize="small" sx={{ mr: 1 }} />
+            <PanToolOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
             Hand Tool
           </StyledMenuItem>
           <Divider />
