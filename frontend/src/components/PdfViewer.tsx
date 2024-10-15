@@ -6,7 +6,7 @@ import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { downloadFileApi } from '@/utils/api';
-import { Toolbar, Button, Typography, IconButton } from '@mui/material';
+import { Toolbar, Button, Typography, IconButton, TextField } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import RotateLeftIcon from '@mui/icons-material/RotateLeft';
@@ -153,15 +153,43 @@ const PDFViewer = ({ id }: { id: string }) => {
     }
   }, [pdfDimensions]);
 
+  const [inputPageNumber, setInputPageNumber] = useState('1');
+
+  const handlePageNumberChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setInputPageNumber(event.target.value);
+  };
+
+  const handlePageNumberSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const newPageNumber = parseInt(inputPageNumber, 10);
+    if (newPageNumber >= 1 && newPageNumber <= (numPages || 0)) {
+      setPageNumber(newPageNumber);
+    } else {
+      // Reset input to current page number if invalid
+      setInputPageNumber(pageNumber.toString());
+    }
+  };
+
   return (
     <div>
       <Toolbar sx={{ backgroundColor: theme => theme.palette.accent.main }}>
         <Button onClick={goToPrevPage} disabled={pageNumber <= 1} variant="outlined">
           Prev
         </Button>
-        <Typography variant="h6" style={{ flexGrow: 1, textAlign: 'center'}} sx={{ color: theme => theme.palette.accent.contrastText }}>
-          Page {pageNumber} of {numPages}
-        </Typography>
+        <form onSubmit={handlePageNumberSubmit} style={{ display: 'flex', alignItems: 'center' }}>
+          <TextField
+            value={inputPageNumber}
+            onChange={handlePageNumberChange}
+            onBlur={() => setInputPageNumber(pageNumber.toString())}
+            type="number"
+            size="small"
+            inputProps={{ min: 1, max: numPages || 1, style: { textAlign: 'center', width: '40px' } }}
+            sx={{ mx: 1 }}
+          />
+          <Typography variant="h6" sx={{ mx: 1, color: theme => theme.palette.accent.contrastText }}>
+            of {numPages}
+          </Typography>
+        </form>
         <Button onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} variant="outlined">
           Next
         </Button>
