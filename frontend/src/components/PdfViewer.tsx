@@ -18,11 +18,20 @@ import VerticalAlignTopIcon from '@mui/icons-material/VerticalAlignTop';
 import VerticalAlignBottomIcon from '@mui/icons-material/VerticalAlignBottom';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import { styled } from '@mui/material/styles';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url,
 ).toString();
+
+const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
+  fontSize: '0.875rem', // Smaller font size
+  padding: '4px 16px', // Reduced padding
+  '& .MuiListItemIcon-root': {
+    minWidth: '32px', // Smaller icon area
+  },
+}));
 
 const PDFViewer = ({ id }: { id: string }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
@@ -304,32 +313,32 @@ const PDFViewer = ({ id }: { id: string }) => {
             'aria-labelledby': 'more-button',
           }}
         >
-          <MenuItem onClick={handlePrint}>
+          <StyledMenuItem onClick={handlePrint}>
             <PrintIcon fontSize="small" sx={{ mr: 1 }} />
             Print
-          </MenuItem>
-          <MenuItem onClick={handleSave}>
+          </StyledMenuItem>
+          <StyledMenuItem onClick={handleSave}>
             <SaveIcon fontSize="small" sx={{ mr: 1 }} />
             Save
-          </MenuItem>
+          </StyledMenuItem>
           <Divider />
-          <MenuItem onClick={handleGoToFirstPage}>
+          <StyledMenuItem onClick={handleGoToFirstPage}>
             <VerticalAlignTopIcon fontSize="small" sx={{ mr: 1 }} />
             Go to First Page
-          </MenuItem>
-          <MenuItem onClick={handleGoToLastPage}>
+          </StyledMenuItem>
+          <StyledMenuItem onClick={handleGoToLastPage}>
             <VerticalAlignBottomIcon fontSize="small" sx={{ mr: 1 }} />
             Go to Last Page
-          </MenuItem>
+          </StyledMenuItem>
           <Divider />
-          <MenuItem onClick={rotateRight}>
+          <StyledMenuItem onClick={rotateRight}>
             <RotateRightIcon fontSize="small" sx={{ mr: 1 }} />
             Rotate Clockwise
-          </MenuItem>
-          <MenuItem onClick={rotateLeft}>
+          </StyledMenuItem>
+          <StyledMenuItem onClick={rotateLeft}>
             <RotateLeftIcon fontSize="small" sx={{ mr: 1 }} />
             Rotate Counterclockwise
-          </MenuItem>
+          </StyledMenuItem>
         </Menu>
       </Toolbar>
       <div 
