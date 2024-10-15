@@ -6,7 +6,7 @@ import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { downloadFileApi } from '@/utils/api';
-import { Toolbar, Typography, IconButton, TextField, Menu, MenuItem, Divider } from '@mui/material';
+import { Toolbar, Typography, IconButton, TextField, Menu, MenuItem, Divider, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemText } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import RotateLeftIcon from '@mui/icons-material/RotateLeft';
@@ -238,8 +238,35 @@ const PDFViewer = ({ id }: { id: string }) => {
     handleMenuClose();
   };
 
+  const [pdfDocument, setPdfDocument] = useState<pdfjs.PDFDocumentProxy | null>(null);
+  const [showProperties, setShowProperties] = useState(false);
+  const [documentProperties, setDocumentProperties] = useState<Record<string, string>>({});
+
+  const extractDocumentProperties = async () => {
+    if (!pdfDocument) return;
+
+    const metadata = await pdfDocument.getMetadata();
+    const { info } = metadata;
+
+    const properties: Record<string, string> = {
+      'Title': info.Title || 'N/A',
+      'Author': info.Author || 'N/A',
+      'Subject': info.Subject || 'N/A',
+      'Keywords': info.Keywords || 'N/A',
+      'Creation Date': info.CreationDate ? new Date(info.CreationDate).toLocaleString() : 'N/A',
+      'Modification Date': info.ModDate ? new Date(info.ModDate).toLocaleString() : 'N/A',
+      'Creator': info.Creator || 'N/A',
+      'Producer': info.Producer || 'N/A',
+      'Version': info.PDFFormatVersion || 'N/A',
+      'Number of Pages': numPages?.toString() || 'N/A',
+    };
+
+    setDocumentProperties(properties);
+  };
+
   const handleDocumentProperties = () => {
-    // Implement document properties functionality
+    extractDocumentProperties();
+    setShowProperties(true);
     handleMenuClose();
   };
 
@@ -415,6 +442,21 @@ const PDFViewer = ({ id }: { id: string }) => {
           </Typography>
         )}
       </div>
+      <Dialog open={showProperties} onClose={() => setShowProperties(false)}>
+        <DialogTitle>Document Properties</DialogTitle>
+        <DialogContent>
+          <List>
+            {Object.entries(documentProperties).map(([key, value]) => (
+              <ListItem key={key}>
+                <ListItemText primary={key} secondary={value} />
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowProperties(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
