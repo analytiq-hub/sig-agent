@@ -173,10 +173,10 @@ const PDFViewer = ({ id }: { id: string }) => {
   return (
     <div>
       <Toolbar sx={{ backgroundColor: theme => theme.palette.accent.main }}>
-        <Button onClick={goToPrevPage} disabled={pageNumber <= 1} variant="outlined">
-          Prev
-        </Button>
         <form onSubmit={handlePageNumberSubmit} style={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h7" sx={{ mx: 1, color: theme => theme.palette.accent.contrastText }}>
+            Page
+          </Typography>
           <TextField
             value={inputPageNumber}
             onChange={handlePageNumberChange}
@@ -186,10 +186,13 @@ const PDFViewer = ({ id }: { id: string }) => {
             inputProps={{ min: 1, max: numPages || 1, style: { textAlign: 'center', width: '40px' } }}
             sx={{ mx: 1 }}
           />
-          <Typography variant="h6" sx={{ mx: 1, color: theme => theme.palette.accent.contrastText }}>
+          <Typography variant="h7" sx={{ mx: 1, color: theme => theme.palette.accent.contrastText }}>
             of {numPages}
           </Typography>
         </form>
+        <Button onClick={goToPrevPage} disabled={pageNumber <= 1} variant="outlined">
+          Prev
+        </Button>
         <Button onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} variant="outlined">
           Next
         </Button>
