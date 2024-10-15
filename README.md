@@ -16,7 +16,7 @@ Example display of Smart Document Router docs:
 ![Under Construction](./assets/website_under_construction.jpg)
 
 # Project Slides
-[Smart Document Router](https://docs.google.com/presentation/d/10NPy_kRrVfhWHY-No1GAEeNSAr0C-DCpZL2whSzZH9c/edit#slide=id.g302dd857fb2_0_30)
+[Smart Document Router Slides](https://docs.google.com/presentation/d/10NPy_kRrVfhWHY-No1GAEeNSAr0C-DCpZL2whSzZH9c/edit#slide=id.g302dd857fb2_0_30)
 
 # Local development environment
 
