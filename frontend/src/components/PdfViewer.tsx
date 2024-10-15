@@ -198,16 +198,7 @@ const PDFViewer = ({ id }: { id: string }) => {
         <IconButton onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} color="inherit" size="small">
           <ArrowDownwardIcon fontSize="small" />
         </IconButton>
-        <div style={{ 
-          width: '1px', 
-          height: '24px', 
-          backgroundColor: 'rgba(255, 255, 255, 0.5)', 
-          margin: '0 8px' 
-        }} />
         <form onSubmit={handlePageNumberSubmit} style={{ display: 'flex', alignItems: 'center' }}>
-          <Typography variant="body2" sx={{ mx: 0.5, color: theme => theme.palette.accent.contrastText }}>
-            Page
-          </Typography>
           <TextField
             value={inputPageNumber}
             onChange={handlePageNumberChange}
