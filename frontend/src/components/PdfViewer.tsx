@@ -11,8 +11,9 @@ import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import RotateLeftIcon from '@mui/icons-material/RotateLeft';
 import RotateRightIcon from '@mui/icons-material/RotateRight';
-import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -192,11 +193,17 @@ const PDFViewer = ({ id }: { id: string }) => {
         }}
       >
         <IconButton onClick={goToPrevPage} disabled={pageNumber <= 1} color="inherit" size="small">
-          <ArrowBackIosNewIcon fontSize="small" />
+          <ArrowUpwardIcon fontSize="small" />
         </IconButton>
         <IconButton onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} color="inherit" size="small">
-          <ArrowForwardIosIcon fontSize="small" />
+          <ArrowDownwardIcon fontSize="small" />
         </IconButton>
+        <div style={{ 
+          width: '1px', 
+          height: '24px', 
+          backgroundColor: 'rgba(255, 255, 255, 0.5)', 
+          margin: '0 8px' 
+        }} />
         <form onSubmit={handlePageNumberSubmit} style={{ display: 'flex', alignItems: 'center' }}>
           <Typography variant="body2" sx={{ mx: 0.5, color: theme => theme.palette.accent.contrastText }}>
             Page
