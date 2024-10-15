@@ -8,6 +8,7 @@ Tech stack:
 * MongoDB
 * Pydantic
 
+Example display of Smart Document Router docs:
 ![Smart Document Router](./assets/file_list.png)
 
 # Local development environment
