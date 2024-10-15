@@ -1,4 +1,13 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme, ThemeOptions } from '@mui/material/styles';
+
+declare module '@mui/material/styles' {
+  interface Palette {
+    accent: Palette['primary'];
+  }
+  interface PaletteOptions {
+    accent?: PaletteOptions['primary'];
+  }
+}
 
 const theme = createTheme({
   // Customize your theme here
@@ -14,6 +23,12 @@ const theme = createTheme({
       light: '#4f6272', // Lighter shade for hover effects
       dark: '#1f2a36', // Darker shade for active states
       contrastText: '#ffffff', // Text color for secondary buttons
+    },
+    accent: {
+      main: '#f5f5f5', // Toolbar color
+      light: '#ffffff', // Lighter shade for hover effects
+      dark: '#d7d7d7', // Darker shade for active states
+      contrastText: '#000000', // Text color for tertiary buttons
     },
     error: {
       main: '#e74c3c', // Error color
@@ -65,10 +80,25 @@ const theme = createTheme({
             borderColor: '#4f6272', // Lighter secondary color for border on hover
           },
         },
+        containedAccent: {
+          backgroundColor: '#f5f5f5', // Accent button background
+          color: '#000000', // Accent button text color
+          '&:hover': {
+            backgroundColor: '#d7d7d7', // Accent button hover background
+          },
+        },
+        outlinedAccent: {
+          color: '#f5f5f5', // Accent color
+          borderColor: '#f5f5f5', // Accent color for border
+          '&:hover': {
+            backgroundColor: 'rgba(245, 245, 245, 0.04)', // Light accent color background on hover
+            borderColor: '#d7d7d7', // Lighter accent color for border on hover
+          },
+        },
       },
     },
   },
   // Add more customizations as needed
-});
+} as ThemeOptions);
 
 export default theme;
