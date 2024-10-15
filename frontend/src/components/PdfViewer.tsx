@@ -128,8 +128,8 @@ const PDFViewer = ({ id }: { id: string }) => {
     }
   };
 
-  const zoomIn = () => setScale(prevScale => Math.min(prevScale + 0.1, 2));
-  const zoomOut = () => setScale(prevScale => Math.max(prevScale - 0.1, 0.5));
+  const zoomIn = () => setScale(prevScale => Math.min(prevScale + 0.25, 3));
+  const zoomOut = () => setScale(prevScale => Math.max(prevScale - 0.25, 0.5));
   const rotateLeft = () => setRotation(prevRotation => (prevRotation - 90) % 360);
   const rotateRight = () => setRotation(prevRotation => (prevRotation + 90) % 360);
 
@@ -143,11 +143,15 @@ const PDFViewer = ({ id }: { id: string }) => {
       const heightScale = containerHeight / pdfDimensions.height;
 
       // Use the smaller scale to ensure the entire page fits
-      const optimalScale = Math.min(widthScale, heightScale) * 0.9; // 0.9 to add a little padding
+      // Increase the scaling factor to make the initial display larger
+      const optimalScale = Math.min(widthScale, heightScale) * 0.95; // Increased from 0.9 to 0.95
 
-      setScale(optimalScale);
+      // Add a minimum scale to ensure the PDF isn't too small
+      const adjustedScale = Math.max(optimalScale, 1.0); // Ensure scale is at least 1.0
+
+      setScale(adjustedScale);
     }
-  }, [pdfDimensions, containerRef]);
+  }, [pdfDimensions]);
 
   return (
     <div>
