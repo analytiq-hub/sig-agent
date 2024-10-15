@@ -179,6 +179,12 @@ const PDFViewer = ({ id }: { id: string }) => {
   return (
     <div>
       <Toolbar sx={{ backgroundColor: theme => theme.palette.accent.main }}>
+        <IconButton onClick={goToPrevPage} disabled={pageNumber <= 1} color="inherit">
+          <ArrowBackIosNewIcon />
+        </IconButton>
+        <IconButton onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} color="inherit">
+          <ArrowForwardIosIcon />
+        </IconButton>
         <form onSubmit={handlePageNumberSubmit} style={{ display: 'flex', alignItems: 'center' }}>
           <Typography variant="body1" sx={{ mx: 1, color: theme => theme.palette.accent.contrastText }}>
             Page
@@ -215,12 +221,6 @@ const PDFViewer = ({ id }: { id: string }) => {
             of {numPages}
           </Typography>
         </form>
-        <IconButton onClick={goToPrevPage} disabled={pageNumber <= 1} color="inherit">
-          <ArrowBackIosNewIcon />
-        </IconButton>
-        <IconButton onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} color="inherit">
-          <ArrowForwardIosIcon />
-        </IconButton>
         <IconButton onClick={zoomOut} color="inherit">
           <ZoomOutIcon />
         </IconButton>
