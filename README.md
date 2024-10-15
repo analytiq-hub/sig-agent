@@ -11,6 +11,8 @@ Tech stack:
 Example display of Smart Document Router docs:
 ![Smart Document Router](./assets/file_list.png)
 
+![Under Construction](./assets/under_construction.jpg)
+
 # Local development environment
 
 ## Linux Fedora
