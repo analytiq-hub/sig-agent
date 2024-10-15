@@ -96,6 +96,10 @@ const PDFViewer = ({ id }: { id: string }) => {
           fileRef.current = fileURL;
           setLoading(false);
           //console.log('PDF loaded successfully for id:', id);
+
+          // Save the file name and file size
+          setFileName(`Document_${id}.pdf`);
+          setFileSize(blob.size);
         } else {
           //console.log('Component unmounted before PDF could be set, cleaning up');
           if (fileURL) {
@@ -143,6 +147,16 @@ const PDFViewer = ({ id }: { id: string }) => {
   const [pdfDocument, setPdfDocument] = useState<pdfjs.PDFDocumentProxy | null>(null);
   const [showProperties, setShowProperties] = useState(false);
   const [documentProperties, setDocumentProperties] = useState<Record<string, string> | null>(null);
+  const [fileName, setFileName] = useState<string>('');
+  const [fileSize, setFileSize] = useState<number>(0);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   const extractDocumentProperties = useCallback(async (pdf: pdfjs.PDFDocumentProxy) => {
     try {
@@ -150,6 +164,8 @@ const PDFViewer = ({ id }: { id: string }) => {
       const { info } = metadata;
 
       const properties: Record<string, string> = {
+        'File name': fileName,
+        'File size': `${formatFileSize(fileSize)} (${fileSize.toLocaleString()} bytes)`,
         'Title': info.Title || 'N/A',
         'Author': info.Author || 'N/A',
         'Subject': info.Subject || 'N/A',
@@ -168,7 +184,7 @@ const PDFViewer = ({ id }: { id: string }) => {
       console.error('Error extracting document properties:', error);
       setDocumentProperties({ 'Error': 'Failed to extract document properties' });
     }
-  }, []);
+  }, [fileName, fileSize]);
 
   const handleLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
