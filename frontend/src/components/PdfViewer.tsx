@@ -12,17 +12,17 @@ import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import RotateLeftIcon from '@mui/icons-material/RotateLeft';
 import RotateRightIcon from '@mui/icons-material/RotateRight';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import PrintIcon from '@mui/icons-material/Print';
-import SaveIcon from '@mui/icons-material/Save';
 import VerticalAlignTopIcon from '@mui/icons-material/VerticalAlignTop';
 import VerticalAlignBottomIcon from '@mui/icons-material/VerticalAlignBottom';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { styled } from '@mui/material/styles';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
-import PanToolOutlinedIcon from '@mui/icons-material/PanToolOutlined';
-import DescriptionIcon from '@mui/icons-material/Description';
 import { alpha } from '@mui/material/styles';
+import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import PanToolOutlinedIcon from '@mui/icons-material/PanToolOutlined';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -336,11 +336,11 @@ const PDFViewer = ({ id }: { id: string }) => {
           }}
         >
           <StyledMenuItem onClick={handlePrint}>
-            <PrintIcon fontSize="small" sx={{ mr: 1 }} />
+            <PrintOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
             Print
           </StyledMenuItem>
           <StyledMenuItem onClick={handleSave}>
-            <SaveIcon fontSize="small" sx={{ mr: 1 }} />
+            <SaveOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
             Save
           </StyledMenuItem>
           <Divider />
@@ -372,7 +372,7 @@ const PDFViewer = ({ id }: { id: string }) => {
           </StyledMenuItem>
           <Divider />
           <StyledMenuItem onClick={handleDocumentProperties}>
-            <DescriptionIcon fontSize="small" sx={{ mr: 1 }} />
+            <DescriptionOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
             Document Properties...
           </StyledMenuItem>
         </Menu>
