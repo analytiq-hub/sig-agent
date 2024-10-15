@@ -174,7 +174,7 @@ const PDFViewer = ({ id }: { id: string }) => {
     <div>
       <Toolbar sx={{ backgroundColor: theme => theme.palette.accent.main }}>
         <form onSubmit={handlePageNumberSubmit} style={{ display: 'flex', alignItems: 'center' }}>
-          <Typography variant="h7" sx={{ mx: 1, color: theme => theme.palette.accent.contrastText }}>
+          <Typography variant="body1" sx={{ mx: 1, color: theme => theme.palette.accent.contrastText }}>
             Page
           </Typography>
           <TextField
@@ -183,10 +183,29 @@ const PDFViewer = ({ id }: { id: string }) => {
             onBlur={() => setInputPageNumber(pageNumber.toString())}
             type="number"
             size="small"
-            inputProps={{ min: 1, max: numPages || 1, style: { textAlign: 'center', width: '40px' } }}
-            sx={{ mx: 1 }}
+            slotProps={{
+              input: {
+                inputProps: {
+                  min: 1,
+                  max: numPages || 1,
+                  style: { textAlign: 'center' }
+                }
+              }
+            }}
+            sx={{ 
+              mx: 1,
+              width: '60px',
+              '& input': {
+                appearance: 'textfield',
+                '-moz-appearance': 'textfield',
+                '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
+                  '-webkit-appearance': 'none',
+                  margin: 0,
+                },
+              }
+            }}
           />
-          <Typography variant="h7" sx={{ mx: 1, color: theme => theme.palette.accent.contrastText }}>
+          <Typography variant="body1" sx={{ mx: 1, color: theme => theme.palette.accent.contrastText }}>
             of {numPages}
           </Typography>
         </form>
