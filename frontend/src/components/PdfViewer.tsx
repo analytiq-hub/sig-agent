@@ -19,7 +19,7 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { styled } from '@mui/material/styles';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import { alpha } from '@mui/material/styles';
-import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
+import PrintIcon from '@mui/icons-material/Print';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import PanToolOutlinedIcon from '@mui/icons-material/PanToolOutlined';
@@ -336,7 +336,7 @@ const PDFViewer = ({ id }: { id: string }) => {
           }}
         >
           <StyledMenuItem onClick={handlePrint}>
-            <PrintOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
+            <PrintIcon fontSize="small" sx={{ mr: 1 }} />
             Print
           </StyledMenuItem>
           <StyledMenuItem onClick={handleSave}>
