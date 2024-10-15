@@ -28,7 +28,7 @@ const theme = createTheme({
       main: '#f5f5f5', // Toolbar color
       light: '#ffffff', // Lighter shade for hover effects
       dark: '#d7d7d7', // Darker shade for active states
-      contrastText: '#000000', // Text color for tertiary buttons
+      contrastText: '#000000', // Text color for accent elements
     },
     error: {
       main: '#e74c3c', // Error color
@@ -55,6 +55,10 @@ const theme = createTheme({
           color: '#ffffff', // Primary button text color
           '&:hover': {
             backgroundColor: '#4a6b8c', // Primary button hover background
+          },
+          '&:disabled': {
+            color: 'rgba(255, 255, 255, 0.3)',
+            backgroundColor: 'rgba(0, 0, 0, 0.12)',
           },
         },
         outlinedPrimary: {
@@ -89,7 +93,7 @@ const theme = createTheme({
         },
         outlinedAccent: {
           color: '#f5f5f5', // Accent color
-          borderColor: '#f5f5f5', // Accent color for border
+          borderColor: '#d7d7d7', // Accent color for border
           '&:hover': {
             backgroundColor: 'rgba(245, 245, 245, 0.04)', // Light accent color background on hover
             borderColor: '#d7d7d7', // Lighter accent color for border on hover

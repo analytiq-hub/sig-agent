@@ -115,13 +115,13 @@ const PDFViewer = ({ id }: { id: string }) => {
   return (
     <div>
       <Toolbar sx={{ backgroundColor: theme => theme.palette.accent.main }}>
-        <Button onClick={goToPrevPage} disabled={pageNumber <= 1} sx={{ color: theme => theme.palette.accent.contrastText, backgroundColor: theme => theme.palette.accent.main }}>
+        <Button onClick={goToPrevPage} disabled={pageNumber <= 1} variant="outlined">
           Prev
         </Button>
         <Typography variant="h6" style={{ flexGrow: 1, textAlign: 'center'}} sx={{ color: theme => theme.palette.accent.contrastText }}>
           Page {pageNumber} of {numPages}
         </Typography>
-        <Button onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} sx={{ color: theme => theme.palette.accent.contrastText, backgroundColor: theme => theme.palette.accent.main }}>
+        <Button onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} variant="outlined" >
           Next
         </Button>
       </Toolbar>
