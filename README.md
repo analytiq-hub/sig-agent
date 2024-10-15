@@ -3,10 +3,11 @@
 We implement a Smart Document Router. When completed, the router will use LLMs to route documents to the appropriate handlers, and to process the documents according to configured workflows.
 
 Tech stack:
-* NextJS, NextAuth
+* NextJS, NextAuth, MaterialUI, TailwindCSS
 * FastAPI
 * MongoDB
 * Pydantic
+* Future: OpenAI, Anthropic, LLama3...
 
 Example display of Smart Document Router docs:
 ![Smart Document Router](./assets/file_list.png)
