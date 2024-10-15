@@ -19,6 +19,9 @@ import VerticalAlignBottomIcon from '@mui/icons-material/VerticalAlignBottom';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { styled } from '@mui/material/styles';
+import TextFieldsIcon from '@mui/icons-material/TextFields';
+import PanToolIcon from '@mui/icons-material/PanTool';
+import DescriptionIcon from '@mui/icons-material/Description';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -221,6 +224,21 @@ const PDFViewer = ({ id }: { id: string }) => {
     handleMenuClose();
   };
 
+  const handleTextSelection = () => {
+    // Implement text selection functionality
+    handleMenuClose();
+  };
+
+  const handleHandTool = () => {
+    // Implement hand tool functionality
+    handleMenuClose();
+  };
+
+  const handleDocumentProperties = () => {
+    // Implement document properties functionality
+    handleMenuClose();
+  };
+
   return (
     <div>
       <Toolbar 
@@ -313,6 +331,15 @@ const PDFViewer = ({ id }: { id: string }) => {
             'aria-labelledby': 'more-button',
           }}
         >
+          <StyledMenuItem onClick={handleTextSelection}>
+            <TextFieldsIcon fontSize="small" sx={{ mr: 1 }} />
+            Text Selection Tool
+          </StyledMenuItem>
+          <StyledMenuItem onClick={handleHandTool}>
+            <PanToolIcon fontSize="small" sx={{ mr: 1 }} />
+            Hand Tool
+          </StyledMenuItem>
+          <Divider />
           <StyledMenuItem onClick={handlePrint}>
             <PrintIcon fontSize="small" sx={{ mr: 1 }} />
             Print
@@ -338,6 +365,11 @@ const PDFViewer = ({ id }: { id: string }) => {
           <StyledMenuItem onClick={rotateLeft}>
             <RotateLeftIcon fontSize="small" sx={{ mr: 1 }} />
             Rotate Counterclockwise
+          </StyledMenuItem>
+          <Divider />
+          <StyledMenuItem onClick={handleDocumentProperties}>
+            <DescriptionIcon fontSize="small" sx={{ mr: 1 }} />
+            Document Properties...
           </StyledMenuItem>
         </Menu>
       </Toolbar>
