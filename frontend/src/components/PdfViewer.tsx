@@ -40,6 +40,20 @@ const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
   },
 }));
 
+// Add this styled component
+const StyledListItem = styled(ListItem)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'space-between',
+  padding: theme.spacing(1, 2),
+  '& .property-key': {
+    fontWeight: 'bold',
+    marginRight: theme.spacing(2),
+  },
+  '& .property-value': {
+    textAlign: 'right',
+  },
+}));
+
 const PDFViewer = ({ id }: { id: string }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
@@ -450,6 +464,8 @@ const PDFViewer = ({ id }: { id: string }) => {
         open={showProperties} 
         onClose={() => setShowProperties(false)}
         aria-labelledby="document-properties-dialog-title"
+        maxWidth="sm" // Increase dialog width
+        fullWidth // Make dialog take full width of maxWidth
       >
         <DialogTitle id="document-properties-dialog-title">Document Properties</DialogTitle>
         <DialogContent>
@@ -460,9 +476,14 @@ const PDFViewer = ({ id }: { id: string }) => {
           ) : (
             <List>
               {Object.entries(documentProperties).map(([key, value]) => (
-                <ListItem key={key}>
-                  <ListItemText primary={key} secondary={value} />
-                </ListItem>
+                <StyledListItem key={key} divider>
+                  <Typography component="span" className="property-key">
+                    {key}:
+                  </Typography>
+                  <Typography component="span" className="property-value">
+                    {value}
+                  </Typography>
+                </StyledListItem>
               ))}
             </List>
           )}
