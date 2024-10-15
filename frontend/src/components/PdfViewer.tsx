@@ -25,6 +25,8 @@ const PDFViewer = ({ id }: { id: string }) => {
   const [loading, setLoading] = useState(true);
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [pdfDimensions, setPdfDimensions] = useState({ width: 0, height: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // Use a fileRef to store the file URL, which doesn't trigger re-renders when it changes.
   // The cleanup function now uses this ref to revoke the URL.
@@ -99,6 +101,14 @@ const PDFViewer = ({ id }: { id: string }) => {
     setNumPages(numPages);
     setPageNumber(1);
     pageRefs.current = new Array(numPages).fill(null);
+    
+    // Get the first page to calculate dimensions
+    pdfjs.getDocument(file!).promise.then((pdf) => {
+      pdf.getPage(1).then((page) => {
+        const viewport = page.getViewport({ scale: 1 });
+        setPdfDimensions({ width: viewport.width, height: viewport.height });
+      });
+    });
   };
 
   const handleLoadError = (error: { message: string }) => {
@@ -122,6 +132,22 @@ const PDFViewer = ({ id }: { id: string }) => {
   const zoomOut = () => setScale(prevScale => Math.max(prevScale - 0.1, 0.5));
   const rotateLeft = () => setRotation(prevRotation => (prevRotation - 90) % 360);
   const rotateRight = () => setRotation(prevRotation => (prevRotation + 90) % 360);
+
+  // New useEffect to handle auto-zoom
+  useEffect(() => {
+    if (pdfDimensions.width && pdfDimensions.height && containerRef.current) {
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+
+      const widthScale = containerWidth / pdfDimensions.width;
+      const heightScale = containerHeight / pdfDimensions.height;
+
+      // Use the smaller scale to ensure the entire page fits
+      const optimalScale = Math.min(widthScale, heightScale) * 0.9; // 0.9 to add a little padding
+
+      setScale(optimalScale);
+    }
+  }, [pdfDimensions, containerRef]);
 
   return (
     <div>
@@ -148,7 +174,10 @@ const PDFViewer = ({ id }: { id: string }) => {
           <RotateRightIcon />
         </IconButton>
       </Toolbar>
-      <div style={{ overflowY: 'scroll', height: '80vh', padding: '16px' }}>
+      <div 
+        ref={containerRef} 
+        style={{ overflowY: 'scroll', height: '80vh', padding: '16px' }}
+      >
         {loading ? (
           <div>Loading PDF...</div>
         ) : error ? (
@@ -169,7 +198,8 @@ const PDFViewer = ({ id }: { id: string }) => {
                 <Page 
                   key={`page_${index + 1}`} 
                   pageNumber={index + 1} 
-                  width={window.innerWidth * scale} 
+                  width={pdfDimensions.width * scale}
+                  height={pdfDimensions.height * scale}
                   rotate={rotation}
                 />
                 {index < numPages! - 1 && <hr style={{ border: '2px solid black' }} />}
