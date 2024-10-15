@@ -331,15 +331,6 @@ const PDFViewer = ({ id }: { id: string }) => {
             'aria-labelledby': 'more-button',
           }}
         >
-          <StyledMenuItem onClick={handleTextSelection}>
-            <TextFieldsIcon fontSize="small" sx={{ mr: 1 }} />
-            Text Selection Tool
-          </StyledMenuItem>
-          <StyledMenuItem onClick={handleHandTool}>
-            <PanToolIcon fontSize="small" sx={{ mr: 1 }} />
-            Hand Tool
-          </StyledMenuItem>
-          <Divider />
           <StyledMenuItem onClick={handlePrint}>
             <PrintIcon fontSize="small" sx={{ mr: 1 }} />
             Print
@@ -365,6 +356,15 @@ const PDFViewer = ({ id }: { id: string }) => {
           <StyledMenuItem onClick={rotateLeft}>
             <RotateLeftIcon fontSize="small" sx={{ mr: 1 }} />
             Rotate Counterclockwise
+          </StyledMenuItem>
+          <Divider />
+          <StyledMenuItem onClick={handleTextSelection}>
+            <TextFieldsIcon fontSize="small" sx={{ mr: 1 }} />
+            Text Selection Tool
+          </StyledMenuItem>
+          <StyledMenuItem onClick={handleHandTool}>
+            <PanToolIcon fontSize="small" sx={{ mr: 1 }} />
+            Hand Tool
           </StyledMenuItem>
           <Divider />
           <StyledMenuItem onClick={handleDocumentProperties}>
