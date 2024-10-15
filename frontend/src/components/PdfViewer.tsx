@@ -120,13 +120,44 @@ const PDFViewer = ({ id }: { id: string }) => {
     scrollToPage(pageNumber);
   }, [pageNumber, scrollToPage]);
 
+  const [pdfDocument, setPdfDocument] = useState<pdfjs.PDFDocumentProxy | null>(null);
+  const [showProperties, setShowProperties] = useState(false);
+  const [documentProperties, setDocumentProperties] = useState<Record<string, string> | null>(null);
+
+  const extractDocumentProperties = useCallback(async (pdf: pdfjs.PDFDocumentProxy) => {
+    try {
+      const metadata = await pdf.getMetadata();
+      const { info } = metadata;
+
+      const properties: Record<string, string> = {
+        'Title': info.Title || 'N/A',
+        'Author': info.Author || 'N/A',
+        'Subject': info.Subject || 'N/A',
+        'Keywords': info.Keywords || 'N/A',
+        'Creation Date': info.CreationDate ? new Date(info.CreationDate).toLocaleString() : 'N/A',
+        'Modification Date': info.ModDate ? new Date(info.ModDate).toLocaleString() : 'N/A',
+        'Creator': info.Creator || 'N/A',
+        'Producer': info.Producer || 'N/A',
+        'Version': info.PDFFormatVersion || 'N/A',
+        'Number of Pages': pdf.numPages.toString(),
+      };
+
+      console.log('Extracted properties:', properties);
+      setDocumentProperties(properties);
+    } catch (error) {
+      console.error('Error extracting document properties:', error);
+      setDocumentProperties({ 'Error': 'Failed to extract document properties' });
+    }
+  }, []);
+
   const handleLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
     setPageNumber(1);
     pageRefs.current = new Array(numPages).fill(null);
     
-    // Get the first page to calculate dimensions
     pdfjs.getDocument(file!).promise.then((pdf) => {
+      setPdfDocument(pdf);
+      extractDocumentProperties(pdf);  // Extract properties here
       pdf.getPage(1).then((page) => {
         const viewport = page.getViewport({ scale: 1 });
         setPdfDimensions({ width: viewport.width, height: viewport.height });
@@ -238,37 +269,10 @@ const PDFViewer = ({ id }: { id: string }) => {
     handleMenuClose();
   };
 
-  const [pdfDocument, setPdfDocument] = useState<pdfjs.PDFDocumentProxy | null>(null);
-  const [showProperties, setShowProperties] = useState(false);
-  const [documentProperties, setDocumentProperties] = useState<Record<string, string>>({});
-
-  const extractDocumentProperties = async () => {
-    if (!pdfDocument) return;
-
-    const metadata = await pdfDocument.getMetadata();
-    const { info } = metadata;
-
-    const properties: Record<string, string> = {
-      'Title': info.Title || 'N/A',
-      'Author': info.Author || 'N/A',
-      'Subject': info.Subject || 'N/A',
-      'Keywords': info.Keywords || 'N/A',
-      'Creation Date': info.CreationDate ? new Date(info.CreationDate).toLocaleString() : 'N/A',
-      'Modification Date': info.ModDate ? new Date(info.ModDate).toLocaleString() : 'N/A',
-      'Creator': info.Creator || 'N/A',
-      'Producer': info.Producer || 'N/A',
-      'Version': info.PDFFormatVersion || 'N/A',
-      'Number of Pages': numPages?.toString() || 'N/A',
-    };
-
-    setDocumentProperties(properties);
-  };
-
-  const handleDocumentProperties = () => {
-    extractDocumentProperties();
+  const handleDocumentProperties = useCallback(() => {
     setShowProperties(true);
     handleMenuClose();
-  };
+  }, [handleMenuClose]);
 
   return (
     <div>
@@ -442,16 +446,26 @@ const PDFViewer = ({ id }: { id: string }) => {
           </Typography>
         )}
       </div>
-      <Dialog open={showProperties} onClose={() => setShowProperties(false)}>
-        <DialogTitle>Document Properties</DialogTitle>
+      <Dialog 
+        open={showProperties} 
+        onClose={() => setShowProperties(false)}
+        aria-labelledby="document-properties-dialog-title"
+      >
+        <DialogTitle id="document-properties-dialog-title">Document Properties</DialogTitle>
         <DialogContent>
-          <List>
-            {Object.entries(documentProperties).map(([key, value]) => (
-              <ListItem key={key}>
-                <ListItemText primary={key} secondary={value} />
-              </ListItem>
-            ))}
-          </List>
+          {documentProperties === null ? (
+            <Typography>Loading properties...</Typography>
+          ) : Object.keys(documentProperties).length === 0 ? (
+            <Typography>No properties available</Typography>
+          ) : (
+            <List>
+              {Object.entries(documentProperties).map(([key, value]) => (
+                <ListItem key={key}>
+                  <ListItemText primary={key} secondary={value} />
+                </ListItem>
+              ))}
+            </List>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowProperties(false)}>Close</Button>
