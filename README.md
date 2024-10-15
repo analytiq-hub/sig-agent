@@ -35,7 +35,13 @@ Example display of Smart Document Router docs:
   uvicorn main:app --host 0.0.0.0 --port 8000
   ```
   * To test in Swagger UI, open [http://localhost:8000/docs], authenticate with a user token, and execute any API calls.
-* Open [http://localhost:8000/docs] to experiment with the FastAPI
+* Open [http://localhost:8000/docs](http://localhost:8000/docs) to experiment with the FastAPI
+* Install `NodeJS` and `npm`
+* Install the frontend
+  ```bash
+  cd frontend
+  npm install
+  ```
 * Start the front end
   ```bash
   cd frontend
