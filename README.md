@@ -18,8 +18,8 @@ Example display of Smart Document Router docs:
 ## Linux Fedora
 * MongoDB setup
   * [Install MongoDB](https://medium.com/@nkav2447/how-to-download-and-install-mongodb-on-fedora-40-2db148a7c2f0)
-  * Create `pdf_manager` database, `users` collection
-* Create venv for doc-proxy, install `backend/requirements.txt`
+  * Create `dev` database
+* Create `venv` for doc-proxy, install `backend/requirements.txt`
   * During setup
   ```bash
   mkdir ~/.venv
@@ -43,4 +43,4 @@ Example display of Smart Document Router docs:
   ```
 
 ## Macbook
-TO DO
+Under construction.
