@@ -6,7 +6,11 @@ import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { downloadFileApi } from '@/utils/api';
-import { Toolbar, Button, Typography } from '@mui/material';
+import { Toolbar, Button, Typography, IconButton } from '@mui/material';
+import ZoomInIcon from '@mui/icons-material/ZoomIn';
+import ZoomOutIcon from '@mui/icons-material/ZoomOut';
+import RotateLeftIcon from '@mui/icons-material/RotateLeft';
+import RotateRightIcon from '@mui/icons-material/RotateRight';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -19,6 +23,8 @@ const PDFViewer = ({ id }: { id: string }) => {
   const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [scale, setScale] = useState(1);
+  const [rotation, setRotation] = useState(0);
   
   // Use a fileRef to store the file URL, which doesn't trigger re-renders when it changes.
   // The cleanup function now uses this ref to revoke the URL.
@@ -112,6 +118,11 @@ const PDFViewer = ({ id }: { id: string }) => {
     }
   };
 
+  const zoomIn = () => setScale(prevScale => Math.min(prevScale + 0.1, 2));
+  const zoomOut = () => setScale(prevScale => Math.max(prevScale - 0.1, 0.5));
+  const rotateLeft = () => setRotation(prevRotation => (prevRotation - 90) % 360);
+  const rotateRight = () => setRotation(prevRotation => (prevRotation + 90) % 360);
+
   return (
     <div>
       <Toolbar sx={{ backgroundColor: theme => theme.palette.accent.main }}>
@@ -121,9 +132,21 @@ const PDFViewer = ({ id }: { id: string }) => {
         <Typography variant="h6" style={{ flexGrow: 1, textAlign: 'center'}} sx={{ color: theme => theme.palette.accent.contrastText }}>
           Page {pageNumber} of {numPages}
         </Typography>
-        <Button onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} variant="outlined" >
+        <Button onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} variant="outlined">
           Next
         </Button>
+        <IconButton onClick={zoomOut} color="inherit">
+          <ZoomOutIcon />
+        </IconButton>
+        <IconButton onClick={zoomIn} color="inherit">
+          <ZoomInIcon />
+        </IconButton>
+        <IconButton onClick={rotateLeft} color="inherit">
+          <RotateLeftIcon />
+        </IconButton>
+        <IconButton onClick={rotateRight} color="inherit">
+          <RotateRightIcon />
+        </IconButton>
       </Toolbar>
       <div style={{ overflowY: 'scroll', height: '80vh', padding: '16px' }}>
         {loading ? (
@@ -143,7 +166,12 @@ const PDFViewer = ({ id }: { id: string }) => {
                 key={`page_container_${index + 1}`}
                 ref={el => pageRefs.current[index] = el}
               >
-                <Page key={`page_${index + 1}`} pageNumber={index + 1} width={window.innerWidth} />
+                <Page 
+                  key={`page_${index + 1}`} 
+                  pageNumber={index + 1} 
+                  width={window.innerWidth * scale} 
+                  rotate={rotation}
+                />
                 {index < numPages! - 1 && <hr style={{ border: '2px solid black' }} />}
               </div>
             ))}
