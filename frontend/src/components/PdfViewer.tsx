@@ -179,6 +179,7 @@ const PDFViewer = ({ id }: { id: string }) => {
   return (
     <div>
       <Toolbar 
+      variant='dense'
         sx={{ 
           backgroundColor: theme => theme.palette.accent.main,
           minHeight: '48px', // Reduced from default 64px
