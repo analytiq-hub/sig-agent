@@ -6,12 +6,16 @@ import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { downloadFileApi } from '@/utils/api';
-import { Toolbar, Typography, IconButton, TextField } from '@mui/material';
+import { Toolbar, Typography, IconButton, TextField, Menu, MenuItem, Divider } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import RotateLeftIcon from '@mui/icons-material/RotateLeft';
 import RotateRightIcon from '@mui/icons-material/RotateRight';
-
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import PrintIcon from '@mui/icons-material/Print';
+import SaveIcon from '@mui/icons-material/Save';
+import VerticalAlignTopIcon from '@mui/icons-material/VerticalAlignTop';
+import VerticalAlignBottomIcon from '@mui/icons-material/VerticalAlignBottom';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
@@ -177,10 +181,41 @@ const PDFViewer = ({ id }: { id: string }) => {
     }
   };
 
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handlePrint = () => {
+    // Implement print functionality
+    handleMenuClose();
+  };
+
+  const handleSave = () => {
+    // Implement save functionality
+    handleMenuClose();
+  };
+
+  const handleGoToFirstPage = () => {
+    setPageNumber(1);
+    handleMenuClose();
+  };
+
+  const handleGoToLastPage = () => {
+    if (numPages) setPageNumber(numPages);
+    handleMenuClose();
+  };
+
   return (
     <div>
       <Toolbar 
-      variant='dense'
+        variant='dense'
         sx={{ 
           backgroundColor: theme => theme.palette.accent.main,
           minHeight: '48px', // Reduced from default 64px
@@ -190,62 +225,112 @@ const PDFViewer = ({ id }: { id: string }) => {
           '& .MuiTypography-root': { // Make text smaller
             fontSize: '0.875rem',
           },
+          justifyContent: 'space-between', // This will push the menu icon to the right
         }}
       >
-        <IconButton onClick={goToPrevPage} disabled={pageNumber <= 1} color="inherit" size="small">
-          <ArrowUpwardIcon fontSize="small" />
-        </IconButton>
-        <IconButton onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} color="inherit" size="small">
-          <ArrowDownwardIcon fontSize="small" />
-        </IconButton>
-        <form onSubmit={handlePageNumberSubmit} style={{ display: 'flex', alignItems: 'center' }}>
-          <TextField
-            value={inputPageNumber}
-            onChange={handlePageNumberChange}
-            onBlur={() => setInputPageNumber(pageNumber.toString())}
-            type="number"
-            size="small"
-            slotProps={{
-              input: {
-                inputProps: {
-                  min: 1,
-                  max: numPages || 1,
-                  style: { textAlign: 'center' }
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <IconButton onClick={goToPrevPage} disabled={pageNumber <= 1} color="inherit" size="small">
+            <ArrowUpwardIcon fontSize="small" />
+          </IconButton>
+          <IconButton onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} color="inherit" size="small">
+            <ArrowDownwardIcon fontSize="small" />
+          </IconButton>
+          <form onSubmit={handlePageNumberSubmit} style={{ display: 'flex', alignItems: 'center' }}>
+            <TextField
+              value={inputPageNumber}
+              onChange={handlePageNumberChange}
+              onBlur={() => setInputPageNumber(pageNumber.toString())}
+              type="number"
+              size="small"
+              slotProps={{
+                input: {
+                  inputProps: {
+                    min: 1,
+                    max: numPages || 1,
+                    style: { textAlign: 'center' }
+                  }
                 }
-              }
-            }}
-            sx={{ 
-              mx: 0.5,
-              width: '50px', // Slightly reduced width
-              '& .MuiInputBase-root': {
-                height: '28px', // Make the input field shorter
-              },
-              '& input': {
-                appearance: 'textfield',
-                '-moz-appearance': 'textfield',
-                '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
-                  '-webkit-appearance': 'none',
-                  margin: 0,
+              }}
+              sx={{ 
+                mx: 0.5,
+                width: '50px', // Slightly reduced width
+                '& .MuiInputBase-root': {
+                  height: '28px', // Make the input field shorter
                 },
-              }
-            }}
-          />
-          <Typography variant="body2" sx={{ mx: 0.5, color: theme => theme.palette.accent.contrastText }}>
-            of {numPages}
-          </Typography>
-        </form>
-        <IconButton onClick={zoomOut} color="inherit" size="small">
-          <ZoomOutIcon fontSize="small" />
+                '& input': {
+                  appearance: 'textfield',
+                  '-moz-appearance': 'textfield',
+                  '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
+                    '-webkit-appearance': 'none',
+                    margin: 0,
+                  },
+                }
+              }}
+            />
+            <Typography variant="body2" sx={{ mx: 0.5, color: theme => theme.palette.accent.contrastText }}>
+              of {numPages}
+            </Typography>
+          </form>
+          <IconButton onClick={zoomOut} color="inherit" size="small">
+            <ZoomOutIcon fontSize="small" />
+          </IconButton>
+          <IconButton onClick={zoomIn} color="inherit" size="small">
+            <ZoomInIcon fontSize="small" />
+          </IconButton>
+          <IconButton onClick={rotateLeft} color="inherit" size="small">
+            <RotateLeftIcon fontSize="small" />
+          </IconButton>
+          <IconButton onClick={rotateRight} color="inherit" size="small">
+            <RotateRightIcon fontSize="small" />
+          </IconButton>
+        </div>
+        <IconButton
+          color="inherit"
+          size="small"
+          onClick={handleMenuClick}
+          aria-label="more"
+          aria-controls={open ? 'pdf-menu' : undefined}
+          aria-haspopup="true"
+          aria-expanded={open ? 'true' : undefined}
+        >
+          <MoreVertIcon fontSize="small" />
         </IconButton>
-        <IconButton onClick={zoomIn} color="inherit" size="small">
-          <ZoomInIcon fontSize="small" />
-        </IconButton>
-        <IconButton onClick={rotateLeft} color="inherit" size="small">
-          <RotateLeftIcon fontSize="small" />
-        </IconButton>
-        <IconButton onClick={rotateRight} color="inherit" size="small">
-          <RotateRightIcon fontSize="small" />
-        </IconButton>
+        <Menu
+          id="pdf-menu"
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleMenuClose}
+          MenuListProps={{
+            'aria-labelledby': 'more-button',
+          }}
+        >
+          <MenuItem onClick={handlePrint}>
+            <PrintIcon fontSize="small" sx={{ mr: 1 }} />
+            Print
+          </MenuItem>
+          <MenuItem onClick={handleSave}>
+            <SaveIcon fontSize="small" sx={{ mr: 1 }} />
+            Save
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={handleGoToFirstPage}>
+            <VerticalAlignTopIcon fontSize="small" sx={{ mr: 1 }} />
+            Go to First Page
+          </MenuItem>
+          <MenuItem onClick={handleGoToLastPage}>
+            <VerticalAlignBottomIcon fontSize="small" sx={{ mr: 1 }} />
+            Go to Last Page
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={rotateRight}>
+            <RotateRightIcon fontSize="small" sx={{ mr: 1 }} />
+            Rotate Clockwise
+          </MenuItem>
+          <MenuItem onClick={rotateLeft}>
+            <RotateLeftIcon fontSize="small" sx={{ mr: 1 }} />
+            Rotate Counterclockwise
+          </MenuItem>
+        </Menu>
       </Toolbar>
       <div 
         ref={containerRef} 
