@@ -178,15 +178,26 @@ const PDFViewer = ({ id }: { id: string }) => {
 
   return (
     <div>
-      <Toolbar sx={{ backgroundColor: theme => theme.palette.accent.main }}>
-        <IconButton onClick={goToPrevPage} disabled={pageNumber <= 1} color="inherit">
-          <ArrowBackIosNewIcon />
+      <Toolbar 
+        sx={{ 
+          backgroundColor: theme => theme.palette.accent.main,
+          minHeight: '48px', // Reduced from default 64px
+          '& .MuiIconButton-root': { // Make icons smaller
+            padding: '4px',
+          },
+          '& .MuiTypography-root': { // Make text smaller
+            fontSize: '0.875rem',
+          },
+        }}
+      >
+        <IconButton onClick={goToPrevPage} disabled={pageNumber <= 1} color="inherit" size="small">
+          <ArrowBackIosNewIcon fontSize="small" />
         </IconButton>
-        <IconButton onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} color="inherit">
-          <ArrowForwardIosIcon />
+        <IconButton onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} color="inherit" size="small">
+          <ArrowForwardIosIcon fontSize="small" />
         </IconButton>
         <form onSubmit={handlePageNumberSubmit} style={{ display: 'flex', alignItems: 'center' }}>
-          <Typography variant="body1" sx={{ mx: 1, color: theme => theme.palette.accent.contrastText }}>
+          <Typography variant="body2" sx={{ mx: 0.5, color: theme => theme.palette.accent.contrastText }}>
             Page
           </Typography>
           <TextField
@@ -205,8 +216,11 @@ const PDFViewer = ({ id }: { id: string }) => {
               }
             }}
             sx={{ 
-              mx: 1,
-              width: '60px',
+              mx: 0.5,
+              width: '50px', // Slightly reduced width
+              '& .MuiInputBase-root': {
+                height: '28px', // Make the input field shorter
+              },
               '& input': {
                 appearance: 'textfield',
                 '-moz-appearance': 'textfield',
@@ -217,21 +231,21 @@ const PDFViewer = ({ id }: { id: string }) => {
               }
             }}
           />
-          <Typography variant="body1" sx={{ mx: 1, color: theme => theme.palette.accent.contrastText }}>
+          <Typography variant="body2" sx={{ mx: 0.5, color: theme => theme.palette.accent.contrastText }}>
             of {numPages}
           </Typography>
         </form>
-        <IconButton onClick={zoomOut} color="inherit">
-          <ZoomOutIcon />
+        <IconButton onClick={zoomOut} color="inherit" size="small">
+          <ZoomOutIcon fontSize="small" />
         </IconButton>
-        <IconButton onClick={zoomIn} color="inherit">
-          <ZoomInIcon />
+        <IconButton onClick={zoomIn} color="inherit" size="small">
+          <ZoomInIcon fontSize="small" />
         </IconButton>
-        <IconButton onClick={rotateLeft} color="inherit">
-          <RotateLeftIcon />
+        <IconButton onClick={rotateLeft} color="inherit" size="small">
+          <RotateLeftIcon fontSize="small" />
         </IconButton>
-        <IconButton onClick={rotateRight} color="inherit">
-          <RotateRightIcon />
+        <IconButton onClick={rotateRight} color="inherit" size="small">
+          <RotateRightIcon fontSize="small" />
         </IconButton>
       </Toolbar>
       <div 
