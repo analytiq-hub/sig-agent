@@ -11,6 +11,8 @@ import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import RotateLeftIcon from '@mui/icons-material/RotateLeft';
 import RotateRightIcon from '@mui/icons-material/RotateRight';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -213,12 +215,12 @@ const PDFViewer = ({ id }: { id: string }) => {
             of {numPages}
           </Typography>
         </form>
-        <Button onClick={goToPrevPage} disabled={pageNumber <= 1} variant="outlined">
-          Prev
-        </Button>
-        <Button onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} variant="outlined">
-          Next
-        </Button>
+        <IconButton onClick={goToPrevPage} disabled={pageNumber <= 1} color="inherit">
+          <ArrowBackIosNewIcon />
+        </IconButton>
+        <IconButton onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)} color="inherit">
+          <ArrowForwardIosIcon />
+        </IconButton>
         <IconButton onClick={zoomOut} color="inherit">
           <ZoomOutIcon />
         </IconButton>
