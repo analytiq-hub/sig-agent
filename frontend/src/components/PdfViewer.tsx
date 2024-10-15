@@ -22,6 +22,7 @@ import { styled } from '@mui/material/styles';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import PanToolIcon from '@mui/icons-material/PanTool';
 import DescriptionIcon from '@mui/icons-material/Description';
+import { alpha } from '@mui/material/styles';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -29,10 +30,13 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
-  fontSize: '0.875rem', // Smaller font size
-  padding: '4px 16px', // Reduced padding
+  fontSize: '0.875rem',
+  padding: '4px 16px',
   '& .MuiListItemIcon-root': {
-    minWidth: '32px', // Smaller icon area
+    minWidth: '32px',
+  },
+  '& .MuiSvgIcon-root': {
+    color: alpha(theme.palette.text.primary, 0.6), // This makes the icons slightly grayer
   },
 }));
 
