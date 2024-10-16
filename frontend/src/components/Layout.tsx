@@ -25,7 +25,7 @@ import AuthButton from './AuthButton';
 import { useSession } from 'next-auth/react';
 import UserMenu from './UserMenu'; // Add this import
 import Link from 'next/link';
-import { Upload as UploadIcon, List as ListIcon, Dashboard as DashboardIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material';
+import { Upload as UploadIcon, List as ListIcon, Dashboard as DashboardIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon, Memory as ModelIcon } from '@mui/icons-material';
 import { Tooltip } from '@mui/material';
 
 const drawerWidth = 180;
@@ -91,6 +91,7 @@ const authenticatedMenuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, href: '/dashboard' },
   { text: 'Upload', icon: <UploadIcon />, href: '/upload' },
   { text: 'List Files', icon: <ListIcon />, href: '/list' },
+  { text: 'Models', icon: <ModelIcon />, href: '/test' },
   { text: 'Flows', icon: <AccountTreeIcon />, href: '/flows' },
 ];
 
