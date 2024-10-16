@@ -303,16 +303,6 @@ const PDFViewer = ({ id }: { id: string }) => {
     handleMenuClose();
   };
 
-  const handleTextSelection = () => {
-    setToolMode('text');
-    handleMenuClose();
-  };
-
-  const handleHandTool = () => {
-    setToolMode('hand');
-    handleMenuClose();
-  };
-
   const handleDocumentProperties = useCallback(() => {
     setShowProperties(true);
     handleMenuClose();
@@ -451,15 +441,6 @@ const PDFViewer = ({ id }: { id: string }) => {
           <StyledMenuItem onClick={rotateLeft}>
             <RotateLeftIcon fontSize="small" sx={{ mr: 1 }} />
             Rotate Counterclockwise
-          </StyledMenuItem>
-          <Divider />
-          <StyledMenuItem onClick={handleTextSelection}>
-            <TextFieldsIcon fontSize="small" sx={{ mr: 1 }} />
-            Text Selection Tool
-          </StyledMenuItem>
-          <StyledMenuItem onClick={handleHandTool}>
-            <PanToolOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
-            Hand Tool
           </StyledMenuItem>
           <Divider />
           <StyledMenuItem onClick={handleDocumentProperties}>
