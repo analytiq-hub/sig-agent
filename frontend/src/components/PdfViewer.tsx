@@ -23,6 +23,7 @@ import PrintIcon from '@mui/icons-material/Print';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import PanToolOutlinedIcon from '@mui/icons-material/PanToolOutlined';
+import { saveAs } from 'file-saver';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -289,7 +290,18 @@ const PDFViewer = ({ id }: { id: string }) => {
   };
 
   const handleSave = () => {
-    // Implement save functionality
+    if (file) {
+      fetch(file)
+        .then(response => response.blob())
+        .then(blob => {
+          const defaultFileName = fileName || `Document_${id}.pdf`;
+          saveAs(blob, defaultFileName);
+        })
+        .catch(error => {
+          console.error('Error saving the file:', error);
+          // Optionally, you can show an error message to the user here
+        });
+    }
     handleMenuClose();
   };
 
