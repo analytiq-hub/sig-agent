@@ -156,6 +156,7 @@ const PDFViewer = ({ id }: { id: string }) => {
   const [documentProperties, setDocumentProperties] = useState<Record<string, string> | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [fileSize, setFileSize] = useState<number>(0);
+  const [toolMode, setToolMode] = useState<'text' | 'hand'>('hand');
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -303,12 +304,12 @@ const PDFViewer = ({ id }: { id: string }) => {
   };
 
   const handleTextSelection = () => {
-    // Implement text selection functionality
+    setToolMode('text');
     handleMenuClose();
   };
 
   const handleHandTool = () => {
-    // Implement hand tool functionality
+    setToolMode('hand');
     handleMenuClose();
   };
 
