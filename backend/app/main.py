@@ -1,8 +1,8 @@
 # main.py
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body, Security
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body, Security, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
@@ -15,6 +15,7 @@ import json
 from dotenv import load_dotenv
 import secrets
 import base64
+import urllib.parse
 import analytiq_data as ad
 
 import api
@@ -56,6 +57,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-File-Name", "Content-Disposition"]  # Add this line
 )
 
 # MongoDB connection
@@ -137,7 +139,23 @@ async def download_pdf(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    return FileResponse(document["path"], filename=document["filename"])
+    file_path = document["path"]
+    filename = document["filename"]
+
+    def iterfile():
+        with open(file_path, mode="rb") as file_like:
+            yield from file_like
+
+    # URL encode the filename to handle special characters
+    encoded_filename = urllib.parse.quote(filename)
+
+    headers = {
+        "Content-Disposition": f"attachment; filename=\"{encoded_filename}\"",
+        "Content-Type": "application/pdf",
+        "X-File-Name": encoded_filename
+    }
+
+    return StreamingResponse(iterfile(), headers=headers)
 
 @app.get("/api/list", response_model=ListPDFsResponse)
 async def list_pdfs(
