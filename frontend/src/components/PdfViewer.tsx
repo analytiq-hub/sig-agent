@@ -334,21 +334,22 @@ const PDFViewer = ({ id }: { id: string }) => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
-          <Tooltip title={fileName || 'Untitled Document'} arrow>
-            <Typography
-              variant="body2"
-              noWrap
-              sx={{
-                maxWidth: '200px',
-                marginRight: '8px',
-                color: theme => theme.palette.accent.contrastText,
-                fontWeight: 'bold',
-                cursor: 'default', // Add this to indicate it's hoverable
-              }}
-            >
-              {fileName || 'Untitled Document'}
-            </Typography>
-          </Tooltip>
+          <div style={{ width: '200px', marginRight: '8px', display: 'flex', justifyContent: 'flex-end' }}>
+            <Tooltip title={fileName || 'Untitled Document'} arrow>
+              <Typography
+                variant="body2"
+                noWrap
+                sx={{
+                  maxWidth: '100%',
+                  color: theme => theme.palette.accent.contrastText,
+                  fontWeight: 'bold',
+                  cursor: 'default',
+                }}
+              >
+                {fileName || 'Untitled Document'}
+              </Typography>
+            </Tooltip>
+          </div>
           <IconButton onClick={goToPrevPage} disabled={pageNumber <= 1} color="inherit" size="small">
             <ArrowUpwardIcon fontSize="small" />
           </IconButton>
