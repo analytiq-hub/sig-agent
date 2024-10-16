@@ -91,7 +91,7 @@ const authenticatedMenuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, href: '/dashboard' },
   { text: 'Upload', icon: <UploadIcon />, href: '/upload' },
   { text: 'List Files', icon: <ListIcon />, href: '/list' },
-  { text: 'Workflows', icon: <AccountTreeIcon />, href: '/workflows' },
+  { text: 'Flows', icon: <AccountTreeIcon />, href: '/flows' },
 ];
 
 const debugMenuItems = [

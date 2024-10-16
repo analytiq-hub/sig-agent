@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Workflows: React.FC = () => {
+const Flows: React.FC = () => {
   return (
     <div>
       <h1>Hello World</h1>
@@ -8,4 +8,4 @@ const Workflows: React.FC = () => {
   );
 };
 
-export default Workflows;
+export default Flows;
