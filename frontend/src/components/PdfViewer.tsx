@@ -89,7 +89,7 @@ const PDFViewer = ({ id }: { id: string }) => {
         //console.log('Fetching PDF for id:', id);
         const response = await downloadFileApi(id);
         //console.log('PDF download complete for id:', id);
-        const blob = new Blob([response], { type: 'application/pdf' });
+        const blob = new Blob([response.data], { type: 'application/pdf' });
         const fileURL = URL.createObjectURL(blob);
         if (isMounted) {
           setFile(fileURL);
@@ -97,8 +97,15 @@ const PDFViewer = ({ id }: { id: string }) => {
           setLoading(false);
           //console.log('PDF loaded successfully for id:', id);
 
+          // Get the filename from the Content-Disposition header
+          const contentDisposition = response.headers['content-disposition'];
+          console.log('contentDisposition:', contentDisposition);
+          const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+          const matches = filenameRegex.exec(contentDisposition);
+          const filename = matches && matches[1] ? matches[1].replace(/['"]/g, '') : `Document_${id}.pdf`;
+
           // Save the file name and file size
-          setFileName(`Document_${id}.pdf`);
+          setFileName(filename);
           setFileSize(blob.size);
         } else {
           //console.log('Component unmounted before PDF could be set, cleaning up');

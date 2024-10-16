@@ -40,7 +40,7 @@ export const downloadFileApi = async (id: string) => {
     responseType: 'arraybuffer' // Spent an evening figuring out why this was necessary
   }) 
   console.log('downloadFileApi(): response:', response);
-  return response.data;
+  return { data: response.data, headers: response.headers };
 };
 
 export interface CreateTokenRequest {
