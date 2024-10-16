@@ -15,7 +15,6 @@ import json
 from dotenv import load_dotenv
 import secrets
 import base64
-import urllib.parse
 import analytiq_data as ad
 
 import api
@@ -57,7 +56,6 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-File-Name", "Content-Disposition"]  # Add this line
 )
 
 # MongoDB connection
@@ -142,20 +140,7 @@ async def download_pdf(
     file_path = document["path"]
     filename = document["filename"]
 
-    def iterfile():
-        with open(file_path, mode="rb") as file_like:
-            yield from file_like
-
-    # URL encode the filename to handle special characters
-    encoded_filename = urllib.parse.quote(filename)
-
-    headers = {
-        "Content-Disposition": f"attachment; filename=\"{encoded_filename}\"",
-        "Content-Type": "application/pdf",
-        "X-File-Name": encoded_filename
-    }
-
-    return StreamingResponse(iterfile(), headers=headers)
+    return FileResponse(document["path"], filename=document["filename"])
 
 @app.get("/api/list", response_model=ListPDFsResponse)
 async def list_pdfs(
