@@ -6,7 +6,7 @@ import Layout from '@/components/Layout';
 import ThemeRegistry from '@/components/ThemeRegistry';
 
 export const metadata = {
-  title: 'Doc Proxy',
+  title: 'Smart Document Router',
   description: 'Smart Document Router',
   icons: {
     icon: '/favicon.ico',

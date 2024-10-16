@@ -188,7 +188,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             <Link href="/" style={{ color: theme.palette.primary.contrastText, textDecoration: 'none' }}>
-              Doc Proxy
+              Smart Document Router
             </Link>
           </Typography>
           {session ? (
