@@ -39,6 +39,7 @@ export const downloadFileApi = async (id: string) => {
   const response = await api.get(`/api/download/${id}`, {
     responseType: 'arraybuffer' // Spent an evening figuring out why this was necessary
   }) 
+  console.log('downloadFileApi(): response:', response);
   return response.data;
 };
 
