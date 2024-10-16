@@ -6,7 +6,7 @@ import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { downloadFileApi } from '@/utils/api';
-import { Toolbar, Typography, IconButton, TextField, Menu, MenuItem, Divider, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemText } from '@mui/material';
+import { Toolbar, Typography, IconButton, TextField, Menu, MenuItem, Divider, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemText, Tooltip } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import RotateLeftIcon from '@mui/icons-material/RotateLeft';
@@ -323,17 +323,32 @@ const PDFViewer = ({ id }: { id: string }) => {
         variant='dense'
         sx={{ 
           backgroundColor: theme => theme.palette.accent.main,
-          minHeight: '48px', // Reduced from default 64px
-          '& .MuiIconButton-root': { // Make icons smaller
+          minHeight: '48px',
+          '& .MuiIconButton-root': {
             padding: '4px',
           },
-          '& .MuiTypography-root': { // Make text smaller
+          '& .MuiTypography-root': {
             fontSize: '0.875rem',
           },
-          justifyContent: 'space-between', // This will push the menu icon to the right
+          justifyContent: 'space-between',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+          <Tooltip title={fileName || 'Untitled Document'} arrow>
+            <Typography
+              variant="body2"
+              noWrap
+              sx={{
+                maxWidth: '200px',
+                marginRight: '8px',
+                color: theme => theme.palette.accent.contrastText,
+                fontWeight: 'bold',
+                cursor: 'default', // Add this to indicate it's hoverable
+              }}
+            >
+              {fileName || 'Untitled Document'}
+            </Typography>
+          </Tooltip>
           <IconButton onClick={goToPrevPage} disabled={pageNumber <= 1} color="inherit" size="small">
             <ArrowUpwardIcon fontSize="small" />
           </IconButton>
