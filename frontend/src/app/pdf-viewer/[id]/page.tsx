@@ -24,11 +24,6 @@ const PdfViewerPage: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', padding: 1, borderBottom: '1px solid #e0e0e0' }}>
-        <IconButton onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-          <MenuIcon />
-        </IconButton>
-      </Box>
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <PanelGroup direction="horizontal" style={{ width: '100%', height: '100%' }}>
           {isSidebarOpen && (

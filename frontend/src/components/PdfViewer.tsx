@@ -471,7 +471,7 @@ const PDFViewer = ({ id }: { id: string }) => {
       </Toolbar>
       <div 
         ref={containerRef} 
-        style={{ overflowY: 'scroll', height: '80vh', padding: '16px' }}
+        style={{ overflowY: 'scroll', flexGrow: 1, padding: '16px' }}
       >
         {loading ? (
           <div>Loading PDF...</div>
