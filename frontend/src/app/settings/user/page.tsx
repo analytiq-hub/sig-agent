@@ -13,9 +13,9 @@ const UserSettingsPage: React.FC = () => {
       
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h2 className="text-xl font-semibold">Access tokens</h2>
+          <h2 className="text-xl font-semibold">API tokens</h2>
           <p className="text-gray-600 mb-2">
-            Set up secure API authentication using access tokens
+            Manage your Smart Doc Router API tokens.
           </p>
         </div>
         <Link href="/settings/user/access-tokens" passHref>
@@ -31,7 +31,7 @@ const UserSettingsPage: React.FC = () => {
         <div>
           <h2 className="text-xl font-semibold">LLM tokens</h2>
           <p className="text-gray-600 mb-2">
-            Manage your Large Language Model (LLM) API tokens
+            Manage your Large Language Model (LLM) API tokens.
           </p>
         </div>
         <Link href="/settings/user/llm-tokens" passHref>

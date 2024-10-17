@@ -53,6 +53,7 @@ export const createTokenApi = async (token: CreateTokenRequest) => {
   return response.data;
 };
 
+// A more consistent name for this function would be getApiTokensApi, but that is too repetitive
 export const getTokensApi = async () => {
   const response = await api.get('/api/api_tokens');
   return response.data;
