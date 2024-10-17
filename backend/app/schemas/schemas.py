@@ -15,6 +15,9 @@ class ApiToken(BaseModel):
     token: str
     created_at: datetime
     lifetime: int
+
+class ListApiTokensResponse(BaseModel):
+    api_tokens: List[ApiToken]
     
 class CreateApiTokenRequest(BaseModel):
     name: str

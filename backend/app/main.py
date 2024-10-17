@@ -20,8 +20,11 @@ import analytiq_data as ad
 import api
 import models
 from schemas import (
-    User, ApiToken, CreateApiTokenRequest, ListPDFsResponse,
-    PDFMetadata, FileUpload, FilesUpload,
+    User,
+    ApiToken, ListApiTokensResponse, CreateApiTokenRequest,
+    ListPDFsResponse,
+    PDFMetadata,
+    FileUpload, FilesUpload,
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse
 )
 
@@ -190,7 +193,7 @@ async def api_token_create(
     new_token["id"] = str(result.inserted_id)
     return new_token
 
-@app.get("/api/api_tokens", response_model=list[ApiToken])
+@app.get("/api/api_tokens", response_model=ListApiTokensResponse)
 async def api_token_list(current_user: User = Depends(get_current_user)):
     cursor = api_token_collection.find({"user_id": current_user.user_id})
     tokens = await cursor.to_list(length=None)
@@ -206,7 +209,7 @@ async def api_token_list(current_user: User = Depends(get_current_user)):
         for token in tokens
     ]
     logger.info(f"list_api_tokens(): {ret}")
-    return ret
+    return ListApiTokensResponse(api_tokens=ret)
 
 @app.delete("/api/api_tokens/{token_id}")
 async def api_token_delete(
