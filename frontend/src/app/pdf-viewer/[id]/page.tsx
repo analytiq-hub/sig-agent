@@ -32,15 +32,17 @@ const PdfViewerPage: React.FC = () => {
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <PanelGroup direction="horizontal" style={{ width: '100%', height: '100%' }}>
           {isSidebarOpen && (
-            <Panel defaultSize={25} minSize={20} style={{ display: 'flex', flexDirection: 'column' }}>
-              <Box sx={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-                <PdfSidebar id={pdfId} />
-              </Box>
-            </Panel>
+            <>
+              <Panel defaultSize={25} minSize={20}>
+                <Box sx={{ height: '100%', overflow: 'auto' }}>
+                  <PdfSidebar id={pdfId} />
+                </Box>
+              </Panel>
+              <PanelResizeHandle style={{ width: '4px', background: '#e0e0e0', cursor: 'col-resize' }} />
+            </>
           )}
-          {isSidebarOpen && <PanelResizeHandle style={{ width: '4px', background: '#e0e0e0' }} />}
-          <Panel style={{ display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <Panel>
+            <Box sx={{ height: '100%', overflow: 'auto' }}>
               <PDFViewer id={pdfId} />
             </Box>
           </Panel>
