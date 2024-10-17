@@ -226,15 +226,35 @@ async def llm_token_create(
     request: CreateLLMTokenRequest,
     current_user: User = Depends(get_current_user)
 ):
-    logger.info(f"Creating LLM token for user: {current_user} request: {request}")
+    logger.info(f"Creating/Updating LLM token for user: {current_user} request: {request}")
+    
+    # Check if a token for this vendor already exists
+    existing_token = await llm_token_collection.find_one({
+        "user_id": current_user.user_id,
+        "llm_vendor": request.llm_vendor
+    })
+
     new_token = {
         "user_id": current_user.user_id,
         "llm_vendor": request.llm_vendor,
         "token": request.token,
         "created_at": datetime.now(UTC),
     }
-    result = await llm_token_collection.insert_one(new_token)
-    new_token["id"] = str(result.inserted_id)
+
+    if existing_token:
+        # Update the existing token
+        result = await llm_token_collection.replace_one(
+            {"_id": existing_token["_id"]},
+            new_token
+        )
+        new_token["id"] = str(existing_token["_id"])
+        logger.info(f"Updated existing LLM token for {request.llm_vendor}")
+    else:
+        # Insert a new token
+        result = await llm_token_collection.insert_one(new_token)
+        new_token["id"] = str(result.inserted_id)
+        logger.info(f"Created new LLM token for {request.llm_vendor}")
+
     return new_token
 
 @app.get("/api/llm_tokens", response_model=ListLLMTokensResponse)
