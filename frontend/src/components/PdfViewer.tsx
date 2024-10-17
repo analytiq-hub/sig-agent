@@ -329,12 +329,13 @@ const PDFViewer = ({ id }: { id: string }) => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <Toolbar 
         variant='dense'
         sx={{ 
           backgroundColor: theme => theme.palette.accent.main,
           minHeight: '48px',
+          flexShrink: 0,
           '& .MuiIconButton-root': {
             padding: '4px',
           },
@@ -474,9 +475,8 @@ const PDFViewer = ({ id }: { id: string }) => {
         ref={containerRef} 
         style={{ 
           overflowY: 'auto', 
-          flexGrow: 1, 
+          flexGrow: 1,
           padding: '16px',
-          height: 'calc(100% - 48px)' // Subtract toolbar height
         }}
       >
         {loading ? (

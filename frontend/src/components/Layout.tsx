@@ -166,7 +166,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, [status, router]);
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <CssBaseline />
       <AppBar position="fixed" open={open}>
         <Toolbar>
@@ -215,8 +215,15 @@ export default function Layout({ children }: { children: ReactNode }) {
           {debugMenuItems.map(item => renderMenuItem(item, open))}
         </List>
       </Drawer>
-      {/* p is for padding */}
-      <Box sx={{ flexGrow: 1, p: 0, width: { sm: `calc(100% - ${drawerWidth}px)` }, marginBottom: 2 }}>
+      <Box component="main" sx={{ 
+        flexGrow: 1, 
+        p: 0, 
+        width: { sm: `calc(100% - ${drawerWidth}px)` }, 
+        height: '100%',
+        overflow: 'auto', // Changed from 'hidden' to 'auto'
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
         <DrawerHeader />
         {children}
       </Box>
