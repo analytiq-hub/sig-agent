@@ -150,12 +150,10 @@ const PDFViewer = ({ id }: { id: string }) => {
     scrollToPage(pageNumber);
   }, [pageNumber, scrollToPage]);
 
-  const [pdfDocument, setPdfDocument] = useState<pdfjs.PDFDocumentProxy | null>(null);
   const [showProperties, setShowProperties] = useState(false);
   const [documentProperties, setDocumentProperties] = useState<Record<string, string> | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [fileSize, setFileSize] = useState<number>(0);
-  const [toolMode, setToolMode] = useState<'text' | 'hand'>('hand');
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -199,7 +197,6 @@ const PDFViewer = ({ id }: { id: string }) => {
     pageRefs.current = new Array(numPages).fill(null);
     
     pdfjs.getDocument(file!).promise.then((pdf) => {
-      setPdfDocument(pdf);
       extractDocumentProperties(pdf);  // Extract properties here
       pdf.getPage(1).then((page) => {
         const viewport = page.getViewport({ scale: 1 });
