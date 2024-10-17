@@ -344,6 +344,7 @@ const PDFViewer = ({ id }: { id: string }) => {
           justifyContent: 'space-between',
         }}
       >
+      
         <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
           <div style={{ width: '200px', marginRight: '8px', display: 'flex', justifyContent: 'flex-end' }}>
             <Tooltip title={fileName || 'Untitled Document'} arrow>
