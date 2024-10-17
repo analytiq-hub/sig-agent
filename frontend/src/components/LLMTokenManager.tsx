@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
-import { createTokenApi, getTokensApi, deleteTokenApi, CreateTokenRequest } from '@/utils/api';
+import { createTokenApi, getTokensApi, deleteTokenApi, CreateTokenRequest, getLLMTokensApi, LLMToken } from '@/utils/api';
 
 export interface ApiToken {
   id: string;
@@ -19,6 +19,7 @@ const LLMTokenManager: React.FC = () => {
   const [newToken, setNewToken] = useState<ApiToken | null>(null);
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [llmTokens, setLLMTokens] = useState<LLMToken[]>([]);
 
   useEffect(() => {
     const getTokensData = async () => {
@@ -30,7 +31,17 @@ const LLMTokenManager: React.FC = () => {
       }
     };
 
+    const getLLMTokensData = async () => {
+      try {
+        const response = await getLLMTokensApi();
+        setLLMTokens(response.llm_tokens);
+      } catch (error) {
+        console.error('Error fetching LLM tokens:', error);
+      }
+    };
+
     getTokensData();
+    getLLMTokensData();
   }, []);
 
   const createToken = async () => {
@@ -181,6 +192,40 @@ const LLMTokenManager: React.FC = () => {
           {error}
         </Alert>
       </Snackbar>
+
+      {/* New LLM Tokens section */}
+      <h2 className="text-xl font-semibold mt-8 mb-4">LLM Tokens</h2>
+      <TableContainer component={Paper}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Provider</TableCell>
+              <TableCell>Token</TableCell>
+              <TableCell>Created At</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {['OpenAI', 'Anthropic', 'Groq'].map((provider) => {
+              const token = llmTokens.find(t => t.llm_vendor === provider);
+              return (
+                <TableRow key={provider}>
+                  <TableCell>{provider}</TableCell>
+                  <TableCell>
+                    {token ? (
+                      <span>••••••••{token.token.slice(-4)}</span>
+                    ) : (
+                      <span className="text-gray-400">Not set</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {token ? new Date(token.created_at).toLocaleString() : '-'}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </div>
   );
 };
