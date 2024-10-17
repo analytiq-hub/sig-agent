@@ -253,7 +253,7 @@ const LLMTokenManager: React.FC = () => {
                   <TableCell style={{ width: '20%' }}>{provider}</TableCell>
                   <TableCell style={{ width: '40%' }}>
                     {token ? (
-                      <span>••••••••{token.token.slice(-4)}</span>
+                      <span>{token.token.slice(0, 8)}••••••••</span>
                     ) : (
                       <span className="text-gray-400">Not set</span>
                     )}
