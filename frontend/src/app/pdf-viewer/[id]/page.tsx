@@ -36,11 +36,11 @@ const PdfViewerPage: React.FC = () => {
               <PanelResizeHandle style={{ width: '4px', background: '#e0e0e0', cursor: 'col-resize' }} />
             </>
           )}
-          {1 && (<Panel>
+          <Panel>
             <Box sx={{ height: '100%', overflow: 'auto' }}>
               <PDFViewer id={pdfId} />
             </Box>
-          </Panel>)}
+          </Panel>
         </PanelGroup>
       </Box>
     </Box>
