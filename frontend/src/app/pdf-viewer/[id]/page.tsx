@@ -21,7 +21,7 @@ const PdfViewerPage: React.FC = () => {
   const pdfId = Array.isArray(id) ? id[0] : id;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <PanelGroup direction="horizontal" style={{ width: '100%', height: '100%' }}>
           <Panel defaultSize={25} minSize={20}>
@@ -31,7 +31,7 @@ const PdfViewerPage: React.FC = () => {
           </Panel>
           <PanelResizeHandle style={{ width: '4px', background: '#e0e0e0', cursor: 'col-resize' }} />
           <Panel>
-            <Box sx={{ height: '100%', overflow: 'auto' }}>
+            <Box sx={{ height: '100%', overflow: 'hidden' }}>
               <PDFViewer id={pdfId} />
             </Box>
           </Panel>

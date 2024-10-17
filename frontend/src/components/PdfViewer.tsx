@@ -329,7 +329,7 @@ const PDFViewer = ({ id }: { id: string }) => {
   };
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Toolbar 
         variant='dense'
         sx={{ 
@@ -472,7 +472,12 @@ const PDFViewer = ({ id }: { id: string }) => {
       </Toolbar>
       <div 
         ref={containerRef} 
-        style={{ overflowY: 'scroll', flexGrow: 1, padding: '16px' }}
+        style={{ 
+          overflowY: 'auto', 
+          flexGrow: 1, 
+          padding: '16px',
+          height: 'calc(100% - 48px)' // Subtract toolbar height
+        }}
       >
         {loading ? (
           <div>Loading PDF...</div>
