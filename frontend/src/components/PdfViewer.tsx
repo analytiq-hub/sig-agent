@@ -297,8 +297,23 @@ const PDFViewer = ({ id }: { id: string }) => {
     handleMenuClose();
   }, [handleMenuClose]);
 
+  const printIframeRef = useRef<HTMLIFrameElement>(null);
+
   const handlePrint = () => {
-    // Implement print functionality
+    if (file) {
+      // Create a temporary iframe
+      const iframe = printIframeRef.current;
+      if (!iframe) return;
+
+      // Set the source of the iframe to the PDF file
+      iframe.src = file;
+
+      // Wait for the iframe to load
+      iframe.onload = () => {
+        // Print the iframe content
+        iframe.contentWindow?.print();
+      };
+    }
     handleMenuClose();
   };
 
@@ -545,6 +560,12 @@ const PDFViewer = ({ id }: { id: string }) => {
           <Button onClick={() => setShowProperties(false)}>Close</Button>
         </DialogActions>
       </Dialog>
+      {/* Add this iframe for printing */}
+      <iframe
+        ref={printIframeRef}
+        style={{ display: 'none' }}
+        title="Print PDF"
+      />
     </div>
   );
 };
