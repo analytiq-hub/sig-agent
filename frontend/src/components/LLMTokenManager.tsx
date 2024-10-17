@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
-import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon, Edit as EditIcon } from '@mui/icons-material';
 import { createTokenApi, getTokensApi, deleteTokenApi, CreateTokenRequest, getLLMTokensApi, LLMToken } from '@/utils/api';
 
 export interface ApiToken {
@@ -88,6 +88,11 @@ const LLMTokenManager: React.FC = () => {
   const handleDeleteToken = (tokenId: string) => {
     deleteTokenApi(tokenId);
     setTokens(tokens.filter(token => token.id !== tokenId));
+  };
+
+  const handleEditLLMToken = (provider: string) => {
+    // Implement edit functionality here
+    console.log(`Edit ${provider} token`);
   };
 
   return (
@@ -202,6 +207,7 @@ const LLMTokenManager: React.FC = () => {
               <TableCell>Provider</TableCell>
               <TableCell>Token</TableCell>
               <TableCell>Created At</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -219,6 +225,15 @@ const LLMTokenManager: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     {token ? new Date(token.created_at).toLocaleString() : '-'}
+                  </TableCell>
+                  <TableCell>
+                    <IconButton
+                      aria-label="edit"
+                      onClick={() => handleEditLLMToken(provider)}
+                      size="small"
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               );
