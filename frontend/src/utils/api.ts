@@ -49,17 +49,17 @@ export interface CreateTokenRequest {
 }
 
 export const createTokenApi = async (token: CreateTokenRequest) => {
-  const response = await api.post('/api/tokens', token);
+  const response = await api.post('/api/api_tokens', token);
   return response.data;
 };
 
 export const getTokensApi = async () => {
-  const response = await api.get('/api/tokens');
+  const response = await api.get('/api/api_tokens');
   return response.data;
 };
 
 export const deleteTokenApi = async (tokenId: string) => {
-  const response = await api.delete(`/api/tokens/${tokenId}`);
+  const response = await api.delete(`/api/api_tokens/${tokenId}`);
   return response.data;
 };
 
