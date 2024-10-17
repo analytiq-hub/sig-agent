@@ -63,4 +63,32 @@ export const deleteTokenApi = async (tokenId: string) => {
   return response.data;
 };
 
+export interface CreateLLMTokenRequest {
+  llm_vendor: 'OpenAI' | 'Anthropic' | 'Groq';
+  token: string;
+}
+
+export interface LLMToken {
+  id: string;
+  user_id: string;
+  llm_vendor: 'OpenAI' | 'Anthropic' | 'Groq';
+  token: string;
+  created_at: string;
+}
+
+export const createLLMTokenApi = async (tokenRequest: CreateLLMTokenRequest) => {
+  const response = await api.post('/api/llm_tokens', tokenRequest);
+  return response.data;
+};
+
+export const getLLMTokensApi = async () => {
+  const response = await api.get('/api/llm_tokens');
+  return response.data;
+};
+
+export const deleteLLMTokenApi = async (tokenId: string) => {
+  const response = await api.delete(`/api/llm_tokens/${tokenId}`);
+  return response.data;
+};
+
 export default api;
