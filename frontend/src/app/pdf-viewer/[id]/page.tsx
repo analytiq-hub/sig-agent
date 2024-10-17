@@ -23,7 +23,7 @@ const PdfViewerPage: React.FC = () => {
   const pdfId = Array.isArray(id) ? id[0] : id;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <PanelGroup direction="horizontal" style={{ width: '100%', height: '100%' }}>
           {isSidebarOpen && (
@@ -36,11 +36,11 @@ const PdfViewerPage: React.FC = () => {
               <PanelResizeHandle style={{ width: '4px', background: '#e0e0e0', cursor: 'col-resize' }} />
             </>
           )}
-          <Panel>
+          {1 && (<Panel>
             <Box sx={{ height: '100%', overflow: 'auto' }}>
               <PDFViewer id={pdfId} />
             </Box>
-          </Panel>
+          </Panel>)}
         </PanelGroup>
       </Box>
     </Box>
