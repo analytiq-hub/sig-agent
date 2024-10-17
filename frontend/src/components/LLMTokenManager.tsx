@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon, Edit as EditIcon } from '@mui/icons-material';
-import { createTokenApi, getTokensApi, deleteTokenApi, CreateTokenRequest, getLLMTokensApi, LLMToken, createLLMTokenApi } from '@/utils/api';
+import { createTokenApi, getTokensApi, deleteTokenApi, CreateTokenRequest, getLLMTokensApi, LLMToken, createLLMTokenApi, deleteLLMTokenApi } from '@/utils/api';
 
 export interface ApiToken {
   id: string;
@@ -117,6 +117,18 @@ const LLMTokenManager: React.FC = () => {
     }
   };
 
+  const handleDeleteLLMToken = async (tokenId: string) => {
+    try {
+      await deleteLLMTokenApi(tokenId);
+      // Refresh the LLM tokens list
+      const response = await getLLMTokensApi();
+      setLLMTokens(response.llm_tokens);
+    } catch (error) {
+      console.error('Error deleting LLM token:', error);
+      setError('An error occurred while deleting the LLM token. Please try again.');
+    }
+  };
+
   return (
     <div>
       <Button
@@ -229,7 +241,8 @@ const LLMTokenManager: React.FC = () => {
               <TableCell>Provider</TableCell>
               <TableCell>Token</TableCell>
               <TableCell>Created At</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell>Edit</TableCell>
+              <TableCell>Delete</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -256,6 +269,17 @@ const LLMTokenManager: React.FC = () => {
                     >
                       <EditIcon fontSize="small" />
                     </IconButton>
+                  </TableCell>
+                  <TableCell>
+                    {token && (
+                      <IconButton
+                        aria-label="delete"
+                        onClick={() => handleDeleteLLMToken(token.id)}
+                        size="small"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
                   </TableCell>
                 </TableRow>
               );
