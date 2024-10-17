@@ -6,7 +6,7 @@ import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { downloadFileApi } from '@/utils/api';
-import { Toolbar, Typography, IconButton, TextField, Menu, MenuItem, Divider, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemText, Tooltip } from '@mui/material';
+import { Toolbar, Typography, IconButton, TextField, Menu, MenuItem, Divider, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, Tooltip } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import RotateLeftIcon from '@mui/icons-material/RotateLeft';
@@ -17,12 +17,10 @@ import VerticalAlignBottomIcon from '@mui/icons-material/VerticalAlignBottom';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { styled } from '@mui/material/styles';
-import TextFieldsIcon from '@mui/icons-material/TextFields';
 import { alpha } from '@mui/material/styles';
 import PrintIcon from '@mui/icons-material/Print';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
-import PanToolOutlinedIcon from '@mui/icons-material/PanToolOutlined';
 import { saveAs } from 'file-saver';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
