@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic'
 import { Box } from '@mui/material';
-import PDFSidebar from '@/components/PDFSidebar';
+import PdfSidebar from '@/components/PdfSidebar';
 
 const PDFViewer = dynamic(() => import('@/components/PdfViewer'), {
   ssr: false,
@@ -20,7 +20,7 @@ const PdfViewerPage: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', width: '100vw' }}>
-      <PDFSidebar pdfId={pdfId} />
+      <PdfSidebar id={pdfId} />
       <Box sx={{ flexGrow: 1, width: '66.67%', overflow: 'auto' }}>
         <PDFViewer id={pdfId} />
       </Box>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, List, ListItemIcon, ListItemText, Typography, ListItemButton } from '@mui/material';
 import { Description, Bookmark, Comment } from '@mui/icons-material';
 
-const PDFSidebar: React.FC = () => {
+const PdfSidebar = ({ id }: { id: string }) => {
   return (
     <Box
       sx={{
@@ -20,7 +20,7 @@ const PDFSidebar: React.FC = () => {
           <ListItemIcon>
             <Description />
           </ListItemIcon>
-          <ListItemText primary="Outline" />
+          <ListItemText primary={`Outline ${id}`} />
         </ListItemButton>
         <ListItemButton>
           <ListItemIcon>
@@ -39,4 +39,4 @@ const PDFSidebar: React.FC = () => {
   );
 };
 
-export default PDFSidebar;
+export default PdfSidebar;
