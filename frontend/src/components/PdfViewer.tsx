@@ -59,6 +59,19 @@ const StyledListItem = styled('li')(({ theme }) => ({
   },
 }));
 
+// Add this interface near the top of your file, before the PDFViewer component
+interface PDFMetadata {
+  Title?: string;
+  Author?: string;
+  Subject?: string;
+  Keywords?: string;
+  CreationDate?: string;
+  ModDate?: string;
+  Creator?: string;
+  Producer?: string;
+  PDFFormatVersion?: string;
+}
+
 const PDFViewer = ({ id }: { id: string }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
@@ -166,7 +179,7 @@ const PDFViewer = ({ id }: { id: string }) => {
   const extractDocumentProperties = useCallback(async (pdf: pdfjs.PDFDocumentProxy) => {
     try {
       const metadata = await pdf.getMetadata();
-      const { info } = metadata;
+      const info = metadata.info as PDFMetadata;
 
       const properties: Record<string, string> = {
         'File name': fileName,
