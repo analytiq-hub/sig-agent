@@ -232,17 +232,17 @@ const LLMTokenManager: React.FC = () => {
         </Alert>
       </Snackbar>
 
-      {/* New LLM Tokens section */}
+      {/* Updated LLM Tokens section */}
       <h2 className="text-xl font-semibold mt-8 mb-4">LLM Tokens</h2>
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Provider</TableCell>
-              <TableCell>Token</TableCell>
-              <TableCell>Created At</TableCell>
-              <TableCell>Edit</TableCell>
-              <TableCell>Delete</TableCell>
+              <TableCell style={{ width: '20%' }}>Provider</TableCell>
+              <TableCell style={{ width: '40%' }}>Token</TableCell>
+              <TableCell style={{ width: '25%' }}>Created At</TableCell>
+              <TableCell style={{ width: '7.5%' }}>Edit</TableCell>
+              <TableCell style={{ width: '7.5%' }}>Delete</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -250,18 +250,18 @@ const LLMTokenManager: React.FC = () => {
               const token = llmTokens.find(t => t.llm_vendor === provider);
               return (
                 <TableRow key={provider}>
-                  <TableCell>{provider}</TableCell>
-                  <TableCell>
+                  <TableCell style={{ width: '20%' }}>{provider}</TableCell>
+                  <TableCell style={{ width: '40%' }}>
                     {token ? (
                       <span>••••••••{token.token.slice(-4)}</span>
                     ) : (
                       <span className="text-gray-400">Not set</span>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell style={{ width: '25%' }}>
                     {token ? new Date(token.created_at).toLocaleString() : '-'}
                   </TableCell>
-                  <TableCell>
+                  <TableCell style={{ width: '7.5%' }}>
                     <IconButton
                       aria-label="edit"
                       onClick={() => handleEditLLMToken(provider)}
@@ -270,7 +270,7 @@ const LLMTokenManager: React.FC = () => {
                       <EditIcon fontSize="small" />
                     </IconButton>
                   </TableCell>
-                  <TableCell>
+                  <TableCell style={{ width: '7.5%' }}>
                     {token && (
                       <IconButton
                         aria-label="delete"
