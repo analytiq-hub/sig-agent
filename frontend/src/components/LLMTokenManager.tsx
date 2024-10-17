@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon, Edit as EditIcon } from '@mui/icons-material';
-import { createTokenApi, getTokensApi, deleteTokenApi, CreateTokenRequest, getLLMTokensApi, LLMToken } from '@/utils/api';
+import { createTokenApi, getTokensApi, deleteTokenApi, CreateTokenRequest, getLLMTokensApi, LLMToken, createLLMTokenApi } from '@/utils/api';
 
 export interface ApiToken {
   id: string;
@@ -20,6 +20,9 @@ const LLMTokenManager: React.FC = () => {
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [llmTokens, setLLMTokens] = useState<LLMToken[]>([]);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<string | null>(null);
+  const [editTokenValue, setEditTokenValue] = useState('');
 
   useEffect(() => {
     const getTokensData = async () => {
@@ -91,8 +94,27 @@ const LLMTokenManager: React.FC = () => {
   };
 
   const handleEditLLMToken = (provider: string) => {
-    // Implement edit functionality here
-    console.log(`Edit ${provider} token`);
+    setEditingProvider(provider);
+    setEditTokenValue('');
+    setEditModalOpen(true);
+  };
+
+  const handleSaveLLMToken = async () => {
+    if (!editingProvider) return;
+
+    try {
+      await createLLMTokenApi({
+        llm_vendor: editingProvider as 'OpenAI' | 'Anthropic' | 'Groq',
+        token: editTokenValue,
+      });
+      setEditModalOpen(false);
+      // Refresh the LLM tokens list
+      const response = await getLLMTokensApi();
+      setLLMTokens(response.llm_tokens);
+    } catch (error) {
+      console.error('Error saving LLM token:', error);
+      setError('An error occurred while saving the LLM token. Please try again.');
+    }
   };
 
   return (
@@ -241,6 +263,27 @@ const LLMTokenManager: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* LLM Token Edit Modal */}
+      <Dialog open={editModalOpen} onClose={() => setEditModalOpen(false)}>
+        <DialogTitle>Edit {editingProvider} Token</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Token"
+            fullWidth
+            variant="outlined"
+            value={editTokenValue}
+            onChange={(e) => setEditTokenValue(e.target.value)}
+            placeholder="Enter your token"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" color="secondary" onClick={() => setEditModalOpen(false)}>Cancel</Button>
+          <Button variant="contained" color="secondary" onClick={handleSaveLLMToken} disabled={!editTokenValue.trim()}>Save</Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
