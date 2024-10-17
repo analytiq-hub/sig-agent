@@ -288,9 +288,14 @@ const PDFViewer = ({ id }: { id: string }) => {
     setAnchorEl(event.currentTarget);
   };
 
-  const handleMenuClose = () => {
+  const handleMenuClose = useCallback(() => {
     setAnchorEl(null);
-  };
+  }, []);
+
+  const handleDocumentProperties = useCallback(() => {
+    setShowProperties(true);
+    handleMenuClose();
+  }, [handleMenuClose]);
 
   const handlePrint = () => {
     // Implement print functionality
@@ -322,11 +327,6 @@ const PDFViewer = ({ id }: { id: string }) => {
     if (numPages) setPageNumber(numPages);
     handleMenuClose();
   };
-
-  const handleDocumentProperties = useCallback(() => {
-    setShowProperties(true);
-    handleMenuClose();
-  }, [handleMenuClose]);
 
   return (
     <div>
