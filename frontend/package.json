@@ -12,7 +12,7 @@
     "@auth/mongodb-adapter": "^3.5.3",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
-    "@mui/icons-material": "^6.1.1",
+    "@mui/icons-material": "^6.1.4",
     "@mui/material": "^6.1.1",
     "axios": "^1.7.7",
     "file-saver": "^2.0.5",
@@ -23,7 +23,8 @@
     "react": "^18",
     "react-data-grid": "^7.0.0-beta.47",
     "react-dom": "^18",
-    "react-pdf": "^9.1.1"
+    "react-pdf": "^9.1.1",
+    "react-resizable-panels": "^2.1.4"
   },
   "devDependencies": {
     "@types/file-saver": "^2.0.7",

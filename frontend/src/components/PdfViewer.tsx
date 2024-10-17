@@ -488,7 +488,7 @@ const PDFViewer = ({ id }: { id: string }) => {
             {Array.from(new Array(numPages), (el, index) => (
               <div 
                 key={`page_container_${index + 1}`}
-                ref={el => pageRefs.current[index] = el}
+                ref={el => { pageRefs.current[index] = el; }}
               >
                 <Page 
                   key={`page_${index + 1}`} 

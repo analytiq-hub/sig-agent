@@ -6,8 +6,8 @@ const PdfSidebar = ({ id }: { id: string }) => {
   return (
     <Box
       sx={{
-        width: '33.33%', // Set width to 1/3 of the parent container
-        height: '100vh', // Full viewport height
+        width: '100%', // Set width to 1/3 of the parent container
+        height: '100%', // Full viewport height
         borderRight: '1px solid rgba(0, 0, 0, 0.12)', // Add a border on the right side
         overflow: 'auto', // Enable scrolling if content overflows
       }}
