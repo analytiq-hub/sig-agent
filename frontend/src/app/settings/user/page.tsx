@@ -18,7 +18,7 @@ const UserSettingsPage: React.FC = () => {
             Manage your Smart Doc Router API tokens.
           </p>
         </div>
-        <Link href="/settings/user/access-tokens" passHref>
+        <Link href="/settings/user/api-tokens" passHref>
           <Button variant="contained" color="secondary">
             Manage
           </Button>
