@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import List
+from typing import List, Literal
 
 # Pydantic models
 class User(BaseModel):
@@ -39,3 +39,17 @@ class ListPDFsResponse(BaseModel):
     pdfs: List[PDFMetadata]
     total_count: int
     skip: int
+
+class LLMToken(BaseModel):
+    id: str
+    user_id: str
+    llm_vendor: Literal["OpenAI", "Anthropic", "Groq"]
+    token: str
+    created_at: datetime
+
+class CreateLLMTokenRequest(BaseModel):
+    llm_vendor: Literal["OpenAI", "Anthropic", "Groq"]
+    token: str
+
+class ListLLMTokensResponse(BaseModel):
+    llm_tokens: List[LLMToken]

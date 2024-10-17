@@ -21,7 +21,8 @@ import api
 import models
 from schemas import (
     User, ApiToken, CreateApiTokenRequest, ListPDFsResponse,
-    PDFMetadata, FileUpload, FilesUpload
+    PDFMetadata, FileUpload, FilesUpload,
+    LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse
 )
 
 # Load the .env file
@@ -64,6 +65,7 @@ client = AsyncIOMotorClient(MONGODB_URI)
 db = client.prod if ENV == "prod" else client.dev
 docs_collection = db.docs
 api_token_collection = db.api_tokens
+llm_token_collection = db.llm_tokens
 
 logger.info(f"Connected to {MONGODB_URI}")
 
@@ -218,6 +220,52 @@ async def api_token_delete(
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
+
+@app.post("/api/llm_tokens", response_model=LLMToken)
+async def llm_token_create(
+    request: CreateLLMTokenRequest,
+    current_user: User = Depends(get_current_user)
+):
+    logger.info(f"Creating LLM token for user: {current_user} request: {request}")
+    new_token = {
+        "user_id": current_user.user_id,
+        "llm_vendor": request.llm_vendor,
+        "token": request.token,
+        "created_at": datetime.now(UTC),
+    }
+    result = await llm_token_collection.insert_one(new_token)
+    new_token["id"] = str(result.inserted_id)
+    return new_token
+
+@app.get("/api/llm_tokens", response_model=ListLLMTokensResponse)
+async def llm_token_list(current_user: User = Depends(get_current_user)):
+    cursor = llm_token_collection.find({"user_id": current_user.user_id})
+    tokens = await cursor.to_list(length=None)
+    llm_tokens = [
+        {
+            "id": str(token["_id"]),
+            "user_id": token["user_id"],
+            "llm_vendor": token["llm_vendor"],
+            "token": token["token"],
+            "created_at": token["created_at"],
+        }
+        for token in tokens
+    ]
+    logger.info(f"list_llm_tokens(): {llm_tokens}")
+    return ListLLMTokensResponse(llm_tokens=llm_tokens)
+
+@app.delete("/api/llm_tokens/{token_id}")
+async def llm_token_delete(
+    token_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    result = await llm_token_collection.delete_one({
+        "_id": ObjectId(token_id),
+        "user_id": current_user.user_id
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="LLM Token not found")
+    return {"message": "LLM Token deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn
