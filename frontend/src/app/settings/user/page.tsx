@@ -10,6 +10,7 @@ const UserSettingsPage: React.FC = () => {
       <h1 className="text-2xl font-bold mb-4">User Settings</h1>
       <p className="text-gray-600 mb-4">Manage your configuration</p>
       <hr className="mb-4 border-t-2" />
+      
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className="text-xl font-semibold">Access tokens</h2>
@@ -18,7 +19,23 @@ const UserSettingsPage: React.FC = () => {
           </p>
         </div>
         <Link href="/settings/user/access-tokens" passHref>
-          <Button variant="contained" color="secondary"> {/* Use primary MuiButton style */}
+          <Button variant="contained" color="secondary">
+            Manage
+          </Button>
+        </Link>
+      </div>
+
+      <hr className="my-4 border-t-2" />
+
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h2 className="text-xl font-semibold">LLM tokens</h2>
+          <p className="text-gray-600 mb-2">
+            Manage your Large Language Model (LLM) API tokens
+          </p>
+        </div>
+        <Link href="/settings/user/llm-tokens" passHref>
+          <Button variant="contained" color="secondary">
             Manage
           </Button>
         </Link>
