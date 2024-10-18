@@ -10,9 +10,9 @@ def get_mongodb_client():
     """
     Get the MongoDB client.
     """
-    mongo_uri = os.getenv("MONGODB_URI", "")
-    if mongo_uri == "":
-        raise ValueError("MONGODB_URI is not set")
+    mongo_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
     env = os.getenv("ENV", "dev")
+    if env == "prod" and mongo_uri == "mongodb://localhost:27017":
+        raise ValueError("MONGODB_URI is not set for prod")
     client = AsyncIOMotorClient(mongo_uri)
     return client[env]
