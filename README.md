@@ -1,4 +1,4 @@
-# Doc-Proxy (Under Construction)
+# Doc-Router (Under Construction)
 
 We implement a Smart Document Router. When completed, the router will use LLMs to route documents to the appropriate handlers, and to process the documents according to configured workflows.
 
