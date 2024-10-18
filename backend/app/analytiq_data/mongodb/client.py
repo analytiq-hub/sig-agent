@@ -6,15 +6,13 @@ import json
 
 import analytiq_data as ad
 
-def get_mongodb_client() -> AsyncIOMotorClient:
+def get_mongodb_client():
     """
     Get the MongoDB client.
     """
-    client = AsyncIOMotorClient(os.getenv("MONGODB_URI"))
-    return client
-
-async def close_mongodb_client(client: AsyncIOMotorClient):
-    """
-    Close the MongoDB client.
-    """
-    await client.close()
+    mongo_uri = os.getenv("MONGODB_URI", "")
+    if mongo_uri == "":
+        raise ValueError("MONGODB_URI is not set")
+    env = os.getenv("ENV", "dev")
+    client = AsyncIOMotorClient(mongo_uri)
+    return client[env]
