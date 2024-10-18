@@ -1,11 +1,11 @@
 import analytiq_data as ad
 
-class AnalytiqDataClient:
+class AnalytiqClient:
     def __init__(self):
         self.mongodb = ad.mongodb.get_mongodb_client()
 
 def get_client() -> AnalytiqDataClient:
     """
-    Get the AnalytiqDataClient.
+    Get the AnalytiqClient.
     """
-    return AnalytiqDataClient()
+    return AnalytiqClient()
