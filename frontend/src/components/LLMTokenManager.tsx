@@ -74,7 +74,7 @@ const LLMTokenManager: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {['OpenAI', 'Anthropic', 'Groq'].map((provider, index) => {
+            {['OpenAI', 'Anthropic', 'Groq'].map((provider) => {
               const token = llmTokens.find(t => t.llm_vendor === provider);
               return (
                 <TableRow 

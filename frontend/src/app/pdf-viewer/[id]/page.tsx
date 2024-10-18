@@ -4,7 +4,6 @@ import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic'
 import { Box } from '@mui/material';
 import PdfSidebar from '@/components/PdfSidebar';
-import { useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 const PDFViewer = dynamic(() => import('@/components/PdfViewer'), {
