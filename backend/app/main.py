@@ -64,7 +64,7 @@ app.add_middleware(
 )
 
 # MongoDB connection
-client = AsyncIOMotorClient(MONGODB_URI)
+client = ad.mongodb.get_mongodb_client()
 db = client.prod if ENV == "prod" else client.dev
 docs_collection = db.docs
 api_token_collection = db.api_tokens
