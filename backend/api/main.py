@@ -10,12 +10,12 @@ from datetime import datetime, timedelta, UTC
 from jose import JWTError, jwt
 from typing import Optional, List
 import os
+import sys
 import json
 from dotenv import load_dotenv
 import secrets
 import base64
 import io
-import analytiq_data as ad
 
 import api
 import models
@@ -27,6 +27,10 @@ from schemas import (
     FileUpload, FilesUpload,
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse
 )
+
+# Add the parent directory to the sys path
+sys.path.append("..")
+import analytiq_data as ad
 
 # Load the .env file
 load_dotenv()
