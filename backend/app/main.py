@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, UTC
 from jose import JWTError, jwt
 from typing import Optional, List
 import os
-import logging
 import json
 from dotenv import load_dotenv
 import secrets
