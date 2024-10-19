@@ -64,8 +64,8 @@ app.add_middleware(
 )
 
 # MongoDB connection
-client = ad.mongodb.get_mongodb_client()
-db = client.prod if ENV == "prod" else client.dev
+analytiq_client = ad.common.get_client(env=ENV)
+db = analytiq_client.mongodb.prod if ENV == "prod" else analytiq_client.mongodb.dev
 docs_collection = db.docs
 api_token_collection = db.api_tokens
 llm_token_collection = db.llm_tokens
