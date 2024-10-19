@@ -66,16 +66,15 @@ def save_blob(analytiq_client, bucket:str, key:str, blob:bytes, metadata:dict):
     db = mongo[db_name]
     fs = gridfs.GridFS(db, collection=bucket)
 
-    # Remove the old file
+    # Remove the old blob
     try:
-        file = fs.find_one({"name": key})
-        fs.delete(file._id)
-        ad.log.debug(f"Blob {bucket}/{key} has been deleted.")
+        old_blob = fs.find_one({"name": key})
+        fs.delete(old_blob._id)
+        ad.log.debug(f"Old blob {bucket}/{key} has been deleted.")
     except:
         pass
 
     fs.put(blob, name=key, metadata=metadata)
-    ad.log.debug(f"Blob {bucket}/{key} has been saved.")
 
 def delete_blob(analytiq_client, bucket:str, key:str):
     """

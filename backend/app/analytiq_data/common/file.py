@@ -35,21 +35,8 @@ def save_file(analytiq_client, file_name:str, blob:bytes, metadata:dict):
         metadata : dict
             file metadata
     """
-    # Get the db
-    mongo = analytiq_client.mongodb
-    db_name = analytiq_client.env
-    db = mongo[db_name]
-    fs = gridfs.GridFS(db, collection='files')
-
-    # Remove the old file
-    try:
-        file = fs.find_one({"name": file_name})
-        fs.delete(file._id)
-        ad.log.debug(f"File {file_name} has been deleted.")
-    except:
-        pass
-
-    fs.put(blob, name=file_name, metadata=metadata)
+    ad.mongodb.save_blob(analytiq_client, bucket="files", key=file_name, blob=blob, metadata=metadata)
+    
     ad.log.debug(f"File {file_name} has been saved.")
 
 def delete_file(analytiq_client, file_name:str):
@@ -62,15 +49,8 @@ def delete_file(analytiq_client, file_name:str):
         file_name : str
             File name
     """
-    # Get the db
-    mongo = analytiq_client.mongodb
-    db_name = analytiq_client.env
-    db = mongo[db_name]
-    fs = gridfs.GridFS(db, collection='files')
+    ad.mongodb.delete_blob(analytiq_client, bucket="files", key=file_name)
 
-    # Remove the old file
-    file = fs.find_one({"name": file_name})
-    fs.delete(file._id)
     ad.log.debug(f"File {file_name} has been deleted.")
 
 def upload_file(analytiq_client, file_path: str, file_type: str = "application/pdf"):
