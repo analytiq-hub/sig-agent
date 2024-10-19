@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-
+import os
+import sys
+from dotenv import load_dotenv
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
+
 
 async def process_job(job):
     # Implement your job processing logic here
@@ -29,4 +32,18 @@ async def worker():
             await asyncio.sleep(1)  # Avoid tight loop
 
 if __name__ == "__main__":
+    # Add the parent directory to the sys path
+    sys.path.append("..")
+    import analytiq_data as ad
+
+    # Get the current directory
+    CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+    # Load the .env file
+    if not load_dotenv(dotenv_path="../.env", verbose=True):
+        raise Exception("Failed to load ../.env file")
+
+    # Initialize the logger
+    ad.init_logger("fastapi")
+
     asyncio.run(worker())
