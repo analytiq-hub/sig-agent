@@ -18,29 +18,8 @@ def get_file(analytiq_client, file_name: str) -> dict:
         dict
             file dataset metadata    
     """
-    # Get the provider db
-    mongo = analytiq_client.mongodb
-    db_name = analytiq_client.env
-    db = mongo[db_name]
-    collection = db["files.files"]
-
-    # Get the doc metadata
-    elem = collection.find_one({"name": file_name})
-    if elem is None:
-        return None
-    metadata = elem["metadata"]
-    
-    # Get the blob
-    fs = gridfs.GridFS(db, collection="files")
-    elem = fs.find_one({"name": file_name})
-    blob = elem.read()
-
-    file = {
-        "blob": blob,
-        "metadata": metadata
-    }
-
-    return file
+    return ad.mongodb.get_blob(analytiq_client, bucket="files", key=file_name)
+   
 
 def save_file(analytiq_client, file_name:str, blob:bytes, metadata:dict):
     """
