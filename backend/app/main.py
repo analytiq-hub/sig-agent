@@ -189,13 +189,13 @@ async def delete_pdf(
     file_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    document = await docs_collection.find_one({"_id": ObjectId(document_id)})
+    document = await docs_collection.find_one({"_id": ObjectId(file_id)})
     
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    ad.common.delete_file(analytiq_client, "files", document["filename"])
-    await docs_collection.delete_one({"_id": ObjectId(document_id)})
+    ad.common.delete_file(analytiq_client, file_name=document["filename"])
+    await docs_collection.delete_one({"_id": ObjectId(file_id)})
 
     return
 

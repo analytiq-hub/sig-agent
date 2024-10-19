@@ -44,7 +44,7 @@ export const downloadFileApi = async (id: string) => {
 };
 
 export const deleteFileApi = async (id: string) => {
-  const response = await api.delete(`/api/files/${id}`);
+  const response = await api.delete(`/api/delete/${id}`);
   return response.data;
 };
 

@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Box } from '@mui/material';
-import { listFilesApi } from '@/utils/api';
+import { Box, IconButton } from '@mui/material';
+import { listFilesApi, deleteFileApi } from '@/utils/api';
 import Link from 'next/link';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 interface File {
   id: string;
@@ -40,6 +41,17 @@ const FileList: React.FC = () => {
   // Calculate the current range
   const startRange = skipRows + 1;
   const endRange = Math.min(startRange + countRows - 1, totalRows);
+
+  const handleDeleteFile = async (fileId: string) => {
+    try {
+      await deleteFileApi(fileId);
+      // Refresh the file list after deletion
+      fetchFiles();
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      // Optionally, you can add error handling here (e.g., showing an error message)
+    }
+  };
 
   const columns: GridColDef[] = [
     {
@@ -77,6 +89,19 @@ const FileList: React.FC = () => {
     },
     { field: 'uploaded_by', headerName: 'Uploaded By', flex: 1 },
     { field: 'state', headerName: 'State', flex: 1 },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 100,
+      renderCell: (params) => (
+        <IconButton
+          aria-label="delete"
+          onClick={() => handleDeleteFile(params.row.id)}
+        >
+          <DeleteIcon />
+        </IconButton>
+      ),
+    },
   ];
 
   return (
