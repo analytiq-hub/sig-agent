@@ -102,8 +102,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
 # PDF management endpoints
-@app.post("/api/upload")
-async def upload_pdf(
+@app.post("/api/files/upload")
+async def upload_file(
     files_upload: FilesUpload = Body(...),
     current_user: User = Depends(get_current_user)
 ):
@@ -135,8 +135,8 @@ async def upload_pdf(
     
     return {"uploaded_files": uploaded_files}
 
-@app.get("/api/download/{document_id}")
-async def download_pdf(
+@app.get("/api/files/download/{document_id}")
+async def download_file(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
@@ -157,8 +157,8 @@ async def download_pdf(
                              media_type=file["metadata"]["type"],
                              headers={"Content-Disposition": f"attachment; filename={document['filename']}"})
 
-@app.get("/api/list", response_model=ListPDFsResponse)
-async def list_pdfs(
+@app.get("/api/files/list", response_model=ListPDFsResponse)
+async def list_files(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     user: User = Depends(get_current_user)
@@ -184,8 +184,8 @@ async def list_pdfs(
         skip=skip
     )
 
-@app.delete("/api/delete/{file_id}", response_model=None)
-async def delete_pdf(
+@app.delete("/api/files/delete/{file_id}", response_model=None)
+async def delete_file(
     file_id: str,
     current_user: User = Depends(get_current_user)
 ):
