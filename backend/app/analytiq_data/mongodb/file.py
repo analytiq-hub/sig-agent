@@ -1,18 +1,18 @@
 import gridfs
 from datetime import datetime
 
-def get_file(client, document_id: str, provider_name:str) -> dict:
+def get_file(analytiq_client, file_id: str, acct_name:str) -> dict:
     """
     Get the document
     
     Parameters
     ----------
-    client: MongoClient
-        The mongodb client
-    document_id : str
+    analytiq_client: AnalytiqClient
+        The analytiq client
+    file_id : str
         Document id
-    provider_name : str
-        Name of the provider
+    acct_name : str
+        Name of the account
 
     Returns
     -------
@@ -20,17 +20,17 @@ def get_file(client, document_id: str, provider_name:str) -> dict:
         Document dataset metadata    
     """
     # Get the provider db
-    db = client[provider_name]
-    collection = db["documents.files"]
+    db = analytiq_client[analytiq_client.env]
+    collection = db["files"]
 
     # Get the doc metadata
-    document = collection.find_one({"_id": document_id})
+    document = collection.find_one({"_id": file_id})
     if document is None:
         return None
     
     # Get the blob
-    fs = gridfs.GridFS(db, collection='documents')
-    file = fs.find_one({"_id": document_id})
+    fs = gridfs.GridFS(db, collection='files')
+    file = fs.find_one({"_id": file_id})
     blob = file.read()
 
     # Add the blob to the document
@@ -38,53 +38,53 @@ def get_file(client, document_id: str, provider_name:str) -> dict:
 
     return document
 
-def save_file(client, document_id:str, blob:bytes, metadata:dict, provider_name:str):
+def save_file(analytiq_client, file_id:str, blob:bytes, metadata:dict, acct_name:str):
     """
     Save the document
     
     Parameters
     ----------
-    client: MongoClient
-        The mongodb client
-    document_id : str
+    analytiq_client: AnalytiqClient
+        The analytiq client
+    file_id : str
         Document id
     blob : bytes
         Document blob
     metadata : dict
         Document metadata
-    provider_name : str
-        Name of the provider
+    acct_name : str
+        Name of the account
     """
-    # Get the provider db
-    db = client[provider_name]
-    fs = gridfs.GridFS(db, collection='documents')
+    # Get the db
+    db = analytiq_client[analytiq_client.env]
+    fs = gridfs.GridFS(db, collection='files')
 
     # Remove the old document
     try:
-        file = fs.find_one({"_id": document_id})
+        file = fs.find_one({"_id": file_id})
         fs.delete(file._id)
     except:
         pass
 
-    fs.put(blob, _id=document_id, metadata=metadata)
+    fs.put(blob, _id=file_id, metadata=metadata)
 
-def delete_file(client, document_id:str, provider_name:str):
+def delete_file(analytiq_client, file_id:str, acct_name:str):
     """
-    Delete the document
+    Delete the file
     
     Parameters
     ----------
-    client: MongoClient
-        The mongodb client
-    document_id : str
-        Document id
-    provider_name : str
-        Name of the provider
+    analytiq_client: AnalytiqClient
+        The analytiq client
+    file_id : str
+        File id
+    acct_name : str
+        Name of the account
     """
-    # Get the provider db
-    db = client[provider_name]
-    fs = gridfs.GridFS(db, collection='documents')
+    # Get the db
+    db = analytiq_client[analytiq_client.env]
+    fs = gridfs.GridFS(db, collection='files')
 
     # Remove the old document
-    file = fs.find_one({"_id": document_id})
+    file = fs.find_one({"_id": file_id})
     fs.delete(file._id)
