@@ -16,7 +16,9 @@ def get_file(analytiq_client, file_name: str) -> dict:
             file dataset metadata    
     """
     # Get the provider db
-    db = analytiq_client[analytiq_client.env]
+    mongo = analytiq_client.mongodb
+    db_name = analytiq_client.env
+    db = mongo[db_name]
     collection = db["files"]
 
     # Get the doc metadata
@@ -49,7 +51,9 @@ def save_file(analytiq_client, file_id:str, blob:bytes, metadata:dict):
             file metadata
     """
     # Get the db
-    db = analytiq_client[analytiq_client.env]
+    mongo = analytiq_client.mongodb
+    db_name = analytiq_client.env
+    db = mongo[db_name]
     fs = gridfs.GridFS(db, collection='files')
 
     # Remove the old file
@@ -72,7 +76,9 @@ def delete_file(analytiq_client, file_id:str):
             File name
     """
     # Get the db
-    db = analytiq_client[analytiq_client.env]
+    mongo = analytiq_client.mongodb
+    db_name = analytiq_client.env
+    db = mongo[db_name]
     fs = gridfs.GridFS(db, collection='files')
 
     # Remove the old file
