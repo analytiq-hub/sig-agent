@@ -36,7 +36,7 @@ def get_file(analytiq_client, file_name: str) -> dict:
 
     return file
 
-def save_file(analytiq_client, file_id:str, blob:bytes, metadata:dict):
+def save_file(analytiq_client, file_name:str, blob:bytes, metadata:dict):
     """
     Save the file
     
@@ -65,7 +65,7 @@ def save_file(analytiq_client, file_id:str, blob:bytes, metadata:dict):
 
     fs.put(blob, _id=file_id, metadata=metadata)
 
-def delete_file(analytiq_client, file_id:str):
+def delete_file(analytiq_client, file_name:str):
     """
     Delete the file
 
