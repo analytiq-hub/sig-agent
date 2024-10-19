@@ -126,3 +126,36 @@ def upload_pdf(analytiq_client, file_path: str):
 
     # Save the file using the save_file function
     save_file(analytiq_client, file_name, blob, metadata)
+
+# Download all the files from the database
+def download_all_files(analytiq_client, output_dir: str):
+    """
+    Download all the files from the database
+
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        output_dir : str
+            Output directory
+    """
+    # Get the db
+    mongo = analytiq_client.mongodb
+    db_name = analytiq_client.env
+    db = mongo[db_name]
+    collection = db["files.files"]
+
+    # Get all the files
+    cursor = collection.find()
+    files = cursor.to_list(length=None)
+
+    # Download each file
+    for file in files:
+        file_name = file["name"]
+        file = get_file(analytiq_client, file_name)
+        file_blob = file["blob"]
+        file_metadata = file["metadata"]
+
+        # Save the file to the output directory
+        file_path = os.path.join(output_dir, file_name)
+        with open(file_path, "wb") as file:
+            file.write(file_blob)
