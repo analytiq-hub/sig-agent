@@ -1,32 +1,32 @@
 import gridfs
 from datetime import datetime
 
-def get_file(analytiq_client, file_id: str) -> dict:
+def get_file(analytiq_client, file_name: str) -> dict:
     """
     Get the file
     
     Args:
         analytiq_client: AnalytiqClient
-        The analytiq client
-    file_id : str
-        file id
+            The analytiq client
+        file_name : str
+            file name
 
     Returns:
         dict
-        file dataset metadata    
+            file dataset metadata    
     """
     # Get the provider db
     db = analytiq_client[analytiq_client.env]
     collection = db["files"]
 
     # Get the doc metadata
-    file = collection.find_one({"_id": file_id})
+    file = collection.find_one({"name": file_name})
     if file is None:
         return None
     
     # Get the blob
     fs = gridfs.GridFS(db, collection='files')
-    file = fs.find_one({"_id": file_id})
+    file = fs.find_one({"name": file_name})
     blob = file.read()
 
     # Add the blob to the file
@@ -41,8 +41,8 @@ def save_file(analytiq_client, file_id:str, blob:bytes, metadata:dict):
     Args:
         analytiq_client: AnalytiqClient
             The analytiq client
-        file_id : str
-            file id
+        file_name : str
+            file name
         blob : bytes
             file blob
         metadata : dict
@@ -54,7 +54,7 @@ def save_file(analytiq_client, file_id:str, blob:bytes, metadata:dict):
 
     # Remove the old file
     try:
-        file = fs.find_one({"_id": file_id})
+        file = fs.find_one({"name": file_name})
         fs.delete(file._id)
     except:
         pass
@@ -68,13 +68,13 @@ def delete_file(analytiq_client, file_id:str):
     Args:
         analytiq_client: AnalytiqClient
             The analytiq client
-        file_id : str
-            File id
+        file_name : str
+            File name
     """
     # Get the db
     db = analytiq_client[analytiq_client.env]
     fs = gridfs.GridFS(db, collection='files')
 
     # Remove the old file
-    file = fs.find_one({"_id": file_id})
+    file = fs.find_one({"name": file_name})
     fs.delete(file._id)
