@@ -18,8 +18,6 @@ async def worker():
     db = client.your_database
     queue_collection = db.job_queue
 
-    print(f"Queue collection: {queue_collection}")
-
     while True:
         job = await queue_collection.find_one_and_update(
             {"status": "pending"},
