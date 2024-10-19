@@ -6,7 +6,7 @@ import json
 
 import analytiq_data as ad
 
-def get_mongodb_client_async(env: str = "dev"):
+def get_mongodb_client_async(env: str = "dev") -> AsyncIOMotorClient:
     """
     Get the MongoDB client.
 
@@ -22,9 +22,15 @@ def get_mongodb_client_async(env: str = "dev"):
     client = AsyncIOMotorClient(mongo_uri)
     return client
 
-def get_mongodb_client(env: str = "dev"):
+def get_mongodb_client(env: str = "dev") -> MongoClient:
     """
     Get the MongoDB client.
+
+    Args:
+        env: The environment to connect to. Defaults to "dev".
+
+    Returns:
+        The MongoDB client.
     """
     mongo_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
     if env == "prod" and mongo_uri == "mongodb://localhost:27017":
