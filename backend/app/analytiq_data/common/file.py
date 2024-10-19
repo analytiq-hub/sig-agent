@@ -94,7 +94,7 @@ def delete_file(analytiq_client, file_name:str):
     fs.delete(file._id)
     ad.log.debug(f"File {file_name} has been deleted.")
 
-def upload_pdf(analytiq_client, file_path: str):
+def upload_file(analytiq_client, file_path: str, file_type: str = "application/pdf"):
     """
     Read a PDF file and save it using the file API
     
@@ -118,7 +118,7 @@ def upload_pdf(analytiq_client, file_path: str):
     # Create metadata
     metadata = {
         "name": file_name,
-        "type": "application/pdf",
+        "type": file_type,
         "size": len(blob),
         "created_at": datetime.now(UTC),
         "updated_at": datetime.now(UTC)
@@ -126,6 +126,23 @@ def upload_pdf(analytiq_client, file_path: str):
 
     # Save the file using the save_file function
     save_file(analytiq_client, file_name, blob, metadata)
+
+def download_file(analytiq_client, file_name: str, output_path: str):
+    """
+    Download the file
+
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        file_name: str
+            File name
+        output_path: str
+            Output path
+    """
+    file = get_file(analytiq_client, file_name)
+    with open(output_path, "wb") as file:
+        file.write(file["blob"])
+
 
 # Download all the files from the database
 def download_all_files(analytiq_client, output_dir: str):
