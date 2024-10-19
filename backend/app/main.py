@@ -123,11 +123,6 @@ async def upload_pdf(
                             metadata={"type": "application/pdf",
                              "size": len(content)})
 
-        # Don't save to disk anymore        
-        # file_path = os.path.join(UPLOAD_DIR, file.name)
-        # with open(file_path, "wb") as buffer:
-        #     buffer.write(content)
-        
         document = {
             "filename": file.name,
             "upload_date": datetime.utcnow(),
@@ -149,14 +144,11 @@ async def download_pdf(
     
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
-    
-    ad.log.info(f"document: {document}")
-    
+        
     # Get the file from mongodb
     file = ad.common.get_file(analytiq_client, document["filename"])
     if file is None:
         raise HTTPException(status_code=404, detail="File not found")
-    ad.log.info(f"file: {file}")
     
     file_blob = file["blob"]
 
@@ -164,11 +156,6 @@ async def download_pdf(
     return StreamingResponse(io.BytesIO(file_blob),
                              media_type=file["metadata"]["type"],
                              headers={"Content-Disposition": f"attachment; filename={document['filename']}"})
-
-    # file_path = document["path"]
-    # filename = document["filename"]
-
-    # return FileResponse(document["path"], filename=document["filename"])
 
 @app.get("/api/list", response_model=ListPDFsResponse)
 async def list_pdfs(
