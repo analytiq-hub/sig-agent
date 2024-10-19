@@ -184,6 +184,21 @@ async def list_pdfs(
         skip=skip
     )
 
+@app.delete("/api/delete/{file_id}", response_model=None)
+async def delete_pdf(
+    file_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    document = await docs_collection.find_one({"_id": ObjectId(document_id)})
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    ad.common.delete_file(analytiq_client, "files", document["filename"])
+    await docs_collection.delete_one({"_id": ObjectId(document_id)})
+
+    return
+
 @app.post("/api/api_tokens", response_model=ApiToken)
 async def api_token_create(
     request: CreateApiTokenRequest,

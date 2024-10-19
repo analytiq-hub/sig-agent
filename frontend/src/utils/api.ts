@@ -43,6 +43,11 @@ export const downloadFileApi = async (id: string) => {
   return { data: response.data, headers: response.headers };
 };
 
+export const deleteFileApi = async (id: string) => {
+  const response = await api.delete(`/api/files/${id}`);
+  return response.data;
+};
+
 export interface CreateTokenRequest {
   name: string;
   lifetime: number;
