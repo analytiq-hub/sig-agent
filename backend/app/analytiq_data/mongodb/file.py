@@ -3,29 +3,29 @@ from datetime import datetime
 
 def get_file(analytiq_client, file_id: str, acct_name:str) -> dict:
     """
-    Get the document
+    Get the file
     
     Parameters
     ----------
     analytiq_client: AnalytiqClient
         The analytiq client
     file_id : str
-        Document id
+        file id
     acct_name : str
         Name of the account
 
     Returns
     -------
     dict
-        Document dataset metadata    
+        file dataset metadata    
     """
     # Get the provider db
     db = analytiq_client[analytiq_client.env]
     collection = db["files"]
 
     # Get the doc metadata
-    document = collection.find_one({"_id": file_id})
-    if document is None:
+    file = collection.find_one({"_id": file_id})
+    if file is None:
         return None
     
     # Get the blob
@@ -33,25 +33,25 @@ def get_file(analytiq_client, file_id: str, acct_name:str) -> dict:
     file = fs.find_one({"_id": file_id})
     blob = file.read()
 
-    # Add the blob to the document
-    document["blob"] = blob
+    # Add the blob to the file
+    file["blob"] = blob
 
-    return document
+    return file
 
 def save_file(analytiq_client, file_id:str, blob:bytes, metadata:dict, acct_name:str):
     """
-    Save the document
+    Save the file
     
     Parameters
     ----------
     analytiq_client: AnalytiqClient
         The analytiq client
     file_id : str
-        Document id
+        file id
     blob : bytes
-        Document blob
+        file blob
     metadata : dict
-        Document metadata
+        file metadata
     acct_name : str
         Name of the account
     """
@@ -59,7 +59,7 @@ def save_file(analytiq_client, file_id:str, blob:bytes, metadata:dict, acct_name
     db = analytiq_client[analytiq_client.env]
     fs = gridfs.GridFS(db, collection='files')
 
-    # Remove the old document
+    # Remove the old file
     try:
         file = fs.find_one({"_id": file_id})
         fs.delete(file._id)
@@ -85,6 +85,6 @@ def delete_file(analytiq_client, file_id:str, acct_name:str):
     db = analytiq_client[analytiq_client.env]
     fs = gridfs.GridFS(db, collection='files')
 
-    # Remove the old document
+    # Remove the old file
     file = fs.find_one({"_id": file_id})
     fs.delete(file._id)
