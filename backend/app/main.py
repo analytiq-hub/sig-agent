@@ -14,6 +14,7 @@ import json
 from dotenv import load_dotenv
 import secrets
 import base64
+import io
 import analytiq_data as ad
 
 import api
@@ -112,16 +113,23 @@ async def upload_pdf(
         if not file.name.endswith('.pdf'):
             raise HTTPException(status_code=400, detail=f"File {file.name} is not a PDF")
         
-        file_path = os.path.join(UPLOAD_DIR, file.name)
-        
         # Decode and save the file
         content = base64.b64decode(file.content.split(',')[1])
-        with open(file_path, "wb") as buffer:
-            buffer.write(content)
+
+        # Save the file to mongodb
+        ad.common.save_file(analytiq_client,
+                            file_name=file.name,
+                            blob=content,
+                            metadata={"type": "application/pdf",
+                             "size": len(content)})
+
+        # Don't save to disk anymore        
+        # file_path = os.path.join(UPLOAD_DIR, file.name)
+        # with open(file_path, "wb") as buffer:
+        #     buffer.write(content)
         
         document = {
             "filename": file.name,
-            "path": file_path,
             "upload_date": datetime.utcnow(),
             "uploaded_by": current_user.user_name,
             "state": "Uploaded"
@@ -142,10 +150,25 @@ async def download_pdf(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    file_path = document["path"]
-    filename = document["filename"]
+    ad.log.info(f"document: {document}")
+    
+    # Get the file from mongodb
+    file = ad.common.get_file(analytiq_client, document["filename"])
+    if file is None:
+        raise HTTPException(status_code=404, detail="File not found")
+    ad.log.info(f"file: {file}")
+    
+    file_blob = file["blob"]
 
-    return FileResponse(document["path"], filename=document["filename"])
+    # Return the file as a response
+    return StreamingResponse(io.BytesIO(file_blob),
+                             media_type=file["metadata"]["type"],
+                             headers={"Content-Disposition": f"attachment; filename={document['filename']}"})
+
+    # file_path = document["path"]
+    # filename = document["filename"]
+
+    # return FileResponse(document["path"], filename=document["filename"])
 
 @app.get("/api/list", response_model=ListPDFsResponse)
 async def list_pdfs(

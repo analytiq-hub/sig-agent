@@ -22,20 +22,23 @@ def get_file(analytiq_client, file_name: str) -> dict:
     mongo = analytiq_client.mongodb
     db_name = analytiq_client.env
     db = mongo[db_name]
-    collection = db["files"]
+    collection = db["files.files"]
 
     # Get the doc metadata
-    file = collection.find_one({"name": file_name})
-    if file is None:
+    elem = collection.find_one({"name": file_name})
+    if elem is None:
         return None
+    metadata = elem["metadata"]
     
     # Get the blob
-    fs = gridfs.GridFS(db, collection='files')
-    file = fs.find_one({"name": file_name})
-    blob = file.read()
+    fs = gridfs.GridFS(db, collection="files")
+    elem = fs.find_one({"name": file_name})
+    blob = elem.read()
 
-    # Add the blob to the file
-    file["blob"] = blob
+    file = {
+        "blob": blob,
+        "metadata": metadata
+    }
 
     return file
 
@@ -69,6 +72,7 @@ def save_file(analytiq_client, file_name:str, blob:bytes, metadata:dict):
 
     fs.put(blob, name=file_name, metadata=metadata)
     ad.log.debug(f"File {file_name} has been saved.")
+
 def delete_file(analytiq_client, file_name:str):
     """
     Delete the file
