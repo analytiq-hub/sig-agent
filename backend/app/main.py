@@ -31,9 +31,8 @@ from schemas import (
 # Load the .env file
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Initialize the logger
+ad.init_logger("fastapi")
 
 # Environment variables
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
@@ -71,7 +70,7 @@ docs_collection = db.docs
 api_token_collection = db.api_tokens
 llm_token_collection = db.llm_tokens
 
-logger.info(f"Connected to {MONGODB_URI}")
+ad.log.info(f"Connected to {MONGODB_URI}")
 
 # Ensure the 'pdfs' directory exists
 os.makedirs("data", exist_ok=True)
@@ -86,7 +85,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
         userId: str = payload.get("userId")
         userName: str = payload.get("userName")
         email: str = payload.get("email")
-        logger.info(f"get_current_user(): userId: {userId}, userName: {userName}, email: {email}")
+        ad.log.info(f"get_current_user(): userId: {userId}, userName: {userName}, email: {email}")
         if userName is None:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
         return User(user_id=userId,
@@ -95,7 +94,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
     except JWTError:
         # If JWT validation fails, check if it's an API token
         api_token = await api_token_collection.find_one({"token": token})
-        logger.info(f"get_current_user(): api_token: {api_token}")
+        ad.log.info(f"get_current_user(): api_token: {api_token}")
         if api_token:
             return User(user_id=api_token["user_id"],
                         user_name=api_token["name"],
@@ -108,7 +107,7 @@ async def upload_pdf(
     files_upload: FilesUpload = Body(...),
     current_user: User = Depends(get_current_user)
 ):
-    logger.info(f"upload_pdf(): files: {[file.name for file in files_upload.files]}")
+    ad.log.info(f"upload_pdf(): files: {[file.name for file in files_upload.files]}")
     uploaded_files = []
     for file in files_upload.files:
         if not file.name.endswith('.pdf'):
@@ -181,7 +180,7 @@ async def api_token_create(
     request: CreateApiTokenRequest,
     current_user: User = Depends(get_current_user)
 ):
-    logger.info(f"Creating API token for user: {current_user} request: {request}")
+    ad.log.info(f"Creating API token for user: {current_user} request: {request}")
     token = secrets.token_urlsafe(32)
     new_token = {
         "user_id": current_user.user_id,
@@ -209,7 +208,7 @@ async def api_token_list(current_user: User = Depends(get_current_user)):
         }
         for token in tokens
     ]
-    logger.info(f"list_api_tokens(): {ret}")
+    ad.log.info(f"list_api_tokens(): {ret}")
     return ListApiTokensResponse(api_tokens=ret)
 
 @app.delete("/api/api_tokens/{token_id}")
@@ -230,7 +229,7 @@ async def llm_token_create(
     request: CreateLLMTokenRequest,
     current_user: User = Depends(get_current_user)
 ):
-    logger.info(f"Creating/Updating LLM token for user: {current_user} request: {request}")
+    ad.log.info(f"Creating/Updating LLM token for user: {current_user} request: {request}")
     
     # Check if a token for this vendor already exists
     existing_token = await llm_token_collection.find_one({
@@ -252,12 +251,12 @@ async def llm_token_create(
             new_token
         )
         new_token["id"] = str(existing_token["_id"])
-        logger.info(f"Updated existing LLM token for {request.llm_vendor}")
+        ad.log.info(f"Updated existing LLM token for {request.llm_vendor}")
     else:
         # Insert a new token
         result = await llm_token_collection.insert_one(new_token)
         new_token["id"] = str(result.inserted_id)
-        logger.info(f"Created new LLM token for {request.llm_vendor}")
+        ad.log.info(f"Created new LLM token for {request.llm_vendor}")
 
     return new_token
 
@@ -275,7 +274,7 @@ async def llm_token_list(current_user: User = Depends(get_current_user)):
         }
         for token in tokens
     ]
-    logger.info(f"list_llm_tokens(): {llm_tokens}")
+    ad.log.info(f"list_llm_tokens(): {llm_tokens}")
     return ListLLMTokensResponse(llm_tokens=llm_tokens)
 
 @app.delete("/api/llm_tokens/{token_id}")
