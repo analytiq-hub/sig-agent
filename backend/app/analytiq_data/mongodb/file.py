@@ -1,22 +1,18 @@
 import gridfs
 from datetime import datetime
 
-def get_file(analytiq_client, file_id: str, acct_name:str) -> dict:
+def get_file(analytiq_client, file_id: str) -> dict:
     """
     Get the file
     
-    Parameters
-    ----------
-    analytiq_client: AnalytiqClient
+    Args:
+        analytiq_client: AnalytiqClient
         The analytiq client
     file_id : str
         file id
-    acct_name : str
-        Name of the account
 
-    Returns
-    -------
-    dict
+    Returns:
+        dict
         file dataset metadata    
     """
     # Get the provider db
@@ -38,22 +34,19 @@ def get_file(analytiq_client, file_id: str, acct_name:str) -> dict:
 
     return file
 
-def save_file(analytiq_client, file_id:str, blob:bytes, metadata:dict, acct_name:str):
+def save_file(analytiq_client, file_id:str, blob:bytes, metadata:dict):
     """
     Save the file
     
-    Parameters
-    ----------
-    analytiq_client: AnalytiqClient
-        The analytiq client
-    file_id : str
-        file id
-    blob : bytes
-        file blob
-    metadata : dict
-        file metadata
-    acct_name : str
-        Name of the account
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        file_id : str
+            file id
+        blob : bytes
+            file blob
+        metadata : dict
+            file metadata
     """
     # Get the db
     db = analytiq_client[analytiq_client.env]
@@ -68,18 +61,15 @@ def save_file(analytiq_client, file_id:str, blob:bytes, metadata:dict, acct_name
 
     fs.put(blob, _id=file_id, metadata=metadata)
 
-def delete_file(analytiq_client, file_id:str, acct_name:str):
+def delete_file(analytiq_client, file_id:str):
     """
     Delete the file
-    
-    Parameters
-    ----------
-    analytiq_client: AnalytiqClient
-        The analytiq client
-    file_id : str
-        File id
-    acct_name : str
-        Name of the account
+
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        file_id : str
+            File id
     """
     # Get the db
     db = analytiq_client[analytiq_client.env]
