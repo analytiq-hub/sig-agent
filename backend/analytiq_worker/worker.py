@@ -51,4 +51,7 @@ async def worker():
             await asyncio.sleep(1)  # Avoid tight loop
 
 if __name__ == "__main__":
-    asyncio.run(worker())
+    try:    
+        asyncio.run(worker())
+    except KeyboardInterrupt:
+        ad.log.info("Keyboard interrupt received, exiting")
