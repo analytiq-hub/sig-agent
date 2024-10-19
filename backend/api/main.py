@@ -33,7 +33,8 @@ sys.path.append("..")
 import analytiq_data as ad
 
 # Load the .env file
-load_dotenv()
+if not load_dotenv(dotenv_path="../.env", verbose=True):
+    raise Exception("Failed to load ../.env file")
 
 # Initialize the logger
 ad.init_logger("fastapi")
