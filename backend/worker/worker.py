@@ -23,7 +23,6 @@ ad.init_logger("worker")
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 ENV = os.getenv("ENV", "dev")
 
-
 async def process_job(job):
     # Implement your job processing logic here
     print(f"Processing job: {job['_id']}")
