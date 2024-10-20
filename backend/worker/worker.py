@@ -30,12 +30,12 @@ async def worker():
     client = AsyncIOMotorClient(MONGODB_URI)
     db_name = ENV
     db = client.db_name
-    queue_collection = db.job_queue
+    job_queue_collection = db.job_queue
 
     ad.log.info(f"Connected to MongoDB at {MONGODB_URI} and using database {db_name}")
 
     while True:
-        job = await queue_collection.find_one_and_update(
+        job = await job_queue_collection.find_one_and_update(
             {"status": "pending"},
             {"$set": {"status": "processing"}},
             sort=[("created_at", 1)]
