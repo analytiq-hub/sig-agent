@@ -32,12 +32,8 @@ from schemas import (
 sys.path.append("..")
 import analytiq_data as ad
 
-# Get the current directory
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Load the .env file
-if not load_dotenv(dotenv_path="../.env", verbose=True):
-    raise Exception("Failed to load ../.env file")
+# Set up the environment variables. This reads the .env file.
+ad.common.setup()
 
 # Initialize the logger
 ad.init_logger("fastapi")
