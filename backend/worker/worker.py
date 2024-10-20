@@ -41,8 +41,10 @@ async def worker():
             sort=[("created_at", 1)]
         )
         if job:
+            ad.log.info(f"Processing job: {job['_id']}")
             await process_job(job)
         else:
+            ad.log.info("No job found, sleeping")
             await asyncio.sleep(1)  # Avoid tight loop
 
 if __name__ == "__main__":
