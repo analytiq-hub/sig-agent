@@ -27,12 +27,15 @@ async def process_job(job):
     await queue_collection.update_one({"_id": job["_id"]}, {"$set": {"status": "completed"}})
 
 async def worker():
-    client = AsyncIOMotorClient(MONGODB_URI)
-    db_name = ENV
-    db = client.db_name
+    client = ad.common.get_client(env=ENV)
+    db_name = "prod" if ENV == "prod" else "dev"
+    db = client.mongodb_async[db_name]
     job_queue_collection = db.job_queue
 
     ad.log.info(f"Connected to MongoDB at {MONGODB_URI} and using database {db_name}")
+
+    # List the collections in the database
+    ad.log.info(f"Collections in database {db_name}: {await db.list_collection_names()}")
 
     while True:
         job = await job_queue_collection.find_one_and_update(
