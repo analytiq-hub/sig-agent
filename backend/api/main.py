@@ -39,7 +39,6 @@ ad.common.setup()
 ad.init_logger("fastapi")
 
 # Environment variables
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 ENV = os.getenv("ENV", "dev")
 
 # JWT settings
@@ -73,8 +72,6 @@ db = analytiq_client.mongodb_async[db_name]
 docs_collection = db.docs
 api_token_collection = db.api_tokens
 llm_token_collection = db.llm_tokens
-
-ad.log.info(f"Connected to {MONGODB_URI}")
 
 # Ensure the 'pdfs' directory exists
 os.makedirs("data", exist_ok=True)
