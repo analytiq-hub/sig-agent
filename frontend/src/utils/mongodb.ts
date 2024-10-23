@@ -5,11 +5,16 @@ if (!process.env.ENV) {
   throw new Error('Invalid/Missing environment variable: "ENV"')
 }
 
+const env = process.env.ENV
+if (env !== "dev" && env !== "prod") {
+  throw new Error(`Invalid environment variable: "ENV"=${env}, should be "dev" or "prod"`)
+}
+
 if (!process.env.MONGODB_URI) {
   throw new Error('Invalid/Missing environment variable: "MONGODB_URI"')
 }
  
-const uri = process.env.MONGODB_URI + "/" + process.env.ENV
+const uri = process.env.MONGODB_URI + "/" + env
 const options = {
 }
  
