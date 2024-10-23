@@ -2,7 +2,7 @@
 import { MongoClient } from "mongodb"
  
 if (!process.env.ENV) {
-  throw new Error('Invalid/Missing environment variable: "ENV"')
+  throw new Error('Missing environment variable: "ENV"')
 }
 
 const env = process.env.ENV
@@ -11,7 +11,7 @@ if (env !== "dev" && env !== "prod") {
 }
 
 if (!process.env.MONGODB_URI) {
-  throw new Error('Invalid/Missing environment variable: "MONGODB_URI"')
+  throw new Error('Missing environment variable: "MONGODB_URI"')
 }
  
 const uri = process.env.MONGODB_URI + "/" + env
