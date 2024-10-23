@@ -15,7 +15,7 @@ cd /app/frontend && npm run start &
 cd /app/backend/api && uvicorn main:app --host 0.0.0.0 --port 8000 &
 
 # Start the worker
-cd /app/backend/worker && python worker.py &
+cd /app/backend/worker && python3 worker.py &
 
 # Wait for any process to exit
 wait -n
