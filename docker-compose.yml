@@ -5,12 +5,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"  # NextJS
-      - "8000:8000"  # FastAPI
+    # ports:
+    #   - "3000:3000"  # NextJS
+    #   - "8000:8000"  # FastAPI
     environment:
-      - MONGODB_URI=mongodb://host.docker.internal:27017
+      # Don't use quotes around the MongoDB URI
+      - MONGODB_URI=mongodb://localhost:27017
       - JWT_SECRET=your_jwt_secret_here
       - ENV=dev
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    network_mode: "host"
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
