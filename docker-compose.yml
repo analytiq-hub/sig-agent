@@ -2,6 +2,9 @@ version: '3'
 
 services:
   app:
+    # Use image from Docker Hub
+    image: analytiqhub/doc-router:latest
+    # Keep the build option as an alternative
     build:
       context: .
       dockerfile: Dockerfile
