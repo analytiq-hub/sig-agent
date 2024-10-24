@@ -1,22 +1,14 @@
 // This approach is taken from https://github.com/vercel/next.js/tree/canary/examples/with-mongodb
 import { MongoClient } from "mongodb"
  
-if (!process.env.ENV) {
-  throw new Error('Missing environment variable: "ENV"')
-}
-
-const env = process.env.ENV
+const env = process.env.ENV || "dev"
 if (env !== "dev" && env !== "prod") {
   throw new Error(`Invalid environment variable: "ENV"=${env}, should be "dev" or "prod"`)
 }
 
-if (!process.env.MONGODB_URI) {
-  throw new Error('Missing environment variable: "MONGODB_URI"')
-}
- 
-const uri = process.env.MONGODB_URI + "/" + env
-const options = {
-}
+const mongodbUri = process.env.MONGODB_URI || "mongodb://localhost:27017"
+const uri = `${mongodbUri}/${env}`
+const options = {}
  
 let client: MongoClient
  
@@ -34,7 +26,6 @@ if (process.env.NODE_ENV === "development") {
 } else {
   // In production mode, it's best to not use a global variable.
   client = new MongoClient(uri, options)
-  
 }
  
 // Export a module-scoped MongoClient. By doing this in a
