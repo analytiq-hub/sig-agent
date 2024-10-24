@@ -4,7 +4,7 @@
 * MongoDB setup
   * [Install MongoDB](https://medium.com/@nkav2447/how-to-download-and-install-mongodb-on-fedora-40-2db148a7c2f0)
   * Create a `dev` database
-* Create a `backend/analytiq-data/.env` file, taking [.env.example](../backend/analytiq-data/.env.example) as a template
+* Create a `backend/analytiq-data/.env` file, taking [.env.example](../backend/analytiq_data/.env.example) as a template
   * For production, point MONGODB_URI to your production MongoDB server, and set ENV to `prod`.
 * Create `venv` for doc-router, install `backend/requirements.txt`
   * During setup
