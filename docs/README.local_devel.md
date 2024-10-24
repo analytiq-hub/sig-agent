@@ -29,18 +29,7 @@
   cd frontend
   npm install
   ```
-* Set up the `frontend/.env.local` file as follows:
-  ```bash
-  NEXTAUTH_URL=http://localhost:3000
-  NEXT_PUBLIC_API_URL=http://localhost:8000
-  MONGODB_URI="mongodb://localhost:27017/dev" # Must be same as in backend/analytiq-data/.env, but with the database name attached
-  NEXTAUTH_SECRET="xxx" # Must be a random string
-  AUTH_GITHUB_ID="xxx" # Create a GitHub OAuth app and put the client ID here
-  AUTH_GITHUB_SECRET="xxx" # Create a GitHub OAuth app and put the client secret here
-  AUTH_GOOGLE_ID="xxx" # Create a Google OAuth app and put the client ID here
-  AUTH_GOOGLE_SECRET="xxx" # Create a Google OAuth app and put the client secret here
-  JWT_SECRET="xxx" # Must be same as in backend/analytiq-data/.env
-  ```
+* Set up the `frontend/.env.local` file, taking [.env.example](../frontend/.env.example) as a template
 * Start the front end
   ```bash
   cd frontend
