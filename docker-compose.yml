@@ -25,7 +25,9 @@ services:
   mongodb:
     image: mongo:latest
     ports:
-      - "27018:27017"  # Changed host port to 27018
+      # Change to 27018:27017 if you need to avoid conflict
+      # with local MongoDB running at default port 27017
+      - "27017:27017"  
     volumes:
       - mongodb_data:/data/db
     profiles: ["with-mongodb"]
