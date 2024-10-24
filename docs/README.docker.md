@@ -16,3 +16,4 @@
   docker compose up --profile default
   ```
 * The application will be available at [http://localhost:3000](http://localhost:3000)
+* When restarting the application, run `docker compose down --profile with-mongodb`, or `docker compose down --profile default` first.
