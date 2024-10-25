@@ -20,4 +20,4 @@ Example display of Smart Document Router docs:
 
 # Docs
 * [Local development environment](./docs/README.local_devel.md)
-* [Docker setup](./docs/README.docker_devel.md)
+* [Docker setup](./docs/README.docker.md)
