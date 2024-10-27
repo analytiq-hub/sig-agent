@@ -40,6 +40,7 @@ ad.init_logger("fastapi")
 
 # Environment variables
 ENV = os.getenv("ENV", "dev")
+NEXTAUTH_URL = os.getenv("NEXTAUTH_URL")
 
 # JWT settings
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -52,8 +53,8 @@ security = HTTPBearer()
 
 # CORS configuration
 origins = [
-    "http://localhost:5173",  # Add your frontend origin here
     "http://localhost:3000",  # Add any other origins you need
+    NEXTAUTH_URL,
 ]
 
 app.add_middleware(

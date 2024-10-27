@@ -5,7 +5,7 @@ import client from "@/utils/mongodb"
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import { JWT } from "next-auth/jwt";
-import { Account, Session } from "next-auth";
+import { Account, Session, Profile } from "next-auth";
 import jwt from 'jsonwebtoken';
 import { AppSession } from '@/app/types/AppSession';
 
@@ -26,10 +26,15 @@ const authOptions: NextAuthOptions = {
       })
     ],
     callbacks: {
-      async jwt({ token, account }: { token: JWT; account: Account | null }) {
+      async jwt({ token, account, profile }: { token: JWT; account: Account | null; profile?: Profile }) {
         // Persist the OAuth access_token to the token right after signin
         if (account) {
-          token.providerAccessToken = account.access_token
+          token.providerAccessToken = account.access_token;
+          
+          // For Google, use email as a stable identifier
+          if (account.provider === 'google' && profile?.email) {
+            token.sub = profile.email;
+          }
         }
 
         // Generate our own access token
