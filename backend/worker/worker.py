@@ -41,7 +41,7 @@ async def worker():
             ad.log.info(f"Processing job: {job['_id']}")
             await process_job(job)
         else:
-            await asyncio.sleep(1)  # Avoid tight loop
+            await asyncio.sleep(.2)  # Avoid tight loop
 
 if __name__ == "__main__":
     try:    
