@@ -32,7 +32,6 @@
 * Set up the `frontend/.env.local` file, taking [.env.example](../frontend/.env.example) as a template
 * Start the front end
   ```bash
-  cd frontend
   npm run dev
   ```
 
