@@ -3,14 +3,33 @@ import { FileWithContent } from '@/app/types/Api';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 
-const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+// Function to get the API URL dynamically
+const getApiUrl = () => {
+  // When running in the browser
+  if (typeof window !== 'undefined') {
+    // If NEXT_PUBLIC_API_URL is set, use it
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      return process.env.NEXT_PUBLIC_API_URL;
+    }
+    
+    // Otherwise, derive it from the current window location
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    return `${protocol}//${hostname}:8000`;
+  }
+  
+  // Server-side fallback
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+};
+
+const NEXT_PUBLIC_API_URL = getApiUrl();
 
 const api = axios.create({
   baseURL: NEXT_PUBLIC_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,  // This is the important line
+  withCredentials: true,
 });
 
 // Add authorization header to all requests
