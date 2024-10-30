@@ -8,13 +8,17 @@
   ```bash
   docker compose --build --no-cache
   ```
+* Alternatively, pull the container from Docker Hub:
+  ```bash
+  docker compose pull
+  ```
 * You can run the container with embedded MongoDB with the following command:
   ```bash
-  docker compose up --profile with-mongodb
+  docker compose --profile with-mongodb up
   ```
 * Or, you can set the `MONGODB_URI` environment variable to point to a remote MongoDB server and run without embedded MongoDB with the following command:
   ```bash
-  docker compose up --profile default
+  docker compose --profile default up
   ```
 * The application will be available at [http://localhost:3000](http://localhost:3000)
 * When restarting the application, run `docker compose down --profile with-mongodb`, or `docker compose down --profile default` first.
