@@ -3,7 +3,7 @@ import { FileWithContent } from '@/app/types/Api';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 
-const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
 const api = axios.create({
   baseURL: NEXT_PUBLIC_API_URL,
@@ -29,10 +29,7 @@ export const uploadFilesApi = async (files: FileWithContent[]) => {
 
 export const listFilesApi = async () => {
   console.log('NEXT_PUBLIC_API_URL:', NEXT_PUBLIC_API_URL);
-  console.log('Environment variables:');
-  Object.keys(process.env).forEach(key => {
-    console.log(`${key}: ${process.env[key]}`);
-  });
+  console.log('NEXT_PUBLIC_API_URL env:', process.env.NEXT_PUBLIC_API_URL);
   const response = await api.get('/api/files/list');
   return response.data;
 };
