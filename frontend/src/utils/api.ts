@@ -29,7 +29,10 @@ export const uploadFilesApi = async (files: FileWithContent[]) => {
 
 export const listFilesApi = async () => {
   console.log('NEXT_PUBLIC_API_URL:', NEXT_PUBLIC_API_URL);
-  console.log('process.env:', process.env);
+  console.log('Environment variables:');
+  Object.keys(process.env).forEach(key => {
+    console.log(`${key}: ${process.env[key]}`);
+  });
   const response = await api.get('/api/files/list');
   return response.data;
 };
