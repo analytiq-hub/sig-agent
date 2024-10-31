@@ -28,6 +28,8 @@ export const uploadFilesApi = async (files: FileWithContent[]) => {
 };
 
 export const listFilesApi = async () => {
+  console.log('NEXT_PUBLIC_API_URL:', NEXT_PUBLIC_API_URL);
+  console.log('process.env:', process.env);
   const response = await api.get('/api/files/list');
   return response.data;
 };

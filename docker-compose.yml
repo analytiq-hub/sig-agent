@@ -12,6 +12,7 @@ services:
     environment:
       # Don't use quotes around the variables
       - ENV=${ENV}
+      - NODE_ENV=production
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}

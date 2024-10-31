@@ -8,6 +8,9 @@ else
     exit 1
 fi
 
+echo "Environment variables:"
+env
+
 echo "Starting Next.js frontend"
 cd /app/frontend && npm run start &
 
