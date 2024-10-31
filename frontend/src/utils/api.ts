@@ -3,7 +3,7 @@ import { FileWithContent } from '@/app/types/Api';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 
-const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const api = axios.create({
   baseURL: NEXT_PUBLIC_API_URL,
@@ -18,8 +18,24 @@ api.interceptors.request.use(async (config) => {
   const session = await getSession() as AppSession | null;
   if (session?.apiAccessToken) {
     config.headers.Authorization = `Bearer ${session.apiAccessToken}`;
+  } else {
+    console.warn('No API token found in session');
   }
   return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+// Add response interceptor for debugging
+api.interceptors.response.use((response) => {
+  return response;
+}, (error) => {
+  console.error('API Error:', {
+    status: error.response?.status,
+    data: error.response?.data,
+    config: error.config
+  });
+  return Promise.reject(error);
 });
 
 export const uploadFilesApi = async (files: FileWithContent[]) => {

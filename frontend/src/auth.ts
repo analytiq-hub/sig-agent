@@ -1,3 +1,4 @@
+import axios from 'axios';
 import NextAuth, { NextAuthOptions } from "next-auth"
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import client from "@/utils/mongodb"
@@ -6,7 +7,6 @@ import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import { JWT } from "next-auth/jwt";
 import { Account, Session, Profile } from "next-auth";
-import jwt from 'jsonwebtoken';
 import { AppSession } from '@/app/types/AppSession';
 
 const authOptions: NextAuthOptions = {
@@ -37,23 +37,41 @@ const authOptions: NextAuthOptions = {
           }
         }
 
-        // Generate our own access token
-        if (!token.apiAccessToken) {
-          token.apiAccessToken = jwt.sign(
-            { userId: token.sub, userName: token.name, email: token.email },
-            process.env.JWT_SECRET!, // Make sure to set this in your environment variables
-            //{ expiresIn: '1h' } // Let it never expire for now
-          );
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+          console.log('Fetching API token from:', apiUrl);
+          
+          const response = await axios.post(`${apiUrl}/api/auth/token`, {
+            sub: token.sub,
+            name: token.name,
+            email: token.email
+          });
+
+          token.apiAccessToken = response.data.token;
+          console.log('Received API token successfully');
+        } catch (error) {
+          console.error('Error getting JWT token:', error.message);
+          if (axios.isAxiosError(error)) {
+            console.error('Axios error details:', {
+              response: error.response?.data,
+              status: error.response?.status,
+            });
+          }
         }
 
-        //console.log('token', token);
         return token
       },
-      async session({ session, token }: { session: Session; token: JWT }) {
+      async session({ session, token }: { session: AppSession; token: JWT }) {
         // Send properties to the client, like an access_token from a provider.
         (session as AppSession).providerAccessToken = token.providerAccessToken as string;
         (session as AppSession).apiAccessToken = token.apiAccessToken as string;
-        //console.log('session', session);
+        
+        // Debug log
+        console.log('Session updated with tokens:', {
+          hasProviderToken: !!session.providerAccessToken,
+          hasApiToken: !!session.apiAccessToken
+        });
+        
         return session as AppSession;
       }
     }

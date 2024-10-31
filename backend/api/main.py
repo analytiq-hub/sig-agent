@@ -53,7 +53,8 @@ security = HTTPBearer()
 
 # CORS configuration
 origins = [
-    "http://localhost:3000",  # Add any other origins you need
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
     NEXTAUTH_URL,
 ]
 
@@ -343,6 +344,20 @@ async def llm_token_delete(
         raise HTTPException(status_code=404, detail="LLM Token not found")
     return {"message": "LLM Token deleted successfully"}
 
+@app.post("/api/auth/token")
+async def create_auth_token(user_data: dict = Body(...)):
+    ad.log.info(f"create_auth_token(): user_data: {user_data}")
+    token = jwt.encode(
+        {
+            "userId": user_data["sub"],
+            "userName": user_data["name"],
+            "email": user_data["email"]
+        },
+        JWT_SECRET,
+        algorithm=ALGORITHM
+    )
+    return {"token": token}
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="::", port=8000)
