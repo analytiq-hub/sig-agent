@@ -11,6 +11,9 @@ fi
 echo "Environment variables:"
 env
 
+# Export environment variables to the shell
+export $(cat .env | xargs)
+
 echo "Starting Next.js frontend"
 cd /app/frontend && npm run start &
 
