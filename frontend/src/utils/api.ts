@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { FileWithContent } from '@/app/types/Api';
 import { getSession } from 'next-auth/react';
+import { AppSession } from '@/app/types/AppSession';
 
 const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
