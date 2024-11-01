@@ -58,6 +58,8 @@ origins = [
     NEXTAUTH_URL,
 ]
 
+ad.log.info(f"CORSorigins: {origins}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
