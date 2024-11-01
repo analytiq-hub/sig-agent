@@ -28,7 +28,7 @@ Here are instructions on how to set up an AWS Lightsail instance and deploy the 
 
   server {
 	listen 80;
-	server_name app.analytiqhub.com;
+	server_name api.analytiqhub.com;
 
 	location / {
     	proxy_pass http://localhost:8000; # The port of the API
