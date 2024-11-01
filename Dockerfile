@@ -19,6 +19,9 @@ COPY frontend/ ./frontend/
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
+# Add this line to echo the value during build
+RUN echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}"
+
 # Install frontend dependencies and build
 RUN cd frontend && npm install && npm run build
 

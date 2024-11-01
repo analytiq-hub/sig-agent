@@ -18,7 +18,7 @@ echo "Starting Next.js frontend"
 cd /app/frontend && npm run start &
 
 echo "Starting FastAPI backend"
-cd /app/backend/api && uvicorn main:app --host 0.0.0.0 --port 8000 &
+cd /app/backend/api && uvicorn main:app --host :: --port 8000 &
 
 echo "Starting worker"
 cd /app/backend/worker && python3 worker.py &
