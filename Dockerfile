@@ -16,12 +16,16 @@ RUN apt-get update && apt-get install -y \
 COPY frontend/package*.json ./frontend/
 RUN cd frontend && npm install
 
-# Build the frontend with the client-side environment variable, if available
-ARG NEXT_PUBLIC_API_URL=http://localhost:8000
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+# Build-time arguments
+ARG NEXT_PUBLIC_API_URL
+ARG NODE_ENV=production
+
+# Set build-time environment variables
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+ENV NODE_ENV=${NODE_ENV}
 
 RUN echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}"
-
+RUN echo "NODE_ENV=${NODE_ENV}"
 # Now copy the rest of the frontend files
 COPY frontend/ ./frontend/
 RUN cd frontend && npm run build
