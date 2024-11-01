@@ -58,7 +58,7 @@ origins = [
     NEXTAUTH_URL,
 ]
 
-ad.log.info(f"CORSorigins: {origins}")
+ad.log.info(f"CORS origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
