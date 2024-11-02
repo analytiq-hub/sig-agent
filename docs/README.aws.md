@@ -62,11 +62,11 @@ Here are instructions on how to set up an AWS Lightsail instance and deploy the 
   * Point the `MONGODB_URI` environment variable to a remote MongoDB server.
   * Set the `NEXTAUTH_URL` environment variable to the URL of the application.
     * In my case, `NEXTAUTH_URL=https://doc-router.analytiqhub.com`
-  * Set the `NEXT_PUBLIC_FASTAPI_URL` environment variable to the URL of the FastAPI accessed by the frontend.
-    * In my case, `NEXT_PUBLIC_FASTAPI_URL=https://api.analytiqhub.com/fastapi`
-  * Set the `API_URL` environment variable to the URL of the FastAPI accessed by the backend.
-    * In my case, `API_URL=http://backend:8000`
+  * Set the `NEXT_PUBLIC_FASTAPI_FRONTEND_URL` environment variable to the URL of the FastAPI accessed by the frontend.
+    * In my case, `NEXT_PUBLIC_FASTAPI_FRONTEND_URL=https://doc-router.analytiqhub.com/fastapi`
+  * Set the `FASTAPI_BACKEND_URL` environment variable to the URL of the FastAPI accessed by the backend.
+    * In my case, `FASTAPI_BACKEND_URL=http://backend:8000`
 * Run the application with Docker Compose.
   ```bash
-  docker compose --profile default up --build --detach
+  docker compose up --build --detach
   ```

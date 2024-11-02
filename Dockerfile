@@ -7,17 +7,17 @@ COPY frontend/package*.json ./frontend/
 RUN cd frontend && npm install
 
 # Build-time arguments
-ARG NEXT_PUBLIC_FASTAPI_URL
-ARG API_URL
+ARG NEXT_PUBLIC_FASTAPI_FRONTEND_URL
+ARG FASTAPI_BACKEND_URL
 ARG NODE_ENV=production
 
 # Set build-time environment variables
-ENV NEXT_PUBLIC_FASTAPI_URL=${NEXT_PUBLIC_FASTAPI_URL:-http://localhost:8000}
-ENV API_URL=${API_URL:-http://localhost:8000}
+ENV NEXT_PUBLIC_FASTAPI_FRONTEND_URL=${NEXT_PUBLIC_FASTAPI_FRONTEND_URL:-http://localhost:8000}
+ENV FASTAPI_BACKEND_URL=${FASTAPI_BACKEND_URL:-http://localhost:8000}
 ENV NODE_ENV=${NODE_ENV}
 
-RUN echo "NEXT_PUBLIC_FASTAPI_URL=${NEXT_PUBLIC_FASTAPI_URL}"
-RUN echo "API_URL=${API_URL}"
+RUN echo "NEXT_PUBLIC_FASTAPI_FRONTEND_URL=${NEXT_PUBLIC_FASTAPI_FRONTEND_URL}"
+RUN echo "FASTAPI_BACKEND_URL=${FASTAPI_BACKEND_URL}"
 RUN echo "NODE_ENV=${NODE_ENV}"
 # Now copy the rest of the frontend files
 COPY frontend/ ./frontend/

@@ -39,7 +39,7 @@ const authOptions: NextAuthOptions = {
 
         try {
           // This API executes from the nextjs backend, and needs to reach the fastapi backend
-          const apiUrl = process.env.API_URL || 'http://127.0.0.1:8000';
+          const apiUrl = process.env.FASTAPI_BACKEND_URL || 'http://127.0.0.1:8000';
           const tokenUrl = `${apiUrl}/auth/token`;
           console.log('Fetching API token from:', tokenUrl);
           

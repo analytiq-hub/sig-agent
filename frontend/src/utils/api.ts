@@ -4,10 +4,10 @@ import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 
 // These APIs execute from the frontend
-const NEXT_PUBLIC_FASTAPI_URL = process.env.NEXT_PUBLIC_FASTAPI_URL || "http://localhost:8000";
+const NEXT_PUBLIC_FASTAPI_FRONTEND_URL = process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL || "http://localhost:8000";
 
 const api = axios.create({
-  baseURL: NEXT_PUBLIC_FASTAPI_URL,
+  baseURL: NEXT_PUBLIC_FASTAPI_FRONTEND_URL, 
   headers: {
     'Content-Type': 'application/json',
   },
@@ -45,8 +45,8 @@ export const uploadFilesApi = async (files: FileWithContent[]) => {
 };
 
 export const listFilesApi = async () => {
-  console.log('NEXT_PUBLIC_FASTAPI_URL:', NEXT_PUBLIC_FASTAPI_URL);
-  console.log('NEXT_PUBLIC_FASTAPI_URL env:', process.env.NEXT_PUBLIC_FASTAPI_URL);
+  console.log('NEXT_PUBLIC_FASTAPI_FRONTEND_URL:', NEXT_PUBLIC_FASTAPI_FRONTEND_URL);
+  console.log('NEXT_PUBLIC_FASTAPI_FRONTEND_URL env:', process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL);
   const response = await api.get('/files/list');
   return response.data;
 };
