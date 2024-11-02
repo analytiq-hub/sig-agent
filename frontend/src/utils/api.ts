@@ -3,6 +3,7 @@ import { FileWithContent } from '@/app/types/Api';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 
+// These APIs execute from the frontend
 const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const api = axios.create({
