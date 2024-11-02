@@ -70,7 +70,7 @@ services:
     volumes:
       - mongodb_data:/data/db
     user: "999:999"
-    command: "chown -R 999:999 /data/db && mongod --auth --bind_ip_all"
+    command: sh -c "chown -R 999:999 /data/db && mongod --auth --bind_ip_all"
     profiles: ["with-mongodb"]
 
 networks:
