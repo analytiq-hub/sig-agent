@@ -59,7 +59,9 @@ services:
     ports:
       # Change to 27018:27017 if you need to avoid conflict
       # with local MongoDB running at default port 27017
-      - "27017:27017"  
+      - "27017:27017"
+    networks:
+      - app-network
     volumes:
       - mongodb_data:/data/db
     profiles: ["with-mongodb"]
