@@ -46,13 +46,15 @@ services:
     networks:
       - app-network
 
-  # worker:
-  #   image: analytiqhub/doc-router-backend:latest
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #     target: backend
-  #   command: sh -c "cd /app/backend/worker && python3 worker.py"
+  worker:
+    image: analytiqhub/doc-router-backend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend
+    environment:
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
+    command: sh -c "cd /app/backend/worker && python3 worker.py"
 
   mongodb:
     image: mongo:latest
