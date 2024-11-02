@@ -41,6 +41,9 @@ ad.init_logger("fastapi")
 # Environment variables
 ENV = os.getenv("ENV", "dev")
 NEXTAUTH_URL = os.getenv("NEXTAUTH_URL")
+FASTAPI_ROOT_PATH = os.getenv("FASTAPI_ROOT_PATH", "/")
+
+ad.log.info(f"FASTAPI_ROOT_PATH: {FASTAPI_ROOT_PATH}")
 
 # JWT settings
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -48,7 +51,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 UPLOAD_DIR = "data"
 
-app = FastAPI()
+app = FastAPI(root_path=FASTAPI_ROOT_PATH)
 security = HTTPBearer()
 
 # CORS configuration
@@ -58,7 +61,7 @@ origins = [
     NEXTAUTH_URL,
 ]
 
-ad.log.info(f"CORS origins: {origins}")
+ad.log.info(f"CORS allowed origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
