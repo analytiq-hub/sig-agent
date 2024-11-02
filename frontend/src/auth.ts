@@ -39,10 +39,10 @@ const authOptions: NextAuthOptions = {
 
         try {
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-          const tokenUrl = `${apiUrl}/api/auth/token`;
+          const tokenUrl = `${apiUrl}/auth/token`;
           console.log('Fetching API token from:', tokenUrl);
           
-          const response = await axios.post(`${apiUrl}/api/auth/token`, {
+          const response = await axios.post(`${apiUrl}/auth/token`, {
             sub: token.sub,
             name: token.name,
             email: token.email

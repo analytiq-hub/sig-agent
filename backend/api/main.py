@@ -130,7 +130,7 @@ async def submit_job(job_type: str, document_id: str) -> str:
     return str(job_id)
 
 # PDF management endpoints
-@app.post("/api/files/upload")
+@app.post("/files/upload")
 async def upload_file(
     files_upload: FilesUpload = Body(...),
     current_user: User = Depends(get_current_user)
@@ -167,7 +167,7 @@ async def upload_file(
     
     return {"uploaded_files": uploaded_files}
 
-@app.get("/api/files/download/{document_id}")
+@app.get("/files/download/{document_id}")
 async def download_file(
     document_id: str,
     current_user: User = Depends(get_current_user)
@@ -189,7 +189,7 @@ async def download_file(
                              media_type=file["metadata"]["type"],
                              headers={"Content-Disposition": f"attachment; filename={document['filename']}"})
 
-@app.get("/api/files/list", response_model=ListPDFsResponse)
+@app.get("/files/list", response_model=ListPDFsResponse)
 async def list_files(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
@@ -216,7 +216,7 @@ async def list_files(
         skip=skip
     )
 
-@app.delete("/api/files/delete/{file_id}", response_model=None)
+@app.delete("/files/delete/{file_id}", response_model=None)
 async def delete_file(
     file_id: str,
     current_user: User = Depends(get_current_user)
@@ -231,7 +231,7 @@ async def delete_file(
 
     return
 
-@app.post("/api/api_tokens", response_model=ApiToken)
+@app.post("/api_tokens", response_model=ApiToken)
 async def api_token_create(
     request: CreateApiTokenRequest,
     current_user: User = Depends(get_current_user)
@@ -249,7 +249,7 @@ async def api_token_create(
     new_token["id"] = str(result.inserted_id)
     return new_token
 
-@app.get("/api/api_tokens", response_model=ListApiTokensResponse)
+@app.get("/api_tokens", response_model=ListApiTokensResponse)
 async def api_token_list(current_user: User = Depends(get_current_user)):
     cursor = api_token_collection.find({"user_id": current_user.user_id})
     tokens = await cursor.to_list(length=None)
@@ -267,7 +267,7 @@ async def api_token_list(current_user: User = Depends(get_current_user)):
     ad.log.info(f"list_api_tokens(): {ret}")
     return ListApiTokensResponse(api_tokens=ret)
 
-@app.delete("/api/api_tokens/{token_id}")
+@app.delete("/api_tokens/{token_id}")
 async def api_token_delete(
     token_id: str,
     current_user: User = Depends(get_current_user)
@@ -280,7 +280,7 @@ async def api_token_delete(
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
 
-@app.post("/api/llm_tokens", response_model=LLMToken)
+@app.post("/llm_tokens", response_model=LLMToken)
 async def llm_token_create(
     request: CreateLLMTokenRequest,
     current_user: User = Depends(get_current_user)
@@ -316,7 +316,7 @@ async def llm_token_create(
 
     return new_token
 
-@app.get("/api/llm_tokens", response_model=ListLLMTokensResponse)
+@app.get("/llm_tokens", response_model=ListLLMTokensResponse)
 async def llm_token_list(current_user: User = Depends(get_current_user)):
     cursor = llm_token_collection.find({"user_id": current_user.user_id})
     tokens = await cursor.to_list(length=None)
@@ -333,7 +333,7 @@ async def llm_token_list(current_user: User = Depends(get_current_user)):
     ad.log.info(f"list_llm_tokens(): {llm_tokens}")
     return ListLLMTokensResponse(llm_tokens=llm_tokens)
 
-@app.delete("/api/llm_tokens/{token_id}")
+@app.delete("/llm_tokens/{token_id}")
 async def llm_token_delete(
     token_id: str,
     current_user: User = Depends(get_current_user)
@@ -346,7 +346,7 @@ async def llm_token_delete(
         raise HTTPException(status_code=404, detail="LLM Token not found")
     return {"message": "LLM Token deleted successfully"}
 
-@app.post("/api/auth/token")
+@app.post("/auth/token")
 async def create_auth_token(user_data: dict = Body(...)):
     ad.log.info(f"create_auth_token(): user_data: {user_data}")
     token = jwt.encode(

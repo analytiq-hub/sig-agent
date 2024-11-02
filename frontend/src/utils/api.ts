@@ -39,19 +39,19 @@ api.interceptors.response.use((response) => {
 });
 
 export const uploadFilesApi = async (files: FileWithContent[]) => {
-  const response = await api.post('/api/files/upload', { files });
+  const response = await api.post('/files/upload', { files });
   return response.data;
 };
 
 export const listFilesApi = async () => {
   console.log('NEXT_PUBLIC_API_URL:', NEXT_PUBLIC_API_URL);
   console.log('NEXT_PUBLIC_API_URL env:', process.env.NEXT_PUBLIC_API_URL);
-  const response = await api.get('/api/files/list');
+  const response = await api.get('/files/list');
   return response.data;
 };
 
 export const downloadFileApi = async (id: string) => {
-  const response = await api.get(`/api/files/download/${id}`, {
+  const response = await api.get(`/files/download/${id}`, {
     responseType: 'arraybuffer' // Spent an evening figuring out why this was necessary
   }) 
   console.log('downloadFileApi(): response:', response);
@@ -59,7 +59,7 @@ export const downloadFileApi = async (id: string) => {
 };
 
 export const deleteFileApi = async (id: string) => {
-  const response = await api.delete(`/api/files/delete/${id}`);
+  const response = await api.delete(`/files/delete/${id}`);
   return response.data;
 };
 
@@ -69,18 +69,18 @@ export interface CreateTokenRequest {
 }
 
 export const createTokenApi = async (token: CreateTokenRequest) => {
-  const response = await api.post('/api/api_tokens', token);
+  const response = await api.post('/api_tokens', token);
   return response.data;
 };
 
 // A more consistent name for this function would be getApiTokensApi, but that is too repetitive
 export const getTokensApi = async () => {
-  const response = await api.get('/api/api_tokens');
+  const response = await api.get('/api_tokens');
   return response.data;
 };
 
 export const deleteTokenApi = async (tokenId: string) => {
-  const response = await api.delete(`/api/api_tokens/${tokenId}`);
+  const response = await api.delete(`/api_tokens/${tokenId}`);
   return response.data;
 };
 
@@ -98,17 +98,17 @@ export interface LLMToken {
 }
 
 export const createLLMTokenApi = async (tokenRequest: CreateLLMTokenRequest) => {
-  const response = await api.post('/api/llm_tokens', tokenRequest);
+  const response = await api.post('/llm_tokens', tokenRequest);
   return response.data;
 };
 
 export const getLLMTokensApi = async () => {
-  const response = await api.get('/api/llm_tokens');
+  const response = await api.get('/llm_tokens');
   return response.data;
 };
 
 export const deleteLLMTokenApi = async (tokenId: string) => {
-  const response = await api.delete(`/api/llm_tokens/${tokenId}`);
+  const response = await api.delete(`/llm_tokens/${tokenId}`);
   return response.data;
 };
 
