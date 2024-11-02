@@ -1,16 +1,6 @@
-# Use Python 3.12 as the base image
-FROM python:3.12-slim
+FROM node:18 AS frontend
 
-# Set the working directory in the container
 WORKDIR /app
-
-# Install Node.js with a more efficient setup
-RUN apt-get update && apt-get install -y \
-    curl \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
 
 # Copy only necessary files first
 COPY frontend/package*.json ./frontend/
@@ -30,6 +20,14 @@ RUN echo "NODE_ENV=${NODE_ENV}"
 COPY frontend/ ./frontend/
 RUN cd frontend && npm run build
 
+EXPOSE 3000
+
+# Use Python 3.12 as the base image
+FROM python:3.12-slim AS backend
+
+# Set the working directory in the container
+WORKDIR /app
+
 # Copy only backend requirements first
 COPY backend/requirements.txt ./backend/
 RUN pip install --no-cache-dir -r backend/requirements.txt
@@ -37,9 +35,4 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 # Then copy the rest of the backend
 COPY backend/ ./backend/
 
-# Copy the start script
-COPY start.sh .
-RUN chmod +x start.sh
-
-EXPOSE 3000 8000
-CMD ["./start.sh"]
+EXPOSE 8000
