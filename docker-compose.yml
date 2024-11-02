@@ -64,8 +64,8 @@ services:
       - doc-router-network
     environment:
       # Update the user/pass and MONGODB_URI in .env
-      - MONGODB_INITDB_ROOT_USERNAME=${MONGODB_INITDB_ROOT_USERNAME:-<user>}
-      - MONGODB_INITDB_ROOT_PASSWORD=${MONGODB_INITDB_ROOT_PASSWORD:-<pass>}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD:-password}
     volumes:
       - mongodb_data:/data/db
     profiles: ["with-mongodb"]
