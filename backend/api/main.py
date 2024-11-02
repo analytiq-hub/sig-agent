@@ -54,7 +54,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 UPLOAD_DIR = "data"
 
 app = FastAPI(
-    #root_path=FASTAPI_ROOT_PATH,
+    root_path=FASTAPI_ROOT_PATH,
     servers=[{"url": NEXT_PUBLIC_FASTAPI_FRONTEND_URL}]
 )
 security = HTTPBearer()
