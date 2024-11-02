@@ -20,9 +20,12 @@ services:
       - AUTH_GITHUB_SECRET=${AUTH_GITHUB_SECRET}
       - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
       - AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     command: sh -c "cd /app/frontend && npm run start"
     ports:
       - "3000:3000"
+    networks:
+      - app-network
 
   backend:
     image: analytiqhub/doc-router-backend:latest
@@ -33,11 +36,13 @@ services:
     environment:
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
       - JWT_SECRET=${JWT_SECRET:-default_jwt_secret_for_development}
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
     command: sh -c "cd /app/backend/api && uvicorn main:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
-  
+    networks:
+      - app-network
+
   # worker:
   #   image: analytiqhub/doc-router-backend:latest
   #   build:
@@ -58,3 +63,7 @@ services:
 
 volumes:
   mongodb_data:
+
+networks:
+  app-network:
+    driver: bridge

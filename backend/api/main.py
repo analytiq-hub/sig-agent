@@ -40,7 +40,7 @@ ad.init_logger("fastapi")
 
 # Environment variables
 ENV = os.getenv("ENV", "dev")
-NEXT_PUBLIC_API_URL = os.getenv("NEXT_PUBLIC_API_URL")
+NEXTAUTH_URL = os.getenv("NEXTAUTH_URL")
 
 # JWT settings
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -55,7 +55,7 @@ security = HTTPBearer()
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    NEXT_PUBLIC_API_URL,
+    NEXTAUTH_URL,
 ]
 
 ad.log.info(f"CORS origins: {origins}")
