@@ -59,8 +59,6 @@ services:
   mongodb:
     image: mongodb/mongodb-community-server:6.0-ubi8
     ports:
-      # Change to 27018:27017 if you need to avoid conflict
-      # with local MongoDB running at default port 27017
       - "27017:27017"
     networks:
       - doc-router-network
@@ -68,9 +66,7 @@ services:
       - MONGODB_INITDB_ROOT_USERNAME=user
       - MONGODB_INITDB_ROOT_PASSWORD=pass
     volumes:
-      - type: bind
-        source: ./data
-        target: /data/db
+      - ./data/db:/data/db:rw
     profiles: ["with-mongodb"]
 
 networks:
