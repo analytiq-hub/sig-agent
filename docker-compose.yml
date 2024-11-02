@@ -63,9 +63,13 @@ services:
     networks:
       - doc-router-network
     environment:
-      - MONGODB_INITDB_ROOT_USERNAME=user
-      - MONGODB_INITDB_ROOT_PASSWORD=pass
+      # Update the user/pass
+      # In .env, update MONGODB_URI=mongodb://<user>:<pass>@mongodb:27017
+      - MONGODB_INITDB_ROOT_USERNAME=<user>
+      - MONGODB_INITDB_ROOT_PASSWORD=<pass>
     volumes:
+      # Run these commands in the sandbox to create the volume:
+      # mkdir -p data/db; chmod -R 777 data
       - ./data/db:/data/db:rw
     profiles: ["with-mongodb"]
 
