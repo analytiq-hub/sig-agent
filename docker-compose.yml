@@ -57,7 +57,7 @@ services:
     command: sh -c "cd /app/backend/worker && python3 worker.py"
 
   mongodb:
-    image: mongodb/mongodb-community-server:6.0-ubi8
+    image: mongo:latest
     ports:
       - "27017:27017"
     networks:
