@@ -10,37 +10,35 @@ Here are instructions on how to set up an AWS Lightsail instance and deploy the 
 * Clone the repository.
 * Install `Docker` and `nginx`.
 * Set up `nginx` to route requests to port 3000 for the doc-router and port 8000 for the API.
-  * In my case, I create a file `` as follows:
+  * In my case, I create a file `/etc/nginx/sites-available/doc-router.conf` as follows:
   ```
   server {
-	listen 80;
-	server_name doc-router.analytiqhub.com;
+    listen 80;
+    server_name doc-router.analytiqhub.com;
 
-	location / {
-    	proxy_pass http://localhost:3000; # The port of the doc-router site
-    	proxy_http_version 1.1;
-    	proxy_set_header Upgrade $http_upgrade;
-    	proxy_set_header Connection 'upgrade';
-    	proxy_set_header Host $host;
-    	proxy_cache_bypass $http_upgrade;
-	}
-  }
+    # API requests                                                              
+    location /fastapi/ { # Note the trailing slash
+        proxy_pass http://localhost:8000/; # The port of the FastAPI backend
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
 
-  server {
-	listen 80;
-	server_name api.analytiqhub.com;
-
-	location / {
-    	proxy_pass http://localhost:8000; # The port of the API
-    	proxy_http_version 1.1;
-    	proxy_set_header Upgrade $http_upgrade;
-    	proxy_set_header Connection 'upgrade';
-    	proxy_set_header Host $host;
-    	proxy_cache_bypass $http_upgrade;
-	}
-  }
+    location / {
+        proxy_pass http://localhost:3000; # The port of the doc-router site
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
   ```
-  * 
+  * I linked the file to the `sites-enabled` directory:
+    ```bash
+    sudo ln -s /etc/nginx/sites-available/doc-router.conf /etc/nginx/sites-enabled/
+    ```
   * I then created a new Lightsail container with `nginx` and added the following configuration to the `default.conf` file:
     ```
     server {
