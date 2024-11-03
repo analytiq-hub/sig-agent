@@ -35,26 +35,19 @@ Here are instructions on how to set up an AWS Lightsail instance and deploy the 
         proxy_cache_bypass $http_upgrade;
     }
   ```
-  * I linked the file to the `sites-enabled` directory:
+  * I linked the file to the `sites-enabled` directory, and enabled the service:
     ```bash
     sudo ln -s /etc/nginx/sites-available/doc-router.conf /etc/nginx/sites-enabled/
     ```
-  * I then created a new Lightsail container with `nginx` and added the following configuration to the `default.conf` file:
+  * Obtain SSL certificates for the doc-router and the API, in my case:
+    ```bash
+    sudo certbot --nginx -d doc-router.analytiqhub.com
     ```
-    server {
-      listen 80;
-      listen [::]:80;
-      server_name doc-router.analytiqhub.com;
-      location / { proxy_pass http://<container-ip>:3000; }
-    }
-    ``` 
-    * `sudo ln -s /etc/nginx/sites-available/analytiqhub.conf /etc/nginx/sites-enabled/`
-    * `sudo systemctl enable nginx`
-    * `sudo systemctl restart nginx`
-    * Obtain SSL certificates for the doc-router and the API, in my case:
-      ```bash
-      sudo certbot --nginx -d doc-router.analytiqhub.com -d api.analytiqhub.com
-      ```
+  * Enable and start the `nginx` service:
+    ```bash
+    sudo systemctl enable nginx
+    sudo systemctl start nginx
+    ```
 
 * Create a `.env` file at the root of the project with the environment variables listed in `.env.example`.
   * Point the `MONGODB_URI` environment variable to a remote MongoDB server.
