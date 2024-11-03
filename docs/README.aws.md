@@ -50,6 +50,7 @@ Here are instructions on how to set up an AWS Lightsail instance and deploy the 
     ```
 
 * Create a `.env` file at the root based on `.env.example.aws_lightsail`
+* Set up an external MongoDB database and update the `MONGODB_URI` environment variable in the `.env` file.
 * Run the application with Docker Compose.
   ```bash
   docker compose up --build --detach
