@@ -8,7 +8,7 @@ Here are instructions on how to set up an AWS Lightsail instance and deploy the 
 * Copy the SSH key to the instance.
 * Connect to the instance using SSH.
 * Clone the repository.
-* Install `Docker` and `nginx`.
+* Install `Docker`, `docker-compose` and `nginx`.
 * Set up `nginx` to route requests to port 3000 for the doc-router and port 8000 for the API.
   * In my case, I create a file `/etc/nginx/sites-available/doc-router.conf` as follows:
   ```
@@ -49,14 +49,7 @@ Here are instructions on how to set up an AWS Lightsail instance and deploy the 
     sudo systemctl start nginx
     ```
 
-* Create a `.env` file at the root of the project with the environment variables listed in `.env.example`.
-  * Point the `MONGODB_URI` environment variable to a remote MongoDB server.
-  * Set the `NEXTAUTH_URL` environment variable to the URL of the application.
-    * In my case, `NEXTAUTH_URL=https://doc-router.analytiqhub.com`
-  * Set the `NEXT_PUBLIC_FASTAPI_FRONTEND_URL` environment variable to the URL of the FastAPI accessed by the frontend.
-    * In my case, `NEXT_PUBLIC_FASTAPI_FRONTEND_URL=https://doc-router.analytiqhub.com/fastapi`
-  * Set the `FASTAPI_BACKEND_URL` environment variable to the URL of the FastAPI accessed by the backend.
-    * In my case, `FASTAPI_BACKEND_URL=http://backend:8000`
+* Create a `.env` file at the root based on `.env.example.aws_lightsail`
 * Run the application with Docker Compose.
   ```bash
   docker compose up --build --detach
