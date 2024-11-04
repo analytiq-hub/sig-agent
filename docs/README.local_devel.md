@@ -18,7 +18,7 @@
 
 * Start the back end
   ```bash
-  cd backend/app
+  cd backend/fastapi
   uvicorn main:app --host 0.0.0.0 --port 8000
   ```
   * To test in Swagger UI, open [http://localhost:8000/docs], authenticate with a user token, and execute any API calls.
