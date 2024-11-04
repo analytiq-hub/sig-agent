@@ -32,8 +32,7 @@ async def send_test_messages():
             analytiq_client,
             QUEUE_NAME,
             msg_type="test",
-            document_id=str(ObjectId()),  # Generate a dummy document ID
-            metadata={"test_number": i}
+            msg={"test_number": i}
         )
         msg_ids.append(msg_id)
         print(f"Sent message {i+1}: {msg_id}")
@@ -48,7 +47,7 @@ async def receive_messages():
     for i in range(10):
         msg = await ad.common.recv_msg(analytiq_client, QUEUE_NAME)
         if msg:
-            print(f"Received message {i+1}: {msg['_id']} with metadata: {msg.get('metadata')}")
+            print(f"Received message {i+1}: {msg['_id']} with msg: {msg.get('msg')}")
             received_msgs.append(msg)
             # Mark as completed
             await ad.common.delete_msg(analytiq_client, QUEUE_NAME, str(msg['_id']))

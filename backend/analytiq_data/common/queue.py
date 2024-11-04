@@ -8,8 +8,7 @@ async def send_msg(
     analytiq_client,
     queue_name: str,
     msg_type: str,
-    document_id: str,
-    metadata: Optional[Dict[str, Any]] = None
+    msg: Optional[Dict[str, Any]] = None
 ) -> str:
     """
     Send a message to the queue.
@@ -18,8 +17,7 @@ async def send_msg(
         analytiq_client: The AnalytiqClient instance
         queue_name: Name of the queue collection
         msg_type: Type of message to send
-        document_id: ID of the document to process
-        metadata: Optional additional metadata for the message
+        msg: Optional message data
 
     Returns:
         str: The ID of the created message
@@ -32,11 +30,8 @@ async def send_msg(
         "status": "pending",
         "created_at": datetime.now(UTC),
         "msg_type": msg_type,
-        "document_id": document_id,
+        "msg": msg
     }
-    
-    if metadata:
-        msg_data["metadata"] = metadata
 
     result = await queue_collection.insert_one(msg_data)
     msg_id = str(result.inserted_id)
@@ -58,13 +53,13 @@ async def recv_msg(analytiq_client, queue_name: str) -> Optional[Dict[str, Any]]
     db = analytiq_client.mongodb_async[db_name]
     queue_collection = db[queue_name]
 
-    msg = await queue_collection.find_one_and_update(
+    msg_data = await queue_collection.find_one_and_update(
         {"status": "pending"},
         {"$set": {"status": "processing"}},
         sort=[("created_at", 1)]
     )
     
-    return msg
+    return msg_data
 
 async def delete_msg(analytiq_client, queue_name: str, msg_id: str, status: str = "completed"):
     """
