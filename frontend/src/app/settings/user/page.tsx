@@ -18,7 +18,7 @@ const UserSettingsPage: React.FC = () => {
             Use Access Tokens to authenticate with our API.
           </p>
         </div>
-        <Link href="/settings/user/api-tokens" passHref>
+        <Link href="/settings/user/access-tokens" passHref>
           <Button variant="contained" color="secondary">
             Manage
           </Button>
