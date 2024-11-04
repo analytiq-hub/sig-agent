@@ -43,6 +43,8 @@ ENV = os.getenv("ENV", "dev")
 NEXTAUTH_URL = os.getenv("NEXTAUTH_URL")
 FASTAPI_ROOT_PATH = os.getenv("FASTAPI_ROOT_PATH", "/")
 
+ad.log.info(f"ENV: {ENV}")
+ad.log.info(f"NEXTAUTH_URL: {NEXTAUTH_URL}")
 ad.log.info(f"FASTAPI_ROOT_PATH: {FASTAPI_ROOT_PATH}")
 
 # JWT settings
