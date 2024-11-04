@@ -82,7 +82,7 @@ db_name = "prod" if ENV == "prod" else "dev"
 db = analytiq_client.mongodb_async[db_name]
 docs_collection = db.docs
 job_queue_collection = db.job_queue
-api_token_collection = db.api_tokens
+access_token_collection = db.access_tokens
 llm_token_collection = db.llm_tokens
 
 # Ensure the 'pdfs' directory exists
@@ -106,11 +106,11 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
                     token_type="jwt")
     except JWTError:
         # If JWT validation fails, check if it's an API token
-        api_token = await api_token_collection.find_one({"token": token})
-        ad.log.info(f"get_current_user(): api_token: {api_token}")
-        if api_token:
-            return User(user_id=api_token["user_id"],
-                        user_name=api_token["name"],
+        access_token = await access_token_collection.find_one({"token": token})
+        ad.log.info(f"get_current_user(): access_token: {access_token}")
+        if access_token:
+            return User(user_id=access_token["user_id"],
+                        user_name=access_token["name"],
                         token_type="api")
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
@@ -217,7 +217,7 @@ async def delete_file(
     return
 
 @app.post("/access_tokens", response_model=AccessToken)
-async def api_token_create(
+async def access_token_create(
     request: CreateAccessTokenRequest,
     current_user: User = Depends(get_current_user)
 ):
@@ -230,13 +230,13 @@ async def api_token_create(
         "created_at": datetime.now(UTC),
         "lifetime": request.lifetime
     }
-    result = await api_token_collection.insert_one(new_token)
+    result = await access_token_collection.insert_one(new_token)
     new_token["id"] = str(result.inserted_id)
     return new_token
 
 @app.get("/access_tokens", response_model=ListAccessTokensResponse)
-async def api_token_list(current_user: User = Depends(get_current_user)):
-    cursor = api_token_collection.find({"user_id": current_user.user_id})
+async def access_token_list(current_user: User = Depends(get_current_user)):
+    cursor = access_token_collection.find({"user_id": current_user.user_id})
     tokens = await cursor.to_list(length=None)
     ret = [
         {
@@ -249,15 +249,15 @@ async def api_token_list(current_user: User = Depends(get_current_user)):
         }
         for token in tokens
     ]
-    ad.log.info(f"list_api_tokens(): {ret}")
-    return ListAccessTokensResponse(api_tokens=ret)
+    ad.log.info(f"list_access_tokens(): {ret}")
+    return ListAccessTokensResponse(access_tokens=ret)
 
 @app.delete("/access_tokens/{token_id}")
-async def api_token_delete(
+async def access_token_delete(
     token_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    result = await api_token_collection.delete_one({
+    result = await access_token_collection.delete_one({
         "_id": ObjectId(token_id),
         "user_id": current_user.user_id
     })

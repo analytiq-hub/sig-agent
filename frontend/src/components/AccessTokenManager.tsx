@@ -24,7 +24,7 @@ const AccessTokenManager: React.FC = () => {
     const getTokensData = async () => {
       try {
         const tokensData = await getTokensApi();
-        setTokens(tokensData.api_tokens);
+        setTokens(tokensData.access_tokens);
       } catch (error) {
         console.error('Error fetching tokens:', error);
       }

@@ -17,7 +17,7 @@ class AccessToken(BaseModel):
     lifetime: int
 
 class ListAccessTokensResponse(BaseModel):
-    api_tokens: List[AccessToken]
+    access_tokens: List[AccessToken]
     
 class CreateAccessTokenRequest(BaseModel):
     name: str
