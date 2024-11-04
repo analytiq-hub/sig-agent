@@ -4,6 +4,18 @@ from bson import ObjectId
 
 import analytiq_data as ad
 
+def get_queue_collection_name(queue_name: str) -> str:
+    """
+    Get the name of the queue collection.
+
+    Args:
+        queue_name: Name of the queue collection
+
+    Returns:
+        str: The name of the queue collection
+    """
+    return f"queues.{queue_name}"
+
 async def send_msg(
     analytiq_client,
     queue_name: str,
@@ -24,7 +36,8 @@ async def send_msg(
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    queue_collection = db[queue_name]
+    queue_collection_name = get_queue_collection_name(queue_name)
+    queue_collection = db[queue_collection_name]
 
     msg_data = {
         "status": "pending",
@@ -51,7 +64,8 @@ async def recv_msg(analytiq_client, queue_name: str) -> Optional[Dict[str, Any]]
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    queue_collection = db[queue_name]
+    queue_collection_name = get_queue_collection_name(queue_name)
+    queue_collection = db[queue_collection_name]
 
     msg_data = await queue_collection.find_one_and_update(
         {"status": "pending"},
@@ -73,7 +87,8 @@ async def delete_msg(analytiq_client, queue_name: str, msg_id: str, status: str 
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    queue_collection = db[queue_name]
+    queue_collection_name = get_queue_collection_name(queue_name)
+    queue_collection = db[queue_collection_name]
 
     await queue_collection.update_one(
         {"_id": ObjectId(msg_id)},

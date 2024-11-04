@@ -21,11 +21,10 @@ from bson import ObjectId
 analytiq_client = ad.common.get_client(env="dev")
 db_name = analytiq_client.env
 db = analytiq_client.mongodb[db_name]
-QUEUE_NAME = "test_queue"
+QUEUE_NAME = "test"
 
 # Remove the queue collection if it exists
-if QUEUE_NAME in db.list_collection_names():
-    db.drop_collection(QUEUE_NAME)
+db.drop_collection(ad.queue.get_queue_collection_name(QUEUE_NAME))
 
 # %%
 # Send 10 test messages
