@@ -1,4 +1,4 @@
 from .client import *
 from .file import *
-from .job import *
+from .queue import *
 from .setup import *
