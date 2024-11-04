@@ -19,7 +19,6 @@ def get_queue_collection_name(queue_name: str) -> str:
 async def send_msg(
     analytiq_client,
     queue_name: str,
-    msg_type: str,
     msg: Optional[Dict[str, Any]] = None
 ) -> str:
     """
@@ -42,7 +41,6 @@ async def send_msg(
     msg_data = {
         "status": "pending",
         "created_at": datetime.now(UTC),
-        "msg_type": msg_type,
         "msg": msg
     }
 

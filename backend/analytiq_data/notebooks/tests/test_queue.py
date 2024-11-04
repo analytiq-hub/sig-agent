@@ -34,7 +34,6 @@ async def send_test_messages():
         msg_id = await ad.queue.send_msg(
             analytiq_client,
             QUEUE_NAME,
-            msg_type="test",
             msg={"test_number": i}
         )
         msg_ids.append(msg_id)

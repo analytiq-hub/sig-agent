@@ -112,28 +112,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
                         token_type="api")
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
-async def submit_job(job_type: str, document_id: str) -> str:
-    """
-    Submit a job to the queue.
-
-    Args:
-        job_type (str): The type of job to submit.
-        document_id (str): The ID of the document to process.
-    Returns:
-        str: The ID of the job that was submitted.
-    """
-    ad.log.info(f"Submitting job: {job_type} for document: {document_id}")
-    result = await job_queue_collection.insert_one({
-        "status": "pending",
-        "created_at": datetime.utcnow(),
-        "job_type": job_type,
-        "document_id": document_id,
-        # Add other job details here
-    })
-    job_id = str(result.inserted_id)
-    ad.log.info(f"Submitted job: {job_id}")
-    return str(job_id)
-
 # PDF management endpoints
 @app.post("/files/upload")
 async def upload_file(
@@ -167,8 +145,8 @@ async def upload_file(
         document_id = str(result.inserted_id)
         uploaded_files.append({"filename": file.name, "document_id": document_id})
 
-        # Post a message to the queue
-        await submit_job(job_type="ocr", document_id=document_id)
+        # Post a message to the ocr job queue
+        await ad.queue.send_msg(analytiq_client, "ocr", msg={"document_id": document_id})
     
     return {"uploaded_files": uploaded_files}
 

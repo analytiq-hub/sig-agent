@@ -38,7 +38,6 @@ async def worker():
             await process_ocr_msg(msg)
         else:
             tmo = 0.2
-            ad.log.info(f"No msgs, sleep {tmo} secs")
             await asyncio.sleep(tmo)  # Avoid tight loop
 
 if __name__ == "__main__":
