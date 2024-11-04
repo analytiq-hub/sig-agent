@@ -35,6 +35,7 @@ services:
       dockerfile: Dockerfile
       target: backend
     environment:
+      - ENV=${ENV:-dev}
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
       - JWT_SECRET=${JWT_SECRET:-default_jwt_secret_for_development}
       - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
@@ -53,6 +54,7 @@ services:
       dockerfile: Dockerfile
       target: backend
     environment:
+      - ENV=${ENV:-dev}
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
     command: sh -c "cd /app/backend/worker && python3 worker.py"
 
