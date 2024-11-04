@@ -4,7 +4,7 @@
 %autoreload 2
 
 import sys
-sys.path.append("../..")
+sys.path.append("../../..")
 
 import os
 from datetime import datetime, UTC
