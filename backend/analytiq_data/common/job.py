@@ -4,7 +4,7 @@ from bson import ObjectId
 
 import analytiq_data as ad
 
-async def submit_job(
+async def create_job(
     analytiq_client,
     job_type: str,
     document_id: str,
