@@ -4,80 +4,84 @@ from bson import ObjectId
 
 import analytiq_data as ad
 
-async def create_job(
+async def send_msg(
     analytiq_client,
-    job_type: str,
+    queue_name: str,
+    msg_type: str,
     document_id: str,
     metadata: Optional[Dict[str, Any]] = None
 ) -> str:
     """
-    Create a new job in the queue.
+    Send a message to the queue.
 
     Args:
         analytiq_client: The AnalytiqClient instance
-        job_type: Type of job to create
+        queue_name: Name of the queue collection
+        msg_type: Type of message to send
         document_id: ID of the document to process
-        metadata: Optional additional metadata for the job
+        metadata: Optional additional metadata for the message
 
     Returns:
-        str: The ID of the created job
+        str: The ID of the created message
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    job_queue_collection = db.job_queue
+    queue_collection = db[queue_name]
 
-    job_data = {
+    msg_data = {
         "status": "pending",
         "created_at": datetime.now(UTC),
-        "job_type": job_type,
+        "msg_type": msg_type,
         "document_id": document_id,
     }
     
     if metadata:
-        job_data["metadata"] = metadata
+        msg_data["metadata"] = metadata
 
-    result = await job_queue_collection.insert_one(job_data)
-    job_id = str(result.inserted_id)
-    ad.log.info(f"Created job: {job_id}")
-    return job_id
+    result = await queue_collection.insert_one(msg_data)
+    msg_id = str(result.inserted_id)
+    ad.log.info(f"Sent message: {msg_id}")
+    return msg_id
 
-async def get_job(analytiq_client) -> Optional[Dict[str, Any]]:
+async def recv_msg(analytiq_client, queue_name: str) -> Optional[Dict[str, Any]]:
     """
-    Get and claim the next available job from the queue.
+    Receive and claim the next available message from the queue.
     
     Args:
         analytiq_client: The AnalytiqClient instance
+        queue_name: Name of the queue collection
     
     Returns:
-        Optional[Dict]: The job document if found, None otherwise
+        Optional[Dict]: The message document if found, None otherwise
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    job_queue_collection = db.job_queue
+    queue_collection = db[queue_name]
 
-    job = await job_queue_collection.find_one_and_update(
+    msg = await queue_collection.find_one_and_update(
         {"status": "pending"},
         {"$set": {"status": "processing"}},
         sort=[("created_at", 1)]
     )
     
-    return job
+    return msg
 
-async def release_job(analytiq_client, job_id: str, status: str = "completed"):
+async def delete_msg(analytiq_client, queue_name: str, msg_id: str, status: str = "completed"):
     """
-    Release a job by updating its status.
+    Delete/complete a message by updating its status.
     
     Args:
         analytiq_client: The AnalytiqClient instance
-        job_id: The ID of the job to release
-        status: The new status to set (default: "completed")
+        queue_name: Name of the queue collection
+        msg_id: The ID of the message to delete
+        status: The final status to set (default: "completed")
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    job_queue_collection = db.job_queue
+    queue_collection = db[queue_name]
 
-    await job_queue_collection.update_one(
-        {"_id": ObjectId(job_id)},
+    await queue_collection.update_one(
+        {"_id": ObjectId(msg_id)},
         {"$set": {"status": status}}
     )
-    ad.log.info(f"Released job {job_id} with status: {status}") 
+    ad.log.info(f"Deleted message {msg_id} with status: {status}") 
