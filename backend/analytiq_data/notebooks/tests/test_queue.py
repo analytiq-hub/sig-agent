@@ -68,5 +68,4 @@ print(f"Received messages: {len(received_msgs)}")
 sent_ids = set(msg_ids)
 received_ids = set(str(msg['_id']) for msg in received_msgs)
 assert sent_ids == received_ids
-print(f"All messages received: {sent_ids == received_ids}") 
-# %%
+print(f"All messages received: {sent_ids == received_ids}")
