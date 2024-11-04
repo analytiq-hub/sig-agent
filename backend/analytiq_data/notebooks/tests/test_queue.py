@@ -23,7 +23,7 @@ QUEUE_NAME = "test_queue"
 if QUEUE_NAME in db.list_collection_names():
     db.drop_collection(QUEUE_NAME)
 
-# COMMAND ----------
+# %%
 # Send 10 test messages
 async def send_test_messages():
     msg_ids = []
