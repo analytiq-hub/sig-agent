@@ -11,7 +11,7 @@ export interface ApiToken {
   token?: string;
 }
 
-const ApiTokenManager: React.FC = () => {
+const AccessTokenManager: React.FC = () => {
   const [tokens, setTokens] = useState<ApiToken[]>([]);
   const [openModal, setOpenModal] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');
@@ -185,4 +185,4 @@ const ApiTokenManager: React.FC = () => {
   );
 };
 
-export default ApiTokenManager;
+export default AccessTokenManager;
