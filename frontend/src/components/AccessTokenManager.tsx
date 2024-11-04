@@ -3,7 +3,7 @@ import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, Dial
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { createTokenApi, getTokensApi, deleteTokenApi, CreateTokenRequest } from '@/utils/api';
 
-export interface ApiToken {
+export interface AccessToken {
   id: string;
   name: string;
   created_at: string;
@@ -12,11 +12,11 @@ export interface ApiToken {
 }
 
 const AccessTokenManager: React.FC = () => {
-  const [tokens, setTokens] = useState<ApiToken[]>([]);
+  const [tokens, setTokens] = useState<AccessToken[]>([]);
   const [openModal, setOpenModal] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');
   const [tokenLifetime, setTokenLifetime] = useState('90');
-  const [newToken, setNewToken] = useState<ApiToken | null>(null);
+  const [newToken, setNewToken] = useState<AccessToken | null>(null);
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

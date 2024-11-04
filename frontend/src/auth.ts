@@ -73,7 +73,7 @@ const authOptions: NextAuthOptions = {
         // Debug log
         console.log('Session updated with tokens:', {
           hasProviderToken: !!session.providerAccessToken,
-          hasApiToken: !!session.apiAccessToken
+          hasAccessToken: !!session.apiAccessToken
         });
         
         return session as AppSession;

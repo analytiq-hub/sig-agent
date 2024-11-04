@@ -2,7 +2,7 @@
 
 import AccessTokenManager from '@/components/AccessTokenManager';
 
-const ApiTokensPage: React.FC = () => {
+const AccessTokensPage: React.FC = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Manage Access Tokens</h1>
@@ -12,4 +12,4 @@ const ApiTokensPage: React.FC = () => {
   );
 };
 
-export default ApiTokensPage;
+export default AccessTokensPage;

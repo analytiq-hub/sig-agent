@@ -8,7 +8,7 @@ class User(BaseModel):
     user_name: str
     token_type: str
 
-class ApiToken(BaseModel):
+class AccessToken(BaseModel):
     id: str
     user_id: str
     name: str
@@ -16,10 +16,10 @@ class ApiToken(BaseModel):
     created_at: datetime
     lifetime: int
 
-class ListApiTokensResponse(BaseModel):
-    api_tokens: List[ApiToken]
+class ListAccessTokensResponse(BaseModel):
+    api_tokens: List[AccessToken]
     
-class CreateApiTokenRequest(BaseModel):
+class CreateAccessTokenRequest(BaseModel):
     name: str
     lifetime: int
 
