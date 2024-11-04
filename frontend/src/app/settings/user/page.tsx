@@ -13,9 +13,9 @@ const UserSettingsPage: React.FC = () => {
       
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h2 className="text-xl font-semibold">API tokens</h2>
+          <h2 className="text-xl font-semibold">Access tokens</h2>
           <p className="text-gray-600 mb-2">
-            Manage your Smart Doc Router API tokens.
+            Use Access Tokens to authenticate with our API.
           </p>
         </div>
         <Link href="/settings/user/api-tokens" passHref>
