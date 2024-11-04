@@ -23,26 +23,23 @@ db_name = "prod" if client.env == "prod" else "dev"
 db = client.mongodb_async[db_name]
 job_queue_collection = db.job_queue
 
-async def process_job(job):
+async def process_ocr_msg(msg):
     # Implement your job processing logic here
-    print(f"Processing job: {job['_id']}")
+    print(f"Processing msg: {msg}")
     # Simulate work
     await asyncio.sleep(10)
-    await job_queue_collection.update_one({"_id": job["_id"]}, {"$set": {"status": "completed"}})
+    await ad.queue.delete_msg(client, "ocr", msg["_id"])
 
 async def worker():
     while True:
-        job = await job_queue_collection.find_one_and_update(
-            {"status": "pending"},
-            {"$set": {"status": "processing"}},
-            sort=[("created_at", 1)]
-        )
-        if job:
-            ad.log.info(f"Processing job: {job['_id']}")
-            await process_job(job)
+        msg = await ad.queue.recv_msg(client, "ocr")
+        if msg:
+            ad.log.info(f"Processing msg: {msg}")
+            await process_ocr_msg(msg)
         else:
-            ad.log.info("No job to process, sleeping")
-            await asyncio.sleep(.2)  # Avoid tight loop
+            tmo = 0.2
+            ad.log.info(f"No msgs, sleep {tmo} secs")
+            await asyncio.sleep(tmo)  # Avoid tight loop
 
 if __name__ == "__main__":
     try:    
