@@ -19,7 +19,7 @@ ad.init_logger("worker")
 ENV = os.getenv("ENV", "dev")
 
 client = ad.common.get_client(env=ENV)
-db_name = "prod" if ENV == "prod" else "dev"
+db_name = "prod" if client.env == "prod" else "dev"
 db = client.mongodb_async[db_name]
 job_queue_collection = db.job_queue
 
@@ -41,6 +41,7 @@ async def worker():
             ad.log.info(f"Processing job: {job['_id']}")
             await process_job(job)
         else:
+            ad.log.info("No job to process, sleeping")
             await asyncio.sleep(.2)  # Avoid tight loop
 
 if __name__ == "__main__":
