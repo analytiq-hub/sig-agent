@@ -1,5 +1,8 @@
 // This approach is taken from https://github.com/vercel/next.js/tree/canary/examples/with-mongodb
 import { MongoClient } from "mongodb"
+
+console.log("ENV:", process.env.ENV)
+console.log("MONGODB_URI:", process.env.MONGODB_URI)
  
 const env = process.env.ENV || "dev"
 if (env !== "dev" && env !== "prod") {
