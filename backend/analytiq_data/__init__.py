@@ -1,5 +1,6 @@
 from . import log
 from . import mongodb
+from . import queue
 
 # Import last since it depends on other modules
 from . import common

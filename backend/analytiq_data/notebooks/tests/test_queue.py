@@ -32,12 +32,11 @@ if QUEUE_NAME in db.list_collection_names():
 async def send_test_messages():
     msg_ids = []
     for i in range(10):
-        msg_id = await ad.common.send_msg(
+        msg_id = await ad.queue.send_msg(
             analytiq_client,
             QUEUE_NAME,
             msg_type="test",
-            document_id=str(ObjectId()),  # Generate a dummy document ID
-            metadata={"test_number": i}
+            msg={"test_number": i}
         )
         msg_ids.append(msg_id)
         print(f"Sent message {i+1}: {msg_id}")
@@ -50,12 +49,12 @@ msg_ids = await send_test_messages()
 async def receive_messages():
     received_msgs = []
     for i in range(10):
-        msg = await ad.common.recv_msg(analytiq_client, QUEUE_NAME)
+        msg = await ad.queue.recv_msg(analytiq_client, QUEUE_NAME)
         if msg:
             print(f"Received message {i+1}: {msg['_id']} with metadata: {msg.get('metadata')}")
             received_msgs.append(msg)
             # Mark as completed
-            await ad.common.delete_msg(analytiq_client, QUEUE_NAME, str(msg['_id']))
+            await ad.queue.delete_msg(analytiq_client, QUEUE_NAME, str(msg['_id']))
         else:
             print("No more messages available")
             break
