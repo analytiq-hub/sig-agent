@@ -2,6 +2,7 @@ import axios from 'axios';
 import { FileWithContent } from '@/app/types/Api';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
+import { AxiosError } from 'axios';
 
 // These APIs execute from the frontend
 const NEXT_PUBLIC_FASTAPI_FRONTEND_URL = process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL || "http://localhost:8000";
@@ -38,6 +39,11 @@ api.interceptors.response.use((response) => {
   });
   return Promise.reject(error);
 });
+
+// Helper function to check if error is an AxiosError
+function isAxiosError(error: unknown): error is AxiosError {
+  return typeof error === 'object' && error !== null && 'isAxiosError' in error;
+}
 
 export const uploadFilesApi = async (files: FileWithContent[]) => {
   const response = await api.post('/files/upload', { files });
@@ -133,4 +139,4 @@ export const deleteAWSCredentialsApi = async () => {
   return response.data;
 };
 
-export default api;
+export { api, isAxiosError };

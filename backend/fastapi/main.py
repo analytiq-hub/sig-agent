@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 import secrets
 import base64
 import io
+import re
 
 import api
 import models
@@ -339,7 +340,20 @@ async def aws_credentials_create(
     current_user: User = Depends(get_current_user)
 ):
     ad.log.info(f"Creating/Updating AWS credentials for user: {current_user}")
-    ad.log.info(f"request: {request}")
+
+    # Validate AWS Access Key ID format
+    if not re.match(r'^[A-Z0-9]{20}$', request.access_key_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid AWS Access Key ID format. Must be 20 characters long and contain only uppercase letters and numbers."
+        )
+
+    # Validate AWS Secret Access Key format
+    if not re.match(r'^[A-Za-z0-9+/]{40}$', request.secret_access_key):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid AWS Secret Access Key format. Must be 40 characters long and contain only letters, numbers, and +/."
+        )
 
     aws_credentials = {
         "access_key_id": request.access_key_id,
