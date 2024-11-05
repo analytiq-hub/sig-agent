@@ -339,6 +339,7 @@ async def aws_credentials_create(
     current_user: User = Depends(get_current_user)
 ):
     ad.log.info(f"Creating/Updating AWS credentials for user: {current_user}")
+    ad.log.info(f"request: {request}")
 
     aws_credentials = {
         "access_key_id": request.access_key_id,
