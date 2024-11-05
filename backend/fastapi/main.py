@@ -25,7 +25,8 @@ from schemas import (
     ListPDFsResponse,
     PDFMetadata,
     FileUpload, FilesUpload,
-    LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse
+    LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
+    AWSCredentials
 )
 
 # Add the parent directory to the sys path
@@ -84,6 +85,7 @@ docs_collection = db.docs
 job_queue_collection = db.job_queue
 access_token_collection = db.access_tokens
 llm_token_collection = db.llm_tokens
+aws_credentials_collection = db.aws_credentials
 
 # Ensure the 'pdfs' directory exists
 os.makedirs("data", exist_ok=True)
@@ -330,6 +332,56 @@ async def llm_token_delete(
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="LLM Token not found")
     return {"message": "LLM Token deleted successfully"}
+
+@app.post("/aws_credentials")
+async def aws_credentials_create(
+    request: AWSCredentials,
+    current_user: User = Depends(get_current_user)
+):
+    ad.log.info(f"Creating/Updating AWS credentials for user: {current_user}")
+
+    aws_credentials = {
+        "access_key_id": request.access_key_id,
+        "secret_access_key": request.secret_access_key,
+        "user_id": current_user.user_id,
+        "created_at": datetime.now(UTC),
+    }
+    # Replace the existing credentials if they already exist
+    existing_credentials = await aws_credentials_collection.find_one({
+        "user_id": current_user.user_id
+    })
+    if existing_credentials:
+        result = await aws_credentials_collection.replace_one(
+            {"_id": existing_credentials["_id"]},
+            aws_credentials
+        )
+    else:
+        result = await aws_credentials_collection.insert_one(aws_credentials)
+    return {"message": "AWS credentials created successfully"}
+
+
+@app.get("/aws_credentials", response_model=AWSCredentials)
+async def aws_credentials_get(current_user: User = Depends(get_current_user)):
+    ad.log.info(f"Getting AWS credentials for user: {current_user}")
+    aws_credentials = await aws_credentials_collection.find_one({
+        "user_id": current_user.user_id
+    })
+    
+    if not aws_credentials:
+        raise HTTPException(status_code=404, detail="AWS credentials not found")
+    
+    # Block the secret access key
+    aws_credentials["secret_access_key"] = "********"
+
+    return aws_credentials
+
+@app.delete("/aws_credentials")
+async def aws_credentials_delete(current_user: User = Depends(get_current_user)):
+    ad.log.info(f"Deleting AWS credentials for user: {current_user}")
+    result = await aws_credentials_collection.delete_one({
+        "user_id": current_user.user_id
+    })
+    return {"message": "AWS credentials deleted successfully"}
 
 @app.post("/auth/token")
 async def create_auth_token(user_data: dict = Body(...)):

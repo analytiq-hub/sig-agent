@@ -56,3 +56,8 @@ class CreateLLMTokenRequest(BaseModel):
 
 class ListLLMTokensResponse(BaseModel):
     llm_tokens: List[LLMToken]
+
+class AWSCredentials(BaseModel):
+    access_key_id: str
+    secret_access_key: str
+    created_at: datetime
