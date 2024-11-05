@@ -40,6 +40,22 @@ const UserSettingsPage: React.FC = () => {
           </Button>
         </Link>
       </div>
+
+      <hr className="my-4 border-t-2" />
+
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h2 className="text-xl font-semibold">AWS Credentials</h2>
+          <p className="text-gray-600 mb-2">
+            Configure your AWS access keys and region settings.
+          </p>
+        </div>
+        <Link href="/settings/user/aws-credentials" passHref>
+          <Button variant="contained" color="secondary">
+            Manage
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 };
