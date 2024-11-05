@@ -113,4 +113,25 @@ export const deleteLLMTokenApi = async (tokenId: string) => {
   return response.data;
 };
 
+export interface AWSCredentials {
+  access_key_id: string;
+  secret_access_key: string;
+  created_at: string;
+}
+
+export const createAWSCredentialsApi = async (credentials: Omit<AWSCredentials, 'created_at'>) => {
+  const response = await api.post('/aws_credentials', credentials);
+  return response.data;
+};
+
+export const getAWSCredentialsApi = async () => {
+  const response = await api.get('/aws_credentials');
+  return response.data;
+};
+
+export const deleteAWSCredentialsApi = async () => {
+  const response = await api.delete('/aws_credentials');
+  return response.data;
+};
+
 export default api;

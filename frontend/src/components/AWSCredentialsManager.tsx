@@ -1,146 +1,143 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
+import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
-import { getLLMTokensApi, LLMToken, createLLMTokenApi, deleteLLMTokenApi } from '@/utils/api';
+import { getAWSCredentialsApi, createAWSCredentialsApi, deleteAWSCredentialsApi, AWSCredentials } from '@/utils/api';
 
 const AWSCredentialsManager: React.FC = () => {
-  const [llmTokens, setLLMTokens] = useState<LLMToken[]>([]);
+  const [credentials, setCredentials] = useState<AWSCredentials | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editingProvider, setEditingProvider] = useState<string | null>(null);
-  const [editTokenValue, setEditTokenValue] = useState('');
+  const [accessKeyId, setAccessKeyId] = useState('');
+  const [secretAccessKey, setSecretAccessKey] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const getLLMTokensData = async () => {
+    const getCredentials = async () => {
       try {
-        const response = await getLLMTokensApi();
-        setLLMTokens(response.llm_tokens);
+        const response = await getAWSCredentialsApi();
+        setCredentials(response);
       } catch (error) {
-        console.error('Error fetching LLM tokens:', error);
+        console.error('Error fetching AWS credentials:', error);
       }
     };
 
-    getLLMTokensData();
+    getCredentials();
   }, []);
 
-  const handleEditLLMToken = (provider: string) => {
-    setEditingProvider(provider);
-    setEditTokenValue('');
+  const handleEditCredentials = () => {
+    setAccessKeyId('');
+    setSecretAccessKey('');
     setEditModalOpen(true);
   };
 
-  const handleSaveLLMToken = async () => {
-    if (!editingProvider) return;
-
+  const handleSaveCredentials = async () => {
     try {
-      await createLLMTokenApi({
-        llm_vendor: editingProvider as 'OpenAI' | 'Anthropic' | 'Groq',
-        token: editTokenValue,
+      await createAWSCredentialsApi({
+        access_key_id: accessKeyId,
+        secret_access_key: secretAccessKey,
       });
       setEditModalOpen(false);
-      // Refresh the LLM tokens list
-      const response = await getLLMTokensApi();
-      setLLMTokens(response.llm_tokens);
+      // Refresh the credentials
+      const response = await getAWSCredentialsApi();
+      setCredentials(response);
     } catch (error) {
-      console.error('Error saving LLM token:', error);
-      setError('An error occurred while saving the LLM token. Please try again.');
+      console.error('Error saving AWS credentials:', error);
+      setError('An error occurred while saving the AWS credentials. Please try again.');
     }
   };
 
-  const handleDeleteLLMToken = async (tokenId: string) => {
+  const handleDeleteCredentials = async () => {
     try {
-      await deleteLLMTokenApi(tokenId);
-      // Refresh the LLM tokens list
-      const response = await getLLMTokensApi();
-      setLLMTokens(response.llm_tokens);
+      await deleteAWSCredentialsApi();
+      setCredentials(null);
     } catch (error) {
-      console.error('Error deleting LLM token:', error);
-      setError('An error occurred while deleting the LLM token. Please try again.');
+      console.error('Error deleting AWS credentials:', error);
+      setError('An error occurred while deleting the AWS credentials. Please try again.');
     }
   };
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mt-8 mb-4">LLM Tokens</h2>
-      <TableContainer component={Paper}>
-        <Table size="small" style={{ tableLayout: 'fixed' }}>
-          <TableHead>
-            <TableRow>
-              <TableCell style={{ width: '20%' }}>Provider</TableCell>
-              <TableCell style={{ width: '40%' }}>Token</TableCell>
-              <TableCell style={{ width: '25%' }}>Created At</TableCell>
-              <TableCell style={{ width: '7.5%' }}>Edit</TableCell>
-              <TableCell style={{ width: '7.5%' }}>Delete</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {['OpenAI', 'Anthropic', 'Groq'].map((provider) => {
-              const token = llmTokens.find(t => t.llm_vendor === provider);
-              return (
-                <TableRow 
-                  key={provider} 
-                  sx={{ 
-                    '&:nth-of-type(odd)': { backgroundColor: 'rgba(0, 0, 0, 0.04)' },
-                    '&:last-child td, &:last-child th': { border: 0 },
-                    height: '30px'
-                  }}
-                >
-                  <TableCell style={{ width: '20%' }}>{provider}</TableCell>
-                  <TableCell style={{ width: '40%' }}>
-                    {token ? (
-                      <span>{token.token.slice(0, 16)}••••••••</span>
-                    ) : (
-                      <span className="text-gray-400">Not set</span>
-                    )}
-                  </TableCell>
-                  <TableCell style={{ width: '25%' }}>
-                    {token ? new Date(token.created_at).toLocaleString() : '-'}
-                  </TableCell>
-                  <TableCell style={{ width: '7.5%' }}>
-                    <IconButton
-                      aria-label="edit"
-                      onClick={() => handleEditLLMToken(provider)}
-                      size="small"
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
-                  <TableCell style={{ width: '7.5%' }}>
-                    {token && (
-                      <IconButton
-                        aria-label="delete"
-                        onClick={() => handleDeleteLLMToken(token.id)}
-                        size="small"
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <h2 className="text-xl font-semibold mt-8 mb-4">AWS Credentials</h2>
+      <Paper className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="mb-2">
+              <strong>Access Key ID: </strong>
+              {credentials ? (
+                <span>{credentials.access_key_id}</span>
+              ) : (
+                <span className="text-gray-400">Not set</span>
+              )}
+            </div>
+            <div>
+              <strong>Secret Access Key: </strong>
+              {credentials ? (
+                <span>••••••••••••••••</span>
+              ) : (
+                <span className="text-gray-400">Not set</span>
+              )}
+            </div>
+            {credentials && (
+              <div className="mt-2 text-sm text-gray-500">
+                Created at: {new Date(credentials.created_at).toLocaleString()}
+              </div>
+            )}
+          </div>
+          <div>
+            <IconButton
+              aria-label="edit"
+              onClick={handleEditCredentials}
+              size="small"
+            >
+              <EditIcon />
+            </IconButton>
+            {credentials && (
+              <IconButton
+                aria-label="delete"
+                onClick={handleDeleteCredentials}
+                size="small"
+              >
+                <DeleteIcon />
+              </IconButton>
+            )}
+          </div>
+        </div>
+      </Paper>
 
-      {/* LLM Token Edit Modal */}
+      {/* Edit Credentials Modal */}
       <Dialog open={editModalOpen} onClose={() => setEditModalOpen(false)}>
-        <DialogTitle>Edit {editingProvider} Token</DialogTitle>
+        <DialogTitle>Edit AWS Credentials</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label="Token"
+            label="Access Key ID"
             fullWidth
             variant="outlined"
-            value={editTokenValue}
-            onChange={(e) => setEditTokenValue(e.target.value)}
-            placeholder="Enter your token"
+            value={accessKeyId}
+            onChange={(e) => setAccessKeyId(e.target.value)}
+            className="mb-4"
+          />
+          <TextField
+            margin="dense"
+            label="Secret Access Key"
+            fullWidth
+            variant="outlined"
+            value={secretAccessKey}
+            onChange={(e) => setSecretAccessKey(e.target.value)}
+            type="password"
           />
         </DialogContent>
         <DialogActions>
           <Button variant="outlined" color="secondary" onClick={() => setEditModalOpen(false)}>Cancel</Button>
-          <Button variant="contained" color="secondary" onClick={handleSaveLLMToken}>Save</Button>
+          <Button 
+            variant="contained" 
+            color="secondary" 
+            onClick={handleSaveCredentials}
+            disabled={!accessKeyId || !secretAccessKey}
+          >
+            Save
+          </Button>
         </DialogActions>
       </Dialog>
 
