@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { getAWSCredentialsApi, createAWSCredentialsApi, deleteAWSCredentialsApi, AWSCredentials } from '@/utils/api';
-import { isAxiosError } from '@/utils/api';
-import { AxiosError } from 'axios';
+import { getApiErrorMsg } from '@/utils/api';
 const AWSCredentialsManager: React.FC = () => {
   const [credentials, setCredentials] = useState<AWSCredentials | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -41,17 +40,8 @@ const AWSCredentialsManager: React.FC = () => {
       const response = await getAWSCredentialsApi();
       setCredentials(response);
     } catch (error: unknown) {
-      console.error('Error saving AWS credentials:', error);
-      let errorMessage = 'An error occurred while saving the AWS credentials. Please try again.';
-
-      if (isAxiosError(error)) {
-        const responseData = error.response?.data as { detail?: string };
-        if (responseData?.detail) {
-          errorMessage = responseData.detail;
-        }
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
+      const apiErrorMessage = getApiErrorMsg(error);
+      const errorMessage = apiErrorMessage || 'An error occurred while saving the AWS credentials. Please try again.';
 
       setError(errorMessage);
     }
@@ -62,17 +52,8 @@ const AWSCredentialsManager: React.FC = () => {
       await deleteAWSCredentialsApi();
       setCredentials(null);
     } catch (error: unknown) {
-      console.error('Error deleting AWS credentials:', error);
-      let errorMessage = 'An error occurred while deleting the AWS credentials. Please try again.';
-
-      if (isAxiosError(error)) {
-        const responseData = error.response?.data as { detail?: string };
-        if (responseData?.detail) {
-          errorMessage = responseData.detail;
-        }
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
+      const apiErrorMessage = getApiErrorMsg(error);
+      const errorMessage = apiErrorMessage || 'An error occurred while deleting the AWS credentials. Please try again.';
 
       setError(errorMessage);
     }

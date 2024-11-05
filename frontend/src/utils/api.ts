@@ -45,6 +45,18 @@ function isAxiosError(error: unknown): error is AxiosError {
   return typeof error === 'object' && error !== null && 'isAxiosError' in error;
 }
 
+function getApiErrorMsg(error: unknown) {
+  let errorMessage = '';
+  if (isAxiosError(error)) {
+    const responseData = error.response?.data as { detail?: string };
+        if (responseData?.detail) {
+          errorMessage = responseData.detail;
+        }
+  }
+
+  return errorMessage;
+}
+
 export const uploadFilesApi = async (files: FileWithContent[]) => {
   const response = await api.post('/files/upload', { files });
   return response.data;
@@ -139,4 +151,4 @@ export const deleteAWSCredentialsApi = async () => {
   return response.data;
 };
 
-export { api, isAxiosError };
+export { api, getApiErrorMsg };
