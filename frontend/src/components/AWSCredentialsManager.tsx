@@ -77,11 +77,6 @@ const AWSCredentialsManager: React.FC = () => {
                 <span className="text-gray-400">Not set</span>
               )}
             </div>
-            {credentials && (
-              <div className="mt-2 text-sm text-gray-500">
-                Created at: {new Date(credentials.created_at).toLocaleString()}
-              </div>
-            )}
           </div>
           <div>
             <IconButton

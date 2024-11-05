@@ -116,7 +116,6 @@ export const deleteLLMTokenApi = async (tokenId: string) => {
 export interface AWSCredentials {
   access_key_id: string;
   secret_access_key: string;
-  created_at: string;
 }
 
 export const createAWSCredentialsApi = async (credentials: Omit<AWSCredentials, 'created_at'>) => {

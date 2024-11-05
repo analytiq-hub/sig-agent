@@ -60,4 +60,3 @@ class ListLLMTokensResponse(BaseModel):
 class AWSCredentials(BaseModel):
     access_key_id: str
     secret_access_key: str
-    created_at: datetime
