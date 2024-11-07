@@ -88,9 +88,6 @@ access_token_collection = db.access_tokens
 llm_token_collection = db.llm_tokens
 aws_credentials_collection = db.aws_credentials
 
-# Ensure the 'pdfs' directory exists
-os.makedirs("data", exist_ok=True)
-
 from pydantic import BaseModel
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):

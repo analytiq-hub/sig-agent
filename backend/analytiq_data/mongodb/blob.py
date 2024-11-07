@@ -4,6 +4,7 @@ import os
 
 import analytiq_data as ad
 
+
 def get_blob(analytiq_client, bucket: str, key: str) -> dict:
     """
     Get the file
@@ -44,7 +45,7 @@ def get_blob(analytiq_client, bucket: str, key: str) -> dict:
 
     return blob_dict
 
-def save_blob(analytiq_client, bucket:str, key:str, blob:bytes, metadata:dict):
+def save_blob(analytiq_client, bucket: str, key: str, blob: bytes, metadata: dict, chunk_size_bytes: int = 64*1024*1024):
     """
     Save the file
     
@@ -59,22 +60,25 @@ def save_blob(analytiq_client, bucket:str, key:str, blob:bytes, metadata:dict):
             blob blob
         metadata : dict
             blob metadata
+        chunk_size_bytes : int
+            chunk size in bytes
     """
     # Get the db
     mongo = analytiq_client.mongodb
     db_name = analytiq_client.env
     db = mongo[db_name]
-    fs = gridfs.GridFS(db, collection=bucket)
+    fs_bucket = gridfs.GridFSBucket(db, bucket_name=bucket, chunk_size_bytes=chunk_size_bytes)
 
     # Remove the old blob
     try:
-        old_blob = fs.find_one({"name": key})
-        fs.delete(old_blob._id)
+        old_blob = fs_bucket.find({"filename": key})
+        for blob in old_blob:
+            fs_bucket.delete(blob._id)
         ad.log.debug(f"Old blob {bucket}/{key} has been deleted.")
     except:
         pass
 
-    fs.put(blob, name=key, metadata=metadata)
+    fs_bucket.upload_from_stream(key, blob, metadata=metadata)
 
 def delete_blob(analytiq_client, bucket:str, key:str):
     """
