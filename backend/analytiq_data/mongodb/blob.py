@@ -96,5 +96,6 @@ def delete_blob(analytiq_client, bucket:str, key:str):
 
     # Remove the old blob
     blob = fs.find_one({"name": key})
-    fs.delete(blob._id)
-    ad.log.debug(f"Blob {bucket}/{key} has been deleted.")
+    if blob is not None:
+        fs.delete(blob._id)
+        ad.log.debug(f"Blob {bucket}/{key} has been deleted.")
