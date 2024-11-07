@@ -160,22 +160,32 @@ async def download_file(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    ad.log.info(f"download_file() start: document_id: {document_id}")
     document = await docs_collection.find_one({"_id": ObjectId(document_id)})
     
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
         
+    ad.log.info(f"download_file() found document: {document}")
+
     # Get the file from mongodb
     file = ad.common.get_file(analytiq_client, document["filename"])
     if file is None:
         raise HTTPException(status_code=404, detail="File not found")
-    
-    file_blob = file["blob"]
 
-    # Return the file as a response
-    return StreamingResponse(io.BytesIO(file_blob),
-                             media_type=file["metadata"]["type"],
-                             headers={"Content-Disposition": f"attachment; filename={document['filename']}"})
+    ad.log.info(f"download_file() got file: {document}")
+
+    ret = Response(
+        content=file["blob"],
+        media_type=file["metadata"]["type"],
+        headers={
+            "Content-Disposition": f"attachment; filename={document['filename']}",
+            "Content-Length": str(file["metadata"]["size"])
+        }
+    )
+    
+    ad.log.info(f"download_file() end: {ret}")
+    return ret
 
 @app.get("/files/list", response_model=ListPDFsResponse)
 async def list_files(
