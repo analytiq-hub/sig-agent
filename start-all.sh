@@ -44,6 +44,7 @@ run_with_color() {
 # Run both processes
 run_with_color "uvicorn main:app --host :: --port 8000" "$RED" "FASTAPI" "backend/fastapi"
 run_with_color "python worker.py" "$GREEN" "WORKER" "backend/worker"
+run_with_color "npm run dev" "$MAGENTA" "NEXTJS" "frontend"
 
 # Wait for any process to exit
 while true; do
