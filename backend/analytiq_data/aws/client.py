@@ -20,6 +20,10 @@ class AWSClient:
             aws_secret_access_key=self.aws_secret_access_key
         )
 
+        # Get the user's identity
+        user_identity = self.user_session.client("sts").get_caller_identity()
+        assume_role_arn = get_assume_role_arn(user_identity["Arn"])
+
         # The assumed role ARN
         assume_role_arn = f"arn:aws:iam::890742589311:role/code-app-role"
 
@@ -82,3 +86,19 @@ def get_aws_keys(analytiq_client) -> dict:
         "aws_access_key_id": aws_keys["access_key_id"],
         "aws_secret_access_key": aws_keys["secret_access_key"]
     }
+
+def get_assume_role_arn(user_arn: str) -> str:
+    """
+    Get the assume role ARN.
+
+    Args:
+        user_arn: The user ARN.
+
+    Returns:
+        The assume role ARN.
+    """
+    account_id = user_arn.split(":")[4]
+    user_name = user_arn.split("/")[-1]
+    account_name = user_name.split("-")[0]
+    user_name_base = user_name.split("-")[1]
+    return f"arn:aws:iam::{account_id}:role/{account_name}-{user_name_base}-role"
