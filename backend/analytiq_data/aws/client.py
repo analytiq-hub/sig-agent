@@ -1,4 +1,7 @@
 import boto3
+import botocore
+from botocore.credentials import AssumeRoleCredentialFetcher, DeferredRefreshableCredentials
+
 import analytiq_data as ad
 
 class AWSClient:
@@ -10,12 +13,32 @@ class AWSClient:
         self.aws_access_key_id = aws_keys["aws_access_key_id"]
         self.aws_secret_access_key = aws_keys["aws_secret_access_key"]
 
-        # Create the s3 client
-        self.s3 = boto3.client(
-            "s3",
+        # Create the session
+        self.user_session = boto3.Session(
+            region_name=region_name,
             aws_access_key_id=self.aws_access_key_id,
             aws_secret_access_key=self.aws_secret_access_key
         )
+
+        # The assumed role ARN
+        assume_role_arn = f"arn:aws:iam::890742589311:role/code-app-role"
+
+        fetcher = AssumeRoleCredentialFetcher(
+            client_creator=self.user_session.client,
+            source_credentials=self.user_session.get_credentials(),
+            role_arn=assume_role_arn,
+        ) 
+        botocore_session = botocore.session.Session()
+        botocore_session._credentials = DeferredRefreshableCredentials(
+            method='assume-role',
+            refresh_using=fetcher.fetch_credentials
+        )
+
+        # Create the assumed role session
+        self.session = boto3.Session(botocore_session=botocore_session)
+
+        # Create the s3 client
+        self.s3 = self.session.client("s3", region_name=region_name)
 
         # Create the textract client
         self.textract = boto3.client(
