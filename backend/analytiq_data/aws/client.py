@@ -1,7 +1,8 @@
+import boto3
 import analytiq_data as ad
 
 class AWSClient:
-    def __init__(self, analytiq_client):
+    def __init__(self, analytiq_client, region_name: str = "us-east-1"):
         self.env = analytiq_client.env
 
         # Get the AWS keys
@@ -9,7 +10,15 @@ class AWSClient:
         self.aws_access_key_id = aws_keys["aws_access_key_id"]
         self.aws_secret_access_key = aws_keys["aws_secret_access_key"]
 
-def get_aws_client(analytiq_client) -> AWSClient:
+        # Create the textract client
+        self.textract = boto3.client(
+            "textract",
+            region_name=region_name,
+            aws_access_key_id=self.aws_access_key_id,
+            aws_secret_access_key=self.aws_secret_access_key
+        )
+
+def get_aws_client(analytiq_client, region_name: str = "us-east-1") -> AWSClient:
     """
     Get the AWSClient.
 
@@ -19,7 +28,7 @@ def get_aws_client(analytiq_client) -> AWSClient:
     Returns:
         The AWSClient.
     """
-    return AWSClient(analytiq_client)
+    return AWSClient(analytiq_client, region_name)
 
 def get_aws_keys(analytiq_client) -> dict:
     """
