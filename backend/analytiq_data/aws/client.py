@@ -1,17 +1,45 @@
 import analytiq_data as ad
 
 class AWSClient:
-    def __init__(self, env: str = "dev"):
-        self.env = env
+    def __init__(self, analytiq_client):
+        self.env = analytiq_client.env
 
-def get_aws_client(env: str = "dev") -> AWSClient:
+        # Get the AWS keys
+        aws_keys = await get_aws_keys(analytiq_client)
+        self.aws_access_key_id = aws_keys["aws_access_key_id"]
+        self.aws_secret_access_key = aws_keys["aws_secret_access_key"]
+
+def get_aws_client(analytiq_client) -> AWSClient:
     """
     Get the AWSClient.
 
     Args:
-        env: The environment to connect to. Defaults to "dev".
+        analytiq_client: The AnalytiqClient.
 
     Returns:
         The AWSClient.
     """
-    return AWSClient(env)
+    return AWSClient(analytiq_client)
+
+async def get_aws_keys(analytiq_client) -> dict:
+    """
+    Get the AWS keys.
+
+    Args:
+        analytiq_client: The AnalytiqClient.
+
+    Returns:
+        The AWS keys.
+    """
+    db_name = analytiq_client.env
+    db = analytiq_client.mongodb_async[db_name]
+    aws_keys_collection = db["aws_credentials"]
+
+    aws_keys = await aws_keys_collection.find_one()
+    if aws_keys is None or "access_key_id" not in aws_keys or "secret_access_key" not in aws_keys:
+        raise ValueError("AWS keys not found")
+
+    return {
+        "aws_access_key_id": aws_keys["access_key_id"],
+        "aws_secret_access_key": aws_keys["secret_access_key"]
+    }
