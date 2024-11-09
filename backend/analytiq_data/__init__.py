@@ -1,3 +1,4 @@
+from . import aws
 from . import log
 from . import mongodb
 from . import queue
