@@ -11,3 +11,9 @@ import sys
 sys.path.append("../../..")
 
 import analytiq_data as ad
+
+# %%
+analytiq_client = ad.common.get_analytiq_client(env="dev")
+aws_client = ad.aws.get_aws_client(analytiq_client)
+
+# %%
