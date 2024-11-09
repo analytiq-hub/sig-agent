@@ -22,10 +22,9 @@ class AWSClient:
 
         # Get the user's identity
         user_identity = self.user_session.client("sts").get_caller_identity()
-        assume_role_arn = get_assume_role_arn(user_identity["Arn"])
 
-        # The assumed role ARN
-        assume_role_arn = f"arn:aws:iam::890742589311:role/code-app-role"
+        # Get the assume role ARN
+        assume_role_arn = get_assume_role_arn(user_identity["Arn"])
 
         fetcher = AssumeRoleCredentialFetcher(
             client_creator=self.user_session.client,
@@ -43,14 +42,10 @@ class AWSClient:
 
         # Create the s3 client
         self.s3 = self.session.client("s3", region_name=region_name)
+        self.s3_bucket_name = "analytiq-data"
 
         # Create the textract client
-        self.textract = boto3.client(
-            "textract",
-            region_name=region_name,
-            aws_access_key_id=self.aws_access_key_id,
-            aws_secret_access_key=self.aws_secret_access_key
-        )
+        self.textract = self.session.client("textract", region_name=region_name)
 
 def get_aws_client(analytiq_client, region_name: str = "us-east-1") -> AWSClient:
     """
