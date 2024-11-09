@@ -10,6 +10,13 @@ class AWSClient:
         self.aws_access_key_id = aws_keys["aws_access_key_id"]
         self.aws_secret_access_key = aws_keys["aws_secret_access_key"]
 
+        # Create the s3 client
+        self.s3 = boto3.client(
+            "s3",
+            aws_access_key_id=self.aws_access_key_id,
+            aws_secret_access_key=self.aws_secret_access_key
+        )
+
         # Create the textract client
         self.textract = boto3.client(
             "textract",
