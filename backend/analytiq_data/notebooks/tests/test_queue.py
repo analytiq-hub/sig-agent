@@ -18,7 +18,7 @@ from bson import ObjectId
 
 # %%
 # Initialize the client
-analytiq_client = ad.common.get_client(env="dev")
+analytiq_client = ad.common.get_analytiq_client(env="dev")
 db_name = analytiq_client.env
 db = analytiq_client.mongodb[db_name]
 QUEUE_NAME = "test"

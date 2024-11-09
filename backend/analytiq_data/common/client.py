@@ -6,7 +6,7 @@ class AnalytiqClient:
         self.mongodb_async = ad.mongodb.get_mongodb_client_async(env)
         self.mongodb = ad.mongodb.get_mongodb_client(env)
 
-def get_client(env: str = "dev") -> AnalytiqClient:
+def get_analytiq_client(env: str = "dev") -> AnalytiqClient:
     """
     Get the AnalytiqClient.
 

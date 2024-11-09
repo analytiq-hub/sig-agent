@@ -20,7 +20,7 @@ ENV = os.getenv("ENV", "dev")
 
 ad.log.info(f"ENV: {ENV}")
 
-client = ad.common.get_client(env=ENV)
+client = ad.common.get_analytiq_client(env=ENV)
 db_name = "prod" if client.env == "prod" else "dev"
 db = client.mongodb_async[db_name]
 job_queue_collection = db.job_queue
