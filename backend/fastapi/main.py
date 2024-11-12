@@ -137,7 +137,7 @@ async def upload_file(
             "document_id": document_id,
             "type": "application/pdf",
             "size": len(content),
-            "file_name": file.name
+            "user_file_name": file.name
         }
 
         # Save the file to mongodb
@@ -148,7 +148,7 @@ async def upload_file(
 
         document = {
             "_id": ObjectId(document_id),
-            "file_name": file.name,
+            "user_file_name": file.name,
             "mongo_file_name": mongo_file_name,
             "document_id": document_id,
             "upload_date": datetime.utcnow(),
@@ -188,7 +188,7 @@ async def download_file(
         content=file["blob"],
         media_type=file["metadata"]["type"],
         headers={
-            "Content-Disposition": f"attachment; filename={document['file_name']}",
+            "Content-Disposition": f"attachment; filename={document['user_file_name']}",
             "Content-Length": str(file["metadata"]["size"])
         }
     )
@@ -212,7 +212,7 @@ async def list_files(
         pdfs=[
             {
                 "id": str(doc["_id"]),
-                "filename": doc["file_name"],
+                "filename": doc["user_file_name"],
                 "upload_date": doc["upload_date"].isoformat(),
                 "uploaded_by": doc["uploaded_by"],
                 "state": doc.get("state", "")
