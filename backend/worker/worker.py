@@ -25,26 +25,12 @@ db_name = "prod" if client.env == "prod" else "dev"
 db = client.mongodb_async[db_name]
 job_queue_collection = db.job_queue
 
-async def process_ocr_msg(msg):
-    # Implement your job processing logic here
-    print(f"Processing OCR msg: {msg}")
-    # Simulate work
-    await asyncio.sleep(10)
-    await ad.queue.delete_msg(client, "ocr", msg["_id"])
-
-async def process_llm_msg(msg):
-    # Implement your LLM job processing logic here
-    print(f"Processing LLM msg: {msg}")
-    # Simulate work
-    await asyncio.sleep(5)
-    await ad.queue.delete_msg(client, "llm", msg["_id"])
-
 async def worker_ocr():
     while True:
         msg = await ad.queue.recv_msg(client, "ocr")
         if msg:
             ad.log.info(f"Processing OCR msg: {msg}")
-            await process_ocr_msg(msg)
+            await ad.msg_handlers.process_ocr_msg(msg)
         else:
             await asyncio.sleep(0.2)  # Avoid tight loop
 
@@ -53,7 +39,7 @@ async def worker_llm():
         msg = await ad.queue.recv_msg(client, "llm")
         if msg:
             ad.log.info(f"Processing LLM msg: {msg}")
-            await process_llm_msg(msg)
+            await ad.msg_handlers.process_llm_msg(msg)
         else:
             await asyncio.sleep(0.2)  # Avoid tight loop
 

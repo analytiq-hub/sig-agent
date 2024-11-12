@@ -1,6 +1,7 @@
 from . import aws
 from . import log
 from . import mongodb
+from . import msg_handlers
 from . import queue
 
 # Import last since it depends on other modules
