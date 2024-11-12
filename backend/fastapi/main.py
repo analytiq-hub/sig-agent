@@ -129,22 +129,34 @@ async def upload_file(
         # Decode and save the file
         content = base64.b64decode(file.content.split(',')[1])
 
+        # Create a unique id for the document
+        document_id = ad.common.create_id()
+        mongo_file_name = f"{document_id}.pdf"
+
+        metadata = {
+            "document_id": document_id,
+            "type": "application/pdf",
+            "size": len(content),
+            "file_name": file.name
+        }
+
         # Save the file to mongodb
         ad.common.save_file(analytiq_client,
-                            file_name=file.name,
+                            file_name=mongo_file_name,
                             blob=content,
-                            metadata={"type": "application/pdf",
-                             "size": len(content)})
+                            metadata=metadata)
 
         document = {
-            "filename": file.name,
+            "_id": ObjectId(document_id),
+            "file_name": file.name,
+            "mongo_file_name": mongo_file_name,
+            "document_id": document_id,
             "upload_date": datetime.utcnow(),
             "uploaded_by": current_user.user_name,
             "state": "Uploaded"
         }
         
         result = await docs_collection.insert_one(document)
-        document_id = str(result.inserted_id)
         uploaded_files.append({"filename": file.name, "document_id": document_id})
 
         # Post a message to the ocr job queue
@@ -166,7 +178,7 @@ async def download_file(
     ad.log.info(f"download_file() found document: {document}")
 
     # Get the file from mongodb
-    file = ad.common.get_file(analytiq_client, document["filename"])
+    file = ad.common.get_file(analytiq_client, document["mongo_file_name"])
     if file is None:
         raise HTTPException(status_code=404, detail="File not found")
 
@@ -176,7 +188,7 @@ async def download_file(
         content=file["blob"],
         media_type=file["metadata"]["type"],
         headers={
-            "Content-Disposition": f"attachment; filename={document['filename']}",
+            "Content-Disposition": f"attachment; filename={document['file_name']}",
             "Content-Length": str(file["metadata"]["size"])
         }
     )
@@ -200,7 +212,7 @@ async def list_files(
         pdfs=[
             {
                 "id": str(doc["_id"]),
-                "filename": doc["filename"],
+                "filename": doc["file_name"],
                 "upload_date": doc["upload_date"].isoformat(),
                 "uploaded_by": doc["uploaded_by"],
                 "state": doc.get("state", "")
@@ -221,7 +233,7 @@ async def delete_file(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    ad.common.delete_file(analytiq_client, file_name=document["filename"])
+    ad.common.delete_file(analytiq_client, file_name=document["mongo_file_name"])
     await docs_collection.delete_one({"_id": ObjectId(file_id)})
 
     return

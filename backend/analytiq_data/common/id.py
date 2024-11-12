@@ -1,4 +1,4 @@
-import uuid
+import bson
 
 def create_id() -> str:
     """
@@ -7,4 +7,4 @@ def create_id() -> str:
     Returns:
         str: The unique id
     """
-    return str(uuid.uuid4())
+    return str(bson.ObjectId())
