@@ -33,7 +33,7 @@ class FilesUpload(BaseModel):
 # Response model for the PDF documents
 class PDFMetadata(BaseModel):
     id: str
-    filename: str
+    file_name: str
     upload_date: datetime
     uploaded_by: str
     state: str

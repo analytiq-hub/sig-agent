@@ -9,7 +9,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 
 interface File {
   id: string;
-  filename: string;
+  file_name: string;
   upload_date: string;
   uploaded_by: string;
   state: string;
@@ -55,7 +55,7 @@ const FileList: React.FC = () => {
 
   const columns: GridColDef[] = [
     {
-      field: 'filename',
+      field: 'file_name',
       headerName: 'Filename',
       flex: 1,
       renderCell: (params) => {

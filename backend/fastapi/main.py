@@ -157,7 +157,7 @@ async def upload_file(
         }
         
         result = await docs_collection.insert_one(document)
-        uploaded_files.append({"filename": file.name, "document_id": document_id})
+        uploaded_files.append({"file_name": file.name, "document_id": document_id})
 
         # Post a message to the ocr job queue
         await ad.queue.send_msg(analytiq_client, "ocr", msg={"document_id": document_id})
@@ -212,7 +212,7 @@ async def list_files(
         pdfs=[
             {
                 "id": str(doc["_id"]),
-                "filename": doc["user_file_name"],
+                "file_name": doc["user_file_name"],
                 "upload_date": doc["upload_date"].isoformat(),
                 "uploaded_by": doc["uploaded_by"],
                 "state": doc.get("state", "")
