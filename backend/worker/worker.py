@@ -20,34 +20,46 @@ ENV = os.getenv("ENV", "dev")
 
 ad.log.info(f"ENV: {ENV}")
 
-client = ad.common.get_analytiq_client(env=ENV)
-db_name = "prod" if client.env == "prod" else "dev"
-db = client.mongodb_async[db_name]
+analytiq_client = ad.common.get_analytiq_client(env=ENV)
+db_name = "prod" if analytiq_client.env == "prod" else "dev"
+db = analytiq_client.mongodb_async[db_name]
 job_queue_collection = db.job_queue
 
-async def worker_ocr():
+async def worker_ocr(analytiq_client) -> None:
+    """
+    Worker for OCR jobs
+
+    Args:
+        analytiq_client: The Analytiq client
+    """
     while True:
-        msg = await ad.queue.recv_msg(client, "ocr")
+        msg = await ad.queue.recv_msg(analytiq_client, "ocr")
         if msg:
             ad.log.info(f"Processing OCR msg: {msg}")
-            await ad.msg_handlers.process_ocr_msg(msg)
+            await ad.msg_handlers.process_ocr_msg(analytiq_client, msg)
         else:
             await asyncio.sleep(0.2)  # Avoid tight loop
 
-async def worker_llm():
+async def worker_llm(analytiq_client) -> None:
+    """
+    Worker for LLM jobs
+
+    Args:
+        analytiq_client: The Analytiq client
+    """
     while True:
-        msg = await ad.queue.recv_msg(client, "llm")
+        msg = await ad.queue.recv_msg(analytiq_client, "llm")
         if msg:
             ad.log.info(f"Processing LLM msg: {msg}")
-            await ad.msg_handlers.process_llm_msg(msg)
+            await ad.msg_handlers.process_llm_msg(analytiq_client, msg)
         else:
             await asyncio.sleep(0.2)  # Avoid tight loop
 
 async def main():
     # Run both workers concurrently
     await asyncio.gather(
-        worker_ocr(),
-        worker_llm()
+        worker_ocr(analytiq_client),
+        worker_llm(analytiq_client)
     )
 
 if __name__ == "__main__":
