@@ -82,7 +82,6 @@ app.add_middleware(
 analytiq_client = ad.common.get_analytiq_client(env=ENV)
 db_name = "prod" if ENV == "prod" else "dev"
 db = analytiq_client.mongodb_async[db_name]
-docs_collection = db.docs
 job_queue_collection = db.job_queue
 access_token_collection = db.access_tokens
 llm_token_collection = db.llm_tokens
@@ -156,7 +155,7 @@ async def upload_file(
             "state": "Uploaded"
         }
         
-        result = await docs_collection.insert_one(document)
+        await ad.common.save_doc(analytiq_client, document)
         uploaded_files.append({"file_name": file.name, "document_id": document_id})
 
         # Post a message to the ocr job queue
@@ -171,7 +170,7 @@ async def download_file(
     current_user: User = Depends(get_current_user)
 ):
     ad.log.info(f"download_file() start: document_id: {document_id}")
-    document = await docs_collection.find_one({"_id": ObjectId(document_id)})
+    document = await ad.common.get_doc(analytiq_client, document_id)
     
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -203,11 +202,7 @@ async def list_files(
     limit: int = Query(10, ge=1, le=100),
     user: User = Depends(get_current_user)
 ):
-    # Get the total count of documents
-    total_count = await docs_collection.count_documents({})
-    
-    cursor = docs_collection.find().sort("upload_date", 1).skip(skip).limit(limit)
-    documents = await cursor.to_list(length=limit)
+    documents, total_count = await ad.common.list_docs(analytiq_client, skip=skip, limit=limit)
     
     return ListPDFsResponse(
         pdfs=[
@@ -229,13 +224,13 @@ async def delete_file(
     file_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    document = await docs_collection.find_one({"_id": ObjectId(file_id)})
+    document = await ad.common.get_doc(analytiq_client, file_id)
     
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
     ad.common.delete_file(analytiq_client, file_name=document["mongo_file_name"])
-    await docs_collection.delete_one({"_id": ObjectId(file_id)})
+    await ad.common.delete_doc(analytiq_client, file_id)
 
     return
 
