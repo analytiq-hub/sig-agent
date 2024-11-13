@@ -182,3 +182,23 @@ def save_ocr_text_from_dict(analytiq_client, document_id:str, ocr_dict:dict, met
     save_ocr_text(analytiq_client, document_id, text, metadata=metadata)
 
     ad.log.info(f"OCR text for {document_id} has been saved.")
+
+def get_ocr_n_pages(analytiq_client, document_id:str) -> int:
+    """
+    Get the number of pages in the OCR text
+
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        document_id : str
+            document id
+
+    Returns:
+        int
+            Number of pages in the OCR text
+    """
+    key = f"{document_id}_text"
+    blob = ad.mongodb.get_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
+    if blob is None:
+        return 0
+    return blob["metadata"]["n_pages"]
