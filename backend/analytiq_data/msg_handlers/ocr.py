@@ -42,5 +42,8 @@ async def process_ocr_msg(analytiq_client, aws_client, msg, force:bool=False):
 
         # Save the OCR dictionary
         ad.common.save_ocr_dict(analytiq_client, document_id, ocr_dict)
+    
+    # Extract the text
+    ad.common.save_ocr_text_from_dict(analytiq_client, document_id, ocr_dict, force=force)
 
     await ad.queue.delete_msg(analytiq_client, "ocr", msg["_id"])

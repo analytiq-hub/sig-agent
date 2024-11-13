@@ -81,7 +81,10 @@ def get_ocr_text(analytiq_client, document_id:str, page_idx:int=None) -> str:
     key = f"{document_id}_text"
     if page_idx is not None:
         key += f"_page_{page_idx}"
-    return ad.mongodb.get_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
+    blob = ad.mongodb.get_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
+    if blob is None:
+        return None
+    return blob["blob"].decode("utf-8")
    
 
 def save_ocr_text(analytiq_client, document_id:str, ocr_text:str, page_idx:int=None, metadata:dict=None):
@@ -103,7 +106,12 @@ def save_ocr_text(analytiq_client, document_id:str, ocr_text:str, page_idx:int=N
     key = f"{document_id}_text"
     if page_idx is not None:
         key += f"_page_{page_idx}"
-    ad.mongodb.save_blob(analytiq_client, bucket=OCR_BUCKET, key=key, blob=ocr_text, metadata=metadata)
+    
+    # Convert the text to bytes 
+    ocr_text_bytes = ocr_text.encode("utf-8")
+
+    # Save the blob
+    ad.mongodb.save_blob(analytiq_client, bucket=OCR_BUCKET, key=key, blob=ocr_text_bytes, metadata=metadata)
     
     ad.log.debug(f"OCR text for {document_id} page {page_idx} has been saved.")
 
@@ -125,3 +133,52 @@ def delete_ocr_text(analytiq_client, document_id:str, page_idx:int=None):
     ad.mongodb.delete_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
 
     ad.log.debug(f"OCR text for {document_id} page {page_idx} has been deleted.")
+
+def save_ocr_text_from_dict(analytiq_client, document_id:str, ocr_dict:dict, metadata:dict=None, force:bool=False):
+    """
+    Save the OCR text from the OCR dictionary
+    
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        document_id : str
+            document id
+        ocr_dict : dict
+            OCR dictionary
+        metadata : dict
+            OCR metadata
+        force : bool
+            Whether to force the processing
+    """
+    block_map = ad.aws.textract.get_block_map(ocr_dict)
+    page_text_map = ad.aws.textract.get_page_text_map(block_map)
+    ad.log.info(page_text_map.keys())
+    ad.log.info(page_text_map.values())
+
+    if not force:
+        ocr_text = get_ocr_text(analytiq_client, document_id)
+        if ocr_text is not None:
+            ad.log.info(f"OCR text for {document_id} already exists. Returning.")
+            return
+    else:
+        # Remove the old OCR text, if any
+        delete_ocr_text(analytiq_client, document_id)
+        for page_idx in range(len(page_text_map)):
+            delete_ocr_text(analytiq_client, document_id, page_idx)
+    
+    # Record the number of pages in the metadata
+    if metadata is None:
+        metadata = {}
+    metadata["n_pages"] = len(page_text_map)
+
+    ad.log.info(f"Pages: {page_text_map.keys()}")
+    
+    # Save the new OCR text
+    for page_num, page_text in page_text_map.items():
+        page_idx = int(page_num) - 1
+        save_ocr_text(analytiq_client, document_id, page_text, page_idx, metadata)
+
+    text = "\n".join(page_text_map.values())
+    save_ocr_text(analytiq_client, document_id, text, metadata=metadata)
+
+    ad.log.info(f"OCR text for {document_id} has been saved.")
