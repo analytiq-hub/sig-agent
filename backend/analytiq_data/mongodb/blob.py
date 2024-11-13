@@ -68,39 +68,9 @@ def save_blob(analytiq_client, bucket: str, key: str, blob: bytes, metadata: dic
     mongo = analytiq_client.mongodb
     db_name = analytiq_client.env
     db = mongo[db_name]
-    fs_bucket = gridfs.GridFSBucket(db, bucket_name=bucket)
-
-    # Remove the old blob with retry logic
-    max_retries = 3
-    retry_delay = 2
     
-    for attempt in range(max_retries):
-        try:
-            old_blob = fs_bucket.find({"filename": key})
-            old_blobs = list(old_blob)
-            if old_blobs:
-                ad.log.debug(f"Deleting old blob {bucket}/{key} from mongodb.")
-                for blob_item in old_blobs:
-                    fs_bucket.delete(blob_item._id)
-                
-                # Verify deletion is complete
-                verification_attempts = 3
-                for _ in range(verification_attempts):
-                    check_blob = list(fs_bucket.find({"filename": key}))
-                    if not check_blob:
-                        ad.log.debug(f"Old blob {bucket}/{key} deletion verified.")
-                        break
-                    time.sleep(retry_delay)
-                else:
-                    raise Exception("Failed to verify deletion")
-                
-            break  # Exit retry loop if successful
-        except Exception as e:
-            if attempt == max_retries - 1:
-                ad.log.error(f"Failed to delete old blob {bucket}/{key} after {max_retries} attempts: {e}")
-                raise
-            ad.log.warning(f"Retry {attempt + 1}/{max_retries} for deleting {bucket}/{key}: {e}")
-            time.sleep(retry_delay)
+    # Delete the old blob
+    delete_blob(analytiq_client, bucket, key)
 
     # Create a new GridFS bucket to ensure clean state
     fs_bucket = gridfs.GridFSBucket(db, bucket_name=bucket)
@@ -124,10 +94,36 @@ def delete_blob(analytiq_client, bucket:str, key:str):
     mongo = analytiq_client.mongodb
     db_name = analytiq_client.env
     db = mongo[db_name]
-    fs = gridfs.GridFS(db, collection=bucket)
+    fs_bucket = gridfs.GridFSBucket(db, bucket_name=bucket)
 
-    # Remove the old blob
-    blob = fs.find_one({"filename": key})
-    if blob is not None:
-        fs.delete(blob._id)
-        ad.log.debug(f"Blob {bucket}/{key} has been deleted.")
+    # Remove the old blob with retry logic
+    max_retries = 3
+    retry_delay = 2
+    
+    for attempt in range(max_retries):
+        try:
+            old_blob = fs_bucket.find({"filename": key})
+            old_blobs = list(old_blob)
+            if old_blobs:
+                for blob_item in old_blobs:
+                    fs_bucket.delete(blob_item._id)
+                
+                ad.log.debug(f"Blob {bucket}/{key} has been deleted.")
+                
+                # Verify deletion is complete
+                verification_attempts = 3
+                for _ in range(verification_attempts):
+                    check_blob = list(fs_bucket.find({"filename": key}))
+                    if not check_blob:
+                        break
+                    time.sleep(retry_delay)
+                else:
+                    raise Exception("Failed to verify blob deletion for {bucket}/{key}")
+                
+            break  # Exit retry loop if successful
+        except Exception as e:
+            if attempt == max_retries - 1:
+                ad.log.error(f"Failed to delete blob {bucket}/{key} after {max_retries} attempts: {e}")
+                raise
+            ad.log.warning(f"Retry {attempt + 1}/{max_retries} for deleting {bucket}/{key}: {e}")
+            time.sleep(retry_delay)
