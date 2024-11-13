@@ -1,13 +1,13 @@
 from datetime import datetime, UTC
 import os
-
+import pickle
 import analytiq_data as ad
 
 OCR_BUCKET = "ocr"
 
-def get_ocr_json(analytiq_client, document_id: str) -> dict:
+def get_ocr_dict(analytiq_client, document_id: str) -> dict:
     """
-    Get the OCR JSON
+    Get the OCR dictionary
     
     Args:
         analytiq_client: AnalytiqClient
@@ -17,13 +17,16 @@ def get_ocr_json(analytiq_client, document_id: str) -> dict:
 
     Returns:
         dict
-            OCR JSON
+            OCR dictionary
     """
     key = f"{document_id}_json"
-    return ad.mongodb.get_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
+    ocr_bytes = ad.mongodb.get_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
+    if ocr_bytes is None:
+        return None
+    return pickle.loads(ocr_bytes)
    
 
-def save_ocr_json(analytiq_client, document_id:str, ocr_json:dict, metadata:dict=None):
+def save_ocr_dict(analytiq_client, document_id:str, ocr_dict:dict, metadata:dict=None):
     """
     Save the OCR JSON
     
@@ -32,17 +35,19 @@ def save_ocr_json(analytiq_client, document_id:str, ocr_json:dict, metadata:dict
             The analytiq client
         document_id : str
             document id
-        ocr_json : dict
-            OCR JSON
+        ocr_dict : dict
+            OCR dictionary
         metadata : dict
             OCR metadata
     """
     key = f"{document_id}_json"
-    ad.mongodb.save_blob(analytiq_client, bucket=OCR_BUCKET, key=key, blob=ocr_json, metadata=metadata)
+    # Pickle the dictionary
+    ocr_bytes = pickle.dumps(ocr_dict)
+    ad.mongodb.save_blob(analytiq_client, bucket=OCR_BUCKET, key=key, blob=ocr_bytes, metadata=metadata)
     
     ad.log.debug(f"OCR JSON for {document_id} has been saved.")
 
-def delete_ocr_json(analytiq_client, document_id:str):
+def delete_ocr_dict(analytiq_client, document_id:str):
     """
     Delete the OCR JSON
 

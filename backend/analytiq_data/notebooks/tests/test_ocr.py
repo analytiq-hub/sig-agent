@@ -19,9 +19,7 @@ from bson import ObjectId
 # %%
 # Initialize the client
 analytiq_client = ad.common.get_analytiq_client(env="dev")
-db_name = analytiq_client.env
-db = analytiq_client.mongodb[db_name]
-QUEUE_NAME = "test"
+aws_client = ad.aws.get_aws_client(analytiq_client)
 
 # %%
 msg = {
@@ -30,6 +28,6 @@ msg = {
 }
 
 # %%
-await ad.msg_handlers.process_ocr_msg(analytiq_client, msg)
+await ad.msg_handlers.process_ocr_msg(analytiq_client, aws_client, msg, force=True)
 
 # %%
