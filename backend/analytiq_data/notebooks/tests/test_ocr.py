@@ -24,7 +24,9 @@ aws_client = ad.aws.get_aws_client(analytiq_client)
 # %%
 msg = {
     "_id": "672839809af076d2a5f1d2e5",
-    "document_id": "6733dbbfbb562a660a6cc28d",
+    "msg": {
+        "document_id": "6733dbbfbb562a660a6cc28d",
+    }
 }
 
 # %%

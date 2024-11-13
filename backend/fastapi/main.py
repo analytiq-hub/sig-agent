@@ -160,7 +160,8 @@ async def upload_file(
         uploaded_files.append({"file_name": file.name, "document_id": document_id})
 
         # Post a message to the ocr job queue
-        await ad.queue.send_msg(analytiq_client, "ocr", msg={"document_id": document_id})
+        msg = {"document_id": document_id}
+        await ad.queue.send_msg(analytiq_client, "ocr", msg=msg)
     
     return {"uploaded_files": uploaded_files}
 

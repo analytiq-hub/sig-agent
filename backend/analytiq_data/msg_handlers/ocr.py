@@ -19,7 +19,7 @@ async def process_ocr_msg(analytiq_client, aws_client, msg, force:bool=False):
     # Implement your job processing logic here
     ad.log.info(f"Processing OCR msg: {msg}")
 
-    document_id = msg["document_id"]
+    document_id = msg["msg"]["document_id"]
 
     ocr_dict = None
     if not force:
