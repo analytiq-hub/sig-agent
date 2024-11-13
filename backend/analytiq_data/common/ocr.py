@@ -152,8 +152,6 @@ def save_ocr_text_from_dict(analytiq_client, document_id:str, ocr_dict:dict, met
     """
     block_map = ad.aws.textract.get_block_map(ocr_dict)
     page_text_map = ad.aws.textract.get_page_text_map(block_map)
-    ad.log.info(page_text_map.keys())
-    ad.log.info(page_text_map.values())
 
     if not force:
         ocr_text = get_ocr_text(analytiq_client, document_id)
@@ -170,8 +168,6 @@ def save_ocr_text_from_dict(analytiq_client, document_id:str, ocr_dict:dict, met
     if metadata is None:
         metadata = {}
     metadata["n_pages"] = len(page_text_map)
-
-    ad.log.info(f"Pages: {page_text_map.keys()}")
     
     # Save the new OCR text
     for page_num, page_text in page_text_map.items():
