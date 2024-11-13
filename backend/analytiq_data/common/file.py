@@ -134,3 +134,131 @@ def download_all_files(analytiq_client, output_dir: str):
         file_path = os.path.join(output_dir, file_name)
         with open(file_path, "wb") as file:
             file.write(file_blob)
+
+async def get_file_async(analytiq_client, file_name: str) -> dict:
+    """
+    Get the file asynchronously
+    
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        file_name : str
+            file name
+
+    Returns:
+        dict
+            file dataset metadata    
+    """
+    return await ad.mongodb.get_blob_async(analytiq_client, bucket="files", key=file_name)
+
+async def save_file_async(analytiq_client, file_name:str, blob:bytes, metadata:dict):
+    """
+    Save the file asynchronously
+    
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        file_name : str
+            file name
+        blob : bytes
+            file blob
+        metadata : dict
+            file metadata
+    """
+    await ad.mongodb.save_blob_async(analytiq_client, bucket="files", key=file_name, blob=blob, metadata=metadata)
+    ad.log.debug(f"File {file_name} has been saved.")
+
+async def delete_file_async(analytiq_client, file_name:str):
+    """
+    Delete the file asynchronously
+
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        file_name : str
+            File name
+    """
+    await ad.mongodb.delete_blob_async(analytiq_client, bucket="files", key=file_name)
+    ad.log.debug(f"File {file_name} has been deleted.")
+
+async def upload_file_async(analytiq_client, file_path: str, file_type: str = "application/pdf"):
+    """
+    Read a PDF file and save it using the file API asynchronously
+    
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        file_path : str
+            Path to the PDF file
+        file_type : str
+            Type of the file
+    """
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"The file {file_path} does not exist.")
+
+    # Read the PDF file
+    with open(file_path, 'rb') as file:
+        blob = file.read()
+
+    # Get the file name from the path
+    file_name = os.path.basename(file_path)
+
+    # Create metadata
+    metadata = {
+        "name": file_name,
+        "type": file_type,
+        "size": len(blob),
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC)
+    }
+
+    # Save the file using the save_file function
+    await save_file_async(analytiq_client, file_name, blob, metadata)
+
+async def download_file_async(analytiq_client, file_name: str, output_path: str):
+    """
+    Download the file asynchronously
+
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        file_name: str
+            File name
+        output_path: str
+            Output path
+    """
+    file = await get_file_async(analytiq_client, file_name)
+    with open(output_path, "wb") as f:
+        f.write(file["blob"])
+
+async def download_all_files_async(analytiq_client, output_dir: str):
+    """
+    Download all the files from the database asynchronously
+
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        output_dir : str
+            Output directory
+    """
+    # Get the db
+    mongo = analytiq_client.mongodb_async
+    db_name = analytiq_client.env
+    db = mongo[db_name]
+    collection = db["files.files"]
+
+    # Get all the files
+    cursor = collection.find()
+    files = await cursor.to_list(length=None)
+
+    # Download each file
+    for file in files:
+        file_name = file["filename"]
+        file_data = await get_file_async(analytiq_client, file_name)
+        file_blob = file_data["blob"]
+        
+        # Save the file to the output directory
+        file_path = os.path.join(output_dir, file_name)
+        with open(file_path, "wb") as f:
+            f.write(file_blob)

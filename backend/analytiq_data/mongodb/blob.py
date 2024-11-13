@@ -2,6 +2,7 @@ import gridfs
 from datetime import datetime, UTC
 import os
 import time
+import asyncio
 
 import analytiq_data as ad
 
@@ -127,3 +128,125 @@ def delete_blob(analytiq_client, bucket:str, key:str):
                 raise
             ad.log.warning(f"Retry {attempt + 1}/{max_retries} for deleting {bucket}/{key}: {e}")
             time.sleep(retry_delay)
+
+async def get_blob_async(analytiq_client, bucket: str, key: str) -> dict:
+    """
+    Get the file asynchronously
+    
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        bucket : str
+            bucket name
+        key : str
+            blob key
+
+    Returns:
+        dict
+            {"blob": bytes, "metadata": dict}
+    """
+    # Get the provider db
+    mongo = analytiq_client.mongodb_async
+    db_name = analytiq_client.env
+    db = mongo[db_name]
+    collection = db[f"{bucket}.files"]
+
+    # Get the doc metadata
+    elem = await collection.find_one({"filename": key})
+    if elem is None:
+        return None
+    metadata = elem.get("metadata", None)
+    
+    # Get the blob
+    fs = gridfs.GridFS(db, collection=bucket)
+    elem = await fs.find_one({"filename": key})
+    blob = await elem.read()
+
+    blob_dict = {
+        "blob": blob,
+        "metadata": metadata
+    }
+
+    return blob_dict
+
+async def save_blob_async(analytiq_client, bucket: str, key: str, blob: bytes, metadata: dict, chunk_size_bytes: int = 64*1024*1024):
+    """
+    Save the file asynchronously
+    
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        bucket : str
+            bucket name
+        key : str
+            blob key
+        blob : bytes
+            blob blob
+        metadata : dict
+            blob metadata
+        chunk_size_bytes : int
+            chunk size in bytes
+    """
+    # Get the db
+    mongo = analytiq_client.mongodb_async
+    db_name = analytiq_client.env
+    db = mongo[db_name]
+    
+    # Delete the old blob
+    await delete_blob_async(analytiq_client, bucket, key)
+
+    # Create a new GridFS bucket to ensure clean state
+    fs_bucket = gridfs.GridFSBucket(db, bucket_name=bucket)
+    
+    ad.log.debug(f"Uploading blob {bucket}/{key} to mongodb.")
+    await fs_bucket.upload_from_stream(filename=key, source=blob, chunk_size_bytes=chunk_size_bytes, metadata=metadata)
+
+async def delete_blob_async(analytiq_client, bucket:str, key:str):
+    """
+    Delete the blob asynchronously
+
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        bucket : str
+            bucket name
+        key : str
+            blob key
+    """
+    # Get the db
+    mongo = analytiq_client.mongodb_async
+    db_name = analytiq_client.env
+    db = mongo[db_name]
+    fs_bucket = gridfs.GridFSBucket(db, bucket_name=bucket)
+
+    # Remove the old blob with retry logic
+    max_retries = 3
+    retry_delay = 2
+    
+    for attempt in range(max_retries):
+        try:
+            old_blob = await fs_bucket.find({"filename": key})
+            old_blobs = await old_blob.to_list(length=None)
+            if old_blobs:
+                for blob_item in old_blobs:
+                    await fs_bucket.delete(blob_item._id)
+                
+                ad.log.debug(f"Blob {bucket}/{key} has been deleted.")
+                
+                # Verify deletion is complete
+                verification_attempts = 3
+                for _ in range(verification_attempts):
+                    check_blob = await (await fs_bucket.find({"filename": key})).to_list(length=None)
+                    if not check_blob:
+                        break
+                    await asyncio.sleep(retry_delay)
+                else:
+                    raise Exception(f"Failed to verify blob deletion for {bucket}/{key}")
+                
+            break  # Exit retry loop if successful
+        except Exception as e:
+            if attempt == max_retries - 1:
+                ad.log.error(f"Failed to delete blob {bucket}/{key} after {max_retries} attempts: {e}")
+                raise
+            ad.log.warning(f"Retry {attempt + 1}/{max_retries} for deleting {bucket}/{key}: {e}")
+            await asyncio.sleep(retry_delay)
