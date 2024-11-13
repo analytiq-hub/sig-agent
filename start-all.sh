@@ -41,6 +41,13 @@ run_with_color() {
     pids+=($!)
 }
 
+cleanup() {
+    kill -9 `ps -ef|grep next-server | awk '{ print $2}'| head -n 1` >/dev/null 2>&1
+}
+
+# Clean up old processes
+cleanup
+
 # Run both processes
 run_with_color "uvicorn main:app --host :: --port 8000" "$RED" "FASTAPI" "backend/fastapi"
 run_with_color "python worker.py" "$GREEN" "WORKER" "backend/worker"
