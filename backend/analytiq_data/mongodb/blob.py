@@ -31,7 +31,7 @@ def get_blob(analytiq_client, bucket: str, key: str) -> dict:
     elem = collection.find_one({"filename": key})
     if elem is None:
         return None
-    metadata = elem["metadata"]
+    metadata = elem.get("metadata", None)
     
     # Get the blob
     fs = gridfs.GridFS(db, collection=bucket)

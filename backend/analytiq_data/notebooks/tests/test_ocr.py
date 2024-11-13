@@ -25,7 +25,7 @@ aws_client = ad.aws.get_aws_client(analytiq_client)
 msg = {
     "_id": "672839809af076d2a5f1d2e5",
     "msg": {
-        "document_id": "6733dbbfbb562a660a6cc28d",
+        "document_id": "6734e4c1f1e37af49b8dc649",
     }
 }
 
@@ -33,3 +33,4 @@ msg = {
 await ad.msg_handlers.process_ocr_msg(analytiq_client, aws_client, msg, force=True)
 
 # %%
+ad.common.get_ocr_dict(analytiq_client, "6734e4c1f1e37af49b8dc649")

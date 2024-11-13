@@ -19,11 +19,11 @@ def get_ocr_dict(analytiq_client, document_id: str) -> dict:
         dict
             OCR dictionary
     """
-    key = f"{document_id}_json"
-    ocr_bytes = ad.mongodb.get_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
-    if ocr_bytes is None:
+    key = f"{document_id}_dict"
+    ocr_blob = ad.mongodb.get_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
+    if ocr_blob is None:
         return None
-    return pickle.loads(ocr_bytes)
+    return pickle.loads(ocr_blob["blob"])
    
 
 def save_ocr_dict(analytiq_client, document_id:str, ocr_dict:dict, metadata:dict=None):
@@ -40,12 +40,12 @@ def save_ocr_dict(analytiq_client, document_id:str, ocr_dict:dict, metadata:dict
         metadata : dict
             OCR metadata
     """
-    key = f"{document_id}_json"
+    key = f"{document_id}_dict"
     # Pickle the dictionary
     ocr_bytes = pickle.dumps(ocr_dict)
     ad.mongodb.save_blob(analytiq_client, bucket=OCR_BUCKET, key=key, blob=ocr_bytes, metadata=metadata)
     
-    ad.log.debug(f"OCR JSON for {document_id} has been saved.")
+    ad.log.debug(f"OCR dict for {document_id} has been saved.")
 
 def delete_ocr_dict(analytiq_client, document_id:str):
     """
@@ -57,10 +57,10 @@ def delete_ocr_dict(analytiq_client, document_id:str):
         document_id : str
             document id
     """
-    key = f"{document_id}_json"
+    key = f"{document_id}_dict"
     ad.mongodb.delete_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
 
-    ad.log.debug(f"OCR JSON for {document_id} has been deleted.")
+    ad.log.debug(f"OCR dict for {document_id} has been deleted.")
 
 def get_ocr_text(analytiq_client, document_id:str, page_idx:int=None) -> str:
     """
