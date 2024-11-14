@@ -13,7 +13,7 @@
   mkdir ~/.venv
   python -m venv ~/.venv/doc-router
   . ~/.venv/doc-router/bin/activate
-  pip install -r source/requirements.txt
+  pip install -r backend/requirements.txt
   ```
 * Install `NodeJS` and `npm`
 * Install the frontend
@@ -47,7 +47,13 @@ Under construction.
 * MongoDB setup
   * Same as for Linux
 * Backend and venv
-  * Same as for Linux
+  * Install python 3.9 - 3.12 and use it to create the venv
+    * `brew install python@3.11`
+    * `mkdir ~/.venv`
+    * `python3.11 -m venv ~/.venv/doc-router`
+    * `. ~/.venv/doc-router/bin/activate`
+    * `pip install -r backend/requirements.txt`
+  * The rest is the same as for Linux
 * Frontend
   * Same as for Linux
 
