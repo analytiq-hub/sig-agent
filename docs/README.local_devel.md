@@ -44,3 +44,5 @@
 
 ## Macbook
 Under construction.
+* MongoDB setup
+  * Same as for Linux
