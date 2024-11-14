@@ -46,3 +46,8 @@
 Under construction.
 * MongoDB setup
   * Same as for Linux
+* Backend and venv
+  * Same as for Linux
+* Frontend
+  * Same as for Linux
+
