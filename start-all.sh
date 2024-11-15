@@ -11,7 +11,6 @@ pids=()
 
 # Cleanup function to kill all child processes
 cleanup() {
-    echo "Stopping all processes..."
     # Kill the entire process group
     kill -TERM -$$
     # Additional cleanup for any stubborn processes
@@ -63,7 +62,6 @@ while true; do
         if ! kill -0 $pid 2>/dev/null; then
             echo "Process $pid has exited. Stopping all processes..."
             cleanup
-            echo "All processes stopped."
             exit 0
         fi
     done
