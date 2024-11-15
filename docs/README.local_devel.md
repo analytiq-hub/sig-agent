@@ -47,7 +47,7 @@ Under construction.
 * MongoDB setup
   * Same as for Linux
 * Backend and venv
-  * Install python 3.9 - 3.12 and use it to create the venv
+  * Install python 3.11 - 3.12 and use it to create the venv
     * `brew install python@3.11`
     * `mkdir ~/.venv`
     * `python3.11 -m venv ~/.venv/doc-router`
