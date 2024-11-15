@@ -12,13 +12,17 @@ pids=()
 # Cleanup function to kill all child processes
 cleanup() {
     echo "Stopping all processes..."
-    # Kill all child processes in the process group
+    # Kill the entire process group
+    kill -TERM -$$
+    # Additional cleanup for any stubborn processes
     pkill -P $$
+    # If needed, specifically kill Next.js server
+    cleanup_next_server
     exit 0
 }
 
 # Set up trap for script termination
-trap cleanup SIGINT SIGTERM
+trap cleanup SIGINT SIGTERM EXIT
 
 # Function to run a process and color its output
 run_with_color() {
@@ -41,12 +45,12 @@ run_with_color() {
     pids+=($!)
 }
 
-cleanup() {
+cleanup_next_server() {
     kill -9 `ps -ef|grep next-server | awk '{ print $2}'| head -n 1` >/dev/null 2>&1
 }
 
 # Clean up old processes
-cleanup
+cleanup_next_server
 
 # Run both processes
 run_with_color "uvicorn main:app --host :: --port 8000" "$RED" "FASTAPI" "backend/fastapi"
@@ -59,6 +63,8 @@ while true; do
         if ! kill -0 $pid 2>/dev/null; then
             echo "Process $pid has exited. Stopping all processes..."
             cleanup
+            echo "All processes stopped."
+            exit 0
         fi
     done
     sleep 1
