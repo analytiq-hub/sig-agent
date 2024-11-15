@@ -11,17 +11,35 @@ pids=()
 
 # Cleanup function to kill all child processes
 cleanup() {
-    # Kill the entire process group
-    kill -TERM -$$
-    # Additional cleanup for any stubborn processes
-    pkill -P $$
-    # If needed, specifically kill Next.js server
+    echo "Shutting down processes..."
+    
+    # First, terminate child processes individually
+    for pid in ${pids[@]}; do
+        if kill -0 $pid 2>/dev/null; then
+            kill -TERM $pid 2>/dev/null
+        fi
+    done
+    
+    # Give processes a moment to terminate gracefully
+    sleep 1
+    
+    # Force kill any remaining processes
+    for pid in ${pids[@]}; do
+        if kill -0 $pid 2>/dev/null; then
+            kill -9 $pid 2>/dev/null
+        fi
+    done
+    
+    # Cleanup Next.js server specifically
     cleanup_next_server
+    
+    echo "Shutdown complete"
     exit 0
 }
 
-# Set up trap for script termination
-trap cleanup SIGINT SIGTERM EXIT
+# Modify trap to only catch specific signals
+trap cleanup SIGINT SIGTERM
+# Remove EXIT from trap to prevent double-cleanup
 
 # Function to run a process and color its output
 run_with_color() {
