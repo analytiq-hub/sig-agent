@@ -5,8 +5,8 @@ import { faWind } from '@fortawesome/free-solid-svg-icons';
 const Test: React.FC = () => {
   return (
     <div>
-      <div className="container mx-auto">
-        <nav className="flex justify-between items-center sticky top-0 z-10 py-4 bg-blue-900">
+      <nav className="w-full sticky top-0 z-10 bg-blue-900">
+        <div className="container mx-auto flex justify-between items-center py-4">
           <div className="flex-shrink-0 ml-6 cursor-pointer">
             <FontAwesomeIcon icon={faWind} className="text-2xl text-yellow-500" />
             <span className="text-xl font-semibold text-blue-200">Smart Document Router</span>
@@ -28,9 +28,8 @@ const Test: React.FC = () => {
               <a className="text-white hover:text-blue-300" href="#">Flows</a>
             </li>
           </ul>
-        </nav>
-      </div>
-
+        </div>
+      </nav>
     </div>
   );
 };
