@@ -15,7 +15,7 @@ const Test: React.FC = () => {
             <li className="mr-6 p-1 border-b-2 border-yellow-500">
               <a className="cursor-default text-blue-200" href="#">Home</a>
             </li>
-            <li className="mr-6 p-1">
+            <li className="mr-6 p-1 border-b-2 border-yellow-500">
               <a className="text-white hover:text-blue-300" href="#">News</a>
             </li>
             <li className="mr-6 p-1">
@@ -27,19 +27,25 @@ const Test: React.FC = () => {
           </ul>
         </nav>
       </div>
-      
-      <nav className="flex items-center justify-between p-4">
-        <div>
-          <h1>Logo</h1>
-        </div>
-        
-        <div> 
-          <ul className="flex mr-5">
-            <li className="mr-6 p-1">Nav Links</li>
-            <li className="mr-6 p-1">Nav Links</li>
-          </ul>
-        </div>
-      </nav>
+
+      <div class="mx-auto p-8 w-full lg:w-1/2">
+
+      <h1 class="text-3xl font-bold">Grid Layout Examples</h1>
+
+      <h2 class="my-6 text-2xl underline underline-offset-2">Example #1</h2>
+
+      <div class="grid grid-rows-3 grid-cols-3 gap-x-4 gap-y-2">
+        <div class="box col-span-2 bg-green-500">1</div>
+        <div class="box row-span-2 bg-green-500">2</div>
+        <div class="box row-span-2 bg-green-500">3</div>
+        <div class="box bg-green-500">4</div>
+        <div class="box col-span-2 bg-green-500">5</div>
+
+
+      </div>
+
+
+    </div>
     </div>
   );
 };
