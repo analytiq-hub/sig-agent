@@ -6,6 +6,7 @@ import { Box } from '@mui/material';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useState, useEffect } from 'react';
 import PDFLeftSidebar from '@/components/PDFLeftSidebar';
+import PDFRightSidebar from '@/components/PDFRightSidebar';
 
 const PDFViewer = dynamic(() => import('@/components/PDFViewer'), {
   ssr: false,
@@ -92,7 +93,7 @@ const PDFViewerPage: React.FC = () => {
               <PanelResizeHandle style={{ width: '4px', background: '#e0e0e0', cursor: 'col-resize' }} />
               <Panel defaultSize={panelSizes.right}>
                 <Box sx={{ height: '100%', overflow: 'auto', bgcolor: '#f5f5f5' }}>
-                  OCR Panel Content
+                  <PDFRightSidebar id={pdfId} />
                 </Box>
               </Panel>
             </>
