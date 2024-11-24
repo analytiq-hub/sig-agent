@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, List, ListItemIcon, ListItemText, Typography, ListItemButton } from '@mui/material';
 import { Description, Bookmark, Comment } from '@mui/icons-material';
 
-const PdfSidebar = ({ id }: { id: string }) => {
+const PDFLeftSidebar = ({ id }: { id: string }) => {
   return (
     <Box
       sx={{
@@ -39,4 +39,4 @@ const PdfSidebar = ({ id }: { id: string }) => {
   );
 };
 
-export default PdfSidebar;
+export default PDFLeftSidebar;
