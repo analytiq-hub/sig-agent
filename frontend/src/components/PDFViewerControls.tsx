@@ -34,7 +34,7 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
             color: theme.palette.primary.contrastText,
             '&:hover': {
               backgroundColor: theme.palette.primary.light,
-              opacity: 0.8,
+              opacity: 0.5,
             },
             backgroundColor: showLeftPanel ? theme.palette.primary.light : 'transparent',
             minWidth: 'auto',
@@ -52,7 +52,7 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
             color: theme.palette.primary.contrastText,
             '&:hover': {
                 backgroundColor: theme.palette.primary.light,
-                opacity: 0.8,
+                opacity: 0.5,
             },
             backgroundColor: showPdfPanel ? theme.palette.primary.light : 'transparent',
             minWidth: 'auto',
@@ -70,7 +70,7 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
           color: theme.palette.primary.contrastText,
           '&:hover': {
             backgroundColor: theme.palette.primary.light,
-            opacity: 0.8,
+            opacity: 0.5,
           },
           backgroundColor: showOcrPanel ? theme.palette.primary.light : 'transparent',
           minWidth: 'auto',
