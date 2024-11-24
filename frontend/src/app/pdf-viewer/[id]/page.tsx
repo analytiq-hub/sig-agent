@@ -7,11 +7,11 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useState, useEffect } from 'react';
 import PDFLeftSidebar from '@/components/PDFLeftSidebar';
 
-const PDFViewer = dynamic(() => import('@/components/PdfViewer'), {
+const PDFViewer = dynamic(() => import('@/components/PDFViewer'), {
   ssr: false,
 })
 
-const PdfViewerPage: React.FC = () => {
+const PDFViewerPage: React.FC = () => {
   const { id } = useParams();
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showPdfPanel, setShowPdfPanel] = useState(true);
@@ -103,4 +103,4 @@ const PdfViewerPage: React.FC = () => {
   );
 };
 
-export default PdfViewerPage;
+export default PDFViewerPage;
