@@ -13,7 +13,7 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
       }}
     >
       <Typography variant="h6" sx={{ p: 2 }}>
-        PDF Extractions
+        Extractions
       </Typography>
       <List>
         <ListItemButton>
