@@ -1,4 +1,5 @@
 import { Box, Button, Tooltip, useTheme } from '@mui/material';
+import { useEffect } from 'react';
 
 interface PDFViewerControlsProps {
   showLeftPanel: boolean;
@@ -19,19 +20,25 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
 }) => {
   const theme = useTheme();
   
+  useEffect(() => {
+    console.log('showLeftPanel changed:', showLeftPanel);
+  }, [showLeftPanel]);
+  
   return (
     <Box sx={{ display: 'flex', gap: 1 }}>
       <Tooltip title={showLeftPanel ? "Hide Extraction Panel" : "Show Extraction Panel"}>
         <Button 
           variant="text"
-          onClick={() => setShowLeftPanel(!showLeftPanel)}
+          onClick={() => setShowLeftPanel(prev => !prev)}
           sx={{ 
             color: theme.palette.primary.contrastText,
             '&:hover': {
               backgroundColor: theme.palette.primary.light,
               opacity: 0.8,
             },
-            backgroundColor: showLeftPanel ? theme.palette.primary.light : 'transparent',
+            backgroundColor: showLeftPanel 
+              ? theme.palette.primary.light 
+              : 'transparent',
             minWidth: 'auto',
             padding: '6px 12px',
           }}
