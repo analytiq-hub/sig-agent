@@ -41,7 +41,19 @@ const Test: React.FC = () => {
         </div>
         <ul className="mt-8">
           <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
-            <a href="#" className="flex items-center">Home</a>
+            <a href="dashboard" className="flex items-center">Dashboard</a>
+          </li>
+          <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
+            <a href="upload" className="flex items-center">Upload</a>
+          </li>
+          <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
+            <a href="list" className="flex items-center">List Files</a>
+          </li>
+          <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
+            <a href="models" className="flex items-center">Models</a>
+          </li>
+          <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
+            <a href="flows" className="flex items-center">Flows</a>
           </li>
         </ul>
       </nav>
