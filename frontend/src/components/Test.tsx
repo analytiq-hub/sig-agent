@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faWind } from '@fortawesome/free-solid-svg-icons';
+import { faWind, faBars, faChevronLeft } from '@fortawesome/free-solid-svg-icons';
 
 const Test: React.FC = () => {
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div className="antialiased min-h-screen relative">
+    <div>
       <nav className="w-full sticky top-0 z-10 bg-blue-900">
         <div className="container mx-auto flex justify-between items-center py-4">
           <div className="flex-shrink-0 ml-6 cursor-pointer">
@@ -30,33 +32,46 @@ const Test: React.FC = () => {
           </ul>
         </div>
       </nav>
-      <nav className="absolute z-10 w-80 bg-indigo-900 text-white h-screen p-3">
-        <div className="flex justify-between">
-          <span className="font-bold text-xl sm:text-2xl p-2">Sidebar</span>
-          <button className="p-2 focus:outline-none ml-auto focus:bg-indigo-800 hover:bg-indigo-800 rounded-md">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </button>
+      <div className="antialiased min-h-screen relative lg:flex">
+        <nav className={`absolute lg:relative z-10 w-80 bg-indigo-900 text-white h-screen p-3 transform transition-transform duration-200 ease-in-out lg:transform-none ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}>
+          <div className="flex justify-between">
+            <span className="font-bold text-2xl sm:text-3xl p-2">Sidebar</span>
+            <button 
+              className="p-2 focus:outline-none focus:bg-indigo-800 hover:bg-indigo-800 rounded-md lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <FontAwesomeIcon icon={faChevronLeft} className="h-6 w-6" />
+            </button>
+          </div>
+          
+          <ul className="mt-8">
+            {['Dashboard', 'Upload', 'List Files', 'Models', 'Flows'].map((item, index) => (
+              <li key={index} className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
+                <a href={item.toLowerCase().replace(' ', '-')} className="flex items-center">
+                  {item}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="relative z-0 lg:flex-grow">
+          <header className="flex bg-gray-700 text-white items-center px-3">
+            <button
+              className="p-2 focus:outline-none focus:bg-gray-600 hover:bg-gray-600 rounded-md lg:hidden"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <FontAwesomeIcon icon={faBars} className="h-6 w-6" />
+            </button>
+            <span className="block text-2xl sm:text-3xl font-bold p-4">
+              Smart Document Router
+            </span>
+          </header>
+          {/* Main content goes here */}
         </div>
-        <ul className="mt-8">
-          <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
-            <a href="dashboard" className="flex items-center">Dashboard</a>
-          </li>
-          <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
-            <a href="upload" className="flex items-center">Upload</a>
-          </li>
-          <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
-            <a href="list" className="flex items-center">List Files</a>
-          </li>
-          <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
-            <a href="models" className="flex items-center">Models</a>
-          </li>
-          <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
-            <a href="flows" className="flex items-center">Flows</a>
-          </li>
-        </ul>
-      </nav>
+      </div>
     </div>
   );
 };
