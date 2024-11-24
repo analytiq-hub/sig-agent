@@ -27,6 +27,7 @@ import UserMenu from './UserMenu'; // Add this import
 import Link from 'next/link';
 import { Upload as UploadIcon, List as ListIcon, Dashboard as DashboardIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon, Memory as ModelIcon } from '@mui/icons-material';
 import { Tooltip } from '@mui/material';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 const drawerWidth = 180;
 
@@ -147,9 +148,14 @@ const renderMenuItem = (item: { text: string; icon: JSX.Element; href: string },
 
 export default function Layout({ children }: { children: ReactNode }) {
   const theme = useTheme();
-  const [open, setOpen] = useState(true); // Change initial state to true
-  const { data: session, status } = useSession(); // Use next-auth hook
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [open, setOpen] = useState(!isMobile); // Initialize based on screen size
+  const { data: session, status } = useSession();
   const router = useRouter();
+
+  useEffect(() => {
+    setOpen(!isMobile);
+  }, [isMobile]);
 
   const handleDrawerOpen = () => {
     setOpen(true);
