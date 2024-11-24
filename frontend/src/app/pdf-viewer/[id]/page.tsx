@@ -2,9 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Box, IconButton } from '@mui/material';
-import BorderAllIcon from '@mui/icons-material/BorderAll';
-import BorderClearIcon from '@mui/icons-material/BorderClear';
+import { Box, Button } from '@mui/material';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useState } from 'react';
 import PDFLeftSidebar from '@/components/PDFLeftSidebar';
@@ -16,7 +14,8 @@ const PDFViewer = dynamic(() => import('@/components/PdfViewer'), {
 const PdfViewerPage: React.FC = () => {
   const { id } = useParams();
   const [showLeftPanel, setShowLeftPanel] = useState(true);
-  const [showRightPanel, setShowRightPanel] = useState(false);
+  const [showPdfPanel, setShowPdfPanel] = useState(true);
+  const [showOcrPanel, setShowOcrPanel] = useState(false);
   
   if (!id) return <div>No PDF ID provided</div>;
   const pdfId = Array.isArray(id) ? id[0] : id;
@@ -26,24 +25,43 @@ const PdfViewerPage: React.FC = () => {
       {/* Toolbar */}
       <Box sx={{ 
         display: 'flex', 
-        justifyContent: 'space-between', 
+        gap: 1,
         borderBottom: '1px solid #e0e0e0', 
         p: 0.5 
       }}>
-        <IconButton 
+        <Button 
           onClick={() => setShowLeftPanel(!showLeftPanel)}
-          color={showLeftPanel ? "primary" : "default"}
+          sx={{ 
+            minWidth: 'auto',
+            textDecoration: showLeftPanel ? 'underline' : 'none',
+            color: 'text.primary'
+          }}
           size="small"
         >
-          <BorderAllIcon sx={{ fontSize: 20 }} />
-        </IconButton>
-        <IconButton 
-          onClick={() => setShowRightPanel(!showRightPanel)}
-          color={showRightPanel ? "primary" : "default"}
+          Extraction
+        </Button>
+        <Button 
+          onClick={() => setShowPdfPanel(!showPdfPanel)}
+          sx={{ 
+            minWidth: 'auto',
+            textDecoration: showPdfPanel ? 'underline' : 'none',
+            color: 'text.primary'
+          }}
           size="small"
         >
-          <BorderClearIcon sx={{ fontSize: 20 }} />
-        </IconButton>
+          PDF
+        </Button>
+        <Button 
+          onClick={() => setShowOcrPanel(!showOcrPanel)}
+          sx={{ 
+            minWidth: 'auto',
+            textDecoration: showOcrPanel ? 'underline' : 'none',
+            color: 'text.primary'
+          }}
+          size="small"
+        >
+          OCR
+        </Button>
       </Box>
 
       {/* Main Content */}
@@ -60,19 +78,20 @@ const PdfViewerPage: React.FC = () => {
             </>
           )}
           
-          <Panel>
-            <Box sx={{ height: '100%', overflow: 'hidden' }}>
-              <PDFViewer id={pdfId} />
-            </Box>
-          </Panel>
+          {showPdfPanel && (
+            <Panel>
+              <Box sx={{ height: '100%', overflow: 'hidden' }}>
+                <PDFViewer id={pdfId} />
+              </Box>
+            </Panel>
+          )}
 
-          {showRightPanel && (
+          {showOcrPanel && (
             <>
               <PanelResizeHandle style={{ width: '4px', background: '#e0e0e0', cursor: 'col-resize' }} />
               <Panel defaultSize={20} minSize={15}>
                 <Box sx={{ height: '100%', overflow: 'auto', bgcolor: '#f5f5f5' }}>
-                  {/* Right panel content */}
-                  Right Panel Content
+                  OCR Panel Content
                 </Box>
               </Panel>
             </>
