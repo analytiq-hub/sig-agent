@@ -156,11 +156,11 @@ const renderMenuItem = (item: { text: string; icon: JSX.Element; href: string },
 
 interface PDFViewerControls {
   showLeftPanel: boolean;
-  setShowLeftPanel: (show: boolean) => void;
+  setShowLeftPanel: React.Dispatch<React.SetStateAction<boolean>>;
   showPdfPanel: boolean;
-  setShowPdfPanel: (show: boolean) => void;
+  setShowPdfPanel: React.Dispatch<React.SetStateAction<boolean>>;
   showOcrPanel: boolean;
-  setShowOcrPanel: (show: boolean) => void;
+  setShowOcrPanel: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 interface LayoutProps {
