@@ -17,9 +17,9 @@ const PdfViewerPage: React.FC = () => {
   const [showPdfPanel, setShowPdfPanel] = useState(true);
   const [showOcrPanel, setShowOcrPanel] = useState(false);
   
-  // Add the controls to the global window object
+  // Set the controls when the component mounts
   useEffect(() => {
-    const controls = {
+    window.pdfViewerControls = {
       showLeftPanel,
       setShowLeftPanel,
       showPdfPanel,
@@ -27,12 +27,12 @@ const PdfViewerPage: React.FC = () => {
       showOcrPanel,
       setShowOcrPanel
     };
-    
-    // @ts-ignore
-    window.pdfViewerControls = controls;
-    
+
+    // Force a re-render of the Layout's toolbar
+    const event = new Event('pdfviewercontrols');
+    window.dispatchEvent(event);
+
     return () => {
-      // @ts-ignore
       delete window.pdfViewerControls;
     };
   }, [showLeftPanel, showPdfPanel, showOcrPanel]);

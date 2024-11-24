@@ -165,10 +165,9 @@ interface PDFViewerControls {
 
 interface LayoutProps {
   children: ReactNode;
-  pdfViewerControls?: PDFViewerControls;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, pdfViewerControls }) => {
+const Layout: React.FC<LayoutProps> = ({ children }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [open, setOpen] = useState(!isMobile); // Initialize based on screen size
@@ -176,10 +175,20 @@ const Layout: React.FC<LayoutProps> = ({ children, pdfViewerControls }) => {
   const router = useRouter();
   const pathname = usePathname();
   const isPDFViewer = pathname.startsWith('/pdf-viewer/');
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   useEffect(() => {
     setOpen(!isMobile);
   }, [isMobile]);
+
+  useEffect(() => {
+    const handleControlsChange = () => {
+      setForceUpdate(prev => prev + 1);
+    };
+    
+    window.addEventListener('pdfviewercontrols', handleControlsChange);
+    return () => window.removeEventListener('pdfviewercontrols', handleControlsChange);
+  }, []);
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -222,7 +231,7 @@ const Layout: React.FC<LayoutProps> = ({ children, pdfViewerControls }) => {
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             {isPDFViewer && window.pdfViewerControls && (
-              <PDFViewerControls {...window.pdfViewerControls} />
+              <PDFViewerControls key={forceUpdate} {...window.pdfViewerControls} />
             )}
             {session ? (
               <UserMenu user={session?.user} />
