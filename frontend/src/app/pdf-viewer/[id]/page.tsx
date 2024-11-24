@@ -3,8 +3,8 @@
 import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Box, IconButton } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import SettingsIcon from '@mui/icons-material/Settings';
+import BorderAllIcon from '@mui/icons-material/BorderAll';
+import BorderClearIcon from '@mui/icons-material/BorderClear';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useState } from 'react';
 import PDFLeftSidebar from '@/components/PDFLeftSidebar';
@@ -33,14 +33,16 @@ const PdfViewerPage: React.FC = () => {
         <IconButton 
           onClick={() => setShowLeftPanel(!showLeftPanel)}
           color={showLeftPanel ? "primary" : "default"}
+          size="small"
         >
-          <MenuIcon />
+          <BorderAllIcon sx={{ fontSize: 20 }} />
         </IconButton>
         <IconButton 
           onClick={() => setShowRightPanel(!showRightPanel)}
           color={showRightPanel ? "primary" : "default"}
+          size="small"
         >
-          <SettingsIcon />
+          <BorderClearIcon sx={{ fontSize: 20 }} />
         </IconButton>
       </Box>
 
