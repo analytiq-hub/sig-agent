@@ -45,11 +45,6 @@ const Test: React.FC = () => {
           </li>
         </ul>
       </nav>
-      <div className="relative z-0"> 
-        <header className="bg-gray-700">
-          <span className="block text-white text-xl sm:text-2xl font-bold p-4">Smart Document Router</span>
-        </header>
-      </div>
     </div>
   );
 };
