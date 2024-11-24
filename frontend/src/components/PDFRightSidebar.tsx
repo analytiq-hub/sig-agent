@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, List, ListItemIcon, ListItemText, Typography, ListItemButton } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 
 const PDFRightSidebar = ({ id }: { id: string }) => {
   return (
