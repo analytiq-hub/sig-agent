@@ -176,6 +176,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const pathname = usePathname();
   const isPDFViewer = pathname.startsWith('/pdf-viewer/');
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [pdfControls, setPdfControls] = useState<PDFViewerControls | null>(null);
 
   useEffect(() => {
     setOpen(!isMobile);
@@ -189,6 +190,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     window.addEventListener('pdfviewercontrols', handleControlsChange);
     return () => window.removeEventListener('pdfviewercontrols', handleControlsChange);
   }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPdfControls(window.pdfViewerControls || null);
+    }
+  }, [forceUpdate]);
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -230,8 +237,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {isPDFViewer && window.pdfViewerControls && (
-              <PDFViewerControls key={forceUpdate} {...window.pdfViewerControls} />
+            {isPDFViewer && pdfControls && (
+              <PDFViewerControls key={forceUpdate} {...pdfControls} />
             )}
             {session ? (
               <UserMenu user={session?.user} />

@@ -37,6 +37,29 @@ const PdfViewerPage: React.FC = () => {
     };
   }, [showLeftPanel, showPdfPanel, showOcrPanel]);
 
+  // Calculate panel sizes based on visible panels
+  const getPanelSizes = () => {
+    const visiblePanels = [
+      showLeftPanel,
+      showPdfPanel,
+      showOcrPanel
+    ].filter(Boolean).length;
+
+    // Default sizes for different combinations
+    switch (visiblePanels) {
+      case 1:
+        return { left: 100, main: 100, right: 100 };
+      case 2:
+        return { left: 20, main: 80, right: 20 };
+      case 3:
+        return { left: 20, main: 60, right: 20 };
+      default:
+        return { left: 0, main: 100, right: 0 };
+    }
+  };
+
+  const panelSizes = getPanelSizes();
+
   if (!id) return <div>No PDF ID provided</div>;
   const pdfId = Array.isArray(id) ? id[0] : id;
 
@@ -47,7 +70,7 @@ const PdfViewerPage: React.FC = () => {
         <PanelGroup direction="horizontal" style={{ width: '100%', height: '100%' }}>
           {showLeftPanel && (
             <>
-              <Panel defaultSize={20} minSize={15}>
+              <Panel defaultSize={panelSizes.left}>
                 <Box sx={{ height: '100%', overflow: 'auto' }}>
                   <PDFLeftSidebar id={pdfId} />
                 </Box>
@@ -57,7 +80,7 @@ const PdfViewerPage: React.FC = () => {
           )}
           
           {showPdfPanel && (
-            <Panel>
+            <Panel defaultSize={panelSizes.main}>
               <Box sx={{ height: '100%', overflow: 'hidden' }}>
                 <PDFViewer id={pdfId} />
               </Box>
@@ -67,7 +90,7 @@ const PdfViewerPage: React.FC = () => {
           {showOcrPanel && (
             <>
               <PanelResizeHandle style={{ width: '4px', background: '#e0e0e0', cursor: 'col-resize' }} />
-              <Panel defaultSize={20} minSize={15}>
+              <Panel defaultSize={panelSizes.right}>
                 <Box sx={{ height: '100%', overflow: 'auto', bgcolor: '#f5f5f5' }}>
                   OCR Panel Content
                 </Box>
