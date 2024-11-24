@@ -47,13 +47,31 @@ const Test: React.FC = () => {
           </div>
           
           <ul className="mt-8">
-            {['Dashboard', 'Upload', 'List Files', 'Models', 'Flows'].map((item, index) => (
-              <li key={index} className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
-                <a href={item.toLowerCase().replace(' ', '-')} className="flex items-center">
-                  {item}
-                </a>
-              </li>
-            ))}
+            <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
+              <a href="/dashboard" className="flex items-center">
+                Dashboard
+              </a>
+            </li>
+            <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
+              <a href="/upload" className="flex items-center">
+                Upload
+              </a>
+            </li>
+            <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
+              <a href="/list" className="flex items-center">
+                List Files
+              </a>
+            </li>
+            <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
+              <a href="/models" className="flex items-center">
+                Models
+              </a>
+            </li>
+            <li className="block px-4 py-2 hover:bg-indigo-800 rounded-md">
+              <a href="/flows" className="flex items-center">
+                Flows
+              </a>
+            </li>
           </ul>
         </nav>
 
