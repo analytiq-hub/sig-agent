@@ -20,7 +20,7 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import AuthButton from './AuthButton';
 import { useSession } from 'next-auth/react';
 import UserMenu from './UserMenu'; // Add this import
@@ -28,6 +28,14 @@ import Link from 'next/link';
 import { Upload as UploadIcon, List as ListIcon, Dashboard as DashboardIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon, Memory as ModelIcon } from '@mui/icons-material';
 import { Tooltip } from '@mui/material';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import PDFViewerControls from '@/components/PDFViewerControls';
+
+// Add this type declaration at the top of the file, after the imports
+declare global {
+  interface Window {
+    pdfViewerControls?: PDFViewerControls;
+  }
+}
 
 const drawerWidth = 180;
 
@@ -146,12 +154,28 @@ const renderMenuItem = (item: { text: string; icon: JSX.Element; href: string },
   </ListItem>
 );
 
-export default function Layout({ children }: { children: ReactNode }) {
+interface PDFViewerControls {
+  showLeftPanel: boolean;
+  setShowLeftPanel: (show: boolean) => void;
+  showPdfPanel: boolean;
+  setShowPdfPanel: (show: boolean) => void;
+  showOcrPanel: boolean;
+  setShowOcrPanel: (show: boolean) => void;
+}
+
+interface LayoutProps {
+  children: ReactNode;
+  pdfViewerControls?: PDFViewerControls;
+}
+
+const Layout: React.FC<LayoutProps> = ({ children, pdfViewerControls }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [open, setOpen] = useState(!isMobile); // Initialize based on screen size
   const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
+  const isPDFViewer = pathname.startsWith('/pdf-viewer/');
 
   useEffect(() => {
     setOpen(!isMobile);
@@ -175,33 +199,37 @@ export default function Layout({ children }: { children: ReactNode }) {
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <CssBaseline />
       <AppBar position="fixed" open={open}>
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleDrawerOpen}
-            edge="start"
-            sx={[
-              {
-                marginRight: 5,
-              },
-              open && { display: 'none' },
-            ]}
-          >
-            <Tooltip title={"Open Drawer"} arrow>
+        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              onClick={handleDrawerOpen}
+              edge="start"
+              sx={[
+                { marginRight: 5 },
+                open && { display: 'none' },
+              ]}
+            >
               <MenuIcon />
-            </Tooltip>
-          </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            <Link href="/" style={{ color: theme.palette.primary.contrastText, textDecoration: 'none' }}>
-              Smart Document Router
-            </Link>
-          </Typography>
-          {session ? (
-            <UserMenu user={session?.user} />
-          ) : (
-            <AuthButton />
-          )}
+            </IconButton>
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+              <Link href="/" style={{ color: theme.palette.primary.contrastText, textDecoration: 'none' }}>
+                Smart Document Router
+              </Link>
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {isPDFViewer && window.pdfViewerControls && (
+              <PDFViewerControls {...window.pdfViewerControls} />
+            )}
+            {session ? (
+              <UserMenu user={session?.user} />
+            ) : (
+              <AuthButton />
+            )}
+          </Box>
         </Toolbar>
       </AppBar>
       <Drawer variant="permanent" open={open}>
@@ -236,3 +264,5 @@ export default function Layout({ children }: { children: ReactNode }) {
     </Box>
   );
 }
+
+export default Layout;

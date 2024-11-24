@@ -2,9 +2,9 @@
 
 import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Box, Button } from '@mui/material';
+import { Box } from '@mui/material';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PDFLeftSidebar from '@/components/PDFLeftSidebar';
 
 const PDFViewer = dynamic(() => import('@/components/PdfViewer'), {
@@ -17,53 +17,31 @@ const PdfViewerPage: React.FC = () => {
   const [showPdfPanel, setShowPdfPanel] = useState(true);
   const [showOcrPanel, setShowOcrPanel] = useState(false);
   
+  // Add the controls to the global window object
+  useEffect(() => {
+    const controls = {
+      showLeftPanel,
+      setShowLeftPanel,
+      showPdfPanel,
+      setShowPdfPanel,
+      showOcrPanel,
+      setShowOcrPanel
+    };
+    
+    // @ts-ignore
+    window.pdfViewerControls = controls;
+    
+    return () => {
+      // @ts-ignore
+      delete window.pdfViewerControls;
+    };
+  }, [showLeftPanel, showPdfPanel, showOcrPanel]);
+
   if (!id) return <div>No PDF ID provided</div>;
   const pdfId = Array.isArray(id) ? id[0] : id;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      {/* Toolbar */}
-      <Box sx={{ 
-        display: 'flex', 
-        gap: 1,
-        borderBottom: '1px solid #e0e0e0', 
-        p: 0.5 
-      }}>
-        <Button 
-          onClick={() => setShowLeftPanel(!showLeftPanel)}
-          sx={{ 
-            minWidth: 'auto',
-            textDecoration: showLeftPanel ? 'underline' : 'none',
-            color: 'text.primary'
-          }}
-          size="small"
-        >
-          Extraction
-        </Button>
-        <Button 
-          onClick={() => setShowPdfPanel(!showPdfPanel)}
-          sx={{ 
-            minWidth: 'auto',
-            textDecoration: showPdfPanel ? 'underline' : 'none',
-            color: 'text.primary'
-          }}
-          size="small"
-        >
-          PDF
-        </Button>
-        <Button 
-          onClick={() => setShowOcrPanel(!showOcrPanel)}
-          sx={{ 
-            minWidth: 'auto',
-            textDecoration: showOcrPanel ? 'underline' : 'none',
-            color: 'text.primary'
-          }}
-          size="small"
-        >
-          OCR
-        </Button>
-      </Box>
-
       {/* Main Content */}
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <PanelGroup direction="horizontal" style={{ width: '100%', height: '100%' }}>
