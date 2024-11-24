@@ -21,7 +21,7 @@ const Test: React.FC = () => {
               <a className="text-white hover:text-blue-300" href="#">Upload</a>
             </li>
             <li className="mr-6 p-1">
-              <a className="text-white hover:text-blue-300" href="#">List Files</a>
+              <a className="text-white hover:text-blue-300 whitespace-nowrap" href="#">List Files</a>
             </li>
             <li className="mr-6 p-1">
               <a className="text-white hover:text-blue-300" href="#">Models</a>
