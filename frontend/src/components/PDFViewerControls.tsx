@@ -44,26 +44,29 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
           Extract
         </Button>
       </Tooltip>
-      <Button 
-        variant="text"
-        onClick={() => setShowPdfPanel(prev => !prev)}
-        sx={{ 
-          color: theme.palette.primary.contrastText,
-          '&:hover': {
-            backgroundColor: theme.palette.primary.light,
-            opacity: 0.8,
-          },
-          backgroundColor: showPdfPanel ? theme.palette.primary.light : 'transparent',
-          minWidth: 'auto',
-          padding: '6px 12px',
-        }}
-      >
+      <Tooltip title={showPdfPanel ? "Hide PDF Panel" : "Show PDF Panel"}>
+        <Button 
+            variant="text"
+            onClick={() => setShowPdfPanel(prev => !prev)}
+            sx={{ 
+            color: theme.palette.primary.contrastText,
+            '&:hover': {
+                backgroundColor: theme.palette.primary.light,
+                opacity: 0.8,
+            },
+            backgroundColor: showPdfPanel ? theme.palette.primary.light : 'transparent',
+            minWidth: 'auto',
+            padding: '6px 12px',
+            }}
+        >
         PDF
-      </Button>
-      <Button 
-        variant="text"
-        onClick={() => setShowOcrPanel(prev => !prev)}
-        sx={{ 
+        </Button>
+      </Tooltip>
+      <Tooltip title={showOcrPanel ? "Hide OCR Panel" : "Show OCR Panel"}>
+        <Button 
+          variant="text"
+          onClick={() => setShowOcrPanel(prev => !prev)}
+          sx={{ 
           color: theme.palette.primary.contrastText,
           '&:hover': {
             backgroundColor: theme.palette.primary.light,
@@ -72,10 +75,11 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
           backgroundColor: showOcrPanel ? theme.palette.primary.light : 'transparent',
           minWidth: 'auto',
           padding: '6px 12px',
-        }}
-      >
-        OCR
-      </Button>
+          }}
+        >
+          OCR
+        </Button>
+      </Tooltip>
     </Box>
   );
 };
