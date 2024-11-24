@@ -3,11 +3,11 @@ import { useEffect } from 'react';
 
 interface PDFViewerControlsProps {
   showLeftPanel: boolean;
-  setShowLeftPanel: (show: boolean) => void;
+  setShowLeftPanel: React.Dispatch<React.SetStateAction<boolean>>;
   showPdfPanel: boolean;
-  setShowPdfPanel: (show: boolean) => void;
+  setShowPdfPanel: React.Dispatch<React.SetStateAction<boolean>>;
   showOcrPanel: boolean;
-  setShowOcrPanel: (show: boolean) => void;
+  setShowOcrPanel: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
@@ -29,16 +29,14 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
       <Tooltip title={showLeftPanel ? "Hide Extraction Panel" : "Show Extraction Panel"}>
         <Button 
           variant="text"
-          onClick={() => setShowLeftPanel(prev => !prev)}
+          onClick={() => setShowLeftPanel((prev: boolean) => !prev)}
           sx={{ 
             color: theme.palette.primary.contrastText,
             '&:hover': {
               backgroundColor: theme.palette.primary.light,
               opacity: 0.8,
             },
-            backgroundColor: showLeftPanel 
-              ? theme.palette.primary.light 
-              : 'transparent',
+            backgroundColor: showLeftPanel ? theme.palette.primary.light : 'transparent',
             minWidth: 'auto',
             padding: '6px 12px',
           }}
@@ -48,7 +46,7 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
       </Tooltip>
       <Button 
         variant="text"
-        onClick={() => setShowPdfPanel(!showPdfPanel)}
+        onClick={() => setShowPdfPanel(prev => !prev)}
         sx={{ 
           color: theme.palette.primary.contrastText,
           '&:hover': {
@@ -64,7 +62,7 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
       </Button>
       <Button 
         variant="text"
-        onClick={() => setShowOcrPanel(!showOcrPanel)}
+        onClick={() => setShowOcrPanel(prev => !prev)}
         sx={{ 
           color: theme.palette.primary.contrastText,
           '&:hover': {
