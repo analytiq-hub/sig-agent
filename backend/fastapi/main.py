@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body, Security, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
@@ -28,7 +28,6 @@ from schemas import (
     FileUpload, FilesUpload,
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
-    OCRTextResponse, OCRListResponse
 )
 
 # Add the parent directory to the sys path
@@ -428,25 +427,21 @@ async def create_auth_token(user_data: dict = Body(...)):
     )
     return {"token": token}
 
-@app.get("/ocr/download/list/{document_id}", response_model=OCRListResponse)
+@app.get("/ocr/download/list/{document_id}")
 async def download_ocr_list(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
     ad.log.info(f"download_ocr_list() start: document_id: {document_id}")
-    document = await ad.common.get_doc(analytiq_client, document_id)
-    
-    if not document:
-        raise HTTPException(status_code=404, detail="Document not found")
     
     # Get the OCR JSON data from mongodb
     ocr_list = ad.common.get_ocr_list(analytiq_client, document_id)
     if ocr_list is None:
         raise HTTPException(status_code=404, detail="OCR data not found")
     
-    return OCRListResponse(pages=ocr_list)
+    return JSONResponse(content=ocr_list)
 
-@app.get("/ocr/download/text/{document_id}", response_model=OCRTextResponse)
+@app.get("/ocr/download/text/{document_id}", response_model=str)
 async def download_ocr_text(
     document_id: str,
     page: Optional[int] = Query(None, description="Specific page number to retrieve"),
@@ -463,7 +458,7 @@ async def download_ocr_text(
     if text is None:
         raise HTTPException(status_code=404, detail="OCR text not found")
     
-    return OCRTextResponse(text=text)
+    return Response(content=text, media_type="text/plain")
 
 if __name__ == "__main__":
     import uvicorn

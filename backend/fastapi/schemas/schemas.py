@@ -60,9 +60,3 @@ class ListLLMTokensResponse(BaseModel):
 class AWSCredentials(BaseModel):
     access_key_id: str
     secret_access_key: str
-
-class OCRListResponse(BaseModel):
-    pages: list
-
-class OCRTextResponse(BaseModel):
-    text: str
