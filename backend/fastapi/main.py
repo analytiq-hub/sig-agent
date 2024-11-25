@@ -427,12 +427,12 @@ async def create_auth_token(user_data: dict = Body(...)):
     )
     return {"token": token}
 
-@app.get("/ocr/download/list/{document_id}")
-async def download_ocr_list(
+@app.get("/ocr/download/blocks/{document_id}")
+async def download_ocr_blocks(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    ad.log.info(f"download_ocr_list() start: document_id: {document_id}")
+    ad.log.info(f"download_ocr_blocks() start: document_id: {document_id}")
 
     document = await ad.common.get_doc(analytiq_client, document_id)
     
