@@ -27,7 +27,8 @@ from schemas import (
     PDFMetadata,
     FileUpload, FilesUpload,
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
-    AWSCredentials
+    AWSCredentials,
+    OCRTextResponse, OCRJSONResponse
 )
 
 # Add the parent directory to the sys path
@@ -426,6 +427,43 @@ async def create_auth_token(user_data: dict = Body(...)):
         algorithm=ALGORITHM
     )
     return {"token": token}
+
+@app.get("/ocr/download/json/{document_id}", response_model=OCRJSONResponse)
+async def download_ocr_json(
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    ad.log.info(f"download_ocr_json() start: document_id: {document_id}")
+    document = await ad.common.get_doc(analytiq_client, document_id)
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Get the OCR JSON data from mongodb
+    ocr_list = ad.common.get_ocr_list(analytiq_client, document_id)
+    if ocr_list is None:
+        raise HTTPException(status_code=404, detail="OCR data not found")
+    
+    return OCRJSONResponse(pages=ocr_list)
+
+@app.get("/ocr/download/text/{document_id}", response_model=OCRTextResponse)
+async def download_ocr_text(
+    document_id: str,
+    page: Optional[int] = Query(None, description="Specific page number to retrieve"),
+    current_user: User = Depends(get_current_user)
+):
+    ad.log.info(f"download_ocr_text() start: document_id: {document_id}, page: {page}")
+    document = await ad.common.get_doc(analytiq_client, document_id)
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Get the OCR text data from mongodb
+    text = ad.common.get_ocr_text(analytiq_client, document_id, page)
+    if text is None:
+        raise HTTPException(status_code=404, detail="OCR text not found")
+    
+    return OCRTextResponse(text=text)
 
 if __name__ == "__main__":
     import uvicorn

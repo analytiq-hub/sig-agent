@@ -43,9 +43,6 @@ class ListPDFsResponse(BaseModel):
     total_count: int
     skip: int
 
-class OCRResponse(BaseModel):
-    pages: dict[int, str]  # Maps page_idx to page_text
-
 class LLMToken(BaseModel):
     id: str
     user_id: str
@@ -63,3 +60,9 @@ class ListLLMTokensResponse(BaseModel):
 class AWSCredentials(BaseModel):
     access_key_id: str
     secret_access_key: str
+
+class OCRTextResponse(BaseModel):
+    text: str
+
+class OCRJSONResponse(BaseModel):
+    pages: list
