@@ -5,8 +5,8 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import { downloadFileApi } from '@/utils/api';
-import { Toolbar, Typography, IconButton, TextField, Menu, MenuItem, Divider, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, Tooltip } from '@mui/material';
+import { downloadFileApi, getOCRMetadataApi, getOCRTextApi } from '@/utils/api';
+import { Toolbar, Typography, IconButton, TextField, Menu, MenuItem, Divider, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, Tooltip, Box, CircularProgress } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import RotateLeftIcon from '@mui/icons-material/RotateLeft';
@@ -22,6 +22,9 @@ import PrintIcon from '@mui/icons-material/Print';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import { saveAs } from 'file-saver';
+import { PanelGroup, Panel } from 'react-resizable-panels';
+import CheckIcon from '@mui/icons-material/Check';
+import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -167,6 +170,10 @@ const PDFViewer = ({ id }: { id: string }) => {
   const [documentProperties, setDocumentProperties] = useState<Record<string, string> | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [fileSize, setFileSize] = useState<number>(0);
+  const [showOcr, setShowOcr] = useState(false);
+  const [ocrText, setOcrText] = useState<string>('');
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrError, setOcrError] = useState<string | null>(null);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -343,6 +350,31 @@ const PDFViewer = ({ id }: { id: string }) => {
     handleMenuClose();
   };
 
+  const handleOcrToggle = useCallback(() => {
+    setShowOcr(prev => !prev);
+    handleMenuClose();
+  }, [handleMenuClose]);
+
+  useEffect(() => {
+    const fetchOcrText = async () => {
+      if (!showOcr) return;
+      
+      try {
+        setOcrLoading(true);
+        setOcrError(null);
+        const text = await getOCRTextApi(id, pageNumber);
+        setOcrText(text);
+      } catch (err) {
+        console.error('Error fetching OCR text:', err);
+        setOcrError('Failed to load OCR text');
+      } finally {
+        setOcrLoading(false);
+      }
+    };
+
+    fetchOcrText();
+  }, [id, pageNumber, showOcr]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <Toolbar 
@@ -480,54 +512,86 @@ const PDFViewer = ({ id }: { id: string }) => {
             Rotate Counterclockwise
           </StyledMenuItem>
           <Divider />
+          <StyledMenuItem onClick={handleOcrToggle}>
+            <TextSnippetIcon fontSize="small" sx={{ mr: 1 }} />
+            Show OCR Text
+            {showOcr && <CheckIcon fontSize="small" sx={{ ml: 1 }} />}
+          </StyledMenuItem>
+          <Divider />
           <StyledMenuItem onClick={handleDocumentProperties}>
             <DescriptionOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
             Document Properties...
           </StyledMenuItem>
         </Menu>
       </Toolbar>
-      <div 
-        ref={containerRef} 
-        style={{ 
-          overflowY: 'auto', 
-          flexGrow: 1,
-          padding: '16px',
-        }}
-      >
-        {loading ? (
-          <div>Loading PDF...</div>
-        ) : error ? (
-          <Typography color="error" align="center">
-            {error}
-          </Typography>
-        ) : file ? (
-          <Document
-            file={file}
-            onLoadSuccess={handleLoadSuccess}
-            onLoadError={handleLoadError}
-          >
-            {Array.from(new Array(numPages), (el, index) => (
-              <div 
-                key={`page_container_${index + 1}`}
-                ref={el => { pageRefs.current[index] = el; }}
+      
+      <PanelGroup direction="horizontal" style={{ flexGrow: 1 }}>
+        <Panel defaultSize={showOcr ? 50 : 100}>
+          <div ref={containerRef} style={{ height: '100%', overflowY: 'auto', padding: '16px' }}>
+            {loading ? (
+              <div>Loading PDF...</div>
+            ) : error ? (
+              <Typography color="error" align="center">
+                {error}
+              </Typography>
+            ) : file ? (
+              <Document
+                file={file}
+                onLoadSuccess={handleLoadSuccess}
+                onLoadError={handleLoadError}
               >
-                <Page 
-                  key={`page_${index + 1}`} 
-                  pageNumber={index + 1} 
-                  width={pdfDimensions.width * scale}
-                  height={pdfDimensions.height * scale}
-                  rotate={rotation}
-                />
-                {index < numPages! - 1 && <hr style={{ border: '2px solid black' }} />}
-              </div>
-            ))}
-          </Document>
-        ) : (
-          <Typography color="error" align="center">
-            No PDF file available.
-          </Typography>
+                {Array.from(new Array(numPages), (el, index) => (
+                  <div 
+                    key={`page_container_${index + 1}`}
+                    ref={el => { pageRefs.current[index] = el; }}
+                  >
+                    <Page 
+                      key={`page_${index + 1}`} 
+                      pageNumber={index + 1} 
+                      width={pdfDimensions.width * scale}
+                      height={pdfDimensions.height * scale}
+                      rotate={rotation}
+                    />
+                    {index < numPages! - 1 && <hr style={{ border: '2px solid black' }} />}
+                  </div>
+                ))}
+              </Document>
+            ) : (
+              <Typography color="error" align="center">
+                No PDF file available.
+              </Typography>
+            )}
+          </div>
+        </Panel>
+        
+        {showOcr && (
+          <Panel defaultSize={50}>
+            <Box sx={{ height: '100%', overflow: 'auto', p: 2, borderLeft: 1, borderColor: 'divider' }}>
+              <Typography variant="h6" gutterBottom>
+                OCR Text - Page {pageNumber}
+              </Typography>
+              {ocrLoading ? (
+                <CircularProgress size={24} />
+              ) : ocrError ? (
+                <Typography color="error">{ocrError}</Typography>
+              ) : (
+                <Typography
+                  variant="body2"
+                  component="pre"
+                  sx={{
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    fontFamily: 'monospace'
+                  }}
+                >
+                  {ocrText}
+                </Typography>
+              )}
+            </Box>
+          </Panel>
         )}
-      </div>
+      </PanelGroup>
+
       <Dialog 
         open={showProperties} 
         onClose={() => setShowProperties(false)}
