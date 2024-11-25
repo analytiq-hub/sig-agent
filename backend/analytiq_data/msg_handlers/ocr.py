@@ -51,3 +51,7 @@ async def process_ocr_msg(analytiq_client, aws_client, msg, force:bool=False):
     # ad.common.set_document_state(analytiq_client, document_id, "OCR completed")
 
     await ad.queue.delete_msg(analytiq_client, "ocr", msg["_id"])
+
+    # Post a message to the llm job queue
+    msg = {"document_id": document_id}
+    await ad.queue.send_msg(analytiq_client, "llm", msg=msg)
