@@ -46,7 +46,7 @@ async def send_msg(
 
     result = await queue_collection.insert_one(msg_data)
     msg_id = str(result.inserted_id)
-    ad.log.info(f"Sent message: {msg_id}")
+    ad.log.info(f"Sent message: {msg_id} to {queue_name}")
     return msg_id
 
 async def recv_msg(analytiq_client, queue_name: str) -> Optional[Dict[str, Any]]:
@@ -92,4 +92,4 @@ async def delete_msg(analytiq_client, queue_name: str, msg_id: str, status: str 
         {"_id": ObjectId(msg_id)},
         {"$set": {"status": status}}
     )
-    ad.log.info(f"Deleted message {msg_id} with status: {status}") 
+    ad.log.info(f"Deleted message {msg_id} from {queue_name} with status: {status}") 
