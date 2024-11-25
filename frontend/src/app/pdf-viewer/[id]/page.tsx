@@ -6,7 +6,6 @@ import { Box } from '@mui/material';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useState, useEffect } from 'react';
 import PDFLeftSidebar from '@/components/PDFLeftSidebar';
-import PDFRightSidebar from '@/components/PDFRightSidebar';
 
 const PDFViewer = dynamic(() => import('@/components/PDFViewer'), {
   ssr: false,
@@ -16,43 +15,34 @@ const PDFViewerPage: React.FC = () => {
   const { id } = useParams();
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showPdfPanel, setShowPdfPanel] = useState(true);
-  const [showOcrPanel, setShowOcrPanel] = useState(false);
   
-  // Set the controls when the component mounts
   useEffect(() => {
     window.pdfViewerControls = {
       showLeftPanel,
       setShowLeftPanel,
       showPdfPanel,
-      setShowPdfPanel,
-      showOcrPanel,
-      setShowOcrPanel
+      setShowPdfPanel
     };
 
-    // Force a re-render of the Layout's toolbar
     const event = new Event('pdfviewercontrols');
     window.dispatchEvent(event);
 
     return () => {
       delete window.pdfViewerControls;
     };
-  }, [showLeftPanel, showPdfPanel, showOcrPanel]);
+  }, [showLeftPanel, showPdfPanel]);
 
-  // Calculate panel sizes based on visible panels
   const getPanelSizes = () => {
-    const visiblePanels = [
-      showLeftPanel,
-      showPdfPanel,
-      showOcrPanel
-    ].filter(Boolean).length;
+    if (!showLeftPanel) {
+      return {
+        left: 0,
+        main: 100
+      };
+    }
 
-    // Evenly distribute space among visible panels
-    const equalSize = 100 / visiblePanels;
-    
     return {
-      left: equalSize,
-      main: equalSize,
-      right: equalSize
+      left: 40,
+      main: 60
     };
   };
 
@@ -63,7 +53,6 @@ const PDFViewerPage: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      {/* Main Content */}
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <PanelGroup direction="horizontal" style={{ width: '100%', height: '100%' }}>
           {showLeftPanel && (
@@ -83,17 +72,6 @@ const PDFViewerPage: React.FC = () => {
                 <PDFViewer id={pdfId} />
               </Box>
             </Panel>
-          )}
-
-          {showOcrPanel && (
-            <>
-              <PanelResizeHandle style={{ width: '4px', background: '#e0e0e0', cursor: 'col-resize' }} />
-              <Panel defaultSize={panelSizes.right}>
-                <Box sx={{ height: '100%', overflow: 'auto', bgcolor: '#f5f5f5' }}>
-                  <PDFRightSidebar id={pdfId} />
-                </Box>
-              </Panel>
-            </>
           )}
         </PanelGroup>
       </Box>

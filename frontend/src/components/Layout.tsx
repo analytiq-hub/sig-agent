@@ -159,8 +159,6 @@ interface PDFViewerControls {
   setShowLeftPanel: React.Dispatch<React.SetStateAction<boolean>>;
   showPdfPanel: boolean;
   setShowPdfPanel: React.Dispatch<React.SetStateAction<boolean>>;
-  showOcrPanel: boolean;
-  setShowOcrPanel: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 interface LayoutProps {
