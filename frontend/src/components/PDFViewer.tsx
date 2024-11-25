@@ -416,7 +416,7 @@ const PDFViewer = ({ id }: { id: string }) => {
                 }
               }}
             />
-            <Typography variant="body2" sx={{ mx: 0.5, color: theme => theme.palette.accent.contrastText }}>
+            <Typography variant="body2" sx={{ mx: 0.5, color: theme => theme.palette.accent.contrastText, whiteSpace: 'nowrap' }}>
               of {numPages}
             </Typography>
           </form>
