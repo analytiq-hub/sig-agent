@@ -28,6 +28,7 @@ from schemas import (
     FileUpload, FilesUpload,
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
+    OCRMetadata,
 )
 
 # Add the parent directory to the sys path
@@ -469,6 +470,27 @@ async def download_ocr_text(
         raise HTTPException(status_code=404, detail="OCR text not found")
     
     return Response(content=text, media_type="text/plain")
+
+@app.get("/ocr/metadata/{document_id}", response_model=OCRMetadata)
+async def get_ocr_metadata(
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    ad.log.info(f"get_ocr_metadata() start: document_id: {document_id}")
+    
+    document = await ad.common.get_doc(analytiq_client, document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Get the OCR metadata from mongodb
+    metadata = ad.common.get_ocr_metadata(analytiq_client, document_id)
+    if metadata is None:
+        raise HTTPException(status_code=404, detail="OCR metadata not found")
+    
+    return OCRMetadata(
+        n_pages=metadata["n_pages"],
+        ocr_date=metadata["ocr_date"].isoformat()
+    )
 
 if __name__ == "__main__":
     import uvicorn
