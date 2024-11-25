@@ -151,4 +151,25 @@ export const deleteAWSCredentialsApi = async () => {
   return response.data;
 };
 
+export interface OCRMetadataResponse {
+  n_pages: number;
+  ocr_date: string;
+}
+
+export const getOCRBlocksApi = async (documentId: string) => {
+  const response = await api.get(`/ocr/download/blocks/${documentId}`);
+  return response.data;
+};
+
+export const getOCRTextApi = async (documentId: string, pageNum?: number) => {
+  const url = `/ocr/download/text/${documentId}${pageNum ? `?page_num=${pageNum}` : ''}`;
+  const response = await api.get(url);
+  return response.data;
+};
+
+export const getOCRMetadataApi = async (documentId: string) => {
+  const response = await api.get<OCRMetadataResponse>(`/ocr/download/metadata/${documentId}`);
+  return response.data;
+};
+
 export { api, getApiErrorMsg };
