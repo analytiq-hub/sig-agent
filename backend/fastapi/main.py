@@ -28,7 +28,7 @@ from schemas import (
     FileUpload, FilesUpload,
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
-    OCRTextResponse, OCRJSONResponse
+    OCRTextResponse, OCRListResponse
 )
 
 # Add the parent directory to the sys path
@@ -428,12 +428,12 @@ async def create_auth_token(user_data: dict = Body(...)):
     )
     return {"token": token}
 
-@app.get("/ocr/download/json/{document_id}", response_model=OCRJSONResponse)
-async def download_ocr_json(
+@app.get("/ocr/download/list/{document_id}", response_model=OCRListResponse)
+async def download_ocr_list(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    ad.log.info(f"download_ocr_json() start: document_id: {document_id}")
+    ad.log.info(f"download_ocr_list() start: document_id: {document_id}")
     document = await ad.common.get_doc(analytiq_client, document_id)
     
     if not document:
@@ -444,7 +444,7 @@ async def download_ocr_json(
     if ocr_list is None:
         raise HTTPException(status_code=404, detail="OCR data not found")
     
-    return OCRJSONResponse(pages=ocr_list)
+    return OCRListResponse(pages=ocr_list)
 
 @app.get("/ocr/download/text/{document_id}", response_model=OCRTextResponse)
 async def download_ocr_text(
