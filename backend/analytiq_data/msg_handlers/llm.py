@@ -1,5 +1,7 @@
 import asyncio
+import openai
 import analytiq_data as ad
+
 
 async def process_llm_msg(analytiq_client, msg):
     # Implement your LLM job processing logic here
