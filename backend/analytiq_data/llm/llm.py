@@ -1,7 +1,22 @@
 import analytiq_data as ad
 from openai import AsyncOpenAI
 import json
-async def run_llm(analytiq_client, document_id: str):
+
+
+async def run_llm(analytiq_client, 
+                  document_id: str,
+                  prompt_id: str = "document_info") -> dict:
+    """
+    Run the LLM for the given document and prompt.
+    
+    Args:
+        analytiq_client: The AnalytiqClient instance
+        document_id: The document ID
+        prompt_id: The prompt ID
+    
+    Returns:
+        dict: The LLM result
+    """
     llm_key = await ad.llm.get_llm_key(analytiq_client)
     ocr_text = ad.common.get_ocr_text(analytiq_client, document_id)
     
@@ -50,3 +65,32 @@ async def run_llm(analytiq_client, document_id: str):
     resp_dict = json.loads(resp_json)
 
     return resp_dict
+
+async def save_llm_result(analytiq_client, 
+                          document_id: str,
+                          prompt_id: str, 
+                          llm_result: dict) -> str:
+    """
+    Save the LLM result to MongoDB.
+    
+    Args:
+        analytiq_client: The AnalytiqClient instance
+        document_id: The document ID
+        prompt_id: The prompt ID
+        llm_result: The LLM result
+    """
+
+    db_name = analytiq_client.env
+    db = analytiq_client.mongodb_async[db_name]
+    queue_collection_name = f"llm.runs"
+    queue_collection = db[queue_collection_name]
+
+    element = {
+        "prompt_id": prompt_id,
+        "document_id": document_id,
+        "llm_result": llm_result
+    }
+
+    # Save the result, return the ID
+    result = await queue_collection.insert_one(element)
+    return str(result.inserted_id)
