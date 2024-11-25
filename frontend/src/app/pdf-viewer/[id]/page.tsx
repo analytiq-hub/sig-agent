@@ -46,17 +46,14 @@ const PDFViewerPage: React.FC = () => {
       showOcrPanel
     ].filter(Boolean).length;
 
-    // Default sizes for different combinations
-    switch (visiblePanels) {
-      case 1:
-        return { left: 100, main: 100, right: 100 };
-      case 2:
-        return { left: 20, main: 80, right: 20 };
-      case 3:
-        return { left: 20, main: 60, right: 20 };
-      default:
-        return { left: 0, main: 100, right: 0 };
-    }
+    // Evenly distribute space among visible panels
+    const equalSize = 100 / visiblePanels;
+    
+    return {
+      left: equalSize,
+      main: equalSize,
+      right: equalSize
+    };
   };
 
   const panelSizes = getPanelSizes();
