@@ -28,7 +28,7 @@ from schemas import (
     FileUpload, FilesUpload,
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
-    OCRMetadata,
+    OCRMetadataResponse,
 )
 
 # Add the parent directory to the sys path
@@ -487,7 +487,7 @@ async def get_ocr_metadata(
     if metadata is None:
         raise HTTPException(status_code=404, detail="OCR metadata not found")
     
-    return OCRMetadata(
+    return OCRMetadataResponse(
         n_pages=metadata["n_pages"],
         ocr_date=metadata["ocr_date"].isoformat()
     )
