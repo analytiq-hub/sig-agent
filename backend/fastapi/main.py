@@ -471,7 +471,7 @@ async def download_ocr_text(
     
     return Response(content=text, media_type="text/plain")
 
-@app.get("/ocr/metadata/{document_id}", response_model=OCRMetadata)
+@app.get("/ocr/download/metadata/{document_id}", response_model=OCRMetadata)
 async def get_ocr_metadata(
     document_id: str,
     current_user: User = Depends(get_current_user)
