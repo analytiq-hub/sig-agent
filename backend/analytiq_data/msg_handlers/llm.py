@@ -12,7 +12,7 @@ async def process_llm_msg(analytiq_client, msg):
     # Get the entire document text from MongoDB
     document_id = msg["msg"]["document_id"]
 
-    await ad.llmrun_llm(analytiq_client, document_id)
+    await ad.llm.run_llm(analytiq_client, document_id)
 
     ad.log.info(f"LLM run completed for {document_id}")
     await ad.queue.delete_msg(analytiq_client, "llm", msg["_id"])
