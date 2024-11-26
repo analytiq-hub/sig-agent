@@ -66,6 +66,35 @@ async def run_llm(analytiq_client,
 
     return resp_dict
 
+async def get_llm_result(analytiq_client,
+                        document_id: str,
+                        prompt_id: str) -> dict | None:
+    """
+    Retrieve an LLM result from MongoDB.
+    
+    Args:
+        analytiq_client: The AnalytiqClient instance
+        document_id: The document ID
+        prompt_id: The prompt ID
+    
+    Returns:
+        dict | None: The LLM result if found, None otherwise
+    """
+    db_name = analytiq_client.env
+    db = analytiq_client.mongodb_async[db_name]
+    collection = db["llm.runs"]
+    
+    result = await collection.find_one({
+        "document_id": document_id,
+        "prompt_id": prompt_id
+    })
+    
+    if result:
+        # Remove MongoDB's _id field
+        result.pop('_id', None)
+        return result
+    return None
+
 async def save_llm_result(analytiq_client, 
                           document_id: str,
                           prompt_id: str, 
@@ -94,3 +123,28 @@ async def save_llm_result(analytiq_client,
     # Save the result, return the ID
     result = await queue_collection.insert_one(element)
     return str(result.inserted_id)
+
+async def delete_llm_result(analytiq_client,
+                           document_id: str,
+                           prompt_id: str) -> bool:
+    """
+    Delete an LLM result from MongoDB.
+    
+    Args:
+        analytiq_client: The AnalytiqClient instance
+        document_id: The document ID
+        prompt_id: The prompt ID
+    
+    Returns:
+        bool: True if deleted, False if not found
+    """
+    db_name = analytiq_client.env
+    db = analytiq_client.mongodb_async[db_name]
+    collection = db["llm.runs"]
+    
+    result = await collection.delete_one({
+        "document_id": document_id,
+        "prompt_id": prompt_id
+    })
+    
+    return result.deleted_count > 0
