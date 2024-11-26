@@ -172,4 +172,65 @@ export const getOCRMetadataApi = async (documentId: string) => {
   return response.data;
 };
 
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
+export interface LLMRunResponse {
+  status: string;
+  result: Record<string, JsonValue>;
+}
+
+export interface LLMResult {
+  prompt_id: string;
+  document_id: string;
+  llm_result: Record<string, JsonValue>;
+}
+
+export const runLLMAnalysisApi = async (
+  documentId: string,
+  promptId: string = 'document_info',
+  force: boolean = false
+) => {
+  const response = await api.post<LLMRunResponse>(
+    `/llm/run/${documentId}`,
+    {},
+    {
+      params: {
+        prompt_id: promptId,
+        force: force
+      }
+    }
+  );
+  return response.data;
+};
+
+export const getLLMResultApi = async (
+  documentId: string,
+  promptId: string = 'document_info'
+) => {
+  const response = await api.get<LLMResult>(
+    `/llm/result/${documentId}`,
+    {
+      params: {
+        prompt_id: promptId
+      }
+    }
+  );
+  return response.data;
+};
+
+export const deleteLLMResultApi = async (
+  documentId: string,
+  promptId: string
+) => {
+  const response = await api.delete(
+    `/llm/result/${documentId}`,
+    {
+      params: {
+        prompt_id: promptId
+      }
+    }
+  );
+  return response.data;
+};
+
 export { api, getApiErrorMsg };

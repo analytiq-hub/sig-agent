@@ -1,39 +1,50 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, List, ListItemIcon, ListItemText, Typography, ListItemButton } from '@mui/material';
-import { Description, Bookmark, Comment } from '@mui/icons-material';
+import { Description} from '@mui/icons-material';
+import { getLLMResultApi } from '@/utils/api';
 
 const PDFLeftSidebar = ({ id }: { id: string }) => {
+  const [llmResult, setLlmResult] = useState<Record<string, JsonValue>>({});
+
+  useEffect(() => {
+    const fetchLLMResult = async () => {
+      try {
+        const response = await getLLMResultApi(id);
+        setLlmResult(response.llm_result);
+      } catch (error) {
+        console.error('Error fetching LLM result:', error);
+      }
+    };
+
+    if (id) {
+      fetchLLMResult();
+    }
+  }, [id]);
+
   return (
     <Box
       sx={{
-        width: '100%', // Set width to 1/3 of the parent container
-        height: '100%', // Full viewport height
-        borderRight: '1px solid rgba(0, 0, 0, 0.12)', // Add a border on the right side
-        overflow: 'auto', // Enable scrolling if content overflows
+        width: '100%',
+        height: '100%',
+        borderRight: '1px solid rgba(0, 0, 0, 0.12)',
+        overflow: 'auto',
       }}
     >
       <Typography variant="h6" sx={{ p: 2 }}>
         Extractions
       </Typography>
       <List>
-        <ListItemButton>
-          <ListItemIcon>
-            <Description />
-          </ListItemIcon>
-          <ListItemText primary={`Outline ${id}`} />
-        </ListItemButton>
-        <ListItemButton>
-          <ListItemIcon>
-            <Bookmark />
-          </ListItemIcon>
-          <ListItemText primary="Account" />
-        </ListItemButton>
-        <ListItemButton>
-          <ListItemIcon>
-            <Comment />
-          </ListItemIcon>
-          <ListItemText primary="Items" />
-        </ListItemButton>
+        {Object.entries(llmResult).map(([key, value]) => (
+          <ListItemButton key={key}>
+            <ListItemIcon>
+              <Description />
+            </ListItemIcon>
+            <ListItemText 
+              primary={key}
+              secondary={typeof value === 'object' ? JSON.stringify(value, null, 2) : value}
+            />
+          </ListItemButton>
+        ))}
       </List>
     </Box>
   );
