@@ -5,7 +5,8 @@ import json
 
 async def run_llm(analytiq_client, 
                   document_id: str,
-                  prompt_id: str = "document_info") -> dict:
+                  prompt_id: str = "document_info",
+                  force: bool = False) -> dict:
     """
     Run the LLM for the given document and prompt.
     
@@ -13,10 +14,23 @@ async def run_llm(analytiq_client,
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
         prompt_id: The prompt ID
+        force: If True, run the LLM even if the result is already cached
     
     Returns:
         dict: The LLM result
     """
+    # Check for existing result unless force is True
+    if not force:
+        existing_result = await get_llm_result(analytiq_client, document_id, prompt_id)
+        if existing_result:
+            ad.log.info(f"Using cached LLM result for document_id: {document_id}, prompt_id: {prompt_id}")
+            return existing_result["llm_result"]
+    else:
+        # Delete the existing result
+        await delete_llm_result(analytiq_client, document_id, prompt_id)
+
+    ad.log.info(f"Running new LLM analysis for document_id: {document_id}, prompt_id: {prompt_id}")
+    
     llm_key = await ad.llm.get_llm_key(analytiq_client)
     ocr_text = ad.common.get_ocr_text(analytiq_client, document_id)
     
@@ -64,6 +78,9 @@ async def run_llm(analytiq_client,
     # Convert to dict
     resp_dict = json.loads(resp_json)
 
+    # Save the new result
+    await save_llm_result(analytiq_client, document_id, prompt_id, resp_dict)
+    
     return resp_dict
 
 async def get_llm_result(analytiq_client,
