@@ -29,7 +29,7 @@ from schemas import (
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
     OCRMetadataResponse,
-    LLMRunRequest, LLMRunResponse, LLMResult,
+    LLMRunResponse, LLMResult,
 )
 
 # Add the parent directory to the sys path
@@ -497,13 +497,19 @@ async def get_ocr_metadata(
 @app.post("/llm/run/{document_id}", response_model=LLMRunResponse)
 async def run_llm_analysis(
     document_id: str,
-    request: LLMRunRequest = Body(...),
+    prompt_id: str = Query(default="document_info", description="The prompt ID to use"),
+    force: bool = Query(default=False, description="Force new run even if result exists"),
     current_user: User = Depends(get_current_user)
 ):
     """
     Run LLM on a document, with optional force refresh.
+    
+    Args:
+        document_id: The document ID to process
+        prompt_id: The prompt ID to use (defaults to "document_info")
+        force: If True, forces a new run even if cached result exists
     """
-    ad.log.info(f"run_llm_analysis() start: document_id: {document_id}, request: {request}")
+    ad.log.info(f"run_llm_analysis() start: document_id: {document_id}, prompt_id: {prompt_id}, force: {force}")
     
     # Verify document exists and user has access
     document = await ad.common.get_doc(analytiq_client, document_id)
@@ -519,8 +525,8 @@ async def run_llm_analysis(
         result = await ad.llm.run_llm(
             analytiq_client,
             document_id=document_id,
-            prompt_id=request.prompt_id,
-            force=request.force
+            prompt_id=prompt_id,
+            force=force
         )
         
         return LLMRunResponse(
