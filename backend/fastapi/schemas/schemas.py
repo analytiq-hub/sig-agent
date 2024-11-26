@@ -64,3 +64,17 @@ class AWSCredentials(BaseModel):
 class OCRMetadataResponse(BaseModel):
     n_pages: int
     ocr_date: str
+
+# Updated schema names
+class LLMRunRequest(BaseModel):
+    prompt_id: str = "document_info"
+    force: bool = False
+
+class LLMRunResponse(BaseModel):
+    status: str
+    result: dict
+
+class LLMResult(BaseModel):
+    prompt_id: str
+    document_id: str
+    llm_result: dict

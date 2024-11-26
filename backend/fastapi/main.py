@@ -29,6 +29,7 @@ from schemas import (
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
     OCRMetadataResponse,
+    LLMRunRequest, LLMRunResponse, LLMResult,
 )
 
 # Add the parent directory to the sys path
@@ -491,6 +492,99 @@ async def get_ocr_metadata(
         n_pages=metadata["n_pages"],
         ocr_date=metadata["ocr_date"].isoformat()
     )
+
+# LLM Run Endpoints
+@app.post("/llm/run/{document_id}", response_model=LLMRunResponse)
+async def run_llm_analysis(
+    document_id: str,
+    request: LLMRunRequest = Body(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Run LLM on a document, with optional force refresh.
+    """
+    ad.log.info(f"run_llm_analysis() start: document_id: {document_id}, request: {request}")
+    
+    # Verify document exists and user has access
+    document = await ad.common.get_doc(analytiq_client, document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    # Verify OCR is complete
+    ocr_metadata = ad.common.get_ocr_metadata(analytiq_client, document_id)
+    if ocr_metadata is None:
+        raise HTTPException(status_code=404, detail="OCR metadata not found")
+
+    try:
+        result = await ad.llm.run_llm(
+            analytiq_client,
+            document_id=document_id,
+            prompt_id=request.prompt_id,
+            force=request.force
+        )
+        
+        return LLMRunResponse(
+            status="success",
+            result=result
+        )
+        
+    except Exception as e:
+        ad.log.error(f"Error in LLM run: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing document: {str(e)}"
+        )
+
+@app.get("/llm/result/{document_id}", response_model=LLMResult)
+async def get_llm_result(
+    document_id: str,
+    prompt_id: str = Query(default="document_info", description="The prompt ID to retrieve"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retrieve existing LLM results for a document.
+    """
+    ad.log.info(f"get_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
+    
+    # Verify document exists and user has access
+    document = await ad.common.get_doc(analytiq_client, document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    result = await ad.llm.get_llm_result(analytiq_client, document_id, prompt_id)
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail=f"LLM result not found for document_id: {document_id} and prompt_id: {prompt_id}"
+        )
+    
+    return result
+
+@app.delete("/llm/result/{document_id}")
+async def delete_llm_result(
+    document_id: str,
+    prompt_id: str = Query(..., description="The prompt ID to delete"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Delete LLM results for a specific document and prompt.
+    """
+    ad.log.info(f"delete_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
+    
+    # Verify document exists and user has access
+    document = await ad.common.get_doc(analytiq_client, document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    deleted = await ad.llm.delete_llm_result(analytiq_client, document_id, prompt_id)
+    
+    if not deleted:
+        raise HTTPException(
+            status_code=404,
+            detail=f"LLM result not found for document_id: {document_id} and prompt_id: {prompt_id}"
+        )
+    
+    return {"status": "success", "message": "LLM result deleted"}
 
 if __name__ == "__main__":
     import uvicorn
