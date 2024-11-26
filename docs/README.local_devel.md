@@ -46,7 +46,8 @@
 Under construction.
 * MongoDB setup
   * [Install MongoDB](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-os-x/)
-  * Same as for Linux
+  * [Install MongoDB Compass](https://www.mongodb.com/try/download/compass)
+  * Create a `dev` database
 * Backend and venv
   * Install python 3.11 - 3.12 and use it to create the venv
     * `brew install python@3.11`
