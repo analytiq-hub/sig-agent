@@ -4,12 +4,12 @@ Here are instructions on how to set up an AWS Lightsail instance and deploy the 
 
 * Create a new Lightsail instance with Ubuntu 24.04 LTS.
     * Assign it a static IP
-    * Point your `<domain>` to it (in my case, I point `doc-router.analytiqhub.com` to it)
+    * Point `<mydomain>` to it (in my case, I point `doc-router.analytiqhub.com` to it)
 * Copy the SSH key to the instance.
 * Connect to the instance using SSH.
 * Clone the repository.
 * Install `Docker`, `docker-compose` and `nginx`.
-* Set up `nginx` to route `http://<domain>:80` requests to `http://localhost:3000` for the doc-router GUI, and to route `http://<domain>:8000` requests to `http://localhost:8000` for the FastAPI backend.
+* Set up `nginx` to route `http://<mydomain>:80` requests to `http://localhost:3000` for the doc-router GUI, and to route `http://<mydomain>:8000` requests to `http://localhost:8000` for the FastAPI backend.
   * In my case, I create a file `/etc/nginx/sites-available/doc-router.conf` as follows:
   ```
   server {
