@@ -64,7 +64,7 @@ export const uploadFilesApi = async (files: FileWithContent[]) => {
 
 export const listFilesApi = async () => {
   console.log('NEXT_PUBLIC_FASTAPI_FRONTEND_URL:', NEXT_PUBLIC_FASTAPI_FRONTEND_URL);
-  console.log('NEXT_PUBLIC_FASTAPI_FRONTEND_URL env:', process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL);
+  console.log('NEXT_PUBLIC_FASTAPI_FRONTEND_URL env variable:', process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL);
   const response = await api.get('/files/list');
   return response.data;
 };

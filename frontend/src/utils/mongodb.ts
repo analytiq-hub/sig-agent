@@ -2,9 +2,8 @@
 import { MongoClient } from "mongodb"
  
 const env = process.env.ENV || "dev"
-if (env !== "dev" && env !== "prod") {
-  throw new Error(`Invalid environment variable: "ENV"=${env}, should be "dev" or "prod"`)
-}
+
+console.log(`ENV: ${env}`)
 
 const mongodbUri = process.env.MONGODB_URI || "mongodb://localhost:27017"
 const uri = `${mongodbUri}/${env}`

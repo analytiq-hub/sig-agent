@@ -26,7 +26,7 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
         # Get the AWS client. This will give None for textract if the AWS keys are not set.
         aws_client = ad.aws.get_aws_client(analytiq_client)
         if aws_client.textract is None:
-            raise Error(f"AWS textract client not created. Skipping OCR.")
+            raise Exception(f"AWS textract client not created. Skipping OCR.")
 
         ocr_list = None
         if not force:
