@@ -38,7 +38,7 @@ async def process_ocr_msg(analytiq_client, aws_client, msg, force:bool=False):
             return
 
         # TO DO: read from config the OCR type, and run tesseract OCR instead of Textract
-        
+
         # Run OCR
         ocr_list = ad.aws.textract.run_textract(aws_client, file["blob"])
         ad.log.info(f"OCR completed for {document_id}")
