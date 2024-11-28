@@ -20,7 +20,7 @@ ENV = os.getenv("ENV", "dev")
 
 ad.log.info(f"ENV: {ENV}")
 
-async def worker_ocr(analytiq_client, aws_client) -> None:
+async def worker_ocr(analytiq_client) -> None:
     """
     Worker for OCR jobs
 
@@ -31,7 +31,7 @@ async def worker_ocr(analytiq_client, aws_client) -> None:
         msg = await ad.queue.recv_msg(analytiq_client, "ocr")
         if msg:
             ad.log.info(f"Processing OCR msg: {msg}")
-            await ad.msg_handlers.process_ocr_msg(analytiq_client, aws_client, msg)
+            await ad.msg_handlers.process_ocr_msg(analytiq_client, msg)
         else:
             await asyncio.sleep(0.2)  # Avoid tight loop
 
@@ -52,11 +52,10 @@ async def worker_llm(analytiq_client) -> None:
 
 async def main():
     analytiq_client = ad.common.get_analytiq_client(env=ENV)
-    aws_client = ad.aws.get_aws_client(analytiq_client)
 
     # Run both workers concurrently
     await asyncio.gather(
-        worker_ocr(analytiq_client, aws_client),
+        worker_ocr(analytiq_client),
         worker_llm(analytiq_client)
     )
 
