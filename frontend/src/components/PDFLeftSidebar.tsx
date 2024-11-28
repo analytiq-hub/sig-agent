@@ -3,6 +3,8 @@ import { Box, List, ListItemIcon, ListItemText, Typography, ListItemButton } fro
 import { Description} from '@mui/icons-material';
 import { getLLMResultApi } from '@/utils/api';
 
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
 const PDFLeftSidebar = ({ id }: { id: string }) => {
   const [llmResult, setLlmResult] = useState<Record<string, JsonValue>>({});
 
