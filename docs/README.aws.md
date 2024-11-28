@@ -4,7 +4,7 @@ Here are instructions on how to set up an AWS Lightsail instance and deploy the 
 
 * Create a new Lightsail instance with Ubuntu 24.04 LTS.
     * Assign it a static IP
-    * Point your domain to it (in my case, I point both `doc-router.analytiqhub.com` and `api.analytiqhub.com` to it)
+    * Point your domain to it (in my case, I point b`doc-router.analytiqhub.com` to it)
 * Copy the SSH key to the instance.
 * Connect to the instance using SSH.
 * Clone the repository.
