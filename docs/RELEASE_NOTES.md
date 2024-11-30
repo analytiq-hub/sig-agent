@@ -1,6 +1,9 @@
 # Releases
 
-## v3.1.0
+## v3.0.2
+* Fixed [ANALYTIQ-5](https://github.com/analytiq-hub/doc-router/issues/5)
+
+## v3.0.1
 
 * Fixed [ANALYTIQ-3](https://github.com/analytiq-hub/doc-router/issues/3)
 

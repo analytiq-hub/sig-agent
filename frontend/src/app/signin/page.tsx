@@ -14,66 +14,53 @@ export default function SigninPage() {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const router = useRouter();
 
-  const handleLogin = async (username: string, password: string) => {
+  const handleLogin = async (email: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:8000/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
       });
 
-      if (!response.ok) {
-        throw new Error('Login failed');
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        router.push('/dashboard');
       }
-
-      const data = await response.json();
-      console.log('Login successful:', data);
-      
-      // Sign in using NextAuth and store the token
-      // const result = await signIn("credentials", {
-      //   redirect: false,
-      //   username,
-      //   password,
-      //   accessToken: data.access_token,
-      // });
-      // console.log('NextAuth signIn result:', result);
-
-      // if (result?.error) {
-      //   setError(result.error);
-      // } else {
-      //   router.push('/dashboard');
-      // }
-      router.push('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       setError('Login failed. Please try again.');
     }
   };
 
-  const handleRegister = async (username: string, password: string) => {
+  const handleRegister = async (email: string, password: string, name: string) => {
     try {
-      const response = await fetch('http://localhost:8000/register', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name }),
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      console.log('Server response:', responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error(`Failed to parse response: ${responseText} ${e}`);
+        setError('Server returned invalid response');
+        return;
+      }
 
       if (response.ok) {
-        console.log('Registration successful:', data);
-        setIsLoginMode(true); // Switch to login mode
-        setError('Registration successful! Please log in with your new account.');
+        await handleLogin(email, password);
       } else {
-        throw new Error(data.detail || 'Registration failed');
+        throw new Error(data.error || 'Registration failed');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      setError('Registration failed. Please try again.');
+      setError(error instanceof Error ? error.message : 'Registration failed');
     }
   };
 
