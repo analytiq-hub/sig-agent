@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Paper, List, ListSubheader, ListItemButton, ListItemText, Divider, Button } from '@mui/material';
+import { Paper, List, ListSubheader, ListItemButton, ListItemText, Divider, Button, useTheme } from '@mui/material';
 
 const SettingsPage: React.FC = () => {
+  const theme = useTheme();
   const [selectedMenu, setSelectedMenu] = useState<string | null>(null);
 
   const renderContent = () => {
@@ -80,7 +81,7 @@ const SettingsPage: React.FC = () => {
             component="nav"
             subheader={
               <>
-                <ListSubheader component="div">Admin Settings</ListSubheader>
+                <ListSubheader sx={{ color: theme.palette.text.primary }}>Admin Settings</ListSubheader>
               </>
             }
           >
@@ -93,7 +94,7 @@ const SettingsPage: React.FC = () => {
             
             <Divider sx={{ my: 2 }} />
             
-            <ListSubheader component="div">User Settings</ListSubheader>
+            <ListSubheader component="div" sx={{ color: theme.palette.text.primary }}>User Settings</ListSubheader>
             <ListItemButton 
               onClick={() => setSelectedMenu('user_developer')}
               selected={selectedMenu === 'user_developer'}

@@ -26,14 +26,14 @@ const theme = createTheme({
   palette: {
     primary: {
       main: websiteColors.mainBlue,
-      light: lighten(websiteColors.lightBlue, 0.2),
-      dark: darken(websiteColors.darkBlue, 0.2),
+      light: lighten(websiteColors.mainBlue, 0.2),
+      dark: darken(websiteColors.mainBlue, 0.2),
       contrastText: websiteColors.white
     },
     secondary: {
       main: websiteColors.accentCoral,
-      light: lighten(websiteColors.lightGray, 0.2),
-      dark: darken(websiteColors.lightGray, 0.2),
+      light: lighten(websiteColors.accentCoral, 0.2),
+      dark: darken(websiteColors.accentCoral, 0.2),
       contrastText: websiteColors.white
     },
     pdf_menubar: {

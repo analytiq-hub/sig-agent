@@ -27,7 +27,7 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
               backgroundColor: theme.palette.primary.light,
               opacity: 0.5,
             },
-            backgroundColor: showLeftPanel ? theme.palette.primary.light : 'transparent',
+            backgroundColor: showLeftPanel ? theme.palette.secondary.main : theme.palette.primary.light,
             minWidth: 'auto',
             padding: '6px 12px',
           }}
@@ -45,7 +45,7 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
               backgroundColor: theme.palette.primary.light,
               opacity: 0.5,
             },
-            backgroundColor: showPdfPanel ? theme.palette.primary.light : 'transparent',
+            backgroundColor: showPdfPanel ? theme.palette.secondary.main : theme.palette.primary.light,
             minWidth: 'auto',
             padding: '6px 12px',
           }}
