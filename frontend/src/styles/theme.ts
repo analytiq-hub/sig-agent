@@ -16,19 +16,19 @@ const theme = createTheme({
       main: '#316EA6', // Blue
       light: '#BECEDD', // Light blue
       dark: '#285785', // Darker blue for hover states
-      contrastText: '#fff',
+      contrastText: '#fff', // White text for contrast
     },
     secondary: {
       main: '#E36A70', // Coral/Pink
       light: '#BECEDD', // Light blue/gray
       dark: '#E0E2E5', // Light gray
-      contrastText: '#fff',
+      contrastText: '#fff', // White text for contrast
     },
     accent: {
       main: '#f5f5f5', // Light gray
       light: '#ffffff', // White
       dark: '#d7d7d7', // Gray
-      contrastText: '#000000', // Text color for accent elements
+      contrastText: '#000000', // Black text for contrast
     },
     background: {
       default: '#fff', // White
