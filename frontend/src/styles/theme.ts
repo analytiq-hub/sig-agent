@@ -26,8 +26,6 @@ const theme = createTheme({
     },
     pdf_menubar: {
       main: '#f5f5f5', // Light gray
-      light: '#ffffff', // White
-      dark: '#d7d7d7', // Gray
       contrastText: '#000000', // Black text for contrast
     },
     background: {
