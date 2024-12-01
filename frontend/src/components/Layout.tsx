@@ -225,7 +225,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         
         <Box component="main" sx={{ 
           flexGrow: 1,
-          p: 3,
           overflow: 'auto',
           display: 'flex',
           flexDirection: 'column'
