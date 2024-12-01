@@ -18,8 +18,8 @@ const websiteColors = {
   darkBlue: '#285785',
   darkBrown: '#3E3736',
   lightGray: '#f5f5f5',
-  whiteText: '#fff',
-  blackText: '#000000',
+  white: '#fff',
+  black: '#000000',
 };
 
 const theme = createTheme({
@@ -28,25 +28,25 @@ const theme = createTheme({
       main: websiteColors.mainBlue,
       light: lighten(websiteColors.lightBlue, 0.2),
       dark: darken(websiteColors.darkBlue, 0.2),
-      contrastText: websiteColors.whiteText
+      contrastText: websiteColors.white
     },
     secondary: {
       main: websiteColors.accentCoral,
       light: lighten(websiteColors.lightGray, 0.2),
       dark: darken(websiteColors.lightGray, 0.2),
-      contrastText: websiteColors.whiteText
+      contrastText: websiteColors.white
     },
     pdf_menubar: {
-      main: websiteColors.lightGray, // Light gray
-      contrastText: websiteColors.blackText, // Black text for contrast
+      main: websiteColors.lightGray,
+      contrastText: websiteColors.black,
     },
     background: {
-      default: '#fff', // White
-      paper: '#fff', // White
+      default: websiteColors.white,
+      paper: websiteColors.white,
     },
     text: {
-      primary: websiteColors.darkBrown, // Dark brown/gray
-      secondary: '#666666', // Gray
+      primary: websiteColors.darkBrown,
+      secondary: websiteColors.lightGray,
     },
   },
   components: {
