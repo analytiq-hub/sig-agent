@@ -7,7 +7,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { email, password, name } = body;
 
-    // Get database instance
     const db = mongoClient.db();
     const users = db.collection('users');
 
@@ -15,42 +14,28 @@ export async function POST(request: Request) {
     const existingUser = await users.findOne({ email });
 
     if (existingUser) {
-      // If user exists and has password, they're already registered
-      if (existingUser.password) {
-        return NextResponse.json(
-          { error: 'Email already registered' },
-          { status: 400 }
-        );
-      }
-
-      // If user exists without password (OAuth), merge accounts
-      const hashedPassword = await hash(password, 12);
-      await users.updateOne(
-        { email },
+      // Never merge accounts automatically
+      return NextResponse.json(
         { 
-          $set: {
-            password: hashedPassword,
-            name: name,
-            emailVerified: false,
-            verificationToken: crypto.randomUUID(),
-          }
-        }
+          error: 'An account with this email already exists. If this is your account, please sign in with your existing provider.',
+          provider: existingUser.accounts?.[0]?.provider || 'password' 
+        },
+        { status: 400 }
       );
-    } else {
-      // Create new user
-      const hashedPassword = await hash(password, 12);
-      await users.insertOne({
-        email,
-        password: hashedPassword,
-        name,
-        emailVerified: false,
-        verificationToken: crypto.randomUUID(),
-        createdAt: new Date(),
-      });
     }
 
+    // Create new user
+    const hashedPassword = await hash(password, 12);
+    await users.insertOne({
+      email,
+      password: hashedPassword,
+      name,
+      emailVerified: false,
+      verificationToken: crypto.randomUUID(),
+      createdAt: new Date(),
+    });
+
     // TODO: Send verification email
-    // Implement email sending logic here
     
     return NextResponse.json({ 
       success: true,
