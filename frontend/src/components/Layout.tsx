@@ -51,15 +51,15 @@ const AppBar = styled(MuiAppBar, {
 }));
 
 const authenticatedMenuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, href: '/dashboard' },
-  { text: 'Upload', icon: <UploadIcon />, href: '/upload' },
-  { text: 'List Files', icon: <ListIcon />, href: '/list' },
-  { text: 'Models', icon: <ModelIcon />, href: '/models' },
-  { text: 'Flows', icon: <AccountTreeIcon />, href: '/flows' },
+  { text: 'Dashboard', icon: <DashboardIcon />, tooltip: 'Dashboard', href: '/dashboard' },
+  { text: 'Upload', icon: <UploadIcon />, tooltip: 'Upload', href: '/upload' },
+  { text: 'List Files', icon: <ListIcon />, tooltip: 'List Files', href: '/list' },
+  { text: 'Models', icon: <ModelIcon />, tooltip: 'Models', href: '/models' },
+  { text: 'Flows', icon: <AccountTreeIcon />, tooltip: 'Flows', href: '/flows' },
 ];
 
 const debugMenuItems = [
-  { text: 'Test', icon: <ScienceIcon />, href: '/test' },
+  { text: 'Test', icon: <ScienceIcon />, tooltip: 'Test Page', href: '/test' },
 ];
 
 const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
@@ -83,34 +83,36 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
   }),
 );
 
-const renderMenuItem = (item: { text: string; icon: JSX.Element; href: string }, open: boolean) => (
-  <ListItem 
-    key={item.text} 
-    component={Link} 
-    href={item.href} 
-    disablePadding 
-  >
-    <ListItemButton 
-      sx={{
-        display: 'flex',
-        justifyContent: 'center', // Center when closed
-        alignItems: 'center',
-        minHeight: 48,
-      }}
+const renderMenuItem = (item: { text: string; icon: JSX.Element; href: string; tooltip: string }, open: boolean) => (
+  <Tooltip title={item.tooltip} arrow disableHoverListener={open} placement="right">
+    <ListItem 
+      key={item.text} 
+      component={Link} 
+      href={item.href} 
+      disablePadding 
     >
-      <ListItemIcon
+      <ListItemButton 
         sx={{
           display: 'flex',
           justifyContent: 'center',
-          minWidth: 0,
-          ...(open && { mr: 3 })
+          alignItems: 'center',
+          minHeight: 48,
         }}
       >
-        {item.icon}
-      </ListItemIcon>
-      {open && <ListItemText primary={item.text} />}
-    </ListItemButton>
-  </ListItem>
+        <ListItemIcon
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            minWidth: 0,
+            ...(open && { mr: 3 })
+          }}
+        >
+          {item.icon}
+        </ListItemIcon>
+        {open && <ListItemText primary={item.text} />}
+      </ListItemButton>
+    </ListItem>
+  </Tooltip>
 );
 
 interface PDFViewerControls {
