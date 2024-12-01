@@ -2,7 +2,7 @@
 
 import { useState, ReactNode, useEffect } from 'react';
 
-import { styled, useTheme, Theme, CSSObject } from '@mui/material/styles';
+import { styled, useTheme} from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import MuiDrawer from '@mui/material/Drawer';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
@@ -19,9 +19,9 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 
 import { useRouter, usePathname } from 'next/navigation';
-import AuthButton from './AuthButton';
+import AuthButton from '@/components/AuthButton';
 import { useSession } from 'next-auth/react';
-import UserMenu from './UserMenu'; // Add this import
+import UserMenu from '@/components/UserMenu'; // Add this import
 import Link from 'next/link';
 import { Upload as UploadIcon, List as ListIcon, Dashboard as DashboardIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon, Memory as ModelIcon } from '@mui/icons-material';
 import { Tooltip } from '@mui/material';
