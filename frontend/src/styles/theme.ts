@@ -1,12 +1,12 @@
 import { createTheme, ThemeOptions } from '@mui/material/styles';
 
-// Extend the default theme type to include accent
+// Extend the default theme type to include pdf_menubar
 declare module '@mui/material/styles' {
   interface Palette {
-    accent: Palette['primary'];
+    pdf_menubar: Palette['primary'];
   }
   interface PaletteOptions {
-    accent?: PaletteOptions['primary'];
+    pdf_menubar: PaletteOptions['primary'];
   }
 }
 
@@ -24,7 +24,7 @@ const theme = createTheme({
       dark: '#E0E2E5', // Light gray
       contrastText: '#fff', // White text for contrast
     },
-    accent: {
+    pdf_menubar: {
       main: '#f5f5f5', // Light gray
       light: '#ffffff', // White
       dark: '#d7d7d7', // Gray

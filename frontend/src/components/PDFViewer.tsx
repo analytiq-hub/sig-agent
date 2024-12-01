@@ -380,7 +380,7 @@ const PDFViewer = ({ id }: { id: string }) => {
       <Toolbar 
         variant='dense'
         sx={{ 
-          backgroundColor: theme => theme.palette.accent.main,
+          backgroundColor: theme => theme.palette.pdf_menubar.main,
           minHeight: '48px',
           flexShrink: 0,
           '& .MuiIconButton-root': {
@@ -401,7 +401,7 @@ const PDFViewer = ({ id }: { id: string }) => {
                 noWrap
                 sx={{
                   maxWidth: '100%',
-                  color: theme => theme.palette.accent.contrastText,
+                  color: theme => theme.palette.pdf_menubar.contrastText,
                   fontWeight: 'bold',
                   cursor: 'default',
                 }}
@@ -448,7 +448,7 @@ const PDFViewer = ({ id }: { id: string }) => {
                 }
               }}
             />
-            <Typography variant="body2" sx={{ mx: 0.5, color: theme => theme.palette.accent.contrastText, whiteSpace: 'nowrap' }}>
+            <Typography variant="body2" sx={{ mx: 0.5, color: theme => theme.palette.pdf_menubar.contrastText, whiteSpace: 'nowrap' }}>
               of {numPages}
             </Typography>
           </form>
