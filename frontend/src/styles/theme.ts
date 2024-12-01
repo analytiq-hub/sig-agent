@@ -14,7 +14,7 @@ const theme = createTheme({
   palette: {
     primary: {
       main: '#316EA6', // Blue
-      light: '#BDEDFF', // Light blue
+      light: '#BECEDD', // Light blue
       dark: '#285785', // Darker blue for hover states
       contrastText: '#fff',
     },
