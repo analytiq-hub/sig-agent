@@ -1,108 +1,32 @@
-import { createTheme, ThemeOptions } from '@mui/material/styles';
-
-declare module '@mui/material/styles' {
-  interface Palette {
-    accent: Palette['primary'];
-  }
-  interface PaletteOptions {
-    accent?: PaletteOptions['primary'];
-  }
-}
+import { createTheme } from '@mui/material/styles';
 
 const theme = createTheme({
-  // Customize your theme here
   palette: {
     primary: {
-      main: '#2c3e50', // AppBar color
-      light: '#4a6b8c', // Lighter shade for hover effects
-      dark: '#1a252f', // Darker shade for active states
-      contrastText: '#ffffff', // Text color for primary buttons
+      main: '#316EA6', // Blue
+      light: '#BDEDFF', // Light blue
+      dark: '#3E3736', // Dark brown/gray
     },
     secondary: {
-      main: '#34495e', // Drawer color
-      light: '#4f6272', // Lighter shade for hover effects
-      dark: '#1f2a36', // Darker shade for active states
-      contrastText: '#ffffff', // Text color for secondary buttons
-    },
-    accent: {
-      main: '#f5f5f5', // Toolbar color
-      light: '#ffffff', // Lighter shade for hover effects
-      dark: '#d7d7d7', // Darker shade for active states
-      contrastText: '#000000', // Text color for accent elements
-    },
-    error: {
-      main: '#e74c3c', // Error color
-    },
-    warning: {
-      main: '#f39c12', // Warning color
-    },
-    info: {
-      main: '#3498db', // Info color
-    },
-    success: {
-      main: '#2ecc71', // Success color
+      main: '#E36A70', // Coral/Pink
+      light: '#BECEDD', // Light blue/gray
+      dark: '#E0E2E5', // Light gray
     },
   },
   components: {
     MuiButton: {
       styleOverrides: {
-        root: {
-          borderRadius: '4px', // Customize border radius if needed
-          textTransform: 'none', // Prevent text from being converted to uppercase
-        },
-        containedPrimary: {
-          backgroundColor: '#2c3e50', // Primary button background
-          color: '#ffffff', // Primary button text color
+        contained: {
+          backgroundColor: '#316EA6', // Primary blue
+          color: '#fff', // White
+          textTransform: 'none',
           '&:hover': {
-            backgroundColor: '#4a6b8c', // Primary button hover background
-          },
-          '&:disabled': {
-            color: 'rgba(255, 255, 255, 0.3)',
-            backgroundColor: 'rgba(0, 0, 0, 0.12)',
-          },
-        },
-        outlinedPrimary: {
-          color: '#2c3e50', // Primary color
-          borderColor: '#2c3e50', // Primary color for border
-          '&:hover': {
-            backgroundColor: 'rgba(44, 62, 80, 0.04)', // Light primary color background on hover
-            borderColor: '#4a6b8c', // Lighter primary color for border on hover
-          },
-        },
-        containedSecondary: {
-          backgroundColor: '#34495e', // Secondary button background
-          color: '#ffffff', // Secondary button text color
-          '&:hover': {
-            backgroundColor: '#4f6272', // Secondary button hover background
-          },
-        },
-        outlinedSecondary: {
-          color: '#34495e', // Secondary color
-          borderColor: '#34495e', // Secondary color for border
-          '&:hover': {
-            backgroundColor: 'rgba(52, 73, 94, 0.04)', // Light secondary color background on hover
-            borderColor: '#4f6272', // Lighter secondary color for border on hover
-          },
-        },
-        containedAccent: {
-          backgroundColor: '#f5f5f5', // Accent button background
-          color: '#000000', // Accent button text color
-          '&:hover': {
-            backgroundColor: '#d7d7d7', // Accent button hover background
-          },
-        },
-        outlinedAccent: {
-          color: '#f5f5f5', // Accent color
-          borderColor: '#d7d7d7', // Accent color for border
-          '&:hover': {
-            backgroundColor: 'rgba(245, 245, 245, 0.04)', // Light accent color background on hover
-            borderColor: '#d7d7d7', // Lighter accent color for border on hover
+            backgroundColor: '#285785', // Slightly darker shade of the primary blue
           },
         },
       },
     },
   },
-  // Add more customizations as needed
-} as ThemeOptions);
+});
 
 export default theme;
