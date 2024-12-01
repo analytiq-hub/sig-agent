@@ -67,7 +67,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
           <Typography variant="body2" color="text.secondary">{user?.email || ''}</Typography>
         </MenuItem>
         <Divider />
-        <MenuItem component={Link} href="/settings/user">
+        <MenuItem component={Link} href="/settings">
           <SettingsIcon fontSize="small" sx={{ mr: 1 }} />
           Settings
         </MenuItem>
