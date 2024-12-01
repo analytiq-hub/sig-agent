@@ -25,13 +25,13 @@ const websiteColors = {
 const theme = createTheme({
   palette: {
     primary: {
-      main: websiteColors.mainBlue, // Blue
+      main: websiteColors.mainBlue,
       light: lighten(websiteColors.lightBlue, 0.2),
       dark: darken(websiteColors.darkBlue, 0.2),
       contrastText: websiteColors.whiteText
     },
     secondary: {
-      main: websiteColors.accentCoral, // Coral/Pink
+      main: websiteColors.accentCoral,
       light: lighten(websiteColors.lightGray, 0.2),
       dark: darken(websiteColors.lightGray, 0.2),
       contrastText: websiteColors.whiteText
