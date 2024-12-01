@@ -9,7 +9,7 @@ const SettingsPage: React.FC = () => {
 
   const renderContent = () => {
     switch (selectedMenu) {
-      case 'development':
+      case 'system_development':
         return (
           <div className="space-y-6">
             <div className="flex justify-between items-center mb-4">
@@ -43,7 +43,7 @@ const SettingsPage: React.FC = () => {
             </div>
           </div>
         );
-      case 'developer':
+      case 'user_developer':
         return (
           <div className="space-y-6">
             <div className="flex justify-between items-center mb-4">
@@ -85,8 +85,8 @@ const SettingsPage: React.FC = () => {
             }
           >
             <ListItemButton 
-              onClick={() => setSelectedMenu('development')}
-              selected={selectedMenu === 'development'}
+              onClick={() => setSelectedMenu('system_development')}
+              selected={selectedMenu === 'system_development'}
             >
               <ListItemText primary="Development" />
             </ListItemButton>
@@ -95,8 +95,8 @@ const SettingsPage: React.FC = () => {
             
             <ListSubheader component="div">User Settings</ListSubheader>
             <ListItemButton 
-              onClick={() => setSelectedMenu('developer')}
-              selected={selectedMenu === 'developer'}
+              onClick={() => setSelectedMenu('user_developer')}
+              selected={selectedMenu === 'user_developer'}
             >
               <ListItemText primary="Developer" />
             </ListItemButton>
