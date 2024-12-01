@@ -1,5 +1,9 @@
 # Releases
 
+## v3.0.3
+
+* Added support for password-based user registration.
+
 ## v3.0.2
 * Fixed [ANALYTIQ-5](https://github.com/analytiq-hub/doc-router/issues/5)
 
