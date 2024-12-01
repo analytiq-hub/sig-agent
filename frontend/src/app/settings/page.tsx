@@ -43,6 +43,24 @@ const SettingsPage: React.FC = () => {
             </div>
           </div>
         );
+      case 'developer':
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="text-xl font-semibold">Access tokens</h2>
+                <p className="text-gray-600 mb-2">
+                  Use Access Tokens to authenticate with our API.
+                </p>
+              </div>
+              <Link href="/settings/user/developer" passHref>
+                <Button variant="contained" color="secondary">
+                  Manage
+                </Button>
+              </Link>
+            </div>
+          </div>
+        );
       default:
         return (
           <>
@@ -76,11 +94,14 @@ const SettingsPage: React.FC = () => {
             <Divider sx={{ my: 2 }} />
             
             <ListSubheader component="div">User Settings</ListSubheader>
+            <ListItemButton 
+              onClick={() => setSelectedMenu('developer')}
+              selected={selectedMenu === 'developer'}
+            >
+              <ListItemText primary="Developer" />
+            </ListItemButton>
             <ListItemButton component={Link} href="/settings/user/profile">
               <ListItemText primary="Profile" />
-            </ListItemButton>
-            <ListItemButton component={Link} href="/settings/user/developer">
-              <ListItemText primary="Developer" />
             </ListItemButton>
           </List>
         </Paper>
