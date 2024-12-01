@@ -13,8 +13,6 @@ import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -39,36 +37,6 @@ declare global {
 
 const drawerWidth = 180;
 
-const openedMixin = (theme: Theme): CSSObject => ({
-  width: drawerWidth,
-  transition: theme.transitions.create('width', {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.enteringScreen,
-  }),
-  overflowX: 'hidden',
-});
-
-const closedMixin = (theme: Theme): CSSObject => ({
-  transition: theme.transitions.create('width', {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  overflowX: 'hidden',
-  width: `calc(${theme.spacing(7)} + 1px)`,
-  [theme.breakpoints.up('sm')]: {
-    width: `calc(${theme.spacing(8)} + 1px)`,
-  },
-});
-
-const DrawerHeader = styled('div')(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'flex-end',
-  padding: theme.spacing(0, 1),
-  // necessary for content to be below app bar
-  ...theme.mixins.toolbar,
-}));
-
 interface AppBarProps extends MuiAppBarProps {
   open?: boolean;
 }
@@ -76,24 +44,10 @@ interface AppBarProps extends MuiAppBarProps {
 const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== 'open',
 })<AppBarProps>(({ theme }) => ({
-  zIndex: theme.zIndex.drawer + 1,
   transition: theme.transitions.create(['width', 'margin'], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
   }),
-  variants: [
-    {
-      props: ({ open }) => open,
-      style: {
-        marginLeft: drawerWidth,
-        width: `calc(100% - ${drawerWidth}px)`,
-        transition: theme.transitions.create(['width', 'margin'], {
-          easing: theme.transitions.easing.sharp,
-          duration: theme.transitions.duration.enteringScreen,
-        }),
-      },
-    },
-  ],
 }));
 
 const authenticatedMenuItems = [
@@ -109,48 +63,53 @@ const debugMenuItems = [
 ];
 
 const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
-  ({ theme }) => ({
-    width: drawerWidth,
+  ({ theme, open }) => ({
     flexShrink: 0,
     whiteSpace: 'nowrap',
-    boxSizing: 'border-box',
-    variants: [
-      {
-        props: ({ open }) => open,
-        style: {
-          ...openedMixin(theme),
-          '& .MuiDrawer-paper': openedMixin(theme),
-        },
+    '& .MuiDrawer-paper': {
+      position: 'relative',
+      display: 'flex',
+      flexDirection: 'column',
+      overflowX: 'hidden',
+      transition: theme.transitions.create('width', {
+        easing: theme.transitions.easing.sharp,
+        duration: theme.transitions.duration.enteringScreen,
+      }),
+      width: open ? drawerWidth : theme.spacing(7),
+      [theme.breakpoints.up('sm')]: {
+        width: open ? drawerWidth : theme.spacing(8),
       },
-      {
-        props: ({ open }) => !open,
-        style: {
-          ...closedMixin(theme),
-          '& .MuiDrawer-paper': closedMixin(theme),
-        },
-      },
-    ],
+    },
   }),
 );
 
 const renderMenuItem = (item: { text: string; icon: JSX.Element; href: string }, open: boolean) => (
-  <ListItem key={item.text} component={Link} href={item.href} disablePadding sx={{ display: 'block' }}>
-      <ListItemButton 
-        sx={[{minHeight: 48, px: 2.5}, 
-             open ? { justifyContent: 'initial' } : { justifyContent: 'center' }
-        ]}
+  <ListItem 
+    key={item.text} 
+    component={Link} 
+    href={item.href} 
+    disablePadding 
+  >
+    <ListItemButton 
+      sx={{
+        display: 'flex',
+        justifyContent: 'center', // Center when closed
+        alignItems: 'center',
+        minHeight: 48,
+      }}
+    >
+      <ListItemIcon
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          minWidth: 0,
+          ...(open && { mr: 3 })
+        }}
       >
-        <Tooltip title={item.text} arrow disableHoverListener={open}>
-          <ListItemIcon
-            sx={[{minWidth: 0, justifyContent: 'center'},
-               open ? {mr: 3} : {mr: 'auto'},
-          ]}
-          >
-            {item.icon}
-          </ListItemIcon>
-        </Tooltip>
-        {open && (<ListItemText primary={item.text} />)}
-      </ListItemButton>
+        {item.icon}
+      </ListItemIcon>
+      {open && <ListItemText primary={item.text} />}
+    </ListItemButton>
   </ListItem>
 );
 
@@ -195,12 +154,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   }, [forceUpdate]);
 
-  const handleDrawerOpen = () => {
-    setOpen(true);
-  };
-
-  const handleDrawerClose = () => {
-    setOpen(false);
+  const handleDrawerToggle = () => {
+    setOpen(prev => !prev);
   };
 
   useEffect(() => {
@@ -210,19 +165,23 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [status, router]);
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column',
+      height: '100vh', 
+      overflow: 'hidden' 
+    }}>
       <CssBaseline />
-      <AppBar position="fixed" open={open}>
+      <AppBar position="static">
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <IconButton
               color="inherit"
-              aria-label="open drawer"
-              onClick={handleDrawerOpen}
+              aria-label="toggle drawer"
+              onClick={handleDrawerToggle}
               edge="start"
               sx={[
                 { marginRight: 5 },
-                open && { display: 'none' },
               ]}
             >
               <MenuIcon />
@@ -246,34 +205,33 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Box>
         </Toolbar>
       </AppBar>
-      <Drawer variant="permanent" open={open}>
-        <DrawerHeader>
-          <Tooltip title={"Minimize Drawer"} arrow>
-          <IconButton onClick={handleDrawerClose}>
-            {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-            </IconButton>
-          </Tooltip>
-        </DrawerHeader>
-        <Divider />
-        <List>
-          {status === 'authenticated' && authenticatedMenuItems.map(item => renderMenuItem(item, open))}
-        </List>
-        <Divider />
-        <List>
-          {debugMenuItems.map(item => renderMenuItem(item, open))}
-        </List>
-      </Drawer>
-      <Box component="main" sx={{ 
-        flexGrow: 1, 
-        p: 0, 
-        width: { sm: `calc(100% - ${drawerWidth}px)` }, 
-        height: '100%',
-        overflow: 'auto', // Changed from 'hidden' to 'auto'
+
+      <Box sx={{ 
         display: 'flex',
-        flexDirection: 'column'
+        position: 'relative',
+        flex: 1,
+        overflow: 'hidden'
       }}>
-        <DrawerHeader />
-        {children}
+        <Drawer variant="permanent" open={open}>
+          <Divider />
+          <List>
+            {status === 'authenticated' && authenticatedMenuItems.map(item => renderMenuItem(item, open))}
+          </List>
+          <Divider />
+          <List>
+            {debugMenuItems.map(item => renderMenuItem(item, open))}
+          </List>
+        </Drawer>
+        
+        <Box component="main" sx={{ 
+          flexGrow: 1,
+          p: 3,
+          overflow: 'auto',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          {children}
+        </Box>
       </Box>
     </Box>
   );
