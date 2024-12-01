@@ -42,7 +42,7 @@ const theme = createTheme({
     },
     background: {
       default: websiteColors.white,
-      paper: websiteColors.white,
+      paper: websiteColors.lightGray,
     },
     text: {
       primary: websiteColors.darkBrown,
