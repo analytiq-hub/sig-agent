@@ -1,4 +1,4 @@
-import { createTheme, ThemeOptions } from '@mui/material/styles';
+import { createTheme, ThemeOptions, darken, lighten } from '@mui/material/styles';
 
 // Extend the default theme type to include pdf_menubar
 declare module '@mui/material/styles' {
@@ -10,30 +10,42 @@ declare module '@mui/material/styles' {
   }
 }
 
+const websiteColors = {
+  mainBlue: '#316EA6',
+  lightBlue: '#BECEDD',
+  accentCoral: '#E36A70',
+  backgroundGrey: '#f5f5f5',
+  darkBlue: '#285785',
+  darkBrown: '#3E3736',
+  lightGray: '#f5f5f5',
+  whiteText: '#fff',
+  blackText: '#000000',
+};
+
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#316EA6', // Blue
-      light: '#BECEDD', // Light blue
-      dark: '#285785', // Darker blue for hover states
-      contrastText: '#fff', // White text for contrast
+      main: websiteColors.mainBlue, // Blue
+      light: lighten(websiteColors.lightBlue, 0.2),
+      dark: darken(websiteColors.darkBlue, 0.2),
+      contrastText: websiteColors.whiteText
     },
     secondary: {
-      main: '#E36A70', // Coral/Pink
-      light: '#BECEDD', // Light blue/gray
-      dark: '#E0E2E5', // Light gray
-      contrastText: '#fff', // White text for contrast
+      main: websiteColors.accentCoral, // Coral/Pink
+      light: lighten(websiteColors.lightGray, 0.2),
+      dark: darken(websiteColors.lightGray, 0.2),
+      contrastText: websiteColors.whiteText
     },
     pdf_menubar: {
-      main: '#f5f5f5', // Light gray
-      contrastText: '#000000', // Black text for contrast
+      main: websiteColors.lightGray, // Light gray
+      contrastText: websiteColors.blackText, // Black text for contrast
     },
     background: {
       default: '#fff', // White
       paper: '#fff', // White
     },
     text: {
-      primary: '#3E3736', // Dark brown/gray
+      primary: websiteColors.darkBrown, // Dark brown/gray
       secondary: '#666666', // Gray
     },
   },
