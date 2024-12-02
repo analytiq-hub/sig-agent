@@ -64,7 +64,12 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
       >
         <MenuItem sx={{ flexDirection: 'column', alignItems: 'flex-start' }}>
           <Typography variant="subtitle1">{user?.name || 'User'}</Typography>
-          <Typography variant="body2" color="text.secondary">{user?.email || ''}</Typography>
+          <Typography 
+            variant="body2" 
+            sx={{ color: 'text.primary', opacity: 0.8 }}
+          >
+            {user?.email || ''}
+          </Typography>
         </MenuItem>
         <Divider />
         <MenuItem component={Link} href="/settings">
