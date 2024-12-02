@@ -2,12 +2,11 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Paper, List, ListSubheader, ListItemButton, ListItemText, Divider, Button, useTheme } from '@mui/material';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PersonIcon from '@mui/icons-material/Person';
+import { Button, Divider } from '@mui/material';
 
 const SettingsPage: React.FC = () => {
-  const theme = useTheme();
   const [selectedMenu, setSelectedMenu] = useState<string | null>(null);
 
   const renderContent = () => {
@@ -78,65 +77,64 @@ const SettingsPage: React.FC = () => {
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Settings</h1>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Paper className="md:col-span-1">
-          <List
-            component="nav"
-            subheader={
-              <>
-                <ListSubheader 
-                  sx={{ 
-                    color: theme.palette.text.primary,
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
+        <div className="bg-white rounded-lg shadow">
+          <nav className="flex flex-col">
+            <div className="p-4">
+              <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                <AdminPanelSettingsIcon className="w-5 h-5" />
+                <span>Admin Settings</span>
+              </div>
+              
+              <div className="ml-4 space-y-1">
+                <button
+                  onClick={() => setSelectedMenu('system_development')}
+                  className={`w-full text-left px-4 py-2 rounded-md transition-colors
+                    ${selectedMenu === 'system_development' 
+                      ? 'bg-blue-50 text-blue-600' 
+                      : 'hover:bg-gray-100 text-gray-700'
+                    }`}
                 >
-                  <AdminPanelSettingsIcon />
-                  Admin Settings
-                </ListSubheader>
-              </>
-            }
-          >
-            <ListItemButton 
-              onClick={() => setSelectedMenu('system_development')}
-              selected={selectedMenu === 'system_development'}
-              sx={{ pl: 5 }}
-            >
-              <ListItemText primary="Development" />
-            </ListItemButton>
-            
-            <Divider sx={{ my: 2 }} />
-            
-            <ListSubheader 
-              sx={{ 
-                color: theme.palette.text.primary,
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <PersonIcon />
-              User Settings
-            </ListSubheader>
-            <ListItemButton 
-              onClick={() => setSelectedMenu('user_developer')}
-              selected={selectedMenu === 'user_developer'}
-              sx={{ pl: 5 }}
-            >
-              <ListItemText primary="Developer" />
-            </ListItemButton>
-            <ListItemButton 
-              component={Link} 
-              href="/settings/user/profile"
-              sx={{ pl: 5 }}
-            >
-              <ListItemText primary="Profile" />
-            </ListItemButton>
-          </List>
-        </Paper>
+                  Development
+                </button>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-200 my-2"></div>
+
+            <div className="p-4">
+              <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                <PersonIcon className="w-5 h-5" />
+                <span>User Settings</span>
+              </div>
+              
+              <div className="ml-4 space-y-1">
+                <button
+                  onClick={() => setSelectedMenu('user_developer')}
+                  className={`w-full text-left px-4 py-2 rounded-md transition-colors
+                    ${selectedMenu === 'user_developer' 
+                      ? 'bg-blue-50 text-blue-600' 
+                      : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                >
+                  Developer
+                </button>
+                
+                <Link 
+                  href="/settings/user/profile"
+                  className="block w-full text-left px-4 py-2 rounded-md transition-colors
+                    hover:bg-gray-100 text-gray-700"
+                >
+                  Profile
+                </Link>
+              </div>
+            </div>
+          </nav>
+        </div>
         
         <div className="md:col-span-3">
-          <Paper className="p-4">
+          <div className="bg-white rounded-lg shadow p-4">
             {renderContent()}
-          </Paper>
+          </div>
         </div>
       </div>
     </div>
