@@ -1,4 +1,5 @@
-import { createTheme, ThemeOptions, darken, lighten } from '@mui/material/styles';
+import { createTheme, ThemeOptions} from '@mui/material/styles';
+import colors from 'tailwindcss/colors'
 
 // Extend the default theme type to include pdf_menubar
 declare module '@mui/material/styles' {
@@ -10,43 +11,31 @@ declare module '@mui/material/styles' {
   }
 }
 
-const websiteColors = {
-  mainBlue: '#316EA6',
-  lightBlue: '#BECEDD',
-  accentCoral: '#E36A70',
-  backgroundGrey: '#f5f5f5',
-  darkBlue: '#285785',
-  darkBrown: '#3E3736',
-  lightGray: '#f5f5f5',
-  white: '#fff',
-  black: '#000000',
-};
-
 const theme = createTheme({
   palette: {
     primary: {
-      main: websiteColors.mainBlue,
-      light: lighten(websiteColors.mainBlue, 0.2),
-      dark: darken(websiteColors.mainBlue, 0.2),
-      contrastText: websiteColors.white
+      main: colors.blue[600],
+      light: colors.blue[400],
+      dark: colors.blue[800],
+      contrastText: colors.white
     },
     secondary: {
-      main: websiteColors.accentCoral,
-      light: lighten(websiteColors.accentCoral, 0.2),
-      dark: darken(websiteColors.accentCoral, 0.2),
-      contrastText: websiteColors.white
+      main: colors.red[400],
+      light: colors.red[300],
+      dark: colors.red[700],
+      contrastText: colors.white
     },
     pdf_menubar: {
-      main: websiteColors.lightGray,
-      contrastText: websiteColors.black,
+      main: colors.gray[100],
+      contrastText: colors.black,
     },
     background: {
-      default: websiteColors.white,
-      paper: websiteColors.lightGray,
+      default: colors.white,
+      paper: colors.gray[100],
     },
     text: {
-      primary: websiteColors.darkBrown,
-      secondary: websiteColors.lightGray,
+      primary: colors.stone[700],
+      secondary: colors.gray[100],
     },
   },
   components: {
