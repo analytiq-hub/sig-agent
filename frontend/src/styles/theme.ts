@@ -11,6 +11,7 @@ declare module '@mui/material/styles' {
   }
 }
 
+// Use tailwind colors so we can later intermix material ui and tailwind components
 const theme = createTheme({
   palette: {
     primary: {
