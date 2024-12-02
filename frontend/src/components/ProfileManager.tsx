@@ -21,13 +21,15 @@ const ProfileManager: React.FC = () => {
         body: JSON.stringify({ displayName }),
       });
 
-      if (response.ok) {
-        setSuccess('Profile updated successfully');
-        update(); // Update the session data
-      } else {
+      if (!response.ok) {
         throw new Error('Failed to update profile');
       }
-    } catch (error) {
+      setSuccess('Profile updated successfully');
+      update();
+    } catch (error: Error | unknown) {
+      if (error instanceof Error) {
+        console.error('Error updating profile:', error.message);
+      }
       setError('Failed to update profile');
     }
   };
@@ -53,7 +55,10 @@ const ProfileManager: React.FC = () => {
       } else {
         throw new Error('Failed to update password');
       }
-    } catch (error) {
+    } catch (error: Error | unknown) {
+      if (error instanceof Error) {
+        console.error('Error updating password:', error.message);
+      }
       setError('Failed to update password');
     }
   };
@@ -125,3 +130,4 @@ const ProfileManager: React.FC = () => {
 };
 
 export default ProfileManager;
+

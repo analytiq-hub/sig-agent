@@ -74,7 +74,7 @@ const authOptions: NextAuthOptions = {
         })
     ],
     callbacks: {
-        async signIn({ user, account, profile }) {
+        async signIn({ user, account }) {
             try {
                 if (account?.provider === 'google' || account?.provider === 'github') {
                     const db = client.db();
