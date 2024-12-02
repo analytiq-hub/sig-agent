@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Paper, List, ListSubheader, ListItemButton, ListItemText, Divider, Button, useTheme } from '@mui/material';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import PersonIcon from '@mui/icons-material/Person';
 
 const SettingsPage: React.FC = () => {
   const theme = useTheme();
@@ -81,27 +83,55 @@ const SettingsPage: React.FC = () => {
             component="nav"
             subheader={
               <>
-                <ListSubheader sx={{ color: theme.palette.text.primary }}>Admin Settings</ListSubheader>
+                <ListSubheader 
+                  sx={{ 
+                    color: theme.palette.text.primary,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    pl: 2
+                  }}
+                >
+                  <AdminPanelSettingsIcon />
+                  Admin Settings
+                </ListSubheader>
               </>
             }
           >
             <ListItemButton 
               onClick={() => setSelectedMenu('system_development')}
               selected={selectedMenu === 'system_development'}
+              sx={{ pl: 3 }}
             >
               <ListItemText primary="Development" />
             </ListItemButton>
             
             <Divider sx={{ my: 2 }} />
             
-            <ListSubheader component="div" sx={{ color: theme.palette.text.primary }}>User Settings</ListSubheader>
+            <ListSubheader 
+              sx={{ 
+                color: theme.palette.text.primary,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                pl: 2
+              }}
+            >
+              <PersonIcon />
+              User Settings
+            </ListSubheader>
             <ListItemButton 
               onClick={() => setSelectedMenu('user_developer')}
               selected={selectedMenu === 'user_developer'}
+              sx={{ pl: 3 }}
             >
               <ListItemText primary="Developer" />
             </ListItemButton>
-            <ListItemButton component={Link} href="/settings/user/profile">
+            <ListItemButton 
+              component={Link} 
+              href="/settings/user/profile"
+              sx={{ pl: 3 }}
+            >
               <ListItemText primary="Profile" />
             </ListItemButton>
           </List>
