@@ -1,5 +1,8 @@
 # Releases
 
+## v3.0.4
+* Change color scheme.
+
 ## v3.0.3
 * Added support for password-based user registration.
 
