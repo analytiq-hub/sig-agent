@@ -44,6 +44,12 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
             <ListItemText 
               primary={key}
               secondary={typeof value === 'object' ? JSON.stringify(value, null, 2) : value}
+              sx={{
+                '& .MuiListItemText-secondary': {
+                  color: theme => theme.palette.text.primary,
+                  filter: 'brightness(0.9)'
+                }
+              }}
             />
           </ListItemButton>
         ))}
