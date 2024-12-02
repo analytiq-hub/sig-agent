@@ -80,7 +80,7 @@ const SettingsPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow">
           <nav className="flex flex-col">
             <div className="p-4">
-              <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+              <div className="flex items-center gap-2 text-gray-400 font-medium mb-2">
                 <AdminPanelSettingsIcon className="w-5 h-5" />
                 <span>Admin Settings</span>
               </div>
@@ -102,7 +102,7 @@ const SettingsPage: React.FC = () => {
             <div className="border-t border-gray-200 my-2"></div>
 
             <div className="p-4">
-              <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+              <div className="flex items-center gap-2 text-gray-400 font-medium mb-2">
                 <PersonIcon className="w-5 h-5" />
                 <span>User Settings</span>
               </div>
