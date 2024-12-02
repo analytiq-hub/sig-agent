@@ -88,8 +88,6 @@ const SettingsPage: React.FC = () => {
                     color: theme.palette.text.primary,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 1,
-                    pl: 2
                   }}
                 >
                   <AdminPanelSettingsIcon />
@@ -101,7 +99,7 @@ const SettingsPage: React.FC = () => {
             <ListItemButton 
               onClick={() => setSelectedMenu('system_development')}
               selected={selectedMenu === 'system_development'}
-              sx={{ pl: 3 }}
+              sx={{ pl: 5 }}
             >
               <ListItemText primary="Development" />
             </ListItemButton>
@@ -113,8 +111,6 @@ const SettingsPage: React.FC = () => {
                 color: theme.palette.text.primary,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1,
-                pl: 2
               }}
             >
               <PersonIcon />
@@ -123,14 +119,14 @@ const SettingsPage: React.FC = () => {
             <ListItemButton 
               onClick={() => setSelectedMenu('user_developer')}
               selected={selectedMenu === 'user_developer'}
-              sx={{ pl: 3 }}
+              sx={{ pl: 5 }}
             >
               <ListItemText primary="Developer" />
             </ListItemButton>
             <ListItemButton 
               component={Link} 
               href="/settings/user/profile"
-              sx={{ pl: 3 }}
+              sx={{ pl: 5 }}
             >
               <ListItemText primary="Profile" />
             </ListItemButton>
