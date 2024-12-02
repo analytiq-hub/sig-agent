@@ -97,7 +97,7 @@ export default function SigninPage() {
         </Button>
         <Button
           variant="contained"
-          color="secondary"
+          color="primary"
           onClick={() => handleSocialLogin('github')}
           fullWidth
           startIcon={<GitHubIcon />}

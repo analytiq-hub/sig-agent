@@ -139,8 +139,8 @@ const LLMTokenManager: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button variant="outlined" color="secondary" onClick={() => setEditModalOpen(false)}>Cancel</Button>
-          <Button variant="contained" color="secondary" onClick={handleSaveLLMToken}>Save</Button>
+          <Button variant="outlined" color="primary" onClick={() => setEditModalOpen(false)}>Cancel</Button>
+          <Button variant="contained" color="primary" onClick={handleSaveLLMToken}>Save</Button>
         </DialogActions>
       </Dialog>
 

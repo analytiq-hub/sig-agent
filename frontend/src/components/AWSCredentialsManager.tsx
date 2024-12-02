@@ -128,10 +128,10 @@ const AWSCredentialsManager: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button variant="outlined" color="secondary" onClick={() => setEditModalOpen(false)}>Cancel</Button>
+          <Button variant="outlined" color="primary" onClick={() => setEditModalOpen(false)}>Cancel</Button>
           <Button 
             variant="contained" 
-            color="secondary" 
+            color="primary" 
             onClick={handleSaveCredentials}
             disabled={!accessKeyId || !secretAccessKey}
           >

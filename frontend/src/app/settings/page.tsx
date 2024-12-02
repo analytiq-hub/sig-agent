@@ -22,7 +22,7 @@ const SettingsPage: React.FC = () => {
                 </p>
               </div>
               <Link href="/settings/admin/development/llm-tokens" passHref>
-                <Button variant="contained" color="secondary">
+                <Button variant="contained" color="primary">
                   Manage
                 </Button>
               </Link>
@@ -38,7 +38,7 @@ const SettingsPage: React.FC = () => {
                 </p>
               </div>
               <Link href="/settings/admin/development/aws-credentials" passHref>
-                <Button variant="contained" color="secondary">
+                <Button variant="contained" color="primary">
                   Manage
                 </Button>
               </Link>
@@ -56,7 +56,7 @@ const SettingsPage: React.FC = () => {
                 </p>
               </div>
               <Link href="/settings/user/developer" passHref>
-                <Button variant="contained" color="secondary">
+                <Button variant="contained" color="primary">
                   Manage
                 </Button>
               </Link>
