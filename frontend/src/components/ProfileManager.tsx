@@ -4,12 +4,14 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import { useSession } from 'next-auth/react';
+import PasswordUpdateModal from './PasswordUpdateModal';
 
 const ProfileManager: React.FC = () => {
   const { data: session, update } = useSession();
   const [openNameModal, setOpenNameModal] = useState(false);
   const [newName, setNewName] = useState('');
-  
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+
   const handleUpdateName = async () => {
     try {
       await fetch('/api/user/profile', {
@@ -31,6 +33,19 @@ const ProfileManager: React.FC = () => {
       setNewName('');
     } catch (error) {
       console.error('Error updating name:', error);
+    }
+  };
+
+  const handlePasswordUpdate = async (oldPassword: string, newPassword: string) => {
+    const response = await fetch('/api/user/password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldPassword, newPassword }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Failed to update password');
     }
   };
 
@@ -61,11 +76,13 @@ const ProfileManager: React.FC = () => {
             Update your password.
           </p>
         </div>
-        <Link href="/settings/user/profile/security" passHref>
-          <Button variant="contained" color="primary">
-            Change
-          </Button>
-        </Link>
+        <Button 
+          variant="contained" 
+          color="primary"
+          onClick={() => setIsPasswordModalOpen(true)}
+        >
+          Change
+        </Button>
       </div>
 
       <Dialog open={openNameModal} onClose={() => setOpenNameModal(false)}>
@@ -93,6 +110,12 @@ const ProfileManager: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <PasswordUpdateModal
+        open={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        onUpdate={handlePasswordUpdate}
+      />
     </div>
   );
 };
