@@ -18,8 +18,15 @@ const ProfileManager: React.FC = () => {
         body: JSON.stringify({ name: newName })
       });
       
-      // Update the session to reflect the new name
-      await update({ name: newName });
+      // Update the session with new name
+      await update({
+        ...session,
+        user: {
+          ...session?.user,
+          name: newName
+        }
+      });
+
       setOpenNameModal(false);
       setNewName('');
     } catch (error) {
