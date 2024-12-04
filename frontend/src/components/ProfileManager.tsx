@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import { useSession } from 'next-auth/react';
 import PasswordUpdateModal from './PasswordUpdateModal';
+import DeleteAccountModal from './DeleteAccountModal';
 
 const ProfileManager: React.FC = () => {
   const { data: session, update } = useSession();
   const [openNameModal, setOpenNameModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const handleUpdateName = async () => {
     try {
@@ -62,6 +64,7 @@ const ProfileManager: React.FC = () => {
           variant="contained" 
           color="primary"
           onClick={() => setOpenNameModal(true)}
+          className="w-24"
         >
           Update
         </Button>
@@ -80,6 +83,7 @@ const ProfileManager: React.FC = () => {
           variant="contained" 
           color="primary"
           onClick={() => setIsPasswordModalOpen(true)}
+          className="w-24"
         >
           Update
         </Button>
@@ -115,6 +119,30 @@ const ProfileManager: React.FC = () => {
         open={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
         onUpdate={handlePasswordUpdate}
+      />
+
+      <Divider />
+
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h2 className="text-xl font-semibold">Delete Account</h2>
+          <p className="text-gray-600 mb-2">
+            Permanently delete your account and all associated data.
+          </p>
+        </div>
+        <Button 
+          variant="contained" 
+          color="error"
+          onClick={() => setIsDeleteModalOpen(true)}
+          className="w-24"
+        >
+          Delete
+        </Button>
+      </div>
+
+      <DeleteAccountModal
+        open={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
       />
     </div>
   );
