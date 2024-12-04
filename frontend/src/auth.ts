@@ -11,7 +11,7 @@ import { AppSession } from '@/app/types/AppSession';
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 
-const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthOptions = {
     session: {
         strategy: 'jwt' as const,
     },
