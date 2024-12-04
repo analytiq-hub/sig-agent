@@ -17,11 +17,26 @@ import {
   BeakerIcon,
 } from '@heroicons/react/24/outline';
 
-// Keep the PDFViewerControls type declaration
+// First, let's fix the type errors
+interface PDFViewerControlsType {
+  showLeftPanel: boolean;
+  setShowLeftPanel: React.Dispatch<React.SetStateAction<boolean>>;
+  showPdfPanel: boolean;
+  setShowPdfPanel: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
 declare global {
   interface Window {
-    pdfViewerControls?: PDFViewerControls;
+    pdfViewerControls?: PDFViewerControlsType;
   }
+}
+
+// Update the icon type
+interface MenuItem {
+  text: string;
+  icon: React.ForwardRefExoticComponent<React.SVGProps<SVGSVGElement>>;
+  href: string;
+  tooltip: string;
 }
 
 const fileMenuItems = [
@@ -53,7 +68,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const pathname = usePathname();
   const isPDFViewer = pathname.startsWith('/pdf-viewer/');
   const [forceUpdate, setForceUpdate] = useState(0);
-  const [pdfControls, setPdfControls] = useState<PDFViewerControls | null>(null);
+  const [pdfControls, setPdfControls] = useState<PDFViewerControlsType | null>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -87,7 +102,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   }, [status, router]);
 
-  const renderMenuItem = (item: { text: string; icon: any; href: string; tooltip: string }) => {
+  // Update the renderMenuItem function to match burger icon size and alignment
+  const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icon;
     return (
       <Link
@@ -96,10 +112,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         className="group relative flex items-center"
         title={!open ? item.tooltip : ''}
       >
-        <div className={`flex h-12 items-center ${open ? 'w-full px-4' : 'justify-center w-16'} hover:bg-gray-100 dark:hover:bg-gray-800`}>
-          <Icon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+        <div className={`
+          flex items-center
+          h-12
+          ${open ? 'w-full' : 'w-16'}
+          px-6  // Reduced padding to match burger icon alignment
+          hover:bg-gray-100 dark:hover:bg-gray-800
+          transition-colors duration-200
+        `}>
+          <div className="flex justify-start w-6">
+            <Icon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+          </div>
           {open && (
-            <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-200">
+            <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">
               {item.text}
             </span>
           )}
@@ -140,25 +165,32 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className={`${open ? 'w-64' : 'w-16'} flex-shrink-0 transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-gray-800`}>
-          <nav className="flex h-full flex-col">
+        <aside 
+          className={`
+            flex-shrink-0 
+            transition-all duration-300 ease-in-out 
+            border-r border-gray-200 dark:border-gray-800
+            ${open ? 'w-64' : 'w-16'}
+          `}
+        >
+          <nav className="flex h-full flex-col overflow-hidden">
             {status === 'authenticated' && (
               <>
-                <div className="space-y-1 py-2">
+                <div className="py-2">
                   {fileMenuItems.map(renderMenuItem)}
                 </div>
                 <hr className="border-gray-200 dark:border-gray-800" />
-                <div className="space-y-1 py-2">
+                <div className="py-2">
                   {modelMenuItems.map(renderMenuItem)}
                 </div>
                 <hr className="border-gray-200 dark:border-gray-800" />
-                <div className="space-y-1 py-2">
+                <div className="py-2">
                   {flowMenuItems.map(renderMenuItem)}
                 </div>
               </>
             )}
             <hr className="border-gray-200 dark:border-gray-800" />
-            <div className="space-y-1 py-2">
+            <div className="py-2">
               {debugMenuItems.map(renderMenuItem)}
             </div>
           </nav>
