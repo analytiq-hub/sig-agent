@@ -106,16 +106,19 @@ export const uploadFilesApi = async (files: FileWithContent[]) => {
   return response.data;
 };
 
-export const listFilesApi = async () => {
-  console.log('Making API request to:', `${NEXT_PUBLIC_FASTAPI_FRONTEND_URL}/files/list`);
-  try {
-    const response = await api.get('/files/list');
-    console.log('API response:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('API error:', error);
-    throw error;
-  }
+interface ListFilesParams {
+  skip?: number;
+  limit?: number;
+}
+
+export const listFilesApi = async (params?: ListFilesParams) => {
+  const response = await api.get('/files/list', { 
+    params: {
+      skip: params?.skip || 0,
+      limit: params?.limit || 10
+    }
+  });
+  return response.data;
 };
 
 export const downloadFileApi = async (id: string) => {

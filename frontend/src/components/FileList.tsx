@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { DataGrid, GridColDef, GridValueFormatterParams, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { Box, IconButton } from '@mui/material';
 import { listFilesApi, deleteFileApi, isAxiosError } from '@/utils/api';
 import Link from 'next/link';
@@ -43,7 +43,10 @@ const FileList: React.FC = () => {
         console.log('Unauthorized, waiting for token and retrying...');
         await new Promise(resolve => setTimeout(resolve, 1000));
         try {
-          const retryResponse = await listFilesApi();
+          const retryResponse = await listFilesApi({
+            skip: paginationModel.page * paginationModel.pageSize,
+            limit: paginationModel.pageSize
+          }); 
           setFiles(retryResponse.pdfs);
           setCountRows(retryResponse.pdfs.length);
           setSkipRows(retryResponse.skip);
@@ -104,7 +107,7 @@ const FileList: React.FC = () => {
       field: 'upload_date',
       headerName: 'Upload Date',
       flex: 1,
-      valueFormatter: (params: GridValueFormatterParams) => {
+      valueFormatter: (params) => {
         if (!params.value) return '';
         const date = new Date(params.value as string);
         return date.toLocaleDateString('en-US', {
