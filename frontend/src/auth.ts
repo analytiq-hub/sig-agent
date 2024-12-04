@@ -102,7 +102,12 @@ export const authOptions: NextAuthOptions = {
                 return false;
             }
         },
-        async jwt({ token, account, profile }: { token: JWT; account: Account | null; profile?: Profile }) {
+        async jwt({ token, account, profile, trigger, session }) {
+            // If name is being updated, update the token
+            if (trigger === "update" && session?.user?.name) {
+                token.name = session.user.name;
+            }
+
             // Persist the OAuth access_token to the token right after signin
             if (account) {
                 token.providerAccessToken = account.access_token;
@@ -142,15 +147,13 @@ export const authOptions: NextAuthOptions = {
             return token
         },
         async session({ session, token }: { session: AppSession; token: JWT }) {
-            // Send properties to the client, like an access_token from a provider.
+            // Send properties to the client
             (session as AppSession).providerAccessToken = token.providerAccessToken as string;
             (session as AppSession).apiAccessToken = token.apiAccessToken as string;
             
-            // Debug log
-            console.log('Session updated with tokens:', {
-                hasProviderToken: !!session.providerAccessToken,
-                hasAccessToken: !!session.apiAccessToken
-            });
+            if (session.user) {
+                session.user.name = token.name;
+            }
             
             return session as AppSession;
         }
