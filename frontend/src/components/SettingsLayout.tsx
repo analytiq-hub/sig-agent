@@ -12,7 +12,7 @@ interface SettingsLayoutProps {
 }
 
 const SettingsLayout: React.FC<SettingsLayoutProps> = ({ 
-  selectedMenu, 
+  selectedMenu = 'user_developer', 
   onMenuSelect = () => {} 
 }) => {
   const renderContent = () => {
