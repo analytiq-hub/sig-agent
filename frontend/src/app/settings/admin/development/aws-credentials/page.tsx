@@ -1,14 +1,17 @@
 'use client'
 
+import React from 'react';
+import SettingsLayout from '@/components/SettingsLayout';
 import AWSCredentialsManager from '@/components/AWSCredentialsManager';
-
 
 const AWSCredentialsPage: React.FC = () => {
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Manage AWS Credentials</h1>
-      <AWSCredentialsManager />
-    </div>
+    <SettingsLayout selectedMenu="system_development">
+      <div>
+        <h2 className="text-xl font-semibold mb-4">AWS Credentials Management</h2>
+        <AWSCredentialsManager />
+      </div>
+    </SettingsLayout>
   );
 };
 

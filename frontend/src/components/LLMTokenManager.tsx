@@ -61,7 +61,6 @@ const LLMTokenManager: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mt-8 mb-4">LLM Tokens</h2>
       <TableContainer component={Paper}>
         <Table size="small" style={{ tableLayout: 'fixed' }}>
           <TableHead>
