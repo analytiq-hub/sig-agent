@@ -11,7 +11,7 @@ const DevelopmentPage: React.FC = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h2 className="text-xl font-semibold">LLM tokens</h2>
+            <h2 className="text-xl font-semibold">LLM Tokens</h2>
             <p className="text-gray-600 mb-2">
               Manage your Large Language Model (LLM) API tokens.
             </p>
