@@ -1,14 +1,17 @@
 'use client'
 
+import React from 'react';
+import SettingsLayout from '@/components/SettingsLayout';
 import LLMTokenManager from '@/components/LLMTokenManager';
-
 
 const LLMTokensPage: React.FC = () => {
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Manage Large Language Model (LLM) Tokens</h1>
-      <LLMTokenManager />
-    </div>
+    <SettingsLayout selectedMenu="system_development">
+      <div>
+        <h2 className="text-xl font-semibold mb-4">LLM Token Management</h2>
+        <LLMTokenManager />
+      </div>
+    </SettingsLayout>
   );
 };
 

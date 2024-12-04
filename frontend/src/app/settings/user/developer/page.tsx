@@ -11,7 +11,7 @@ const DeveloperPage: React.FC = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h2 className="text-xl font-semibold">Access tokens</h2>
+            <h2 className="text-xl font-semibold">Access Tokens</h2>
             <p className="text-gray-600 mb-2">
               Use Access Tokens to authenticate with our API.
             </p>
