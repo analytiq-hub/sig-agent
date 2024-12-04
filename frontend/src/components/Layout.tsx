@@ -117,7 +117,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           h-12
           ${open ? 'w-full' : 'w-16'}
           px-6  // Match burger icon alignment
-          hover:bg-gray-100 dark:hover:bg-gray-800
+          bg-gray-100
+          hover:bg-gray-200 dark:hover:bg-gray-800
           transition-colors duration-200
         `}>
           <div className="flex justify-start w-6">
@@ -136,16 +137,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="flex h-screen flex-col">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+      <header className="bg-blue-600 dark:bg-blue-800 border-b border-blue-700 dark:border-blue-900">
         <div className="flex h-16 items-center justify-between px-4">
           <div className="flex items-center">
             <button
               onClick={() => setOpen(!open)}
-              className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="p-2 rounded-md hover:bg-blue-500 dark:hover:bg-blue-700"
             >
-              <Bars3Icon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+              <Bars3Icon className="h-6 w-6 text-white" />
             </button>
-            <Link href="/" className="ml-4 text-xl font-semibold text-gray-800 dark:text-white">
+            <Link href="/" className="ml-4 text-xl font-semibold text-white">
               Smart Document Router
             </Link>
           </div>
