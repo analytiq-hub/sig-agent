@@ -50,11 +50,17 @@ const AppBar = styled(MuiAppBar, {
   }),
 }));
 
-const authenticatedMenuItems = [
+const fileMenuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, tooltip: 'Dashboard', href: '/dashboard' },
   { text: 'Upload', icon: <UploadIcon />, tooltip: 'Upload', href: '/upload' },
   { text: 'List Files', icon: <ListIcon />, tooltip: 'List Files', href: '/list' },
+];
+
+const modelMenuItems = [
   { text: 'Models', icon: <ModelIcon />, tooltip: 'Models', href: '/models' },
+];
+
+const flowMenuItems = [
   { text: 'Flows', icon: <AccountTreeIcon />, tooltip: 'Flows', href: '/flows' },
 ];
 
@@ -217,7 +223,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <Drawer variant="permanent" open={open}>
           <Divider />
           <List>
-            {status === 'authenticated' && authenticatedMenuItems.map(item => renderMenuItem(item, open))}
+            {status === 'authenticated' && fileMenuItems.map(item => renderMenuItem(item, open))}
+          </List>
+          <Divider />
+          <List>
+            {status === 'authenticated' && modelMenuItems.map(item => renderMenuItem(item, open))}
+          </List>
+          <Divider />
+          <List>
+            {status === 'authenticated' && flowMenuItems.map(item => renderMenuItem(item, open))}
           </List>
           <Divider />
           <List>
