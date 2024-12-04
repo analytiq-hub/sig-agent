@@ -116,7 +116,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           flex items-center
           h-12
           ${open ? 'w-full' : 'w-16'}
-          px-6  // Reduced padding to match burger icon alignment
+          px-6  // Match burger icon alignment
           hover:bg-gray-100 dark:hover:bg-gray-800
           transition-colors duration-200
         `}>
