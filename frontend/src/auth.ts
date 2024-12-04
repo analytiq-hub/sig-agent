@@ -1,7 +1,7 @@
 import axios from 'axios';
 import NextAuth, { NextAuthOptions } from "next-auth"
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
-import client from "@/utils/mongodb"
+import mongoClient from "@/utils/mongodb"
 
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
@@ -15,7 +15,7 @@ export const authOptions: NextAuthOptions = {
     session: {
         strategy: 'jwt' as const,
     },
-    adapter: MongoDBAdapter(client),
+    adapter: MongoDBAdapter(mongoClient),
     secret: process.env.NEXTAUTH_SECRET ?? "",
     providers: [
         CredentialsProvider({
@@ -30,7 +30,7 @@ export const authOptions: NextAuthOptions = {
                 }
 
                 try {
-                    const db = client.db();
+                    const db = mongoClient.db();
                     const user = await db.collection("users").findOne({ 
                         email: credentials.email 
                     });
@@ -77,7 +77,7 @@ export const authOptions: NextAuthOptions = {
         async signIn({ user, account }) {
             try {
                 if (account?.provider === 'google' || account?.provider === 'github') {
-                    const db = client.db();
+                    const db = mongoClient.db();
                     const users = db.collection("users");
 
                     const existingUser = await users.findOne({ email: user.email });

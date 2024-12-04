@@ -11,8 +11,6 @@ export async function PUT(request: Request) {
   }
 
   const { name } = await request.json();
-
-  console.log(name);
   
   try {
     await mongoClient.connect();
@@ -27,8 +25,5 @@ export async function PUT(request: Request) {
   } catch (error) {
     console.error('Error updating user name:', error);
     return new NextResponse(null, { status: 500 });
-  } finally {
-    // Close the connection
-    await mongoClient.close();
   }
 } 

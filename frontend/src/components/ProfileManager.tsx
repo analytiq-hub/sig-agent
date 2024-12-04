@@ -19,13 +19,7 @@ const ProfileManager: React.FC = () => {
       });
       
       // Update the session with new name
-      await update({
-        ...session,
-        user: {
-          ...session?.user,
-          name: newName
-        }
-      });
+      await update();  // This will trigger a session refresh
 
       setOpenNameModal(false);
       setNewName('');
