@@ -177,21 +177,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <nav className="flex h-full flex-col overflow-hidden">
             {status === 'authenticated' && (
               <>
-                <div className="py-2">
+                <div className="py-1">
                   {fileMenuItems.map(renderMenuItem)}
                 </div>
                 <hr className="border-gray-200 dark:border-gray-800" />
-                <div className="py-2">
+                <div className="py-1">
                   {modelMenuItems.map(renderMenuItem)}
                 </div>
                 <hr className="border-gray-200 dark:border-gray-800" />
-                <div className="py-2">
+                <div className="py-1">
                   {flowMenuItems.map(renderMenuItem)}
                 </div>
               </>
             )}
             <hr className="border-gray-200 dark:border-gray-800" />
-            <div className="py-2">
+            <div className="py-1">
               {debugMenuItems.map(renderMenuItem)}
             </div>
           </nav>
