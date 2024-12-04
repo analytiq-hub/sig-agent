@@ -6,7 +6,6 @@ import mongoClient from "@/utils/mongodb"
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import { JWT } from "next-auth/jwt";
-import { Account, Profile } from "next-auth";
 import { AppSession } from '@/app/types/AppSession';
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";

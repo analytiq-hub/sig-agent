@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
 
 interface PasswordUpdateModalProps {
     open: boolean;
@@ -8,7 +7,6 @@ interface PasswordUpdateModalProps {
 }
 
 export default function PasswordUpdateModal({ open, onClose, onUpdate }: PasswordUpdateModalProps) {
-    const { data: session } = useSession();
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
