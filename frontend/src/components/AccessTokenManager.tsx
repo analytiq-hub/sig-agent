@@ -107,7 +107,7 @@ const AccessTokenManager: React.FC = () => {
                 sx={{ 
                   '&:last-child td, &:last-child th': { border: 0 }, 
                   height: '30px',
-                  backgroundColor: index % 2 === 0 ? 'inherit' : '#f5f5f5'  // Add zebra striping
+                  backgroundColor: index % 2 === 1 ? 'inherit' : 'rgba(0, 0, 0, 0.04)'  // Add zebra striping
                 }}
               >
                 <TableCell sx={{ py: 0.5 }}>{token.name}</TableCell>
