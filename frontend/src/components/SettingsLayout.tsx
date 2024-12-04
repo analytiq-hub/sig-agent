@@ -2,20 +2,35 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PersonIcon from '@mui/icons-material/Person';
 import { Button, Divider } from '@mui/material';
 
 interface SettingsLayoutProps {
   selectedMenu?: string;
-  onMenuSelect?: (menu: string) => void;
+  children?: React.ReactNode;
 }
 
 const SettingsLayout: React.FC<SettingsLayoutProps> = ({ 
-  selectedMenu = 'user_developer', 
-  onMenuSelect = () => {} 
+  selectedMenu = 'user_developer',
+  children
 }) => {
+  const router = useRouter();
+
+  const handleSystemDevelopment = () => {
+    router.push('/settings/admin/development');
+  };
+
+  const handleUserDeveloper = () => {
+    router.push('/settings/user/developer');
+  };
+
   const renderContent = () => {
+    if (children) {
+      return children;
+    }
+
     switch (selectedMenu) {
       case 'system_development':
         return (
@@ -93,7 +108,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
               
               <div className="ml-4 space-y-1">
                 <button
-                  onClick={() => onMenuSelect('system_development')}
+                  onClick={handleSystemDevelopment}
                   className={`w-full text-left px-4 py-2 rounded-md transition-colors
                     ${selectedMenu === 'system_development' 
                       ? 'bg-blue-50 text-blue-600' 
@@ -115,7 +130,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
               
               <div className="ml-4 space-y-1">
                 <button
-                  onClick={() => onMenuSelect('user_developer')}
+                  onClick={handleUserDeveloper}
                   className={`w-full text-left px-4 py-2 rounded-md transition-colors
                     ${selectedMenu === 'user_developer' 
                       ? 'bg-blue-50 text-blue-600' 
