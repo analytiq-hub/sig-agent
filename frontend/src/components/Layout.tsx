@@ -171,7 +171,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             flex-shrink-0 
             transition-all duration-300 ease-in-out 
             border-r border-gray-200 dark:border-gray-800
-            ${open ? 'w-64' : 'w-16'}
+            ${open ? 'w-50' : 'w-16'}
           `}
         >
           <nav className="flex h-full flex-col overflow-hidden">
