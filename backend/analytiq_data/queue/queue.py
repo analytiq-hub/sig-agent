@@ -70,8 +70,6 @@ async def recv_msg(analytiq_client, queue_name: str) -> Optional[Dict[str, Any]]
         {"$set": {"status": "processing"}},
         sort=[("created_at", 1)]
     )
-
-    ad.log.info(f"Received message: {msg_data} from {queue_name}")
     
     return msg_data
 
