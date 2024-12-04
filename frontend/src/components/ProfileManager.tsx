@@ -63,7 +63,7 @@ const ProfileManager: React.FC = () => {
           color="primary"
           onClick={() => setOpenNameModal(true)}
         >
-          Change
+          Update
         </Button>
       </div>
 
@@ -81,7 +81,7 @@ const ProfileManager: React.FC = () => {
           color="primary"
           onClick={() => setIsPasswordModalOpen(true)}
         >
-          Change
+          Update
         </Button>
       </div>
 
