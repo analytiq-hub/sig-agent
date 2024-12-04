@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridValueFormatterParams, GridRenderCellParams } from '@mui/x-data-grid';
 import { Box, IconButton } from '@mui/material';
-import { listFilesApi, deleteFileApi } from '@/utils/api';
+import { listFilesApi, deleteFileApi, isAxiosError } from '@/utils/api';
 import Link from 'next/link';
 import DeleteIcon from '@mui/icons-material/Delete';
 
@@ -21,22 +21,55 @@ const FileList: React.FC = () => {
   const [countRows, setCountRows] = useState<number>(0);
   const [totalRows, setTotalRows] = useState<number>(0);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchFiles = useCallback(async () => {
     try {
-      const response = await listFilesApi();
+      setIsLoading(true);
+      console.log('Fetching files...', paginationModel);
+      const response = await listFilesApi({
+        skip: paginationModel.page * paginationModel.pageSize,
+        limit: paginationModel.pageSize
+      });
+      console.log('Files response:', response);
       setFiles(response.pdfs);
       setCountRows(response.pdfs.length);
-      setSkipRows(response.skip);
+      setSkipRows(paginationModel.page * paginationModel.pageSize);
       setTotalRows(response.total_count);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error fetching files:', error);
+      if (isAxiosError(error) && error.response?.status === 401) {
+        // If unauthorized, wait a bit and retry once
+        console.log('Unauthorized, waiting for token and retrying...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+          const retryResponse = await listFilesApi();
+          setFiles(retryResponse.pdfs);
+          setCountRows(retryResponse.pdfs.length);
+          setSkipRows(retryResponse.skip);
+          setTotalRows(retryResponse.total_count);
+        } catch (retryError) {
+          console.error('Retry failed:', retryError);
+          setFiles([]);
+          setCountRows(0);
+          setSkipRows(0);
+          setTotalRows(0);
+        }
+      } else {
+        setFiles([]);
+        setCountRows(0);
+        setSkipRows(0);
+        setTotalRows(0);
+      }
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [paginationModel]);
 
   useEffect(() => {
+    console.log('FileList component mounted or pagination changed');
     fetchFiles();
-  }, [fetchFiles]);
+  }, [fetchFiles, paginationModel]);
 
   // Calculate the current range
   const startRange = skipRows + 1;
@@ -71,18 +104,27 @@ const FileList: React.FC = () => {
       field: 'upload_date',
       headerName: 'Upload Date',
       flex: 1,
-      valueGetter: (params: string) => {
-        const date = params ? new Date(params) : null;
-        return date ? {
-          value: date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-          tooltip: date.toLocaleString()
-        } : '';
+      valueFormatter: (params: GridValueFormatterParams) => {
+        if (!params.value) return '';
+        const date = new Date(params.value as string);
+        return date.toLocaleDateString('en-US', {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric'
+        });
       },
-      renderCell: (params) => {
-        const { value, tooltip } = params.value;
+      renderCell: (params: GridRenderCellParams) => {
+        if (!params.value) return '';
+        const date = new Date(params.value as string);
+        const formattedDate = date.toLocaleDateString('en-US', {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric'
+        });
+        const tooltip = date.toLocaleString();
         return (
           <div title={tooltip}>
-            {value}
+            {formattedDate}
           </div>
         );
       },
@@ -107,10 +149,13 @@ const FileList: React.FC = () => {
   return (
     <Box sx={{ height: 400, width: '100%' }}>
       <DataGrid
+        loading={isLoading}
         rows={files}
         columns={columns}
         paginationModel={paginationModel}
-        onPaginationModelChange={setPaginationModel}
+        onPaginationModelChange={(newModel) => {
+          setPaginationModel(newModel);
+        }}
         pageSizeOptions={[5, 10, 25]}
         rowCount={totalRows}
         paginationMode="server"
@@ -118,15 +163,19 @@ const FileList: React.FC = () => {
         getRowId={(row) => row.id}
         sx={{
           '& .MuiDataGrid-row:nth-of-type(odd)': {
-            backgroundColor: 'rgba(0, 0, 0, 0.04)', // Zebra stripe color
+            backgroundColor: 'rgba(0, 0, 0, 0.04)',
           },
           '& .MuiDataGrid-row:hover': {
-            backgroundColor: 'rgba(0, 0, 0, 0.1)', // Darker gray for hover
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
           },
         }}
       />
       <div>
-        {totalRows > 0 ? `Showing ${startRange}-${endRange} of ${totalRows} documents` : 'No documents found'}
+        {isLoading ? 'Loading...' : 
+          totalRows > 0 ? 
+            `Showing ${startRange}-${endRange} of ${totalRows} documents` : 
+            'No documents found'
+        }
       </div>
     </Box>
   );

@@ -28,17 +28,61 @@ api.interceptors.request.use(async (config) => {
   return Promise.reject(error);
 });
 
-// Add response interceptor for debugging
-api.interceptors.response.use((response) => {
-  return response;
-}, (error) => {
-  console.error('API Error:', {
-    status: error.response?.status,
-    data: error.response?.data,
-    config: error.config
+// Add a request queue to handle concurrent requests during token refresh
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void;
+  reject: (error: Error) => void;
+}> = [];
+
+const processQueue = (error: Error | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve();
+    }
   });
-  return Promise.reject(error);
-});
+  failedQueue = [];
+};
+
+// Modify the response interceptor
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // If token refresh is in progress, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(() => api(originalRequest))
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const session = await getSession() as AppSession;
+        if (session?.apiAccessToken) {
+          originalRequest.headers.Authorization = `Bearer ${session.apiAccessToken}`;
+          processQueue();
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        processQueue(refreshError);
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 // Helper function to check if error is an AxiosError
 function isAxiosError(error: unknown): error is AxiosError {
@@ -63,10 +107,15 @@ export const uploadFilesApi = async (files: FileWithContent[]) => {
 };
 
 export const listFilesApi = async () => {
-  console.log('NEXT_PUBLIC_FASTAPI_FRONTEND_URL:', NEXT_PUBLIC_FASTAPI_FRONTEND_URL);
-  console.log('NEXT_PUBLIC_FASTAPI_FRONTEND_URL env variable:', process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL);
-  const response = await api.get('/files/list');
-  return response.data;
+  console.log('Making API request to:', `${NEXT_PUBLIC_FASTAPI_FRONTEND_URL}/files/list`);
+  try {
+    const response = await api.get('/files/list');
+    console.log('API response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('API error:', error);
+    throw error;
+  }
 };
 
 export const downloadFileApi = async (id: string) => {
@@ -233,4 +282,4 @@ export const deleteLLMResultApi = async (
   return response.data;
 };
 
-export { api, getApiErrorMsg };
+export { api, getApiErrorMsg, isAxiosError };
