@@ -1,141 +1,53 @@
 "use client";
 
 import { useState, ReactNode, useEffect } from 'react';
-
-import { styled, useTheme} from '@mui/material/styles';
-import Box from '@mui/material/Box';
-import MuiDrawer from '@mui/material/Drawer';
-import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import List from '@mui/material/List';
-import CssBaseline from '@mui/material/CssBaseline';
-import Typography from '@mui/material/Typography';
-import Divider from '@mui/material/Divider';
-import IconButton from '@mui/material/IconButton';
-import MenuIcon from '@mui/icons-material/Menu';
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-
-import { useRouter, usePathname } from 'next/navigation';
-import AuthButton from '@/components/AuthButton';
-import { useSession } from 'next-auth/react';
-import UserMenu from '@/components/UserMenu'; // Add this import
 import Link from 'next/link';
-import { Upload as UploadIcon, List as ListIcon, Dashboard as DashboardIcon, Science as ScienceIcon, AccountTree as AccountTreeIcon, Memory as ModelIcon } from '@mui/icons-material';
-import { Tooltip } from '@mui/material';
-import useMediaQuery from '@mui/material/useMediaQuery';
+import { useRouter, usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import AuthButton from '@/components/AuthButton';
+import UserMenu from '@/components/UserMenu';
 import PDFViewerControls from '@/components/PDFViewerControls';
+import {
+  Bars3Icon,
+  ChartPieIcon,
+  ArrowUpTrayIcon,
+  ListBulletIcon,
+  CubeIcon,
+  Square3Stack3DIcon,
+  BeakerIcon,
+} from '@heroicons/react/24/outline';
 
-// Add this type declaration at the top of the file, after the imports
+// Keep the PDFViewerControls type declaration
 declare global {
   interface Window {
     pdfViewerControls?: PDFViewerControls;
   }
 }
 
-const drawerWidth = 180;
-
-interface AppBarProps extends MuiAppBarProps {
-  open?: boolean;
-}
-
-const AppBar = styled(MuiAppBar, {
-  shouldForwardProp: (prop) => prop !== 'open',
-})<AppBarProps>(({ theme }) => ({
-  transition: theme.transitions.create(['width', 'margin'], {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-}));
-
 const fileMenuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, tooltip: 'Dashboard', href: '/dashboard' },
-  { text: 'Upload', icon: <UploadIcon />, tooltip: 'Upload', href: '/upload' },
-  { text: 'List Files', icon: <ListIcon />, tooltip: 'List Files', href: '/list' },
+  { text: 'Dashboard', icon: ChartPieIcon, tooltip: 'Dashboard', href: '/dashboard' },
+  { text: 'Upload', icon: ArrowUpTrayIcon, tooltip: 'Upload', href: '/upload' },
+  { text: 'List Files', icon: ListBulletIcon, tooltip: 'List Files', href: '/list' },
 ];
 
 const modelMenuItems = [
-  { text: 'Models', icon: <ModelIcon />, tooltip: 'Models', href: '/models' },
+  { text: 'Models', icon: CubeIcon, tooltip: 'Models', href: '/models' },
 ];
 
 const flowMenuItems = [
-  { text: 'Flows', icon: <AccountTreeIcon />, tooltip: 'Flows', href: '/flows' },
+  { text: 'Flows', icon: Square3Stack3DIcon, tooltip: 'Flows', href: '/flows' },
 ];
 
 const debugMenuItems = [
-  { text: 'Test', icon: <ScienceIcon />, tooltip: 'Test Page', href: '/test' },
+  { text: 'Test', icon: BeakerIcon, tooltip: 'Test Page', href: '/test' },
 ];
-
-const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
-  ({ theme, open }) => ({
-    flexShrink: 0,
-    whiteSpace: 'nowrap',
-    '& .MuiDrawer-paper': {
-      position: 'relative',
-      display: 'flex',
-      flexDirection: 'column',
-      overflowX: 'hidden',
-      transition: theme.transitions.create('width', {
-        easing: theme.transitions.easing.sharp,
-        duration: theme.transitions.duration.enteringScreen,
-      }),
-      width: open ? drawerWidth : theme.spacing(7),
-      [theme.breakpoints.up('sm')]: {
-        width: open ? drawerWidth : theme.spacing(8),
-      },
-    },
-  }),
-);
-
-const renderMenuItem = (item: { text: string; icon: JSX.Element; href: string; tooltip: string }, open: boolean) => (
-  <Tooltip title={item.tooltip} arrow disableHoverListener={open} placement="right">
-    <ListItem 
-      key={item.text} 
-      component={Link} 
-      href={item.href} 
-      disablePadding 
-    >
-      <ListItemButton 
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: 48,
-        }}
-      >
-        <ListItemIcon
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            minWidth: 0,
-            ...(open && { mr: 3 })
-          }}
-        >
-          {item.icon}
-        </ListItemIcon>
-        {open && <ListItemText primary={item.text} />}
-      </ListItemButton>
-    </ListItem>
-  </Tooltip>
-);
-
-interface PDFViewerControls {
-  showLeftPanel: boolean;
-  setShowLeftPanel: React.Dispatch<React.SetStateAction<boolean>>;
-  showPdfPanel: boolean;
-  setShowPdfPanel: React.Dispatch<React.SetStateAction<boolean>>;
-}
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [open, setOpen] = useState(!isMobile); // Initialize based on screen size
+  const [open, setOpen] = useState(true);
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -144,9 +56,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [pdfControls, setPdfControls] = useState<PDFViewerControls | null>(null);
 
   useEffect(() => {
-    setOpen(!isMobile);
-  }, [isMobile]);
+    const handleResize = () => {
+      setOpen(window.innerWidth > 640);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
+  // Keep the existing PDF controls effects
   useEffect(() => {
     const handleControlsChange = () => {
       setForceUpdate(prev => prev + 1);
@@ -162,46 +81,51 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   }, [forceUpdate]);
 
-  const handleDrawerToggle = () => {
-    setOpen(prev => !prev);
-  };
-
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/signin');
     }
   }, [status, router]);
 
-  return (
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: 'column',
-      height: '100vh', 
-      overflow: 'hidden' 
-    }}>
-      <CssBaseline />
-      <AppBar position="static">
-        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <IconButton
-              color="inherit"
-              aria-label="toggle drawer"
-              onClick={handleDrawerToggle}
-              edge="start"
-              sx={[
-                { marginRight: 5 },
-              ]}
-            >
-              <MenuIcon />
-            </IconButton>
-            <Typography variant="h6" sx={{ flexGrow: 1 }}>
-              <Link href="/" style={{ color: theme.palette.primary.contrastText, textDecoration: 'none' }}>
-                Smart Document Router
-              </Link>
-            </Typography>
-          </Box>
+  const renderMenuItem = (item: { text: string; icon: any; href: string; tooltip: string }) => {
+    const Icon = item.icon;
+    return (
+      <Link
+        key={item.text}
+        href={item.href}
+        className="group relative flex items-center"
+        title={!open ? item.tooltip : ''}
+      >
+        <div className={`flex h-12 items-center ${open ? 'w-full px-4' : 'justify-center w-16'} hover:bg-gray-100 dark:hover:bg-gray-800`}>
+          <Icon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          {open && (
+            <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-200">
+              {item.text}
+            </span>
+          )}
+        </div>
+      </Link>
+    );
+  };
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+  return (
+    <div className="flex h-screen flex-col">
+      {/* Header */}
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+        <div className="flex h-16 items-center justify-between px-4">
+          <div className="flex items-center">
+            <button
+              onClick={() => setOpen(!open)}
+              className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <Bars3Icon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+            </button>
+            <Link href="/" className="ml-4 text-xl font-semibold text-gray-800 dark:text-white">
+              Smart Document Router
+            </Link>
+          </div>
+
+          <div className="flex items-center space-x-4">
             {isPDFViewer && pdfControls && (
               <PDFViewerControls key={forceUpdate} {...pdfControls} />
             )}
@@ -210,46 +134,43 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             ) : (
               <AuthButton />
             )}
-          </Box>
-        </Toolbar>
-      </AppBar>
+          </div>
+        </div>
+      </header>
 
-      <Box sx={{ 
-        display: 'flex',
-        position: 'relative',
-        flex: 1,
-        overflow: 'hidden'
-      }}>
-        <Drawer variant="permanent" open={open}>
-          <Divider />
-          <List>
-            {status === 'authenticated' && fileMenuItems.map(item => renderMenuItem(item, open))}
-          </List>
-          <Divider />
-          <List>
-            {status === 'authenticated' && modelMenuItems.map(item => renderMenuItem(item, open))}
-          </List>
-          <Divider />
-          <List>
-            {status === 'authenticated' && flowMenuItems.map(item => renderMenuItem(item, open))}
-          </List>
-          <Divider />
-          <List>
-            {debugMenuItems.map(item => renderMenuItem(item, open))}
-          </List>
-        </Drawer>
-        
-        <Box component="main" sx={{ 
-          flexGrow: 1,
-          overflow: 'auto',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside className={`${open ? 'w-64' : 'w-16'} flex-shrink-0 transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-gray-800`}>
+          <nav className="flex h-full flex-col">
+            {status === 'authenticated' && (
+              <>
+                <div className="space-y-1 py-2">
+                  {fileMenuItems.map(renderMenuItem)}
+                </div>
+                <hr className="border-gray-200 dark:border-gray-800" />
+                <div className="space-y-1 py-2">
+                  {modelMenuItems.map(renderMenuItem)}
+                </div>
+                <hr className="border-gray-200 dark:border-gray-800" />
+                <div className="space-y-1 py-2">
+                  {flowMenuItems.map(renderMenuItem)}
+                </div>
+              </>
+            )}
+            <hr className="border-gray-200 dark:border-gray-800" />
+            <div className="space-y-1 py-2">
+              {debugMenuItems.map(renderMenuItem)}
+            </div>
+          </nav>
+        </aside>
+
+        {/* Main content */}
+        <main className="flex-1 overflow-auto">
           {children}
-        </Box>
-      </Box>
-    </Box>
+        </main>
+      </div>
+    </div>
   );
-}
+};
 
 export default Layout;
