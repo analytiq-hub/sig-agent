@@ -1,5 +1,9 @@
 # Releases
 
+## v4.0.0
+* Ability to change name, update password, and delete account.
+* Improved settings UI.
+
 ## v3.0.4
 * Change color scheme.
 
