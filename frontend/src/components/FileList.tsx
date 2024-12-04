@@ -107,7 +107,7 @@ const FileList: React.FC = () => {
       field: 'upload_date',
       headerName: 'Upload Date',
       flex: 1,
-      valueFormatter: (params) => {
+      valueFormatter: (params: GridRenderCellParams) => {
         if (!params.value) return '';
         const date = new Date(params.value as string);
         return date.toLocaleDateString('en-US', {

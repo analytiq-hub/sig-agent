@@ -72,8 +72,12 @@ api.interceptors.response.use(
           processQueue();
           return api(originalRequest);
         }
-      } catch (refreshError) {
-        processQueue(refreshError);
+      } catch (refreshError: unknown) {
+        if (refreshError instanceof Error) {
+          processQueue(refreshError);
+        } else {
+          processQueue(new Error('Unknown error occurred during token refresh'));
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
