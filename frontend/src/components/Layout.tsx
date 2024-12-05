@@ -122,7 +122,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             ${isSelected ? 'bg-blue-100' : 'hover:bg-blue-100'} dark:hover:bg-gray-800
             transition-colors duration-200
             text-left
-            ${open ? 'px-4' : 'px-3'}
+            px-3
           `}
         >
           <div className={`
@@ -145,7 +145,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="flex h-screen flex-col">
       {/* Header */}
       <header className="bg-blue-600 dark:bg-blue-800 border-b border-blue-700 dark:border-blue-900">
-        <div className="flex h-16 items-center justify-between px-4">
+        <div className="flex h-16 items-center justify-between px-3">
           <div className="flex items-center">
             <button
               onClick={() => setOpen(!open)}
