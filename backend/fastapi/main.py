@@ -17,6 +17,7 @@ import secrets
 import base64
 import io
 import re
+import uuid
 
 import api
 import models
@@ -30,6 +31,7 @@ from schemas import (
     AWSCredentials,
     OCRMetadataResponse,
     LLMRunResponse, LLMResult,
+    Schema, SchemaCreate, ListSchemasResponse,
 )
 
 # Add the parent directory to the sys path
@@ -88,6 +90,7 @@ job_queue_collection = db.job_queue
 access_token_collection = db.access_tokens
 llm_token_collection = db.llm_tokens
 aws_credentials_collection = db.aws_credentials
+schemas_collection = db.schemas
 
 from pydantic import BaseModel
 
@@ -591,6 +594,59 @@ async def delete_llm_result(
         )
     
     return {"status": "success", "message": "LLM result deleted"}
+
+# Schema management endpoints
+@app.post("/api/schemas", response_model=Schema)
+async def create_schema(
+    schema: SchemaCreate,
+    current_user: User = Depends(get_current_user)
+):
+    schema_id = str(uuid.uuid4())
+    new_schema = Schema(
+        id=schema_id,
+        created_at=datetime.utcnow(),
+        created_by=current_user.user_id,
+        **schema.model_dump()
+    )
+    
+    # Convert to dict and store in MongoDB
+    schema_dict = new_schema.model_dump()
+    await schemas_collection.insert_one(schema_dict)
+    return new_schema
+
+@app.get("/api/schemas", response_model=ListSchemasResponse)
+async def list_schemas(current_user: User = Depends(get_current_user)):
+    cursor = schemas_collection.find({})
+    schemas = await cursor.to_list(length=None)
+    # Convert MongoDB _id to string id
+    for schema in schemas:
+        schema['id'] = str(schema.pop('_id'))
+    return ListSchemasResponse(schemas=schemas)
+
+@app.get("/api/schemas/{schema_id}", response_model=Schema)
+async def get_schema(
+    schema_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    schema = await schemas_collection.find_one({"id": schema_id})
+    if not schema:
+        raise HTTPException(status_code=404, detail="Schema not found")
+    return Schema(**schema)
+
+@app.delete("/api/schemas/{schema_id}")
+async def delete_schema(
+    schema_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    schema = await schemas_collection.find_one({"id": schema_id})
+    if not schema:
+        raise HTTPException(status_code=404, detail="Schema not found")
+    
+    if schema["created_by"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this schema")
+    
+    await schemas_collection.delete_one({"id": schema_id})
+    return {"message": "Schema deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn

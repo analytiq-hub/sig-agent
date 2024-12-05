@@ -73,3 +73,22 @@ class LLMResult(BaseModel):
     prompt_id: str
     document_id: str
     llm_result: dict
+
+# Schema management models
+FieldType = Literal["str", "int", "float", "bool", "datetime"]
+
+class SchemaField(BaseModel):
+    name: str
+    type: FieldType
+
+class SchemaCreate(BaseModel):
+    name: str
+    fields: List[SchemaField]
+
+class Schema(SchemaCreate):
+    id: str
+    created_at: datetime
+    created_by: str
+
+class ListSchemasResponse(BaseModel):
+    schemas: List[Schema]
