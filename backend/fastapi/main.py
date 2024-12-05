@@ -601,6 +601,16 @@ async def create_schema(
     schema: SchemaCreate,
     current_user: User = Depends(get_current_user)
 ):
+    # Check for existing schema with same name
+    existing_schema = await schemas_collection.find_one({
+        "name": {"$regex": f"^{schema.name}$", "$options": "i"}  # Case-insensitive match
+    })
+    if existing_schema:
+        raise HTTPException(
+            status_code=400,
+            detail="A schema with this name already exists"
+        )
+    
     # Create the schema document without id
     schema_dict = {
         "name": schema.name,

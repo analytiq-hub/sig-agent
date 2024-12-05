@@ -14,11 +14,24 @@ const Schemas = () => {
     try {
       setIsLoading(true);
       let savedSchema: Schema;
+      
       if (currentSchema.id) {
+        // Update existing schema
         savedSchema = await updateSchemaApi(currentSchema.id, schema);
         setSchemas(schemas.map(s => s.id === savedSchema.id ? savedSchema : s));
         setMessage('Schema updated successfully');
       } else {
+        // Check for duplicate name when creating new schema
+        const isDuplicateName = schemas.some(
+          existingSchema => existingSchema.name.toLowerCase() === schema.name.toLowerCase()
+        );
+        
+        if (isDuplicateName) {
+          setMessage('Error: A schema with this name already exists');
+          return;
+        }
+        
+        // Create new schema
         savedSchema = await createSchemaApi(schema);
         setSchemas([...schemas, savedSchema]);
         setMessage('Schema created successfully');
