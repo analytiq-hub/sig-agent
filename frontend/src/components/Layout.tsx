@@ -117,7 +117,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <button
           className={`
             flex items-center
-            h-10 w-full
+            h-10 w-full py-3
             rounded-md
             ${isSelected ? 'bg-blue-100' : 'hover:bg-blue-100'} dark:hover:bg-gray-800
             transition-colors duration-200
