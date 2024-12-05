@@ -109,18 +109,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Link
         key={item.text}
         href={item.href}
-        className="group relative flex items-center"
+        className="block"
         title={!open ? item.tooltip : ''}
       >
-        <div className={`
-          flex items-center
-          h-12
-          ${open ? 'w-full' : 'w-16'}
-          px-6  // Match burger icon alignment
-          bg-gray-100
-          hover:bg-gray-200 dark:hover:bg-gray-800
-          transition-colors duration-200
-        `}>
+        <button
+          className={`
+            flex items-center
+            h-12 w-full
+            px-6
+            hover:bg-gray-200 dark:hover:bg-gray-800
+            focus:outline-none focus:bg-gray-200 dark:focus:bg-gray-800
+            transition-colors duration-200
+            text-left
+          `}
+        >
           <div className="flex justify-start w-6">
             <Icon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
           </div>
@@ -129,7 +131,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {item.text}
             </span>
           )}
-        </div>
+        </button>
       </Link>
     );
   };
@@ -170,6 +172,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           className={`
             flex-shrink-0 
             transition-all duration-300 ease-in-out 
+            bg-blue-50
             border-r border-gray-200 dark:border-gray-800
             ${open ? 'w-50' : 'w-16'}
           `}
