@@ -178,7 +178,7 @@ const Schemas = () => {
                 <h3 className="font-medium">{schema.name}</h3>
                 <button
                   onClick={() => handleDelete(schema.id)}
-                  className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                  className="px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50"
                   disabled={isLoading}
                 >
                   Delete
