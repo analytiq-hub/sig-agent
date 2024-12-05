@@ -329,4 +329,9 @@ export const deleteSchemaApi = async (schemaId: string) => {
   return response.data;
 };
 
+export const updateSchemaApi = async (id: string, schema: {name: string; fields: SchemaField[]}) => {
+  const response = await api.put<Schema>(`/api/schemas/${id}`, schema);
+  return response.data;
+};
+
 export { api, getApiErrorMsg, isAxiosError };

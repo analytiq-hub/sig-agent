@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { SchemaField, Schema, createSchemaApi, getSchemasApi, deleteSchemaApi } from '@/utils/api';
+import { SchemaField, Schema, createSchemaApi, getSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
 import { isAxiosError, getApiErrorMsg } from '@/utils/api';
 
 const Schemas = () => {
   const [schemas, setSchemas] = useState<Schema[]>([]);
-  const [currentSchema, setCurrentSchema] = useState<{name: string; fields: SchemaField[]}>(
+  const [currentSchema, setCurrentSchema] = useState<{id?: string; name: string; fields: SchemaField[]}>(
     { name: '', fields: [{ name: '', type: 'str' }] }
   );
   const [message, setMessage] = useState('');
@@ -13,9 +13,16 @@ const Schemas = () => {
   const saveSchema = async (schema: {name: string; fields: SchemaField[]}) => {
     try {
       setIsLoading(true);
-      const savedSchema = await createSchemaApi(schema);
-      setSchemas([...schemas, savedSchema]);
-      setMessage('Schema saved successfully');
+      let savedSchema: Schema;
+      if (currentSchema.id) {
+        savedSchema = await updateSchemaApi(currentSchema.id, schema);
+        setSchemas(schemas.map(s => s.id === savedSchema.id ? savedSchema : s));
+        setMessage('Schema updated successfully');
+      } else {
+        savedSchema = await createSchemaApi(schema);
+        setSchemas([...schemas, savedSchema]);
+        setMessage('Schema created successfully');
+      }
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving schema';
       setMessage('Error: ' + errorMsg);
@@ -180,6 +187,7 @@ const Schemas = () => {
                   <button
                     onClick={() => {
                       setCurrentSchema({
+                        id: schema.id,
                         name: schema.name,
                         fields: schema.fields
                       });

@@ -638,6 +638,41 @@ async def get_schema(
     schema['id'] = str(schema.pop('_id'))
     return Schema(**schema)
 
+@app.put("/api/schemas/{schema_id}", response_model=Schema)
+async def update_schema(
+    schema_id: str,
+    schema: SchemaCreate,
+    current_user: User = Depends(get_current_user)
+):
+    # Check if schema exists
+    existing_schema = await schemas_collection.find_one({"_id": ObjectId(schema_id)})
+    if not existing_schema:
+        raise HTTPException(status_code=404, detail="Schema not found")
+    
+    # Check if user has permission to update
+    if existing_schema["created_by"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this schema")
+    
+    # Update the schema
+    update_data = {
+        "name": schema.name,
+        "fields": [field.model_dump() for field in schema.fields],
+        "updated_at": datetime.utcnow()
+    }
+    
+    result = await schemas_collection.update_one(
+        {"_id": ObjectId(schema_id)},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Schema not found")
+    
+    # Return updated schema
+    updated_schema = await schemas_collection.find_one({"_id": ObjectId(schema_id)})
+    updated_schema['id'] = str(updated_schema.pop('_id'))
+    return Schema(**updated_schema)
+
 @app.delete("/api/schemas/{schema_id}")
 async def delete_schema(
     schema_id: str,
