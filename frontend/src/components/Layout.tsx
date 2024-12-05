@@ -15,6 +15,7 @@ import {
   CubeIcon,
   Square3Stack3DIcon,
   BeakerIcon,
+  TableCellsIcon,
 } from '@heroicons/react/24/outline';
 
 // First, let's fix the type errors
@@ -46,6 +47,7 @@ const fileMenuItems = [
 ];
 
 const modelMenuItems = [
+  { text: 'Schemas', icon: TableCellsIcon, tooltip: 'Schemas', href: '/schemas' },
   { text: 'Models', icon: CubeIcon, tooltip: 'Models', href: '/models' },
 ];
 
