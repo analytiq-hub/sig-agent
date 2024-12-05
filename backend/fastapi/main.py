@@ -601,24 +601,28 @@ async def create_schema(
     schema: SchemaCreate,
     current_user: User = Depends(get_current_user)
 ):
-    schema_id = str(uuid.uuid4())
-    new_schema = Schema(
-        id=schema_id,
-        created_at=datetime.utcnow(),
-        created_by=current_user.user_id,
-        **schema.model_dump()
-    )
+    # Create the schema document without id
+    schema_dict = {
+        "name": schema.name,
+        "fields": [field.model_dump() for field in schema.fields],
+        "created_at": datetime.utcnow(),
+        "created_by": current_user.user_id
+    }
     
-    # Convert to dict and store in MongoDB
-    schema_dict = new_schema.model_dump()
-    await schemas_collection.insert_one(schema_dict)
-    return new_schema
+    # Insert into MongoDB and let it generate _id
+    result = await schemas_collection.insert_one(schema_dict)
+    
+    # Return complete schema with _id as id
+    return Schema(
+        id=str(result.inserted_id),
+        **schema_dict
+    )
 
 @app.get("/api/schemas", response_model=ListSchemasResponse)
 async def list_schemas(current_user: User = Depends(get_current_user)):
     cursor = schemas_collection.find({})
     schemas = await cursor.to_list(length=None)
-    # Convert MongoDB _id to string id
+    # Convert _id to id in each schema
     for schema in schemas:
         schema['id'] = str(schema.pop('_id'))
     return ListSchemasResponse(schemas=schemas)
@@ -628,9 +632,10 @@ async def get_schema(
     schema_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    schema = await schemas_collection.find_one({"id": schema_id})
+    schema = await schemas_collection.find_one({"_id": ObjectId(schema_id)})
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
+    schema['id'] = str(schema.pop('_id'))
     return Schema(**schema)
 
 @app.delete("/api/schemas/{schema_id}")
@@ -638,14 +643,16 @@ async def delete_schema(
     schema_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    schema = await schemas_collection.find_one({"id": schema_id})
+    schema = await schemas_collection.find_one({"_id": ObjectId(schema_id)})
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
     
     if schema["created_by"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this schema")
     
-    await schemas_collection.delete_one({"id": schema_id})
+    result = await schemas_collection.delete_one({"_id": ObjectId(schema_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Schema not found")
     return {"message": "Schema deleted successfully"}
 
 if __name__ == "__main__":
