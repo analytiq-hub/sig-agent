@@ -176,13 +176,28 @@ const Schemas = () => {
             <div key={schema.id} className="p-4 border rounded hover:bg-gray-50">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-medium">{schema.name}</h3>
-                <button
-                  onClick={() => handleDelete(schema.id)}
-                  className="px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50"
-                  disabled={isLoading}
-                >
-                  Delete
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setCurrentSchema({
+                        name: schema.name,
+                        fields: schema.fields
+                      });
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="px-3 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 disabled:opacity-50"
+                    disabled={isLoading}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(schema.id)}
+                    className="px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50"
+                    disabled={isLoading}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
               <div className="text-sm text-gray-600">
                 {schema.fields.map((field, i) => (
