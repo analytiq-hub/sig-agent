@@ -111,7 +111,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Link
         key={item.text}
         href={item.href}
-        className="block px-4 py-1"
+        className="block px-2 py-1"
         title={!open ? item.tooltip : ''}
       >
         <button
@@ -122,10 +122,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             ${isSelected ? 'bg-blue-100' : 'hover:bg-blue-100'} dark:hover:bg-gray-800
             transition-colors duration-200
             text-left
+            ${open ? 'px-4' : 'px-3'}
           `}
         >
-          <div className="flex justify-start w-6 ml-2">
-            <Icon className={`h-6 w-6 ${isSelected ? 'text-blue-600' : 'text-gray-500 dark:text-gray-400'}`} />
+          <div className={`
+            flex
+            ${open ? 'justify-start w-6' : 'justify-center w-6'}
+          `}>
+            <Icon className="h-6 w-6 shrink-0" />
           </div>
           {open && (
             <span className={`ml-3 pr-3 text-sm font-medium whitespace-nowrap ${isSelected ? 'text-blue-600' : 'text-gray-700 dark:text-gray-200'}`}>
