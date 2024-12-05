@@ -1,35 +1,59 @@
-import React, { useState } from 'react';
-
-type FieldType = 'str' | 'int' | 'float' | 'bool' | 'datetime';
-
-interface SchemaField {
-  name: string;
-  type: FieldType;
-}
-
-interface Schema {
-  name: string;
-  fields: SchemaField[];
-}
+import React, { useState, useEffect } from 'react';
+import { SchemaField, Schema, createSchemaApi, getSchemasApi, deleteSchemaApi } from '@/utils/api';
+import { isAxiosError, getApiErrorMsg } from '@/utils/api';
 
 const Schemas = () => {
   const [schemas, setSchemas] = useState<Schema[]>([]);
-  const [currentSchema, setCurrentSchema] = useState<Schema>({ 
-    name: '', 
-    fields: [{ name: '', type: 'str' }] 
-  });
+  const [currentSchema, setCurrentSchema] = useState<{name: string; fields: SchemaField[]}>(
+    { name: '', fields: [{ name: '', type: 'str' }] }
+  );
   const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const saveSchema = async (schema: Schema) => {
+  const saveSchema = async (schema: {name: string; fields: SchemaField[]}) => {
     try {
-      // Replace with actual API call
-      console.log('Saving schema:', schema);
-      setSchemas([...schemas, schema]);
+      setIsLoading(true);
+      const savedSchema = await createSchemaApi(schema);
+      setSchemas([...schemas, savedSchema]);
       setMessage('Schema saved successfully');
     } catch (error) {
-      setMessage('Error saving schema');
+      const errorMsg = getApiErrorMsg(error) || 'Error saving schema';
+      setMessage('Error: ' + errorMsg);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const loadSchemas = async () => {
+    try {
+      setIsLoading(true);
+      const response = await getSchemasApi();
+      setSchemas(response.schemas);
+    } catch (error) {
+      const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
+      setMessage('Error: ' + errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (schemaId: string) => {
+    try {
+      setIsLoading(true);
+      await deleteSchemaApi(schemaId);
+      setSchemas(schemas.filter(schema => schema.id !== schemaId));
+      setMessage('Schema deleted successfully');
+    } catch (error) {
+      const errorMsg = getApiErrorMsg(error) || 'Error deleting schema';
+      setMessage('Error: ' + errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSchemas();
+  }, []);
 
   const addField = () => {
     setCurrentSchema({
@@ -74,6 +98,7 @@ const Schemas = () => {
               value={currentSchema.name}
               onChange={e => setCurrentSchema({ ...currentSchema, name: e.target.value })}
               placeholder="SchemaName"
+              disabled={isLoading}
             />
           </div>
 
@@ -87,11 +112,13 @@ const Schemas = () => {
                   value={field.name}
                   onChange={e => updateField(index, { name: e.target.value })}
                   placeholder="field_name"
+                  disabled={isLoading}
                 />
                 <select
                   className="p-2 border rounded"
                   value={field.type}
-                  onChange={e => updateField(index, { type: e.target.value as FieldType })}
+                  onChange={e => updateField(index, { type: e.target.value as SchemaField['type'] })}
+                  disabled={isLoading}
                 >
                   <option value="str">String</option>
                   <option value="int">Integer</option>
@@ -102,7 +129,8 @@ const Schemas = () => {
                 <button
                   type="button"
                   onClick={() => removeField(index)}
-                  className="px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100"
+                  className="px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50"
+                  disabled={isLoading}
                 >
                   Remove
                 </button>
@@ -115,13 +143,15 @@ const Schemas = () => {
             <button
               type="button"
               onClick={addField}
-              className="px-4 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+              className="px-4 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 disabled:opacity-50"
+              disabled={isLoading}
             >
               Add Field
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              disabled={isLoading}
             >
               Save Schema
             </button>
@@ -130,7 +160,9 @@ const Schemas = () => {
 
         {/* Message */}
         {message && (
-          <div className="mt-4 p-3 bg-blue-50 text-blue-700 rounded">
+          <div className={`mt-4 p-3 rounded ${
+            message.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
+          }`}>
             {message}
           </div>
         )}
@@ -140,9 +172,18 @@ const Schemas = () => {
       <div className="bg-white p-6 rounded-lg shadow">
         <h2 className="text-xl font-bold mb-4">Saved Schemas</h2>
         <div className="space-y-4">
-          {schemas.map((schema, index) => (
-            <div key={index} className="p-4 border rounded hover:bg-gray-50">
-              <h3 className="font-medium mb-2">{schema.name}</h3>
+          {schemas.map((schema) => (
+            <div key={schema.id} className="p-4 border rounded hover:bg-gray-50">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-medium">{schema.name}</h3>
+                <button
+                  onClick={() => handleDelete(schema.id)}
+                  className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                  disabled={isLoading}
+                >
+                  Delete
+                </button>
+              </div>
               <div className="text-sm text-gray-600">
                 {schema.fields.map((field, i) => (
                   <div key={i}>

@@ -289,4 +289,44 @@ export const deleteLLMResultApi = async (
   return response.data;
 };
 
+export interface SchemaField {
+  name: string;
+  type: 'str' | 'int' | 'float' | 'bool' | 'datetime';
+}
+
+export interface SchemaCreate {
+  name: string;
+  fields: SchemaField[];
+}
+
+export interface Schema extends SchemaCreate {
+  id: string;
+  created_at: string;
+  created_by: string;
+}
+
+export interface ListSchemasResponse {
+  schemas: Schema[];
+}
+
+export const createSchemaApi = async (schema: SchemaCreate) => {
+  const response = await api.post<Schema>('/api/schemas', schema);
+  return response.data;
+};
+
+export const getSchemasApi = async () => {
+  const response = await api.get<ListSchemasResponse>('/api/schemas');
+  return response.data;
+};
+
+export const getSchemaApi = async (schemaId: string) => {
+  const response = await api.get<Schema>(`/api/schemas/${schemaId}`);
+  return response.data;
+};
+
+export const deleteSchemaApi = async (schemaId: string) => {
+  const response = await api.delete(`/api/schemas/${schemaId}`);
+  return response.data;
+};
+
 export { api, getApiErrorMsg, isAxiosError };
