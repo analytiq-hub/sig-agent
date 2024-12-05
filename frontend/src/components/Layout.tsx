@@ -109,25 +109,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Link
         key={item.text}
         href={item.href}
-        className="block"
+        className="block px-4"
         title={!open ? item.tooltip : ''}
       >
         <button
           className={`
             flex items-center
-            h-12 w-full
-            px-6
-            hover:bg-gray-200 dark:hover:bg-gray-800
-            focus:outline-none focus:bg-gray-200 dark:focus:bg-gray-800
+            h-10 w-full
+            rounded-md
+            hover:bg-blue-100 dark:hover:bg-gray-800
             transition-colors duration-200
             text-left
           `}
         >
-          <div className="flex justify-start w-6">
+          <div className="flex justify-start w-6 ml-2">
             <Icon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
           </div>
           {open && (
-            <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">
+            <span className="ml-3 pr-3 text-sm font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">
               {item.text}
             </span>
           )}
