@@ -105,6 +105,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Update the renderMenuItem function to match burger icon size and alignment
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icon;
+    const isSelected = pathname === item.href;
+    
     return (
       <Link
         key={item.text}
@@ -117,16 +119,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             flex items-center
             h-10 w-full
             rounded-md
-            hover:bg-blue-100 dark:hover:bg-gray-800
+            ${isSelected ? 'bg-blue-100' : 'hover:bg-blue-100'} dark:hover:bg-gray-800
             transition-colors duration-200
             text-left
           `}
         >
           <div className="flex justify-start w-6 ml-2">
-            <Icon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+            <Icon className={`h-6 w-6 ${isSelected ? 'text-blue-600' : 'text-gray-500 dark:text-gray-400'}`} />
           </div>
           {open && (
-            <span className="ml-3 pr-3 text-sm font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">
+            <span className={`ml-3 pr-3 text-sm font-medium whitespace-nowrap ${isSelected ? 'text-blue-600' : 'text-gray-700 dark:text-gray-200'}`}>
               {item.text}
             </span>
           )}
