@@ -111,13 +111,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Link
         key={item.text}
         href={item.href}
-        className="block px-4"
+        className="block px-4 py-1"
         title={!open ? item.tooltip : ''}
       >
         <button
           className={`
             flex items-center
-            h-10 w-full py-3
+            h-10 w-full
             rounded-md
             ${isSelected ? 'bg-blue-100' : 'hover:bg-blue-100'} dark:hover:bg-gray-800
             transition-colors duration-200
