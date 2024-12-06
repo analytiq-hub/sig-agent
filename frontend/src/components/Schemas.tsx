@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { SchemaField, Schema, createSchemaApi, getSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
-import { isAxiosError, getApiErrorMsg } from '@/utils/api';
+import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import colors from 'tailwindcss/colors'
+
 
 const Schemas = () => {
   const [schemas, setSchemas] = useState<Schema[]>([]);
@@ -304,10 +306,10 @@ const Schemas = () => {
                 padding: 'px',
               },
               '& .MuiDataGrid-row:nth-of-type(odd)': {
-                backgroundColor: '#f9fafb',  // Tailwind's gray-50
+                backgroundColor: '${colors.gray[50]}',  // Tailwind's gray-50
               },
               '& .MuiDataGrid-row:hover': {
-                backgroundColor: '#f3f4f6 !important',  // Tailwind's gray-100
+                backgroundColor: '${colors.gray[100]} !important',  // Tailwind's gray-100
               },
             }}
           />
