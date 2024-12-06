@@ -306,6 +306,12 @@ const Schemas = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
               },
+              '& .MuiDataGrid-row:nth-of-type(even)': {
+                backgroundColor: '#f9fafb',  // Tailwind's gray-50
+              },
+              '& .MuiDataGrid-row:hover': {
+                backgroundColor: '#f3f4f6 !important',  // Tailwind's gray-100
+              },
             }}
           />
         </div>
