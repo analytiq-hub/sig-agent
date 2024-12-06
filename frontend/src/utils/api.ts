@@ -301,6 +301,7 @@ export interface SchemaCreate {
 
 export interface Schema extends SchemaCreate {
   id: string;
+  version: int;
   created_at: string;
   created_by: string;
 }

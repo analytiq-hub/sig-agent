@@ -168,6 +168,18 @@ const Schemas = () => {
       ),
     },
     {
+      field: 'version',
+      headerName: 'Version',
+      width: 100,
+      headerAlign: 'left',
+      align: 'left',
+      renderCell: (params) => (
+        <div className="text-gray-600">
+          v{params.row.version}
+        </div>
+      ),
+    },
+    {
       field: 'actions',
       headerName: 'Actions',
       width: 120,
