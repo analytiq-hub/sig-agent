@@ -205,7 +205,7 @@ const Schemas = () => {
     <div className="p-4 max-w-4xl mx-auto">
       {/* Schema Creation Form */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-bold mb-4">Create Pydantic Schema</h2>
+        <h2 className="text-xl font-bold mb-4">Create Schema</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">Schema Name</label>
@@ -287,7 +287,7 @@ const Schemas = () => {
 
       {/* Schemas List */}
       <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-bold mb-4">Saved Schemas</h2>
+        <h2 className="text-xl font-bold mb-4">Schemas</h2>
         
         {/* Search Box */}
         <div className="mb-4">
