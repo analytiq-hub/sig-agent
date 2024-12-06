@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Schemas from '@/components/Schemas';
-import Models from '@/components/Models';
+import Prompts from '@/components/Prompts';
 
 const ModelsPage = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -29,7 +29,7 @@ const ModelsPage = () => {
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            Models
+            Prompts
           </button>
         </div>
       </div>
@@ -38,7 +38,7 @@ const ModelsPage = () => {
         {activeTab === 0 && <Schemas />}
       </div>
       <div role="tabpanel" hidden={activeTab !== 1}>
-        {activeTab === 1 && <Models />}
+        {activeTab === 1 && <Prompts />}
       </div>
     </div>
   );
