@@ -611,6 +611,14 @@ async def create_schema(
             detail="A schema with this name already exists"
         )
     
+    # Validate field names
+    is_valid, error_msg = validate_schema_fields(schema.fields)
+    if not is_valid:
+        raise HTTPException(
+            status_code=400,
+            detail=error_msg
+        )
+    
     # Create the schema document without id
     schema_dict = {
         "name": schema.name,
@@ -663,6 +671,14 @@ async def update_schema(
     if existing_schema["created_by"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to update this schema")
     
+    # Validate field names
+    is_valid, error_msg = validate_schema_fields(schema.fields)
+    if not is_valid:
+        raise HTTPException(
+            status_code=400,
+            detail=error_msg
+        )
+    
     # Update the schema
     update_data = {
         "name": schema.name,
@@ -699,6 +715,16 @@ async def delete_schema(
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Schema not found")
     return {"message": "Schema deleted successfully"}
+
+# Add this validation function
+def validate_schema_fields(fields: list) -> tuple[bool, str]:
+    field_names = [field.name.lower() for field in fields]
+    seen = set()
+    for name in field_names:
+        if name in seen:
+            return False, f"Duplicate field name: {name}"
+        seen.add(name)
+    return True, ""
 
 if __name__ == "__main__":
     import uvicorn

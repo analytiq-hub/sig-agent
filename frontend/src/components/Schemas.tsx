@@ -102,12 +102,31 @@ const Schemas = () => {
     setCurrentSchema({ ...currentSchema, fields: newFields });
   };
 
+  const validateFields = (fields: SchemaField[]): string | null => {
+    const fieldNames = fields.map(f => f.name.toLowerCase());
+    const duplicates = fieldNames.filter((name, index) => fieldNames.indexOf(name) !== index);
+    
+    if (duplicates.length > 0) {
+      return `Duplicate field name: ${duplicates[0]}`;
+    }
+    
+    return null;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentSchema.name || currentSchema.fields.some(f => !f.name)) {
       setMessage('Please fill in all fields');
       return;
     }
+
+    // Check for duplicate field names
+    const fieldError = validateFields(currentSchema.fields);
+    if (fieldError) {
+      setMessage(`Error: ${fieldError}`);
+      return;
+    }
+
     saveSchema(currentSchema);
     setCurrentSchema({ name: '', fields: [{ name: '', type: 'str' }] });
   };
