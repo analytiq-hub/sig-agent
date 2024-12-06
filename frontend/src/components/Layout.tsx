@@ -15,7 +15,6 @@ import {
   CubeIcon,
   Square3Stack3DIcon,
   BeakerIcon,
-  TableCellsIcon,
 } from '@heroicons/react/24/outline';
 
 // First, let's fix the type errors
