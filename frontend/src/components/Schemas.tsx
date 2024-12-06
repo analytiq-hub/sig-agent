@@ -330,10 +330,10 @@ const Schemas = () => {
                 padding: 'px',
               },
               '& .MuiDataGrid-row:nth-of-type(odd)': {
-                backgroundColor: '${colors.gray[50]}',  // Tailwind's gray-50
+                backgroundColor: colors.gray[100],  // Using Tailwind colors
               },
               '& .MuiDataGrid-row:hover': {
-                backgroundColor: '${colors.gray[100]} !important',  // Tailwind's gray-100
+                backgroundColor: `${colors.gray[200]} !important`,  // Using Tailwind colors
               },
             }}
           />
