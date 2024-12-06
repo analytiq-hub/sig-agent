@@ -40,7 +40,7 @@ const Models: React.FC = () => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
-      <h2 className="text-xl font-bold mb-4">Models</h2>
+      <h2 className="text-xl font-bold mb-4">Models (under construction)</h2>
       
       {/* Search Box */}
       <div className="mb-4">
@@ -50,12 +50,14 @@ const Models: React.FC = () => {
           placeholder="Search models..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              )
+            }
           }}
         />
       </div>
