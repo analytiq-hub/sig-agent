@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { SchemaField, Schema, createSchemaApi, getSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
 import { isAxiosError, getApiErrorMsg } from '@/utils/api';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { TextField, InputAdornment, IconButton } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 
 const Schemas = () => {
   const [schemas, setSchemas] = useState<Schema[]>([]);
@@ -9,6 +14,7 @@ const Schemas = () => {
   );
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const saveSchema = async (schema: {name: string; fields: SchemaField[]}) => {
     try {
@@ -104,6 +110,71 @@ const Schemas = () => {
     setCurrentSchema({ name: '', fields: [{ name: '', type: 'str' }] });
   };
 
+  // Add filtered schemas
+  const filteredSchemas = schemas.filter(schema =>
+    schema.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Define columns for the data grid
+  const columns: GridColDef[] = [
+    {
+      field: 'name',
+      headerName: 'Schema Name',
+      flex: 1,
+      headerAlign: 'center',
+      align: 'center',
+    },
+    {
+      field: 'fields',
+      headerName: 'Fields',
+      flex: 2,
+      headerAlign: 'center',
+      align: 'center',
+      renderCell: (params) => (
+        <div className="flex flex-col items-center justify-center w-full h-full">
+          {params.row.fields.map((field: SchemaField, index: number) => (
+            <div key={index} className="text-sm text-gray-600 leading-6">
+              {`${field.name}: ${field.type}`}
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      flex: 1,
+      headerAlign: 'center',
+      align: 'center',
+      sortable: false,
+      renderCell: (params) => (
+        <div className="flex gap-2 justify-center items-center w-full h-full">
+          <IconButton
+            onClick={() => {
+              setCurrentSchema({
+                id: params.row.id,
+                name: params.row.name,
+                fields: params.row.fields
+              });
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            disabled={isLoading}
+            className="text-blue-600 hover:bg-blue-50"
+          >
+            <EditOutlinedIcon />
+          </IconButton>
+          <IconButton
+            onClick={() => handleDelete(params.row.id)}
+            disabled={isLoading}
+            className="text-red-600 hover:bg-red-50"
+          >
+            <DeleteOutlineIcon />
+          </IconButton>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="p-4 max-w-4xl mx-auto">
       {/* Schema Creation Form */}
@@ -191,44 +262,52 @@ const Schemas = () => {
       {/* Schemas List */}
       <div className="bg-white p-6 rounded-lg shadow">
         <h2 className="text-xl font-bold mb-4">Saved Schemas</h2>
-        <div className="space-y-4">
-          {schemas.map((schema) => (
-            <div key={schema.id} className="p-4 border rounded hover:bg-gray-50">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-medium">{schema.name}</h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setCurrentSchema({
-                        id: schema.id,
-                        name: schema.name,
-                        fields: schema.fields
-                      });
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="px-3 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 disabled:opacity-50"
-                    disabled={isLoading}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(schema.id)}
-                    className="px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50"
-                    disabled={isLoading}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-              <div className="text-sm text-gray-600">
-                {schema.fields.map((field, i) => (
-                  <div key={i}>
-                    {field.name}: {field.type}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+        
+        {/* Search Box */}
+        <div className="mb-4">
+          <TextField
+            fullWidth
+            variant="outlined"
+            placeholder="Search schemas..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </div>
+
+        {/* Data Grid */}
+        <div style={{ height: 400, width: '100%' }}>
+          <DataGrid
+            rows={filteredSchemas}
+            columns={columns}
+            initialState={{
+              pagination: {
+                paginationModel: { pageSize: 5 }
+              },
+            }}
+            pageSizeOptions={[5, 10, 20]}
+            disableRowSelectionOnClick
+            loading={isLoading}
+            autoHeight
+            getRowHeight={({ model }) => {
+              const numFields = model.fields.length;
+              return Math.max(52, 24 * numFields + 16);
+            }}
+            sx={{
+              '& .MuiDataGrid-cell': {
+                padding: '0px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              },
+            }}
+          />
         </div>
       </div>
     </div>
