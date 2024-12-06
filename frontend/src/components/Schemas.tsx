@@ -121,17 +121,17 @@ const Schemas = () => {
       field: 'name',
       headerName: 'Schema Name',
       flex: 1,
-      headerAlign: 'center',
-      align: 'center',
+      headerAlign: 'left',
+      align: 'left',
     },
     {
       field: 'fields',
       headerName: 'Fields',
       flex: 2,
-      headerAlign: 'center',
-      align: 'center',
+      headerAlign: 'left',
+      align: 'left',
       renderCell: (params) => (
-        <div className="flex flex-col items-center justify-center w-full h-full">
+        <div className="flex flex-col justify-center w-full h-full">
           {params.row.fields.map((field: SchemaField, index: number) => (
             <div key={index} className="text-sm text-gray-600 leading-6">
               {`${field.name}: ${field.type}`}
@@ -143,12 +143,12 @@ const Schemas = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      flex: 1,
-      headerAlign: 'center',
-      align: 'center',
+      width: 120,
+      headerAlign: 'left',
+      align: 'left',
       sortable: false,
       renderCell: (params) => (
-        <div className="flex gap-2 justify-center items-center w-full h-full">
+        <div className="flex gap-2 items-center h-full">
           <IconButton
             onClick={() => {
               setCurrentSchema({
@@ -301,12 +301,9 @@ const Schemas = () => {
             }}
             sx={{
               '& .MuiDataGrid-cell': {
-                padding: '0px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                padding: 'px',
               },
-              '& .MuiDataGrid-row:nth-of-type(even)': {
+              '& .MuiDataGrid-row:nth-of-type(odd)': {
                 backgroundColor: '#f9fafb',  // Tailwind's gray-50
               },
               '& .MuiDataGrid-row:hover': {
