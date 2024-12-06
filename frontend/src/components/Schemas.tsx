@@ -125,6 +125,11 @@ const Schemas = () => {
       flex: 1,
       headerAlign: 'left',
       align: 'left',
+      renderCell: (params) => (
+        <div className="text-blue-600">
+          {params.row.name}
+        </div>
+      ),
     },
     {
       field: 'fields',
