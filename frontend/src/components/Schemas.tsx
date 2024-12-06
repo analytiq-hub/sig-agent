@@ -297,12 +297,14 @@ const Schemas = () => {
             placeholder="Search schemas..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }
             }}
           />
         </div>
@@ -320,7 +322,6 @@ const Schemas = () => {
             pageSizeOptions={[5, 10, 20]}
             disableRowSelectionOnClick
             loading={isLoading}
-            autoHeight
             getRowHeight={({ model }) => {
               const numFields = model.fields.length;
               return Math.max(52, 24 * numFields + 16);
