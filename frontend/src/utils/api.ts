@@ -301,7 +301,7 @@ export interface SchemaCreate {
 
 export interface Schema extends SchemaCreate {
   id: string;
-  version: int;
+  version: number;
   created_at: string;
   created_by: string;
 }
@@ -332,6 +332,54 @@ export const deleteSchemaApi = async (schemaId: string) => {
 
 export const updateSchemaApi = async (id: string, schema: {name: string; fields: SchemaField[]}) => {
   const response = await api.put<Schema>(`/api/schemas/${id}`, schema);
+  return response.data;
+};
+
+export interface PromptField {
+  name: string;
+  type: 'str' | 'int' | 'float' | 'bool' | 'datetime';
+}
+
+export interface PromptCreate {
+  name: string;
+  content: string;
+  schema_name?: string;
+  schema_version?: number;
+}
+
+export interface Prompt extends PromptCreate {
+  id: string;
+  version: number;
+  created_at: string;
+  created_by: string;
+}
+
+export interface ListPromptsResponse {
+  prompts: Prompt[];
+}
+
+export const createPromptApi = async (prompt: PromptCreate) => {
+  const response = await api.post<Prompt>('/api/prompts', prompt);
+  return response.data;
+};
+
+export const getPromptsApi = async () => {
+  const response = await api.get<ListPromptsResponse>('/api/prompts');
+  return response.data;
+};
+
+export const getPromptApi = async (promptId: string) => {
+  const response = await api.get<Prompt>(`/api/prompts/${promptId}`);
+  return response.data;
+};
+
+export const updatePromptApi = async (id: string, prompt: PromptCreate) => {
+  const response = await api.put<Prompt>(`/api/prompts/${id}`, prompt);
+  return response.data;
+};
+
+export const deletePromptApi = async (promptId: string) => {
+  const response = await api.delete(`/api/prompts/${promptId}`);
   return response.data;
 };
 

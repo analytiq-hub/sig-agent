@@ -32,6 +32,7 @@ from schemas import (
     OCRMetadataResponse,
     LLMRunResponse, LLMResult,
     Schema, SchemaCreate, ListSchemasResponse,
+    Prompt, PromptCreate, ListPromptsResponse,
 )
 
 # Add the parent directory to the sys path
@@ -92,6 +93,8 @@ llm_token_collection = db.llm_tokens
 aws_credentials_collection = db.aws_credentials
 schemas_collection = db.schemas
 schema_versions_collection = db.schema_versions
+prompts_collection = db.prompts
+prompt_versions_collection = db.prompt_versions
 
 from pydantic import BaseModel
 
@@ -670,9 +673,10 @@ async def list_schemas(current_user: User = Depends(get_current_user)):
     cursor = schemas_collection.aggregate(pipeline)
     schemas = await cursor.to_list(length=None)
     
-    # Convert _id to id in each schema
+    # Convert _id to id in each schema and ensure version is included
     for schema in schemas:
         schema['id'] = str(schema.pop('_id'))
+        # version is already included from MongoDB doc, no need to add it
     
     return ListSchemasResponse(schemas=schemas)
 
@@ -685,6 +689,7 @@ async def get_schema(
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
     schema['id'] = str(schema.pop('_id'))
+    # version is already included from MongoDB doc, no need to add it
     return Schema(**schema)
 
 @app.put("/api/schemas/{schema_id}", response_model=Schema)
@@ -744,6 +749,10 @@ async def delete_schema(
     
     # Delete all versions of this schema
     result = await schemas_collection.delete_many({"name": schema["name"]})
+    
+    # Also delete the version counter
+    await schema_versions_collection.delete_one({"_id": schema["name"]})
+    
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Schema not found")
     return {"message": "Schema deleted successfully"}
@@ -757,6 +766,169 @@ def validate_schema_fields(fields: list) -> tuple[bool, str]:
             return False, f"Duplicate field name: {name}"
         seen.add(name)
     return True, ""
+
+# Add this helper function near get_next_schema_version
+async def get_next_prompt_version(prompt_name: str) -> int:
+    """Atomically get the next version number for a prompt"""
+    result = await prompt_versions_collection.find_one_and_update(
+        {"_id": prompt_name},
+        {"$inc": {"version": 1}},
+        upsert=True,
+        return_document=True
+    )
+    return result["version"]
+
+# Prompt management endpoints
+@app.post("/api/prompts", response_model=Prompt)
+async def create_prompt(
+    prompt: PromptCreate,
+    current_user: User = Depends(get_current_user)
+):
+    # Only verify schema if one is specified
+    if prompt.schema_name and prompt.schema_version:
+        schema = await schemas_collection.find_one({
+            "name": prompt.schema_name,
+            "version": prompt.schema_version
+        })
+        if not schema:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Schema {prompt.schema_name} version {prompt.schema_version} not found"
+            )
+
+    # Check if prompt with this name already exists (case-insensitive)
+    existing_prompt = await prompts_collection.find_one({
+        "name": {"$regex": f"^{prompt.name}$", "$options": "i"}
+    })
+    
+    # Get the next version
+    new_version = await get_next_prompt_version(prompt.name)
+    
+    # Create prompt document
+    prompt_dict = {
+        "name": existing_prompt["name"] if existing_prompt else prompt.name,
+        "content": prompt.content,
+        "schema_name": prompt.schema_name or "",  # Use empty string if None
+        "schema_version": prompt.schema_version or 0,  # Use 0 if None
+        "version": new_version,
+        "created_at": datetime.utcnow(),
+        "created_by": current_user.user_id
+    }
+    
+    # Insert into MongoDB
+    result = await prompts_collection.insert_one(prompt_dict)
+    
+    # Return complete prompt
+    prompt_dict["id"] = str(result.inserted_id)
+    return Prompt(**prompt_dict)
+
+@app.get("/api/prompts", response_model=ListPromptsResponse)
+async def list_prompts(current_user: User = Depends(get_current_user)):
+    # Pipeline to get only the latest version of each prompt
+    pipeline = [
+        {
+            "$sort": {"name": 1, "version": -1}
+        },
+        {
+            "$group": {
+                "_id": "$name",
+                "doc": {"$first": "$$ROOT"}
+            }
+        },
+        {
+            "$replaceRoot": {"newRoot": "$doc"}
+        }
+    ]
+    
+    cursor = prompts_collection.aggregate(pipeline)
+    prompts = await cursor.to_list(length=None)
+    
+    # Convert _id to id in each prompt
+    for prompt in prompts:
+        prompt['id'] = str(prompt.pop('_id'))
+    
+    return ListPromptsResponse(prompts=prompts)
+
+@app.get("/api/prompts/{prompt_id}", response_model=Prompt)
+async def get_prompt(
+    prompt_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    prompt = await prompts_collection.find_one({"_id": ObjectId(prompt_id)})
+    if not prompt:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+    prompt['id'] = str(prompt.pop('_id'))
+    return Prompt(**prompt)
+
+@app.put("/api/prompts/{prompt_id}", response_model=Prompt)
+async def update_prompt(
+    prompt_id: str,
+    prompt: PromptCreate,
+    current_user: User = Depends(get_current_user)
+):
+    # Get the existing prompt
+    existing_prompt = await prompts_collection.find_one({"_id": ObjectId(prompt_id)})
+    if not existing_prompt:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+    
+    # Check if user has permission to update
+    if existing_prompt["created_by"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this prompt")
+    
+    # Verify schema exists
+    schema = await schemas_collection.find_one({
+        "name": prompt.schema_name,
+        "version": prompt.schema_version
+    })
+    if not schema:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Schema {prompt.schema_name} version {prompt.schema_version} not found"
+        )
+    
+    # Get the next version number
+    new_version = await get_next_prompt_version(existing_prompt["name"])
+    
+    # Create new version of the prompt
+    new_prompt = {
+        "name": prompt.name,
+        "content": prompt.content,
+        "schema_name": prompt.schema_name,
+        "schema_version": prompt.schema_version,
+        "version": new_version,
+        "created_at": datetime.utcnow(),
+        "created_by": current_user.user_id
+    }
+    
+    # Insert new version
+    result = await prompts_collection.insert_one(new_prompt)
+    
+    # Return updated prompt
+    new_prompt["id"] = str(result.inserted_id)
+    return Prompt(**new_prompt)
+
+@app.delete("/api/prompts/{prompt_id}")
+async def delete_prompt(
+    prompt_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    # Get the prompt to find its name
+    prompt = await prompts_collection.find_one({"_id": ObjectId(prompt_id)})
+    if not prompt:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+    
+    if prompt["created_by"] != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this prompt")
+    
+    # Delete all versions of this prompt
+    result = await prompts_collection.delete_many({"name": prompt["name"]})
+    
+    # Also delete the version counter
+    await prompt_versions_collection.delete_one({"_id": prompt["name"]})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+    return {"message": "Prompt deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn

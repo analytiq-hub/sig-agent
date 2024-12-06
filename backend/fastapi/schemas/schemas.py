@@ -93,3 +93,19 @@ class Schema(SchemaCreate):
 
 class ListSchemasResponse(BaseModel):
     schemas: List[Schema]
+
+# Add these new models
+class PromptCreate(BaseModel):
+    name: str
+    content: str
+    schema_name: str | None = None
+    schema_version: int | None = None
+
+class Prompt(PromptCreate):
+    id: str
+    version: int
+    created_at: datetime
+    created_by: str
+
+class ListPromptsResponse(BaseModel):
+    prompts: List[Prompt]
