@@ -26,23 +26,24 @@ const Schemas = () => {
       if (currentSchema.id) {
         // Update existing schema
         savedSchema = await updateSchemaApi(currentSchema.id, schema);
-        setSchemas(schemas.map(s => s.id === savedSchema.id ? savedSchema : s));
-        setMessage('Schema updated successfully');
+        setSchemas(schemas.map(s => s.name === savedSchema.name ? savedSchema : s));
       } else {
-        // Check for duplicate name when creating new schema
-        const isDuplicateName = schemas.some(
-          existingSchema => existingSchema.name.toLowerCase() === schema.name.toLowerCase()
-        );
-        
-        if (isDuplicateName) {
-          setMessage('Error: A schema with this name already exists');
-          return;
-        }
-        
         // Create new schema
         savedSchema = await createSchemaApi(schema);
-        setSchemas([...schemas, savedSchema]);
-        setMessage('Schema created successfully');
+        // Check if we already have a schema with this name
+        const existingIndex = schemas.findIndex(s => 
+          s.name.toLowerCase() === savedSchema.name.toLowerCase()
+        );
+        
+        if (existingIndex >= 0) {
+          // Update existing schema in the list
+          setSchemas(schemas.map(s => 
+            s.name.toLowerCase() === savedSchema.name.toLowerCase() ? savedSchema : s
+          ));
+        } else {
+          // Add new schema to the list
+          setSchemas([...schemas, savedSchema]);
+        }
       }
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving schema';

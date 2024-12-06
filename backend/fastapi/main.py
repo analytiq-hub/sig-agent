@@ -613,25 +613,34 @@ async def create_schema(
     schema: SchemaCreate,
     current_user: User = Depends(get_current_user)
 ):
-    # Validate field names
-    is_valid, error_msg = validate_schema_fields(schema.fields)
-    if not is_valid:
-        raise HTTPException(
-            status_code=400,
-            detail=error_msg
-        )
+    # Check if schema with this name already exists (case-insensitive)
+    existing_schema = await schemas_collection.find_one({
+        "name": {"$regex": f"^{schema.name}$", "$options": "i"}
+    })
     
-    # Atomically get the next version number
-    new_version = await get_next_schema_version(schema.name)
-    
-    # Create the schema document
-    schema_dict = {
-        "name": schema.name,
-        "fields": [field.model_dump() for field in schema.fields],
-        "version": new_version,
-        "created_at": datetime.utcnow(),
-        "created_by": current_user.user_id
-    }
+    # If schema exists, treat this as an update operation
+    if existing_schema:
+        # Get the next version
+        new_version = await get_next_schema_version(schema.name)
+        
+        # Create new version of the schema
+        schema_dict = {
+            "name": existing_schema["name"],  # Use existing name to preserve case
+            "fields": [field.model_dump() for field in schema.fields],
+            "version": new_version,
+            "created_at": datetime.utcnow(),
+            "created_by": current_user.user_id
+        }
+    else:
+        # This is a new schema
+        new_version = await get_next_schema_version(schema.name)
+        schema_dict = {
+            "name": schema.name,
+            "fields": [field.model_dump() for field in schema.fields],
+            "version": new_version,
+            "created_at": datetime.utcnow(),
+            "created_by": current_user.user_id
+        }
     
     # Insert into MongoDB
     result = await schemas_collection.insert_one(schema_dict)
