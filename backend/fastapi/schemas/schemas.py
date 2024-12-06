@@ -87,6 +87,7 @@ class SchemaCreate(BaseModel):
 
 class Schema(SchemaCreate):
     id: str
+    version: int
     created_at: datetime
     created_by: str
 

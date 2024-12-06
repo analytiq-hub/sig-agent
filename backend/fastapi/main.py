@@ -91,6 +91,7 @@ access_token_collection = db.access_tokens
 llm_token_collection = db.llm_tokens
 aws_credentials_collection = db.aws_credentials
 schemas_collection = db.schemas
+schema_versions_collection = db.schema_versions
 
 from pydantic import BaseModel
 
@@ -595,22 +596,23 @@ async def delete_llm_result(
     
     return {"status": "success", "message": "LLM result deleted"}
 
+# Add this helper function near the top of the file with other functions
+async def get_next_schema_version(schema_name: str) -> int:
+    """Atomically get the next version number for a schema"""
+    result = await schema_versions_collection.find_one_and_update(
+        {"_id": schema_name},
+        {"$inc": {"version": 1}},
+        upsert=True,
+        return_document=True
+    )
+    return result["version"]
+
 # Schema management endpoints
 @app.post("/api/schemas", response_model=Schema)
 async def create_schema(
     schema: SchemaCreate,
     current_user: User = Depends(get_current_user)
 ):
-    # Check for existing schema with same name
-    existing_schema = await schemas_collection.find_one({
-        "name": {"$regex": f"^{schema.name}$", "$options": "i"}  # Case-insensitive match
-    })
-    if existing_schema:
-        raise HTTPException(
-            status_code=400,
-            detail="A schema with this name already exists"
-        )
-    
     # Validate field names
     is_valid, error_msg = validate_schema_fields(schema.fields)
     if not is_valid:
@@ -619,30 +621,50 @@ async def create_schema(
             detail=error_msg
         )
     
-    # Create the schema document without id
+    # Atomically get the next version number
+    new_version = await get_next_schema_version(schema.name)
+    
+    # Create the schema document
     schema_dict = {
         "name": schema.name,
         "fields": [field.model_dump() for field in schema.fields],
+        "version": new_version,
         "created_at": datetime.utcnow(),
         "created_by": current_user.user_id
     }
     
-    # Insert into MongoDB and let it generate _id
+    # Insert into MongoDB
     result = await schemas_collection.insert_one(schema_dict)
     
-    # Return complete schema with _id as id
-    return Schema(
-        id=str(result.inserted_id),
-        **schema_dict
-    )
+    # Return complete schema
+    schema_dict["id"] = str(result.inserted_id)
+    return Schema(**schema_dict)
 
 @app.get("/api/schemas", response_model=ListSchemasResponse)
 async def list_schemas(current_user: User = Depends(get_current_user)):
-    cursor = schemas_collection.find({})
+    # Pipeline to get only the latest version of each schema
+    pipeline = [
+        {
+            "$sort": {"name": 1, "version": -1}
+        },
+        {
+            "$group": {
+                "_id": "$name",
+                "doc": {"$first": "$$ROOT"}
+            }
+        },
+        {
+            "$replaceRoot": {"newRoot": "$doc"}
+        }
+    ]
+    
+    cursor = schemas_collection.aggregate(pipeline)
     schemas = await cursor.to_list(length=None)
+    
     # Convert _id to id in each schema
     for schema in schemas:
         schema['id'] = str(schema.pop('_id'))
+    
     return ListSchemasResponse(schemas=schemas)
 
 @app.get("/api/schemas/{schema_id}", response_model=Schema)
@@ -662,7 +684,7 @@ async def update_schema(
     schema: SchemaCreate,
     current_user: User = Depends(get_current_user)
 ):
-    # Check if schema exists
+    # Get the existing schema
     existing_schema = await schemas_collection.find_one({"_id": ObjectId(schema_id)})
     if not existing_schema:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -679,31 +701,31 @@ async def update_schema(
             detail=error_msg
         )
     
-    # Update the schema
-    update_data = {
+    # Atomically get the next version number
+    new_version = await get_next_schema_version(existing_schema["name"])
+    
+    # Create new version of the schema
+    new_schema = {
         "name": schema.name,
         "fields": [field.model_dump() for field in schema.fields],
-        "updated_at": datetime.utcnow()
+        "version": new_version,
+        "created_at": datetime.utcnow(),
+        "created_by": current_user.user_id
     }
     
-    result = await schemas_collection.update_one(
-        {"_id": ObjectId(schema_id)},
-        {"$set": update_data}
-    )
-    
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Schema not found")
+    # Insert new version
+    result = await schemas_collection.insert_one(new_schema)
     
     # Return updated schema
-    updated_schema = await schemas_collection.find_one({"_id": ObjectId(schema_id)})
-    updated_schema['id'] = str(updated_schema.pop('_id'))
-    return Schema(**updated_schema)
+    new_schema["id"] = str(result.inserted_id)
+    return Schema(**new_schema)
 
 @app.delete("/api/schemas/{schema_id}")
 async def delete_schema(
     schema_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    # Get the schema to find its name
     schema = await schemas_collection.find_one({"_id": ObjectId(schema_id)})
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -711,7 +733,8 @@ async def delete_schema(
     if schema["created_by"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this schema")
     
-    result = await schemas_collection.delete_one({"_id": ObjectId(schema_id)})
+    # Delete all versions of this schema
+    result = await schemas_collection.delete_many({"name": schema["name"]})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Schema not found")
     return {"message": "Schema deleted successfully"}
