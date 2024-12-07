@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Prompt, createPromptApi, getPromptsApi, deletePromptApi, updatePromptApi } from '@/utils/api';
+import { Prompt, createPromptApi, getPromptsApi, deletePromptApi, updatePromptApi, Schema, getSchemasApi, getSchemaApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
@@ -17,6 +17,8 @@ const Prompts: React.FC = () => {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [schemas, setSchemas] = useState<Schema[]>([]);
+  const [selectedSchema, setSelectedSchema] = useState<string>('');
 
   const savePrompt = async (prompt: {name: string; content: string}) => {
     try {
@@ -25,26 +27,31 @@ const Prompts: React.FC = () => {
       
       const promptData = {
         name: prompt.name,
-        content: prompt.content
-        // Not including schema info for now
+        content: prompt.content,
+        schema_name: selectedSchema || undefined,
+        schema_version: undefined
       };
+
+      if (selectedSchema) {
+        try {
+          const schemaId = schemas.find(s => s.name === selectedSchema)?.id;
+          if (schemaId) {
+            const schema = await getSchemaApi(schemaId);
+            promptData.schema_version = schema.version;
+          }
+        } catch (error) {
+          console.error('Error fetching schema version:', error);
+          setMessage('Error: Unable to fetch schema version');
+          return;
+        }
+      }
 
       if (currentPrompt.id) {
         savedPrompt = await updatePromptApi(currentPrompt.id, promptData);
-        setPrompts(prompts.map(p => p.name === savedPrompt.name ? savedPrompt : p));
+        setPrompts(prompts.map(p => p.id === savedPrompt.id ? savedPrompt : p));
       } else {
         savedPrompt = await createPromptApi(promptData);
-        const existingIndex = prompts.findIndex(p => 
-          p.name.toLowerCase() === savedPrompt.name.toLowerCase()
-        );
-        
-        if (existingIndex >= 0) {
-          setPrompts(prompts.map(p => 
-            p.name.toLowerCase() === savedPrompt.name.toLowerCase() ? savedPrompt : p
-          ));
-        } else {
-          setPrompts([...prompts, savedPrompt]);
-        }
+        setPrompts([...prompts, savedPrompt]);
       }
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving prompt';
@@ -80,8 +87,19 @@ const Prompts: React.FC = () => {
     }
   };
 
+  const loadSchemas = async () => {
+    try {
+      const response = await getSchemasApi();
+      setSchemas(response.schemas);
+    } catch (error) {
+      const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
+      setMessage('Error: ' + errorMsg);
+    }
+  };
+
   useEffect(() => {
     loadPrompts();
+    loadSchemas();
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -135,6 +153,20 @@ const Prompts: React.FC = () => {
       renderCell: (params) => (
         <div className="text-gray-600">
           v{params.row.version}
+        </div>
+      ),
+    },
+    {
+      field: 'schema_name',
+      headerName: 'Schema',
+      width: 150,
+      headerAlign: 'left',
+      align: 'left',
+      renderCell: (params) => (
+        <div className="text-gray-600">
+          {params.row.schema_name 
+            ? `${params.row.schema_name}:v${params.row.schema_version}`
+            : '-'}
         </div>
       ),
     },
@@ -200,6 +232,25 @@ const Prompts: React.FC = () => {
               placeholder="Enter your prompt text here..."
               disabled={isLoading}
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Schema (Optional)
+            </label>
+            <select
+              value={selectedSchema}
+              onChange={(e) => setSelectedSchema(e.target.value)}
+              disabled={isLoading}
+              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">None</option>
+              {schemas.map((schema) => (
+                <option key={schema.id} value={schema.name}>
+                  {schema.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Submit Button */}

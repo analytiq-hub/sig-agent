@@ -352,6 +352,8 @@ export interface Prompt extends PromptCreate {
   version: number;
   created_at: string;
   created_by: string;
+  schema_name?: string;
+  schema_version?: number;
 }
 
 export interface ListPromptsResponse {
