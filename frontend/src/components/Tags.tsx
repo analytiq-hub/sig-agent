@@ -13,7 +13,7 @@ const Tags = () => {
   const [tags, setTags] = useState<Tag[]>([]);
   const [currentTag, setCurrentTag] = useState<{id?: string; name: string; color: string; description: string}>({
     name: '',
-    color: '#3B82F6', // default blue color
+    color: colors.blue[500], // default blue color
     description: ''
   });
   const [message, setMessage] = useState('');
