@@ -14,7 +14,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 
 type File = DocumentMetadata;  // Use type alias instead of interface
 
-const FileList: React.FC = () => {
+const DocumentList: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [skipRows, setSkipRows] = useState<number>(0);
   const [countRows, setCountRows] = useState<number>(0);
@@ -183,4 +183,4 @@ const FileList: React.FC = () => {
   );
 };
 
-export default FileList;
+export default DocumentList;

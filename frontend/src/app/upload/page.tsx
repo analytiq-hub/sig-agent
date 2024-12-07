@@ -1,15 +1,15 @@
 'use client'
 
 import React from 'react';
-import FileUpload from '@/components/FileUpload';
+import DocumentUpload from '@/components/DocumentUpload';
 
-const UploadFilesPage: React.FC = () => {
+const UploadDocumentsPage: React.FC = () => {
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-xl font-bold mb-4">File Upload</h1>
-      <FileUpload />
+      <h1 className="text-xl font-bold mb-4">Document Upload</h1>
+      <DocumentUpload />
     </div>
   );
 };
 
-export default UploadFilesPage
+export default UploadDocumentsPage

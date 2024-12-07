@@ -7,7 +7,7 @@ import {
   DocumentWithContent
 } from '@/utils/api';
 
-const FileUpload: React.FC = () => {
+const DocumentUpload: React.FC = () => {
   const [files, setFiles] = useState<DocumentWithContent[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
@@ -110,4 +110,4 @@ const FileUpload: React.FC = () => {
   );
 };
 
-export default FileUpload;
+export default DocumentUpload;

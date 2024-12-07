@@ -1,15 +1,15 @@
 'use client'
 
 import React from 'react';
-import FileList from '@/components/FileList';
+import DocumentList from '@/components/DocumentList';
 
-const ListFilesPage: React.FC = () => {
+const ListDocumentsPage: React.FC = () => {
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-xl font-bold mb-4">File List</h1>
-      <FileList />
+      <h1 className="text-xl font-bold mb-4">Documents</h1>
+      <DocumentList />
     </div>
   );
 };
 
-export default ListFilesPage;
+export default ListDocumentsPage;
