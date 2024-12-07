@@ -46,7 +46,6 @@ const Prompts: React.FC = () => {
           setPrompts([...prompts, savedPrompt]);
         }
       }
-      setMessage('Prompt saved successfully');
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving prompt';
       setMessage('Error: ' + errorMsg);
@@ -73,7 +72,6 @@ const Prompts: React.FC = () => {
       setIsLoading(true);
       await deletePromptApi(promptId);
       setPrompts(prompts.filter(prompt => prompt.id !== promptId));
-      setMessage('Prompt deleted successfully');
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error deleting prompt';
       setMessage('Error: ' + errorMsg);
