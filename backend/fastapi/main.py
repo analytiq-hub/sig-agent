@@ -173,7 +173,7 @@ async def upload_document(
     
     return {"uploaded_documents": uploaded_documents}
 
-@app.get("/documents/list", response_model=ListDocumentsResponse)
+@app.get("/documents", response_model=ListDocumentsResponse)
 async def list_documents(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),

@@ -110,18 +110,21 @@ export interface DocumentWithContent {
     content: string;
 }
 
-export const uploadDocumentsApi = async (documents: DocumentWithContent[]) => {
-    const response = await api.post('/documents', { files: documents });
-    return response.data;
+export interface UploadDocumentsResponse {
+  uploaded_documents: Array<{
+    document_name: string;
+    document_id: string;
+  }>;
+}
+
+export const uploadDocumentsApi = async (documents: DocumentWithContent[]): Promise<UploadDocumentsResponse> => {
+  const response = await api.post<UploadDocumentsResponse>('/documents', { files: documents });
+  return response.data;
 };
 
 export interface UploadedDocument {
     document_name: string;
     document_id: string;
-}
-
-export interface UploadDocumentsResponse {
-    uploaded_documents: UploadedDocument[];
 }
 
 export interface DocumentMetadata {
@@ -144,7 +147,7 @@ interface ListDocumentsParams {
 }
 
 export const listDocumentsApi = async (params?: ListDocumentsParams) => {
-  const response = await api.get('/documents/list', { 
+  const response = await api.get('/documents', { 
     params: {
       skip: params?.skip || 0,
       limit: params?.limit || 10
