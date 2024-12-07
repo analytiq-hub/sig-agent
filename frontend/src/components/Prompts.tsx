@@ -146,7 +146,7 @@ const Prompts: React.FC = () => {
       headerAlign: 'left',
       align: 'left',
       renderCell: (params) => (
-        <div className="text-blue-600">
+        <div className="text-blue-600 flex items-center h-full">
           {params.row.name}
         </div>
       ),
@@ -158,7 +158,7 @@ const Prompts: React.FC = () => {
       headerAlign: 'left',
       align: 'left',
       renderCell: (params) => (
-        <div className="text-gray-600 truncate">
+        <div className="text-gray-600 truncate flex items-center h-full">
           {params.row.content}
         </div>
       ),
@@ -170,7 +170,7 @@ const Prompts: React.FC = () => {
       headerAlign: 'left',
       align: 'left',
       renderCell: (params) => (
-        <div className="text-gray-600">
+        <div className="text-gray-600 flex items-center h-full">
           v{params.row.version}
         </div>
       ),
@@ -182,7 +182,7 @@ const Prompts: React.FC = () => {
       headerAlign: 'left',
       align: 'left',
       renderCell: (params) => (
-        <div className="text-gray-600">
+        <div className="text-gray-600 flex items-center h-full">
           {params.row.schema_name 
             ? `${params.row.schema_name}:v${params.row.schema_version}`
             : '-'}
