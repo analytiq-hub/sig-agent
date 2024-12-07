@@ -118,14 +118,6 @@ const Tags = () => {
       flex: 2,
     },
     {
-      field: 'created_at',
-      headerName: 'Created',
-      flex: 1,
-      valueFormatter: (params) => {
-        return new Date(params.value).toLocaleDateString();
-      },
-    },
-    {
       field: 'actions',
       headerName: 'Actions',
       width: 120,
