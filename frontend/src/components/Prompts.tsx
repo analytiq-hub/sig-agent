@@ -237,24 +237,22 @@ const Prompts: React.FC = () => {
         <h2 className="text-xl font-bold mb-4">Create Prompt</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Prompt Name</label>
             <input
               type="text"
               className="w-full p-2 border rounded"
               value={currentPrompt.name}
               onChange={e => setCurrentPrompt({ ...currentPrompt, name: e.target.value })}
-              placeholder="PromptName"
+              placeholder="Prompt Name"
               disabled={isLoading}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Prompt Content</label>
             <textarea
               className="w-full p-2 border rounded min-h-[200px]"
               value={currentPrompt.content}
               onChange={e => setCurrentPrompt({ ...currentPrompt, content: e.target.value })}
-              placeholder="Enter your prompt text here..."
+              placeholder="Prompt text content"
               disabled={isLoading}
             />
           </div>

@@ -221,13 +221,12 @@ const Schemas = () => {
         <h2 className="text-xl font-bold mb-4">Create Schema</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Schema Name</label>
             <input
               type="text"
               className="w-full p-2 border rounded"
               value={currentSchema.name}
               onChange={e => setCurrentSchema({ ...currentSchema, name: e.target.value })}
-              placeholder="SchemaName"
+              placeholder="Schema Name"
               disabled={isLoading}
             />
           </div>
