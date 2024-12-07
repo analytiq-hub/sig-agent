@@ -9,6 +9,15 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors';
 
+const isColorLight = (color: string): boolean => {
+  const hex = color.replace('#', '');
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  return brightness > 128;
+};
+
 const Tags = () => {
   const [tags, setTags] = useState<Tag[]>([]);
   const [currentTag, setCurrentTag] = useState<{id?: string; name: string; color: string; description: string}>({
@@ -25,21 +34,15 @@ const Tags = () => {
       setIsLoading(true);
       const savedTag = await createTagApi(tag);
       
-      // Check if we already have a tag with this name
-      const existingIndex = tags.findIndex(t => 
-        t.name.toLowerCase() === savedTag.name.toLowerCase()
-      );
-      
-      if (existingIndex >= 0) {
+      if (currentTag.id) {
         // Update existing tag in the list
-        setTags(tags.map(t => 
-          t.name.toLowerCase() === savedTag.name.toLowerCase() ? savedTag : t
-        ));
+        setTags(tags.map(t => t.id === currentTag.id ? savedTag : t));
+        setMessage('Tag updated successfully');
       } else {
         // Add new tag to the list
         setTags([...tags, savedTag]);
+        setMessage('Tag created successfully');
       }
-      setMessage('Tag saved successfully');
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving tag';
       setMessage('Error: ' + errorMsg);
@@ -102,15 +105,25 @@ const Tags = () => {
       field: 'name',
       headerName: 'Tag Name',
       flex: 1,
-      renderCell: (params) => (
-        <div className="flex items-center gap-2">
-          <div 
-            className="w-4 h-4 rounded-full" 
-            style={{ backgroundColor: params.row.color || '#3B82F6' }}
-          />
-          <span>{params.row.name}</span>
-        </div>
-      ),
+      renderCell: (params) => {
+        const bgColor = params.row.color || colors.blue[500];
+        const textColor = isColorLight(bgColor) ? 'text-gray-800' : 'text-white';
+        
+        return (
+          <div className="flex items-center">
+            <div 
+              className={`px-2 leading-none rounded shadow-sm ${textColor}`}
+              style={{ 
+                backgroundColor: bgColor,
+                display: 'inline-block',
+                padding: '2px 8px'
+              }}
+            >
+              {params.row.name}
+            </div>
+          </div>
+        );
+      },
     },
     {
       field: 'description',
@@ -155,17 +168,19 @@ const Tags = () => {
     <div className="p-4 max-w-4xl mx-auto">
       {/* Tag Creation Form */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-bold mb-4">Create Tag</h2>
+        <h2 className="text-xl font-bold mb-4">
+          {currentTag.id ? 'Edit Tag' : 'Create Tag'}
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex gap-4">
             <div className="flex-1">
               <input
                 type="text"
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded disabled:bg-gray-100"
                 value={currentTag.name}
                 onChange={e => setCurrentTag({ ...currentTag, name: e.target.value })}
                 placeholder="Tag Name"
-                disabled={isLoading}
+                disabled={isLoading || !!currentTag.id}
               />
             </div>
             <div className="w-32">
@@ -190,14 +205,26 @@ const Tags = () => {
             />
           </div>
 
-          <div>
+          <div className="flex gap-4">
             <button
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
               disabled={isLoading}
             >
-              Save Tag
+              {currentTag.id ? 'Update Tag' : 'Save Tag'}
             </button>
+            {currentTag.id && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentTag({ name: '', color: colors.blue[500], description: '' });
+                  setMessage('');
+                }}
+                className="px-4 py-2 bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
+              >
+                Cancel Edit
+              </button>
+            )}
           </div>
         </form>
 
