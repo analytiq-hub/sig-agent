@@ -1,6 +1,8 @@
-# Doc-Router (Under Construction)
+# Smart Document Router
 
-We implement a Smart Document Router. When completed, the router will use LLMs to route documents to the appropriate handlers, and to process the documents according to configured workflows.
+The Smart Document Router ingests unstructured docs into ERPs from faxes, email, and other ERPs. It peels off streams of docs that can be processed autonomously with LLMs and NLP - reducing the need for time-consuming, expensive manual workflows.
+
+The Document Router is designed with a human-in-the-loop and can processes financial data correctly ‘on the nose’. (We are not doing RAG!)
 
 Tech stack:
 * NextJS, NextAuth, MaterialUI, TailwindCSS
