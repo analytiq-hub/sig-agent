@@ -618,7 +618,7 @@ async def get_next_schema_version(schema_name: str) -> int:
     return result["version"]
 
 # Schema management endpoints
-@app.post("/api/schemas", response_model=Schema)
+@app.post("/schemas", response_model=Schema)
 async def create_schema(
     schema: SchemaCreate,
     current_user: User = Depends(get_current_user)
@@ -659,7 +659,7 @@ async def create_schema(
     schema_dict["id"] = str(result.inserted_id)
     return Schema(**schema_dict)
 
-@app.get("/api/schemas", response_model=ListSchemasResponse)
+@app.get("/schemas", response_model=ListSchemasResponse)
 async def list_schemas(current_user: User = Depends(get_current_user)):
     # Pipeline to get only the latest version of each schema
     pipeline = [
@@ -687,7 +687,7 @@ async def list_schemas(current_user: User = Depends(get_current_user)):
     
     return ListSchemasResponse(schemas=schemas)
 
-@app.get("/api/schemas/{schema_id}", response_model=Schema)
+@app.get("/schemas/{schema_id}", response_model=Schema)
 async def get_schema(
     schema_id: str,
     current_user: User = Depends(get_current_user)
@@ -699,7 +699,7 @@ async def get_schema(
     # version is already included from MongoDB doc, no need to add it
     return Schema(**schema)
 
-@app.put("/api/schemas/{schema_id}", response_model=Schema)
+@app.put("/schemas/{schema_id}", response_model=Schema)
 async def update_schema(
     schema_id: str,
     schema: SchemaCreate,
@@ -741,7 +741,7 @@ async def update_schema(
     new_schema["id"] = str(result.inserted_id)
     return Schema(**new_schema)
 
-@app.delete("/api/schemas/{schema_id}")
+@app.delete("/schemas/{schema_id}")
 async def delete_schema(
     schema_id: str,
     current_user: User = Depends(get_current_user)

@@ -341,27 +341,27 @@ export interface ListSchemasResponse {
 }
 
 export const createSchemaApi = async (schema: SchemaCreate) => {
-  const response = await api.post<Schema>('/api/schemas', schema);
+  const response = await api.post<Schema>('/schemas', schema);
   return response.data;
 };
 
 export const getSchemasApi = async () => {
-  const response = await api.get<ListSchemasResponse>('/api/schemas');
+  const response = await api.get<ListSchemasResponse>('/schemas');
   return response.data;
 };
 
 export const getSchemaApi = async (schemaId: string) => {
-  const response = await api.get<Schema>(`/api/schemas/${schemaId}`);
+  const response = await api.get<Schema>(`/schemas/${schemaId}`);
   return response.data;
 };
 
 export const deleteSchemaApi = async (schemaId: string) => {
-  const response = await api.delete(`/api/schemas/${schemaId}`);
+  const response = await api.delete(`/schemas/${schemaId}`);
   return response.data;
 };
 
 export const updateSchemaApi = async (id: string, schema: {name: string; fields: SchemaField[]}) => {
-  const response = await api.put<Schema>(`/api/schemas/${id}`, schema);
+  const response = await api.put<Schema>(`/schemas/${id}`, schema);
   return response.data;
 };
 
