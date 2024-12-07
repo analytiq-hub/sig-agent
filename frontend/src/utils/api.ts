@@ -390,28 +390,28 @@ export interface ListPromptsResponse {
   prompts: Prompt[];
 }
 
-export const createPromptApi = async (prompt: PromptCreate) => {
-  const response = await api.post<Prompt>('/api/prompts', prompt);
+export const createPromptApi = async (prompt: PromptCreate): Promise<Prompt> => {
+  const response = await api.post<Prompt>('/prompts', prompt);
   return response.data;
 };
 
-export const getPromptsApi = async () => {
-  const response = await api.get<ListPromptsResponse>('/api/prompts');
+export const getPromptsApi = async (): Promise<ListPromptsResponse> => {
+  const response = await api.get<ListPromptsResponse>('/prompts');
   return response.data;
 };
 
-export const getPromptApi = async (promptId: string) => {
-  const response = await api.get<Prompt>(`/api/prompts/${promptId}`);
+export const getPromptApi = async (promptId: string): Promise<Prompt> => {
+  const response = await api.get<Prompt>(`/prompts/${promptId}`);
   return response.data;
 };
 
-export const updatePromptApi = async (id: string, prompt: PromptCreate) => {
-  const response = await api.put<Prompt>(`/api/prompts/${id}`, prompt);
+export const updatePromptApi = async (id: string, prompt: PromptCreate): Promise<Prompt> => {
+  const response = await api.put<Prompt>(`/prompts/${id}`, prompt);
   return response.data;
 };
 
-export const deletePromptApi = async (promptId: string) => {
-  const response = await api.delete(`/api/prompts/${promptId}`);
+export const deletePromptApi = async (promptId: string): Promise<void> => {
+  const response = await api.delete(`/prompts/${promptId}`);
   return response.data;
 };
 

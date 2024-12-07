@@ -802,7 +802,7 @@ async def get_next_prompt_version(prompt_name: str) -> int:
     return result["version"]
 
 # Prompt management endpoints
-@app.post("/api/prompts", response_model=Prompt)
+@app.post("/prompts", response_model=Prompt)
 async def create_prompt(
     prompt: PromptCreate,
     current_user: User = Depends(get_current_user)
@@ -845,7 +845,7 @@ async def create_prompt(
     prompt_dict["id"] = str(result.inserted_id)
     return Prompt(**prompt_dict)
 
-@app.get("/api/prompts", response_model=ListPromptsResponse)
+@app.get("/prompts", response_model=ListPromptsResponse)
 async def list_prompts(current_user: User = Depends(get_current_user)):
     # Pipeline to get only the latest version of each prompt
     pipeline = [
@@ -872,7 +872,7 @@ async def list_prompts(current_user: User = Depends(get_current_user)):
     
     return ListPromptsResponse(prompts=prompts)
 
-@app.get("/api/prompts/{prompt_id}", response_model=Prompt)
+@app.get("/prompts/{prompt_id}", response_model=Prompt)
 async def get_prompt(
     prompt_id: str,
     current_user: User = Depends(get_current_user)
@@ -883,7 +883,7 @@ async def get_prompt(
     prompt['id'] = str(prompt.pop('_id'))
     return Prompt(**prompt)
 
-@app.put("/api/prompts/{prompt_id}", response_model=Prompt)
+@app.put("/prompts/{prompt_id}", response_model=Prompt)
 async def update_prompt(
     prompt_id: str,
     prompt: PromptCreate,
@@ -930,7 +930,7 @@ async def update_prompt(
     new_prompt["id"] = str(result.inserted_id)
     return Prompt(**new_prompt)
 
-@app.delete("/api/prompts/{prompt_id}")
+@app.delete("/prompts/{prompt_id}")
 async def delete_prompt(
     prompt_id: str,
     current_user: User = Depends(get_current_user)
