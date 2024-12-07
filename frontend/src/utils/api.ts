@@ -445,4 +445,9 @@ export const deleteTagApi = async (tagId: string): Promise<void> => {
     await api.delete(`/tags/${tagId}`);
 };
 
+export const updateTagApi = async (tagId: string, tag: TagCreate): Promise<Tag> => {
+    const response = await api.put<Tag>(`/tags/${tagId}`, tag);
+    return response.data;
+};
+
 export { api, getApiErrorMsg, isAxiosError };

@@ -1031,6 +1031,39 @@ async def delete_tag(
     
     return {"message": "Tag deleted successfully"}
 
+@app.put("/tags/{tag_id}", response_model=Tag)
+async def update_tag(
+    tag_id: str,
+    tag: TagCreate,
+    current_user: User = Depends(get_current_user)
+):
+    # Verify tag exists and belongs to user
+    existing_tag = await tags_collection.find_one({
+        "_id": ObjectId(tag_id),
+        "created_by": current_user.user_id
+    })
+    
+    if not existing_tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    
+    # Keep the original name, only update color and description
+    update_data = {
+        "color": tag.color,
+        "description": tag.description
+    }
+    
+    result = await tags_collection.update_one(
+        {"_id": ObjectId(tag_id)},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Tag not found or not modified")
+    
+    # Get and return the updated tag
+    updated_tag = await tags_collection.find_one({"_id": ObjectId(tag_id)})
+    return Tag(**{**updated_tag, "id": str(updated_tag["_id"])})
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="::", port=8000)

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Tag, TagCreate, createTagApi, getTagsApi, deleteTagApi, getApiErrorMsg } from '@/utils/api';
+import { Tag, TagCreate, createTagApi, getTagsApi, deleteTagApi, getApiErrorMsg, updateTagApi } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
@@ -32,7 +32,19 @@ const Tags = () => {
   const saveTag = async (tag: TagCreate) => {
     try {
       setIsLoading(true);
-      const savedTag = await createTagApi(tag);
+      let savedTag: Tag;
+      
+      if (currentTag.id) {
+        // Update existing tag
+        savedTag = await updateTagApi(currentTag.id, {
+          name: tag.name,
+          color: tag.color,
+          description: tag.description
+        });
+      } else {
+        // Create new tag
+        savedTag = await createTagApi(tag);
+      }
       
       if (currentTag.id) {
         // Update existing tag in the list
@@ -43,6 +55,9 @@ const Tags = () => {
         setTags([...tags, savedTag]);
         setMessage('Tag created successfully');
       }
+      
+      // Reset form only after successful save
+      setCurrentTag({ name: '', color: colors.blue[500], description: '' });
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving tag';
       setMessage('Error: ' + errorMsg);
@@ -90,7 +105,6 @@ const Tags = () => {
     }
 
     saveTag(currentTag);
-    setCurrentTag({ name: '', color: '#3B82F6', description: '' });
   };
 
   // Filter tags based on search term

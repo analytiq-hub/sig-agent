@@ -34,11 +34,13 @@ export default function DocumentsPage() {
         </div>
       </div>
 
-      <div role="tabpanel" hidden={activeTab !== 0}>
-        {activeTab === 0 && <FileList />}
-      </div>
-      <div role="tabpanel" hidden={activeTab !== 1}>
-        {activeTab === 1 && <Tags />}
+      <div className="max-w-6xl mx-auto">
+        <div role="tabpanel" hidden={activeTab !== 0}>
+          {activeTab === 0 && <FileList />}
+        </div>
+        <div role="tabpanel" hidden={activeTab !== 1}>
+          {activeTab === 1 && <Tags />}
+        </div>
       </div>
     </div>
   );
