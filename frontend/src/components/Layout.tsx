@@ -42,7 +42,7 @@ interface MenuItem {
 const fileMenuItems = [
   { text: 'Dashboard', icon: ChartPieIcon, tooltip: 'Dashboard', href: '/dashboard' },
   { text: 'Upload', icon: ArrowUpTrayIcon, tooltip: 'Upload', href: '/upload' },
-  { text: 'List Files', icon: ListBulletIcon, tooltip: 'List Files', href: '/list' },
+  { text: 'Documents', icon: ListBulletIcon, tooltip: 'Documents', href: '/list' },
 ];
 
 const modelMenuItems = [
