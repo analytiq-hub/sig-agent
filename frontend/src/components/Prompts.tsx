@@ -8,6 +8,12 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors';
 
+// Add a new type for the error response
+interface DeleteSchemaError {
+  detail: string;
+  dependent_prompts?: Array<{name: string; version: number}>;
+}
+
 const Prompts: React.FC = () => {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [currentPrompt, setCurrentPrompt] = useState<{id?: string; name: string; content: string}>({
@@ -311,6 +317,19 @@ const Prompts: React.FC = () => {
             message.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
           }`}>
             {message}
+            {message.includes('dependent prompts') && (
+              <div className="mt-2">
+                <div className="font-semibold">Dependent prompts:</div>
+                <ul className="list-disc pl-5">
+                  {(JSON.parse(message.split('dependent prompts:')[1]) as Array<{name: string; version: number}>)
+                    .map((prompt, idx) => (
+                      <li key={idx}>
+                        {prompt.name} (v{prompt.version})
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </div>

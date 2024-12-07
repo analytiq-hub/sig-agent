@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import { downloadFileApi, getOCRTextApi } from '@/utils/api';
+import { getDocumentApi, getOCRTextApi } from '@/utils/api';
 import { Toolbar, Typography, IconButton, TextField, Menu, MenuItem, Divider, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, Tooltip, Box, CircularProgress } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
@@ -97,39 +97,39 @@ const PDFViewer = ({ id }: { id: string }) => {
   // We handle this by checking if isMounted is true before setting the file URL.
   useEffect(() => {
     let isMounted = true;
-    //console.log('PDF effect running for id:', id);
 
-    const fetchPDF = async () => {
+    const loadPDF = async () => {
       try {
-        //console.log('Fetching PDF for id:', id);
-        const response = await downloadFileApi(id);
-        //console.log('PDF download complete for id:', id);
+        const response = await getDocumentApi(id);
+        
+        // Create a blob from the array buffer
         const blob = new Blob([response.data], { type: 'application/pdf' });
-        const fileURL = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob);
+
         if (isMounted) {
-          setFile(fileURL);
-          fileRef.current = fileURL;
+          // Load the PDF data directly instead of using the blob URL
+          const loadingTask = pdfjs.getDocument({ data: response.data });
+          const pdf = await loadingTask.promise;
+          
+          setFile(url);  // Keep the URL for download/print functionality
+          fileRef.current = url;
           setLoading(false);
-          //console.log('PDF loaded successfully for id:', id);
 
           // Get the filename from the Content-Disposition header
           const contentDisposition = response.headers['content-disposition'];
-          console.log('contentDisposition:', contentDisposition);
           const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
           const matches = filenameRegex.exec(contentDisposition);
           const filename = matches && matches[1] ? matches[1].replace(/['"]/g, '') : `Document_${id}.pdf`;
 
-          // Save the file name and file size
           setFileName(filename);
           setFileSize(blob.size);
         } else {
-          //console.log('Component unmounted before PDF could be set, cleaning up');
-          if (fileURL) {
-            URL.revokeObjectURL(fileURL);
+          if (url) {
+            URL.revokeObjectURL(url);
           }
         }
       } catch (error) {
-        console.error('Error fetching PDF for id:', id, error);
+        console.error('Error loading PDF:', error);
         if (isMounted) {
           setError('Failed to load PDF. Please try again.');
           setLoading(false);
@@ -137,19 +137,13 @@ const PDFViewer = ({ id }: { id: string }) => {
       }
     };
 
-    fetchPDF();
+    loadPDF();
 
     return () => {
-      // The hook cleanup function - called when the component unmounts.
-      // It can be called while the hook is still running.
-      
-      //console.log('PDF effect cleaning up for id:', id);
       isMounted = false;
       if (fileRef.current) {
         URL.revokeObjectURL(fileRef.current);
-        //console.log('PDF unloaded from state for id:', id);
       }
-      
       setFile(null);
     };
   }, [id]);

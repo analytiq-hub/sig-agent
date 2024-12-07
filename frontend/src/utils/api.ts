@@ -105,18 +105,46 @@ function getApiErrorMsg(error: unknown) {
   return errorMessage;
 }
 
-export const uploadFilesApi = async (files: FileWithContent[]) => {
-  const response = await api.post('/files/upload', { files });
-  return response.data;
+export interface DocumentWithContent {
+    name: string;
+    content: string;
+}
+
+export const uploadDocumentsApi = async (documents: DocumentWithContent[]) => {
+    const response = await api.post('/documents', { files: documents });
+    return response.data;
 };
 
-interface ListFilesParams {
+export interface UploadedDocument {
+    document_name: string;
+    document_id: string;
+}
+
+export interface UploadDocumentsResponse {
+    uploaded_documents: UploadedDocument[];
+}
+
+export interface DocumentMetadata {
+    id: string;
+    document_name: string;
+    upload_date: string;
+    uploaded_by: string;
+    state: string;
+}
+
+export interface ListDocumentsResponse {
+    documents: DocumentMetadata[];
+    total_count: number;
+    skip: number;
+}
+
+interface ListDocumentsParams {
   skip?: number;
   limit?: number;
 }
 
-export const listFilesApi = async (params?: ListFilesParams) => {
-  const response = await api.get('/files/list', { 
+export const listDocumentsApi = async (params?: ListDocumentsParams) => {
+  const response = await api.get('/documents/list', { 
     params: {
       skip: params?.skip || 0,
       limit: params?.limit || 10
@@ -125,16 +153,15 @@ export const listFilesApi = async (params?: ListFilesParams) => {
   return response.data;
 };
 
-export const downloadFileApi = async (id: string) => {
-  const response = await api.get(`/files/download/${id}`, {
-    responseType: 'arraybuffer' // Spent an evening figuring out why this was necessary
-  }) 
-  console.log('downloadFileApi(): response:', response);
+export const getDocumentApi = async (id: string) => {
+  const response = await api.get(`/documents/${id}`, {
+    responseType: 'arraybuffer'
+  });
   return { data: response.data, headers: response.headers };
 };
 
-export const deleteFileApi = async (id: string) => {
-  const response = await api.delete(`/files/delete/${id}`);
+export const deleteDocumentApi = async (id: string) => {
+  const response = await api.delete(`/documents/${id}`);
   return response.data;
 };
 

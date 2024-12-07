@@ -3,17 +3,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { Box, IconButton } from '@mui/material';
-import { listFilesApi, deleteFileApi, isAxiosError } from '@/utils/api';
+import { 
+  listDocumentsApi, 
+  deleteDocumentApi, 
+  isAxiosError,
+  DocumentMetadata 
+} from '@/utils/api';
 import Link from 'next/link';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-interface File {
-  id: string;
-  file_name: string;
-  upload_date: string;
-  uploaded_by: string;
-  state: string;
-}
+interface File extends DocumentMetadata {}  // Use the type from api.ts
 
 const FileList: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -26,29 +25,29 @@ const FileList: React.FC = () => {
   const fetchFiles = useCallback(async () => {
     try {
       setIsLoading(true);
-      console.log('Fetching files...', paginationModel);
-      const response = await listFilesApi({
+      console.log('Fetching documents...', paginationModel);
+      const response = await listDocumentsApi({
         skip: paginationModel.page * paginationModel.pageSize,
         limit: paginationModel.pageSize
       });
-      console.log('Files response:', response);
-      setFiles(response.pdfs);
-      setCountRows(response.pdfs.length);
+      console.log('Documents response:', response);
+      setFiles(response.documents);  // Changed from pdfs
+      setCountRows(response.documents.length);  // Changed from pdfs
       setSkipRows(paginationModel.page * paginationModel.pageSize);
       setTotalRows(response.total_count);
     } catch (error: unknown) {
-      console.error('Error fetching files:', error);
+      console.error('Error fetching documents:', error);
       if (isAxiosError(error) && error.response?.status === 401) {
         // If unauthorized, wait a bit and retry once
         console.log('Unauthorized, waiting for token and retrying...');
         await new Promise(resolve => setTimeout(resolve, 1000));
         try {
-          const retryResponse = await listFilesApi({
+          const retryResponse = await listDocumentsApi({
             skip: paginationModel.page * paginationModel.pageSize,
             limit: paginationModel.pageSize
           }); 
-          setFiles(retryResponse.pdfs);
-          setCountRows(retryResponse.pdfs.length);
+          setFiles(retryResponse.documents);  // Changed from pdfs
+          setCountRows(retryResponse.documents.length);  // Changed from pdfs
           setSkipRows(retryResponse.skip);
           setTotalRows(retryResponse.total_count);
         } catch (retryError) {
@@ -80,7 +79,7 @@ const FileList: React.FC = () => {
 
   const handleDeleteFile = async (fileId: string) => {
     try {
-      await deleteFileApi(fileId);
+      await deleteDocumentApi(fileId);
       // Refresh the file list after deletion
       fetchFiles();
     } catch (error) {
@@ -91,8 +90,8 @@ const FileList: React.FC = () => {
 
   const columns: GridColDef[] = [
     {
-      field: 'file_name',
-      headerName: 'Filename',
+      field: 'document_name',  // Changed from file_name
+      headerName: 'Document Name',  // Updated header
       flex: 1,
       renderCell: (params) => {
         return (

@@ -24,9 +24,9 @@ import models
 from schemas import (
     User,
     AccessToken, ListAccessTokensResponse, CreateAccessTokenRequest,
-    ListPDFsResponse,
-    PDFMetadata,
-    FileUpload, FilesUpload,
+    ListDocumentsResponse,
+    DocumentMetadata,
+    DocumentUpload, DocumentsUpload,
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
     OCRMetadataResponse,
@@ -123,19 +123,19 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
 # PDF management endpoints
-@app.post("/files/upload")
-async def upload_file(
-    files_upload: FilesUpload = Body(...),
+@app.post("/documents")
+async def upload_document(
+    documents_upload: DocumentsUpload = Body(...),
     current_user: User = Depends(get_current_user)
 ):
-    ad.log.info(f"upload_pdf(): files: {[file.name for file in files_upload.files]}")
-    uploaded_files = []
-    for file in files_upload.files:
-        if not file.name.endswith('.pdf'):
-            raise HTTPException(status_code=400, detail=f"File {file.name} is not a PDF")
+    ad.log.info(f"upload_document(): documents: {[doc.name for doc in documents_upload.files]}")
+    uploaded_documents = []
+    for document in documents_upload.files:
+        if not document.name.endswith('.pdf'):
+            raise HTTPException(status_code=400, detail=f"Document {document.name} is not a PDF")
         
-        # Decode and save the file
-        content = base64.b64decode(file.content.split(',')[1])
+        # Decode and save the document
+        content = base64.b64decode(document.content.split(',')[1])
 
         # Create a unique id for the document
         document_id = ad.common.create_id()
@@ -145,18 +145,18 @@ async def upload_file(
             "document_id": document_id,
             "type": "application/pdf",
             "size": len(content),
-            "user_file_name": file.name
+            "user_file_name": document.name
         }
 
-        # Save the file to mongodb
+        # Save the document to mongodb
         ad.common.save_file(analytiq_client,
                             file_name=mongo_file_name,
                             blob=content,
                             metadata=metadata)
 
-        document = {
+        document_metadata = {
             "_id": ObjectId(document_id),
-            "user_file_name": file.name,
+            "user_file_name": document.name,
             "mongo_file_name": mongo_file_name,
             "document_id": document_id,
             "upload_date": datetime.utcnow(),
@@ -164,60 +164,28 @@ async def upload_file(
             "state": "Uploaded"
         }
         
-        await ad.common.save_doc(analytiq_client, document)
-        uploaded_files.append({"file_name": file.name, "document_id": document_id})
+        await ad.common.save_doc(analytiq_client, document_metadata)
+        uploaded_documents.append({"document_name": document.name, "document_id": document_id})
 
         # Post a message to the ocr job queue
         msg = {"document_id": document_id}
         await ad.queue.send_msg(analytiq_client, "ocr", msg=msg)
     
-    return {"uploaded_files": uploaded_files}
+    return {"uploaded_documents": uploaded_documents}
 
-@app.get("/files/download/{document_id}")
-async def download_file(
-    document_id: str,
-    current_user: User = Depends(get_current_user)
-):
-    ad.log.info(f"download_file() start: document_id: {document_id}")
-    document = await ad.common.get_doc(analytiq_client, document_id)
-    
-    if not document:
-        raise HTTPException(status_code=404, detail="Document not found")
-        
-    ad.log.info(f"download_file() found document: {document}")
-
-    # Get the file from mongodb
-    file = ad.common.get_file(analytiq_client, document["mongo_file_name"])
-    if file is None:
-        raise HTTPException(status_code=404, detail="File not found")
-
-    ad.log.info(f"download_file() got file: {document}")
-
-    ret = Response(
-        content=file["blob"],
-        media_type=file["metadata"]["type"],
-        headers={
-            "Content-Disposition": f"attachment; filename={document['user_file_name']}",
-            "Content-Length": str(file["metadata"]["size"])
-        }
-    )
-    
-    ad.log.info(f"download_file() end: {ret}")
-    return ret
-
-@app.get("/files/list", response_model=ListPDFsResponse)
-async def list_files(
+@app.get("/documents/list", response_model=ListDocumentsResponse)
+async def list_documents(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     user: User = Depends(get_current_user)
 ):
     documents, total_count = await ad.common.list_docs(analytiq_client, skip=skip, limit=limit)
     
-    return ListPDFsResponse(
-        pdfs=[
+    return ListDocumentsResponse(
+        documents=[
             {
                 "id": str(doc["_id"]),
-                "file_name": doc["user_file_name"],
+                "document_name": doc["user_file_name"],
                 "upload_date": doc["upload_date"].isoformat(),
                 "uploaded_by": doc["uploaded_by"],
                 "state": doc.get("state", "")
@@ -228,20 +196,57 @@ async def list_files(
         skip=skip
     )
 
-@app.delete("/files/delete/{file_id}", response_model=None)
-async def delete_file(
-    file_id: str,
+@app.get("/documents/{document_id}")
+async def get_document(
+    document_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    document = await ad.common.get_doc(analytiq_client, file_id)
+    ad.log.info(f"get_document() start: document_id: {document_id}")
+    document = await ad.common.get_doc(analytiq_client, document_id)
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    ad.log.info(f"get_document() found document: {document}")
+
+    # Get the file from mongodb
+    file = ad.common.get_file(analytiq_client, document["mongo_file_name"])
+    if file is None:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    ad.log.info(f"get_document() got file: {document}")
+
+    # Make sure we're sending the correct content type for PDFs
+    return Response(
+        content=file["blob"],
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={document['user_file_name']}",
+            "Content-Length": str(file["metadata"]["size"]),
+            "Cache-Control": "no-cache"
+        }
+    )
+
+@app.delete("/documents/{document_id}")
+async def delete_document(
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    document = await ad.common.get_doc(analytiq_client, document_id)
     
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    ad.common.delete_file(analytiq_client, file_name=document["mongo_file_name"])
-    await ad.common.delete_doc(analytiq_client, file_id)
+    if "mongo_file_name" not in document:
+        raise HTTPException(
+            status_code=500, 
+            detail="Document metadata is corrupted: missing mongo_file_name"
+        )
 
-    return
+    ad.common.delete_file(analytiq_client, file_name=document["mongo_file_name"])
+    await ad.common.delete_doc(analytiq_client, document_id)
+
+    return {"message": "Document deleted successfully"}
 
 @app.post("/access_tokens", response_model=AccessToken)
 async def access_token_create(
@@ -747,7 +752,23 @@ async def delete_schema(
     if schema["created_by"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this schema")
     
-    # Delete all versions of this schema
+    # Check for dependent prompts
+    dependent_prompts = await prompts_collection.find({
+        "schema_name": schema["name"]
+    }).to_list(length=None)
+    
+    if dependent_prompts:
+        # Format the list of dependent prompts
+        prompt_list = [
+            {"name": p["name"], "version": p["version"]} 
+            for p in dependent_prompts
+        ]
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete schema because it has dependent prompts:{json.dumps(prompt_list)}"
+        )
+    
+    # If no dependent prompts, proceed with deletion
     result = await schemas_collection.delete_many({"name": schema["name"]})
     
     # Also delete the version counter

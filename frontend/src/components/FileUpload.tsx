@@ -2,17 +2,19 @@ import React, { useCallback, useState } from 'react';
 import { useDropzone, DropzoneOptions } from 'react-dropzone';
 import { Button, Typography, Box, CircularProgress } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { FileWithContent } from '@/app/types/Api';
-import { uploadFilesApi } from '@/utils/api';
+import { 
+  uploadDocumentsApi,
+  DocumentWithContent
+} from '@/utils/api';
 
 const FileUpload: React.FC = () => {
-  const [files, setFiles] = useState<FileWithContent[]>([]);
+  const [files, setFiles] = useState<DocumentWithContent[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const readFiles = acceptedFiles.map(file => 
-      new Promise<FileWithContent>((resolve) => {
+      new Promise<DocumentWithContent>((resolve) => {
         const reader = new FileReader();
         reader.onload = () => {
           resolve({
@@ -48,8 +50,8 @@ const FileUpload: React.FC = () => {
     setUploadStatus(null);
 
     try {
-      const response = await uploadFilesApi(files);
-      setUploadStatus(`Successfully uploaded ${response.uploaded_files.length} file(s)`);
+      const response = await uploadDocumentsApi(files);
+      setUploadStatus(`Successfully uploaded ${response.uploaded_documents.length} file(s)`);
       setFiles([]);
     } catch (error) {
       console.error('Error uploading files:', error);

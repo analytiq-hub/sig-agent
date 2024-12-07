@@ -23,23 +23,23 @@ class CreateAccessTokenRequest(BaseModel):
     name: str
     lifetime: int
 
-class FileUpload(BaseModel):
+class DocumentUpload(BaseModel):
     name: str
     content: str
 
-class FilesUpload(BaseModel):
-    files: List[FileUpload]
+class DocumentsUpload(BaseModel):
+    files: List[DocumentUpload]
 
 # Response model for the PDF documents
-class PDFMetadata(BaseModel):
+class DocumentMetadata(BaseModel):
     id: str
-    file_name: str
+    document_name: str
     upload_date: datetime
     uploaded_by: str
     state: str
 
-class ListPDFsResponse(BaseModel):
-    pdfs: List[PDFMetadata]
+class ListDocumentsResponse(BaseModel):
+    documents: List[DocumentMetadata]
     total_count: int
     skip: int
 
