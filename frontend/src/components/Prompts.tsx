@@ -19,13 +19,14 @@ const Prompts: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [selectedSchema, setSelectedSchema] = useState<string>('');
+  const [selectedSchemaDetails, setSelectedSchemaDetails] = useState<Schema | null>(null);
 
   const savePrompt = async (prompt: {name: string; content: string}) => {
     try {
       setIsLoading(true);
       let savedPrompt: Prompt;
       
-      const promptData = {
+      const promptData: PromptCreate = {
         name: prompt.name,
         content: prompt.content,
         schema_name: selectedSchema || undefined,
@@ -37,7 +38,7 @@ const Prompts: React.FC = () => {
           const schemaId = schemas.find(s => s.name === selectedSchema)?.id;
           if (schemaId) {
             const schema = await getSchemaApi(schemaId);
-            promptData.schema_version = schema.version;
+            promptData.schema_version = schema.version || undefined;
           }
         } catch (error) {
           console.error('Error fetching schema version:', error);
@@ -94,6 +95,24 @@ const Prompts: React.FC = () => {
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
       setMessage('Error: ' + errorMsg);
+    }
+  };
+
+  const handleSchemaSelect = async (schemaName: string) => {
+    setSelectedSchema(schemaName);
+    if (schemaName) {
+      const schemaId = schemas.find(s => s.name === schemaName)?.id;
+      if (schemaId) {
+        try {
+          const schema = await getSchemaApi(schemaId);
+          setSelectedSchemaDetails(schema);
+        } catch (error) {
+          console.error('Error fetching schema details:', error);
+          setMessage('Error: Unable to fetch schema details');
+        }
+      }
+    } else {
+      setSelectedSchemaDetails(null);
     }
   };
 
@@ -180,12 +199,18 @@ const Prompts: React.FC = () => {
       renderCell: (params) => (
         <div className="flex gap-2 items-center h-full">
           <IconButton
-            onClick={() => {
+            onClick={async () => {
               setCurrentPrompt({
                 id: params.row.id,
                 name: params.row.name,
                 content: params.row.content
               });
+              if (params.row.schema_name) {
+                await handleSchemaSelect(params.row.schema_name);
+              } else {
+                setSelectedSchema('');
+                setSelectedSchemaDetails(null);
+              }
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             disabled={isLoading}
@@ -234,23 +259,40 @@ const Prompts: React.FC = () => {
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Schema (Optional)
-            </label>
-            <select
-              value={selectedSchema}
-              onChange={(e) => setSelectedSchema(e.target.value)}
-              disabled={isLoading}
-              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-            >
-              <option value="">None</option>
-              {schemas.map((schema) => (
-                <option key={schema.id} value={schema.name}>
-                  {schema.name}
-                </option>
-              ))}
-            </select>
+          <div className="flex gap-4">
+            <div className="w-1/2 space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Schema (Optional)
+              </label>
+              <select
+                value={selectedSchema}
+                onChange={(e) => handleSchemaSelect(e.target.value)}
+                disabled={isLoading}
+                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <option value="">None</option>
+                {schemas.map((schema) => (
+                  <option key={schema.id} value={schema.name}>
+                    {schema.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedSchemaDetails && (
+              <div className="w-1/2 p-4 bg-gray-50 rounded-md">
+                <h3 className="text-sm font-medium text-gray-700 mb-2">
+                  Schema: {selectedSchemaDetails.name} (v{selectedSchemaDetails.version})
+                </h3>
+                <div className="space-y-1">
+                  {selectedSchemaDetails.fields.map((field, index) => (
+                    <div key={index} className="text-sm text-gray-600">
+                      • {field.name}: <span className="text-gray-500">{field.type}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}
