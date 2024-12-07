@@ -12,7 +12,7 @@ import {
 import Link from 'next/link';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-interface File extends DocumentMetadata {}  // Use the type from api.ts
+type File = DocumentMetadata;  // Use type alias instead of interface
 
 const FileList: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);

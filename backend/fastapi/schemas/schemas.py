@@ -109,3 +109,17 @@ class Prompt(PromptCreate):
 
 class ListPromptsResponse(BaseModel):
     prompts: List[Prompt]
+
+# Add these new models for tag management
+class TagCreate(BaseModel):
+    name: str
+    color: str | None = None  # Optional hex color code for UI display
+    description: str | None = None
+
+class Tag(TagCreate):
+    id: str
+    created_at: datetime
+    created_by: str
+
+class ListTagsResponse(BaseModel):
+    tags: List[Tag]

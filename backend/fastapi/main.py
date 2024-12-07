@@ -33,6 +33,7 @@ from schemas import (
     LLMRunResponse, LLMResult,
     Schema, SchemaCreate, ListSchemasResponse,
     Prompt, PromptCreate, ListPromptsResponse,
+    TagCreate, Tag, ListTagsResponse
 )
 
 # Add the parent directory to the sys path
@@ -95,6 +96,7 @@ schemas_collection = db.schemas
 schema_versions_collection = db.schema_versions
 prompts_collection = db.prompts
 prompt_versions_collection = db.prompt_versions
+tags_collection = db.tags
 
 from pydantic import BaseModel
 
@@ -950,6 +952,84 @@ async def delete_prompt(
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Prompt not found")
     return {"message": "Prompt deleted successfully"}
+
+# Tag management endpoints
+@app.post("/tags", response_model=Tag)
+async def create_tag(
+    tag: TagCreate,
+    current_user: User = Depends(get_current_user)
+):
+    # Check if tag with this name already exists for this user
+    existing_tag = await tags_collection.find_one({
+        "name": tag.name,
+        "created_by": current_user.user_id
+    })
+    
+    if existing_tag:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Tag with name '{tag.name}' already exists"
+        )
+
+    new_tag = {
+        "name": tag.name,
+        "color": tag.color,
+        "description": tag.description,
+        "created_at": datetime.now(UTC),
+        "created_by": current_user.user_id
+    }
+    
+    result = await tags_collection.insert_one(new_tag)
+    new_tag["id"] = str(result.inserted_id)
+    
+    return Tag(**new_tag)
+
+@app.get("/tags", response_model=ListTagsResponse)
+async def list_tags(
+    current_user: User = Depends(get_current_user)
+):
+    cursor = tags_collection.find({"created_by": current_user.user_id})
+    tags = await cursor.to_list(length=None)
+    
+    return ListTagsResponse(tags=[
+        {
+            "id": str(tag["_id"]),
+            "name": tag["name"],
+            "color": tag.get("color"),
+            "description": tag.get("description"),
+            "created_at": tag["created_at"],
+            "created_by": tag["created_by"]
+        }
+        for tag in tags
+    ])
+
+@app.delete("/tags/{tag_id}")
+async def delete_tag(
+    tag_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    # Verify tag exists and belongs to user
+    tag = await tags_collection.find_one({
+        "_id": ObjectId(tag_id),
+        "created_by": current_user.user_id
+    })
+    
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    
+    # TODO: When we implement document tagging, we should either:
+    # 1. Check if tag is in use and prevent deletion
+    # 2. Remove the tag from all documents that use it
+    
+    result = await tags_collection.delete_one({
+        "_id": ObjectId(tag_id),
+        "created_by": current_user.user_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    
+    return {"message": "Tag deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn

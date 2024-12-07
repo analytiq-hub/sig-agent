@@ -415,4 +415,34 @@ export const deletePromptApi = async (promptId: string) => {
   return response.data;
 };
 
+export interface TagCreate {
+    name: string;
+    color?: string;
+    description?: string;
+}
+
+export interface Tag extends TagCreate {
+    id: string;
+    created_at: string;
+    created_by: string;
+}
+
+export interface ListTagsResponse {
+    tags: Tag[];
+}
+
+export const createTagApi = async (tag: TagCreate): Promise<Tag> => {
+    const response = await api.post<Tag>('/tags', tag);
+    return response.data;
+};
+
+export const getTagsApi = async (): Promise<ListTagsResponse> => {
+    const response = await api.get<ListTagsResponse>('/tags');
+    return response.data;
+};
+
+export const deleteTagApi = async (tagId: string): Promise<void> => {
+    await api.delete(`/tags/${tagId}`);
+};
+
 export { api, getApiErrorMsg, isAxiosError };
