@@ -105,7 +105,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Update the renderMenuItem function to match burger icon size and alignment
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icon;
-    const isSelected = pathname === item.href;
+    const isSelected = pathname === item.href || pathname.startsWith(item.href + '/');
     
     return (
       <Link

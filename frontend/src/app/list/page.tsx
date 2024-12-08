@@ -1,31 +1,37 @@
 'use client'
 
-import { useState } from 'react';
-import FileList from '@/components/FileList';
+import DocumentList from '@/components/DocumentList';
 import Tags from '@/components/Tags';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function DocumentsPage() {
-  const [activeTab, setActiveTab] = useState(0);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tab = searchParams.get('tab') || 'documents';
+
+  const handleTabChange = (newValue: string) => {
+    router.push(`/list?tab=${newValue}`);
+  };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="p-4">
       <div className="border-b border-gray-200 mb-6">
         <div className="flex gap-8">
           <button
-            onClick={() => setActiveTab(0)}
+            onClick={() => handleTabChange('documents')}
             className={`pb-4 px-1 relative font-semibold text-base ${
-              activeTab === 0 
-                ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' 
+              tab === 'documents'
+                ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             Documents
           </button>
           <button
-            onClick={() => setActiveTab(1)}
+            onClick={() => handleTabChange('tags')}
             className={`pb-4 px-1 relative font-semibold text-base ${
-              activeTab === 1 
-                ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' 
+              tab === 'tags'
+                ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -35,11 +41,11 @@ export default function DocumentsPage() {
       </div>
 
       <div className="max-w-6xl mx-auto">
-        <div role="tabpanel" hidden={activeTab !== 0}>
-          {activeTab === 0 && <FileList />}
+        <div role="tabpanel" hidden={tab !== 'documents'}>
+          {tab === 'documents' && <DocumentList />}
         </div>
-        <div role="tabpanel" hidden={activeTab !== 1}>
-          {activeTab === 1 && <Tags />}
+        <div role="tabpanel" hidden={tab !== 'tags'}>
+          {tab === 'tags' && <Tags />}
         </div>
       </div>
     </div>
