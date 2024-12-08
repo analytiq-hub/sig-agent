@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Prompt, createPromptApi, getPromptsApi, deletePromptApi, updatePromptApi, Schema, getSchemasApi, getSchemaApi } from '@/utils/api';
+import { Prompt, PromptCreate, createPromptApi, getPromptsApi, deletePromptApi, updatePromptApi, Schema, getSchemasApi, getSchemaApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
@@ -7,12 +7,6 @@ import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors';
-
-// Add a new type for the error response
-interface DeleteSchemaError {
-  detail: string;
-  dependent_prompts?: Array<{name: string; version: number}>;
-}
 
 const Prompts: React.FC = () => {
   const [prompts, setPrompts] = useState<Prompt[]>([]);

@@ -109,7 +109,7 @@ const PDFViewer = ({ id }: { id: string }) => {
         if (isMounted) {
           // Load the PDF data directly instead of using the blob URL
           const loadingTask = pdfjs.getDocument({ data: response.data });
-          const pdf = await loadingTask.promise;
+          await loadingTask.promise;  // Wait for PDF to load before continuing
           
           setFile(url);  // Keep the URL for download/print functionality
           fileRef.current = url;

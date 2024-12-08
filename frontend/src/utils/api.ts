@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { FileWithContent } from '@/app/types/Api';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 import { AxiosError } from 'axios';

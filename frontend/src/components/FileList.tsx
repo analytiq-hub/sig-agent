@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { IconButton, TextField, InputAdornment } from '@mui/material';
+import { IconButton } from '@mui/material';
 import { 
   listDocumentsApi, 
   deleteDocumentApi, 
