@@ -4,7 +4,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline'
 import { isColorLight } from '@/utils/colors'
 import { Tag } from '@/utils/api'
 
-interface DocumentTagEditorProps {
+interface DocumentUpdateProps {
   isOpen: boolean
   onClose: () => void
   documentName: string
@@ -13,22 +13,17 @@ interface DocumentTagEditorProps {
   onSave: (tagIds: string[]) => Promise<void>
 }
 
-export function DocumentTagEditor({ 
+export function DocumentUpdate({ 
   isOpen, 
   onClose, 
   documentName, 
   currentTags, 
   availableTags,
   onSave 
-}: DocumentTagEditorProps) {
+}: DocumentUpdateProps) {
   const [selectedTags, setSelectedTags] = useState(currentTags)
 
   const handleSave = async () => {
-    console.log('DocumentTagEditor - Saving tags:', {
-      documentName,
-      selectedTags,
-      currentTags
-    });
     await onSave(selectedTags);
     onClose();
   };

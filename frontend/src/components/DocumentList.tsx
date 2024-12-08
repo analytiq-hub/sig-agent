@@ -17,7 +17,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { isColorLight } from '@/utils/colors';
 import colors from 'tailwindcss/colors';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import { DocumentTagEditor } from './DocumentTagEditor';
+import { DocumentUpdate } from './DocumentUpdate';
 
 type File = DocumentMetadata;  // Use type alias instead of interface
 
@@ -272,7 +272,7 @@ const DocumentList: React.FC = () => {
       </div>
       
       {editingDocument && (
-        <DocumentTagEditor
+        <DocumentUpdate
           isOpen={isTagEditorOpen}
           onClose={handleCloseTagEditor}
           documentName={editingDocument.document_name}
