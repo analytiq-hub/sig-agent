@@ -165,6 +165,17 @@ export const getDocumentApi = async (id: string) => {
   return { data: response.data, headers: response.headers };
 };
 
+export const updateDocumentApi = async (documentId: string, tagIds: string[]): Promise<void> => {
+  const requestBody = { tag_ids: tagIds };
+  
+  try {
+    const response = await api.put(`/documents/${documentId}`, requestBody);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const deleteDocumentApi = async (id: string) => {
   const response = await api.delete(`/documents/${id}`);
   return response.data;
@@ -451,23 +462,6 @@ export const deleteTagApi = async (tagId: string): Promise<void> => {
 export const updateTagApi = async (tagId: string, tag: TagCreate): Promise<Tag> => {
     const response = await api.put<Tag>(`/tags/${tagId}`, tag);
     return response.data;
-};
-
-export const updateDocumentTagsApi = async (documentId: string, tagIds: string[]): Promise<void> => {
-  const requestBody = { tag_ids: tagIds };
-  console.log('updateDocumentTagsApi - Making request:', {
-    url: `/documents/${documentId}`,
-    method: 'PUT',
-    requestBody
-  });
-  
-  try {
-    const response = await api.put(`/documents/${documentId}`, requestBody);
-    console.log('updateDocumentTagsApi - Response:', response.data);
-  } catch (error) {
-    console.error('updateDocumentTagsApi - Error:', error);
-    throw error;
-  }
 };
 
 export { api, getApiErrorMsg, isAxiosError };

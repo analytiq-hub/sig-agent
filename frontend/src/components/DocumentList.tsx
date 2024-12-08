@@ -10,7 +10,7 @@ import {
   DocumentMetadata,
   Tag,
   getTagsApi,
-  updateDocumentTagsApi
+  updateDocumentApi
 } from '@/utils/api';
 import Link from 'next/link';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -121,7 +121,7 @@ const DocumentList: React.FC = () => {
         newTags: tagIds
       });
       
-      await updateDocumentTagsApi(editingDocument.id, tagIds);
+      await updateDocumentApi(editingDocument.id, tagIds);
       console.log('Tags updated successfully, refreshing document list');
       
       // Refresh the document list to show updated tags
