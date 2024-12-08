@@ -194,13 +194,13 @@ const DocumentList: React.FC = () => {
               const bgColor = tag.color || colors.blue[500];
               const textColor = isColorLight(bgColor) ? 'text-gray-800' : 'text-white';
               return (
-                <span
+                <div 
                   key={tag.id}
-                  className={`px-2 py-1 rounded text-sm ${textColor}`}
+                  className={`px-2 py-1 leading-none rounded shadow-sm ${textColor}`}
                   style={{ backgroundColor: bgColor }}
                 >
                   {tag.name}
-                </span>
+                </div>
               );
             })}
           </div>

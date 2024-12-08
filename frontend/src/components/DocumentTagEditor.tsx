@@ -1,6 +1,8 @@
 import { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
+import { isColorLight } from '@/utils/colors'
+import { Tag } from '@/utils/api'
 
 interface DocumentTagEditorProps {
   isOpen: boolean
@@ -74,11 +76,14 @@ export function DocumentTagEditor({
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <span
-                              className="w-3 h-3 rounded-full"
+                            <div
+                              className={`px-2 py-1 leading-none rounded shadow-sm ${
+                                isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                              }`}
                               style={{ backgroundColor: tag.color }}
-                            />
-                            <span>{tag.name}</span>
+                            >
+                              {tag.name}
+                            </div>
                           </div>
                         </button>
                       ))}
