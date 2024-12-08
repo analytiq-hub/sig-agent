@@ -1045,9 +1045,16 @@ async def delete_tag(
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
     
-    # TODO: When we implement document tagging, we should either:
-    # 1. Check if tag is in use and prevent deletion
-    # 2. Remove the tag from all documents that use it
+    # Check if tag is used in any documents
+    documents_with_tag = await db.docs.find_one({
+        "tag_ids": tag_id
+    })
+    
+    if documents_with_tag:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete tag '{tag['name']}' because it is assigned to one or more documents"
+        )
     
     result = await tags_collection.delete_one({
         "_id": ObjectId(tag_id),
