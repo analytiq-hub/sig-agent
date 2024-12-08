@@ -16,6 +16,8 @@ import Link from 'next/link';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { isColorLight } from '@/utils/colors';
 import colors from 'tailwindcss/colors';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import { DocumentTagEditor } from './DocumentTagEditor';
 
 type File = DocumentMetadata;  // Use type alias instead of interface
 
@@ -27,6 +29,8 @@ const DocumentList: React.FC = () => {
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const [isLoading, setIsLoading] = useState(true);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [editingDocument, setEditingDocument] = useState<DocumentMetadata | null>(null);
+  const [isTagEditorOpen, setIsTagEditorOpen] = useState(false);
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -107,6 +111,32 @@ const DocumentList: React.FC = () => {
     }
   };
 
+  const handleUpdateTags = async (tagIds: string[]) => {
+    if (!editingDocument) return;
+    
+    try {
+      console.log('DocumentList - handleUpdateTags:', {
+        documentId: editingDocument.id,
+        oldTags: editingDocument.tag_ids,
+        newTags: tagIds
+      });
+      
+      await updateDocumentTagsApi(editingDocument.id, tagIds);
+      console.log('Tags updated successfully, refreshing document list');
+      
+      // Refresh the document list to show updated tags
+      await fetchFiles();
+      console.log('Document list refreshed');
+    } catch (error) {
+      console.error('Error updating document tags:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+      }
+      // Log the full error object
+      console.error('Full error:', JSON.stringify(error, null, 2));
+    }
+  };
+
   const columns: GridColDef[] = [
     {
       field: 'document_name',  // Changed from file_name
@@ -180,17 +210,34 @@ const DocumentList: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 100,
+      width: 120,
       renderCell: (params) => (
-        <IconButton
-          aria-label="delete"
-          onClick={() => handleDeleteFile(params.row.id)}
-        >
-          <DeleteIcon />
-        </IconButton>
+        <div className="flex gap-2">
+          <IconButton
+            onClick={() => {
+              setEditingDocument(params.row);
+              setIsTagEditorOpen(true);
+            }}
+            className="text-blue-600 hover:bg-blue-50"
+          >
+            <EditOutlinedIcon />
+          </IconButton>
+          <IconButton
+            aria-label="delete"
+            onClick={() => handleDeleteFile(params.row.id)}
+            className="text-red-600 hover:bg-red-50"
+          >
+            <DeleteIcon />
+          </IconButton>
+        </div>
       ),
     },
   ];
+
+  const handleCloseTagEditor = () => {
+    setIsTagEditorOpen(false);
+    setEditingDocument(null);
+  };
 
   return (
     <Box sx={{ height: 400, width: '100%' }}>
@@ -223,6 +270,17 @@ const DocumentList: React.FC = () => {
             'No documents found'
         }
       </div>
+      
+      {editingDocument && (
+        <DocumentTagEditor
+          isOpen={isTagEditorOpen}
+          onClose={handleCloseTagEditor}
+          documentName={editingDocument.document_name}
+          currentTags={editingDocument.tag_ids || []}
+          availableTags={tags}
+          onSave={handleUpdateTags}
+        />
+      )}
     </Box>
   );
 };

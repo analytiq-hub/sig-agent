@@ -423,10 +423,11 @@ export interface TagCreate {
     description?: string;
 }
 
-export interface Tag extends TagCreate {
-    id: string;
-    created_at: string;
-    created_by: string;
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  description?: string;
 }
 
 export interface ListTagsResponse {
@@ -452,9 +453,21 @@ export const updateTagApi = async (tagId: string, tag: TagCreate): Promise<Tag> 
     return response.data;
 };
 
-export const updateDocumentTagsApi = async (documentId: string, tagIds: string[]) => {
-    const response = await api.put(`/documents/${documentId}`, { tag_ids: tagIds });
-    return response.data;
+export const updateDocumentTagsApi = async (documentId: string, tagIds: string[]): Promise<void> => {
+  const requestBody = { tag_ids: tagIds };
+  console.log('updateDocumentTagsApi - Making request:', {
+    url: `/documents/${documentId}`,
+    method: 'PUT',
+    requestBody
+  });
+  
+  try {
+    const response = await api.put(`/documents/${documentId}`, requestBody);
+    console.log('updateDocumentTagsApi - Response:', response.data);
+  } catch (error) {
+    console.error('updateDocumentTagsApi - Error:', error);
+    throw error;
+  }
 };
 
 export { api, getApiErrorMsg, isAxiosError };

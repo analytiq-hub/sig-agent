@@ -1098,6 +1098,8 @@ async def update_document(
     update: dict = Body(...),  # Expecting {"tag_ids": [...]}
     current_user: User = Depends(get_current_user)
 ):
+    ad.log.info(f"Updating document {document_id} with data: {update}")
+
     # Validate the update data
     if "tag_ids" not in update:
         raise HTTPException(
@@ -1140,7 +1142,7 @@ async def update_document(
             )
 
     # Update the document
-    result = await db.documents.update_one(
+    result = await db.docs.update_one(
         {"_id": ObjectId(document_id)},
         {"$set": {"tag_ids": tag_ids}}
     )
