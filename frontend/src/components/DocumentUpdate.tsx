@@ -29,14 +29,14 @@ export function DocumentUpdate({
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
+    <Transition show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
 
         <div className="fixed inset-0 overflow-hidden">
           <div className="absolute inset-0 overflow-hidden">
             <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
-              <Dialog.Panel className="pointer-events-auto w-screen max-w-md">
+              <div className="pointer-events-auto w-screen max-w-md">
                 <div className="flex h-full flex-col bg-white shadow-xl">
                   <div className="px-4 py-6 sm:px-6">
                     <div className="flex items-start justify-between">
@@ -70,21 +70,19 @@ export function DocumentUpdate({
                               : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
                           }`}
                         >
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`px-2 py-1 leading-none rounded shadow-sm ${
+                          <div className="flex items-center h-full w-full">
+                            <div 
+                              className={`px-2 py-1 leading-none rounded shadow-sm flex items-center gap-2 text-sm ${
                                 isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
                               }`}
                               style={{ backgroundColor: tag.color }}
                             >
-                              <span className="flex items-center gap-2">
-                                {tag.name}
-                                {selectedTags.includes(tag.id) && (
-                                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                )}
-                              </span>
+                              {tag.name}
+                              {selectedTags.includes(tag.id) && (
+                                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
                             </div>
                           </div>
                         </button>
@@ -108,11 +106,11 @@ export function DocumentUpdate({
                     </button>
                   </div>
                 </div>
-              </Dialog.Panel>
+              </div>
             </div>
           </div>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   )
 } 
