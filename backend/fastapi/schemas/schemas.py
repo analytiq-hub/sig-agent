@@ -26,6 +26,7 @@ class CreateAccessTokenRequest(BaseModel):
 class DocumentUpload(BaseModel):
     name: str
     content: str
+    tag_ids: List[str] = []  # Optional list of tag IDs
 
 class DocumentsUpload(BaseModel):
     files: List[DocumentUpload]
@@ -37,6 +38,7 @@ class DocumentMetadata(BaseModel):
     upload_date: datetime
     uploaded_by: str
     state: str
+    tag_ids: List[str] = []  # List of tag IDs
 
 class ListDocumentsResponse(BaseModel):
     documents: List[DocumentMetadata]

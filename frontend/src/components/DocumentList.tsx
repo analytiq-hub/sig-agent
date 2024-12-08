@@ -7,10 +7,15 @@ import {
   listDocumentsApi, 
   deleteDocumentApi, 
   isAxiosError,
-  DocumentMetadata 
+  DocumentMetadata,
+  Tag,
+  getTagsApi,
+  updateDocumentTagsApi
 } from '@/utils/api';
 import Link from 'next/link';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { isColorLight } from '@/utils/colors';
+import colors from 'tailwindcss/colors';
 
 type File = DocumentMetadata;  // Use type alias instead of interface
 
@@ -21,6 +26,7 @@ const DocumentList: React.FC = () => {
   const [totalRows, setTotalRows] = useState<number>(0);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const [isLoading, setIsLoading] = useState(true);
+  const [tags, setTags] = useState<Tag[]>([]);
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -72,6 +78,19 @@ const DocumentList: React.FC = () => {
     console.log('FileList component mounted or pagination changed');
     fetchFiles();
   }, [fetchFiles, paginationModel]);
+
+  // Load tags once when component mounts
+  useEffect(() => {
+    const loadTags = async () => {
+      try {
+        const response = await getTagsApi();
+        setTags(response.tags);
+      } catch (error) {
+        console.error('Error loading tags:', error);
+      }
+    };
+    loadTags();
+  }, []);
 
   // Calculate the current range
   const startRange = skipRows + 1;
@@ -133,6 +152,31 @@ const DocumentList: React.FC = () => {
     },
     { field: 'uploaded_by', headerName: 'Uploaded By', flex: 1 },
     { field: 'state', headerName: 'State', flex: 1 },
+    {
+      field: 'tag_ids',
+      headerName: 'Tags',
+      flex: 1,
+      renderCell: (params) => {
+        const documentTags = tags.filter(tag => params.row.tag_ids?.includes(tag.id));
+        return (
+          <div className="flex gap-1 flex-wrap">
+            {documentTags.map(tag => {
+              const bgColor = tag.color || colors.blue[500];
+              const textColor = isColorLight(bgColor) ? 'text-gray-800' : 'text-white';
+              return (
+                <span
+                  key={tag.id}
+                  className={`px-2 py-1 rounded text-sm ${textColor}`}
+                  style={{ backgroundColor: bgColor }}
+                >
+                  {tag.name}
+                </span>
+              );
+            })}
+          </div>
+        );
+      },
+    },
     {
       field: 'actions',
       headerName: 'Actions',

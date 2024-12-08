@@ -108,6 +108,7 @@ function getApiErrorMsg(error: unknown) {
 export interface DocumentWithContent {
     name: string;
     content: string;
+    tag_ids?: string[];  // Optional list of tag IDs
 }
 
 export interface UploadDocumentsResponse {
@@ -133,6 +134,7 @@ export interface DocumentMetadata {
     upload_date: string;
     uploaded_by: string;
     state: string;
+    tag_ids: string[];  // List of tag IDs
 }
 
 export interface ListDocumentsResponse {
@@ -447,6 +449,11 @@ export const deleteTagApi = async (tagId: string): Promise<void> => {
 
 export const updateTagApi = async (tagId: string, tag: TagCreate): Promise<Tag> => {
     const response = await api.put<Tag>(`/tags/${tagId}`, tag);
+    return response.data;
+};
+
+export const updateDocumentTagsApi = async (documentId: string, tagIds: string[]) => {
+    const response = await api.put(`/documents/${documentId}`, { tag_ids: tagIds });
     return response.data;
 };
 
