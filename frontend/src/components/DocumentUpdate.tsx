@@ -41,7 +41,7 @@ export function DocumentUpdate({
                   <div className="px-4 py-6 sm:px-6">
                     <div className="flex items-start justify-between">
                       <h2 className="text-base font-semibold leading-6 text-gray-900">
-                        Edit Tags: {documentName}
+                        Update Document: {documentName}
                       </h2>
                       <button
                         type="button"
@@ -51,6 +51,7 @@ export function DocumentUpdate({
                         <XMarkIcon className="h-6 w-6" />
                       </button>
                     </div>
+                    <span className="text-sm text-gray-500">Click on tags to enable or disable them</span>
                   </div>
                   <div className="flex-1 overflow-y-auto px-4 sm:px-6">
                     <div className="flex flex-wrap gap-2">
