@@ -103,25 +103,20 @@ const PDFViewer = ({ id }: { id: string }) => {
         const response = await getDocumentApi(id);
         
         // Create a blob from the array buffer
-        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const blob = new Blob([response.content], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
 
         if (isMounted) {
           // Load the PDF data directly instead of using the blob URL
-          const loadingTask = pdfjs.getDocument({ data: response.data });
+          const loadingTask = pdfjs.getDocument({ data: response.content });
           await loadingTask.promise;  // Wait for PDF to load before continuing
           
           setFile(url);  // Keep the URL for download/print functionality
           fileRef.current = url;
           setLoading(false);
 
-          // Get the filename from the Content-Disposition header
-          const contentDisposition = response.headers['content-disposition'];
-          const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-          const matches = filenameRegex.exec(contentDisposition);
-          const filename = matches && matches[1] ? matches[1].replace(/['"]/g, '') : `Document_${id}.pdf`;
-
-          setFileName(filename);
+          // Use metadata from the response
+          setFileName(response.metadata.document_name);
           setFileSize(blob.size);
         } else {
           if (url) {

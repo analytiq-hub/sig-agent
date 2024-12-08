@@ -246,13 +246,32 @@ async def get_document(
 
     ad.log.info(f"get_document() got file: {document}")
 
-    # Make sure we're sending the correct content type for PDFs
+    # Create metadata response
+    metadata = DocumentMetadata(
+        id=str(document["_id"]),
+        document_name=document["user_file_name"],
+        upload_date=document["upload_date"],
+        uploaded_by=document["uploaded_by"],
+        state=document.get("state", ""),
+        tag_ids=document.get("tag_ids", [])
+    )
+
+    # Return both metadata and content
     return Response(
-        content=file["blob"],
-        media_type="application/pdf",
+        content=json.dumps({
+            "metadata": {
+                "id": str(metadata.id),
+                "document_name": metadata.document_name,
+                "upload_date": metadata.upload_date.isoformat(),  # Convert datetime to ISO format string
+                "uploaded_by": metadata.uploaded_by,
+                "state": metadata.state,
+                "tag_ids": metadata.tag_ids
+            },
+            "content": base64.b64encode(file["blob"]).decode('utf-8')
+        }),
+        media_type="application/json",
         headers={
             "Content-Disposition": f"attachment; filename={document['user_file_name']}",
-            "Content-Length": str(file["metadata"]["size"]),
             "Cache-Control": "no-cache"
         }
     )

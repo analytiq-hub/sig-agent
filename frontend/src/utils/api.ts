@@ -157,11 +157,27 @@ export const listDocumentsApi = async (params?: ListDocumentsParams) => {
   return response.data;
 };
 
-export const getDocumentApi = async (id: string) => {
-  const response = await api.get(`/documents/${id}`, {
-    responseType: 'arraybuffer'
-  });
-  return { data: response.data, headers: response.headers };
+export interface GetDocumentResponse {
+  metadata: DocumentMetadata;
+  content: ArrayBuffer;
+}
+
+export const getDocumentApi = async (id: string): Promise<GetDocumentResponse> => {
+  const response = await api.get(`/documents/${id}`);
+  const data = response.data;
+  
+  // Convert base64 content back to ArrayBuffer
+  const binaryContent = atob(data.content);
+  const len = binaryContent.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryContent.charCodeAt(i);
+  }
+
+  return {
+    metadata: data.metadata,
+    content: bytes.buffer
+  };
 };
 
 export const updateDocumentApi = async (documentId: string, tagIds: string[]): Promise<void> => {

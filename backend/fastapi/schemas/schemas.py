@@ -125,3 +125,11 @@ class Tag(TagCreate):
 
 class ListTagsResponse(BaseModel):
     tags: List[Tag]
+
+# Add this new model after the DocumentMetadata class
+class DocumentResponse(BaseModel):
+    metadata: DocumentMetadata
+    content: bytes
+
+    class Config:
+        arbitrary_types_allowed = True  # This allows bytes type in Pydantic
