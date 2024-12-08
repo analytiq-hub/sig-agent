@@ -129,7 +129,7 @@ class ListTagsResponse(BaseModel):
 # Add this new model after the DocumentMetadata class
 class DocumentResponse(BaseModel):
     metadata: DocumentMetadata
-    content: bytes
+    content: str  # Changed from bytes to str since we're using base64 encoded string
 
     class Config:
         arbitrary_types_allowed = True  # This allows bytes type in Pydantic

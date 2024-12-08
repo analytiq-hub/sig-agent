@@ -33,7 +33,8 @@ from schemas import (
     LLMRunResponse, LLMResult,
     Schema, SchemaCreate, ListSchemasResponse,
     Prompt, PromptCreate, ListPromptsResponse,
-    TagCreate, Tag, ListTagsResponse
+    TagCreate, Tag, ListTagsResponse,
+    DocumentResponse
 )
 
 # Add the parent directory to the sys path
@@ -226,7 +227,7 @@ async def list_documents(
         skip=skip
     )
 
-@app.get("/documents/{document_id}")
+@app.get("/documents/{document_id}", response_model=DocumentResponse)
 async def get_document(
     document_id: str,
     current_user: User = Depends(get_current_user)
@@ -256,24 +257,10 @@ async def get_document(
         tag_ids=document.get("tag_ids", [])
     )
 
-    # Return both metadata and content
-    return Response(
-        content=json.dumps({
-            "metadata": {
-                "id": str(metadata.id),
-                "document_name": metadata.document_name,
-                "upload_date": metadata.upload_date.isoformat(),  # Convert datetime to ISO format string
-                "uploaded_by": metadata.uploaded_by,
-                "state": metadata.state,
-                "tag_ids": metadata.tag_ids
-            },
-            "content": base64.b64encode(file["blob"]).decode('utf-8')
-        }),
-        media_type="application/json",
-        headers={
-            "Content-Disposition": f"attachment; filename={document['user_file_name']}",
-            "Cache-Control": "no-cache"
-        }
+    # Return using the DocumentResponse model
+    return DocumentResponse(
+        metadata=metadata,
+        content=base64.b64encode(file["blob"]).decode('utf-8')
     )
 
 @app.delete("/documents/{document_id}")
