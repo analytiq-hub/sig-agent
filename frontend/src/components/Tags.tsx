@@ -125,13 +125,11 @@ const Tags = () => {
         const textColor = isColorLight(bgColor) ? 'text-gray-800' : 'text-white';
         
         return (
-          <div className="flex items-center">
+          <div className="flex items-center h-full w-full">
             <div 
-              className={`px-2 leading-none rounded shadow-sm ${textColor}`}
+              className={`px-2 py-1 leading-none rounded shadow-sm ${textColor}`}
               style={{ 
                 backgroundColor: bgColor,
-                display: 'inline-block',
-                padding: '2px 8px'
               }}
             >
               {params.row.name}
@@ -144,6 +142,11 @@ const Tags = () => {
       field: 'description',
       headerName: 'Description',
       flex: 2,
+      renderCell: (params) => (
+        <div className="flex items-center h-full w-full">
+          {params.row.description}
+        </div>
+      ),
     },
     {
       field: 'actions',
