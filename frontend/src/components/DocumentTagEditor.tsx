@@ -58,7 +58,7 @@ export function DocumentTagEditor({
                     </div>
                   </div>
                   <div className="flex-1 overflow-y-auto px-4 sm:px-6">
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-wrap gap-2">
                       {availableTags.map(tag => (
                         <button
                           key={tag.id}
@@ -69,10 +69,10 @@ export function DocumentTagEditor({
                                 : [...prev, tag.id]
                             )
                           }}
-                          className={`p-3 rounded-lg border-2 text-left ${
+                          className={`group transition-all ${
                             selectedTags.includes(tag.id)
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-200 hover:border-gray-300'
+                              ? 'ring-2 ring-blue-500 ring-offset-2'
+                              : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
                           }`}
                         >
                           <div className="flex items-center gap-2">
@@ -82,7 +82,14 @@ export function DocumentTagEditor({
                               }`}
                               style={{ backgroundColor: tag.color }}
                             >
-                              {tag.name}
+                              <span className="flex items-center gap-2">
+                                {tag.name}
+                                {selectedTags.includes(tag.id) && (
+                                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </span>
                             </div>
                           </div>
                         </button>
