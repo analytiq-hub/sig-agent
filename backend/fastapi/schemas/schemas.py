@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 # Pydantic models
 class User(BaseModel):
@@ -114,14 +114,20 @@ class ListSchemasResponse(BaseModel):
 class PromptCreate(BaseModel):
     name: str
     content: str
-    schema_name: str | None = None
-    schema_version: int | None = None
+    schema_name: Optional[str] = None
+    schema_version: Optional[int] = None
+    tag_ids: List[str] = []
 
-class Prompt(PromptCreate):
+class Prompt(BaseModel):
     id: str
+    name: str
+    content: str
+    schema_name: str
+    schema_version: int
     version: int
     created_at: datetime
     created_by: str
+    tag_ids: List[str] = []
 
 class ListPromptsResponse(BaseModel):
     prompts: List[Prompt]

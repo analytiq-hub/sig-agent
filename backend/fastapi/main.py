@@ -903,6 +903,22 @@ async def create_prompt(
                 detail=f"Schema {prompt.schema_name} version {prompt.schema_version} not found"
             )
 
+    # Validate tag IDs if provided
+    if prompt.tag_ids:
+        tags_cursor = tags_collection.find({
+            "_id": {"$in": [ObjectId(tag_id) for tag_id in prompt.tag_ids]},
+            "created_by": current_user.user_id
+        })
+        existing_tags = await tags_cursor.to_list(None)
+        existing_tag_ids = {str(tag["_id"]) for tag in existing_tags}
+        
+        invalid_tags = set(prompt.tag_ids) - existing_tag_ids
+        if invalid_tags:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid tag IDs: {list(invalid_tags)}"
+            )
+
     # Check if prompt with this name already exists (case-insensitive)
     existing_prompt = await prompts_collection.find_one({
         "name": {"$regex": f"^{prompt.name}$", "$options": "i"}
@@ -915,11 +931,12 @@ async def create_prompt(
     prompt_dict = {
         "name": existing_prompt["name"] if existing_prompt else prompt.name,
         "content": prompt.content,
-        "schema_name": prompt.schema_name or "",  # Use empty string if None
-        "schema_version": prompt.schema_version or 0,  # Use 0 if None
+        "schema_name": prompt.schema_name or "",
+        "schema_version": prompt.schema_version or 0,
         "version": new_version,
         "created_at": datetime.utcnow(),
-        "created_by": current_user.user_id
+        "created_by": current_user.user_id,
+        "tag_ids": prompt.tag_ids  # Add tag_ids to the document
     }
     
     # Insert into MongoDB
@@ -993,6 +1010,22 @@ async def update_prompt(
             detail=f"Schema {prompt.schema_name} version {prompt.schema_version} not found"
         )
     
+    # Validate tag IDs if provided
+    if prompt.tag_ids:
+        tags_cursor = tags_collection.find({
+            "_id": {"$in": [ObjectId(tag_id) for tag_id in prompt.tag_ids]},
+            "created_by": current_user.user_id
+        })
+        existing_tags = await tags_cursor.to_list(None)
+        existing_tag_ids = {str(tag["_id"]) for tag in existing_tags}
+        
+        invalid_tags = set(prompt.tag_ids) - existing_tag_ids
+        if invalid_tags:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid tag IDs: {list(invalid_tags)}"
+            )
+    
     # Get the next version number
     new_version = await get_next_prompt_version(existing_prompt["name"])
     
@@ -1004,7 +1037,8 @@ async def update_prompt(
         "schema_version": prompt.schema_version,
         "version": new_version,
         "created_at": datetime.utcnow(),
-        "created_by": current_user.user_id
+        "created_by": current_user.user_id,
+        "tag_ids": prompt.tag_ids  # Add tag_ids to the document
     }
     
     # Insert new version
@@ -1110,6 +1144,17 @@ async def delete_tag(
         raise HTTPException(
             status_code=400,
             detail=f"Cannot delete tag '{tag['name']}' because it is assigned to one or more documents"
+        )
+
+    # Check if tag is used in any prompts
+    prompts_with_tag = await prompts_collection.find_one({
+        "tag_ids": tag_id
+    })
+    
+    if prompts_with_tag:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete tag '{tag['name']}' because it is assigned to one or more prompts"
         )
     
     result = await tags_collection.delete_one({

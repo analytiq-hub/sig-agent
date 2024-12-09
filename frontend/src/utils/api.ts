@@ -401,15 +401,19 @@ export interface PromptCreate {
   content: string;
   schema_name?: string;
   schema_version?: number;
+  tag_ids?: string[];
 }
 
-export interface Prompt extends PromptCreate {
+export interface Prompt {
   id: string;
+  name: string;
+  content: string;
+  schema_name: string;
+  schema_version: number;
   version: number;
   created_at: string;
   created_by: string;
-  schema_name?: string;
-  schema_version?: number;
+  tag_ids: string[];
 }
 
 export interface ListPromptsResponse {
