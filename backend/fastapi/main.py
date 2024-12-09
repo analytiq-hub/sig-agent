@@ -999,16 +999,17 @@ async def update_prompt(
     if existing_prompt["created_by"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to update this prompt")
     
-    # Verify schema exists
-    schema = await schemas_collection.find_one({
-        "name": prompt.schema_name,
-        "version": prompt.schema_version
-    })
-    if not schema:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Schema {prompt.schema_name} version {prompt.schema_version} not found"
-        )
+    # Only verify schema if one is specified
+    if prompt.schema_name and prompt.schema_version:
+        schema = await schemas_collection.find_one({
+            "name": prompt.schema_name,
+            "version": prompt.schema_version
+        })
+        if not schema:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Schema {prompt.schema_name} version {prompt.schema_version} not found"
+            )
     
     # Validate tag IDs if provided
     if prompt.tag_ids:
@@ -1033,8 +1034,8 @@ async def update_prompt(
     new_prompt = {
         "name": prompt.name,
         "content": prompt.content,
-        "schema_name": prompt.schema_name,
-        "schema_version": prompt.schema_version,
+        "schema_name": prompt.schema_name or "",  # Use empty string if None
+        "schema_version": prompt.schema_version or 0,  # Use 0 if None
         "version": new_version,
         "created_at": datetime.utcnow(),
         "created_by": current_user.user_id,

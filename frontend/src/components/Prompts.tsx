@@ -27,8 +27,19 @@ const Prompts: React.FC = () => {
   const savePrompt = async (prompt: {name: string; content: string}) => {
     try {
       setIsLoading(true);
-      let savedPrompt: Prompt;
       
+      // Check for existing prompt with same name when creating new prompt
+      if (!currentPrompt.id) {
+        const existingPrompt = prompts.find(
+          p => p.name.toLowerCase() === prompt.name.toLowerCase()
+        );
+        if (existingPrompt) {
+          setMessage('Error: A prompt with this name already exists. To modify it, please use the edit button in the table.');
+          return;
+        }
+      }
+      
+      let savedPrompt: Prompt;
       const promptData: PromptCreate = {
         name: prompt.name,
         content: prompt.content,
@@ -37,7 +48,8 @@ const Prompts: React.FC = () => {
         tag_ids: selectedTagIds
       };
 
-      if (selectedSchema) {
+      // Only validate schema if one is selected
+      if (selectedSchema && selectedSchema !== "") {
         try {
           const schemaId = schemas.find(s => s.name === selectedSchema)?.id;
           if (schemaId) {
@@ -312,23 +324,67 @@ const Prompts: React.FC = () => {
           </div>
 
           <div className="flex gap-4">
-            <div className="w-1/2 space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Schema (Optional)
-              </label>
-              <select
-                value={selectedSchema}
-                onChange={(e) => handleSchemaSelect(e.target.value)}
-                disabled={isLoading}
-                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-              >
-                <option value="">None</option>
-                {schemas.map((schema) => (
-                  <option key={schema.id} value={schema.name}>
-                    {schema.name}
-                  </option>
-                ))}
-              </select>
+            <div className="w-1/2 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Schema (Optional)
+                </label>
+                <select
+                  value={selectedSchema}
+                  onChange={(e) => handleSchemaSelect(e.target.value)}
+                  disabled={isLoading}
+                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">None</option>
+                  {schemas.map((schema) => (
+                    <option key={schema.id} value={schema.name}>
+                      {schema.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Tags
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {availableTags.map(tag => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTagIds(prev => 
+                          prev.includes(tag.id)
+                            ? prev.filter(id => id !== tag.id)
+                            : [...prev, tag.id]
+                        )
+                      }}
+                      className={`group transition-all ${
+                        selectedTagIds.includes(tag.id)
+                          ? 'ring-2 ring-blue-500 ring-offset-2'
+                          : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
+                      }`}
+                    >
+                      <div className="flex items-center h-full w-full">
+                        <div 
+                          className={`px-2 py-1 leading-none rounded shadow-sm flex items-center gap-2 text-sm ${
+                            isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                          }`}
+                          style={{ backgroundColor: tag.color }}
+                        >
+                          {tag.name}
+                          {selectedTagIds.includes(tag.id) && (
+                            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {selectedSchemaDetails && (
@@ -345,48 +401,6 @@ const Prompts: React.FC = () => {
                 </div>
               </div>
             )}
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Tags
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {availableTags.map(tag => (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedTagIds(prev => 
-                      prev.includes(tag.id)
-                        ? prev.filter(id => id !== tag.id)
-                        : [...prev, tag.id]
-                    )
-                  }}
-                  className={`group transition-all ${
-                    selectedTagIds.includes(tag.id)
-                      ? 'ring-2 ring-blue-500 ring-offset-2'
-                      : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
-                  }`}
-                >
-                  <div className="flex items-center h-full w-full">
-                    <div 
-                      className={`px-2 py-1 leading-none rounded shadow-sm flex items-center gap-2 text-sm ${
-                        isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
-                      }`}
-                      style={{ backgroundColor: tag.color }}
-                    >
-                      {tag.name}
-                      {selectedTagIds.includes(tag.id) && (
-                        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Submit Button */}
