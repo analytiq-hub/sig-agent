@@ -186,7 +186,7 @@ async def upload_document(
             "document_id": document_id,
             "upload_date": datetime.utcnow(),
             "uploaded_by": current_user.user_name,
-            "state": "Uploaded",
+            "state": ad.common.doc.DOCUMENT_STATE_UPLOADED,
             "tag_ids": document.tag_ids  # Add tags to the document metadata
         }
         
