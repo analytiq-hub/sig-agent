@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Prompt, PromptCreate, createPromptApi, getPromptsApi, deletePromptApi, updatePromptApi, Schema, getSchemasApi, getSchemaApi } from '@/utils/api';
+import { Prompt, PromptCreate, createPromptApi, getPromptsApi, deletePromptApi, updatePromptApi, Schema, getSchemasApi, getSchemaApi, Tag, getTagsApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
@@ -7,6 +7,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors';
+import { isColorLight } from '@/utils/colors';
 
 const Prompts: React.FC = () => {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
@@ -20,6 +21,8 @@ const Prompts: React.FC = () => {
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [selectedSchema, setSelectedSchema] = useState<string>('');
   const [selectedSchemaDetails, setSelectedSchemaDetails] = useState<Schema | null>(null);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   const savePrompt = async (prompt: {name: string; content: string}) => {
     try {
@@ -30,7 +33,8 @@ const Prompts: React.FC = () => {
         name: prompt.name,
         content: prompt.content,
         schema_name: selectedSchema || undefined,
-        schema_version: undefined
+        schema_version: undefined,
+        tag_ids: selectedTagIds
       };
 
       if (selectedSchema) {
@@ -62,6 +66,7 @@ const Prompts: React.FC = () => {
       setCurrentPrompt({ name: '', content: '' });
       setSelectedSchema('');
       setSelectedSchemaDetails(null);
+      setSelectedTagIds([]);
       setMessage('Prompt saved successfully');
       
     } catch (error) {
@@ -126,9 +131,20 @@ const Prompts: React.FC = () => {
     }
   };
 
+  const loadTags = async () => {
+    try {
+      const response = await getTagsApi();
+      setAvailableTags(response.tags);
+    } catch (error) {
+      const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
+      setMessage('Error: ' + errorMsg);
+    }
+  };
+
   useEffect(() => {
     loadPrompts();
     loadSchemas();
+    loadTags();
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -200,6 +216,33 @@ const Prompts: React.FC = () => {
       ),
     },
     {
+      field: 'tag_ids',
+      headerName: 'Tags',
+      width: 200,
+      headerAlign: 'left',
+      align: 'left',
+      renderCell: (params) => {
+        const promptTags = availableTags.filter(tag => 
+          params.row.tag_ids?.includes(tag.id)
+        );
+        return (
+          <div className="flex gap-1 flex-wrap">
+            {promptTags.map(tag => (
+              <div
+                key={tag.id}
+                className={`px-2 py-1 rounded text-xs ${
+                  isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                }`}
+                style={{ backgroundColor: tag.color }}
+              >
+                {tag.name}
+              </div>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
       field: 'actions',
       headerName: 'Actions',
       width: 120,
@@ -215,6 +258,7 @@ const Prompts: React.FC = () => {
                 name: params.row.name,
                 content: params.row.content
               });
+              setSelectedTagIds(params.row.tag_ids || []);
               if (params.row.schema_name) {
                 await handleSchemaSelect(params.row.schema_name);
               } else {
@@ -301,6 +345,48 @@ const Prompts: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Tags
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {availableTags.map(tag => (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedTagIds(prev => 
+                      prev.includes(tag.id)
+                        ? prev.filter(id => id !== tag.id)
+                        : [...prev, tag.id]
+                    )
+                  }}
+                  className={`group transition-all ${
+                    selectedTagIds.includes(tag.id)
+                      ? 'ring-2 ring-blue-500 ring-offset-2'
+                      : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
+                  }`}
+                >
+                  <div className="flex items-center h-full w-full">
+                    <div 
+                      className={`px-2 py-1 leading-none rounded shadow-sm flex items-center gap-2 text-sm ${
+                        isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                      }`}
+                      style={{ backgroundColor: tag.color }}
+                    >
+                      {tag.name}
+                      {selectedTagIds.includes(tag.id) && (
+                        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Submit Button */}
