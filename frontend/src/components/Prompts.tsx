@@ -48,12 +48,22 @@ const Prompts: React.FC = () => {
       }
 
       if (currentPrompt.id) {
+        // Update existing prompt
         savedPrompt = await updatePromptApi(currentPrompt.id, promptData);
-        setPrompts(prompts.map(p => p.id === savedPrompt.id ? savedPrompt : p));
+        // Reload all prompts to get the latest versions
+        await loadPrompts();
       } else {
+        // Create new prompt
         savedPrompt = await createPromptApi(promptData);
         setPrompts([...prompts, savedPrompt]);
       }
+
+      // Clear the form
+      setCurrentPrompt({ name: '', content: '' });
+      setSelectedSchema('');
+      setSelectedSchemaDetails(null);
+      setMessage('Prompt saved successfully');
+      
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving prompt';
       setMessage('Error: ' + errorMsg);
