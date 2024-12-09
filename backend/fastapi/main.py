@@ -203,6 +203,70 @@ async def upload_document(
     
     return {"uploaded_documents": uploaded_documents}
 
+@app.put("/documents/{document_id}")
+async def update_document(
+    document_id: str,
+    update: dict = Body(...),  # Expecting {"tag_ids": [...]}
+    current_user: User = Depends(get_current_user)
+):
+    ad.log.info(f"Updating document {document_id} with data: {update}")
+
+    # Validate the update data
+    if "tag_ids" not in update:
+        raise HTTPException(
+            status_code=400,
+            detail="Request body must include 'tag_ids' field"
+        )
+    
+    tag_ids = update["tag_ids"]
+    if not isinstance(tag_ids, list):
+        raise HTTPException(
+            status_code=400,
+            detail="tag_ids must be a list"
+        )
+
+    # Verify document exists and user has access
+    document = await ad.common.get_doc(analytiq_client, document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    if document["uploaded_by"] != current_user.user_name:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to modify this document"
+        )
+
+    # Validate all tag IDs
+    if tag_ids:
+        tags_cursor = tags_collection.find({
+            "_id": {"$in": [ObjectId(tag_id) for tag_id in tag_ids]},
+            "created_by": current_user.user_id
+        })
+        existing_tags = await tags_cursor.to_list(None)
+        existing_tag_ids = {str(tag["_id"]) for tag in existing_tags}
+        
+        invalid_tags = set(tag_ids) - existing_tag_ids
+        if invalid_tags:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid tag IDs: {list(invalid_tags)}"
+            )
+
+    # Update the document
+    result = await db.docs.update_one(
+        {"_id": ObjectId(document_id)},
+        {"$set": {"tag_ids": tag_ids}}
+    )
+
+    if result.modified_count == 0:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found or no changes made"
+        )
+
+    return {"message": "Document tags updated successfully"}
+
+
 @app.get("/documents", response_model=ListDocumentsResponse)
 async def list_documents(
     skip: int = Query(0, ge=0),
@@ -1105,68 +1169,6 @@ async def update_tag(
     updated_tag = await tags_collection.find_one({"_id": ObjectId(tag_id)})
     return Tag(**{**updated_tag, "id": str(updated_tag["_id"])})
 
-@app.put("/documents/{document_id}")
-async def update_document(
-    document_id: str,
-    update: dict = Body(...),  # Expecting {"tag_ids": [...]}
-    current_user: User = Depends(get_current_user)
-):
-    ad.log.info(f"Updating document {document_id} with data: {update}")
-
-    # Validate the update data
-    if "tag_ids" not in update:
-        raise HTTPException(
-            status_code=400,
-            detail="Request body must include 'tag_ids' field"
-        )
-    
-    tag_ids = update["tag_ids"]
-    if not isinstance(tag_ids, list):
-        raise HTTPException(
-            status_code=400,
-            detail="tag_ids must be a list"
-        )
-
-    # Verify document exists and user has access
-    document = await ad.common.get_doc(analytiq_client, document_id)
-    if not document:
-        raise HTTPException(status_code=404, detail="Document not found")
-    
-    if document["uploaded_by"] != current_user.user_name:
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to modify this document"
-        )
-
-    # Validate all tag IDs
-    if tag_ids:
-        tags_cursor = tags_collection.find({
-            "_id": {"$in": [ObjectId(tag_id) for tag_id in tag_ids]},
-            "created_by": current_user.user_id
-        })
-        existing_tags = await tags_cursor.to_list(None)
-        existing_tag_ids = {str(tag["_id"]) for tag in existing_tags}
-        
-        invalid_tags = set(tag_ids) - existing_tag_ids
-        if invalid_tags:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid tag IDs: {list(invalid_tags)}"
-            )
-
-    # Update the document
-    result = await db.docs.update_one(
-        {"_id": ObjectId(document_id)},
-        {"$set": {"tag_ids": tag_ids}}
-    )
-
-    if result.modified_count == 0:
-        raise HTTPException(
-            status_code=404,
-            detail="Document not found or no changes made"
-        )
-
-    return {"message": "Document tags updated successfully"}
 
 if __name__ == "__main__":
     import uvicorn

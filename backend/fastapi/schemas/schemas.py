@@ -31,7 +31,6 @@ class DocumentUpload(BaseModel):
 class DocumentsUpload(BaseModel):
     files: List[DocumentUpload]
 
-# Response model for the PDF documents
 class DocumentMetadata(BaseModel):
     id: str
     document_name: str
@@ -39,6 +38,13 @@ class DocumentMetadata(BaseModel):
     uploaded_by: str
     state: str
     tag_ids: List[str] = []  # List of tag IDs
+
+class DocumentResponse(BaseModel):
+    metadata: DocumentMetadata
+    content: str  # Changed from bytes to str since we're using base64 encoded string
+
+    class Config:
+        arbitrary_types_allowed = True  # This allows bytes type in Pydantic
 
 class ListDocumentsResponse(BaseModel):
     documents: List[DocumentMetadata]
@@ -127,9 +133,3 @@ class ListTagsResponse(BaseModel):
     tags: List[Tag]
 
 # Add this new model after the DocumentMetadata class
-class DocumentResponse(BaseModel):
-    metadata: DocumentMetadata
-    content: str  # Changed from bytes to str since we're using base64 encoded string
-
-    class Config:
-        arbitrary_types_allowed = True  # This allows bytes type in Pydantic
