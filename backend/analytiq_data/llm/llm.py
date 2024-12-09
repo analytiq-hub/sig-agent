@@ -64,7 +64,7 @@ async def run_llm(analytiq_client,
     Now extract from this text: {ocr_text}"""
 
     response = await client.chat.completions.create(
-        model="gpt-4-turbo-preview",
+        model="gpt-4o-mini", # gpt-4-turbo has 30,000 TPM limit in stage 1
         messages=[
             {"role": "system", "content": "You are a helpful assistant that extracts document information into JSON format."},
             {"role": "user", "content": prompt}
