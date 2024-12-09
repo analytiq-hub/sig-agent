@@ -23,6 +23,9 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
     try:
         document_id = msg["msg"]["document_id"]
         
+        # Update state to OCR processing
+        await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_PROCESSING)
+        
         # Get the AWS client. This will give None for textract if the AWS keys are not set.
         aws_client = ad.aws.get_aws_client(analytiq_client)
         if aws_client.textract is None:
@@ -41,9 +44,8 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
             file = ad.common.get_file(analytiq_client, mongo_file_name)
             if file is None:
                 ad.log.error(f"File for {document_id} not found. Skipping OCR.")
+                await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_FAILED)
                 return
-
-            # TO DO: read from config the OCR type, and run tesseract OCR instead of Textract
 
             # Run OCR
             ocr_list = ad.aws.textract.run_textract(aws_client, file["blob"])
@@ -55,9 +57,8 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
         # Extract the text
         ad.common.save_ocr_text_from_list(analytiq_client, document_id, ocr_list, force=force)
 
-        # Set the document state to OCR completed
-        # TODO: implement
-        # ad.common.set_document_state(analytiq_client, document_id, "OCR completed")
+        # Update state to OCR completed
+        await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_COMPLETED)
 
         # Post a message to the llm job queue
         msg = {"document_id": document_id}
@@ -65,6 +66,9 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
     
     except Exception as e:
         ad.log.error(f"Error processing OCR msg: {e}")
+        
+        # Update state to OCR failed
+        await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_FAILED)
 
         # Save the message to the ocr_err queue
         await ad.queue.send_msg(analytiq_client, "ocr_err", msg=msg)

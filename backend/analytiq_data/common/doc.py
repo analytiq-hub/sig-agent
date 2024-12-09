@@ -4,6 +4,14 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 import analytiq_data as ad
 
+DOCUMENT_STATE_UPLOADED = "uploaded"
+DOCUMENT_STATE_OCR_PROCESSING = "ocr_processing" 
+DOCUMENT_STATE_OCR_COMPLETED = "ocr_completed"
+DOCUMENT_STATE_OCR_FAILED = "ocr_failed"
+DOCUMENT_STATE_LLM_PROCESSING = "llm_processing"
+DOCUMENT_STATE_LLM_COMPLETED = "llm_completed"
+DOCUMENT_STATE_LLM_FAILED = "llm_failed"
+
 async def get_doc(analytiq_client, document_id: str) -> dict:
     """
     Get a document by its ID
@@ -96,3 +104,29 @@ async def list_docs(analytiq_client, skip: int = 0, limit: int = 10) -> tuple[li
     documents = await cursor.to_list(length=limit)
     
     return documents, total_count
+
+async def update_doc_state(analytiq_client, document_id: str, state: str):
+    """
+    Update document state
+    
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        document_id: str
+            Document ID
+        state: str
+            New state
+    """
+    db_name = analytiq_client.env
+    db = analytiq_client.mongodb_async[db_name]
+    collection = db["docs"]
+    
+    await collection.update_one(
+        {"_id": ObjectId(document_id)},
+        {"$set": {
+            "state": state,
+            "state_updated_at": datetime.now(UTC)
+        }}
+    )
+    
+    ad.log.debug(f"Document {document_id} state updated to {state}")
