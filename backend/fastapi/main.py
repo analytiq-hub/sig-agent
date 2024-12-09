@@ -26,7 +26,7 @@ from schemas import (
     AccessToken, ListAccessTokensResponse, CreateAccessTokenRequest,
     ListDocumentsResponse,
     DocumentMetadata,
-    DocumentUpload, DocumentsUpload,
+    DocumentUpload, DocumentsUpload, DocumentUpdate,
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
     OCRMetadataResponse,
@@ -206,26 +206,12 @@ async def upload_document(
 @app.put("/documents/{document_id}")
 async def update_document(
     document_id: str,
-    update: dict = Body(...),  # Expecting {"tag_ids": [...]}
+    update: DocumentUpdate,
     current_user: User = Depends(get_current_user)
 ):
     ad.log.info(f"Updating document {document_id} with data: {update}")
 
-    # Validate the update data
-    if "tag_ids" not in update:
-        raise HTTPException(
-            status_code=400,
-            detail="Request body must include 'tag_ids' field"
-        )
-    
-    tag_ids = update["tag_ids"]
-    if not isinstance(tag_ids, list):
-        raise HTTPException(
-            status_code=400,
-            detail="tag_ids must be a list"
-        )
-
-    # Verify document exists and user has access
+    # Validate the document exists and user has access
     document = await ad.common.get_doc(analytiq_client, document_id)
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -237,15 +223,15 @@ async def update_document(
         )
 
     # Validate all tag IDs
-    if tag_ids:
+    if update.tag_ids:
         tags_cursor = tags_collection.find({
-            "_id": {"$in": [ObjectId(tag_id) for tag_id in tag_ids]},
+            "_id": {"$in": [ObjectId(tag_id) for tag_id in update.tag_ids]},
             "created_by": current_user.user_id
         })
         existing_tags = await tags_cursor.to_list(None)
         existing_tag_ids = {str(tag["_id"]) for tag in existing_tags}
         
-        invalid_tags = set(tag_ids) - existing_tag_ids
+        invalid_tags = set(update.tag_ids) - existing_tag_ids
         if invalid_tags:
             raise HTTPException(
                 status_code=400,
@@ -255,7 +241,7 @@ async def update_document(
     # Update the document
     result = await db.docs.update_one(
         {"_id": ObjectId(document_id)},
-        {"$set": {"tag_ids": tag_ids}}
+        {"$set": {"tag_ids": update.tag_ids}}
     )
 
     if result.modified_count == 0:

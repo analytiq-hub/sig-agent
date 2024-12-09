@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List, Literal
 
@@ -50,6 +50,14 @@ class ListDocumentsResponse(BaseModel):
     documents: List[DocumentMetadata]
     total_count: int
     skip: int
+
+# Add this new model after the DocumentMetadata class
+class DocumentUpdate(BaseModel):
+    """Schema for updating document metadata"""
+    tag_ids: List[str] = Field(
+        default=[],
+        description="List of tag IDs associated with the document"
+    )
 
 class LLMToken(BaseModel):
     id: str
@@ -131,5 +139,3 @@ class Tag(TagCreate):
 
 class ListTagsResponse(BaseModel):
     tags: List[Tag]
-
-# Add this new model after the DocumentMetadata class

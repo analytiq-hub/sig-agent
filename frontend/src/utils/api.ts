@@ -180,15 +180,13 @@ export const getDocumentApi = async (id: string): Promise<GetDocumentResponse> =
   };
 };
 
-export const updateDocumentApi = async (documentId: string, tagIds: string[]): Promise<void> => {
-  const requestBody = { tag_ids: tagIds };
-  
-  try {
-    const response = await api.put(`/documents/${documentId}`, requestBody);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+export interface DocumentUpdate {
+  tag_ids: string[];
+}
+
+export const updateDocumentApi = async (documentId: string, update: DocumentUpdate) => {
+  const response = await api.put(`/documents/${documentId}`, update);
+  return response.data;
 };
 
 export const deleteDocumentApi = async (id: string) => {
