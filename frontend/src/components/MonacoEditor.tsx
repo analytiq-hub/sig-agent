@@ -21,51 +21,66 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
 
   useEffect(() => {
     if (editorRef.current) {
-      // Configure markdown syntax highlighting
-      monaco.languages.register({ id: 'markdown' });
-      
-      // Add Markdown syntax highlighting rules
-      monaco.languages.setMonarchTokensProvider('markdown', {
-        tokenizer: {
-          root: [
-            // Headers
-            [/^#{1,6}\s.*$/, 'heading'],
-            // Bold
-            [/\*\*([^*]+)\*\*/, 'strong'],
-            [/__([^_]+)__/, 'strong'],
-            // Italic
-            [/\*([^*]+)\*/, 'emphasis'],
-            [/_([^_]+)_/, 'emphasis'],
-            // Code blocks
-            [/```[\s\S]*?```/, 'code'],
-            [/`[^`]+`/, 'code'],
-            // Lists
-            [/^\s*[\-\*\+]\s+.*$/, 'list'],
-            [/^\s*\d+\.\s+.*$/, 'list'],
-            // Links
-            [/\[([^\]]+)\]\(([^\)]+)\)/, 'link'],
-            // Special keywords for prompts
-            [/(System|User|Assistant):/, 'keyword'],
-          ]
-        }
-      });
+      // Configure markdown syntax highlighting only if not already registered
+      if (!monaco.languages.getLanguages().some(lang => lang.id === 'markdown')) {
+        monaco.languages.register({ id: 'markdown' });
+        
+        // Add Markdown syntax highlighting rules
+        monaco.languages.setMonarchTokensProvider('markdown', {
+          tokenizer: {
+            root: [
+              // Headers
+              [/^#{1,6}\s.*$/, 'heading'],
+              // Bold
+              [/\*\*([^*]+)\*\*/, 'strong'],
+              [/__([^_]+)__/, 'strong'],
+              // Italic
+              [/\*([^*]+)\*/, 'emphasis'],
+              [/_([^_]+)_/, 'emphasis'],
+              // Code blocks
+              [/```json[\s\S]*?```/, 'jsonblock'], // Special handling for JSON blocks
+              [/```[\s\S]*?```/, 'code'],
+              [/`[^`]+`/, 'code'],
+              // Lists
+              [/^\s*[\-\*\+]\s+.*$/, 'list'],
+              [/^\s*\d+\.\s+.*$/, 'list'],
+              // Links
+              [/\[([^\]]+)\]\(([^\)]+)\)/, 'link'],
+              // Special keywords for prompts
+              [/(System|User|Assistant):/, 'keyword'],
+              // JSON within markdown (for code blocks)
+              { include: 'json' }
+            ],
+            json: [
+              [/".*?"/, 'string'],
+              [/[{}\[\]]/, 'delimiter.bracket'],
+              [/[0-9]+/, 'number'],
+              [/true|false|null/, 'keyword'],
+              [/[,:]/, 'delimiter'],
+            ]
+          }
+        });
+      }
 
-      // Define custom theme optimized for prompt editing
+      // Define custom theme optimized for both markdown and JSON
       monaco.editor.defineTheme('promptTheme', {
         base: 'vs',
         inherit: true,
         rules: [
-          // Markdown-specific tokens
+          // Markdown tokens
           { token: 'heading', foreground: '0000FF', fontStyle: 'bold' },
           { token: 'strong', fontStyle: 'bold' },
           { token: 'emphasis', fontStyle: 'italic' },
           { token: 'keyword', foreground: '0000FF' },
-          { token: 'string', foreground: '098658' },
-          { token: 'delimiter.bracket', foreground: '800080' },
-          { token: 'variable', foreground: 'FF0000' },
           { token: 'code', foreground: 'D121C5' },
+          { token: 'jsonblock', foreground: '098658' },
           { token: 'link', foreground: '0066CC' },
           { token: 'list', foreground: '0000FF' },
+          // JSON tokens
+          { token: 'string', foreground: '098658' },
+          { token: 'number', foreground: '098658' },
+          { token: 'delimiter.bracket', foreground: '800080' },
+          { token: 'delimiter', foreground: '800080' },
         ],
         colors: {
           'editor.background': '#FFFFFF',

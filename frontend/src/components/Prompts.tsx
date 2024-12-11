@@ -308,6 +308,16 @@ const Prompts: React.FC = () => {
     },
   ];
 
+  // Add this helper function
+  const isJsonContent = (content: string): boolean => {
+    try {
+      JSON.parse(content);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   return (
     <div className="p-4 max-w-4xl mx-auto">
       {/* Prompt Creation Form */}
@@ -331,7 +341,7 @@ const Prompts: React.FC = () => {
             <MonacoEditor
               value={currentPrompt.content}
               onChange={(value) => setCurrentPrompt(prev => ({ ...prev, content: value }))}
-              language="markdown"
+              language={isJsonContent(currentPrompt.content) ? 'json' : 'markdown'}
               height="400px"
             />
           </div>
