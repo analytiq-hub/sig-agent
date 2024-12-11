@@ -271,11 +271,17 @@ const Prompts: React.FC = () => {
         <div className="flex gap-2 items-center h-full">
           <IconButton
             onClick={async () => {
-              setCurrentPrompt({
+              // Create the prompt data object first
+              const promptData = {
                 id: params.row.id,
                 name: params.row.name,
                 content: params.row.content
-              });
+              };
+              
+              // Update state in a more direct way
+              setCurrentPrompt(promptData);
+              
+              // Handle the rest of the updates
               setSelectedTagIds(params.row.tag_ids || []);
               if (params.row.schema_name) {
                 await handleSchemaSelect(params.row.schema_name);
@@ -324,7 +330,7 @@ const Prompts: React.FC = () => {
           <div className="border rounded-lg overflow-hidden bg-white">
             <MonacoEditor
               value={currentPrompt.content}
-              onChange={(value) => setCurrentPrompt({ ...currentPrompt, content: value })}
+              onChange={(value) => setCurrentPrompt(prev => ({ ...prev, content: value }))}
               language="plaintext"
               height="400px"
             />
