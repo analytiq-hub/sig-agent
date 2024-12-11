@@ -6,37 +6,82 @@ interface MonacoEditorProps {
   onChange?: (value: string) => void;
   language?: string;
   height?: string;
+  readOnly?: boolean;
 }
 
 const MonacoEditor: React.FC<MonacoEditorProps> = ({
   value,
   onChange,
-  language = 'json',
-  height = '200px',
+  language = 'markdown',
+  height = '400px',
+  readOnly = false,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const editor = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 
   useEffect(() => {
     if (editorRef.current) {
-      // Define custom theme
-      monaco.editor.defineTheme('customTheme', {
+      // Configure markdown syntax highlighting
+      monaco.languages.register({ id: 'markdown' });
+      
+      // Add Markdown syntax highlighting rules
+      monaco.languages.setMonarchTokensProvider('markdown', {
+        tokenizer: {
+          root: [
+            // Headers
+            [/^#{1,6}\s.*$/, 'heading'],
+            // Bold
+            [/\*\*([^*]+)\*\*/, 'strong'],
+            [/__([^_]+)__/, 'strong'],
+            // Italic
+            [/\*([^*]+)\*/, 'emphasis'],
+            [/_([^_]+)_/, 'emphasis'],
+            // Code blocks
+            [/```[\s\S]*?```/, 'code'],
+            [/`[^`]+`/, 'code'],
+            // Lists
+            [/^\s*[\-\*\+]\s+.*$/, 'list'],
+            [/^\s*\d+\.\s+.*$/, 'list'],
+            // Links
+            [/\[([^\]]+)\]\(([^\)]+)\)/, 'link'],
+            // Special keywords for prompts
+            [/(System|User|Assistant):/, 'keyword'],
+          ]
+        }
+      });
+
+      // Define custom theme optimized for prompt editing
+      monaco.editor.defineTheme('promptTheme', {
         base: 'vs',
         inherit: true,
-        rules: [],
+        rules: [
+          // Markdown-specific tokens
+          { token: 'heading', foreground: '0000FF', fontStyle: 'bold' },
+          { token: 'strong', fontStyle: 'bold' },
+          { token: 'emphasis', fontStyle: 'italic' },
+          { token: 'keyword', foreground: '0000FF' },
+          { token: 'string', foreground: '098658' },
+          { token: 'delimiter.bracket', foreground: '800080' },
+          { token: 'variable', foreground: 'FF0000' },
+          { token: 'code', foreground: 'D121C5' },
+          { token: 'link', foreground: '0066CC' },
+          { token: 'list', foreground: '0000FF' },
+        ],
         colors: {
           'editor.background': '#FFFFFF',
           'editor.lineHighlightBackground': '#F9FAFB',
           'editorLineNumber.foreground': '#6B7280',
           'editorLineNumber.activeForeground': '#374151',
           'editor.selectionBackground': '#E5E7EB',
+          'editor.wordHighlightBackground': '#FFEB3B40',
+          'editor.wordHighlightStrongBackground': '#FFA50040',
         },
       });
 
       editor.current = monaco.editor.create(editorRef.current, {
         value,
         language,
-        theme: 'customTheme',
+        theme: 'promptTheme',
         minimap: { enabled: false },
         automaticLayout: true,
         scrollBeyondLastLine: false,
@@ -46,6 +91,8 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
         padding: { top: 12, bottom: 12 },
         roundedSelection: false,
         renderLineHighlight: 'all',
+        wordWrap: 'on',
+        wrappingStrategy: 'advanced',
         scrollbar: {
           useShadows: false,
           verticalScrollbarSize: 10,
@@ -56,11 +103,64 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
         overviewRulerLanes: 0,
         lineDecorationsWidth: 8,
         guides: {
-          indentation: true
+          indentation: true,
+          bracketPairs: true,
+        },
+        bracketPairColorization: {
+          enabled: true,
         },
         contextmenu: true,
         fontFamily: "'Geist Mono', monospace",
         fontLigatures: true,
+        readOnly: readOnly,
+        suggestOnTriggerCharacters: true,
+        quickSuggestions: {
+          other: true,
+          comments: true,
+          strings: true,
+        },
+        wordBasedSuggestions: 'currentDocument',
+      });
+
+      // Add custom completions for common prompt patterns
+      monaco.languages.registerCompletionItemProvider('markdown', {
+        provideCompletionItems: (model, position) => {
+          const word = model.getWordUntilPosition(position);
+          const range = {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: word.startColumn,
+            endColumn: word.endColumn
+          };
+          
+          const suggestions = [
+            {
+              label: 'system',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'System: You are a helpful assistant that ${1:description}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Insert a system message',
+              range
+            },
+            {
+              label: 'user',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'User: ${1:message}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Insert a user message',
+              range
+            },
+            {
+              label: 'assistant',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'Assistant: ${1:response}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Insert an assistant message',
+              range
+            },
+          ];
+          return { suggestions };
+        }
       });
 
       editor.current.onDidChangeModelContent(() => {

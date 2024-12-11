@@ -331,7 +331,7 @@ const Prompts: React.FC = () => {
             <MonacoEditor
               value={currentPrompt.content}
               onChange={(value) => setCurrentPrompt(prev => ({ ...prev, content: value }))}
-              language="plaintext"
+              language="markdown"
               height="400px"
             />
           </div>
