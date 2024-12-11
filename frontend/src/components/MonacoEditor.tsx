@@ -55,7 +55,9 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
         },
         overviewRulerLanes: 0,
         lineDecorationsWidth: 8,
-        renderIndentGuides: true,
+        guides: {
+          indentation: true
+        },
         contextmenu: true,
         fontFamily: "'Geist Mono', monospace",
         fontLigatures: true,
