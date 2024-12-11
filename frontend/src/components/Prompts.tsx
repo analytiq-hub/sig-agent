@@ -8,6 +8,12 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors';
 import { isColorLight } from '@/utils/colors';
+import dynamic from 'next/dynamic';
+
+// Dynamically import MonacoEditor with no SSR
+const MonacoEditor = dynamic(() => import('./MonacoEditor'), {
+  ssr: false,
+});
 
 const Prompts: React.FC = () => {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
@@ -300,7 +306,9 @@ const Prompts: React.FC = () => {
     <div className="p-4 max-w-4xl mx-auto">
       {/* Prompt Creation Form */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-bold mb-4">Create Prompt</h2>
+        <h2 className="text-xl font-bold mb-4">
+          {currentPrompt.id ? 'Edit Prompt' : 'Create Prompt'}
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <input
@@ -313,13 +321,12 @@ const Prompts: React.FC = () => {
             />
           </div>
 
-          <div>
-            <textarea
-              className="w-full p-2 border rounded min-h-[200px]"
+          <div className="border rounded-lg overflow-hidden bg-white">
+            <MonacoEditor
               value={currentPrompt.content}
-              onChange={e => setCurrentPrompt({ ...currentPrompt, content: e.target.value })}
-              placeholder="Prompt text content"
-              disabled={isLoading}
+              onChange={(value) => setCurrentPrompt({ ...currentPrompt, content: value })}
+              language="plaintext"
+              height="400px"
             />
           </div>
 
