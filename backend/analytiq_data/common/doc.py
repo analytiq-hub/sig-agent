@@ -150,3 +150,25 @@ async def get_doc_tag_ids(analytiq_client, document_id: str) -> list[str]:
     collection = db["docs"]
     elem = await collection.find_one({"_id": ObjectId(document_id)})
     return elem["tag_ids"]
+
+async def get_doc_ids_by_tag_ids(analytiq_client, tag_ids: list[str]) -> list[str]:
+    """
+    Get document IDs by tag IDs
+
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        tag_ids: list[str]
+            Tag IDs
+
+    Returns:
+        list[str]
+            Document IDs
+    """
+    db_name = analytiq_client.env
+    db = analytiq_client.mongodb_async[db_name]
+    collection = db["docs"]
+    cursor = collection.find({"tag_ids": {"$in": tag_ids}})
+    # Convert cursor to list before processing
+    elems = await cursor.to_list(length=None)  # None means no limit
+    return [str(elem["_id"]) for elem in elems]
