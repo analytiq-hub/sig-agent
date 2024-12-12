@@ -5,7 +5,7 @@ import json
 
 async def run_llm(analytiq_client, 
                   document_id: str,
-                  prompt_id: str = "document_info",
+                  prompt_id: str = "default",
                   force: bool = False) -> dict:
     """
     Run the LLM for the given document and prompt.
@@ -36,33 +36,15 @@ async def run_llm(analytiq_client,
     
     client = AsyncOpenAI(api_key=llm_key)
     
-    prompt = f"""Extract the document type, company name and address from the following text. 
-    Return the result in JSON format.
+    prompt1 = await ad.common.get_prompt_content(analytiq_client, prompt_id)
     
-    Examples:
-    Input: "INVOICE ABC Corp. 123 Business St, New York, NY 10001 Invoice #12345"
-    Output: {{
-        "document_type": "invoice",
-        "company_name": "ABC Corp.",
-        "address": "123 Business St, New York, NY 10001"
-    }}
-    
-    Input: "Purchase Order XYZ Industries 456 Industrial Ave, Chicago, IL 60601"
-    Output: {{
-        "document_type": "purchase_order",
-        "company_name": "XYZ Industries",
-        "address": "456 Industrial Ave, Chicago, IL 60601"
-    }}
-    
-    Input: "Statement of Account Global Trading Co. 789 Commerce Rd, Los Angeles, CA 90001"
-    Output: {{
-        "document_type": "statement",
-        "company_name": "Global Trading Co.",
-        "address": "789 Commerce Rd, Los Angeles, CA 90001"
-    }}
-    
-    Now extract from this text: {ocr_text}"""
+    # Build the prompt
+    prompt = f"""{prompt1}
 
+        Now extract from this text: 
+        
+        {ocr_text}"""
+    
     response = await client.chat.completions.create(
         model="gpt-4o-mini", # gpt-4-turbo has 30,000 TPM limit in stage 1
         messages=[
@@ -176,11 +158,14 @@ async def run_llm_for_tags(analytiq_client, document_id: str, tags: list[str]) -
         document_id: The document ID
         tags: The tags to run the LLM for
     """
-    
-    for tag in tags:
-        # Retrieve the prompts for the tag
-        prompts = await ad.common.get_prompts(analytiq_client, tag)
 
-        # Run the LLM for each prompt
-        for prompt in prompts:
-            await run_llm(analytiq_client, document_id, prompt)
+    prompt_ids = await ad.common.get_prompt_ids_by_tag_ids(analytiq_client, tags)
+    ad.log.info(f"Running LLM for {len(prompt_ids)} prompts")
+    
+    # for tag in tags:
+    #     # Retrieve the prompts for the tag
+    #     prompts = await ad.common.get_prompts(analytiq_client, tag)
+
+    #     # Run the LLM for each prompt
+    #     for prompt in prompts:
+    #         await run_llm(analytiq_client, document_id, prompt)

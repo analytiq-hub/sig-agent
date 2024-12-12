@@ -12,7 +12,7 @@ async def process_llm_msg(analytiq_client, msg):
         # Update state to LLM processing
         await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_LLM_PROCESSING)
 
-        llm_key = await ad.llm.get_llm_key(analytiq_client)
+        # Run the LLM for the document for the default prompt
         await ad.llm.run_llm(analytiq_client, document_id)
 
         # Update state to LLM completed

@@ -38,6 +38,44 @@ async def get_prompt_name(analytiq_client, prompt_id: str) -> str:
         raise ValueError(f"Prompt {prompt_id} not found")
     return elem["name"]
 
+async def get_default_prompt_content(analytiq_client) -> str:
+    """
+    Get the default prompt content
+
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+
+    Returns:
+        str
+            Prompt content
+    """
+    prompt = f"""Extract the document type, company name and address from the following text. 
+    Return the result in JSON format.
+    
+    Examples:
+    Input: "INVOICE ABC Corp. 123 Business St, New York, NY 10001 Invoice #12345"
+    Output: {{
+        "document_type": "invoice",
+        "company_name": "ABC Corp.",
+        "address": "123 Business St, New York, NY 10001"
+    }}
+    
+    Input: "Purchase Order XYZ Industries 456 Industrial Ave, Chicago, IL 60601"
+    Output: {{
+        "document_type": "purchase_order",
+        "company_name": "XYZ Industries",
+        "address": "456 Industrial Ave, Chicago, IL 60601"
+    }}
+    
+    Input: "Statement of Account Global Trading Co. 789 Commerce Rd, Los Angeles, CA 90001"
+    Output: {{
+        "document_type": "statement",
+        "company_name": "Global Trading Co.",
+        "address": "789 Commerce Rd, Los Angeles, CA 90001"
+    }}
+    """
+    return prompt
 async def get_prompt_content(analytiq_client, prompt_id: str) -> str:
     """
     Get a prompt content by its ID
@@ -52,6 +90,11 @@ async def get_prompt_content(analytiq_client, prompt_id: str) -> str:
         str
             Prompt content
     """
+    # Special case for the default prompt
+    if prompt_id == "default":
+        return await get_default_prompt_content(analytiq_client)
+
+    # Get the prompt content
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
     collection = db["prompts"]
