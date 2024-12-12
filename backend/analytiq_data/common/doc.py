@@ -130,3 +130,23 @@ async def update_doc_state(analytiq_client, document_id: str, state: str):
     )
     
     ad.log.debug(f"Document {document_id} state updated to {state}")
+
+async def get_doc_tag_ids(analytiq_client, document_id: str) -> list[str]:
+    """
+    Get a document tag IDs
+
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        document_id: str
+            Document ID
+
+    Returns:
+        list[str]
+            Document tag IDs
+    """
+    db_name = analytiq_client.env
+    db = analytiq_client.mongodb_async[db_name]
+    collection = db["docs"]
+    elem = await collection.find_one({"_id": ObjectId(document_id)})
+    return elem["tag_ids"]
