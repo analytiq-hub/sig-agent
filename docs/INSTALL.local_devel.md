@@ -59,3 +59,8 @@ Under construction.
 * Frontend
   * Same as for Linux
 
+## Changing log levels
+* The default log level is `INFO`.
+* To change the log level, set the `LOG_LEVEL` environment variable to the desired level.
+  * `export LOG_LEVEL=DEBUG`
+* The log level can only be set in the environment, not in the `.env` file.
