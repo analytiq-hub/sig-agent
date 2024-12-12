@@ -76,7 +76,7 @@ def run_textract(aws_client,
         while True:
             status_response = textract_get_completion(JobId=job_id)
             status = status_response['JobStatus']
-            ad.log.debug(f"OCR step {idx}: {status}")
+            ad.log.info(f"OCR step {idx}: {status}")
             idx += 1
 
             if status in ["SUCCEEDED", "FAILED"]:
