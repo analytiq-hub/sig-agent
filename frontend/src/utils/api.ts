@@ -317,7 +317,7 @@ export const runLLMAnalysisApi = async (
 
 export const getLLMResultApi = async (
   documentId: string,
-  promptId: string = 'document_info'
+  promptId: string = 'default'
 ) => {
   const response = await api.get<LLMResult>(
     `/llm/result/${documentId}`,
