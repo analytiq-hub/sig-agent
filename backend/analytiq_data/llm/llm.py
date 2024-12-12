@@ -165,3 +165,22 @@ async def delete_llm_result(analytiq_client,
     })
     
     return result.deleted_count > 0
+
+
+async def run_llm_for_tags(analytiq_client, document_id: str, tags: list[str]) -> None:
+    """
+    Run the LLM for the given tags.
+
+    Args:
+        analytiq_client: The AnalytiqClient instance
+        document_id: The document ID
+        tags: The tags to run the LLM for
+    """
+    
+    for tag in tags:
+        # Retrieve the prompts for the tag
+        prompts = await ad.common.get_prompts(analytiq_client, tag)
+
+        # Run the LLM for each prompt
+        for prompt in prompts:
+            await run_llm(analytiq_client, document_id, prompt)

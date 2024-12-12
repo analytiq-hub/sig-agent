@@ -11,4 +11,4 @@ def setup() -> None:
 
     # Load the .env file
     dotenv_path = os.path.join(current_dir, "../.env")
-    load_dotenv(dotenv_path=dotenv_path)
+    load_dotenv(dotenv_path=dotenv_path, override=True)
