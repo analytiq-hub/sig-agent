@@ -61,6 +61,26 @@ async def get_prompt_content(analytiq_client, prompt_id: str) -> str:
         raise ValueError(f"Prompt {prompt_id} not found")
     return elem["content"]
 
+async def get_prompt_schema(analytiq_client, prompt_id: str) -> str:
+    """
+    Get a prompt schema by its ID
+    """
+    db_name = analytiq_client.env
+    db = analytiq_client.mongodb_async[db_name]
+    collection = db["prompts"]
+    elem = await collection.find_one({"_id": ObjectId(prompt_id)})
+    if elem is None:
+        raise ValueError(f"Prompt {prompt_id} not found")
+    schema_name = elem["schema_name"]
+    schema_version = elem["schema_version"]
+
+    # Get the schema from the name and version
+    collection = db["schemas"]
+    elem = await collection.find_one({"name": schema_name, "version": schema_version})
+    if elem is None:
+        raise ValueError(f"Prompt {prompt_id}: Schema {schema_name} version {schema_version} not found")
+    return elem["fields"]
+
 async def get_prompt_tag_ids(analytiq_client, prompt_id: str) -> list[str]:
     """
     Get a prompt tag IDs by its ID
