@@ -12,9 +12,6 @@ import analytiq_data as ad
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
 
-# Initialize the logger
-ad.init_logger("worker")
-
 # Environment variables
 ENV = os.getenv("ENV", "dev")
 

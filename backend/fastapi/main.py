@@ -45,10 +45,6 @@ import analytiq_data as ad
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
 
-# Initialize the logger
-ad.init_logger("fastapi", level=logging.INFO)
-ad.log.debug("FastAPI logger initialized")
-
 # Environment variables
 ENV = os.getenv("ENV", "dev")
 NEXTAUTH_URL = os.getenv("NEXTAUTH_URL")
