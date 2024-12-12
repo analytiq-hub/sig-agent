@@ -1,3 +1,4 @@
+import asyncio
 import analytiq_data as ad
 from openai import AsyncOpenAI
 import json
