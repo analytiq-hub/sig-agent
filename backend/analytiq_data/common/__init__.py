@@ -4,5 +4,6 @@ from .file import *
 from .id import *
 from .ocr import *
 from .prompts import *
+from .schemas import *
 from .setup import *
 from .tags import *
