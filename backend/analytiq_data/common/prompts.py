@@ -80,3 +80,23 @@ async def get_prompt_tag_ids(analytiq_client, prompt_id: str) -> list[str]:
     collection = db["prompts"]
     elem = await collection.find_one({"_id": ObjectId(prompt_id)})
     return elem["tag_ids"]
+
+async def get_prompt_ids_by_tag_ids(analytiq_client, tag_ids: list[str]) -> list[str]:
+    """
+    Get prompt IDs by tag IDs
+
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        tag_ids: list[str]
+            Tag IDs
+
+    Returns:
+        list[str]
+            Prompt IDs
+    """
+    db_name = analytiq_client.env
+    db = analytiq_client.mongodb_async[db_name]
+    collection = db["prompts"]
+    elems = await collection.find({"tag_ids": {"$in": tag_ids}}).to_list(length=None)
+    return [str(elem["_id"]) for elem in elems]
