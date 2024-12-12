@@ -149,23 +149,22 @@ async def delete_llm_result(analytiq_client,
     return result.deleted_count > 0
 
 
-async def run_llm_for_tags(analytiq_client, document_id: str, tags: list[str]) -> None:
+async def run_llm_for_prompt_ids(analytiq_client, document_id: str, prompt_ids: list[str]) -> None:
     """
-    Run the LLM for the given tags.
+    Run the LLM for the given prompt IDs.
 
     Args:
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
-        tags: The tags to run the LLM for
+        prompt_ids: The prompt IDs to run the LLM for
     """
 
-    prompt_ids = await ad.common.get_prompt_ids_by_tag_ids(analytiq_client, tags)
-    ad.log.info(f"Running LLM for {len(prompt_ids)} prompts")
-    
-    # for tag in tags:
-    #     # Retrieve the prompts for the tag
-    #     prompts = await ad.common.get_prompts(analytiq_client, tag)
+    n_prompts = len(prompt_ids)
 
-    #     # Run the LLM for each prompt
-    #     for prompt in prompts:
-    #         await run_llm(analytiq_client, document_id, prompt)
+    # Create n_prompts concurrent tasks
+    tasks = [run_llm(analytiq_client, document_id, prompt_id) for prompt_id in prompt_ids]
+
+    # Run the tasks
+    results = await asyncio.gather(*tasks)
+
+    ad.log.info(f"LLM run completed for {document_id} with {n_prompts} prompts: {results}")
