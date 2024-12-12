@@ -18,6 +18,7 @@ import base64
 import io
 import re
 import uuid
+import logging
 
 import api
 import models
@@ -45,7 +46,8 @@ import analytiq_data as ad
 ad.common.setup()
 
 # Initialize the logger
-ad.init_logger("fastapi")
+ad.init_logger("fastapi", level=logging.INFO)
+ad.log.debug("FastAPI logger initialized")
 
 # Environment variables
 ENV = os.getenv("ENV", "dev")
@@ -109,7 +111,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
         userId: str = payload.get("userId")
         userName: str = payload.get("userName")
         email: str = payload.get("email")
-        ad.log.info(f"get_current_user(): userId: {userId}, userName: {userName}, email: {email}")
+        ad.log.debug(f"get_current_user(): userId: {userId}, userName: {userName}, email: {email}")
         if userName is None:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
         return User(user_id=userId,
@@ -118,7 +120,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
     except JWTError:
         # If JWT validation fails, check if it's an API token
         access_token = await access_token_collection.find_one({"token": token})
-        ad.log.info(f"get_current_user(): access_token: {access_token}")
+        ad.log.debug(f"get_current_user(): access_token: {access_token}")
         if access_token:
             return User(user_id=access_token["user_id"],
                         user_name=access_token["name"],
@@ -131,7 +133,7 @@ async def upload_document(
     documents_upload: DocumentsUpload = Body(...),
     current_user: User = Depends(get_current_user)
 ):
-    ad.log.info(f"upload_document(): documents: {[doc.name for doc in documents_upload.files]}")
+    ad.log.debug(f"upload_document(): documents: {[doc.name for doc in documents_upload.files]}")
     uploaded_documents = []
 
     # Validate all tag IDs first
@@ -209,7 +211,7 @@ async def update_document(
     update: DocumentUpdate,
     current_user: User = Depends(get_current_user)
 ):
-    ad.log.info(f"Updating document {document_id} with data: {update}")
+    ad.log.debug(f"Updating document {document_id} with data: {update}")
 
     # Validate the document exists and user has access
     document = await ad.common.get_doc(analytiq_client, document_id)
@@ -282,20 +284,20 @@ async def get_document(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    ad.log.info(f"get_document() start: document_id: {document_id}")
+    ad.log.debug(f"get_document() start: document_id: {document_id}")
     document = await ad.common.get_doc(analytiq_client, document_id)
     
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
         
-    ad.log.info(f"get_document() found document: {document}")
+    ad.log.debug(f"get_document() found document: {document}")
 
     # Get the file from mongodb
     file = ad.common.get_file(analytiq_client, document["mongo_file_name"])
     if file is None:
         raise HTTPException(status_code=404, detail="File not found")
 
-    ad.log.info(f"get_document() got file: {document}")
+    ad.log.debug(f"get_document() got file: {document}")
 
     # Create metadata response
     metadata = DocumentMetadata(
@@ -339,7 +341,7 @@ async def access_token_create(
     request: CreateAccessTokenRequest,
     current_user: User = Depends(get_current_user)
 ):
-    ad.log.info(f"Creating API token for user: {current_user} request: {request}")
+    ad.log.debug(f"Creating API token for user: {current_user} request: {request}")
     token = secrets.token_urlsafe(32)
     new_token = {
         "user_id": current_user.user_id,
@@ -367,7 +369,7 @@ async def access_token_list(current_user: User = Depends(get_current_user)):
         }
         for token in tokens
     ]
-    ad.log.info(f"list_access_tokens(): {ret}")
+    ad.log.debug(f"list_access_tokens(): {ret}")
     return ListAccessTokensResponse(access_tokens=ret)
 
 @app.delete("/access_tokens/{token_id}")
@@ -388,7 +390,7 @@ async def llm_token_create(
     request: CreateLLMTokenRequest,
     current_user: User = Depends(get_current_user)
 ):
-    ad.log.info(f"Creating/Updating LLM token for user: {current_user} request: {request}")
+    ad.log.debug(f"Creating/Updating LLM token for user: {current_user} request: {request}")
     
     # Check if a token for this vendor already exists
     existing_token = await llm_token_collection.find_one({
@@ -410,12 +412,12 @@ async def llm_token_create(
             new_token
         )
         new_token["id"] = str(existing_token["_id"])
-        ad.log.info(f"Updated existing LLM token for {request.llm_vendor}")
+        ad.log.debug(f"Updated existing LLM token for {request.llm_vendor}")
     else:
         # Insert a new token
         result = await llm_token_collection.insert_one(new_token)
         new_token["id"] = str(result.inserted_id)
-        ad.log.info(f"Created new LLM token for {request.llm_vendor}")
+        ad.log.debug(f"Created new LLM token for {request.llm_vendor}")
 
     return new_token
 
@@ -433,7 +435,7 @@ async def llm_token_list(current_user: User = Depends(get_current_user)):
         }
         for token in tokens
     ]
-    ad.log.info(f"list_llm_tokens(): {llm_tokens}")
+    ad.log.debug(f"list_llm_tokens(): {llm_tokens}")
     return ListLLMTokensResponse(llm_tokens=llm_tokens)
 
 @app.delete("/llm_tokens/{token_id}")
@@ -454,7 +456,7 @@ async def aws_credentials_create(
     request: AWSCredentials,
     current_user: User = Depends(get_current_user)
 ):
-    ad.log.info(f"Creating/Updating AWS credentials for user: {current_user}")
+    ad.log.debug(f"Creating/Updating AWS credentials for user: {current_user}")
 
     # Validate AWS Access Key ID format
     if not re.match(r'^[A-Z0-9]{20}$', request.access_key_id):
@@ -492,7 +494,7 @@ async def aws_credentials_create(
 
 @app.get("/aws_credentials", response_model=AWSCredentials)
 async def aws_credentials_get(current_user: User = Depends(get_current_user)):
-    ad.log.info(f"Getting AWS credentials for user: {current_user}")
+    ad.log.debug(f"Getting AWS credentials for user: {current_user}")
     aws_credentials = await aws_credentials_collection.find_one({
         "user_id": current_user.user_id
     })
@@ -507,7 +509,7 @@ async def aws_credentials_get(current_user: User = Depends(get_current_user)):
 
 @app.delete("/aws_credentials")
 async def aws_credentials_delete(current_user: User = Depends(get_current_user)):
-    ad.log.info(f"Deleting AWS credentials for user: {current_user}")
+    ad.log.debug(f"Deleting AWS credentials for user: {current_user}")
     result = await aws_credentials_collection.delete_one({
         "user_id": current_user.user_id
     })
@@ -515,7 +517,7 @@ async def aws_credentials_delete(current_user: User = Depends(get_current_user))
 
 @app.post("/auth/token")
 async def create_auth_token(user_data: dict = Body(...)):
-    ad.log.info(f"create_auth_token(): user_data: {user_data}")
+    ad.log.debug(f"create_auth_token(): user_data: {user_data}")
     token = jwt.encode(
         {
             "userId": user_data["sub"],
@@ -532,7 +534,7 @@ async def download_ocr_blocks(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    ad.log.info(f"download_ocr_blocks() start: document_id: {document_id}")
+    ad.log.debug(f"download_ocr_blocks() start: document_id: {document_id}")
 
     document = await ad.common.get_doc(analytiq_client, document_id)
     
@@ -552,7 +554,7 @@ async def download_ocr_text(
     page_num: Optional[int] = Query(None, description="Specific page number to retrieve"),
     current_user: User = Depends(get_current_user)
 ):
-    ad.log.info(f"download_ocr_text() start: document_id: {document_id}, page_num: {page_num}")
+    ad.log.debug(f"download_ocr_text() start: document_id: {document_id}, page_num: {page_num}")
     document = await ad.common.get_doc(analytiq_client, document_id)
     
     if not document:
@@ -575,7 +577,7 @@ async def get_ocr_metadata(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    ad.log.info(f"get_ocr_metadata() start: document_id: {document_id}")
+    ad.log.debug(f"get_ocr_metadata() start: document_id: {document_id}")
     
     document = await ad.common.get_doc(analytiq_client, document_id)
     if not document:
@@ -607,7 +609,7 @@ async def run_llm_analysis(
         prompt_id: The prompt ID to use (defaults to "document_info")
         force: If True, forces a new run even if cached result exists
     """
-    ad.log.info(f"run_llm_analysis() start: document_id: {document_id}, prompt_id: {prompt_id}, force: {force}")
+    ad.log.debug(f"run_llm_analysis() start: document_id: {document_id}, prompt_id: {prompt_id}, force: {force}")
     
     # Verify document exists and user has access
     document = await ad.common.get_doc(analytiq_client, document_id)
@@ -648,7 +650,7 @@ async def get_llm_result(
     """
     Retrieve existing LLM results for a document.
     """
-    ad.log.info(f"get_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
+    ad.log.debug(f"get_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
     
     # Verify document exists and user has access
     document = await ad.common.get_doc(analytiq_client, document_id)
@@ -673,7 +675,7 @@ async def delete_llm_result(
     """
     Delete LLM results for a specific document and prompt.
     """
-    ad.log.info(f"delete_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
+    ad.log.debug(f"delete_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
     
     # Verify document exists and user has access
     document = await ad.common.get_doc(analytiq_client, document_id)
