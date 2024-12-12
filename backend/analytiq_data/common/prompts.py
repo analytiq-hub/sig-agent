@@ -144,7 +144,7 @@ async def get_prompt_tag_ids(analytiq_client, prompt_id: str) -> list[str]:
     elem = await collection.find_one({"_id": ObjectId(prompt_id)})
     return elem["tag_ids"]
 
-async def get_prompt_ids_by_tag_ids(analytiq_client, tag_ids: list[str]) -> list[str]:
+async def get_prompt_ids_by_tag_ids(analytiq_client, tag_ids: list[str], latest_version: bool = True) -> list[str]:
     """
     Get prompt IDs by tag IDs
 
@@ -162,4 +162,28 @@ async def get_prompt_ids_by_tag_ids(analytiq_client, tag_ids: list[str]) -> list
     db = analytiq_client.mongodb_async[db_name]
     collection = db["prompts"]
     elems = await collection.find({"tag_ids": {"$in": tag_ids}}).to_list(length=None)
-    return [str(elem["_id"]) for elem in elems]
+
+    if not latest_version:
+        # Return all prompt IDs
+        prompt_ids = [str(elem["_id"]) for elem in elems]
+    else:
+        # Return only the latest version of each prompt
+        collection2 = db["prompt_versions"]
+        prompt_names = [elem["name"] for elem in elems]
+
+        # Initialize the list of prompt IDs
+        prompt_ids = []
+
+        # Get the latest version of each prompt
+        elems2 = await collection2.find({"_id": {"$in": prompt_names}}).to_list(length=None)
+        for elem in elems2:
+            # Get the prompt name and version
+            prompt_name = elem["_id"]
+            prompt_version = elem["version"]
+            # Look for the prompt name and version in the list of prompts
+            for elem in elems:
+                if elem["name"] == prompt_name and elem["version"] == prompt_version:
+                    prompt_ids.append(str(elem["_id"]))
+                    break
+    
+    return prompt_ids

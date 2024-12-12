@@ -149,6 +149,8 @@ async def get_doc_tag_ids(analytiq_client, document_id: str) -> list[str]:
     db = analytiq_client.mongodb_async[db_name]
     collection = db["docs"]
     elem = await collection.find_one({"_id": ObjectId(document_id)})
+    if elem is None:
+        return []
     return elem["tag_ids"]
 
 async def get_doc_ids_by_tag_ids(analytiq_client, tag_ids: list[str]) -> list[str]:
