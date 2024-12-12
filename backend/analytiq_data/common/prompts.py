@@ -38,9 +38,9 @@ async def get_prompt_name(analytiq_client, prompt_id: str) -> str:
         raise ValueError(f"Prompt {prompt_id} not found")
     return elem["name"]
 
-async def get_prompt(analytiq_client, prompt_id: str) -> dict:
+async def get_prompt_contents(analytiq_client, prompt_id: str) -> str:
     """
-    Get a prompt by its ID
+    Get a prompt contents by its ID
     
     Args:
         analytiq_client: AnalytiqClient
@@ -49,21 +49,14 @@ async def get_prompt(analytiq_client, prompt_id: str) -> dict:
             Prompt ID
 
     Returns:
-        dict
-            Prompt metadata    
+        str
+            Prompt contents
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
     collection = db["prompts"]
     
-    return await collection.find_one({"_id": ObjectId(prompt_id)})
-
-async def get_prompt_ids_by_tag(analytiq_client, tag: str) -> list[dict]:
-    """
-    Get all prompt ids that have the given tag in their tags array
-    """
-    db_name = analytiq_client.env
-    db = analytiq_client.mongodb_async[db_name]
-    collection = db["prompts"]
-    
-    return await collection.find({"tags": tag}).to_list(length=None)
+    elem = await collection.find_one({"_id": ObjectId(prompt_id)})
+    if elem is None:
+        raise ValueError(f"Prompt {prompt_id} not found")
+    return elem["content"] # TODO: change to "contents"
