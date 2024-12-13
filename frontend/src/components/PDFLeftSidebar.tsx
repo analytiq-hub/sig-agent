@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Box, List, ListItemIcon, ListItemText, Typography, ListItemButton } from '@mui/material';
-import { Description} from '@mui/icons-material';
+import { Box, List, ListItemIcon, ListItemText, Typography, ListItemButton, Toolbar } from '@mui/material';
+import { Description } from '@mui/icons-material';
 import { getLLMResultApi } from '@/utils/api';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
@@ -28,32 +28,56 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
       sx={{
         width: '100%',
         height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
         borderRight: '1px solid rgba(0, 0, 0, 0.12)',
-        overflow: 'auto',
       }}
     >
-      <Typography variant="h6" sx={{ p: 2 }}>
-        Extractions
-      </Typography>
-      <List>
-        {Object.entries(llmResult).map(([key, value]) => (
-          <ListItemButton key={key}>
-            <ListItemIcon>
-              <Description />
-            </ListItemIcon>
-            <ListItemText 
-              primary={key}
-              secondary={typeof value === 'object' ? JSON.stringify(value, null, 2) : value}
-              sx={{
-                '& .MuiListItemText-secondary': {
-                  color: theme => theme.palette.text.primary,
-                  filter: 'brightness(0.9)'
-                }
-              }}
-            />
-          </ListItemButton>
-        ))}
-      </List>
+      <Toolbar 
+        variant='dense'
+        sx={{ 
+          backgroundColor: theme => theme.palette.pdf_menubar.main,
+          minHeight: '48px !important',
+          flexShrink: 0,
+          borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+          padding: '0 16px',
+          '& .MuiTypography-root': {
+            fontSize: '0.875rem',
+          },
+        }}
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            color: theme => theme.palette.pdf_menubar.contrastText,
+            fontWeight: 'bold',
+          }}
+        >
+          Default Prompt
+        </Typography>
+      </Toolbar>
+
+      <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
+        <List>
+          {Object.entries(llmResult).map(([key, value]) => (
+            <ListItemButton key={key}>
+              <ListItemIcon>
+                <Description />
+              </ListItemIcon>
+              <ListItemText 
+                primary={key}
+                secondary={typeof value === 'object' ? JSON.stringify(value, null, 2) : value}
+                sx={{
+                  '& .MuiListItemText-secondary': {
+                    color: theme => theme.palette.text.primary,
+                    filter: 'brightness(0.9)'
+                  }
+                }}
+              />
+            </ListItemButton>
+          ))}
+        </List>
+      </Box>
     </Box>
   );
 };
