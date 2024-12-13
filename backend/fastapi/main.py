@@ -255,13 +255,22 @@ async def update_document(
 async def list_documents(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
+    tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
     user: User = Depends(get_current_user)
 ):
-    # Get total count
-    total_count = await db.docs.count_documents({})
+    # Build the query filter
+    query_filter = {}
     
-    # Get paginated documents with sorting
-    cursor = db.docs.find().sort("_id", -1).skip(skip).limit(limit)  # Sort by _id descending (newest first)
+    # Add tag filtering if tag_ids are provided
+    if tag_ids:
+        tag_id_list = [tid.strip() for tid in tag_ids.split(",")]
+        query_filter["tag_ids"] = {"$all": tag_id_list}
+    
+    # Get total count with filters
+    total_count = await db.docs.count_documents(query_filter)
+    
+    # Get paginated documents with sorting and filters
+    cursor = db.docs.find(query_filter).sort("_id", -1).skip(skip).limit(limit)
     documents = await cursor.to_list(length=None)
     
     return ListDocumentsResponse(
@@ -752,9 +761,10 @@ async def list_schemas(
     limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_user)
 ):
+    # Build the base pipeline
     pipeline = [
         {
-            "$sort": {"_id": -1}  # Sort by _id descending (newest first)
+            "$sort": {"_id": -1}
         },
         {
             "$group": {
@@ -766,7 +776,7 @@ async def list_schemas(
             "$replaceRoot": {"newRoot": "$doc"}
         },
         {
-            "$sort": {"_id": -1}  # Add another sort after grouping
+            "$sort": {"_id": -1}
         },
         {
             "$facet": {
@@ -974,26 +984,35 @@ async def create_prompt(
 async def list_prompts(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
+    tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
     current_user: User = Depends(get_current_user)
 ):
-    pipeline = [
+    # Build the base pipeline
+    pipeline = []
+    
+    # Add tag filtering if tag_ids are provided
+    if tag_ids:
+        tag_id_list = [tid.strip() for tid in tag_ids.split(",")]
+        pipeline.append({
+            "$match": {"tag_ids": {"$all": tag_id_list}}
+        })
+    
+    # Add the rest of the pipeline stages
+    pipeline.extend([
         {
-            "$sort": {"_id": -1}  # Sort by _id descending (newest first)
+            "$sort": {"_id": -1}
         },
-        #  The $group stage creates the "doc" field - it's not in the original data.
         {
             "$group": {
                 "_id": "$name",
                 "doc": {"$first": "$$ROOT"}
             }
         },
-        #  The $replaceRoot stage replaces the root with the "doc" field.
         {
             "$replaceRoot": {"newRoot": "$doc"}
         },
-        # Final Sort by id desc ensures newest prompts appear first
         {
-            "$sort": {"_id": -1}  # Sort the grouped results by _id again
+            "$sort": {"_id": -1}
         },
         {
             "$facet": {
@@ -1004,7 +1023,7 @@ async def list_prompts(
                 ]
             }
         }
-    ]
+    ])
     
     result = await prompts_collection.aggregate(pipeline).to_list(length=1)
     result = result[0]
