@@ -742,7 +742,11 @@ async def create_schema(
     return Schema(**schema_dict)
 
 @app.get("/schemas", response_model=ListSchemasResponse)
-async def list_schemas(current_user: User = Depends(get_current_user)):
+async def list_schemas(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    current_user: User = Depends(get_current_user)
+):
     # Pipeline to get only the latest version of each schema
     pipeline = [
         {
@@ -756,18 +760,33 @@ async def list_schemas(current_user: User = Depends(get_current_user)):
         },
         {
             "$replaceRoot": {"newRoot": "$doc"}
+        },
+        {
+            "$facet": {
+                "total": [{"$count": "count"}],
+                "schemas": [
+                    {"$skip": skip},
+                    {"$limit": limit}
+                ]
+            }
         }
     ]
     
-    cursor = schemas_collection.aggregate(pipeline)
-    schemas = await cursor.to_list(length=None)
+    result = await schemas_collection.aggregate(pipeline).to_list(length=1)
+    result = result[0]
     
-    # Convert _id to id in each schema and ensure version is included
+    total_count = result["total"][0]["count"] if result["total"] else 0
+    schemas = result["schemas"]
+    
+    # Convert _id to id in each schema
     for schema in schemas:
         schema['id'] = str(schema.pop('_id'))
-        # version is already included from MongoDB doc, no need to add it
     
-    return ListSchemasResponse(schemas=schemas)
+    return ListSchemasResponse(
+        schemas=schemas,
+        total_count=total_count,
+        skip=skip
+    )
 
 @app.get("/schemas/{schema_id}", response_model=Schema)
 async def get_schema(
@@ -945,7 +964,11 @@ async def create_prompt(
     return Prompt(**prompt_dict)
 
 @app.get("/prompts", response_model=ListPromptsResponse)
-async def list_prompts(current_user: User = Depends(get_current_user)):
+async def list_prompts(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    current_user: User = Depends(get_current_user)
+):
     # Pipeline to get only the latest version of each prompt
     pipeline = [
         {
@@ -959,17 +982,33 @@ async def list_prompts(current_user: User = Depends(get_current_user)):
         },
         {
             "$replaceRoot": {"newRoot": "$doc"}
+        },
+        {
+            "$facet": {
+                "total": [{"$count": "count"}],
+                "prompts": [
+                    {"$skip": skip},
+                    {"$limit": limit}
+                ]
+            }
         }
     ]
     
-    cursor = prompts_collection.aggregate(pipeline)
-    prompts = await cursor.to_list(length=None)
+    result = await prompts_collection.aggregate(pipeline).to_list(length=1)
+    result = result[0]
+    
+    total_count = result["total"][0]["count"] if result["total"] else 0
+    prompts = result["prompts"]
     
     # Convert _id to id in each prompt
     for prompt in prompts:
         prompt['id'] = str(prompt.pop('_id'))
     
-    return ListPromptsResponse(prompts=prompts)
+    return ListPromptsResponse(
+        prompts=prompts,
+        total_count=total_count,
+        skip=skip
+    )
 
 @app.get("/prompts/{prompt_id}", response_model=Prompt)
 async def get_prompt(
@@ -1103,22 +1142,35 @@ async def create_tag(
 
 @app.get("/tags", response_model=ListTagsResponse)
 async def list_tags(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_user)
 ):
-    cursor = tags_collection.find({"created_by": current_user.user_id})
+    # Get total count
+    total_count = await tags_collection.count_documents({"created_by": current_user.user_id})
+    
+    # Get paginated tags
+    cursor = tags_collection.find(
+        {"created_by": current_user.user_id}
+    ).sort("name", 1).skip(skip).limit(limit)
+    
     tags = await cursor.to_list(length=None)
     
-    return ListTagsResponse(tags=[
-        {
-            "id": str(tag["_id"]),
-            "name": tag["name"],
-            "color": tag.get("color"),
-            "description": tag.get("description"),
-            "created_at": tag["created_at"],
-            "created_by": tag["created_by"]
-        }
-        for tag in tags
-    ])
+    return ListTagsResponse(
+        tags=[
+            {
+                "id": str(tag["_id"]),
+                "name": tag["name"],
+                "color": tag.get("color"),
+                "description": tag.get("description"),
+                "created_at": tag["created_at"],
+                "created_by": tag["created_by"]
+            }
+            for tag in tags
+        ],
+        total_count=total_count,
+        skip=skip
+    )
 
 @app.delete("/tags/{tag_id}")
 async def delete_tag(
