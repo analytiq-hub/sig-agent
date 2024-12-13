@@ -766,6 +766,9 @@ async def list_schemas(
             "$replaceRoot": {"newRoot": "$doc"}
         },
         {
+            "$sort": {"_id": -1}  # Add another sort after grouping
+        },
+        {
             "$facet": {
                 "total": [{"$count": "count"}],
                 "schemas": [

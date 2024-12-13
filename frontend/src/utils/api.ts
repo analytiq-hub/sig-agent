@@ -362,8 +362,15 @@ export interface Schema extends SchemaCreate {
   created_by: string;
 }
 
+export interface ListSchemasParams {
+  skip?: number;
+  limit?: number;
+}
+
 export interface ListSchemasResponse {
   schemas: Schema[];
+  total_count: number;
+  skip: number;
 }
 
 export const createSchemaApi = async (schema: SchemaCreate) => {
@@ -371,8 +378,13 @@ export const createSchemaApi = async (schema: SchemaCreate) => {
   return response.data;
 };
 
-export const getSchemasApi = async () => {
-  const response = await api.get<ListSchemasResponse>('/schemas');
+export const getSchemasApi = async (params?: ListSchemasParams): Promise<ListSchemasResponse> => {
+  const response = await api.get<ListSchemasResponse>('/schemas', {
+    params: {
+      skip: params?.skip || 0,
+      limit: params?.limit || 10
+    }
+  });
   return response.data;
 };
 

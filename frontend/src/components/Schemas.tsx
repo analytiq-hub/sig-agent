@@ -17,34 +17,23 @@ const Schemas = () => {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(5);
+  const [total, setTotal] = useState(0);
 
   const saveSchema = async (schema: {name: string; fields: SchemaField[]}) => {
     try {
       setIsLoading(true);
-      let savedSchema: Schema;
       
       if (currentSchema.id) {
-        // Update existing schema
-        savedSchema = await updateSchemaApi(currentSchema.id, schema);
-        setSchemas(schemas.map(s => s.name === savedSchema.name ? savedSchema : s));
+        await updateSchemaApi(currentSchema.id, schema);
       } else {
-        // Create new schema
-        savedSchema = await createSchemaApi(schema);
-        // Check if we already have a schema with this name
-        const existingIndex = schemas.findIndex(s => 
-          s.name.toLowerCase() === savedSchema.name.toLowerCase()
-        );
-        
-        if (existingIndex >= 0) {
-          // Update existing schema in the list
-          setSchemas(schemas.map(s => 
-            s.name.toLowerCase() === savedSchema.name.toLowerCase() ? savedSchema : s
-          ));
-        } else {
-          // Add new schema to the list
-          setSchemas([...schemas, savedSchema]);
-        }
+        await createSchemaApi(schema);
       }
+
+      setPage(0);
+      await loadSchemas();
+      
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving schema';
       setMessage('Error: ' + errorMsg);
@@ -56,8 +45,12 @@ const Schemas = () => {
   const loadSchemas = async () => {
     try {
       setIsLoading(true);
-      const response = await getSchemasApi();
+      const response = await getSchemasApi({
+        skip: page * pageSize,
+        limit: pageSize
+      });
       setSchemas(response.schemas);
+      setTotal(response.total_count);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
       setMessage('Error: ' + errorMsg);
@@ -82,7 +75,7 @@ const Schemas = () => {
 
   useEffect(() => {
     loadSchemas();
-  }, []);
+  }, [page, pageSize]);
 
   const addField = () => {
     setCurrentSchema({
@@ -328,10 +321,19 @@ const Schemas = () => {
               pagination: {
                 paginationModel: { pageSize: 5 }
               },
+              sorting: {
+                sortModel: [{ field: 'id', sort: 'desc' }]
+              }
             }}
             pageSizeOptions={[5, 10, 20]}
             disableRowSelectionOnClick
             loading={isLoading}
+            paginationMode="server"
+            rowCount={total}
+            onPaginationModelChange={(model) => {
+              setPage(model.page);
+              setPageSize(model.pageSize);
+            }}
             getRowHeight={({ model }) => {
               const numFields = model.fields.length;
               return Math.max(52, 24 * numFields + 16);
