@@ -1161,7 +1161,7 @@ async def list_tags(
     # Get total count
     total_count = await tags_collection.count_documents({"created_by": current_user.user_id})
     
-    # Get paginated tags with sorting
+    # Get paginated tags with sorting by _id in descending order
     cursor = tags_collection.find(
         {"created_by": current_user.user_id}
     ).sort("_id", -1).skip(skip).limit(limit)  # Sort by _id descending (newest first)

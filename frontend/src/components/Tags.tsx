@@ -33,18 +33,14 @@ const Tags = () => {
           color: tag.color,
           description: tag.description
         });
-      } else {
-        // Create new tag
-        savedTag = await createTagApi(tag);
-      }
-      
-      if (currentTag.id) {
         // Update existing tag in the list
         setTags(tags.map(t => t.id === currentTag.id ? savedTag : t));
         setMessage('Tag updated successfully');
       } else {
-        // Add new tag to the list
-        setTags([...tags, savedTag]);
+        // Create new tag
+        savedTag = await createTagApi(tag);
+        // Add new tag to the beginning of the list
+        setTags([savedTag, ...tags]);
         setMessage('Tag created successfully');
       }
       
@@ -278,6 +274,9 @@ const Tags = () => {
               pagination: {
                 paginationModel: { pageSize: 5 }
               },
+              sorting: {
+                sortModel: [{ field: 'id', sort: 'desc' }]
+              }
             }}
             pageSizeOptions={[5, 10, 20]}
             disableRowSelectionOnClick
