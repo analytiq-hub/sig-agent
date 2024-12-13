@@ -77,6 +77,38 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
 
   const renderPromptResults = (promptId: string) => {
     const results = llmResults[promptId] || {};
+    
+    // If no results exist for this prompt
+    if (Object.keys(results).length === 0) {
+      return (
+        <div className="bg-white p-4 flex flex-col items-center justify-center gap-2 text-center">
+          <span className="text-sm text-gray-600">
+            No extractions available for this prompt
+          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRunPrompt(promptId);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+          >
+            {runningPrompts.has(promptId) ? (
+              <>
+                <div className="w-4 h-4 border-2 border-gray-400/60 border-t-transparent rounded-full animate-spin" />
+                Running analysis...
+              </>
+            ) : (
+              <>
+                <ArrowPathIcon className="w-4 h-4" />
+                Run extraction
+              </>
+            )}
+          </button>
+        </div>
+      );
+    }
+
+    // Regular results display
     return (
       <div className="bg-white pt-1">
         {Object.entries(results).map(([key, value]) => (
