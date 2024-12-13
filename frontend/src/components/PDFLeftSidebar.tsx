@@ -1,5 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Box, List, ListItemIcon, ListItemText, Typography, ListItemButton, Toolbar } from '@mui/material';
+import { 
+  Box, 
+  List, 
+  ListItemIcon, 
+  ListItemText, 
+  Typography, 
+  ListItemButton, 
+  Toolbar,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
+  FormControl
+} from '@mui/material';
 import { Description } from '@mui/icons-material';
 import { getLLMResultApi, getPromptsApi } from '@/utils/api';
 import type { Prompt } from '@/utils/api';
@@ -7,18 +19,22 @@ import type { Prompt } from '@/utils/api';
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 const PDFLeftSidebar = ({ id }: { id: string }) => {
-  const [llmResult, setLlmResult] = useState<Record<string, JsonValue>>({});
+  const [llmResults, setLlmResults] = useState<Record<string, Record<string, JsonValue>>>({});
   const [matchingPrompts, setMatchingPrompts] = useState<Prompt[]>([]);
+  const [selectedPromptId, setSelectedPromptId] = useState<string>('default');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [llmResponse, promptsResponse] = await Promise.all([
-          getLLMResultApi(id),
-          getPromptsApi({ document_id: id, limit: 100 })
-        ]);
-        setLlmResult(llmResponse.llm_result);
+        const promptsResponse = await getPromptsApi({ document_id: id, limit: 100 });
         setMatchingPrompts(promptsResponse.prompts);
+        
+        // Fetch default prompt results
+        const defaultResults = await getLLMResultApi(id);
+        setLlmResults(prev => ({
+          ...prev,
+          default: defaultResults.llm_result
+        }));
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -28,6 +44,26 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
       fetchData();
     }
   }, [id]);
+
+  const handlePromptChange = async (event: SelectChangeEvent) => {
+    const promptId = event.target.value;
+    setSelectedPromptId(promptId);
+
+    // Only fetch if we haven't already fetched this prompt's results
+    if (!llmResults[promptId]) {
+      try {
+        const results = await getLLMResultApi(id, promptId);
+        setLlmResults(prev => ({
+          ...prev,
+          [promptId]: results.llm_result
+        }));
+      } catch (error) {
+        console.error('Error fetching LLM results:', error);
+      }
+    }
+  };
+
+  const currentResults = llmResults[selectedPromptId] || {};
 
   return (
     <Box
@@ -39,7 +75,6 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
         borderRight: '1px solid rgba(0, 0, 0, 0.12)',
       }}
     >
-      {/* Matching Prompts Section */}
       <Toolbar 
         variant='dense'
         sx={{ 
@@ -48,6 +83,8 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
           flexShrink: 0,
           borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
           padding: '0 16px',
+          display: 'flex',
+          gap: 2,
           '& .MuiTypography-root': {
             fontSize: '0.875rem',
           },
@@ -58,66 +95,45 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
           sx={{
             color: theme => theme.palette.pdf_menubar.contrastText,
             fontWeight: 'bold',
+            flexShrink: 0,
           }}
         >
-          Available Prompts
+          Select Prompt:
         </Typography>
-      </Toolbar>
-
-      <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
-        {/* Prompts List */}
-        <List>
-          {matchingPrompts.map((prompt) => (
-            <ListItemButton key={prompt.id} sx={{ py: 1 }}>
-              <ListItemIcon>
-                <Description />
-              </ListItemIcon>
-              <ListItemText 
-                primary={prompt.name}
-                secondary={`Version ${prompt.version}`}
-                sx={{
-                  '& .MuiListItemText-primary': {
-                    fontSize: '0.875rem',
-                  },
-                  '& .MuiListItemText-secondary': {
-                    fontSize: '0.75rem',
-                    color: theme => theme.palette.text.primary,
-                    filter: 'brightness(0.9)'
-                  }
-                }}
-              />
-            </ListItemButton>
-          ))}
-        </List>
-
-        {/* LLM Results Section */}
-        <Toolbar 
-          variant='dense'
+        <FormControl 
+          size="small" 
           sx={{ 
-            backgroundColor: theme => theme.palette.pdf_menubar.main,
-            minHeight: '48px !important',
-            borderTop: '1px solid rgba(0, 0, 0, 0.12)',
-            borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
-            padding: '0 16px',
-            '& .MuiTypography-root': {
-              fontSize: '0.875rem',
+            flexGrow: 1,
+            '& .MuiSelect-select': {
+              py: 0.5,
+              color: theme => theme.palette.pdf_menubar.contrastText,
+            },
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'rgba(255, 255, 255, 0.23)',
+            },
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'rgba(255, 255, 255, 0.23)',
             },
           }}
         >
-          <Typography
-            variant="body2"
-            sx={{
-              color: theme => theme.palette.pdf_menubar.contrastText,
-              fontWeight: 'bold',
-            }}
+          <Select
+            value={selectedPromptId}
+            onChange={handlePromptChange}
+            displayEmpty
           >
-            Default Prompt Results
-          </Typography>
-        </Toolbar>
+            <MenuItem value="default">Default Prompt</MenuItem>
+            {matchingPrompts.map((prompt) => (
+              <MenuItem key={prompt.id} value={prompt.id}>
+                {prompt.name} (v{prompt.version})
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Toolbar>
 
-        {/* LLM Results List */}
+      <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
         <List>
-          {Object.entries(llmResult).map(([key, value]) => (
+          {Object.entries(currentResults).map(([key, value]) => (
             <ListItemButton key={key}>
               <ListItemIcon>
                 <Description />
