@@ -977,14 +977,20 @@ async def list_prompts(
         {
             "$sort": {"_id": -1}  # Sort by _id descending (newest first)
         },
+        #  The $group stage creates the "doc" field - it's not in the original data.
         {
             "$group": {
                 "_id": "$name",
                 "doc": {"$first": "$$ROOT"}
             }
         },
+        #  The $replaceRoot stage replaces the root with the "doc" field.
         {
             "$replaceRoot": {"newRoot": "$doc"}
+        },
+        # Final Sort by id desc ensures newest prompts appear first
+        {
+            "$sort": {"_id": -1}  # Sort the grouped results by _id again
         },
         {
             "$facet": {
