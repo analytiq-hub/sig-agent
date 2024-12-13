@@ -145,13 +145,15 @@ export interface ListDocumentsResponse {
 interface ListDocumentsParams {
   skip?: number;
   limit?: number;
+  tag_ids?: string;  // Added tag_ids parameter for filtering
 }
 
 export const listDocumentsApi = async (params?: ListDocumentsParams) => {
   const response = await api.get('/documents', { 
     params: {
       skip: params?.skip || 0,
-      limit: params?.limit || 10
+      limit: params?.limit || 10,
+      tag_ids: params?.tag_ids
     }
   });
   return response.data;
@@ -440,13 +442,17 @@ export const createPromptApi = async (prompt: PromptCreate): Promise<Prompt> => 
 export interface ListPromptsParams {
   skip?: number;
   limit?: number;
+  document_id?: string;
+  tag_ids?: string;
 }
 
 export const getPromptsApi = async (params?: ListPromptsParams): Promise<ListPromptsResponse> => {
   const response = await api.get<ListPromptsResponse>('/prompts', {
     params: {
       skip: params?.skip || 0,
-      limit: params?.limit || 10
+      limit: params?.limit || 10,
+      document_id: params?.document_id,
+      tag_ids: params?.tag_ids
     }
   });
   return response.data;
