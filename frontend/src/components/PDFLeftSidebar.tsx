@@ -5,15 +5,12 @@ import {
   ListItemIcon, 
   ListItemText, 
   Typography, 
-  ListItemButton, 
-  Toolbar,
-  Select,
-  MenuItem,
-  SelectChangeEvent,
-  FormControl
+  ListItemButton,
+  Chip,
+  CircularProgress
 } from '@mui/material';
-import { Description } from '@mui/icons-material';
-import { getLLMResultApi, getPromptsApi } from '@/utils/api';
+import { Description, Refresh } from '@mui/icons-material';
+import { getLLMResultApi, getPromptsApi, runLLMAnalysisApi } from '@/utils/api';
 import type { Prompt } from '@/utils/api';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
@@ -22,6 +19,7 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
   const [llmResults, setLlmResults] = useState<Record<string, Record<string, JsonValue>>>({});
   const [matchingPrompts, setMatchingPrompts] = useState<Prompt[]>([]);
   const [selectedPromptId, setSelectedPromptId] = useState<string>('default');
+  const [runningPrompts, setRunningPrompts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,21 +43,40 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
     }
   }, [id]);
 
-  const handlePromptChange = async (event: SelectChangeEvent) => {
-    const promptId = event.target.value;
-    setSelectedPromptId(promptId);
+  const handlePromptChange = async (newValue: string) => {
+    setSelectedPromptId(newValue);
 
     // Only fetch if we haven't already fetched this prompt's results
-    if (!llmResults[promptId]) {
+    if (!llmResults[newValue]) {
       try {
-        const results = await getLLMResultApi(id, promptId);
+        const results = await getLLMResultApi(id, newValue);
         setLlmResults(prev => ({
           ...prev,
-          [promptId]: results.llm_result
+          [newValue]: results.llm_result
         }));
       } catch (error) {
         console.error('Error fetching LLM results:', error);
       }
+    }
+  };
+
+  const handleRunPrompt = async (promptId: string) => {
+    setRunningPrompts(prev => new Set(prev).add(promptId));
+    try {
+      await runLLMAnalysisApi(id, promptId, true);
+      const results = await getLLMResultApi(id, promptId);
+      setLlmResults(prev => ({
+        ...prev,
+        [promptId]: results.llm_result
+      }));
+    } catch (error) {
+      console.error('Error running prompt:', error);
+    } finally {
+      setRunningPrompts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(promptId);
+        return newSet;
+      });
     }
   };
 
@@ -75,61 +92,58 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
         borderRight: '1px solid rgba(0, 0, 0, 0.12)',
       }}
     >
-      <Toolbar 
-        variant='dense'
-        sx={{ 
-          backgroundColor: theme => theme.palette.pdf_menubar.main,
-          minHeight: '48px !important',
-          flexShrink: 0,
-          borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
-          padding: '0 16px',
-          display: 'flex',
-          gap: 2,
-          '& .MuiTypography-root': {
-            fontSize: '0.875rem',
-          },
-        }}
-      >
-        <Typography
-          variant="body2"
+      <Box sx={{ 
+        p: 1.5,
+        display: 'flex',
+        gap: 1,
+        flexWrap: 'wrap',
+        backgroundColor: theme => theme.palette.pdf_menubar.main,
+        borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+        minHeight: '56px',
+        alignItems: 'center'
+      }}>
+        <Chip
+          label="Default Prompt"
+          onClick={() => handlePromptChange('default')}
+          onDelete={() => handleRunPrompt('default')}
+          deleteIcon={runningPrompts.has('default') ? 
+            <CircularProgress size={16} color="inherit" /> : 
+            <Refresh fontSize="small" />}
+          variant={selectedPromptId === 'default' ? 'filled' : 'outlined'}
+          color={selectedPromptId === 'default' ? 'primary' : 'default'}
           sx={{
             color: theme => theme.palette.pdf_menubar.contrastText,
-            fontWeight: 'bold',
-            flexShrink: 0,
+            '& .MuiChip-deleteIcon': {
+              color: 'inherit'
+            },
+            '&.MuiChip-outlined': {
+              borderColor: 'rgba(255, 255, 255, 0.23)',
+            }
           }}
-        >
-          Select Prompt:
-        </Typography>
-        <FormControl 
-          size="small" 
-          sx={{ 
-            flexGrow: 1,
-            '& .MuiSelect-select': {
-              py: 0.5,
+        />
+        {matchingPrompts.map((prompt) => (
+          <Chip
+            key={prompt.id}
+            label={`${prompt.name} (v${prompt.version})`}
+            onClick={() => handlePromptChange(prompt.id)}
+            onDelete={() => handleRunPrompt(prompt.id)}
+            deleteIcon={runningPrompts.has(prompt.id) ? 
+              <CircularProgress size={16} color="inherit" /> : 
+              <Refresh fontSize="small" />}
+            variant={selectedPromptId === prompt.id ? 'filled' : 'outlined'}
+            color={selectedPromptId === prompt.id ? 'primary' : 'default'}
+            sx={{
               color: theme => theme.palette.pdf_menubar.contrastText,
-            },
-            '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(255, 255, 255, 0.23)',
-            },
-            '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(255, 255, 255, 0.23)',
-            },
-          }}
-        >
-          <Select
-            value={selectedPromptId}
-            onChange={handlePromptChange}
-            displayEmpty
-          >
-            <MenuItem value="default">Default Prompt</MenuItem>
-            {matchingPrompts.map((prompt) => (
-              <MenuItem key={prompt.id} value={prompt.id}>
-                {prompt.name} (v{prompt.version})
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Toolbar>
+              '& .MuiChip-deleteIcon': {
+                color: 'inherit'
+              },
+              '&.MuiChip-outlined': {
+                borderColor: 'rgba(255, 255, 255, 0.23)',
+              }
+            }}
+          />
+        ))}
+      </Box>
 
       <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
         <List>
