@@ -1,21 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Box, 
-  List, 
-  ListItemIcon, 
-  ListItemText, 
-  Typography, 
-  ListItemButton,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  IconButton,
-  CircularProgress
-} from '@mui/material';
-import { Description, ExpandMore, Refresh } from '@mui/icons-material';
+import { ChevronDownIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { getLLMResultApi, getPromptsApi, runLLMAnalysisApi } from '@/utils/api';
 import type { Prompt } from '@/utils/api';
-import { alpha } from '@mui/material/styles';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
@@ -49,10 +35,13 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
   }, [id]);
 
   const handlePromptChange = async (promptId: string) => {
-    setSelectedPromptId(promptId);
-    setExpandedPrompt(promptId);
+    if (expandedPrompt === promptId) {
+      setExpandedPrompt('');
+      return;
+    }
 
-    // Only fetch if we haven't already fetched this prompt's results
+    setExpandedPrompt(promptId);
+    
     if (!llmResults[promptId]) {
       try {
         const results = await getLLMResultApi(id, promptId);
@@ -89,203 +78,107 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
   const renderPromptResults = (promptId: string) => {
     const results = llmResults[promptId] || {};
     return (
-      <Box sx={{ 
-        backgroundColor: '#FFFFFF',
-        pt: 1,
-      }}>
+      <div className="bg-white pt-1">
         {Object.entries(results).map(([key, value]) => (
-          <Box
-            key={key}
-            sx={{
-              px: 2,
-              pb: 1.5,
-            }}
-          >
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'rgba(0, 0, 0, 0.7)',
-                fontSize: '0.7rem',
-                display: 'inline-block',
-                mb: 0.5,
-                textDecoration: 'underline',
-                textDecorationColor: 'rgba(0, 0, 0, 0.3)',
-                textDecorationThickness: '1px',
-                textUnderlineOffset: '2px',
-              }}
-            >
+          <div key={key} className="px-4 pb-3">
+            <span className="text-[0.7rem] text-black/70 mb-1 inline-block underline decoration-black/30 decoration-1 underline-offset-2">
               {key}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: '0.875rem',
-                color: 'text.primary',
-                fontWeight: 500,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                pl: 0.5,
-              }}
-            >
+            </span>
+            <div className="text-[0.875rem] text-gray-900 font-medium whitespace-pre-wrap break-words pl-1">
               {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
-            </Typography>
-          </Box>
+            </div>
+          </div>
         ))}
-      </Box>
+      </div>
     );
   };
 
   return (
-    <Box
-      sx={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        borderRight: '1px solid rgba(0, 0, 0, 0.12)',
-        backgroundColor: 'action.hover',
-      }}
-    >
-      <Box sx={{ 
-        backgroundColor: theme => theme.palette.pdf_menubar.main,
-        borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
-        height: '48px',
-        minHeight: '48px',
-        display: 'flex',
-        alignItems: 'center',
-        px: 1.5,
-      }}>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            color: theme => theme.palette.pdf_menubar.contrastText,
-            fontWeight: 'bold',
-          }}
-        >
-          Available Prompts
-        </Typography>
-      </Box>
-
-      <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
-        {/* Default Prompt Accordion */}
-        <Accordion 
-          expanded={expandedPrompt === 'default'}
-          onChange={() => handlePromptChange('default')}
-          disableGutters
-          elevation={0}
-          square
-          sx={{
-            '&:before': { display: 'none' },
-            borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
-            backgroundColor: 'transparent',
-            '& .MuiAccordionSummary-root': {
-              backgroundColor: theme => alpha(theme.palette.pdf_menubar.main, 0.1),
-              '&:hover': {
-                backgroundColor: theme => alpha(theme.palette.pdf_menubar.main, 0.15),
-              },
-            },
-            '& .MuiAccordionDetails-root': {
-              p: 0,
-              backgroundColor: '#FFFFFF',
-            },
-          }}
-        >
-          <AccordionSummary
-            expandIcon={<ExpandMore />}
-            sx={{ 
-              minHeight: '48px !important',
-              '& .MuiAccordionSummary-content': { my: 0 },
-              '& .MuiTypography-root': {
-                color: 'text.primary',
-              },
-              '& .MuiIconButton-root': {
-                color: 'text.secondary',
-              }
-            }}
+    <div className="w-full h-full flex flex-col border-r border-black/10">
+      <div className="h-12 min-h-[48px] flex items-center px-4 bg-pdf_menubar text-pdf_menubar-contrast font-bold border-b border-black/10">
+        Available Prompts
+      </div>
+      
+      <div className="overflow-auto flex-grow">
+        {/* Default Prompt */}
+        <div className="border-b border-black/10">
+          <button
+            onClick={() => handlePromptChange('default')}
+            className="w-full min-h-[48px] flex items-center justify-between px-4 bg-pdf_menubar/10 hover:bg-pdf_menubar/15 transition-colors"
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-              <Typography sx={{ flexGrow: 1, fontSize: '0.875rem' }}>
-                Default Prompt
-              </Typography>
-              <IconButton
-                size="small"
+            <span className="text-sm text-gray-900">Default Prompt</span>
+            <div className="flex items-center gap-2">
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleRunPrompt('default');
                 }}
+                className="p-1 rounded-full hover:bg-black/5 transition-colors"
               >
-                {runningPrompts.has('default') ? 
-                  <CircularProgress size={16} /> : 
-                  <Refresh fontSize="small" />}
-              </IconButton>
-            </Box>
-          </AccordionSummary>
-          <AccordionDetails sx={{ p: 0 }}>
+                {runningPrompts.has('default') ? (
+                  <div className="w-4 h-4 border-2 border-pdf_menubar/60 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <ArrowPathIcon className="w-4 h-4 text-gray-600" />
+                )}
+              </button>
+              <ChevronDownIcon 
+                className={`w-5 h-5 text-gray-600 transition-transform ${
+                  expandedPrompt === 'default' ? 'rotate-180' : ''
+                }`}
+              />
+            </div>
+          </button>
+          <div 
+            className={`transition-all duration-200 ease-in-out ${
+              expandedPrompt === 'default' ? '' : 'hidden'
+            }`}
+          >
             {renderPromptResults('default')}
-          </AccordionDetails>
-        </Accordion>
+          </div>
+        </div>
 
         {/* Other Prompts */}
         {matchingPrompts.map((prompt) => (
-          <Accordion
-            key={prompt.id}
-            expanded={expandedPrompt === prompt.id}
-            onChange={() => handlePromptChange(prompt.id)}
-            disableGutters
-            elevation={0}
-            square
-            sx={{
-              '&:before': { display: 'none' },
-              borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
-              backgroundColor: 'transparent',
-              '& .MuiAccordionSummary-root': {
-                backgroundColor: theme => alpha(theme.palette.pdf_menubar.main, 0.1),
-                '&:hover': {
-                  backgroundColor: theme => alpha(theme.palette.pdf_menubar.main, 0.15),
-                },
-              },
-              '& .MuiAccordionDetails-root': {
-                p: 0,
-                backgroundColor: '#FFFFFF',
-              },
-            }}
-          >
-            <AccordionSummary
-              expandIcon={<ExpandMore />}
-              sx={{ 
-                minHeight: '48px !important',
-                '& .MuiAccordionSummary-content': { my: 0 },
-                '& .MuiTypography-root': {
-                  color: 'text.primary',
-                },
-                '& .MuiIconButton-root': {
-                  color: 'text.secondary',
-                }
-              }}
+          <div key={prompt.id} className="border-b border-black/10">
+            <button
+              onClick={() => handlePromptChange(prompt.id)}
+              className="w-full min-h-[48px] flex items-center justify-between px-4 bg-pdf_menubar/10 hover:bg-pdf_menubar/15 transition-colors"
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                <Typography sx={{ flexGrow: 1, fontSize: '0.875rem' }}>
-                  {prompt.name} <Typography component="span" color="text.secondary" fontSize="0.75rem">(v{prompt.version})</Typography>
-                </Typography>
-                <IconButton
-                  size="small"
+              <span className="text-sm text-gray-900">
+                {prompt.name} <span className="text-gray-500 text-xs">(v{prompt.version})</span>
+              </span>
+              <div className="flex items-center gap-2">
+                <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleRunPrompt(prompt.id);
                   }}
+                  className="p-1 rounded-full hover:bg-black/5 transition-colors"
                 >
-                  {runningPrompts.has(prompt.id) ? 
-                    <CircularProgress size={16} /> : 
-                    <Refresh fontSize="small" />}
-                </IconButton>
-              </Box>
-            </AccordionSummary>
-            <AccordionDetails sx={{ p: 0 }}>
+                  {runningPrompts.has(prompt.id) ? (
+                    <div className="w-4 h-4 border-2 border-pdf_menubar/60 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <ArrowPathIcon className="w-4 h-4 text-gray-600" />
+                  )}
+                </button>
+                <ChevronDownIcon 
+                  className={`w-5 h-5 text-gray-600 transition-transform ${
+                    expandedPrompt === prompt.id ? 'rotate-180' : ''
+                  }`}
+                />
+              </div>
+            </button>
+            <div 
+              className={`transition-all duration-200 ease-in-out ${
+                expandedPrompt === prompt.id ? '' : 'hidden'
+              }`}
+            >
               {renderPromptResults(prompt.id)}
-            </AccordionDetails>
-          </Accordion>
+            </div>
+          </div>
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 
