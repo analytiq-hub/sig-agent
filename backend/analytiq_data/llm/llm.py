@@ -70,7 +70,7 @@ async def get_llm_result(analytiq_client,
                         document_id: str,
                         prompt_id: str) -> dict | None:
     """
-    Retrieve an LLM result from MongoDB.
+    Retrieve the latest LLM result from MongoDB.
     
     Args:
         analytiq_client: The AnalytiqClient instance
@@ -78,16 +78,21 @@ async def get_llm_result(analytiq_client,
         prompt_id: The prompt ID
     
     Returns:
-        dict | None: The LLM result if found, None otherwise
+        dict | None: The latest LLM result if found, None otherwise
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
     collection = db["llm.runs"]
     
-    result = await collection.find_one({
-        "document_id": document_id,
-        "prompt_id": prompt_id
-    })
+    # Sort by _id in descending order to get the latest document
+    # MongoDB's ObjectId contains a timestamp, so sorting by _id gives us chronological order
+    result = await collection.find_one(
+        {
+            "document_id": document_id,
+            "prompt_id": prompt_id
+        },
+        sort=[("_id", -1)]
+    )
     
     if result:
         # Remove MongoDB's _id field
