@@ -984,14 +984,26 @@ async def create_prompt(
 async def list_prompts(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
+    document_id: str = Query(None, description="Filter prompts by document's tags"),
     tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
     current_user: User = Depends(get_current_user)
 ):
     # Build the base pipeline
     pipeline = []
     
-    # Add tag filtering if tag_ids are provided
-    if tag_ids:
+    # Add document tag filtering if document_id is provided
+    if document_id:
+        document = await db.docs.find_one({"_id": ObjectId(document_id)})
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        document_tag_ids = document.get("tag_ids", [])
+        if document_tag_ids:
+            pipeline.append({
+                "$match": {"tag_ids": {"$in": document_tag_ids}}
+            })
+    # Add direct tag filtering if tag_ids are provided
+    elif tag_ids:
         tag_id_list = [tid.strip() for tid in tag_ids.split(",")]
         pipeline.append({
             "$match": {"tag_ids": {"$all": tag_id_list}}
