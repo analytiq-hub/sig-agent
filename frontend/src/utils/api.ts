@@ -425,8 +425,18 @@ export const createPromptApi = async (prompt: PromptCreate): Promise<Prompt> => 
   return response.data;
 };
 
-export const getPromptsApi = async (): Promise<ListPromptsResponse> => {
-  const response = await api.get<ListPromptsResponse>('/prompts');
+export interface ListPromptsParams {
+  skip?: number;
+  limit?: number;
+}
+
+export const getPromptsApi = async (params?: ListPromptsParams): Promise<ListPromptsResponse> => {
+  const response = await api.get<ListPromptsResponse>('/prompts', {
+    params: {
+      skip: params?.skip || 0,
+      limit: params?.limit || 10
+    }
+  });
   return response.data;
 };
 

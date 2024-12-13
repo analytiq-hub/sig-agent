@@ -257,7 +257,12 @@ async def list_documents(
     limit: int = Query(10, ge=1, le=100),
     user: User = Depends(get_current_user)
 ):
-    documents, total_count = await ad.common.list_docs(analytiq_client, skip=skip, limit=limit)
+    # Get total count
+    total_count = await db.docs.count_documents({})
+    
+    # Get paginated documents with sorting
+    cursor = db.docs.find().sort("_id", -1).skip(skip).limit(limit)  # Sort by _id descending (newest first)
+    documents = await cursor.to_list(length=None)
     
     return ListDocumentsResponse(
         documents=[
@@ -267,7 +272,7 @@ async def list_documents(
                 "upload_date": doc["upload_date"].isoformat(),
                 "uploaded_by": doc["uploaded_by"],
                 "state": doc.get("state", ""),
-                "tag_ids": doc.get("tag_ids", [])  # Include tags in the response
+                "tag_ids": doc.get("tag_ids", [])
             }
             for doc in documents
         ],
@@ -747,10 +752,9 @@ async def list_schemas(
     limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_user)
 ):
-    # Pipeline to get only the latest version of each schema
     pipeline = [
         {
-            "$sort": {"name": 1, "version": -1}
+            "$sort": {"_id": -1}  # Sort by _id descending (newest first)
         },
         {
             "$group": {
@@ -969,10 +973,9 @@ async def list_prompts(
     limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_user)
 ):
-    # Pipeline to get only the latest version of each prompt
     pipeline = [
         {
-            "$sort": {"name": 1, "version": -1}
+            "$sort": {"_id": -1}  # Sort by _id descending (newest first)
         },
         {
             "$group": {
@@ -1149,10 +1152,10 @@ async def list_tags(
     # Get total count
     total_count = await tags_collection.count_documents({"created_by": current_user.user_id})
     
-    # Get paginated tags
+    # Get paginated tags with sorting
     cursor = tags_collection.find(
         {"created_by": current_user.user_id}
-    ).sort("name", 1).skip(skip).limit(limit)
+    ).sort("_id", -1).skip(skip).limit(limit)  # Sort by _id descending (newest first)
     
     tags = await cursor.to_list(length=None)
     

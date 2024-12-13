@@ -29,6 +29,9 @@ const Prompts: React.FC = () => {
   const [selectedSchemaDetails, setSelectedSchemaDetails] = useState<Schema | null>(null);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(5);
+  const [total, setTotal] = useState(0);
 
   const savePrompt = async (prompt: {name: string; content: string}) => {
     try {
@@ -80,6 +83,10 @@ const Prompts: React.FC = () => {
         setPrompts([...prompts, savedPrompt]);
       }
 
+      // After successful save, reset to first page and reload
+      setPage(0);
+      await loadPrompts();
+
       // Clear the form
       setCurrentPrompt({ name: '', content: '' });
       setSelectedSchema('');
@@ -98,8 +105,12 @@ const Prompts: React.FC = () => {
   const loadPrompts = async () => {
     try {
       setIsLoading(true);
-      const response = await getPromptsApi();
+      const response = await getPromptsApi({
+        skip: page * pageSize,
+        limit: pageSize
+      });
       setPrompts(response.prompts);
+      setTotal(response.total_count);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading prompts';
       setMessage('Error: ' + errorMsg);
@@ -163,7 +174,7 @@ const Prompts: React.FC = () => {
     loadPrompts();
     loadSchemas();
     loadTags();
-  }, []);
+  }, [page, pageSize]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -492,10 +503,19 @@ const Prompts: React.FC = () => {
               pagination: {
                 paginationModel: { pageSize: 5 }
               },
+              sorting: {
+                sortModel: [{ field: 'id', sort: 'desc' }]  // Sort by id descending by default
+              }
             }}
             pageSizeOptions={[5, 10, 20]}
             disableRowSelectionOnClick
             loading={isLoading}
+            paginationMode="server"
+            rowCount={total}  // Add this to show total count
+            onPaginationModelChange={(model) => {
+              setPage(model.page);
+              setPageSize(model.pageSize);
+            }}
             sx={{
               '& .MuiDataGrid-cell': {
                 padding: '8px',
