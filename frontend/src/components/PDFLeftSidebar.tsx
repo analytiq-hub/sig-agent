@@ -93,45 +93,45 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
       }}
     >
       <Box sx={{ 
-        p: 1.5,
-        display: 'flex',
-        gap: 1,
-        flexWrap: 'wrap',
         backgroundColor: theme => theme.palette.pdf_menubar.main,
         borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
-        minHeight: '56px',
-        alignItems: 'center'
+        height: '48px',
+        minHeight: '48px',
+        flexShrink: 0,
       }}>
-        <Chip
-          label="Default Prompt"
-          onClick={() => handlePromptChange('default')}
-          onDelete={() => handleRunPrompt('default')}
-          deleteIcon={runningPrompts.has('default') ? 
-            <CircularProgress size={16} color="inherit" /> : 
-            <Refresh fontSize="small" />}
-          variant={selectedPromptId === 'default' ? 'filled' : 'outlined'}
-          color={selectedPromptId === 'default' ? 'primary' : 'default'}
-          sx={{
-            color: theme => theme.palette.pdf_menubar.contrastText,
-            '& .MuiChip-deleteIcon': {
-              color: 'inherit'
+        <Box sx={{ 
+          display: 'flex',
+          gap: 1,
+          px: 1.5,
+          height: '100%',
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          '&::-webkit-scrollbar': {
+            height: 6,
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            borderRadius: 3,
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.4)',
             },
-            '&.MuiChip-outlined': {
-              borderColor: 'rgba(255, 255, 255, 0.23)',
-            }
-          }}
-        />
-        {matchingPrompts.map((prompt) => (
+          },
+          whiteSpace: 'nowrap',
+          alignItems: 'center',
+        }}>
           <Chip
-            key={prompt.id}
-            label={`${prompt.name} (v${prompt.version})`}
-            onClick={() => handlePromptChange(prompt.id)}
-            onDelete={() => handleRunPrompt(prompt.id)}
-            deleteIcon={runningPrompts.has(prompt.id) ? 
+            label="Default Prompt"
+            onClick={() => handlePromptChange('default')}
+            onDelete={() => handleRunPrompt('default')}
+            deleteIcon={runningPrompts.has('default') ? 
               <CircularProgress size={16} color="inherit" /> : 
               <Refresh fontSize="small" />}
-            variant={selectedPromptId === prompt.id ? 'filled' : 'outlined'}
-            color={selectedPromptId === prompt.id ? 'primary' : 'default'}
+            variant={selectedPromptId === 'default' ? 'filled' : 'outlined'}
+            color={selectedPromptId === 'default' ? 'primary' : 'default'}
+            size="small"
             sx={{
               color: theme => theme.palette.pdf_menubar.contrastText,
               '& .MuiChip-deleteIcon': {
@@ -139,10 +139,35 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
               },
               '&.MuiChip-outlined': {
                 borderColor: 'rgba(255, 255, 255, 0.23)',
-              }
+              },
+              flexShrink: 0,
             }}
           />
-        ))}
+          {matchingPrompts.map((prompt) => (
+            <Chip
+              key={prompt.id}
+              label={`${prompt.name} (v${prompt.version})`}
+              onClick={() => handlePromptChange(prompt.id)}
+              onDelete={() => handleRunPrompt(prompt.id)}
+              deleteIcon={runningPrompts.has(prompt.id) ? 
+                <CircularProgress size={16} color="inherit" /> : 
+                <Refresh fontSize="small" />}
+              variant={selectedPromptId === prompt.id ? 'filled' : 'outlined'}
+              color={selectedPromptId === prompt.id ? 'primary' : 'default'}
+              size="small"
+              sx={{
+                color: theme => theme.palette.pdf_menubar.contrastText,
+                '& .MuiChip-deleteIcon': {
+                  color: 'inherit'
+                },
+                '&.MuiChip-outlined': {
+                  borderColor: 'rgba(255, 255, 255, 0.23)',
+                },
+                flexShrink: 0,
+              }}
+            />
+          ))}
+        </Box>
       </Box>
 
       <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
