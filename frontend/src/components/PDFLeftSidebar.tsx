@@ -1,25 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { Box, List, ListItemIcon, ListItemText, Typography, ListItemButton, Toolbar } from '@mui/material';
 import { Description } from '@mui/icons-material';
-import { getLLMResultApi } from '@/utils/api';
+import { getLLMResultApi, getPromptsApi } from '@/utils/api';
+import type { Prompt } from '@/utils/api';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 const PDFLeftSidebar = ({ id }: { id: string }) => {
   const [llmResult, setLlmResult] = useState<Record<string, JsonValue>>({});
+  const [matchingPrompts, setMatchingPrompts] = useState<Prompt[]>([]);
 
   useEffect(() => {
-    const fetchLLMResult = async () => {
+    const fetchData = async () => {
       try {
-        const response = await getLLMResultApi(id);
-        setLlmResult(response.llm_result);
+        const [llmResponse, promptsResponse] = await Promise.all([
+          getLLMResultApi(id),
+          getPromptsApi({ document_id: id, limit: 100 })
+        ]);
+        setLlmResult(llmResponse.llm_result);
+        setMatchingPrompts(promptsResponse.prompts);
       } catch (error) {
-        console.error('Error fetching LLM result:', error);
+        console.error('Error fetching data:', error);
       }
     };
 
     if (id) {
-      fetchLLMResult();
+      fetchData();
     }
   }, [id]);
 
@@ -33,6 +39,7 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
         borderRight: '1px solid rgba(0, 0, 0, 0.12)',
       }}
     >
+      {/* Matching Prompts Section */}
       <Toolbar 
         variant='dense'
         sx={{ 
@@ -53,11 +60,62 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
             fontWeight: 'bold',
           }}
         >
-          Default Prompt
+          Available Prompts
         </Typography>
       </Toolbar>
 
       <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
+        {/* Prompts List */}
+        <List>
+          {matchingPrompts.map((prompt) => (
+            <ListItemButton key={prompt.id} sx={{ py: 1 }}>
+              <ListItemIcon>
+                <Description />
+              </ListItemIcon>
+              <ListItemText 
+                primary={prompt.name}
+                secondary={`Version ${prompt.version}`}
+                sx={{
+                  '& .MuiListItemText-primary': {
+                    fontSize: '0.875rem',
+                  },
+                  '& .MuiListItemText-secondary': {
+                    fontSize: '0.75rem',
+                    color: theme => theme.palette.text.primary,
+                    filter: 'brightness(0.9)'
+                  }
+                }}
+              />
+            </ListItemButton>
+          ))}
+        </List>
+
+        {/* LLM Results Section */}
+        <Toolbar 
+          variant='dense'
+          sx={{ 
+            backgroundColor: theme => theme.palette.pdf_menubar.main,
+            minHeight: '48px !important',
+            borderTop: '1px solid rgba(0, 0, 0, 0.12)',
+            borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+            padding: '0 16px',
+            '& .MuiTypography-root': {
+              fontSize: '0.875rem',
+            },
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{
+              color: theme => theme.palette.pdf_menubar.contrastText,
+              fontWeight: 'bold',
+            }}
+          >
+            Default Prompt Results
+          </Typography>
+        </Toolbar>
+
+        {/* LLM Results List */}
         <List>
           {Object.entries(llmResult).map(([key, value]) => (
             <ListItemButton key={key}>
