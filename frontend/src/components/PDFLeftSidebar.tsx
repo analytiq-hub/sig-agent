@@ -15,6 +15,7 @@ import {
 import { Description, ExpandMore, Refresh } from '@mui/icons-material';
 import { getLLMResultApi, getPromptsApi, runLLMAnalysisApi } from '@/utils/api';
 import type { Prompt } from '@/utils/api';
+import { alpha } from '@mui/material/styles';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
@@ -88,29 +89,48 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
   const renderPromptResults = (promptId: string) => {
     const results = llmResults[promptId] || {};
     return (
-      <List dense>
+      <Box sx={{ 
+        backgroundColor: '#FFFFFF',
+        pt: 1,
+      }}>
         {Object.entries(results).map(([key, value]) => (
-          <ListItemButton key={key} sx={{ pl: 4 }}>
-            <ListItemIcon sx={{ minWidth: 36 }}>
-              <Description fontSize="small" />
-            </ListItemIcon>
-            <ListItemText 
-              primary={key}
-              secondary={typeof value === 'object' ? JSON.stringify(value, null, 2) : value}
+          <Box
+            key={key}
+            sx={{
+              px: 2,
+              pb: 1.5,
+            }}
+          >
+            <Typography
+              variant="caption"
               sx={{
-                '& .MuiListItemText-primary': {
-                  fontSize: '0.875rem',
-                },
-                '& .MuiListItemText-secondary': {
-                  color: theme => theme.palette.text.primary,
-                  filter: 'brightness(0.9)',
-                  fontSize: '0.75rem',
-                }
+                color: 'rgba(0, 0, 0, 0.7)',
+                fontSize: '0.7rem',
+                display: 'inline-block',
+                mb: 0.5,
+                textDecoration: 'underline',
+                textDecorationColor: 'rgba(0, 0, 0, 0.3)',
+                textDecorationThickness: '1px',
+                textUnderlineOffset: '2px',
               }}
-            />
-          </ListItemButton>
+            >
+              {key}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: '0.875rem',
+                color: 'text.primary',
+                fontWeight: 500,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                pl: 0.5,
+              }}
+            >
+              {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+            </Typography>
+          </Box>
         ))}
-      </List>
+      </Box>
     );
   };
 
@@ -122,6 +142,7 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
         display: 'flex',
         flexDirection: 'column',
         borderRight: '1px solid rgba(0, 0, 0, 0.12)',
+        backgroundColor: 'action.hover',
       }}
     >
       <Box sx={{ 
@@ -155,13 +176,30 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
           sx={{
             '&:before': { display: 'none' },
             borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+            backgroundColor: 'transparent',
+            '& .MuiAccordionSummary-root': {
+              backgroundColor: theme => alpha(theme.palette.pdf_menubar.main, 0.1),
+              '&:hover': {
+                backgroundColor: theme => alpha(theme.palette.pdf_menubar.main, 0.15),
+              },
+            },
+            '& .MuiAccordionDetails-root': {
+              p: 0,
+              backgroundColor: '#FFFFFF',
+            },
           }}
         >
           <AccordionSummary
             expandIcon={<ExpandMore />}
             sx={{ 
               minHeight: '48px !important',
-              '& .MuiAccordionSummary-content': { my: 0 }
+              '& .MuiAccordionSummary-content': { my: 0 },
+              '& .MuiTypography-root': {
+                color: 'text.primary',
+              },
+              '& .MuiIconButton-root': {
+                color: 'text.secondary',
+              }
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
@@ -198,13 +236,30 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
             sx={{
               '&:before': { display: 'none' },
               borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+              backgroundColor: 'transparent',
+              '& .MuiAccordionSummary-root': {
+                backgroundColor: theme => alpha(theme.palette.pdf_menubar.main, 0.1),
+                '&:hover': {
+                  backgroundColor: theme => alpha(theme.palette.pdf_menubar.main, 0.15),
+                },
+              },
+              '& .MuiAccordionDetails-root': {
+                p: 0,
+                backgroundColor: '#FFFFFF',
+              },
             }}
           >
             <AccordionSummary
               expandIcon={<ExpandMore />}
               sx={{ 
                 minHeight: '48px !important',
-                '& .MuiAccordionSummary-content': { my: 0 }
+                '& .MuiAccordionSummary-content': { my: 0 },
+                '& .MuiTypography-root': {
+                  color: 'text.primary',
+                },
+                '& .MuiIconButton-root': {
+                  color: 'text.secondary',
+                }
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
