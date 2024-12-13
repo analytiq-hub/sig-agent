@@ -6,10 +6,13 @@ import {
   ListItemText, 
   Typography, 
   ListItemButton,
-  Chip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  IconButton,
   CircularProgress
 } from '@mui/material';
-import { Description, Refresh } from '@mui/icons-material';
+import { Description, ExpandMore, Refresh } from '@mui/icons-material';
 import { getLLMResultApi, getPromptsApi, runLLMAnalysisApi } from '@/utils/api';
 import type { Prompt } from '@/utils/api';
 
@@ -20,6 +23,7 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
   const [matchingPrompts, setMatchingPrompts] = useState<Prompt[]>([]);
   const [selectedPromptId, setSelectedPromptId] = useState<string>('default');
   const [runningPrompts, setRunningPrompts] = useState<Set<string>>(new Set());
+  const [expandedPrompt, setExpandedPrompt] = useState<string>('default');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,16 +47,17 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
     }
   }, [id]);
 
-  const handlePromptChange = async (newValue: string) => {
-    setSelectedPromptId(newValue);
+  const handlePromptChange = async (promptId: string) => {
+    setSelectedPromptId(promptId);
+    setExpandedPrompt(promptId);
 
     // Only fetch if we haven't already fetched this prompt's results
-    if (!llmResults[newValue]) {
+    if (!llmResults[promptId]) {
       try {
-        const results = await getLLMResultApi(id, newValue);
+        const results = await getLLMResultApi(id, promptId);
         setLlmResults(prev => ({
           ...prev,
-          [newValue]: results.llm_result
+          [promptId]: results.llm_result
         }));
       } catch (error) {
         console.error('Error fetching LLM results:', error);
@@ -80,7 +85,34 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
     }
   };
 
-  const currentResults = llmResults[selectedPromptId] || {};
+  const renderPromptResults = (promptId: string) => {
+    const results = llmResults[promptId] || {};
+    return (
+      <List dense>
+        {Object.entries(results).map(([key, value]) => (
+          <ListItemButton key={key} sx={{ pl: 4 }}>
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <Description fontSize="small" />
+            </ListItemIcon>
+            <ListItemText 
+              primary={key}
+              secondary={typeof value === 'object' ? JSON.stringify(value, null, 2) : value}
+              sx={{
+                '& .MuiListItemText-primary': {
+                  fontSize: '0.875rem',
+                },
+                '& .MuiListItemText-secondary': {
+                  color: theme => theme.palette.text.primary,
+                  filter: 'brightness(0.9)',
+                  fontSize: '0.75rem',
+                }
+              }}
+            />
+          </ListItemButton>
+        ))}
+      </List>
+    );
+  };
 
   return (
     <Box
@@ -97,99 +129,106 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
         borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
         height: '48px',
         minHeight: '48px',
-        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        px: 1.5,
       }}>
-        <Box sx={{ 
-          display: 'flex',
-          gap: 1,
-          px: 1.5,
-          height: '100%',
-          overflowX: 'auto',
-          overflowY: 'hidden',
-          '&::-webkit-scrollbar': {
-            height: 6,
-          },
-          '&::-webkit-scrollbar-track': {
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(255, 255, 255, 0.3)',
-            borderRadius: 3,
-            '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.4)',
-            },
-          },
-          whiteSpace: 'nowrap',
-          alignItems: 'center',
-        }}>
-          <Chip
-            label="Default Prompt"
-            onClick={() => handlePromptChange('default')}
-            onDelete={() => handleRunPrompt('default')}
-            deleteIcon={runningPrompts.has('default') ? 
-              <CircularProgress size={16} color="inherit" /> : 
-              <Refresh fontSize="small" />}
-            variant={selectedPromptId === 'default' ? 'filled' : 'outlined'}
-            color={selectedPromptId === 'default' ? 'primary' : 'default'}
-            size="small"
-            sx={{
-              color: theme => theme.palette.pdf_menubar.contrastText,
-              '& .MuiChip-deleteIcon': {
-                color: 'inherit'
-              },
-              '&.MuiChip-outlined': {
-                borderColor: 'rgba(255, 255, 255, 0.23)',
-              },
-              flexShrink: 0,
-            }}
-          />
-          {matchingPrompts.map((prompt) => (
-            <Chip
-              key={prompt.id}
-              label={`${prompt.name} (v${prompt.version})`}
-              onClick={() => handlePromptChange(prompt.id)}
-              onDelete={() => handleRunPrompt(prompt.id)}
-              deleteIcon={runningPrompts.has(prompt.id) ? 
-                <CircularProgress size={16} color="inherit" /> : 
-                <Refresh fontSize="small" />}
-              variant={selectedPromptId === prompt.id ? 'filled' : 'outlined'}
-              color={selectedPromptId === prompt.id ? 'primary' : 'default'}
-              size="small"
-              sx={{
-                color: theme => theme.palette.pdf_menubar.contrastText,
-                '& .MuiChip-deleteIcon': {
-                  color: 'inherit'
-                },
-                '&.MuiChip-outlined': {
-                  borderColor: 'rgba(255, 255, 255, 0.23)',
-                },
-                flexShrink: 0,
-              }}
-            />
-          ))}
-        </Box>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            color: theme => theme.palette.pdf_menubar.contrastText,
+            fontWeight: 'bold',
+          }}
+        >
+          Available Prompts
+        </Typography>
       </Box>
 
       <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
-        <List>
-          {Object.entries(currentResults).map(([key, value]) => (
-            <ListItemButton key={key}>
-              <ListItemIcon>
-                <Description />
-              </ListItemIcon>
-              <ListItemText 
-                primary={key}
-                secondary={typeof value === 'object' ? JSON.stringify(value, null, 2) : value}
-                sx={{
-                  '& .MuiListItemText-secondary': {
-                    color: theme => theme.palette.text.primary,
-                    filter: 'brightness(0.9)'
-                  }
+        {/* Default Prompt Accordion */}
+        <Accordion 
+          expanded={expandedPrompt === 'default'}
+          onChange={() => handlePromptChange('default')}
+          disableGutters
+          elevation={0}
+          square
+          sx={{
+            '&:before': { display: 'none' },
+            borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+          }}
+        >
+          <AccordionSummary
+            expandIcon={<ExpandMore />}
+            sx={{ 
+              minHeight: '48px !important',
+              '& .MuiAccordionSummary-content': { my: 0 }
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              <Typography sx={{ flexGrow: 1, fontSize: '0.875rem' }}>
+                Default Prompt
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRunPrompt('default');
                 }}
-              />
-            </ListItemButton>
-          ))}
-        </List>
+              >
+                {runningPrompts.has('default') ? 
+                  <CircularProgress size={16} /> : 
+                  <Refresh fontSize="small" />}
+              </IconButton>
+            </Box>
+          </AccordionSummary>
+          <AccordionDetails sx={{ p: 0 }}>
+            {renderPromptResults('default')}
+          </AccordionDetails>
+        </Accordion>
+
+        {/* Other Prompts */}
+        {matchingPrompts.map((prompt) => (
+          <Accordion
+            key={prompt.id}
+            expanded={expandedPrompt === prompt.id}
+            onChange={() => handlePromptChange(prompt.id)}
+            disableGutters
+            elevation={0}
+            square
+            sx={{
+              '&:before': { display: 'none' },
+              borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+            }}
+          >
+            <AccordionSummary
+              expandIcon={<ExpandMore />}
+              sx={{ 
+                minHeight: '48px !important',
+                '& .MuiAccordionSummary-content': { my: 0 }
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                <Typography sx={{ flexGrow: 1, fontSize: '0.875rem' }}>
+                  {prompt.name} <Typography component="span" color="text.secondary" fontSize="0.75rem">(v{prompt.version})</Typography>
+                </Typography>
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRunPrompt(prompt.id);
+                  }}
+                >
+                  {runningPrompts.has(prompt.id) ? 
+                    <CircularProgress size={16} /> : 
+                    <Refresh fontSize="small" />}
+                </IconButton>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: 0 }}>
+              {renderPromptResults(prompt.id)}
+            </AccordionDetails>
+          </Accordion>
+        ))}
       </Box>
     </Box>
   );
