@@ -607,7 +607,7 @@ async def get_ocr_metadata(
 @app.post("/llm/run/{document_id}", response_model=LLMRunResponse)
 async def run_llm_analysis(
     document_id: str,
-    prompt_id: str = Query(default="document_info", description="The prompt ID to use"),
+    prompt_id: str = Query(default="default", description="The prompt ID to use"),
     force: bool = Query(default=False, description="Force new run even if result exists"),
     current_user: User = Depends(get_current_user)
 ):
@@ -616,7 +616,7 @@ async def run_llm_analysis(
     
     Args:
         document_id: The document ID to process
-        prompt_id: The prompt ID to use (defaults to "document_info")
+        prompt_id: The prompt ID to use (defaults to "default")
         force: If True, forces a new run even if cached result exists
     """
     ad.log.debug(f"run_llm_analysis() start: document_id: {document_id}, prompt_id: {prompt_id}, force: {force}")
@@ -654,7 +654,7 @@ async def run_llm_analysis(
 @app.get("/llm/result/{document_id}", response_model=LLMResult)
 async def get_llm_result(
     document_id: str,
-    prompt_id: str = Query(default="document_info", description="The prompt ID to retrieve"),
+    prompt_id: str = Query(default="default", description="The prompt ID to retrieve"),
     current_user: User = Depends(get_current_user)
 ):
     """

@@ -299,7 +299,7 @@ export interface LLMResult {
 
 export const runLLMAnalysisApi = async (
   documentId: string,
-  promptId: string = 'document_info',
+  promptId: string = 'default',
   force: boolean = false
 ) => {
   const response = await api.post<LLMRunResponse>(
