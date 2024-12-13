@@ -109,6 +109,8 @@ class Schema(SchemaCreate):
 
 class ListSchemasResponse(BaseModel):
     schemas: List[Schema]
+    total_count: int
+    skip: int
 
 # Add these new models
 class PromptCreate(BaseModel):
@@ -131,6 +133,8 @@ class Prompt(BaseModel):
 
 class ListPromptsResponse(BaseModel):
     prompts: List[Prompt]
+    total_count: int
+    skip: int
 
 # Add these new models for tag management
 class TagCreate(BaseModel):
@@ -145,3 +149,5 @@ class Tag(TagCreate):
 
 class ListTagsResponse(BaseModel):
     tags: List[Tag]
+    total_count: int
+    skip: int
