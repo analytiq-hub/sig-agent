@@ -24,7 +24,7 @@ RUN cd frontend && npm run build
 
 EXPOSE 3000
 
-# Use Python 3.12 as the base image
+# Use slim Python 3.12 as the base image
 FROM python:3.12-slim AS backend
 
 # Set the working directory in the container
