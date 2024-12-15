@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Prompt, PromptCreate, createPromptApi, getPromptsApi, deletePromptApi, updatePromptApi, Schema, getSchemasApi, getSchemaApi, Tag, getTagsApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -102,7 +102,7 @@ const Prompts: React.FC = () => {
     }
   };
 
-  const loadPrompts = async () => {
+  const loadPrompts = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await getPromptsApi({
@@ -117,7 +117,7 @@ const Prompts: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page, pageSize]);
 
   const handleDelete = async (promptId: string) => {
     try {
@@ -174,7 +174,7 @@ const Prompts: React.FC = () => {
     loadPrompts();
     loadSchemas();
     loadTags();
-  }, [page, pageSize]);
+  }, [loadPrompts]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

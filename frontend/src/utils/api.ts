@@ -432,6 +432,8 @@ export interface Prompt {
 
 export interface ListPromptsResponse {
   prompts: Prompt[];
+  total_count: number;
+  skip: number;
 }
 
 export const createPromptApi = async (prompt: PromptCreate): Promise<Prompt> => {
