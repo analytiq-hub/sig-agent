@@ -3,8 +3,11 @@
 Here are instructions on how to set up an AWS Lightsail instance and deploy the application.
 
 * Create a new Lightsail instance with Ubuntu 24.04 LTS.
-    * Assign it a static IP
-    * Point `<mydomain>` to it (in my case, I point `doc-router.analytiqhub.com` to it)
+  * Recommended platform: `Linux/Unix`, `Ubuntu 24.04 LTS`, `2 vCPUs`, `4 GB Memory`, `60 GB SSDStorage`
+    * A smaller instance would work, but be certain that the `docker compose` build will not run out of RAM memory.
+    * I was able to use a `2GB RAM, 1GB Swap` instance, and the `docker compose` build step maxed out at about `2.5GB` of RAM max utilization
+* Assign Lightsail instance a static IP
+* Point `<mydomain>` to it (in my case, I point `doc-router.analytiqhub.com` to it)
 * Copy the SSH key to the instance.
 * Connect to the instance using SSH.
 * Clone the repository.
@@ -53,5 +56,5 @@ Here are instructions on how to set up an AWS Lightsail instance and deploy the 
 * Set up an external MongoDB database and update the `MONGODB_URI` environment variable in the `.env` file.
 * Run the application with Docker Compose.
   ```bash
-  docker compose up --build --detach
+  DOCKER_BUILDKIT=1 docker compose up --build --detach
   ```
