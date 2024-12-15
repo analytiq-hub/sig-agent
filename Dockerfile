@@ -8,7 +8,6 @@ RUN cd frontend && npm install
 
 # Build-time arguments
 ARG NEXT_PUBLIC_FASTAPI_FRONTEND_URL
-ARG FASTAPI_BACKEND_URL
 ARG NODE_ENV=production
 
 # Set build-time environment variables
