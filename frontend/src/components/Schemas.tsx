@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { SchemaField, Schema, createSchemaApi, getSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -42,7 +42,7 @@ const Schemas = () => {
     }
   };
 
-  const loadSchemas = async () => {
+  const loadSchemas = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await getSchemasApi({
@@ -57,7 +57,7 @@ const Schemas = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page, pageSize]);
 
   const handleDelete = async (schemaId: string) => {
     try {
@@ -75,7 +75,7 @@ const Schemas = () => {
 
   useEffect(() => {
     loadSchemas();
-  }, [page, pageSize]);
+  }, [loadSchemas]);
 
   const addField = () => {
     setCurrentSchema({
