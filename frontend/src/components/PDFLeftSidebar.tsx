@@ -8,7 +8,6 @@ type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string
 const PDFLeftSidebar = ({ id }: { id: string }) => {
   const [llmResults, setLlmResults] = useState<Record<string, Record<string, JsonValue>>>({});
   const [matchingPrompts, setMatchingPrompts] = useState<Prompt[]>([]);
-  const [selectedPromptId, setSelectedPromptId] = useState<string>('default');
   const [runningPrompts, setRunningPrompts] = useState<Set<string>>(new Set());
   const [expandedPrompt, setExpandedPrompt] = useState<string>('default');
 

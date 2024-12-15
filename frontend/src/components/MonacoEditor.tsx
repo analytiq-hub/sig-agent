@@ -127,7 +127,7 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
         contextmenu: true,
         fontFamily: "'Geist Mono', monospace",
         fontLigatures: true,
-        readOnly: readOnly,
+        readOnly,
         suggestOnTriggerCharacters: true,
         quickSuggestions: {
           other: true,
@@ -178,15 +178,19 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
         }
       });
 
-      editor.current.onDidChangeModelContent(() => {
-        onChange?.(editor.current?.getValue() || '');
+      const currentEditor = editor.current;
+
+      // Set up change handler
+      const disposable = currentEditor.onDidChangeModelContent(() => {
+        onChange?.(currentEditor.getValue() || '');
       });
 
       return () => {
-        editor.current?.dispose();
+        disposable.dispose();
+        currentEditor.dispose();
       };
     }
-  }, []);
+  }, [language, readOnly]);
 
   useEffect(() => {
     if (editor.current) {
@@ -196,6 +200,18 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
       }
     }
   }, [value]);
+
+  useEffect(() => {
+    if (editor.current) {
+      const disposable = editor.current.onDidChangeModelContent(() => {
+        onChange?.(editor.current?.getValue() || '');
+      });
+
+      return () => {
+        disposable.dispose();
+      };
+    }
+  }, [onChange]);
 
   return (
     <div 
