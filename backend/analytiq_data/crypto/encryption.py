@@ -26,14 +26,27 @@ def get_cipher():
 
 def encrypt_token(token: str) -> str:
     """Encrypt a token using AES with fixed IV"""
-    cipher, iv = get_cipher()
-    encryptor = cipher.encryptor()
-    ciphertext = encryptor.update(token.encode()) + encryptor.finalize()
-    return base64.b64encode(ciphertext).decode()
+    try:
+        cipher, iv = get_cipher()
+        encryptor = cipher.encryptor()
+        # Ensure we're working with bytes
+        token_bytes = token.encode('utf-8')
+        ciphertext = encryptor.update(token_bytes) + encryptor.finalize()
+        return base64.urlsafe_b64encode(ciphertext).decode('ascii')
+    except Exception as e:
+        raise ValueError(f"Encryption failed: {str(e)}")
 
 def decrypt_token(encrypted_token: str) -> str:
     """Decrypt a token using AES with fixed IV"""
-    cipher, iv = get_cipher()
-    decryptor = cipher.decryptor()
-    ciphertext = base64.b64decode(encrypted_token.encode())
-    return (decryptor.update(ciphertext) + decryptor.finalize()).decode() 
+    try:
+        cipher, iv = get_cipher()
+        decryptor = cipher.decryptor()
+        # Use urlsafe_b64decode to handle URL-safe base64 encoding
+        ciphertext = base64.urlsafe_b64decode(encrypted_token.encode('ascii'))
+        decrypted_bytes = decryptor.update(ciphertext) + decryptor.finalize()
+        # Use 'utf-8' with error handling
+        return decrypted_bytes.decode('utf-8', errors='strict')
+    except UnicodeDecodeError as e:
+        raise ValueError(f"Decryption resulted in invalid UTF-8 data: {str(e)}")
+    except Exception as e:
+        raise ValueError(f"Decryption failed: {str(e)}") 

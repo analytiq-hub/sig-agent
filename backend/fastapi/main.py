@@ -438,6 +438,7 @@ async def llm_token_create(
         # Insert a new token
         result = await llm_token_collection.insert_one(new_token)
         new_token["id"] = str(result.inserted_id)
+        new_token["token"] = ad.crypto.decrypt_token(new_token["token"])
         ad.log.debug(f"Created new LLM token for {request.llm_vendor}")
 
     return new_token
@@ -451,7 +452,7 @@ async def llm_token_list(current_user: User = Depends(get_current_user)):
             "id": str(token["_id"]),
             "user_id": token["user_id"],
             "llm_vendor": token["llm_vendor"],
-            "token": token["token"],
+            "token": ad.crypto.decrypt_token(token["token"]),
             "created_at": token["created_at"],
         }
         for token in tokens
@@ -523,6 +524,9 @@ async def aws_credentials_get(current_user: User = Depends(get_current_user)):
     if not aws_credentials:
         raise HTTPException(status_code=404, detail="AWS credentials not found")
     
+    # Decrypt the access key id
+    aws_credentials["access_key_id"] = ad.crypto.decrypt_token(aws_credentials["access_key_id"])
+
     # Block the secret access key
     aws_credentials["secret_access_key"] = "********"
 
