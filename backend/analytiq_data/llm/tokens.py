@@ -14,4 +14,5 @@ async def get_llm_key(analytiq_client):
     if tokens is None:
         raise ValueError("No LLM token found in the database")
 
-    return tokens["token"]
+    # Decrypt the token before returning
+    return ad.crypto.decrypt_token(tokens["token"])

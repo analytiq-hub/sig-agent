@@ -19,6 +19,9 @@ import io
 import re
 import uuid
 import logging
+import hmac
+import hashlib
+
 
 import api
 import models
@@ -99,6 +102,7 @@ tags_collection = db.tags
 
 from pydantic import BaseModel
 
+# Modify get_current_user to directly look up encrypted token
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
     try:
@@ -115,12 +119,16 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
                     token_type="jwt")
     except JWTError:
         # If JWT validation fails, check if it's an API token
-        access_token = await access_token_collection.find_one({"token": token})
-        ad.log.debug(f"get_current_user(): access_token: {access_token}")
-        if access_token:
-            return User(user_id=access_token["user_id"],
-                        user_name=access_token["name"],
-                        token_type="api")
+        encrypted_token = ad.crypto.encrypt_token(token)
+        stored_token = await access_token_collection.find_one({"token": encrypted_token})
+        
+        if stored_token:
+            return User(
+                user_id=stored_token["user_id"],
+                user_name=stored_token["name"],
+                token_type="api"
+            )
+                
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
 # PDF management endpoints
@@ -356,11 +364,14 @@ async def access_token_create(
     new_token = {
         "user_id": current_user.user_id,
         "name": request.name,
-        "token": token,
+        "token": ad.crypto.encrypt_token(token),  # Store encrypted token
         "created_at": datetime.now(UTC),
         "lifetime": request.lifetime
     }
     result = await access_token_collection.insert_one(new_token)
+
+    # Return the new token with the id
+    new_token["token"] = token  # Return plaintext token to user
     new_token["id"] = str(result.inserted_id)
     return new_token
 
@@ -411,7 +422,7 @@ async def llm_token_create(
     new_token = {
         "user_id": current_user.user_id,
         "llm_vendor": request.llm_vendor,
-        "token": request.token,
+        "token": ad.crypto.encrypt_token(request.token),
         "created_at": datetime.now(UTC),
     }
 
@@ -483,8 +494,8 @@ async def aws_credentials_create(
         )
 
     aws_credentials = {
-        "access_key_id": request.access_key_id,
-        "secret_access_key": request.secret_access_key,
+        "access_key_id": ad.crypto.encrypt_token(request.access_key_id),
+        "secret_access_key": ad.crypto.encrypt_token(request.secret_access_key),
         "user_id": current_user.user_id,
         "created_at": datetime.now(UTC),
     }
@@ -1293,7 +1304,6 @@ async def update_tag(
     # Get and return the updated tag
     updated_tag = await tags_collection.find_one({"_id": ObjectId(tag_id)})
     return Tag(**{**updated_tag, "id": str(updated_tag["_id"])})
-
 
 if __name__ == "__main__":
     import uvicorn

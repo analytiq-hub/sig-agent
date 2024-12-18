@@ -91,8 +91,8 @@ def get_aws_keys(analytiq_client) -> dict:
     access_key_id = ""
     secret_access_key = ""
     if aws_keys:
-        access_key_id = aws_keys.get("access_key_id", "")
-        secret_access_key = aws_keys.get("secret_access_key", "")
+        access_key_id = ad.crypto.decrypt_token(aws_keys.get("access_key_id", ""))
+        secret_access_key = ad.crypto.decrypt_token(aws_keys.get("secret_access_key", ""))
 
     return {
         "aws_access_key_id": access_key_id,
