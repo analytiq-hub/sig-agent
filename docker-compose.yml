@@ -44,9 +44,9 @@ services:
       # Runtime environment
       - ENV=${ENV:-dev}
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
-      - JWT_SECRET=${JWT_SECRET:-default_jwt_secret_for_development}
       - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
       - FASTAPI_ROOT_PATH=${FASTAPI_ROOT_PATH:-/fastapi}
+      - FASTAPI_SECRET=${FASTAPI_SECRET:-default_fastapi_secret_for_development}
     command: sh -c "cd /app/backend/fastapi && uvicorn main:app --host 0.0.0.0 --port 8000"
     restart: unless-stopped
     ports:
@@ -70,7 +70,7 @@ services:
       # Runtime environment
       - ENV=${ENV:-dev}
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
-      - JWT_SECRET=${JWT_SECRET:-default_jwt_secret_for_development}
+      - FASTAPI_SECRET=${FASTAPI_SECRET:-default_fastapi_secret_for_development}
     command: sh -c "cd /app/backend/worker && python3 worker.py"
     deploy:
       resources:

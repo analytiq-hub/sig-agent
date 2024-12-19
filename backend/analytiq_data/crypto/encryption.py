@@ -4,18 +4,18 @@ import base64
 import hashlib
 import os
 
-def get_jwt_secret() -> str:
-    """Get JWT_SECRET from environment"""
-    jwt_secret = os.getenv("JWT_SECRET")
-    if not jwt_secret:
-        raise ValueError("JWT_SECRET not found in environment")
-    return jwt_secret
+def get_fastapi_secret() -> str:
+    """Get FASTAPI_SECRET from environment"""
+    fastapi_secret = os.getenv("FASTAPI_SECRET")
+    if not fastapi_secret:
+        raise ValueError("FASTAPI_SECRET not found in environment")
+    return fastapi_secret
 
 def get_cipher():
-    """Create AES cipher using JWT_SECRET"""
-    # Use JWT_SECRET as key, pad to 32 bytes for AES-256
-    key = get_jwt_secret().encode().ljust(32, b'0')[:32]
-    # Use a fixed IV derived from JWT_SECRET
+    """Create AES cipher using FASTAPI_SECRET"""
+    # Use FASTAPI_SECRET as key, pad to 32 bytes for AES-256
+    key = get_fastapi_secret().encode().ljust(32, b'0')[:32]
+    # Use a fixed IV derived from FASTAPI_SECRET
     iv = hashlib.sha256(key).digest()[:16]
     cipher = Cipher(
         algorithms.AES(key),

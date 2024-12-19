@@ -58,7 +58,7 @@ ad.log.info(f"NEXTAUTH_URL: {NEXTAUTH_URL}")
 ad.log.info(f"FASTAPI_ROOT_PATH: {FASTAPI_ROOT_PATH}")
 
 # JWT settings
-JWT_SECRET = os.getenv("JWT_SECRET")
+FASTAPI_SECRET = os.getenv("FASTAPI_SECRET")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 UPLOAD_DIR = "data"
@@ -107,7 +107,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
     token = credentials.credentials
     try:
         # First, try to validate as JWT
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, FASTAPI_SECRET, algorithms=[ALGORITHM])
         userId: str = payload.get("userId")
         userName: str = payload.get("userName")
         email: str = payload.get("email")
@@ -549,7 +549,7 @@ async def create_auth_token(user_data: dict = Body(...)):
             "userName": user_data["name"],
             "email": user_data["email"]
         },
-        JWT_SECRET,
+        FASTAPI_SECRET,
         algorithm=ALGORITHM
     )
     return {"token": token}
