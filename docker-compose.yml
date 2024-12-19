@@ -70,6 +70,7 @@ services:
       # Runtime environment
       - ENV=${ENV:-dev}
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
+      - JWT_SECRET=${JWT_SECRET:-default_jwt_secret_for_development}
     command: sh -c "cd /app/backend/worker && python3 worker.py"
     deploy:
       resources:
