@@ -156,6 +156,17 @@ export const authOptions: NextAuthOptions = {
             
             return session as AppSession;
         }
+    },
+    cookies: {
+        pkceCodeVerifier: {
+            name: 'next-auth.pkce.code_verifier',
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: process.env.NODE_ENV === 'production'
+            }
+        }
     }
 };
 
