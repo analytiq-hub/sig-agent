@@ -9,6 +9,11 @@ import { JWT } from "next-auth/jwt";
 import { AppSession } from '@/app/types/AppSession';
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
+import type { DefaultUser } from "next-auth"
+
+interface CustomUser extends DefaultUser {
+    emailVerified?: Date | null;
+}
 
 export const authOptions: NextAuthOptions = {
     session: {
@@ -74,7 +79,7 @@ export const authOptions: NextAuthOptions = {
         })
     ],
     callbacks: {
-        async signIn({ user, account }) {
+        async signIn({ user, account }: { user: CustomUser, account: any }) {
             try {
                 if (account?.provider === 'google' || account?.provider === 'github') {
                     const db = mongoClient.db();
@@ -94,6 +99,19 @@ export const authOptions: NextAuthOptions = {
                                 }
                             }
                         );
+                    } else {
+                        // Create new user with isAdmin set to false
+                        await users.insertOne({
+                            email: user.email,
+                            name: user.name,
+                            isAdmin: false,
+                            emailVerified: user.emailVerified ?? false,
+                            accounts: [{
+                                provider: account.provider,
+                                providerAccountId: account.providerAccountId
+                            }],
+                            createdAt: new Date()
+                        });
                     }
                 }
                 return true;

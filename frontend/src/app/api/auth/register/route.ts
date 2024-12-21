@@ -33,6 +33,7 @@ export async function POST(request: Request) {
       emailVerified: false,
       verificationToken: crypto.randomUUID(),
       createdAt: new Date(),
+      isAdmin: false,
     });
 
     // TODO: Send verification email
