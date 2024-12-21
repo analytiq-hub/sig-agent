@@ -56,7 +56,8 @@ export const authOptions: NextAuthOptions = {
                         id: user._id.toString(),
                         email: user.email,
                         name: user.name,
-                        isAdmin: user.isAdmin || false
+                        isAdmin: user.isAdmin || false,
+                        role: user.isAdmin ? "admin" : "user"
                     };
                 } catch (error) {
                     console.error("Auth error:", error);
@@ -119,6 +120,7 @@ export const authOptions: NextAuthOptions = {
                             email: user.email,
                             name: user.name,
                             isAdmin: false,
+                            role: "user",
                             emailVerified: user.emailVerified ?? false,
                             createdAt: new Date()
                         });
@@ -145,7 +147,14 @@ export const authOptions: NextAuthOptions = {
                 return false;
             }
         },
-        async jwt({ token, account, profile, trigger, session }) {
+        async jwt({ token, account, profile, trigger, session, user }) {
+            // If this is the first sign in, user object will be available
+            if (user) {
+                token.id = user.id;
+                token.isAdmin = user.isAdmin;
+                token.role = user.isAdmin ? "admin" : "user";
+            }
+
             // If name is being updated, update the token
             if (trigger === "update" && session?.user?.name) {
                 token.name = session.user.name;
@@ -187,9 +196,14 @@ export const authOptions: NextAuthOptions = {
                 }
             }
 
-            return token
+            return token;
         },
         async session({ session, token }: { session: AppSession; token: JWT }) {
+            // Send properties to the client, including role and isAdmin
+            session.user.id = token.id;
+            session.user.isAdmin = token.isAdmin;
+            session.user.role = token.role;
+            
             // Send properties to the client
             (session as AppSession).providerAccessToken = token.providerAccessToken as string;
             (session as AppSession).apiAccessToken = token.apiAccessToken as string;
