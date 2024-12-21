@@ -2,6 +2,7 @@ import axios from 'axios';
 import NextAuth, { NextAuthOptions } from "next-auth"
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import mongoClient from "@/utils/mongodb"
+import { Adapter } from "next-auth/adapters"
 
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
@@ -15,11 +16,13 @@ interface CustomUser extends DefaultUser {
     emailVerified?: Date | null;
 }
 
+const customAdapter = MongoDBAdapter(mongoClient) as Adapter
+
 export const authOptions: NextAuthOptions = {
     session: {
         strategy: 'jwt' as const,
     },
-    adapter: MongoDBAdapter(mongoClient),
+    adapter: customAdapter,
     secret: process.env.NEXTAUTH_SECRET ?? "",
     providers: [
         CredentialsProvider({
@@ -79,40 +82,62 @@ export const authOptions: NextAuthOptions = {
         })
     ],
     callbacks: {
-        async signIn({ user, account }: { user: CustomUser, account: any }) {
+        async signIn({ user, account }: { user: CustomUser, account: Account | null }) {
             try {
                 if (account?.provider === 'google' || account?.provider === 'github') {
                     const db = mongoClient.db();
                     const users = db.collection("users");
+                    const accounts = db.collection("accounts");
 
                     const existingUser = await users.findOne({ email: user.email });
 
                     if (existingUser) {
-                        await users.updateOne(
-                            { email: user.email },
-                            {
-                                $addToSet: {
-                                    accounts: {
-                                        provider: account.provider,
-                                        providerAccountId: account.providerAccountId
-                                    }
-                                }
-                            }
-                        );
+                        // Check if this OAuth account already exists
+                        const existingAccount = await accounts.findOne({
+                            provider: account.provider,
+                            providerAccountId: account.providerAccountId
+                        });
+
+                        if (!existingAccount) {
+                            // Create the OAuth account record
+                            await accounts.insertOne({
+                                userId: existingUser._id.toString(),
+                                type: account.type,
+                                provider: account.provider,
+                                providerAccountId: account.providerAccountId,
+                                access_token: account.access_token,
+                                expires_at: account.expires_at,
+                                token_type: account.token_type,
+                                scope: account.scope,
+                                id_token: account.id_token,
+                                refresh_token: account.refresh_token
+                            });
+                        }
                     } else {
-                        // Create new user with isAdmin set to false
-                        await users.insertOne({
+                        // Create new user
+                        const result = await users.insertOne({
                             email: user.email,
                             name: user.name,
                             isAdmin: false,
                             emailVerified: user.emailVerified ?? false,
-                            accounts: [{
-                                provider: account.provider,
-                                providerAccountId: account.providerAccountId
-                            }],
                             createdAt: new Date()
                         });
+
+                        // Create the OAuth account record
+                        await accounts.insertOne({
+                            userId: result.insertedId.toString(),
+                            type: account.type,
+                            provider: account.provider,
+                            providerAccountId: account.providerAccountId,
+                            access_token: account.access_token,
+                            expires_at: account.expires_at,
+                            token_type: account.token_type,
+                            scope: account.scope,
+                            id_token: account.id_token,
+                            refresh_token: account.refresh_token
+                        });
                     }
+                    return true;
                 }
                 return true;
             } catch (error) {
@@ -174,17 +199,6 @@ export const authOptions: NextAuthOptions = {
             }
             
             return session as AppSession;
-        }
-    },
-    cookies: {
-        pkceCodeVerifier: {
-            name: 'next-auth.pkce.code_verifier',
-            options: {
-                httpOnly: true,
-                sameSite: 'lax',
-                path: '/',
-                secure: process.env.NODE_ENV === 'production'
-            }
         }
     }
 };
