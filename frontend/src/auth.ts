@@ -3,6 +3,7 @@ import NextAuth, { NextAuthOptions } from "next-auth"
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import mongoClient from "@/utils/mongodb"
 import { Adapter } from "next-auth/adapters"
+import type { Account, DefaultUser } from "next-auth"
 
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
@@ -10,7 +11,6 @@ import { JWT } from "next-auth/jwt";
 import { AppSession } from '@/app/types/AppSession';
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
-import type { DefaultUser } from "next-auth"
 
 interface CustomUser extends DefaultUser {
     emailVerified?: Date | null;
@@ -194,7 +194,7 @@ export const authOptions: NextAuthOptions = {
             (session as AppSession).providerAccessToken = token.providerAccessToken as string;
             (session as AppSession).apiAccessToken = token.apiAccessToken as string;
             
-            if (session.user) {
+            if (session.user && token.name) {
                 session.user.name = token.name;
             }
             

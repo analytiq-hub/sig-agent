@@ -190,7 +190,7 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
         currentEditor.dispose();
       };
     }
-  }, [language, readOnly]);
+  }, [language, readOnly, onChange, value]);
 
   useEffect(() => {
     if (editor.current) {
@@ -200,18 +200,6 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
       }
     }
   }, [value]);
-
-  useEffect(() => {
-    if (editor.current) {
-      const disposable = editor.current.onDidChangeModelContent(() => {
-        onChange?.(editor.current?.getValue() || '');
-      });
-
-      return () => {
-        disposable.dispose();
-      };
-    }
-  }, [onChange]);
 
   return (
     <div 
