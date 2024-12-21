@@ -6,12 +6,12 @@ export default withAuth(
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
 
-    // Admin-only routes
-    if (path.startsWith("/settings/admin")) {
-      if (token?.role !== "admin") {
-        return NextResponse.redirect(new URL("/settings", req.url));
-      }
-    }
+    // Admin-only routes - comment in.
+    // if (path.startsWith("/settings/admin")) {
+    //   if (token?.role !== "admin") {
+    //     return NextResponse.redirect(new URL("/settings", req.url));
+    //   }
+    // }
 
     return NextResponse.next();
   },
