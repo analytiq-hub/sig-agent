@@ -53,7 +53,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [session]);
+  }, [session, currentWorkspace]);
 
   const switchWorkspace = useCallback(async (workspaceId: string) => {
     const workspace = workspaces.find(w => w.id === workspaceId);
