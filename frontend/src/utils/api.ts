@@ -563,3 +563,55 @@ export const deleteWorkspaceApi = async (workspaceId: string): Promise<void> => 
 };
 
 export { isAxiosError } from 'axios';
+
+export interface UserResponse {
+  id: string;
+  email: string;
+  name: string | null;
+  isAdmin: boolean;
+  emailVerified: boolean | null;
+  createdAt: string;
+}
+
+export interface ListUsersResponse {
+  users: UserResponse[];
+  total_count: number;
+  skip: number;
+}
+
+export interface UserCreate {
+  email: string;
+  name: string;
+  password: string;
+  isAdmin?: boolean;
+}
+
+export interface UserUpdate {
+  name?: string;
+  isAdmin?: boolean;
+  emailVerified?: boolean;
+}
+
+export const getUsersApi = async (params?: { skip?: number; limit?: number }): Promise<ListUsersResponse> => {
+  const response = await api.get('/admin/users', { 
+    params: {
+      skip: params?.skip || 0,
+      limit: params?.limit || 10
+    }
+  });
+  return response.data;
+};
+
+export const createUserApi = async (user: UserCreate): Promise<UserResponse> => {
+  const response = await api.post('/admin/users', user);
+  return response.data;
+};
+
+export const updateUserApi = async (userId: string, update: UserUpdate): Promise<UserResponse> => {
+  const response = await api.put(`/admin/users/${userId}`, update);
+  return response.data;
+};
+
+export const deleteUserApi = async (userId: string): Promise<void> => {
+  await api.delete(`/admin/users/${userId}`);
+};

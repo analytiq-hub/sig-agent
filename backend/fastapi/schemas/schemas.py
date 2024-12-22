@@ -174,3 +174,28 @@ class Workspace(BaseModel):
 
 class ListWorkspacesResponse(BaseModel):
     workspaces: List[Workspace]
+
+# Add these new models after the existing ones
+class UserCreate(BaseModel):
+    email: str
+    name: str
+    password: str
+    isAdmin: bool = False
+
+class UserUpdate(BaseModel):
+    name: str | None = None
+    isAdmin: bool | None = None
+    emailVerified: bool | None = None
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    name: str | None
+    isAdmin: bool
+    emailVerified: bool | None
+    createdAt: datetime
+
+class ListUsersResponse(BaseModel):
+    users: List[UserResponse]
+    total_count: int
+    skip: int

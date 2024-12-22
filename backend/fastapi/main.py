@@ -44,7 +44,8 @@ from schemas import (
     WorkspaceCreate,
     WorkspaceUpdate,
     Workspace,
-    ListWorkspacesResponse
+    ListWorkspacesResponse,
+    UserCreate, UserUpdate, UserResponse, ListUsersResponse
 )
 
 # Add the parent directory to the sys path
@@ -139,39 +140,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
             )
                 
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-
-@app.post("/users/register")
-async def register_user(
-    user_data: dict = Body(...),
-):
-    """
-    Register a new user. Operations:
-    - Create a personal workspace for the user
-    """
-    user_id = user_data.get("userId")
-    if not user_id:
-        raise HTTPException(400, "userId is required")
-        
-    # Create personal workspace
-    workspace = {
-        "_id": ObjectId(user_id),  # Use the actual ObjectId
-        "name": "Personal Workspace",
-        "owner_id": user_id,
-        "members": [{
-            "user_id": user_id,
-            "role": "owner"
-        }],
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
-    }
-    
-    try:
-        await db.workspaces.insert_one(workspace)
-        return {"status": "success"}
-    except Exception as e:
-        if "duplicate key error" in str(e).lower():
-            return {"status": "already_exists"}
-        raise
 
 # PDF management endpoints
 @app.post("/documents")
@@ -1487,6 +1455,178 @@ async def delete_workspace(
     
     await db.workspaces.delete_one({"_id": ObjectId(workspace_id)})
     return {"status": "success"}
+
+# Add this helper function to check admin status
+async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(security)):
+    user = await get_current_user(credentials)
+    
+    # Check if user is admin in database
+    db_user = await db.users.find_one({"_id": ObjectId(user.user_id)})
+    if not db_user or not db_user.get("isAdmin"):
+        raise HTTPException(
+            status_code=403,
+            detail="Admin access required"
+        )
+    return user
+
+# Add these new endpoints after the existing ones
+@app.get("/admin/users", response_model=ListUsersResponse)
+async def list_users(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    current_user: User = Depends(get_admin_user)  # Use get_admin_user instead
+):
+    """List all users (admin only)"""
+    # Get total count
+    total_count = await db.users.count_documents({})
+    
+    # Get paginated users
+    cursor = db.users.find({}).sort("_id", -1).skip(skip).limit(limit)
+    users = await cursor.to_list(length=None)
+    
+    return ListUsersResponse(
+        users=[
+            UserResponse(
+                id=str(user["_id"]),
+                email=user["email"],
+                name=user.get("name"),
+                isAdmin=user.get("isAdmin", False),
+                emailVerified=user.get("emailVerified"),
+                createdAt=user.get("createdAt", datetime.now(UTC))
+            )
+            for user in users
+        ],
+        total_count=total_count,
+        skip=skip
+    )
+
+@app.post("/admin/users", response_model=UserResponse)
+async def create_user(
+    user: UserCreate,
+    current_user: User = Depends(get_admin_user)
+):
+    """Create a new user (admin only)"""
+    # Check if email already exists
+    if await db.users.find_one({"email": user.email}):
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+        )
+    
+    # Hash password
+    hashed_password = hashpw(user.password.encode(), gensalt(12))
+    
+    # Create user document
+    user_doc = {
+        "email": user.email,
+        "name": user.name,
+        "password": hashed_password.decode(),
+        "isAdmin": user.isAdmin,
+        "emailVerified": False,
+        "createdAt": datetime.now(UTC)
+    }
+    
+    result = await db.users.insert_one(user_doc)
+    user_doc["id"] = str(result.inserted_id)
+    
+    # Create default workspace for new user
+    await db.workspaces.insert_one({
+        "_id": result.inserted_id,
+        "name": "Default",
+        "owner_id": str(result.inserted_id),
+        "members": [{
+            "user_id": str(result.inserted_id),
+            "role": "owner"
+        }],
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    })
+    
+    return UserResponse(**user_doc)
+
+@app.put("/admin/users/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: str,
+    user: UserUpdate,
+    current_user: User = Depends(get_admin_user)
+):
+    """Update user details (admin only)"""
+    # Don't allow updating the last admin user to non-admin
+    if user.isAdmin is False:
+        admin_count = await db.users.count_documents({"isAdmin": True})
+        target_user = await db.users.find_one({"_id": ObjectId(user_id)})
+        if admin_count == 1 and target_user and target_user.get("isAdmin"):
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot remove admin status from the last admin user"
+            )
+    
+    update_data = {
+        k: v for k, v in user.model_dump().items() 
+        if v is not None
+    }
+    
+    if not update_data:
+        raise HTTPException(
+            status_code=400,
+            detail="No valid update data provided"
+        )
+    
+    result = await db.users.find_one_and_update(
+        {"_id": ObjectId(user_id)},
+        {"$set": update_data},
+        return_document=True
+    )
+    
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    return UserResponse(
+        id=str(result["_id"]),
+        email=result["email"],
+        name=result.get("name"),
+        isAdmin=result.get("isAdmin", False),
+        emailVerified=result.get("emailVerified"),
+        createdAt=result.get("createdAt", datetime.now(UTC))
+    )
+
+@app.delete("/admin/users/{user_id}")
+async def delete_user(
+    user_id: str,
+    current_user: User = Depends(get_admin_user)
+):
+    """Delete a user (admin only)"""
+    # Don't allow deleting the last admin user
+    target_user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not target_user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    if target_user.get("isAdmin"):
+        admin_count = await db.users.count_documents({"isAdmin": True})
+        if admin_count == 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot delete the last admin user"
+            )
+    
+    # Delete user's workspace
+    await db.workspaces.delete_one({"_id": ObjectId(user_id)})
+    
+    # Delete user
+    result = await db.users.delete_one({"_id": ObjectId(user_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    return {"message": "User deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn
