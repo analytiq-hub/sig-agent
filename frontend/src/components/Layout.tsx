@@ -159,7 +159,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </Link>
           </div>
 
-          <div className="flex-1 flex justify-center">
+          <div className="flex-1 flex justify-end">
             {session && <WorkspaceSwitcher />}
           </div>
 
