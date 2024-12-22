@@ -112,20 +112,14 @@ const UserManager: React.FC = () => {
           getRowId={(row) => row.id}
           sx={{
             '& .MuiDataGrid-cell': {
-              padding: '8px',
-            },
-            '& .MuiDataGrid-columnHeaders': {
-              backgroundColor: colors.gray[100],
-              borderBottom: '2px solid #e5e7eb',
+              padding: 'px',
             },
             '& .MuiDataGrid-row:nth-of-type(odd)': {
               backgroundColor: colors.gray[100],
             },
             '& .MuiDataGrid-row:hover': {
               backgroundColor: `${colors.gray[200]} !important`,
-            },
-            borderRadius: 1,
-            border: '1px solid #e5e7eb',
+            }
           }}
         />
       </div>
