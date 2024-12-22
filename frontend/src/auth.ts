@@ -11,6 +11,7 @@ import { JWT } from "next-auth/jwt";
 import { AppSession } from '@/app/types/AppSession';
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
+import { registerUserApi } from '@/utils/api';
 
 interface CustomUser extends DefaultUser {
     emailVerified?: Date | null;
@@ -125,6 +126,9 @@ export const authOptions: NextAuthOptions = {
                             createdAt: new Date()
                         });
 
+                        // Create personal workspace for new user
+                        await registerUserApi(result.insertedId.toString());
+
                         // Create the OAuth account record
                         await accounts.insertOne({
                             userId: result.insertedId.toString(),
@@ -139,7 +143,6 @@ export const authOptions: NextAuthOptions = {
                             refresh_token: account.refresh_token
                         });
                     }
-                    return true;
                 }
                 return true;
             } catch (error) {
@@ -148,11 +151,23 @@ export const authOptions: NextAuthOptions = {
             }
         },
         async jwt({ token, account, profile, trigger, session, user }) {
-            // If this is the first sign in, user object will be available
             if (user) {
                 token.id = user.id;
                 token.isAdmin = user.isAdmin;
                 token.role = user.isAdmin ? "admin" : "user";
+                
+                // Only get new FastAPI token on initial sign-in
+                try {
+                    const apiUrl = process.env.FASTAPI_BACKEND_URL || 'http://127.0.0.1:8000';
+                    const response = await axios.post(`${apiUrl}/auth/token`, {
+                        id: user.id,
+                        name: user.name,
+                        email: user.email
+                    });
+                    token.apiAccessToken = response.data.token;
+                } catch (error) {
+                    console.error('Error getting initial API token:', error);
+                }
             }
 
             // If name is being updated, update the token
@@ -167,32 +182,6 @@ export const authOptions: NextAuthOptions = {
                 // For Google, use email as a stable identifier
                 if (account.provider === 'google' && profile?.email) {
                     token.sub = profile.email;
-                }
-            }
-
-            try {
-                // This API executes from the nextjs backend, and needs to reach the fastapi backend
-                const apiUrl = process.env.FASTAPI_BACKEND_URL || 'http://127.0.0.1:8000';
-                const tokenUrl = `${apiUrl}/auth/token`;
-                console.log('Fetching API token from:', tokenUrl);
-                
-                const response = await axios.post(`${apiUrl}/auth/token`, {
-                    sub: token.sub,
-                    name: token.name,
-                    email: token.email
-                });
-
-                token.apiAccessToken = response.data.token;
-                console.log('Received API token successfully');
-            } catch (error: unknown) {
-                if (error instanceof Error) {
-                    console.error('Error getting JWT token:', error.message);
-                }
-                if (axios.isAxiosError(error)) {
-                    console.error('Axios error details:', {
-                        response: error.response?.data,
-                        status: error.response?.status,
-                    });
                 }
             }
 
@@ -213,7 +202,7 @@ export const authOptions: NextAuthOptions = {
             }
             
             return session as AppSession;
-        }
+        },
     }
 };
 

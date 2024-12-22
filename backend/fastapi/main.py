@@ -121,9 +121,11 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
         ad.log.debug(f"get_current_user(): userId: {userId}, userName: {userName}, email: {email}")
         if userName is None:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+            
         return User(user_id=userId,
-                    user_name=userName,
-                    token_type="jwt")
+                   user_name=userName,
+                   token_type="jwt")
+                   
     except JWTError:
         # If JWT validation fails, check if it's an API token
         encrypted_token = ad.crypto.encrypt_token(token)
@@ -552,7 +554,7 @@ async def create_auth_token(user_data: dict = Body(...)):
     ad.log.debug(f"create_auth_token(): user_data: {user_data}")
     token = jwt.encode(
         {
-            "userId": user_data["sub"],
+            "userId": user_data["id"],
             "userName": user_data["name"],
             "email": user_data["email"]
         },
@@ -1334,7 +1336,7 @@ async def create_admin():
             
         # Create admin user with bcrypt hash
         hashed_password = hashpw(admin_password.encode(), gensalt(12))
-        await users.insert_one({
+        result = await users.insert_one({
             "email": admin_email,
             "password": hashed_password.decode(),  # Store as string in MongoDB
             "name": "System Administrator",
@@ -1342,6 +1344,22 @@ async def create_admin():
             "emailVerified": True,
             "createdAt": datetime.now(UTC)
         })
+        
+        admin_id = str(result.inserted_id)
+        
+        # Create workspace for admin
+        await db.workspaces.insert_one({
+            "_id": ObjectId(admin_id),  # Use the actual ObjectId
+            "name": "Admin Workspace",
+            "owner_id": admin_id,
+            "members": [{
+                "user_id": admin_id,
+                "role": "owner"
+            }],
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        })
+        
         ad.log.info(f"Created default admin user: {admin_email}")
     except Exception as e:
         ad.log.error(f"Failed to create default admin: {e}")
@@ -1355,13 +1373,18 @@ async def startup_event():
 @app.get("/workspaces", response_model=ListWorkspacesResponse)
 async def list_workspaces(current_user: User = Depends(get_current_user)):
     """List workspaces where the current user is a member"""
+
+    ad.log.info(f"Listing workspaces for user: {current_user.user_id}")
     workspaces = await db.workspaces.find({
         "members.user_id": current_user.user_id
     }).to_list(None)
     
-    return ListWorkspacesResponse(workspaces=[
+    ret = ListWorkspacesResponse(workspaces=[
         Workspace(**{**w, "id": str(w["_id"])}) for w in workspaces
     ])
+
+    ad.log.info(f"Workspaces: {ret}")
+    return ret
 
 @app.post("/workspaces", response_model=Workspace)
 async def create_workspace(
@@ -1431,6 +1454,36 @@ async def delete_workspace(
     
     await db.workspaces.delete_one({"_id": ObjectId(workspace_id)})
     return {"status": "success"}
+
+@app.post("/users/register")
+async def register_user(
+    user_data: dict = Body(...),
+):
+    """Create personal workspace for newly registered user"""
+    user_id = user_data.get("userId")
+    if not user_id:
+        raise HTTPException(400, "userId is required")
+        
+    # Create personal workspace
+    workspace = {
+        "_id": ObjectId(user_id),  # Use the actual ObjectId
+        "name": "Personal Workspace",
+        "owner_id": user_id,
+        "members": [{
+            "user_id": user_id,
+            "role": "owner"
+        }],
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    
+    try:
+        await db.workspaces.insert_one(workspace)
+        return {"status": "success"}
+    except Exception as e:
+        if "duplicate key error" in str(e).lower():
+            return {"status": "already_exists"}
+        raise
 
 if __name__ == "__main__":
     import uvicorn

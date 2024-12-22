@@ -1,8 +1,11 @@
 'use client'
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { Workspace, WorkspaceRole } from '@/types/workspace';
+import { Workspace } from '@/app/types/Api';
+import { getWorkspacesApi } from '@/utils/api';
+
+type WorkspaceRole = 'owner' | 'admin' | 'member';
 
 interface WorkspaceContextType {
   currentWorkspace: Workspace | null;
@@ -22,38 +25,37 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [userRole, setUserRole] = useState<WorkspaceRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const initialLoadDone = useRef(false);
 
   const refreshWorkspaces = useCallback(async () => {
-    if (!session?.user) {
+    const userId = session?.user?.id;
+    if (!userId || isRefreshing) {
       setIsLoading(false);
       return;
     }
     
     try {
+      setIsRefreshing(true);
       console.log('Fetching workspaces...');
-      const response = await fetch('/api/workspaces');
-      if (!response.ok) {
-        throw new Error(`Failed to fetch workspaces: ${response.statusText}`);
-      }
-      const data = await response.json();
+      const data = await getWorkspacesApi();
       console.log('Fetched workspaces:', data);
       
       setWorkspaces(data.workspaces);
       
-      // If no current workspace is selected but we have workspaces, select the first one
       if (!currentWorkspace && data.workspaces.length > 0) {
         const firstWorkspace = data.workspaces[0];
         setCurrentWorkspace(firstWorkspace);
-        // Set initial user role
-        const member = firstWorkspace.members.find(m => m.userId === session.user.id);
+        const member = firstWorkspace.members.find(m => m.user_id === userId);
         setUserRole(member?.role || null);
       }
     } catch (error) {
       console.error('Failed to fetch workspaces:', error);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
-  }, [session, currentWorkspace]);
+  }, [currentWorkspace, isRefreshing, session?.user?.id]);
 
   const switchWorkspace = useCallback(async (workspaceId: string) => {
     const workspace = workspaces.find(w => w.id === workspaceId);
@@ -63,20 +65,23 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
     
     setCurrentWorkspace(workspace);
-    const member = workspace.members.find(m => m.userId === session?.user?.id);
+    const member = workspace.members.find(m => m.user_id === session?.user?.id);
     setUserRole(member?.role || null);
     localStorage.setItem('lastWorkspaceId', workspaceId);
   }, [workspaces, session]);
 
-  // Initial fetch of workspaces when session is available
-  useEffect(() => {
-    if (session?.user) {
-      console.log('Session available, refreshing workspaces');
+  const initialLoad = useCallback(() => {
+    if (session?.user?.id && !initialLoadDone.current) {
+      console.log('Initial workspace load');
+      initialLoadDone.current = true;
       refreshWorkspaces();
     }
-  }, [session, refreshWorkspaces]);
+  }, [session?.user?.id, refreshWorkspaces]);
 
-  // Restore last selected workspace from localStorage
+  useEffect(() => {
+    initialLoad();
+  }, [initialLoad]);
+
   useEffect(() => {
     if (workspaces.length > 0) {
       const lastWorkspaceId = localStorage.getItem('lastWorkspaceId');

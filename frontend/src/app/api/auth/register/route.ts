@@ -1,52 +1,43 @@
 import { NextResponse } from 'next/server';
-import { hash } from 'bcryptjs';
 import mongoClient from '@/utils/mongodb';
+import { hash } from 'bcryptjs';
+import { registerUserApi } from '@/utils/api';
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { email, password, name } = body;
+export async function POST(req: Request) {
+    try {
+        const { email, password, name } = await req.json();
+        const db = mongoClient.db();
 
-    const db = mongoClient.db();
-    const users = db.collection('users');
+        // Check if user exists
+        const existingUser = await db.collection('users').findOne({ email });
+        if (existingUser) {
+            return NextResponse.json(
+                { error: 'User already exists' },
+                { status: 400 }
+            );
+        }
 
-    // Check if user exists
-    const existingUser = await users.findOne({ email });
+        // Create new user
+        const hashedPassword = await hash(password, 12);
+        const result = await db.collection('users').insertOne({
+            email,
+            password: hashedPassword,
+            name,
+            isAdmin: false,
+            role: 'user',
+            emailVerified: false,
+            createdAt: new Date(),
+        });
 
-    if (existingUser) {
-      // Never merge accounts automatically
-      return NextResponse.json(
-        { 
-          error: 'An account with this email already exists. If this is your account, please sign in with your existing provider.',
-          provider: existingUser.accounts?.[0]?.provider || 'password' 
-        },
-        { status: 400 }
-      );
+        // Create personal workspace
+        await registerUserApi(result.insertedId.toString());
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error('Registration error:', error);
+        return NextResponse.json(
+            { error: 'Registration failed' },
+            { status: 500 }
+        );
     }
-
-    // Create new user
-    const hashedPassword = await hash(password, 12);
-    await users.insertOne({
-      email,
-      password: hashedPassword,
-      name,
-      emailVerified: false,
-      verificationToken: crypto.randomUUID(),
-      createdAt: new Date(),
-      isAdmin: false,
-    });
-
-    // TODO: Send verification email
-    
-    return NextResponse.json({ 
-      success: true,
-      message: 'Please check your email to verify your account'
-    });
-  } catch (error) {
-    console.error('Registration error:', error);
-    return NextResponse.json(
-      { error: 'Registration failed' },
-      { status: 500 }
-    );
-  }
 }

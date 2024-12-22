@@ -6,13 +6,7 @@ import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 export default function WorkspaceSwitcher() {
-  const { currentWorkspace, workspaces, switchWorkspace, isLoading } = useWorkspace();
-
-  console.log('WorkspaceSwitcher:', {
-    currentWorkspace,
-    workspaces,
-    isLoading
-  });
+  const { currentWorkspace, switchWorkspace, workspaces, isLoading } = useWorkspace();
 
   if (isLoading) {
     return <div className="text-white">Loading workspaces...</div>;

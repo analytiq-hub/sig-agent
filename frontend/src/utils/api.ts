@@ -2,6 +2,7 @@ import axios from 'axios';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 import { AxiosError } from 'axios';
+import { CreateWorkspaceRequest, ListWorkspacesResponse, Workspace, UpdateWorkspaceRequest } from '@/app/types/Api';
 
 // These APIs execute from the frontend
 const NEXT_PUBLIC_FASTAPI_FRONTEND_URL = process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL || "http://localhost:8000";
@@ -92,7 +93,7 @@ function isAxiosError(error: unknown): error is AxiosError {
   return typeof error === 'object' && error !== null && 'isAxiosError' in error;
 }
 
-function getApiErrorMsg(error: unknown) {
+export function getApiErrorMsg(error: unknown) {
   let errorMessage = '';
   if (isAxiosError(error)) {
     const responseData = error.response?.data as { detail?: string };
@@ -511,4 +512,57 @@ export const updateTagApi = async (tagId: string, tag: TagCreate): Promise<Tag> 
     return response.data;
 };
 
-export { api, getApiErrorMsg, isAxiosError };
+export const getWorkspacesApi = async (): Promise<ListWorkspacesResponse> => {
+  const response = await api.get('/workspaces');
+  // Transform the response to match frontend expectations
+  const workspaces = response.data.workspaces.map((workspace: { 
+    _id?: string;
+    id?: string;
+    name: string;
+    owner_id: string;
+    members: Array<{ user_id: string; role: string }>;
+    created_at: string;
+    updated_at: string;
+  }) => ({
+    id: workspace.id || workspace._id,
+    name: workspace.name,
+    owner_id: workspace.owner_id,
+    members: workspace.members.map(member => ({
+      user_id: member.user_id,
+      role: member.role
+    })),
+    created_at: workspace.created_at,
+    updated_at: workspace.updated_at
+  }));
+  return { workspaces };
+};
+
+export const createWorkspaceApi = async (workspace: CreateWorkspaceRequest): Promise<Workspace> => {
+  const response = await api.post('/workspaces', workspace);
+  const data = response.data;
+  return {
+    id: data._id || data.id,
+    name: data.name,
+    owner_id: data.owner_id,
+    members: data.members,
+    created_at: data.created_at,
+    updated_at: data.updated_at
+  };
+};
+
+export const updateWorkspaceApi = async (
+  workspaceId: string, 
+  update: UpdateWorkspaceRequest
+): Promise<Workspace> => {
+  const response = await api.put(`/workspaces/${workspaceId}`, update);
+  return response.data;
+};
+
+export const deleteWorkspaceApi = async (workspaceId: string): Promise<void> => {
+  await api.delete(`/workspaces/${workspaceId}`);
+};
+
+export const registerUserApi = async (userId: string) => {
+  const response = await api.post('/users/register', { userId });
+  return response.data;
+};
