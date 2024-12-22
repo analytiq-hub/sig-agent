@@ -94,6 +94,10 @@ const UserManager: React.FC = () => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Users</h2>
+      </div>
+
       <div style={{ height: 400, width: '100%' }}>
         <DataGrid
           rows={users}
@@ -110,12 +114,18 @@ const UserManager: React.FC = () => {
             '& .MuiDataGrid-cell': {
               padding: '8px',
             },
+            '& .MuiDataGrid-columnHeaders': {
+              backgroundColor: colors.gray[100],
+              borderBottom: '2px solid #e5e7eb',
+            },
             '& .MuiDataGrid-row:nth-of-type(odd)': {
               backgroundColor: colors.gray[100],
             },
             '& .MuiDataGrid-row:hover': {
               backgroundColor: `${colors.gray[200]} !important`,
             },
+            borderRadius: 1,
+            border: '1px solid #e5e7eb',
           }}
         />
       </div>
