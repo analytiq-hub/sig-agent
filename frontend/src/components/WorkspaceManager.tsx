@@ -5,7 +5,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { api, isAxiosError } from '@/utils/api';
+import { getAllWorkspacesApi, isAxiosError } from '@/utils/api';
 import { Workspace } from '@/app/types/Api';
 
 const WorkspaceManager: React.FC = () => {
@@ -14,8 +14,8 @@ const WorkspaceManager: React.FC = () => {
 
   const fetchWorkspaces = async () => {
     try {
-      const response = await api.get('/admin/workspaces');
-      setWorkspaces(response.data.workspaces);
+      const response = await getAllWorkspacesApi();
+      setWorkspaces(response.workspaces);
     } catch (error) {
       if (isAxiosError(error)) {
         console.error('Error fetching workspaces:', error.response?.data);

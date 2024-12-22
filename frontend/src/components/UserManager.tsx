@@ -5,26 +5,25 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { api, isAxiosError } from '@/utils/api';
-
-interface User {
-  id: string;
-  email: string;
-  name: string | null;
-  role: string;
-  isAdmin: boolean;
-  emailVerified: boolean;
-  createdAt: string;
-}
+import { getUsersApi, isAxiosError, UserResponse } from '@/utils/api';
 
 const UserManager: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [paginationModel, setPaginationModel] = useState({
+    pageSize: 10,
+    page: 0,
+  });
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get('/admin/users');
-      setUsers(response.data.users);
+      const response = await getUsersApi({
+        skip: paginationModel.page * paginationModel.pageSize,
+        limit: paginationModel.pageSize
+      });
+      setUsers(response.users);
+      setTotalCount(response.total_count);
     } catch (error) {
       if (isAxiosError(error)) {
         console.error('Error fetching users:', error.response?.data);
@@ -36,12 +35,19 @@ const UserManager: React.FC = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [paginationModel]); // Refetch when pagination changes
 
   const columns: GridColDef[] = [
     { field: 'email', headerName: 'Email', flex: 1 },
     { field: 'name', headerName: 'Name', flex: 1 },
-    { field: 'role', headerName: 'Role', width: 120 },
+    { 
+      field: 'isAdmin', 
+      headerName: 'Admin', 
+      width: 100,
+      renderCell: (params) => (
+        <span>{params.value ? 'Yes' : 'No'}</span>
+      )
+    },
     { 
       field: 'emailVerified', 
       headerName: 'Verified', 
@@ -87,7 +93,11 @@ const UserManager: React.FC = () => {
         rows={users}
         columns={columns}
         loading={loading}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
         pageSizeOptions={[10, 25, 50]}
+        paginationMode="server"
+        rowCount={totalCount}
         disableRowSelectionOnClick
         getRowId={(row) => row.id}
       />
