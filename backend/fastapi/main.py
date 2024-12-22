@@ -144,7 +144,10 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
 async def register_user(
     user_data: dict = Body(...),
 ):
-    """Create personal workspace for newly registered user"""
+    """
+    Register a new user. Operations:
+    - Create a personal workspace for the user
+    """
     user_id = user_data.get("userId")
     if not user_id:
         raise HTTPException(400, "userId is required")
