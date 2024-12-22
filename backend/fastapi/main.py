@@ -1383,7 +1383,7 @@ async def create_admin():
         # Create workspace for admin
         await db.workspaces.insert_one({
             "_id": ObjectId(admin_id),  # Use the actual ObjectId
-            "name": "Admin Workspace",
+            "name": "Admin",
             "owner_id": admin_id,
             "members": [{
                 "user_id": admin_id,

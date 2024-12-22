@@ -562,9 +562,4 @@ export const deleteWorkspaceApi = async (workspaceId: string): Promise<void> => 
   await api.delete(`/workspaces/${workspaceId}`);
 };
 
-export const registerUserApi = async (userId: string) => {
-  const response = await api.post('/users/register', { userId });
-  return response.data;
-};
-
 export { isAxiosError } from 'axios';

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import mongoClient from '@/utils/mongodb';
 import { hash } from 'bcryptjs';
-import { registerUserApi } from '@/utils/api';
+import { createDefaultWorkspace } from '@/utils/workspace';
 
 export async function POST(req: Request) {
     try {
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
         });
 
         // Create personal workspace
-        await registerUserApi(result.insertedId.toString());
+        await createDefaultWorkspace(result.insertedId.toString());
 
         return NextResponse.json({ success: true });
     } catch (error) {

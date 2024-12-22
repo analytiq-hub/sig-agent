@@ -11,7 +11,7 @@ import { JWT } from "next-auth/jwt";
 import { AppSession } from '@/app/types/AppSession';
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
-import { registerUserApi } from '@/utils/api';
+import { createDefaultWorkspace } from '@/utils/workspace';
 
 interface CustomUser extends DefaultUser {
     emailVerified?: Date | null;
@@ -126,9 +126,6 @@ export const authOptions: NextAuthOptions = {
                             createdAt: new Date()
                         });
 
-                        // Create personal workspace for new user
-                        await registerUserApi(result.insertedId.toString());
-
                         // Create the OAuth account record
                         await accounts.insertOne({
                             userId: result.insertedId.toString(),
@@ -142,6 +139,9 @@ export const authOptions: NextAuthOptions = {
                             id_token: account.id_token,
                             refresh_token: account.refresh_token
                         });
+
+                        // Create personal workspace for new user
+                        await createDefaultWorkspace(result.insertedId.toString());
                     }
                 }
                 return true;
