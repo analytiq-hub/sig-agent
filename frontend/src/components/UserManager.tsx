@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
@@ -17,7 +17,7 @@ const UserManager: React.FC = () => {
     page: 0,
   });
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const response = await getUsersApi({
         skip: paginationModel.page * paginationModel.pageSize,
@@ -32,11 +32,11 @@ const UserManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [paginationModel]);
 
   useEffect(() => {
     fetchUsers();
-  }, [paginationModel]);
+  }, [paginationModel, fetchUsers]);
 
   const columns: GridColDef[] = [
     { field: 'email', headerName: 'Email', flex: 1 },
@@ -45,31 +45,31 @@ const UserManager: React.FC = () => {
       field: 'isAdmin', 
       headerName: 'Admin', 
       width: 100,
-      renderCell: (params) => (
-        <span>{params.value ? 'Yes' : 'No'}</span>
+      renderCell: ({ value }) => (
+        <span>{value ? 'Yes' : 'No'}</span>
       )
     },
     { 
       field: 'emailVerified', 
       headerName: 'Verified', 
       width: 100,
-      renderCell: (params) => (
-        <span>{params.value ? 'Yes' : 'No'}</span>
+      renderCell: ({ value }) => (
+        <span>{value ? 'Yes' : 'No'}</span>
       )
     },
     { 
       field: 'createdAt', 
       headerName: 'Created', 
       flex: 1,
-      renderCell: (params) => (
-        <span>{new Date(params.value).toLocaleDateString()}</span>
+      renderCell: ({ value }) => (
+        <span>{new Date(value).toLocaleDateString()}</span>
       )
     },
     {
       field: 'actions',
       headerName: 'Actions',
       width: 120,
-      renderCell: (params) => (
+      renderCell: ({ }) => (
         <div className="flex gap-2">
           <IconButton
             onClick={() => {/* TODO: Implement edit */}}
