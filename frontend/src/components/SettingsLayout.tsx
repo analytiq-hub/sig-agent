@@ -7,6 +7,7 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PersonIcon from '@mui/icons-material/Person';
 import { Button, Divider } from '@mui/material';
 import { useSession } from 'next-auth/react';
+import RoleBasedRender from './RoleBasedRender';
 
 interface SettingsLayoutProps {
   selectedMenu?: string;
@@ -103,25 +104,27 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow">
           <nav className="flex flex-col">
-            <div className="p-4">
-              <div className="flex items-center gap-2 text-gray-400 font-medium mb-2">
-                <AdminPanelSettingsIcon className="w-5 h-5" />
-                <span>Admin Settings</span>
+            <RoleBasedRender allowedRoles={["admin"]}>
+              <div className="p-4">
+                <div className="flex items-center gap-2 text-gray-400 font-medium mb-2">
+                  <AdminPanelSettingsIcon className="w-5 h-5" />
+                  <span>Admin Settings</span>
+                </div>
+                
+                <div className="ml-4 space-y-1">
+                  <button
+                    onClick={handleSystemDevelopment}
+                    className={`w-full text-left px-4 py-2 rounded-md transition-colors
+                      ${selectedMenu === 'system_development' 
+                        ? 'bg-blue-50 text-blue-600' 
+                        : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                  >
+                    Development
+                  </button>
+                </div>
               </div>
-              
-              <div className="ml-4 space-y-1">
-                <button
-                  onClick={handleSystemDevelopment}
-                  className={`w-full text-left px-4 py-2 rounded-md transition-colors
-                    ${selectedMenu === 'system_development' 
-                      ? 'bg-blue-50 text-blue-600' 
-                      : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                >
-                  Development
-                </button>
-              </div>
-            </div>
+            </RoleBasedRender>
 
             <div className="border-t border-gray-200 my-2"></div>
 
