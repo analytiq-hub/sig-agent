@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PersonIcon from '@mui/icons-material/Person';
+import GroupIcon from '@mui/icons-material/Group';
+import WorkspacesIcon from '@mui/icons-material/Workspaces';
 import { Button, Divider } from '@mui/material';
 import { useSession } from 'next-auth/react';
 import RoleBasedRender from './RoleBasedRender';
@@ -113,7 +115,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
                 
                 <div className="ml-4 space-y-1">
                   <button
-                    onClick={handleSystemDevelopment}
+                    onClick={() => router.push('/settings/admin/development')}
                     className={`w-full text-left px-4 py-2 rounded-md transition-colors
                       ${selectedMenu === 'system_development' 
                         ? 'bg-blue-50 text-blue-600' 
@@ -121,6 +123,28 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
                       }`}
                   >
                     Development
+                  </button>
+                  
+                  <button
+                    onClick={() => router.push('/settings/admin/users')}
+                    className={`w-full text-left px-4 py-2 rounded-md transition-colors
+                      ${selectedMenu === 'system_users' 
+                        ? 'bg-blue-50 text-blue-600' 
+                        : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                  >
+                    Users
+                  </button>
+
+                  <button
+                    onClick={() => router.push('/settings/admin/workspaces')}
+                    className={`w-full text-left px-4 py-2 rounded-md transition-colors
+                      ${selectedMenu === 'system_workspaces' 
+                        ? 'bg-blue-50 text-blue-600' 
+                        : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                  >
+                    Workspaces
                   </button>
                 </div>
               </div>
