@@ -140,6 +140,35 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
                 
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
+@app.post("/users/register")
+async def register_user(
+    user_data: dict = Body(...),
+):
+    """Create personal workspace for newly registered user"""
+    user_id = user_data.get("userId")
+    if not user_id:
+        raise HTTPException(400, "userId is required")
+        
+    # Create personal workspace
+    workspace = {
+        "_id": ObjectId(user_id),  # Use the actual ObjectId
+        "name": "Personal Workspace",
+        "owner_id": user_id,
+        "members": [{
+            "user_id": user_id,
+            "role": "owner"
+        }],
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    
+    try:
+        await db.workspaces.insert_one(workspace)
+        return {"status": "success"}
+    except Exception as e:
+        if "duplicate key error" in str(e).lower():
+            return {"status": "already_exists"}
+        raise
 # PDF management endpoints
 @app.post("/documents")
 async def upload_document(
@@ -1454,36 +1483,6 @@ async def delete_workspace(
     
     await db.workspaces.delete_one({"_id": ObjectId(workspace_id)})
     return {"status": "success"}
-
-@app.post("/users/register")
-async def register_user(
-    user_data: dict = Body(...),
-):
-    """Create personal workspace for newly registered user"""
-    user_id = user_data.get("userId")
-    if not user_id:
-        raise HTTPException(400, "userId is required")
-        
-    # Create personal workspace
-    workspace = {
-        "_id": ObjectId(user_id),  # Use the actual ObjectId
-        "name": "Personal Workspace",
-        "owner_id": user_id,
-        "members": [{
-            "user_id": user_id,
-            "role": "owner"
-        }],
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
-    }
-    
-    try:
-        await db.workspaces.insert_one(workspace)
-        return {"status": "success"}
-    except Exception as e:
-        if "duplicate key error" in str(e).lower():
-            return {"status": "already_exists"}
-        raise
 
 if __name__ == "__main__":
     import uvicorn
