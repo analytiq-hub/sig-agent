@@ -151,3 +151,26 @@ class ListTagsResponse(BaseModel):
     tags: List[Tag]
     total_count: int
     skip: int
+
+# Add to schemas.py
+class WorkspaceMember(BaseModel):
+    user_id: str
+    role: Literal["owner", "admin", "member"]
+
+class WorkspaceCreate(BaseModel):
+    name: str
+
+class WorkspaceUpdate(BaseModel):
+    name: str | None = None
+    members: List[WorkspaceMember] | None = None
+
+class Workspace(BaseModel):
+    id: str
+    name: str
+    owner_id: str
+    members: List[WorkspaceMember]
+    created_at: datetime
+    updated_at: datetime
+
+class ListWorkspacesResponse(BaseModel):
+    workspaces: List[Workspace]

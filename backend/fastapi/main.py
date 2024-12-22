@@ -39,7 +39,12 @@ from schemas import (
     Schema, SchemaCreate, ListSchemasResponse,
     Prompt, PromptCreate, ListPromptsResponse,
     TagCreate, Tag, ListTagsResponse,
-    DocumentResponse
+    DocumentResponse,
+    WorkspaceMember,
+    WorkspaceCreate,
+    WorkspaceUpdate,
+    Workspace,
+    ListWorkspacesResponse
 )
 
 # Add the parent directory to the sys path
@@ -100,6 +105,7 @@ schema_versions_collection = db.schema_versions
 prompts_collection = db.prompts
 prompt_versions_collection = db.prompt_versions
 tags_collection = db.tags
+workspaces_collection = db.workspaces
 
 from pydantic import BaseModel
 
@@ -1344,6 +1350,87 @@ async def create_admin():
 @app.on_event("startup")
 async def startup_event():
     await create_admin()
+
+# Workspace management endpoints
+@app.get("/workspaces", response_model=ListWorkspacesResponse)
+async def list_workspaces(current_user: User = Depends(get_current_user)):
+    """List workspaces where the current user is a member"""
+    workspaces = await db.workspaces.find({
+        "members.user_id": current_user.user_id
+    }).to_list(None)
+    
+    return ListWorkspacesResponse(workspaces=[
+        Workspace(**{**w, "id": str(w["_id"])}) for w in workspaces
+    ])
+
+@app.post("/workspaces", response_model=Workspace)
+async def create_workspace(
+    workspace: WorkspaceCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new workspace"""
+    workspace_doc = {
+        "name": workspace.name,
+        "owner_id": current_user.user_id,
+        "members": [{
+            "user_id": current_user.user_id,
+            "role": "owner"
+        }],
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    
+    result = await db.workspaces.insert_one(workspace_doc)
+    return Workspace(**{
+        **workspace_doc,
+        "id": str(result.inserted_id)
+    })
+
+@app.put("/workspaces/{workspace_id}", response_model=Workspace)
+async def update_workspace(
+    workspace_id: str,
+    update: WorkspaceUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update workspace details (name) or members"""
+    workspace = await db.workspaces.find_one({"_id": ObjectId(workspace_id)})
+    if not workspace:
+        raise HTTPException(404, "Workspace not found")
+        
+    # Check if user has admin/owner rights
+    member = next((m for m in workspace["members"] if m["user_id"] == current_user.user_id), None)
+    if not member or member["role"] not in ["owner", "admin"]:
+        raise HTTPException(403, "Not authorized to update workspace")
+    
+    update_doc = {
+        "updated_at": datetime.utcnow(),
+        **{k: v for k, v in update.model_dump().items() if v is not None}
+    }
+    
+    workspace = await db.workspaces.find_one_and_update(
+        {"_id": ObjectId(workspace_id)},
+        {"$set": update_doc},
+        return_document=True
+    )
+    
+    return Workspace(**{**workspace, "id": str(workspace["_id"])})
+
+@app.delete("/workspaces/{workspace_id}")
+async def delete_workspace(
+    workspace_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a workspace (owner only)"""
+    workspace = await db.workspaces.find_one({"_id": ObjectId(workspace_id)})
+    if not workspace:
+        raise HTTPException(404, "Workspace not found")
+        
+    # Only owner can delete workspace
+    if workspace["owner_id"] != current_user.user_id:
+        raise HTTPException(403, "Only workspace owner can delete workspace")
+    
+    await db.workspaces.delete_one({"_id": ObjectId(workspace_id)})
+    return {"status": "success"}
 
 if __name__ == "__main__":
     import uvicorn
