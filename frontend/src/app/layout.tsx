@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next"
 import SessionProvider from "@/components/SessionProvider"
 import Layout from '@/components/Layout';
 import ThemeRegistry from '@/components/ThemeRegistry';
+import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
 
 export const metadata = {
   title: 'Smart Document Router',
@@ -24,7 +25,9 @@ export default async function RootLayout({
       <body>
         <ThemeRegistry>
           <SessionProvider session={session}>
-            <Layout>{children}</Layout>
+            <WorkspaceProvider>
+              <Layout>{children}</Layout>
+            </WorkspaceProvider>
           </SessionProvider>
         </ThemeRegistry>
       </body>

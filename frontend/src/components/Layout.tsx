@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import AuthButton from '@/components/AuthButton';
 import UserMenu from '@/components/UserMenu';
 import PDFViewerControls from '@/components/PDFViewerControls';
+import WorkspaceSwitcher from './WorkspaceSwitcher';
 import {
   Bars3Icon,
   ChartPieIcon,
@@ -156,6 +157,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Link href="/" className={`${open ? 'ml-3' : 'ml-6'} text-xl font-semibold text-white`}>
               Smart Document Router
             </Link>
+          </div>
+
+          <div className="flex-1 flex justify-center">
+            {session && <WorkspaceSwitcher />}
           </div>
 
           <div className="flex items-center space-x-4">
