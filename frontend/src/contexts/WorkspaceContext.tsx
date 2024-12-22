@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Workspace, WorkspaceRole } from '@/types/workspace';
 
@@ -23,7 +23,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [userRole, setUserRole] = useState<WorkspaceRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshWorkspaces = async () => {
+  const refreshWorkspaces = useCallback(async () => {
     if (!session?.user) {
       setIsLoading(false);
       return;
@@ -53,9 +53,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [session]);
 
-  const switchWorkspace = async (workspaceId: string) => {
+  const switchWorkspace = useCallback(async (workspaceId: string) => {
     const workspace = workspaces.find(w => w.id === workspaceId);
     if (!workspace) {
       console.error('Workspace not found:', workspaceId);
@@ -63,13 +63,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
     
     setCurrentWorkspace(workspace);
-    // Update user role for the new workspace
     const member = workspace.members.find(m => m.userId === session?.user?.id);
     setUserRole(member?.role || null);
-    
-    // Store the last selected workspace in localStorage
     localStorage.setItem('lastWorkspaceId', workspaceId);
-  };
+  }, [workspaces, session]);
 
   // Initial fetch of workspaces when session is available
   useEffect(() => {
@@ -77,7 +74,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       console.log('Session available, refreshing workspaces');
       refreshWorkspaces();
     }
-  }, [session]);
+  }, [session, refreshWorkspaces]);
 
   // Restore last selected workspace from localStorage
   useEffect(() => {
@@ -90,7 +87,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         }
       }
     }
-  }, [workspaces]);
+  }, [workspaces, switchWorkspace]);
 
   const value = {
     currentWorkspace,
