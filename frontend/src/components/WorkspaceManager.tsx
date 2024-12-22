@@ -7,6 +7,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { getAllWorkspacesApi, isAxiosError } from '@/utils/api';
 import { Workspace } from '@/app/types/Api';
+import colors from 'tailwindcss/colors';
 
 const WorkspaceManager: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -71,15 +72,37 @@ const WorkspaceManager: React.FC = () => {
   ];
 
   return (
-    <div className="h-[600px] w-full">
-      <DataGrid
-        rows={workspaces}
-        columns={columns}
-        loading={loading}
-        pageSizeOptions={[10, 25, 50]}
-        disableRowSelectionOnClick
-        getRowId={(row) => row.id}
-      />
+    <div className="bg-white p-6 rounded-lg shadow">
+      <div style={{ height: 400, width: '100%' }}>
+        <DataGrid
+          rows={workspaces}
+          columns={columns}
+          loading={loading}
+          pageSizeOptions={[10, 25, 50]}
+          disableRowSelectionOnClick
+          getRowId={(row) => row.id}
+          sx={{
+            '& .MuiDataGrid-cell': {
+              padding: '8px',
+            },
+            '& .MuiDataGrid-row:nth-of-type(odd)': {
+              backgroundColor: colors.gray[100],
+            },
+            '& .MuiDataGrid-row:hover': {
+              backgroundColor: `${colors.gray[200]} !important`,
+            },
+          }}
+        />
+      </div>
+
+      {/* Status Text */}
+      <div className="mt-4 text-sm text-gray-600">
+        {loading ? 'Loading...' : 
+          workspaces.length > 0 ? 
+            `Showing ${workspaces.length} workspaces` : 
+            'No workspaces found'
+        }
+      </div>
     </div>
   );
 };

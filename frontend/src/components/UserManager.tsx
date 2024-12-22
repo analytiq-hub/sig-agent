@@ -6,6 +6,7 @@ import { IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { getUsersApi, isAxiosError, UserResponse } from '@/utils/api';
+import colors from 'tailwindcss/colors';
 
 const UserManager: React.FC = () => {
   const [users, setUsers] = useState<UserResponse[]>([]);
@@ -35,7 +36,7 @@ const UserManager: React.FC = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [paginationModel]); // Refetch when pagination changes
+  }, [paginationModel]);
 
   const columns: GridColDef[] = [
     { field: 'email', headerName: 'Email', flex: 1 },
@@ -87,20 +88,46 @@ const UserManager: React.FC = () => {
     },
   ];
 
+  // Calculate the current range for status text
+  const startRange = (paginationModel.page * paginationModel.pageSize) + 1;
+  const endRange = Math.min(startRange + users.length - 1, totalCount);
+
   return (
-    <div className="h-[600px] w-full">
-      <DataGrid
-        rows={users}
-        columns={columns}
-        loading={loading}
-        paginationModel={paginationModel}
-        onPaginationModelChange={setPaginationModel}
-        pageSizeOptions={[10, 25, 50]}
-        paginationMode="server"
-        rowCount={totalCount}
-        disableRowSelectionOnClick
-        getRowId={(row) => row.id}
-      />
+    <div className="bg-white p-6 rounded-lg shadow">
+      <div style={{ height: 400, width: '100%' }}>
+        <DataGrid
+          rows={users}
+          columns={columns}
+          loading={loading}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 25, 50]}
+          paginationMode="server"
+          rowCount={totalCount}
+          disableRowSelectionOnClick
+          getRowId={(row) => row.id}
+          sx={{
+            '& .MuiDataGrid-cell': {
+              padding: '8px',
+            },
+            '& .MuiDataGrid-row:nth-of-type(odd)': {
+              backgroundColor: colors.gray[100],
+            },
+            '& .MuiDataGrid-row:hover': {
+              backgroundColor: `${colors.gray[200]} !important`,
+            },
+          }}
+        />
+      </div>
+
+      {/* Status Text */}
+      <div className="mt-4 text-sm text-gray-600">
+        {loading ? 'Loading...' : 
+          totalCount > 0 ? 
+            `Showing ${startRange}-${endRange} of ${totalCount} users` : 
+            'No users found'
+        }
+      </div>
     </div>
   );
 };
