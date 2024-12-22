@@ -169,6 +169,7 @@ async def register_user(
         if "duplicate key error" in str(e).lower():
             return {"status": "already_exists"}
         raise
+
 # PDF management endpoints
 @app.post("/documents")
 async def upload_document(
