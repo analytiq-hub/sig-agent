@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import mongoClient from '@/utils/mongodb';
-import { ObjectId } from 'mongodb';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
