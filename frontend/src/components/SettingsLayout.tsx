@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PersonIcon from '@mui/icons-material/Person';
 import { Button, Divider } from '@mui/material';
+import { useSession } from 'next-auth/react';
 
 interface SettingsLayoutProps {
   selectedMenu?: string;
@@ -17,6 +18,8 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
   children
 }) => {
   const router = useRouter();
+  const { data: session } = useSession();
+  console.log('Session in SettingsLayout:', session);
 
   const handleSystemDevelopment = () => {
     router.push('/settings/admin/development');
@@ -71,7 +74,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
           <div className="space-y-6">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-xl font-semibold">Access tokens</h2>
+                <h2 className="text-xl font-semibold">Access Tokens</h2>
                 <p className="text-gray-600 mb-2">
                   Use Access Tokens to authenticate with our API.
                 </p>
