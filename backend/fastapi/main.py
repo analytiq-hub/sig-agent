@@ -141,6 +141,19 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
                 
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
+# Add this helper function to check admin status
+async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(security)):
+    user = await get_current_user(credentials)
+    
+    # Check if user is admin in database
+    db_user = await db.users.find_one({"_id": ObjectId(user.user_id)})
+    if not db_user or not db_user.get("isAdmin"):
+        raise HTTPException(
+            status_code=403,
+            detail="Admin access required"
+        )
+    return user
+
 # PDF management endpoints
 @app.post("/documents")
 async def upload_document(
@@ -1372,7 +1385,7 @@ async def startup_event():
 
 # Workspace management endpoints
 @app.get("/workspaces", response_model=ListWorkspacesResponse)
-async def list_workspaces(current_user: User = Depends(get_current_user)):
+async def list_user_workspaces(current_user: User = Depends(get_current_user)):
     """List workspaces where the current user is a member"""
 
     ad.log.info(f"Listing workspaces for user: {current_user.user_id}")
@@ -1384,15 +1397,26 @@ async def list_workspaces(current_user: User = Depends(get_current_user)):
         Workspace(**{**w, "id": str(w["_id"])}) for w in workspaces
     ])
 
-    ad.log.info(f"Workspaces: {ret}")
     return ret
 
-@app.post("/workspaces", response_model=Workspace)
+@app.get("/admin/workspaces", response_model=ListWorkspacesResponse)
+async def list_all_workspaces(current_user: User = Depends(get_admin_user)):
+    """List all workspaces (admin only)"""
+    ad.log.info("Listing all workspaces (admin)")
+    workspaces = await db.workspaces.find({}).to_list(None)
+    
+    ret = ListWorkspacesResponse(workspaces=[
+        Workspace(**{**w, "id": str(w["_id"])}) for w in workspaces
+    ])
+
+    return ret
+
+@app.post("/admin/workspaces", response_model=Workspace)
 async def create_workspace(
     workspace: WorkspaceCreate,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_admin_user)
 ):
-    """Create a new workspace"""
+    """Create a new workspace (admin only)"""
     workspace_doc = {
         "name": workspace.name,
         "owner_id": current_user.user_id,
@@ -1410,22 +1434,17 @@ async def create_workspace(
         "id": str(result.inserted_id)
     })
 
-@app.put("/workspaces/{workspace_id}", response_model=Workspace)
+@app.put("/admin/workspaces/{workspace_id}", response_model=Workspace)
 async def update_workspace(
     workspace_id: str,
     update: WorkspaceUpdate,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_admin_user)
 ):
-    """Update workspace details (name) or members"""
+    """Update workspace details (admin only)"""
     workspace = await db.workspaces.find_one({"_id": ObjectId(workspace_id)})
     if not workspace:
         raise HTTPException(404, "Workspace not found")
         
-    # Check if user has admin/owner rights
-    member = next((m for m in workspace["members"] if m["user_id"] == current_user.user_id), None)
-    if not member or member["role"] not in ["owner", "admin"]:
-        raise HTTPException(403, "Not authorized to update workspace")
-    
     update_doc = {
         "updated_at": datetime.utcnow(),
         **{k: v for k, v in update.model_dump().items() if v is not None}
@@ -1439,35 +1458,18 @@ async def update_workspace(
     
     return Workspace(**{**workspace, "id": str(workspace["_id"])})
 
-@app.delete("/workspaces/{workspace_id}")
+@app.delete("/admin/workspaces/{workspace_id}", response_model=Workspace)
 async def delete_workspace(
     workspace_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_admin_user)
 ):
-    """Delete a workspace (owner only)"""
+    """Delete a workspace (admin only)"""
     workspace = await db.workspaces.find_one({"_id": ObjectId(workspace_id)})
     if not workspace:
         raise HTTPException(404, "Workspace not found")
         
-    # Only owner can delete workspace
-    if workspace["owner_id"] != current_user.user_id:
-        raise HTTPException(403, "Only workspace owner can delete workspace")
-    
     await db.workspaces.delete_one({"_id": ObjectId(workspace_id)})
     return {"status": "success"}
-
-# Add this helper function to check admin status
-async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(security)):
-    user = await get_current_user(credentials)
-    
-    # Check if user is admin in database
-    db_user = await db.users.find_one({"_id": ObjectId(user.user_id)})
-    if not db_user or not db_user.get("isAdmin"):
-        raise HTTPException(
-            status_code=403,
-            detail="Admin access required"
-        )
-    return user
 
 # Add these new endpoints after the existing ones
 @app.get("/admin/users", response_model=ListUsersResponse)

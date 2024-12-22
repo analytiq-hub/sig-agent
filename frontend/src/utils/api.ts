@@ -538,7 +538,7 @@ export const getWorkspacesApi = async (): Promise<ListWorkspacesResponse> => {
 };
 
 export const createWorkspaceApi = async (workspace: CreateWorkspaceRequest): Promise<Workspace> => {
-  const response = await api.post('/workspaces', workspace);
+  const response = await api.post('/admin/workspaces', workspace);
   const data = response.data;
   return {
     id: data._id || data.id,
@@ -554,12 +554,12 @@ export const updateWorkspaceApi = async (
   workspaceId: string, 
   update: UpdateWorkspaceRequest
 ): Promise<Workspace> => {
-  const response = await api.put(`/workspaces/${workspaceId}`, update);
+  const response = await api.put(`/admin/workspaces/${workspaceId}`, update);
   return response.data;
 };
 
 export const deleteWorkspaceApi = async (workspaceId: string): Promise<void> => {
-  await api.delete(`/workspaces/${workspaceId}`);
+  await api.delete(`/admin/workspaces/${workspaceId}`);
 };
 
 export { isAxiosError } from 'axios';
@@ -614,4 +614,9 @@ export const updateUserApi = async (userId: string, update: UserUpdate): Promise
 
 export const deleteUserApi = async (userId: string): Promise<void> => {
   await api.delete(`/admin/users/${userId}`);
+};
+
+export const getAllWorkspacesApi = async (): Promise<ListWorkspacesResponse> => {
+  const response = await api.get('/admin/workspaces');
+  return response.data;
 };
