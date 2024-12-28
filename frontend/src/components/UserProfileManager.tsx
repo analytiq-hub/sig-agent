@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import PasswordUpdateModal from './PasswordUpdateModal';
 import DeleteAccountModal from './DeleteAccountModal';
 
-const ProfileManager: React.FC = () => {
+const UserProfileManager: React.FC = () => {
   const { data: session, update } = useSession();
   const [openNameModal, setOpenNameModal] = useState(false);
   const [newName, setNewName] = useState('');
@@ -147,5 +147,5 @@ const ProfileManager: React.FC = () => {
   );
 };
 
-export default ProfileManager;
+export default UserProfileManager;
 
