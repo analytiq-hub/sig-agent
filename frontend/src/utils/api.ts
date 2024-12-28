@@ -547,12 +547,12 @@ export const getWorkspacesApi = async (): Promise<ListWorkspacesResponse> => {
 };
 
 export const getAllWorkspacesApi = async (): Promise<ListWorkspacesResponse> => {
-  const response = await api.get('/admin/workspaces');
+  const response = await api.get('/account/workspaces');
   return response.data;
 };
 
 export const createWorkspaceApi = async (workspace: CreateWorkspaceRequest): Promise<Workspace> => {
-  const response = await api.post('/admin/workspaces', workspace);
+  const response = await api.post('/account/workspaces', workspace);
   const data = response.data;
   return {
     id: data._id || data.id,
@@ -568,12 +568,12 @@ export const updateWorkspaceApi = async (
   workspaceId: string, 
   update: UpdateWorkspaceRequest
 ): Promise<Workspace> => {
-  const response = await api.put(`/admin/workspaces/${workspaceId}`, update);
+  const response = await api.put(`/account/workspaces/${workspaceId}`, update);
   return response.data;
 };
 
 export const deleteWorkspaceApi = async (workspaceId: string): Promise<void> => {
-  await api.delete(`/admin/workspaces/${workspaceId}`);
+  await api.delete(`/account/workspaces/${workspaceId}`);
 };
 
 // User APIs
@@ -608,7 +608,7 @@ export interface UserUpdate {
 }
 
 export const getUsersApi = async (params?: { skip?: number; limit?: number }): Promise<ListUsersResponse> => {
-  const response = await api.get('/admin/users', { 
+  const response = await api.get('/account/users', { 
     params: {
       skip: params?.skip || 0,
       limit: params?.limit || 10
@@ -618,24 +618,24 @@ export const getUsersApi = async (params?: { skip?: number; limit?: number }): P
 };
 
 export const createUserApi = async (user: UserCreate): Promise<UserResponse> => {
-  const response = await api.post('/admin/users', user);
+  const response = await api.post('/account/users', user);
   return response.data;
 };
 
 export const deleteUserApi = async (userId: string): Promise<void> => {
-  await api.delete(`/admin/users/${userId}`);
+  await api.delete(`/account/users/${userId}`);
 };
 
 export const getUserApi = async (userId: string): Promise<UserResponse> => {
-  const response = await api.get<UserResponse>(`/admin/users/${userId}`);
+  const response = await api.get<UserResponse>(`/account/users/${userId}`);
   return response.data;
 };
 
 export const updateUserApi = async (userId: string, update: UserUpdate): Promise<UserResponse> => {
-  const response = await api.put<UserResponse>(`/admin/users/${userId}`, update);
+  const response = await api.put<UserResponse>(`/account/users/${userId}`, update);
   return response.data;
 };
 
 export const updateUserPasswordApi = async (userId: string, newPassword: string): Promise<void> => {
-  await api.put(`/admin/users/${userId}/password`, { password: newPassword });
+  await api.put(`/account/users/${userId}/password`, { password: newPassword });
 };
