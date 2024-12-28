@@ -1398,7 +1398,7 @@ async def list_user_workspaces(current_user: User = Depends(get_current_user)):
 
     return ret
 
-@app.get("/admin/workspaces", response_model=ListWorkspacesResponse)
+@app.get("/account/workspaces", response_model=ListWorkspacesResponse)
 async def list_all_workspaces(current_user: User = Depends(get_admin_user)):
     """List all workspaces (admin only)"""
     ad.log.info("Listing all workspaces (admin)")
@@ -1410,7 +1410,7 @@ async def list_all_workspaces(current_user: User = Depends(get_admin_user)):
 
     return ret
 
-@app.post("/admin/workspaces", response_model=Workspace)
+@app.post("/account/workspaces", response_model=Workspace)
 async def create_workspace(
     workspace: WorkspaceCreate,
     current_user: User = Depends(get_admin_user)
@@ -1433,7 +1433,7 @@ async def create_workspace(
         "id": str(result.inserted_id)
     })
 
-@app.put("/admin/workspaces/{workspace_id}", response_model=Workspace)
+@app.put("/account/workspaces/{workspace_id}", response_model=Workspace)
 async def update_workspace(
     workspace_id: str,
     update: WorkspaceUpdate,
@@ -1457,7 +1457,7 @@ async def update_workspace(
     
     return Workspace(**{**workspace, "id": str(workspace["_id"])})
 
-@app.delete("/admin/workspaces/{workspace_id}", response_model=Workspace)
+@app.delete("/account/workspaces/{workspace_id}", response_model=Workspace)
 async def delete_workspace(
     workspace_id: str,
     current_user: User = Depends(get_admin_user)
@@ -1471,7 +1471,7 @@ async def delete_workspace(
     return {"status": "success"}
 
 # Add these new endpoints after the existing ones
-@app.get("/admin/users", response_model=ListUsersResponse)
+@app.get("/account/users", response_model=ListUsersResponse)
 async def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
@@ -1502,7 +1502,7 @@ async def list_users(
         skip=skip
     )
 
-@app.post("/admin/users", response_model=UserResponse)
+@app.post("/account/users", response_model=UserResponse)
 async def create_user(
     user: UserCreate,
     current_user: User = Depends(get_admin_user)
@@ -1547,7 +1547,7 @@ async def create_user(
     
     return UserResponse(**user_doc)
 
-@app.put("/admin/users/{user_id}", response_model=UserResponse)
+@app.put("/account/users/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: str,
     user: UserUpdate,
@@ -1569,12 +1569,18 @@ async def update_user(
     if is_self and not is_admin:
         if user.name is not None:
             update_data["name"] = user.name
+        if user.password is not None:
+            update_data["password"] = hashpw(user.password.encode(), gensalt(12)).decode()
     else:
         # Admin can update all fields
         update_data = {
             k: v for k, v in user.model_dump().items() 
             if v is not None
         }
+        
+        # If password is included, hash it
+        if "password" in update_data:
+            update_data["password"] = hashpw(update_data["password"].encode(), gensalt(12)).decode()
         
         # Don't allow updating the last admin user to non-admin
         if user.role == "user":
@@ -1614,7 +1620,7 @@ async def update_user(
         hasPassword=bool(result.get("password"))
     )
 
-@app.delete("/admin/users/{user_id}")
+@app.delete("/account/users/{user_id}")
 async def delete_user(
     user_id: str,
     current_user: User = Depends(get_current_user)
@@ -1685,7 +1691,7 @@ async def delete_user(
             detail="Failed to delete user and related data"
         )
 
-@app.get("/admin/users/{user_id}", response_model=UserResponse)
+@app.get("/account/users/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: str, 
     current_user: User = Depends(get_current_user)
@@ -1716,7 +1722,7 @@ async def get_user(
     )
 
 # Add this new endpoint
-@app.put("/admin/users/{user_id}/password")
+@app.put("/account/users/{user_id}/password")
 async def update_user_password(
     user_id: str,
     password_update: dict = Body(..., example={"password": "newpassword"}),

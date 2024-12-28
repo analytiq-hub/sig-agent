@@ -184,6 +184,7 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     name: str | None = None
+    password: str | None = None
     role: str | None = None  # Replace isAdmin with role
     emailVerified: bool | None = None
 

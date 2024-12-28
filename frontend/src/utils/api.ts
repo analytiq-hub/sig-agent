@@ -605,6 +605,7 @@ export interface UserUpdate {
   name?: string;
   role?: string;
   emailVerified?: boolean;
+  password?: string;
 }
 
 export const getUsersApi = async (params?: { skip?: number; limit?: number }): Promise<ListUsersResponse> => {
