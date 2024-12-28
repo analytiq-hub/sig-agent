@@ -22,14 +22,6 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
   const { data: session } = useSession();
   console.log('Session in SettingsLayout:', session);
 
-  const handleSystemDevelopment = () => {
-    router.push('/settings/admin/development');
-  };
-
-  const handleUserDeveloper = () => {
-    router.push('/settings/user/developer');
-  };
-
   const renderContent = () => {
     if (children) {
       return children;
@@ -158,7 +150,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
               
               <div className="ml-4 space-y-1">
                 <button
-                  onClick={handleUserDeveloper}
+                  onClick={() => router.push('/settings/user/developer')}
                   className={`w-full text-left px-4 py-2 rounded-md transition-colors
                     ${selectedMenu === 'user_developer' 
                       ? 'bg-blue-50 text-blue-600' 
