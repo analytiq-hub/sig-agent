@@ -1600,7 +1600,7 @@ async def delete_user(
     user_id: str,
     current_user: User = Depends(get_admin_user)
 ):
-    """Delete a user (admin only)"""
+    """Delete a user and all related data (admin only)"""
     # Don't allow deleting the last admin user
     target_user = await db.users.find_one({"_id": ObjectId(user_id)})
     if not target_user:
@@ -1617,18 +1617,44 @@ async def delete_user(
                 detail="Cannot delete the last admin user"
             )
     
-    # Delete user's workspace
-    await db.workspaces.delete_one({"_id": ObjectId(user_id)})
-    
-    # Delete user
-    result = await db.users.delete_one({"_id": ObjectId(user_id)})
-    if result.deleted_count == 0:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found"
+    try:
+        ad.log.info(f"Deleting user {user_id} OAuth accounts")
+        # Delete all OAuth accounts for this user
+        await db.accounts.delete_many({"userId": user_id})
+        
+        ad.log.info(f"Deleting user {user_id} sessions")
+        # Delete all sessions for this user
+        await db.sessions.delete_many({"userId": user_id})
+        
+        ad.log.info(f"Deleting user {user_id} workspaces")
+        # Delete all workspaces owned by this user
+        await db.workspaces.delete_many({"owner_id": user_id})
+        
+        ad.log.info(f"Removing user {user_id} from all workspaces they're a member of")
+        # Remove user from all workspaces they're a member of
+        await db.workspaces.update_many(
+            {"members.user_id": user_id},
+            {"$pull": {"members": {"user_id": user_id}}}
         )
-    
-    return {"message": "User deleted successfully"}
+        
+        ad.log.info(f"Deleting user {user_id}")
+        # Finally, delete the user
+        result = await db.users.delete_one({"_id": ObjectId(user_id)})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
+        
+        return {"message": "User and related data deleted successfully"}
+        
+    except Exception as e:
+        ad.log.error(f"Error deleting user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to delete user and related data"
+        )
 
 @app.get("/admin/users/{user_id}", response_model=UserResponse)
 async def get_user(
