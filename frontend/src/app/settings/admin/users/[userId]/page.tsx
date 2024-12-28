@@ -51,7 +51,7 @@ const UserEditPage = ({ params }: { params: { userId: string } }) => {
 
   return (
     <SettingsLayout selectedMenu="system_users">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-lg mx-auto">
         <h2 className="text-xl font-semibold mb-6">Edit User</h2>
         <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow">
           {/* Email Display */}
@@ -70,7 +70,7 @@ const UserEditPage = ({ params }: { params: { userId: string } }) => {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-64 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-56 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
