@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUserApi, updateUserApi, UserResponse, UserUpdate } from '@/utils/api';
-import { Button, TextField, FormControlLabel, Switch, Alert } from '@mui/material';
 
 interface UserEditProps {
   userId: string;
@@ -64,74 +63,82 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
       <h2 className="text-xl font-semibold mb-4">Edit User</h2>
       
       {error && (
-        <Alert severity="error" className="mb-4">
+        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md">
           {error}
-        </Alert>
+        </div>
       )}
       
       {success && (
-        <Alert severity="success" className="mb-4">
+        <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-md">
           User updated successfully
-        </Alert>
+        </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <TextField
-            label="Email"
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Email
+          </label>
+          <input
+            type="email"
             value={user.email}
             disabled
-            fullWidth
+            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
           />
         </div>
 
         <div>
-          <TextField
-            label="Name"
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Name
+          </label>
+          <input
+            type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            fullWidth
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
-        <div>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={role === 'admin'}
-                onChange={(e) => setRole(e.target.checked ? 'admin' : 'user')}
-              />
-            }
-            label="Admin Role"
-          />
+        <div className="flex items-center space-x-2">
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={role === 'admin'}
+              onChange={(e) => setRole(e.target.checked ? 'admin' : 'user')}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+          <span className="text-sm font-medium text-gray-700">Admin Role</span>
         </div>
 
-        <div>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={emailVerified}
-                onChange={(e) => setEmailVerified(e.target.checked)}
-              />
-            }
-            label="Email Verified"
-          />
+        <div className="flex items-center space-x-2">
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={emailVerified}
+              onChange={(e) => setEmailVerified(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+          <span className="text-sm font-medium text-gray-700">Email Verified</span>
         </div>
 
-        <div className="flex gap-4">
-          <Button
+        <div className="flex gap-4 pt-4">
+          <button
             type="submit"
-            variant="contained"
-            color="primary"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Save Changes
-          </Button>
-          <Button
-            variant="outlined"
+          </button>
+          <button
+            type="button"
             onClick={() => router.push('/settings/admin/users')}
+            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Cancel
-          </Button>
+          </button>
         </div>
       </form>
     </div>
