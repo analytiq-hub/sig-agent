@@ -7,8 +7,10 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { getUsersApi, isAxiosError, UserResponse } from '@/utils/api';
 import colors from 'tailwindcss/colors';
+import { useRouter } from 'next/navigation';
 
 const UserManager: React.FC = () => {
+  const router = useRouter();
   const [users, setUsers] = useState<UserResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -69,10 +71,10 @@ const UserManager: React.FC = () => {
       field: 'actions',
       headerName: 'Actions',
       width: 120,
-      renderCell: ({ }) => (
+      renderCell: ({ row }) => (
         <div className="flex gap-2">
           <IconButton
-            onClick={() => {/* TODO: Implement edit */}}
+            onClick={() => router.push(`/settings/admin/users/${row.id}`)}
             className="text-blue-600 hover:bg-blue-50"
           >
             <EditIcon />

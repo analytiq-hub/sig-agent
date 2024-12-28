@@ -1630,6 +1630,34 @@ async def delete_user(
     
     return {"message": "User deleted successfully"}
 
+@app.get("/admin/users/{user_id}", response_model=UserResponse)
+async def get_user(
+    user_id: str,
+    current_user: User = Depends(get_admin_user)
+):
+    """Get a single user by ID (admin only)"""
+    ad.log.info(f"Getting user {user_id}")
+
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    ret = UserResponse(
+        id=str(user["_id"]),
+        email=user["email"],
+        name=user.get("name"),
+        isAdmin=user.get("isAdmin", False),
+        emailVerified=user.get("emailVerified"),
+        createdAt=user.get("createdAt", datetime.now(UTC))
+    )
+
+    ad.log.info(f"User {user_id} found: {ret}")
+
+    return ret
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="::", port=8000)

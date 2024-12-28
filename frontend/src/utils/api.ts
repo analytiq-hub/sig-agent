@@ -607,16 +607,21 @@ export const createUserApi = async (user: UserCreate): Promise<UserResponse> => 
   return response.data;
 };
 
-export const updateUserApi = async (userId: string, update: UserUpdate): Promise<UserResponse> => {
-  const response = await api.put(`/admin/users/${userId}`, update);
-  return response.data;
-};
-
 export const deleteUserApi = async (userId: string): Promise<void> => {
   await api.delete(`/admin/users/${userId}`);
 };
 
 export const getAllWorkspacesApi = async (): Promise<ListWorkspacesResponse> => {
   const response = await api.get('/admin/workspaces');
+  return response.data;
+};
+
+export const getUserApi = async (userId: string): Promise<UserResponse> => {
+  const response = await api.get<UserResponse>(`/admin/users/${userId}`);
+  return response.data;
+};
+
+export const updateUserApi = async (userId: string, update: UserUpdate): Promise<UserResponse> => {
+  const response = await api.put<UserResponse>(`/admin/users/${userId}`, update);
   return response.data;
 };
