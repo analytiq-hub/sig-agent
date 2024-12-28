@@ -145,9 +145,9 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
 async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     user = await get_current_user(credentials)
     
-    # Check if user is admin in database
+    # Check if user has admin role in database
     db_user = await db.users.find_one({"_id": ObjectId(user.user_id)})
-    if not db_user or not db_user.get("isAdmin"):
+    if not db_user or db_user.get("role") != "admin":
         raise HTTPException(
             status_code=403,
             detail="Admin access required"
@@ -1352,9 +1352,9 @@ async def create_admin():
         hashed_password = hashpw(admin_password.encode(), gensalt(12))
         result = await users.insert_one({
             "email": admin_email,
-            "password": hashed_password.decode(),  # Store as string in MongoDB
+            "password": hashed_password.decode(),
             "name": "System Administrator",
-            "isAdmin": True,
+            "role": "admin",
             "emailVerified": True,
             "createdAt": datetime.now(UTC)
         })
@@ -1363,7 +1363,7 @@ async def create_admin():
         
         # Create workspace for admin
         await db.workspaces.insert_one({
-            "_id": ObjectId(admin_id),  # Use the actual ObjectId
+            "_id": ObjectId(admin_id),
             "name": "Admin",
             "owner_id": admin_id,
             "members": [{
@@ -1492,7 +1492,7 @@ async def list_users(
                 id=str(user["_id"]),
                 email=user["email"],
                 name=user.get("name"),
-                isAdmin=user.get("isAdmin", False),
+                role=user.get("role", "user"),
                 emailVerified=user.get("emailVerified"),
                 createdAt=user.get("createdAt", datetime.now(UTC))
             )
@@ -1523,7 +1523,7 @@ async def create_user(
         "email": user.email,
         "name": user.name,
         "password": hashed_password.decode(),
-        "isAdmin": user.isAdmin,
+        "role": "user",
         "emailVerified": False,
         "createdAt": datetime.now(UTC)
     }
@@ -1554,13 +1554,13 @@ async def update_user(
 ):
     """Update user details (admin only)"""
     # Don't allow updating the last admin user to non-admin
-    if user.isAdmin is False:
-        admin_count = await db.users.count_documents({"isAdmin": True})
+    if user.role == "user":
+        admin_count = await db.users.count_documents({"role": "admin"})
         target_user = await db.users.find_one({"_id": ObjectId(user_id)})
-        if admin_count == 1 and target_user and target_user.get("isAdmin"):
+        if admin_count == 1 and target_user and target_user.get("role") == "admin":
             raise HTTPException(
                 status_code=400,
-                detail="Cannot remove admin status from the last admin user"
+                detail="Cannot remove admin role from the last admin user"
             )
     
     update_data = {
@@ -1590,7 +1590,7 @@ async def update_user(
         id=str(result["_id"]),
         email=result["email"],
         name=result.get("name"),
-        isAdmin=result.get("isAdmin", False),
+        role=result.get("role", "user"),
         emailVerified=result.get("emailVerified"),
         createdAt=result.get("createdAt", datetime.now(UTC))
     )
@@ -1609,8 +1609,8 @@ async def delete_user(
             detail="User not found"
         )
     
-    if target_user.get("isAdmin"):
-        admin_count = await db.users.count_documents({"isAdmin": True})
+    if target_user.get("role") == "admin":
+        admin_count = await db.users.count_documents({"role": "admin"})
         if admin_count == 1:
             raise HTTPException(
                 status_code=400,
@@ -1649,7 +1649,7 @@ async def get_user(
         id=str(user["_id"]),
         email=user["email"],
         name=user.get("name"),
-        isAdmin=user.get("isAdmin", False),
+        role=user.get("role", "user"),
         emailVerified=user.get("emailVerified"),
         createdAt=user.get("createdAt", datetime.now(UTC))
     )

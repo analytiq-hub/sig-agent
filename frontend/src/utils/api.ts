@@ -582,7 +582,7 @@ export interface UserResponse {
   id: string;
   email: string;
   name: string | null;
-  isAdmin: boolean;
+  role: string;
   emailVerified: boolean | null;
   createdAt: string;
 }
@@ -597,12 +597,12 @@ export interface UserCreate {
   email: string;
   name: string;
   password: string;
-  isAdmin?: boolean;
+  role?: string;
 }
 
 export interface UserUpdate {
   name?: string;
-  isAdmin?: boolean;
+  role?: string;
   emailVerified?: boolean;
 }
 

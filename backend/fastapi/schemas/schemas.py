@@ -180,18 +180,18 @@ class UserCreate(BaseModel):
     email: str
     name: str
     password: str
-    isAdmin: bool = False
+    role: str = "user"  # Replace isAdmin with role
 
 class UserUpdate(BaseModel):
     name: str | None = None
-    isAdmin: bool | None = None
+    role: str | None = None  # Replace isAdmin with role
     emailVerified: bool | None = None
 
 class UserResponse(BaseModel):
     id: str
     email: str
     name: str | None
-    isAdmin: bool
+    role: str  # Replace isAdmin with role
     emailVerified: bool | None
     createdAt: datetime
 

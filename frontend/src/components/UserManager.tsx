@@ -45,11 +45,17 @@ const UserManager: React.FC = () => {
     { field: 'email', headerName: 'Email', flex: 1 },
     { field: 'name', headerName: 'Name', flex: 1 },
     { 
-      field: 'isAdmin', 
-      headerName: 'Admin', 
+      field: 'role', 
+      headerName: 'Role', 
       width: 100,
       renderCell: ({ value }) => (
-        <span>{value ? 'Yes' : 'No'}</span>
+        <span className={`px-2 py-1 rounded-full text-sm ${
+          value === 'admin' 
+            ? 'bg-blue-100 text-blue-800' 
+            : 'bg-gray-100 text-gray-800'
+        }`}>
+          {value}
+        </span>
       )
     },
     { 

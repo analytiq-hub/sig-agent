@@ -57,8 +57,7 @@ export const authOptions: NextAuthOptions = {
                         id: user._id.toString(),
                         email: user.email,
                         name: user.name,
-                        isAdmin: user.isAdmin || false,
-                        role: user.isAdmin ? "admin" : "user"
+                        role: user.role || "user"
                     };
                 } catch (error) {
                     console.error("Auth error:", error);
@@ -120,7 +119,6 @@ export const authOptions: NextAuthOptions = {
                         const result = await users.insertOne({
                             email: user.email,
                             name: user.name,
-                            isAdmin: false,
                             role: "user",
                             emailVerified: user.emailVerified ?? false,
                             createdAt: new Date()
@@ -153,8 +151,7 @@ export const authOptions: NextAuthOptions = {
         async jwt({ token, account, profile, trigger, session, user }) {
             if (user) {
                 token.id = user.id;
-                token.isAdmin = user.isAdmin;
-                token.role = user.isAdmin ? "admin" : "user";
+                token.role = user.role;
                 
                 // Only get new FastAPI token on initial sign-in
                 try {
@@ -188,9 +185,7 @@ export const authOptions: NextAuthOptions = {
             return token;
         },
         async session({ session, token }: { session: AppSession; token: JWT }) {
-            // Send properties to the client, including role and isAdmin
             session.user.id = token.id;
-            session.user.isAdmin = token.isAdmin;
             session.user.role = token.role;
             
             // Send properties to the client
