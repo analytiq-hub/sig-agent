@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUserApi, updateUserApi, UserResponse, UserUpdate } from '@/utils/api';
+import { useSession } from 'next-auth/react';
 
 interface UserEditProps {
   userId: string;
@@ -10,6 +11,7 @@ interface UserEditProps {
 
 const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
   const router = useRouter();
+  const { data: session } = useSession();
   const [user, setUser] = useState<UserResponse | null>(null);
   const [name, setName] = useState('');
   const [role, setRole] = useState<string>('user');
@@ -58,9 +60,11 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
     return <div>Loading...</div>;
   }
 
+  const isAdmin = session?.user?.role === 'admin';
+
   return (
     <div className="max-w-2xl mx-auto">
-      <h2 className="text-xl font-semibold mb-4">Edit User</h2>
+      <h2 className="text-xl font-semibold mb-4">Edit User Profile</h2>
       
       {error && (
         <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md">
@@ -99,31 +103,35 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
           />
         </div>
 
-        <div className="flex items-center space-x-2">
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={role === 'admin'}
-              onChange={(e) => setRole(e.target.checked ? 'admin' : 'user')}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          </label>
-          <span className="text-sm font-medium text-gray-700">Admin Role</span>
-        </div>
+        {isAdmin && (
+          <>
+            <div className="flex items-center space-x-2">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={role === 'admin'}
+                  onChange={(e) => setRole(e.target.checked ? 'admin' : 'user')}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+              <span className="text-sm font-medium text-gray-700">Admin Role</span>
+            </div>
 
-        <div className="flex items-center space-x-2">
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={emailVerified}
-              onChange={(e) => setEmailVerified(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          </label>
-          <span className="text-sm font-medium text-gray-700">Email Verified</span>
-        </div>
+            <div className="flex items-center space-x-2">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={emailVerified}
+                  onChange={(e) => setEmailVerified(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+              <span className="text-sm font-medium text-gray-700">Email Verified</span>
+            </div>
+          </>
+        )}
 
         <div className="flex gap-4 pt-4">
           <button
