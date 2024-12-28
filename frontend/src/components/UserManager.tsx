@@ -9,6 +9,7 @@ import { getUsersApi, deleteUserApi, UserResponse } from '@/utils/api';
 import { isAxiosError } from 'axios';
 import colors from 'tailwindcss/colors';
 import { useRouter } from 'next/navigation';
+import { signOut, getSession } from 'next-auth/react';
 
 const UserManager: React.FC = () => {
   const router = useRouter();
@@ -48,7 +49,16 @@ const UserManager: React.FC = () => {
 
     try {
       await deleteUserApi(userId);
-      // Refresh the user list
+      
+      // Check if the deleted user is the current user
+      const session = await getSession();
+      if (session?.user?.id === userId) {
+        // Log out if the user deleted their own account
+        signOut({ callbackUrl: '/signin' });
+        return;
+      }
+      
+      // Otherwise just refresh the user list
       fetchUsers();
     } catch (error) {
       if (isAxiosError(error)) {
