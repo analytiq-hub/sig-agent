@@ -1551,23 +1551,40 @@ async def create_user(
 async def update_user(
     user_id: str,
     user: UserUpdate,
-    current_user: User = Depends(get_admin_user)
+    current_user: User = Depends(get_current_user)
 ):
-    """Update user details (admin only)"""
-    # Don't allow updating the last admin user to non-admin
-    if user.role == "user":
-        admin_count = await db.users.count_documents({"role": "admin"})
-        target_user = await db.users.find_one({"_id": ObjectId(user_id)})
-        if admin_count == 1 and target_user and target_user.get("role") == "admin":
-            raise HTTPException(
-                status_code=400,
-                detail="Cannot remove admin role from the last admin user"
-            )
+    # Check if user has permission (admin or self)
+    db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
+    is_admin = db_current_user.get("role") == "admin"
+    is_self = current_user.user_id == user_id
     
-    update_data = {
-        k: v for k, v in user.model_dump().items() 
-        if v is not None
-    }
+    if not (is_admin or is_self):
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to update this user"
+        )
+    
+    # For self-updates, only allow name changes
+    update_data = {}
+    if is_self and not is_admin:
+        if user.name is not None:
+            update_data["name"] = user.name
+    else:
+        # Admin can update all fields
+        update_data = {
+            k: v for k, v in user.model_dump().items() 
+            if v is not None
+        }
+        
+        # Don't allow updating the last admin user to non-admin
+        if user.role == "user":
+            admin_count = await db.users.count_documents({"role": "admin"})
+            target_user = await db.users.find_one({"_id": ObjectId(user_id)})
+            if admin_count == 1 and target_user and target_user.get("role") == "admin":
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cannot remove admin role from the last admin user"
+                )
     
     if not update_data:
         raise HTTPException(
@@ -1600,9 +1617,19 @@ async def update_user(
 @app.delete("/admin/users/{user_id}")
 async def delete_user(
     user_id: str,
-    current_user: User = Depends(get_admin_user)
+    current_user: User = Depends(get_current_user)
 ):
-    """Delete a user and all related data (admin only)"""
+    # Check if user has permission (admin or self)
+    db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
+    is_admin = db_current_user.get("role") == "admin"
+    is_self = current_user.user_id == user_id
+    
+    if not (is_admin or is_self):
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to delete this user"
+        )
+    
     # Don't allow deleting the last admin user
     target_user = await db.users.find_one({"_id": ObjectId(user_id)})
     if not target_user:
@@ -1659,7 +1686,21 @@ async def delete_user(
         )
 
 @app.get("/admin/users/{user_id}", response_model=UserResponse)
-async def get_user(user_id: str, current_user: User = Depends(get_admin_user)):
+async def get_user(
+    user_id: str, 
+    current_user: User = Depends(get_current_user)
+):
+    # Check if user has permission (admin or self)
+    db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
+    is_admin = db_current_user.get("role") == "admin"
+    is_self = current_user.user_id == user_id
+    
+    if not (is_admin or is_self):
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to view this user's details"
+        )
+    
     user = await db.users.find_one({"_id": ObjectId(user_id)})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
