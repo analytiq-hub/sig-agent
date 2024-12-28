@@ -26,7 +26,7 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ isOpen, onClose, user
       <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
         <h3 className="text-lg font-medium mb-4">Delete User</h3>
         <p className="text-gray-600 mb-6">
-          Are you sure you want to delete user "{user.email}"? This action cannot be undone.
+          Are you sure you want to delete user &quot;{user.email}&quot;? This action cannot be undone.
         </p>
         <div className="flex justify-end gap-3">
           <button
