@@ -2,12 +2,99 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getUserApi, updateUserApi, UserResponse, UserUpdate } from '@/utils/api';
+import { getUserApi, updateUserApi, UserResponse, UserUpdate, updateUserPasswordApi } from '@/utils/api';
 import { useSession } from 'next-auth/react';
 
 interface UserEditProps {
   userId: string;
 }
+
+interface PasswordChangeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (newPassword: string) => Promise<void>;
+}
+
+const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ isOpen, onClose, onSubmit }) => {
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    try {
+      await onSubmit(newPassword);
+      setNewPassword('');
+      setConfirmPassword('');
+      onClose();
+    } catch (error) {
+      setError('Failed to update password');
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+      <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+        <h3 className="text-lg font-medium mb-4">Change Password</h3>
+        
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              New Password
+            </label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Update Password
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
   const router = useRouter();
@@ -18,6 +105,9 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
   const [emailVerified, setEmailVerified] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -49,10 +139,32 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
       };
 
       await updateUserApi(userId, update);
+
+      // Handle password update if provided
+      if (newPassword) {
+        if (newPassword !== confirmPassword) {
+          setError('Passwords do not match');
+          return;
+        }
+        await updateUserPasswordApi(userId, newPassword);
+      }
+
       setSuccess(true);
+      setNewPassword('');
+      setConfirmPassword('');
     } catch (error) {
       setError('Failed to update user');
       console.error('Error updating user:', error);
+    }
+  };
+
+  const handlePasswordUpdate = async (newPassword: string) => {
+    try {
+      await updateUserPasswordApi(userId, newPassword);
+      setSuccess(true);
+    } catch (error) {
+      setError('Failed to update password');
+      throw error; // Re-throw to be handled by modal
     }
   };
 
@@ -133,6 +245,18 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
           </>
         )}
 
+        {user.hasPassword && (
+          <div className="border-t pt-4">
+            <button
+              type="button"
+              onClick={() => setIsPasswordModalOpen(true)}
+              className="px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
+            >
+              Change Password
+            </button>
+          </div>
+        )}
+
         <div className="flex gap-4 pt-4">
           <button
             type="submit"
@@ -149,6 +273,12 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
           </button>
         </div>
       </form>
+
+      <PasswordChangeModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        onSubmit={handlePasswordUpdate}
+      />
     </div>
   );
 };

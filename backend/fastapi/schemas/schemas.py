@@ -191,9 +191,10 @@ class UserResponse(BaseModel):
     id: str
     email: str
     name: str | None
-    role: str  # Replace isAdmin with role
+    role: str
     emailVerified: bool | None
     createdAt: datetime
+    hasPassword: bool
 
 class ListUsersResponse(BaseModel):
     users: List[UserResponse]

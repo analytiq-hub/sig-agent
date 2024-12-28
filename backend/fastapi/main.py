@@ -23,7 +23,6 @@ import hmac
 import hashlib
 from bcrypt import hashpw, gensalt
 
-
 import api
 import models
 from schemas import (
@@ -1476,7 +1475,7 @@ async def delete_workspace(
 async def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
-    current_user: User = Depends(get_admin_user)  # Use get_admin_user instead
+    current_user: User = Depends(get_admin_user)
 ):
     """List all users (admin only)"""
     # Get total count
@@ -1494,7 +1493,8 @@ async def list_users(
                 name=user.get("name"),
                 role=user.get("role", "user"),
                 emailVerified=user.get("emailVerified"),
-                createdAt=user.get("createdAt", datetime.now(UTC))
+                createdAt=user.get("createdAt", datetime.now(UTC)),
+                hasPassword=bool(user.get("password"))
             )
             for user in users
         ],
@@ -1530,6 +1530,7 @@ async def create_user(
     
     result = await db.users.insert_one(user_doc)
     user_doc["id"] = str(result.inserted_id)
+    user_doc["hasPassword"] = True
     
     # Create default workspace for new user
     await db.workspaces.insert_one({
@@ -1592,7 +1593,8 @@ async def update_user(
         name=result.get("name"),
         role=result.get("role", "user"),
         emailVerified=result.get("emailVerified"),
-        createdAt=result.get("createdAt", datetime.now(UTC))
+        createdAt=result.get("createdAt", datetime.now(UTC)),
+        hasPassword=bool(result.get("password"))
     )
 
 @app.delete("/admin/users/{user_id}")
@@ -1657,32 +1659,65 @@ async def delete_user(
         )
 
 @app.get("/admin/users/{user_id}", response_model=UserResponse)
-async def get_user(
-    user_id: str,
-    current_user: User = Depends(get_admin_user)
-):
-    """Get a single user by ID (admin only)"""
-    ad.log.info(f"Getting user {user_id}")
-
+async def get_user(user_id: str, current_user: User = Depends(get_admin_user)):
     user = await db.users.find_one({"_id": ObjectId(user_id)})
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=404, detail="User not found")
     
-    ret = UserResponse(
+    return UserResponse(
         id=str(user["_id"]),
         email=user["email"],
         name=user.get("name"),
         role=user.get("role", "user"),
         emailVerified=user.get("emailVerified"),
-        createdAt=user.get("createdAt", datetime.now(UTC))
+        createdAt=user.get("createdAt", datetime.now(UTC)),
+        hasPassword=bool(user.get("password"))
     )
 
-    ad.log.info(f"User {user_id} found: {ret}")
+# Add this new endpoint
+@app.put("/admin/users/{user_id}/password")
+async def update_user_password(
+    user_id: str,
+    password_update: dict = Body(..., example={"password": "newpassword"}),
+    current_user: User = Depends(get_current_user)
+):
+    """Update user password (admin or self only)"""
+    # Verify user exists
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if user has permission (admin or self)
+    db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
+    is_admin = db_current_user.get("role") == "admin"
+    is_self = current_user.user_id == user_id
+    
+    if not (is_admin or is_self):
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to change this user's password"
+        )
+    
+    # Only allow updating password for non-OAuth users
+    if not user.get("password"):
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot update password for OAuth user"
+        )
 
-    return ret
+    # Hash new password
+    hashed_password = hashpw(password_update["password"].encode(), gensalt(12))
+    
+    # Update password
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"password": hashed_password.decode()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": "Password updated successfully"}
 
 if __name__ == "__main__":
     import uvicorn

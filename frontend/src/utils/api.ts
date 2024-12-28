@@ -585,6 +585,7 @@ export interface UserResponse {
   role: string;
   emailVerified: boolean | null;
   createdAt: string;
+  hasPassword: boolean;
 }
 
 export interface ListUsersResponse {
@@ -633,4 +634,8 @@ export const getUserApi = async (userId: string): Promise<UserResponse> => {
 export const updateUserApi = async (userId: string, update: UserUpdate): Promise<UserResponse> => {
   const response = await api.put<UserResponse>(`/admin/users/${userId}`, update);
   return response.data;
+};
+
+export const updateUserPasswordApi = async (userId: string, newPassword: string): Promise<void> => {
+  await api.put(`/admin/users/${userId}/password`, { password: newPassword });
 };
