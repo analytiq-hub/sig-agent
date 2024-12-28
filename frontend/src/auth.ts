@@ -1,5 +1,5 @@
 import axios from 'axios';
-import NextAuth, { NextAuthOptions } from "next-auth"
+import NextAuth, { NextAuthOptions, Session } from "next-auth"
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import mongoClient from "@/utils/mongodb"
 import { Adapter } from "next-auth/adapters"
@@ -184,19 +184,23 @@ export const authOptions: NextAuthOptions = {
 
             return token;
         },
-        async session({ session, token }: { session: AppSession; token: JWT }) {
-            session.user.id = token.id;
-            session.user.role = token.role;
-            
-            // Send properties to the client
-            (session as AppSession).providerAccessToken = token.providerAccessToken as string;
-            (session as AppSession).apiAccessToken = token.apiAccessToken as string;
+        async session({ session, token }: { 
+            session: Session; 
+            token: JWT; 
+            trigger?: "update" | undefined;
+        }) {
+            // Cast the session to AppSession to add our custom properties
+            const appSession = session as AppSession;
+            appSession.user.id = token.id;
+            appSession.user.role = token.role;
+            appSession.providerAccessToken = token.providerAccessToken as string;
+            appSession.apiAccessToken = token.apiAccessToken as string;
             
             if (session.user && token.name) {
                 session.user.name = token.name;
             }
             
-            return session as AppSession;
+            return appSession;
         },
     }
 };
