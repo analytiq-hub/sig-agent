@@ -5,10 +5,10 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getAllWorkspacesApi, isAxiosError } from '@/utils/api';
+import { getAllWorkspacesApi} from '@/utils/api';
 import { Workspace } from '@/app/types/Api';
 import colors from 'tailwindcss/colors';
-
+import { isAxiosError } from 'axios';
 const WorkspaceManager: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);

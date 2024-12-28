@@ -1,7 +1,6 @@
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
-import { AxiosError } from 'axios';
 import { CreateWorkspaceRequest, ListWorkspacesResponse, Workspace, UpdateWorkspaceRequest } from '@/app/types/Api';
 
 // These APIs execute from the frontend
@@ -88,22 +87,18 @@ api.interceptors.response.use(
   }
 );
 
-// Helper function to check if error is an AxiosError
-function isAxiosError(error: unknown): error is AxiosError {
-  return typeof error === 'object' && error !== null && 'isAxiosError' in error;
-}
-
 export function getApiErrorMsg(error: unknown) {
   let errorMessage = '';
   if (isAxiosError(error)) {
     const responseData = error.response?.data as { detail?: string };
-        if (responseData?.detail) {
-          errorMessage = responseData.detail;
-        }
+    if (responseData?.detail) {
+      errorMessage = responseData.detail;
+    }
   }
-
   return errorMessage;
 }
+
+// Document APIs
 
 export interface DocumentWithContent {
     name: string;
@@ -197,6 +192,8 @@ export const deleteDocumentApi = async (id: string) => {
   return response.data;
 };
 
+// Token APIs
+
 export interface CreateTokenRequest {
   name: string;
   lifetime: number;
@@ -246,6 +243,7 @@ export const deleteLLMTokenApi = async (tokenId: string) => {
   return response.data;
 };
 
+// AWS APIs
 export interface AWSCredentials {
   access_key_id: string;
   secret_access_key: string;
@@ -266,6 +264,7 @@ export const deleteAWSCredentialsApi = async () => {
   return response.data;
 };
 
+// OCR APIs
 export interface OCRMetadataResponse {
   n_pages: number;
   ocr_date: string;
@@ -286,6 +285,8 @@ export const getOCRMetadataApi = async (documentId: string) => {
   const response = await api.get<OCRMetadataResponse>(`/ocr/download/metadata/${documentId}`);
   return response.data;
 };
+
+// LLM APIs
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
@@ -348,6 +349,8 @@ export const deleteLLMResultApi = async (
   return response.data;
 };
 
+// Schema APIs
+
 export interface SchemaField {
   name: string;
   type: 'str' | 'int' | 'float' | 'bool' | 'datetime';
@@ -405,6 +408,8 @@ export const updateSchemaApi = async (id: string, schema: {name: string; fields:
   const response = await api.put<Schema>(`/schemas/${id}`, schema);
   return response.data;
 };
+
+// Prompt APIs
 
 export interface PromptField {
   name: string;
@@ -476,6 +481,8 @@ export const deletePromptApi = async (promptId: string): Promise<void> => {
   return response.data;
 };
 
+// Tag APIs
+
 export interface TagCreate {
     name: string;
     color?: string;
@@ -512,6 +519,8 @@ export const updateTagApi = async (tagId: string, tag: TagCreate): Promise<Tag> 
     return response.data;
 };
 
+// Workspace APIs
+
 export const getWorkspacesApi = async (): Promise<ListWorkspacesResponse> => {
   const response = await api.get('/workspaces');
   // Transform the response to match frontend expectations
@@ -535,6 +544,11 @@ export const getWorkspacesApi = async (): Promise<ListWorkspacesResponse> => {
     updated_at: workspace.updated_at
   }));
   return { workspaces };
+};
+
+export const getAllWorkspacesApi = async (): Promise<ListWorkspacesResponse> => {
+  const response = await api.get('/admin/workspaces');
+  return response.data;
 };
 
 export const createWorkspaceApi = async (workspace: CreateWorkspaceRequest): Promise<Workspace> => {
@@ -562,7 +576,7 @@ export const deleteWorkspaceApi = async (workspaceId: string): Promise<void> => 
   await api.delete(`/admin/workspaces/${workspaceId}`);
 };
 
-export { isAxiosError } from 'axios';
+// User APIs
 
 export interface UserResponse {
   id: string;
@@ -609,11 +623,6 @@ export const createUserApi = async (user: UserCreate): Promise<UserResponse> => 
 
 export const deleteUserApi = async (userId: string): Promise<void> => {
   await api.delete(`/admin/users/${userId}`);
-};
-
-export const getAllWorkspacesApi = async (): Promise<ListWorkspacesResponse> => {
-  const response = await api.get('/admin/workspaces');
-  return response.data;
 };
 
 export const getUserApi = async (userId: string): Promise<UserResponse> => {

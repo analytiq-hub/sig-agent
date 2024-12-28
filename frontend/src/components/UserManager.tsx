@@ -5,7 +5,8 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getUsersApi, isAxiosError, UserResponse } from '@/utils/api';
+import { getUsersApi, UserResponse } from '@/utils/api';
+import { isAxiosError } from 'axios';
 import colors from 'tailwindcss/colors';
 import { useRouter } from 'next/navigation';
 
