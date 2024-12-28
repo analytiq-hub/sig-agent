@@ -3,15 +3,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { IconButton } from '@mui/material';
-import { 
-  listDocumentsApi, 
-  deleteDocumentApi, 
-  isAxiosError,
-  DocumentMetadata 
-} from '@/utils/api';
 import Link from 'next/link';
 import DeleteIcon from '@mui/icons-material/Delete';
 import colors from 'tailwindcss/colors';
+import { isAxiosError } from 'axios';
+import { 
+  listDocumentsApi, 
+  deleteDocumentApi, 
+  DocumentMetadata 
+} from '@/utils/api';
 
 type File = DocumentMetadata;
 

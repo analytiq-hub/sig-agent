@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getUserApi, updateUserApi, UserResponse, UserUpdate, updateUserPasswordApi } from '@/utils/api';
+import { getUserApi, updateUserApi, deleteUserApi, UserResponse, UserUpdate, updateUserPasswordApi } from '@/utils/api';
 import { useSession } from 'next-auth/react';
 
 interface UserEditProps {
@@ -96,6 +96,41 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ isOpen, onClo
   );
 };
 
+interface DeleteUserModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+}
+
+const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ isOpen, onClose, onConfirm }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+      <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+        <h3 className="text-lg font-medium mb-4">Delete User</h3>
+        <p className="text-gray-600 mb-6">
+          Are you sure you want to delete this user? This action cannot be undone.
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          >
+            Delete User
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
   const router = useRouter();
   const { data: session } = useSession();
@@ -108,6 +143,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -165,6 +201,16 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
     } catch (error) {
       setError('Failed to update password');
       throw error; // Re-throw to be handled by modal
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    try {
+      await deleteUserApi(userId);
+      router.push('/settings/admin/users');
+    } catch (error) {
+      setError('Failed to delete user');
+      console.error('Error deleting user:', error);
     }
   };
 
@@ -274,10 +320,26 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
         </div>
       </form>
 
+      <div className="mt-8 pt-6 border-t">
+        <button
+          type="button"
+          onClick={() => setIsDeleteModalOpen(true)}
+          className="px-4 py-2 text-red-600 border border-red-600 rounded-md hover:bg-red-50"
+        >
+          Delete User
+        </button>
+      </div>
+
       <PasswordChangeModal
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
         onSubmit={handlePasswordUpdate}
+      />
+
+      <DeleteUserModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteUser}
       />
     </div>
   );
