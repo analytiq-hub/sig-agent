@@ -5,7 +5,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getUsersApi, UserResponse } from '@/utils/api';
+import { getUsersApi, deleteUserApi, UserResponse } from '@/utils/api';
 import { isAxiosError } from 'axios';
 import colors from 'tailwindcss/colors';
 import { useRouter } from 'next/navigation';
@@ -40,6 +40,23 @@ const UserManager: React.FC = () => {
   useEffect(() => {
     fetchUsers();
   }, [paginationModel, fetchUsers]);
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) {
+      return;
+    }
+
+    try {
+      await deleteUserApi(userId);
+      // Refresh the user list
+      fetchUsers();
+    } catch (error) {
+      if (isAxiosError(error)) {
+        const errorMessage = error.response?.data?.detail || 'Failed to delete user';
+        alert(errorMessage);
+      }
+    }
+  };
 
   const columns: GridColDef[] = [
     { field: 'email', headerName: 'Email', flex: 1 },
@@ -87,7 +104,7 @@ const UserManager: React.FC = () => {
             <EditIcon />
           </IconButton>
           <IconButton
-            onClick={() => {/* TODO: Implement delete */}}
+            onClick={() => handleDeleteUser(row.id)}
             className="text-red-600 hover:bg-red-50"
           >
             <DeleteIcon />
@@ -133,7 +150,6 @@ const UserManager: React.FC = () => {
         />
       </div>
 
-      {/* Status Text */}
       <div className="mt-4 text-sm text-gray-600">
         {loading ? 'Loading...' : 
           totalCount > 0 ? 
