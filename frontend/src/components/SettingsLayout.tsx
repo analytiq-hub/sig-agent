@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PersonIcon from '@mui/icons-material/Person';
-import GroupIcon from '@mui/icons-material/Group';
-import WorkspacesIcon from '@mui/icons-material/Workspaces';
 import { Button, Divider } from '@mui/material';
 import { useSession } from 'next-auth/react';
 import RoleBasedRender from './RoleBasedRender';
@@ -170,13 +168,16 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
                   Developer
                 </button>
                 
-                <Link 
-                  href="/settings/user/profile"
-                  className="block w-full text-left px-4 py-2 rounded-md transition-colors
-                    hover:bg-gray-100 text-gray-700"
+                <button
+                  onClick={() => router.push('/settings/user/profile')}
+                  className={`w-full text-left px-4 py-2 rounded-md transition-colors
+                    ${selectedMenu === 'user_profile' 
+                      ? 'bg-blue-50 text-blue-600' 
+                      : 'hover:bg-gray-100 text-gray-700'
+                    }`}
                 >
                   Profile
-                </Link>
+                </button>
               </div>
             </div>
           </nav>
