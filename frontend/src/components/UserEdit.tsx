@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getUserApi, updateUserApi, deleteUserApi, UserResponse, UserUpdate, updateUserPasswordApi } from '@/utils/api';
+import { getUserApi, updateUserApi, deleteUserApi, UserResponse, UserUpdate } from '@/utils/api';
 import { useSession, signOut } from 'next-auth/react';
 
 interface UserEditProps {
@@ -163,6 +163,16 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
     fetchUser();
   }, [userId]);
 
+  const handlePasswordUpdate = async (newPassword: string) => {
+    try {
+      await updateUserApi(userId, { password: newPassword });
+      setSuccess(true);
+    } catch (error) {
+      setError('Failed to update password');
+      throw error; // Re-throw to be handled by modal
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -176,32 +186,10 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
       };
 
       await updateUserApi(userId, update);
-
-      // Handle password update if provided
-      if (newPassword) {
-        if (newPassword !== confirmPassword) {
-          setError('Passwords do not match');
-          return;
-        }
-        await updateUserPasswordApi(userId, newPassword);
-      }
-
       setSuccess(true);
-      setNewPassword('');
-      setConfirmPassword('');
     } catch (error) {
       setError('Failed to update user');
       console.error('Error updating user:', error);
-    }
-  };
-
-  const handlePasswordUpdate = async (newPassword: string) => {
-    try {
-      await updateUserPasswordApi(userId, newPassword);
-      setSuccess(true);
-    } catch (error) {
-      setError('Failed to update password');
-      throw error; // Re-throw to be handled by modal
     }
   };
 

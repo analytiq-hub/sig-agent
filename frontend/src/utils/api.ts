@@ -636,7 +636,3 @@ export const updateUserApi = async (userId: string, update: UserUpdate): Promise
   const response = await api.put<UserResponse>(`/account/users/${userId}`, update);
   return response.data;
 };
-
-export const updateUserPasswordApi = async (userId: string, newPassword: string): Promise<void> => {
-  await api.put(`/account/users/${userId}/password`, { password: newPassword });
-};

@@ -1721,51 +1721,6 @@ async def get_user(
         hasPassword=bool(user.get("password"))
     )
 
-# Add this new endpoint
-@app.put("/account/users/{user_id}/password")
-async def update_user_password(
-    user_id: str,
-    password_update: dict = Body(..., example={"password": "newpassword"}),
-    current_user: User = Depends(get_current_user)
-):
-    """Update user password (admin or self only)"""
-    # Verify user exists
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Check if user has permission (admin or self)
-    db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_admin = db_current_user.get("role") == "admin"
-    is_self = current_user.user_id == user_id
-    
-    if not (is_admin or is_self):
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to change this user's password"
-        )
-    
-    # Only allow updating password for non-OAuth users
-    if not user.get("password"):
-        raise HTTPException(
-            status_code=400, 
-            detail="Cannot update password for OAuth user"
-        )
-
-    # Hash new password
-    hashed_password = hashpw(password_update["password"].encode(), gensalt(12))
-    
-    # Update password
-    result = await db.users.update_one(
-        {"_id": ObjectId(user_id)},
-        {"$set": {"password": hashed_password.decode()}}
-    )
-    
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    return {"message": "Password updated successfully"}
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="::", port=8000)
