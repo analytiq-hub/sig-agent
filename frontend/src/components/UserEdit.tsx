@@ -35,6 +35,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ isOpen, onClo
       setConfirmPassword('');
       onClose();
     } catch (error) {
+      console.error('Password update failed:', error);
       setError('Failed to update password');
     }
   };
