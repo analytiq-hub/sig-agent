@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUserApi, updateUserApi, deleteUserApi, UserResponse, UserUpdate, updateUserPasswordApi } from '@/utils/api';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 
 interface UserEditProps {
   userId: string;
@@ -207,7 +207,15 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
   const handleDeleteUser = async () => {
     try {
       await deleteUserApi(userId);
-      router.push('/settings/admin/users');
+      
+      // Check if deleting current user
+      if (session?.user?.id === userId) {
+        // Sign out if deleting self
+        signOut({ callbackUrl: '/signin' });
+      } else {
+        // Otherwise just redirect to user list
+        router.push('/settings/admin/users');
+      }
     } catch (error) {
       setError('Failed to delete user');
       console.error('Error deleting user:', error);
