@@ -53,7 +53,7 @@ const WorkspaceManager: React.FC = () => {
       headerName: 'Actions',
       width: 120,
       renderCell: () => (
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center h-full">
           <IconButton
             onClick={() => {/* TODO: Implement edit */}}
             className="text-blue-600 hover:bg-blue-50"
