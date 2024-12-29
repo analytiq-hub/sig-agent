@@ -159,6 +159,7 @@ async def upload_document(
     documents_upload: DocumentsUpload = Body(...),
     current_user: User = Depends(get_current_user)
 ):
+    """Upload one or more documents"""
     ad.log.debug(f"upload_document(): documents: {[doc.name for doc in documents_upload.files]}")
     uploaded_documents = []
 
@@ -237,6 +238,7 @@ async def update_document(
     update: DocumentUpdate,
     current_user: User = Depends(get_current_user)
 ):
+    """Update a document"""
     ad.log.debug(f"Updating document {document_id} with data: {update}")
 
     # Validate the document exists and user has access
@@ -288,6 +290,7 @@ async def list_documents(
     tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
     user: User = Depends(get_current_user)
 ):
+    """List documents"""
     # Build the query filter
     query_filter = {}
     
@@ -324,6 +327,7 @@ async def get_document(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    """Get a document"""
     ad.log.debug(f"get_document() start: document_id: {document_id}")
     document = await ad.common.get_doc(analytiq_client, document_id)
     
@@ -360,6 +364,7 @@ async def delete_document(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    """Delete a document"""
     document = await ad.common.get_doc(analytiq_client, document_id)
     
     if not document:
@@ -381,6 +386,7 @@ async def access_token_create(
     request: CreateAccessTokenRequest,
     current_user: User = Depends(get_current_user)
 ):
+    """Create an API token"""
     ad.log.debug(f"Creating API token for user: {current_user} request: {request}")
     token = secrets.token_urlsafe(32)
     new_token = {
@@ -399,6 +405,7 @@ async def access_token_create(
 
 @app.get("/access_tokens", response_model=ListAccessTokensResponse)
 async def access_token_list(current_user: User = Depends(get_current_user)):
+    """List API tokens"""
     cursor = access_token_collection.find({"user_id": current_user.user_id})
     tokens = await cursor.to_list(length=None)
     ret = [
@@ -420,6 +427,7 @@ async def access_token_delete(
     token_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    """Delete an API token"""
     result = await access_token_collection.delete_one({
         "_id": ObjectId(token_id),
         "user_id": current_user.user_id
@@ -433,6 +441,7 @@ async def llm_token_create(
     request: CreateLLMTokenRequest,
     current_user: User = Depends(get_current_user)
 ):
+    """Create or update an LLM token"""
     ad.log.debug(f"Creating/Updating LLM token for user: {current_user} request: {request}")
     
     # Check if a token for this vendor already exists
@@ -467,6 +476,7 @@ async def llm_token_create(
 
 @app.get("/llm_tokens", response_model=ListLLMTokensResponse)
 async def llm_token_list(current_user: User = Depends(get_current_user)):
+    """List LLM tokens"""
     cursor = llm_token_collection.find({"user_id": current_user.user_id})
     tokens = await cursor.to_list(length=None)
     llm_tokens = [
@@ -487,6 +497,7 @@ async def llm_token_delete(
     token_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    """Delete an LLM token"""
     result = await llm_token_collection.delete_one({
         "_id": ObjectId(token_id),
         "user_id": current_user.user_id
@@ -500,6 +511,7 @@ async def aws_credentials_create(
     request: AWSCredentials,
     current_user: User = Depends(get_current_user)
 ):
+    """Create or update AWS credentials"""
     ad.log.debug(f"Creating/Updating AWS credentials for user: {current_user}")
 
     # Validate AWS Access Key ID format
@@ -538,6 +550,7 @@ async def aws_credentials_create(
 
 @app.get("/aws_credentials", response_model=AWSCredentials)
 async def aws_credentials_get(current_user: User = Depends(get_current_user)):
+    """Get AWS credentials"""
     ad.log.debug(f"Getting AWS credentials for user: {current_user}")
     aws_credentials = await aws_credentials_collection.find_one({
         "user_id": current_user.user_id
@@ -556,6 +569,7 @@ async def aws_credentials_get(current_user: User = Depends(get_current_user)):
 
 @app.delete("/aws_credentials")
 async def aws_credentials_delete(current_user: User = Depends(get_current_user)):
+    """Delete AWS credentials"""
     ad.log.debug(f"Deleting AWS credentials for user: {current_user}")
     result = await aws_credentials_collection.delete_one({
         "user_id": current_user.user_id
@@ -564,6 +578,7 @@ async def aws_credentials_delete(current_user: User = Depends(get_current_user))
 
 @app.post("/auth/token")
 async def create_auth_token(user_data: dict = Body(...)):
+    """Create an authentication token"""
     ad.log.debug(f"create_auth_token(): user_data: {user_data}")
     token = jwt.encode(
         {
@@ -581,6 +596,7 @@ async def download_ocr_blocks(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    """Download OCR blocks for a document"""
     ad.log.debug(f"download_ocr_blocks() start: document_id: {document_id}")
 
     document = await ad.common.get_doc(analytiq_client, document_id)
@@ -601,6 +617,7 @@ async def download_ocr_text(
     page_num: Optional[int] = Query(None, description="Specific page number to retrieve"),
     current_user: User = Depends(get_current_user)
 ):
+    """Download OCR text for a document"""
     ad.log.debug(f"download_ocr_text() start: document_id: {document_id}, page_num: {page_num}")
     document = await ad.common.get_doc(analytiq_client, document_id)
     
@@ -624,6 +641,7 @@ async def get_ocr_metadata(
     document_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    """Get OCR metadata for a document"""
     ad.log.debug(f"get_ocr_metadata() start: document_id: {document_id}")
     
     document = await ad.common.get_doc(analytiq_client, document_id)
@@ -650,11 +668,6 @@ async def run_llm_analysis(
 ):
     """
     Run LLM on a document, with optional force refresh.
-    
-    Args:
-        document_id: The document ID to process
-        prompt_id: The prompt ID to use (defaults to "default")
-        force: If True, forces a new run even if cached result exists
     """
     ad.log.debug(f"run_llm_analysis() start: document_id: {document_id}, prompt_id: {prompt_id}, force: {force}")
     
@@ -756,6 +769,7 @@ async def create_schema(
     schema: SchemaCreate,
     current_user: User = Depends(get_current_user)
 ):
+    """Create a schema"""
     # Check if schema with this name already exists (case-insensitive)
     existing_schema = await schemas_collection.find_one({
         "name": {"$regex": f"^{schema.name}$", "$options": "i"}
@@ -798,6 +812,7 @@ async def list_schemas(
     limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_user)
 ):
+    """List schemas"""
     # Build the base pipeline
     pipeline = [
         {
@@ -847,6 +862,7 @@ async def get_schema(
     schema_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    """Get a schema"""
     schema = await schemas_collection.find_one({"_id": ObjectId(schema_id)})
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -860,6 +876,7 @@ async def update_schema(
     schema: SchemaCreate,
     current_user: User = Depends(get_current_user)
 ):
+    """Update a schema"""
     # Get the existing schema
     existing_schema = await schemas_collection.find_one({"_id": ObjectId(schema_id)})
     if not existing_schema:
@@ -901,6 +918,7 @@ async def delete_schema(
     schema_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    """Delete a schema"""
     # Get the schema to find its name
     schema = await schemas_collection.find_one({"_id": ObjectId(schema_id)})
     if not schema:
@@ -962,6 +980,7 @@ async def create_prompt(
     prompt: PromptCreate,
     current_user: User = Depends(get_current_user)
 ):
+    """Create a prompt"""
     # Only verify schema if one is specified
     if prompt.schema_name and prompt.schema_version:
         schema = await schemas_collection.find_one({
@@ -1025,6 +1044,7 @@ async def list_prompts(
     tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
     current_user: User = Depends(get_current_user)
 ):
+    """List prompts"""
     # Build the base pipeline
     pipeline = []
     
@@ -1095,6 +1115,7 @@ async def get_prompt(
     prompt_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    """Get a prompt"""
     prompt = await prompts_collection.find_one({"_id": ObjectId(prompt_id)})
     if not prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
@@ -1107,6 +1128,7 @@ async def update_prompt(
     prompt: PromptCreate,
     current_user: User = Depends(get_current_user)
 ):
+    """Update a prompt"""
     # Get the existing prompt
     existing_prompt = await prompts_collection.find_one({"_id": ObjectId(prompt_id)})
     if not existing_prompt:
@@ -1171,6 +1193,7 @@ async def delete_prompt(
     prompt_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    """Delete a prompt"""
     # Get the prompt to find its name
     prompt = await prompts_collection.find_one({"_id": ObjectId(prompt_id)})
     if not prompt:
@@ -1195,6 +1218,7 @@ async def create_tag(
     tag: TagCreate,
     current_user: User = Depends(get_current_user)
 ):
+    """Create a tag"""
     # Check if tag with this name already exists for this user
     existing_tag = await tags_collection.find_one({
         "name": tag.name,
@@ -1226,6 +1250,7 @@ async def list_tags(
     limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_user)
 ):
+    """List tags"""
     # Get total count
     total_count = await tags_collection.count_documents({"created_by": current_user.user_id})
     
@@ -1257,6 +1282,7 @@ async def delete_tag(
     tag_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    """Delete a tag"""
     # Verify tag exists and belongs to user
     tag = await tags_collection.find_one({
         "_id": ObjectId(tag_id),
@@ -1304,6 +1330,7 @@ async def update_tag(
     tag: TagCreate,
     current_user: User = Depends(get_current_user)
 ):
+    """Update a tag"""
     # Verify tag exists and belongs to user
     existing_tag = await tags_collection.find_one({
         "_id": ObjectId(tag_id),
