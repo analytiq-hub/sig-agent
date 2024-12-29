@@ -1409,22 +1409,6 @@ async def create_admin():
 async def startup_event():
     await create_admin()
 
-# Workspace management endpoints
-@app.get("/workspaces", response_model=ListWorkspacesResponse)
-async def list_user_workspaces(current_user: User = Depends(get_current_user)):
-    """List workspaces where the current user is a member"""
-
-    ad.log.info(f"Listing workspaces for user: {current_user.user_id}")
-    workspaces = await db.workspaces.find({
-        "members.user_id": current_user.user_id
-    }).to_list(None)
-    
-    ret = ListWorkspacesResponse(workspaces=[
-        Workspace(**{**w, "id": str(w["_id"])}) for w in workspaces
-    ])
-
-    return ret
-
 @app.get("/account/workspaces", response_model=ListWorkspacesResponse)
 async def list_workspaces(
     user_id: str | None = Query(None, description="Filter workspaces by user ID"),
