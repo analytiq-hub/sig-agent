@@ -533,7 +533,6 @@ export const createWorkspaceApi = async (workspace: CreateWorkspaceRequest): Pro
   return {
     id: data._id || data.id,
     name: data.name,
-    owner_id: data.owner_id,
     members: data.members,
     created_at: data.created_at,
     updated_at: data.updated_at

@@ -15,10 +15,9 @@ export async function createDefaultWorkspace(userId: string) {
     const workspace = {
         _id: new ObjectId(userId),
         name: "Default",
-        owner_id: userId,
         members: [{
             user_id: userId,
-            role: "owner"
+            role: "admin"
         }],
         created_at: new Date(),
         updated_at: new Date()

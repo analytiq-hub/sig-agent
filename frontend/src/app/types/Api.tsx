@@ -1,15 +1,14 @@
 export interface WorkspaceMember {
   user_id: string;
-  role: 'owner' | 'admin' | 'member';
+  role: 'admin' | 'member';
 }
 
 export interface Workspace {
   id: string;
   name: string;
-  owner_id: string;
-  members: WorkspaceMember[];
   created_at: string;
   updated_at: string;
+  members: WorkspaceMember[];
 }
 
 export interface CreateWorkspaceRequest {

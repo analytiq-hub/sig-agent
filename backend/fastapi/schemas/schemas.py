@@ -167,7 +167,6 @@ class WorkspaceUpdate(BaseModel):
 class Workspace(BaseModel):
     id: str
     name: str
-    owner_id: str
     members: List[WorkspaceMember]
     created_at: datetime
     updated_at: datetime

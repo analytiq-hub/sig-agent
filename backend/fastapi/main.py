@@ -1391,10 +1391,9 @@ async def create_admin():
         await db.workspaces.insert_one({
             "_id": ObjectId(admin_id),
             "name": "Admin",
-            "owner_id": admin_id,
             "members": [{
                 "user_id": admin_id,
-                "role": "owner"
+                "role": "admin"
             }],
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
@@ -1451,10 +1450,9 @@ async def create_workspace(
     """Create a new workspace (admin only)"""
     workspace_doc = {
         "name": workspace.name,
-        "owner_id": current_user.user_id,
         "members": [{
             "user_id": current_user.user_id,
-            "role": "owner"
+            "role": "admin"
         }],
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
@@ -1472,18 +1470,19 @@ async def update_workspace(
     update: WorkspaceUpdate,
     current_user: User = Depends(get_current_user)
 ):
-    """Update workspace details (admin or owner)"""
+    """Update workspace details (accountadmin or workspace admin)"""
     # Get workspace and verify it exists
     workspace = await db.workspaces.find_one({"_id": ObjectId(workspace_id)})
     if not workspace:
         raise HTTPException(404, "Workspace not found")
     
-    # Check if user has permission (admin or owner)
+    # Check if user has permission (account admin or workspace admin)
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_admin = db_user and db_user.get("role") == "admin"
-    is_owner = workspace["owner_id"] == current_user.user_id
+    is_account_admin = db_user and db_user.get("role") == "admin"
+    is_workspace_member = current_user.user_id in [member["user_id"] for member in workspace["members"]]
+    is_workspace_admin = any(member["role"] == "admin" and member["user_id"] == current_user.user_id for member in workspace["members"])
     
-    if not (is_admin or is_owner):
+    if not (is_account_admin or is_workspace_admin):
         raise HTTPException(
             status_code=403,
             detail="Not authorized to modify this workspace"
@@ -1507,18 +1506,18 @@ async def delete_workspace(
     workspace_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Delete a workspace (admin or owner)"""
+    """Delete a workspace (account admin or workspace admin)"""
     # Get workspace and verify it exists
     workspace = await db.workspaces.find_one({"_id": ObjectId(workspace_id)})
     if not workspace:
         raise HTTPException(404, "Workspace not found")
     
-    # Check if user has permission (admin or owner)
+    # Check if user has permission (account admin or workspace admin)
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_admin = db_user and db_user.get("role") == "admin"
-    is_owner = workspace["owner_id"] == current_user.user_id
+    is_account_admin = db_user and db_user.get("role") == "admin"
+    is_workspace_admin = any(member["role"] == "admin" and member["user_id"] == current_user.user_id for member in workspace["members"])
     
-    if not (is_admin or is_owner):
+    if not (is_account_admin or is_workspace_admin):
         raise HTTPException(
             status_code=403,
             detail="Not authorized to delete this workspace"
@@ -1593,10 +1592,9 @@ async def create_user(
     await db.workspaces.insert_one({
         "_id": result.inserted_id,
         "name": "Default",
-        "owner_id": str(result.inserted_id),
         "members": [{
             "user_id": str(result.inserted_id),
-            "role": "owner"
+            "role": "admin"
         }],
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
@@ -1719,10 +1717,6 @@ async def delete_user(
         ad.log.info(f"Deleting user {user_id} sessions")
         # Delete all sessions for this user
         await db.sessions.delete_many({"userId": user_id})
-        
-        ad.log.info(f"Deleting user {user_id} workspaces")
-        # Delete all workspaces owned by this user
-        await db.workspaces.delete_many({"owner_id": user_id})
         
         ad.log.info(f"Removing user {user_id} from all workspaces they're a member of")
         # Remove user from all workspaces they're a member of
