@@ -16,7 +16,7 @@ const DevelopmentPage: React.FC = () => {
               Manage your Large Language Model (LLM) API tokens.
             </p>
           </div>
-          <Link href="/settings/admin/development/llm-tokens" passHref>
+          <Link href="/settings/account/development/llm-tokens" passHref>
             <Button variant="contained" color="primary">
               Manage
             </Button>
@@ -32,7 +32,7 @@ const DevelopmentPage: React.FC = () => {
               Configure your AWS access keys and region settings.
             </p>
           </div>
-          <Link href="/settings/admin/development/aws-credentials" passHref>
+          <Link href="/settings/account/development/aws-credentials" passHref>
             <Button variant="contained" color="primary">
               Manage
             </Button>
