@@ -8,6 +8,13 @@ import { isAxiosError } from 'axios'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { UserResponse } from '@/utils/api'
 import { RadioGroup } from '@headlessui/react'
+import { 
+  DataGrid, 
+  GridColDef, 
+  GridRenderCellParams 
+} from '@mui/x-data-grid'
+import { Switch, IconButton } from '@mui/material'
+import DeleteIcon from '@mui/icons-material/Delete'
 
 interface WorkspaceEditProps {
   workspaceId: string
@@ -101,6 +108,61 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
     setMembers(prev => prev.filter(member => member.user_id !== userId))
   }
 
+  // Add this function to prepare rows for the grid
+  const getGridRows = () => {
+    return members.map(member => {
+      const user = availableUsers.find(u => u.id === member.user_id)
+      return {
+        id: member.user_id,
+        name: user?.name || 'Unknown User',
+        email: user?.email || '',
+        isAdmin: member.role === 'admin'
+      }
+    })
+  }
+
+  // Define columns for the grid
+  const columns: GridColDef[] = [
+    {
+      field: 'name',
+      headerName: 'Name',
+      flex: 1,
+      minWidth: 150
+    },
+    {
+      field: 'email',
+      headerName: 'Email',
+      flex: 1,
+      minWidth: 200
+    },
+    {
+      field: 'isAdmin',
+      headerName: 'Admin',
+      width: 120,
+      renderCell: (params: GridRenderCellParams) => (
+        <Switch
+          checked={params.value}
+          onChange={(e) => handleRoleChange(params.row.id, e.target.checked ? 'admin' : 'user')}
+          color="primary"
+        />
+      )
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 100,
+      renderCell: (params: GridRenderCellParams) => (
+        <IconButton
+          onClick={() => handleRemoveMember(params.row.id)}
+          color="error"
+          size="small"
+        >
+          <DeleteIcon />
+        </IconButton>
+      )
+    }
+  ]
+
   if (loading) {
     return <div className="flex items-center justify-center p-4">Loading...</div>
   }
@@ -183,42 +245,16 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
           </div>
 
           {/* Members Grid */}
-          <div className="grid gap-4">
-            {members.map(member => {
-              const user = availableUsers.find(u => u.id === member.user_id)
-              return (
-                <div 
-                  key={member.user_id} 
-                  className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 hover:bg-gray-100"
-                >
-                  <div className="flex flex-col">
-                    <span className="font-medium">{user?.name || 'Unknown User'}</span>
-                    <span className="text-sm text-gray-500">{user?.email}</span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center space-x-2">
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={member.role === 'admin'}
-                          onChange={(e) => handleRoleChange(member.user_id, e.target.checked ? 'admin' : 'user')}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
-                      <span className="text-sm font-medium text-gray-700">Admin</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveMember(member.user_id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
+          <div style={{ height: 400, width: '100%' }}>
+            <DataGrid
+              rows={getGridRows()}
+              columns={columns}
+              pageSize={5}
+              rowsPerPageOptions={[5, 10, 20]}
+              disableSelectionOnClick
+              disableColumnMenu
+              density="comfortable"
+            />
           </div>
         </div>
 
