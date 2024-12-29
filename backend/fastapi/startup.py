@@ -81,11 +81,11 @@ async def setup_api_creds(analytiq_client):
         admin_id = str(admin_user["_id"])
         
         # AWS Credentials. Only store credentials if they don't already exist.
-        aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
-        aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+        aws_access_key = os.getenv("AWS_ACCESS_KEY_ID", "")
+        aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY", "")
         existing_aws_creds = await db.aws_credentials.find_one({"user_id": admin_id})
         
-        if aws_access_key and aws_secret_key and not existing_aws_creds:
+        if aws_access_key != "" and aws_secret_key != "" and not existing_aws_creds:
             # Encrypt credentials before storing
             encrypted_access_key = ad.crypto.encrypt_token(aws_access_key)
             encrypted_secret_key = ad.crypto.encrypt_token(aws_secret_key)
@@ -107,15 +107,18 @@ async def setup_api_creds(analytiq_client):
         llm_credentials = []
         
         # OpenAI
-        if openai_key := os.getenv("OPENAI_API_KEY"):
+        openai_key = os.getenv("OPENAI_API_KEY", "")
+        if openai_key != "":
             llm_credentials.append(("OpenAI", openai_key))
             
         # Anthropic
-        if anthropic_key := os.getenv("ANTHROPIC_API_KEY"):
+        anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+        if anthropic_key != "":
             llm_credentials.append(("Anthropic", anthropic_key))
             
         # Groq
-        if groq_key := os.getenv("GROQ_API_KEY"):
+        groq_key = os.getenv("GROQ_API_KEY", "")
+        if groq_key != "":
             llm_credentials.append(("Groq", groq_key))
             
         # Store LLM credentials
