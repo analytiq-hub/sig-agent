@@ -215,9 +215,12 @@ const UserManager: React.FC = () => {
     fetchUsers();
   }, [paginationModel, fetchUsers]);
 
-  const handleDeleteClick = (user: UserResponse) => {
-    setUserToDelete(user);
-    setIsDeleteModalOpen(true);
+  const handleDeleteClick = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      setUserToDelete(user);
+      setIsDeleteModalOpen(true);
+    }
   };
 
   const handleDeleteConfirm = async () => {
