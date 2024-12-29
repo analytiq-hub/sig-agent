@@ -1553,6 +1553,7 @@ async def update_user(
     user: UserUpdate,
     current_user: User = Depends(get_current_user)
 ):
+    """Update a user's details (admin or self)"""
     # Check if user has permission (admin or self)
     db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_admin = db_current_user.get("role") == "admin"
@@ -1625,6 +1626,7 @@ async def delete_user(
     user_id: str,
     current_user: User = Depends(get_current_user)
 ):
+    """Delete a user (admin or self)"""
     # Check if user has permission (admin or self)
     db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_admin = db_current_user.get("role") == "admin"
@@ -1696,6 +1698,7 @@ async def get_user(
     user_id: str, 
     current_user: User = Depends(get_current_user)
 ):
+    """Get a user's details (admin or self)"""
     # Check if user has permission (admin or self)
     db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_admin = db_current_user.get("role") == "admin"
