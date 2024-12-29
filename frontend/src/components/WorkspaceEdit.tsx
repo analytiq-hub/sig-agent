@@ -7,6 +7,7 @@ import { getWorkspacesApi, updateWorkspaceApi, getUsersApi } from '@/utils/api'
 import { isAxiosError } from 'axios'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { UserResponse } from '@/utils/api'
+import { RadioGroup } from '@headlessui/react'
 
 interface WorkspaceEditProps {
   workspaceId: string
@@ -19,9 +20,17 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
   const [name, setName] = useState('')
   const [members, setMembers] = useState<WorkspaceMember[]>([])
   const [availableUsers, setAvailableUsers] = useState<UserResponse[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  // Filter users based on search query
+  const filteredUsers = availableUsers.filter(user => 
+    !members.some(member => member.user_id === user.id) && 
+    (user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+     user.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  )
 
   useEffect(() => {
     const fetchData = async () => {
@@ -131,7 +140,7 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-4">
             <h3 className="text-lg font-medium text-gray-900">Members</h3>
             <div className="mt-4 space-y-4">
               {members.map(member => {
@@ -139,15 +148,35 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
                 return (
                   <div key={member.user_id} className="flex items-center justify-between p-2 border rounded">
                     <span>{user?.name || user?.email || member.user_id}</span>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={member.role}
-                        onChange={(e) => handleRoleChange(member.user_id, e.target.value as 'admin' | 'user')}
-                        className="rounded border border-gray-300 px-2 py-1"
-                      >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                      </select>
+                    <div className="flex items-center gap-4">
+                      <RadioGroup value={member.role} onChange={(value) => handleRoleChange(member.user_id, value)} className="flex gap-4">
+                        <RadioGroup.Option value="user">
+                          {({ checked }) => (
+                            <div className={`flex items-center gap-2 ${checked ? 'text-indigo-600' : 'text-gray-500'}`}>
+                              <input
+                                type="radio"
+                                checked={checked}
+                                className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                readOnly
+                              />
+                              <span>User</span>
+                            </div>
+                          )}
+                        </RadioGroup.Option>
+                        <RadioGroup.Option value="admin">
+                          {({ checked }) => (
+                            <div className={`flex items-center gap-2 ${checked ? 'text-indigo-600' : 'text-gray-500'}`}>
+                              <input
+                                type="radio"
+                                checked={checked}
+                                className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                readOnly
+                              />
+                              <span>Admin</span>
+                            </div>
+                          )}
+                        </RadioGroup.Option>
+                      </RadioGroup>
                       <button
                         type="button"
                         onClick={() => handleRemoveMember(member.user_id)}
@@ -162,27 +191,39 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
             </div>
 
             <div className="mt-4">
-              <label htmlFor="add-member" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="user-search" className="block text-sm font-medium text-gray-700">
                 Add Member
               </label>
-              <select
-                id="add-member"
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-                onChange={(e) => {
-                  if (e.target.value) handleAddMember(e.target.value)
-                  e.target.value = '' // Reset selection
-                }}
-                value=""
-              >
-                <option value="">Select a user to add</option>
-                {availableUsers
-                  .filter(user => !members.some(member => member.user_id === user.id))
-                  .map(user => (
-                    <option key={user.id} value={user.id}>
-                      {user.name || user.email}
-                    </option>
-                  ))}
-              </select>
+              <div className="relative mt-1">
+                <input
+                  type="text"
+                  id="user-search"
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                  placeholder="Search users by name or email"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && filteredUsers.length > 0 && (
+                  <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                    {filteredUsers.slice(0, 10).map((user) => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        className="relative w-full cursor-pointer select-none py-2 px-3 text-left hover:bg-gray-100"
+                        onClick={() => {
+                          handleAddMember(user.id)
+                          setSearchQuery('')
+                        }}
+                      >
+                        <div className="flex items-center">
+                          <span className="font-medium">{user.name}</span>
+                          <span className="ml-2 text-sm text-gray-500">{user.email}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
