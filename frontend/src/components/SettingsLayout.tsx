@@ -127,14 +127,14 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
                   </button>
 
                   <button
-                    onClick={() => router.push('/settings/account/workspaces')}
+                    onClick={() => router.push('/settings/account/organizations')}
                     className={`w-full text-left px-4 py-2 rounded-md transition-colors
-                      ${selectedMenu === 'system_workspaces' 
+                      ${selectedMenu === 'system_organizations' 
                         ? 'bg-blue-50 text-blue-600' 
                         : 'hover:bg-gray-100 text-gray-700'
                       }`}
                   >
-                    Workspaces
+                    Organizations
                   </button>
                 </div>
               </div>

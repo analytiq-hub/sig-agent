@@ -1,25 +1,33 @@
-export interface WorkspaceMember {
+export interface OrganizationMember {
   user_id: string;
   role: 'admin' | 'user';
 }
 
-export interface Workspace {
+export interface Organization {
   id: string;
   name: string;
   created_at: string;
   updated_at: string;
-  members: WorkspaceMember[];
+  members: OrganizationMember[];
 }
 
-export interface CreateWorkspaceRequest {
+export interface CreateOrganizationRequest {
   name: string;
 }
 
-export interface UpdateWorkspaceRequest {
+export interface UpdateOrganizationRequest {
   name?: string;
-  members?: WorkspaceMember[];
+  members?: OrganizationMember[];
 }
 
-export interface ListWorkspacesResponse {
-  workspaces: Workspace[];
+export interface ListOrganizationsResponse {
+  organizations: Organization[];
+}
+
+export interface UserCreate {
+  email: string;
+  name: string;
+  password?: string;
+  role?: string;
+  provider?: 'google' | 'github';
 }

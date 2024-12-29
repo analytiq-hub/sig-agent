@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import mongoClient from '@/utils/mongodb';
 import { hash } from 'bcryptjs';
-import { createDefaultWorkspace } from '@/utils/workspace';
+import { createDefaultOrganization } from '@/utils/organization';
 
 export async function POST(req: Request) {
     try {
@@ -28,8 +28,8 @@ export async function POST(req: Request) {
             createdAt: new Date(),
         });
 
-        // Create personal workspace
-        await createDefaultWorkspace(result.insertedId.toString());
+        // Create personal organization
+        await createDefaultOrganization(result.insertedId.toString());
 
         return NextResponse.json({ success: true });
     } catch (error) {

@@ -153,26 +153,26 @@ class ListTagsResponse(BaseModel):
     skip: int
 
 # Add to schemas.py
-class WorkspaceMember(BaseModel):
+class OrganizationMember(BaseModel):
     user_id: str
-    role: Literal['admin', 'user']  # Changed from 'owner', 'admin', 'member'
+    role: Literal['admin', 'user']
 
-class WorkspaceCreate(BaseModel):
+class OrganizationCreate(BaseModel):
     name: str
 
-class WorkspaceUpdate(BaseModel):
+class OrganizationUpdate(BaseModel):
     name: str | None = None
-    members: List[WorkspaceMember] | None = None
+    members: List[OrganizationMember] | None = None
 
-class Workspace(BaseModel):
+class Organization(BaseModel):
     id: str
     name: str
-    members: List[WorkspaceMember]
+    members: List[OrganizationMember]
     created_at: datetime
     updated_at: datetime
 
-class ListWorkspacesResponse(BaseModel):
-    workspaces: List[Workspace]
+class ListOrganizationsResponse(BaseModel):
+    organizations: List[Organization]
 
 # Add these new models after the existing ones
 class UserCreate(BaseModel):

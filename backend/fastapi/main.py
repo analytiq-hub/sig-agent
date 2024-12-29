@@ -39,12 +39,12 @@ from schemas import (
     Prompt, PromptCreate, ListPromptsResponse,
     TagCreate, Tag, ListTagsResponse,
     DocumentResponse,
-    WorkspaceMember,
-    WorkspaceCreate,
-    WorkspaceUpdate,
-    Workspace,
-    ListWorkspacesResponse,
-    UserCreate, UserUpdate, UserResponse, ListUsersResponse
+    UserCreate, UserUpdate, UserResponse, ListUsersResponse,
+    OrganizationMember,
+    OrganizationCreate,
+    OrganizationUpdate,
+    Organization,
+    ListOrganizationsResponse
 )
 
 # Add the parent directory to the sys path
@@ -105,7 +105,7 @@ schema_versions_collection = db.schema_versions
 prompts_collection = db.prompts
 prompt_versions_collection = db.prompt_versions
 tags_collection = db.tags
-workspaces_collection = db.workspaces
+organizations_collection = db.organizations
 
 from pydantic import BaseModel
 
@@ -1387,8 +1387,8 @@ async def create_admin():
         
         admin_id = str(result.inserted_id)
         
-        # Create workspace for admin
-        await db.workspaces.insert_one({
+        # Create organization for admin
+        await db.organizations.insert_one({
             "_id": ObjectId(admin_id),
             "name": "Admin",
             "members": [{
@@ -1408,48 +1408,48 @@ async def create_admin():
 async def startup_event():
     await create_admin()
 
-@app.get("/account/workspaces", response_model=ListWorkspacesResponse)
-async def list_workspaces(
-    user_id: str | None = Query(None, description="Filter workspaces by user ID"),
+@app.get("/account/organizations", response_model=ListOrganizationsResponse)
+async def list_organizations(
+    user_id: str | None = Query(None, description="Filter organizations by user ID"),
     current_user: User = Depends(get_current_user)
 ):
-    """List workspaces (admin can see all or filter by user, users can only see their own)"""
-    # Check if user has admin role
+    """List organizations (admin can see all or filter by user, users can only see their own)"""
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_admin = db_user and db_user.get("role") == "admin"
     
-    # If user_id is provided, verify permissions
     if user_id:
         if not is_admin and user_id != current_user.user_id:
             raise HTTPException(
                 status_code=403,
-                detail="Not authorized to view other users' workspaces"
+                detail="Not authorized to view other users' organizations"
             )
         filter_user_id = user_id
     else:
-        # If no user_id provided, show all for admin, or only own for regular users
         filter_user_id = None if is_admin else current_user.user_id
 
-    # Build query filter
     query = {}
     if filter_user_id:
         query["members.user_id"] = filter_user_id
-
-    ad.log.info(f"Listing workspaces with query: {query}")
-    workspaces = await db.workspaces.find(query).to_list(None)
     
-    return ListWorkspacesResponse(workspaces=[
-        Workspace(**{**w, "id": str(w["_id"])}) for w in workspaces
+    ad.log.info(f"All organizations: {await db.organizations.find({}).to_list(None)}")
+    ad.log.info(f"Listing organizations for user {current_user.user_id} with query {query}")
+
+    organizations = await db.organizations.find(query).to_list(None)
+
+    ad.log.info(f"Organizations: {organizations}")
+
+    return ListOrganizationsResponse(organizations=[
+        Organization(**{**org, "id": str(org["_id"])}) for org in organizations
     ])
 
-@app.post("/account/workspaces", response_model=Workspace)
-async def create_workspace(
-    workspace: WorkspaceCreate,
+@app.post("/account/organizations", response_model=Organization)
+async def create_organization(
+    organization: OrganizationCreate,
     current_user: User = Depends(get_admin_user)
 ):
-    """Create a new workspace (admin only)"""
-    workspace_doc = {
-        "name": workspace.name,
+    """Create a new organization (admin only)"""
+    organization_doc = {
+        "name": organization.name,
         "members": [{
             "user_id": current_user.user_id,
             "role": "admin"
@@ -1458,88 +1458,88 @@ async def create_workspace(
         "updated_at": datetime.utcnow()
     }
     
-    result = await db.workspaces.insert_one(workspace_doc)
-    return Workspace(**{
-        **workspace_doc,
+    result = await db.organizations.insert_one(organization_doc)
+    return Organization(**{
+        **organization_doc,
         "id": str(result.inserted_id)
     })
 
-@app.put("/account/workspaces/{workspace_id}", response_model=Workspace)
-async def update_workspace(
-    workspace_id: str,
-    workspace_update: WorkspaceUpdate,
+@app.put("/account/organizations/{organization_id}", response_model=Organization)
+async def update_organization(
+    organization_id: str,
+    organization_update: OrganizationUpdate,
     current_user: User = Depends(get_current_user)
 ):
-    """Update a workspace"""
-    workspace = await db.workspaces.find_one({"_id": ObjectId(workspace_id)})
-    if not workspace:
-        raise HTTPException(status_code=404, detail="Workspace not found")
+    """Update an organization"""
+    organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
 
-        # Check if user has permission (account admin or workspace admin)
+        # Check if user has permission (account admin or organization admin)
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_account_admin = db_user and db_user.get("role") == "admin"
-    is_workspace_admin = any(member["role"] == "admin" and member["user_id"] == current_user.user_id for member in workspace["members"])
+    is_organization_admin = any(member["role"] == "admin" and member["user_id"] == current_user.user_id for member in organization["members"])
     
-    if not (is_account_admin or is_workspace_admin):
+    if not (is_account_admin or is_organization_admin):
         raise HTTPException(
             status_code=403,
-            detail="Not authorized to update this workspace"
+            detail="Not authorized to update this organization"
         )
 
     update_data = {}
-    if workspace_update.name is not None:
-        update_data["name"] = workspace_update.name
+    if organization_update.name is not None:
+        update_data["name"] = organization_update.name
     
-    if workspace_update.members is not None:
+    if organization_update.members is not None:
         # Ensure at least one admin remains
-        if not any(m.role == "admin" for m in workspace_update.members):
+        if not any(m.role == "admin" for m in organization_update.members):
             raise HTTPException(
                 status_code=400,
-                detail="Workspace must have at least one admin"
+                detail="Organization must have at least one admin"
             )
-        update_data["members"] = [m.dict() for m in workspace_update.members]
+        update_data["members"] = [m.dict() for m in organization_update.members]
 
     if update_data:
         update_data["updated_at"] = datetime.now(UTC)
-        result = await db.workspaces.update_one(
-            {"_id": ObjectId(workspace_id)},
+        result = await db.organizations.update_one(
+            {"_id": ObjectId(organization_id)},
             {"$set": update_data}
         )
         if result.modified_count == 0:
-            raise HTTPException(status_code=404, detail="Workspace not found")
+            raise HTTPException(status_code=404, detail="Organization not found")
 
-    updated_workspace = await db.workspaces.find_one({"_id": ObjectId(workspace_id)})
+    updated_organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
     return {
-        "id": str(updated_workspace["_id"]),
-        "name": updated_workspace["name"],
-        "members": updated_workspace["members"],
-        "created_at": updated_workspace["created_at"],
-        "updated_at": updated_workspace["updated_at"]
+        "id": str(updated_organization["_id"]),
+        "name": updated_organization["name"],
+        "members": updated_organization["members"],
+        "created_at": updated_organization["created_at"],
+        "updated_at": updated_organization["updated_at"]
     }
 
-@app.delete("/account/workspaces/{workspace_id}")
-async def delete_workspace(
-    workspace_id: str,
+@app.delete("/account/organizations/{organization_id}")
+async def delete_organization(
+    organization_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Delete a workspace (account admin or workspace admin)"""
-    # Get workspace and verify it exists
-    workspace = await db.workspaces.find_one({"_id": ObjectId(workspace_id)})
-    if not workspace:
-        raise HTTPException(404, "Workspace not found")
+    """Delete an organization (account admin or organization admin)"""
+    # Get organization and verify it exists
+    organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
+    if not organization:
+        raise HTTPException(404, "Organization not found")
     
-    # Check if user has permission (account admin or workspace admin)
+    # Check if user has permission (account admin or organization admin)
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_account_admin = db_user and db_user.get("role") == "admin"
-    is_workspace_admin = any(member["role"] == "admin" and member["user_id"] == current_user.user_id for member in workspace["members"])
+    is_organization_admin = any(member["role"] == "admin" and member["user_id"] == current_user.user_id for member in organization["members"])
     
-    if not (is_account_admin or is_workspace_admin):
+    if not (is_account_admin or is_organization_admin):
         raise HTTPException(
             status_code=403,
-            detail="Not authorized to delete this workspace"
+            detail="Not authorized to delete this organization"
         )
         
-    await db.workspaces.delete_one({"_id": ObjectId(workspace_id)})
+    await db.organizations.delete_one({"_id": ObjectId(organization_id)})
     return {"status": "success"}
 
 # Add these new endpoints after the existing ones
@@ -1604,8 +1604,8 @@ async def create_user(
     user_doc["id"] = str(result.inserted_id)
     user_doc["hasPassword"] = True
     
-    # Create default workspace for new user
-    await db.workspaces.insert_one({
+    # Create default organization for new user
+    await db.organizations.insert_one({
         "_id": result.inserted_id,
         "name": "Default",
         "members": [{
@@ -1734,9 +1734,9 @@ async def delete_user(
         # Delete all sessions for this user
         await db.sessions.delete_many({"userId": user_id})
         
-        ad.log.info(f"Removing user {user_id} from all workspaces they're a member of")
-        # Remove user from all workspaces they're a member of
-        await db.workspaces.update_many(
+        ad.log.info(f"Removing user {user_id} from all organizations they're a member of")
+        # Remove user from all organizations they're a member of
+        await db.organizations.update_many(
             {"members.user_id": user_id},
             {"$pull": {"members": {"user_id": user_id}}}
         )

@@ -11,7 +11,7 @@ import { JWT } from "next-auth/jwt";
 import { AppSession } from '@/app/types/AppSession';
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
-import { createDefaultWorkspace } from '@/utils/workspace';
+import { createDefaultOrganization } from '@/utils/organization';
 
 interface CustomUser extends DefaultUser {
     emailVerified?: Date | null;
@@ -138,8 +138,8 @@ export const authOptions: NextAuthOptions = {
                             refresh_token: account.refresh_token
                         });
 
-                        // Create personal workspace for new user
-                        await createDefaultWorkspace(result.insertedId.toString());
+                        // Create personal organization for new user
+                        await createDefaultOrganization(result.insertedId.toString());
                     }
                 }
                 return true;

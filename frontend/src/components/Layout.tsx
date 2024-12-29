@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 import AuthButton from '@/components/AuthButton';
 import UserMenu from '@/components/UserMenu';
 import PDFViewerControls from '@/components/PDFViewerControls';
-import WorkspaceSwitcher from './WorkspaceSwitcher';
+import OrganizationSwitcher from './OrganizationSwitcher';
 import {
   Bars3Icon,
   ChartPieIcon,
@@ -160,7 +160,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
 
           <div className="flex-1 flex justify-end">
-            {session && <WorkspaceSwitcher />}
+            {session && <OrganizationSwitcher />}
           </div>
 
           <div className="flex items-center space-x-4">

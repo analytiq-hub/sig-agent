@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Workspace, WorkspaceMember } from '@/app/types/Api'
-import { getWorkspacesApi, updateWorkspaceApi, getUsersApi } from '@/utils/api'
+import { Organization, OrganizationMember } from '@/app/types/Api'
+import { getOrganizationsApi, updateOrganizationApi, getUsersApi } from '@/utils/api'
 import { isAxiosError } from 'axios'
-import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { useOrganization } from '@/contexts/OrganizationContext'
 import { UserResponse } from '@/utils/api'
 import { 
   DataGrid, 
@@ -16,8 +16,8 @@ import { Switch, IconButton } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material'
 
-interface WorkspaceEditProps {
-  workspaceId: string
+interface OrganizationEditProps {
+  organizationId: string
 }
 
 interface AddMemberModalProps {
@@ -25,7 +25,7 @@ interface AddMemberModalProps {
   onClose: () => void;
   onAdd: (userId: string) => void;
   availableUsers: UserResponse[];
-  currentMembers: WorkspaceMember[];
+  currentMembers: OrganizationMember[];
 }
 
 const AddMemberModal: React.FC<AddMemberModalProps> = ({ 
@@ -37,7 +37,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter users not in workspace
+  // Filter users not in organization
   const filteredUsers = availableUsers.filter(user => 
     !currentMembers.some(member => member.user_id === user.id) && 
     (searchQuery === '' || // Only apply name/email filter if there's a search query
@@ -86,12 +86,12 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   );
 };
 
-const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
+const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) => {
   const router = useRouter()
-  const { refreshWorkspaces } = useWorkspace()
-  const [workspace, setWorkspace] = useState<Workspace | null>(null)
+  const { refreshOrganizations } = useOrganization()
+  const [organization, setOrganization] = useState<Organization | null>(null)
   const [name, setName] = useState('')
-  const [members, setMembers] = useState<WorkspaceMember[]>([])
+  const [members, setMembers] = useState<OrganizationMember[]>([])
   const [availableUsers, setAvailableUsers] = useState<UserResponse[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
@@ -100,7 +100,7 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
   const [originalName, setOriginalName] = useState('')
-  const [originalMembers, setOriginalMembers] = useState<WorkspaceMember[]>([])
+  const [originalMembers, setOriginalMembers] = useState<OrganizationMember[]>([])
 
   // Filter users based on search query
   const filteredUsers = availableUsers.filter(user => 
@@ -109,7 +109,7 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
      user.email.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
-  // Filter current workspace members
+  // Filter current organization members
   const filteredMembers = members.filter(member => {
     const user = availableUsers.find(u => u.id === member.user_id);
     return user && (
@@ -121,26 +121,26 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [workspacesResponse, usersResponse] = await Promise.all([
-          getWorkspacesApi(),
+        const [organizationsResponse, usersResponse] = await Promise.all([
+          getOrganizationsApi(),
           getUsersApi()
         ])
         
-        const workspace = workspacesResponse.workspaces.find(w => w.id === workspaceId)
-        if (workspace) {
-          setWorkspace(workspace)
-          setName(workspace.name)
-          setMembers(workspace.members)
+        const organization = organizationsResponse.organizations.find(o => o.id === organizationId)
+        if (organization) {
+          setOrganization(organization)
+          setName(organization.name)
+          setMembers(organization.members)
           // Store original values
-          setOriginalName(workspace.name)
-          setOriginalMembers(workspace.members)
+          setOriginalName(organization.name)
+          setOriginalMembers(organization.members)
         } else {
-          setError('Workspace not found')
+          setError('Organization not found')
         }
         
         setAvailableUsers(usersResponse.users)
       } catch (err) {
-        setError('Failed to load workspace data')
+        setError('Failed to load organization data')
         console.error(err)
       } finally {
         setLoading(false)
@@ -148,7 +148,7 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
     }
 
     fetchData()
-  }, [workspaceId])
+  }, [organizationId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -156,18 +156,18 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
     setSuccess(false)
 
     try {
-      await updateWorkspaceApi(workspaceId, { 
+      await updateOrganizationApi(organizationId, { 
         name,
         members 
       })
       setSuccess(true)
-      await refreshWorkspaces()
+      await refreshOrganizations()
       // Update original values after successful save
       setOriginalName(name)
       setOriginalMembers(members)
     } catch (err) {
       if (isAxiosError(err)) {
-        setError(err.response?.data?.detail || 'Failed to update workspace')
+        setError(err.response?.data?.detail || 'Failed to update organization')
       } else {
         setError('An unexpected error occurred')
       }
@@ -271,19 +271,19 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
     return <div className="flex items-center justify-center p-4">Loading...</div>
   }
 
-  if (!workspace) {
-    return <div className="flex items-center justify-center p-4">Workspace not found</div>
+  if (!organization) {
+    return <div className="flex items-center justify-center p-4">Organization not found</div>
   }
 
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-6">
       <div className="flex flex-col h-[calc(100vh-200px)]">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Edit Workspace</h2>
+          <h2 className="text-xl font-semibold">Edit Organization</h2>
           <div className="flex gap-4">
             <button
               type="submit"
-              form="workspace-form"
+              form="organization-form"
               disabled={!hasChanges()}
               className={`px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
                 ${hasChanges() 
@@ -294,7 +294,7 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
             </button>
             <button
               type="button"
-              onClick={() => router.push('/settings/account/workspaces')}
+              onClick={() => router.push('/settings/account/organizations')}
               className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               Cancel
@@ -302,7 +302,7 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
           </div>
         </div>
         
-        <form id="workspace-form" onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+        <form id="organization-form" onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
               <span className="block sm:inline">{error}</span>
@@ -311,15 +311,15 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
           
           {success && (
             <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded relative">
-              <span className="block sm:inline">Workspace updated successfully</span>
+              <span className="block sm:inline">Organization updated successfully</span>
             </div>
           )}
 
-          {/* Workspace Name Section */}
+          {/* Organization Name Section */}
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Workspace Name
+                Organization Name
               </label>
               <input
                 type="text"
@@ -406,4 +406,4 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
   )
 }
 
-export default WorkspaceEdit 
+export default OrganizationEdit 

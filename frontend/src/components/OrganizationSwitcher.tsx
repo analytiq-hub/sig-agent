@@ -3,24 +3,24 @@
 import { Fragment } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
-export default function WorkspaceSwitcher() {
-  const { currentWorkspace, switchWorkspace, workspaces, isLoading } = useWorkspace();
+export default function OrganizationSwitcher() {
+  const { currentOrganization, switchOrganization, organizations, isLoading } = useOrganization();
 
   if (isLoading) {
-    return <div className="text-white">Loading workspaces...</div>;
+    return <div className="text-white">Loading organizations...</div>;
   }
 
-  if (!currentWorkspace) {
-    return <div className="text-white">No workspace selected</div>;
+  if (!currentOrganization) {
+    return <div className="text-white">No organization selected</div>;
   }
 
   return (
     <Menu as="div" className="relative inline-block text-left">
       <div>
         <Menu.Button className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-          {currentWorkspace.name}
+          {currentOrganization.name}
           <ChevronDownIcon className="-mr-1 h-5 w-5 text-gray-400" aria-hidden="true" />
         </Menu.Button>
       </div>
@@ -36,17 +36,17 @@ export default function WorkspaceSwitcher() {
       >
         <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
           <div className="py-1">
-            {workspaces.map((workspace) => (
-              <Menu.Item key={workspace.id}>
+            {organizations.map((organization) => (
+              <Menu.Item key={organization.id}>
                 {({ active }) => (
                   <button
-                    onClick={() => switchWorkspace(workspace.id)}
+                    onClick={() => switchOrganization(organization.id)}
                     className={`
                       ${active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'}
                       block px-4 py-2 text-sm w-full text-left
                     `}
                   >
-                    {workspace.name}
+                    {organization.name}
                   </button>
                 )}
               </Menu.Item>

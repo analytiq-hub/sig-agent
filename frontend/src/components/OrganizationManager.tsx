@@ -5,19 +5,19 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getWorkspacesApi, deleteWorkspaceApi, createWorkspaceApi } from '@/utils/api';
-import { Workspace, CreateWorkspaceRequest } from '@/app/types/Api';
+import { getOrganizationsApi, deleteOrganizationApi, createOrganizationApi } from '@/utils/api';
+import { Organization, CreateOrganizationRequest } from '@/app/types/Api';
 import colors from 'tailwindcss/colors';
 import { isAxiosError } from 'axios';
 import { useRouter } from 'next/navigation'
 
-interface AddWorkspaceModalProps {
+interface AddOrganizationModalProps {
   open: boolean;
   onClose: () => void;
-  onAdd: (workspace: CreateWorkspaceRequest) => Promise<void>;
+  onAdd: (organization: CreateOrganizationRequest) => Promise<void>;
 }
 
-const AddWorkspaceModal: React.FC<AddWorkspaceModalProps> = ({ open, onClose, onAdd }) => {
+const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClose, onAdd }) => {
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -33,7 +33,7 @@ const AddWorkspaceModal: React.FC<AddWorkspaceModalProps> = ({ open, onClose, on
       onClose();
     } catch (error) {
       if (isAxiosError(error)) {
-        setError(error.response?.data?.detail || 'Failed to create workspace');
+        setError(error.response?.data?.detail || 'Failed to create organization');
       } else {
         setError('An unexpected error occurred');
       }
@@ -45,7 +45,7 @@ const AddWorkspaceModal: React.FC<AddWorkspaceModalProps> = ({ open, onClose, on
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit}>
-        <DialogTitle>Create New Workspace</DialogTitle>
+        <DialogTitle>Create New Organization</DialogTitle>
         <DialogContent>
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
@@ -54,7 +54,7 @@ const AddWorkspaceModal: React.FC<AddWorkspaceModalProps> = ({ open, onClose, on
           )}
           <div className="mt-4">
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Workspace Name
+              Organization Name
             </label>
             <input
               type="text"
@@ -62,7 +62,7 @@ const AddWorkspaceModal: React.FC<AddWorkspaceModalProps> = ({ open, onClose, on
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              placeholder="Enter workspace name"
+              placeholder="Enter organization name"
               required
               autoFocus
             />
@@ -86,21 +86,21 @@ const AddWorkspaceModal: React.FC<AddWorkspaceModalProps> = ({ open, onClose, on
   );
 };
 
-const WorkspaceManager: React.FC = () => {
+const OrganizationManager: React.FC = () => {
   const router = useRouter()
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleteWorkspaceId, setDeleteWorkspaceId] = useState<string | null>(null);
+  const [deleteOrganizationId, setDeleteOrganizationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const fetchWorkspaces = async () => {
+  const fetchOrganizations = async () => {
     try {
-      const response = await getWorkspacesApi();
-      setWorkspaces(response.workspaces);
+      const response = await getOrganizationsApi();
+      setOrganizations(response.organizations);
     } catch (error) {
       if (isAxiosError(error)) {
-        console.error('Error fetching workspaces:', error.response?.data);
+        console.error('Error fetching organizations:', error.response?.data);
       }
     } finally {
       setLoading(false);
@@ -108,35 +108,35 @@ const WorkspaceManager: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchWorkspaces();
+    fetchOrganizations();
   }, []);
 
-  const handleDeleteClick = (workspaceId: string) => {
-    setDeleteWorkspaceId(workspaceId);
+  const handleDeleteClick = (organizationId: string) => {
+    setDeleteOrganizationId(organizationId);
   };
 
   const handleDeleteConfirm = async () => {
-    if (!deleteWorkspaceId) return;
+    if (!deleteOrganizationId) return;
 
     try {
-      await deleteWorkspaceApi(deleteWorkspaceId);
-      setWorkspaces(prevWorkspaces => 
-        prevWorkspaces.filter(w => w.id !== deleteWorkspaceId)
+      await deleteOrganizationApi(deleteOrganizationId);
+      setOrganizations(prevOrganizations => 
+        prevOrganizations.filter(o => o.id !== deleteOrganizationId)
       );
-      setDeleteWorkspaceId(null);
+      setDeleteOrganizationId(null);
     } catch (error) {
       if (isAxiosError(error)) {
-        setError(error.response?.data?.detail || 'Failed to delete workspace');
+        setError(error.response?.data?.detail || 'Failed to delete organization');
       } else {
         setError('An unexpected error occurred');
       }
     }
   };
 
-  const handleAddWorkspace = async (workspace: CreateWorkspaceRequest) => {
+  const handleAddOrganization = async (organization: CreateOrganizationRequest) => {
     try {
-      await createWorkspaceApi(workspace);
-      await fetchWorkspaces();
+      await createOrganizationApi(organization);
+      await fetchOrganizations();
     } catch (error) {
       throw error; // Let the modal handle the error
     }
@@ -167,7 +167,7 @@ const WorkspaceManager: React.FC = () => {
       renderCell: (params) => (
         <div className="flex gap-2 items-center h-full">
           <IconButton
-            onClick={() => router.push(`/settings/account/workspaces/${params.row.id}`)}
+            onClick={() => router.push(`/settings/account/organizations/${params.row.id}`)}
             className="text-blue-600 hover:bg-blue-50"
           >
             <EditIcon />
@@ -192,18 +192,18 @@ const WorkspaceManager: React.FC = () => {
       )}
 
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Workspaces</h2>
+        <h2 className="text-xl font-semibold">Organizations</h2>
         <button
           onClick={() => setIsAddModalOpen(true)}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
-          Add Workspace
+          Add Organization
         </button>
       </div>
 
       <div style={{ height: 400, width: '100%' }}>
         <DataGrid
-          rows={workspaces}
+          rows={organizations}
           columns={columns}
           loading={loading}
           pageSizeOptions={[10, 25, 50]}
@@ -226,26 +226,26 @@ const WorkspaceManager: React.FC = () => {
       {/* Status Text */}
       <div className="mt-4 text-sm text-gray-600">
         {loading ? 'Loading...' : 
-          workspaces.length > 0 ? 
-            `Showing ${workspaces.length} workspaces` : 
-            'No workspaces found'
+          organizations.length > 0 ? 
+            `Showing ${organizations.length} organizations` : 
+            'No organizations found'
         }
       </div>
 
       {/* Delete Confirmation Dialog */}
       <Dialog
-        open={Boolean(deleteWorkspaceId)}
-        onClose={() => setDeleteWorkspaceId(null)}
+        open={Boolean(deleteOrganizationId)}
+        onClose={() => setDeleteOrganizationId(null)}
       >
-        <DialogTitle>Delete Workspace</DialogTitle>
+        <DialogTitle>Delete Organization</DialogTitle>
         <DialogContent>
           <p className="mt-2">
-            Are you sure you want to delete this workspace? This action cannot be undone.
+            Are you sure you want to delete this organization? This action cannot be undone.
           </p>
         </DialogContent>
         <DialogActions className="p-4">
           <Button
-            onClick={() => setDeleteWorkspaceId(null)}
+            onClick={() => setDeleteOrganizationId(null)}
             className="text-gray-600"
           >
             Cancel
@@ -261,13 +261,13 @@ const WorkspaceManager: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <AddWorkspaceModal
+      <AddOrganizationModal
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onAdd={handleAddWorkspace}
+        onAdd={handleAddOrganization}
       />
     </div>
   );
 };
 
-export default WorkspaceManager; 
+export default OrganizationManager; 

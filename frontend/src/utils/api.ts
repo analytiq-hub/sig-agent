@@ -1,7 +1,7 @@
 import axios, { isAxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
-import { CreateWorkspaceRequest, ListWorkspacesResponse, Workspace, UpdateWorkspaceRequest } from '@/app/types/Api';
+import { CreateOrganizationRequest, ListOrganizationsResponse, Organization, UpdateOrganizationRequest } from '@/app/types/Api';
 
 // These APIs execute from the frontend
 const NEXT_PUBLIC_FASTAPI_FRONTEND_URL = process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL || "http://localhost:8000";
@@ -519,16 +519,16 @@ export const updateTagApi = async (tagId: string, tag: TagCreate): Promise<Tag> 
     return response.data;
 };
 
-// Workspace APIs
-export const getWorkspacesApi = async (userId?: string): Promise<ListWorkspacesResponse> => {
-  const response = await api.get('/account/workspaces', {
+// Organization APIs
+export const getOrganizationsApi = async (userId?: string): Promise<ListOrganizationsResponse> => {
+  const response = await api.get('/account/organizations', {
     params: userId ? { user_id: userId } : undefined
   });
   return response.data;
 };
 
-export const createWorkspaceApi = async (workspace: CreateWorkspaceRequest): Promise<Workspace> => {
-  const response = await api.post('/account/workspaces', workspace);
+export const createOrganizationApi = async (organization: CreateOrganizationRequest): Promise<Organization> => {
+  const response = await api.post('/account/organizations', organization);
   const data = response.data;
   return {
     id: data._id || data.id,
@@ -539,16 +539,17 @@ export const createWorkspaceApi = async (workspace: CreateWorkspaceRequest): Pro
   };
 };
 
-export const updateWorkspaceApi = async (
-  workspaceId: string, 
-  update: UpdateWorkspaceRequest
-): Promise<Workspace> => {
-  const response = await api.put(`/account/workspaces/${workspaceId}`, update);
+export const updateOrganizationApi = async (
+  organizationId: string, 
+  update: UpdateOrganizationRequest
+): Promise<Organization> => {
+  const response = await api.put(`/account/organizations/${organizationId}`, update);
   return response.data;
 };
 
-export const deleteWorkspaceApi = async (workspaceId: string): Promise<void> => {
-  await api.delete(`/account/workspaces/${workspaceId}`);
+export const deleteOrganizationApi = async (organizationId: string) => {
+  const response = await axios.delete(`/api/organizations/${organizationId}`);
+  return response.data;
 };
 
 // User APIs
