@@ -93,7 +93,6 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [name, setName] = useState('')
   const [members, setMembers] = useState<OrganizationMember[]>([])
   const [availableUsers, setAvailableUsers] = useState<UserResponse[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -101,13 +100,6 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [memberSearch, setMemberSearch] = useState('');
   const [originalName, setOriginalName] = useState('')
   const [originalMembers, setOriginalMembers] = useState<OrganizationMember[]>([])
-
-  // Filter users based on search query
-  const filteredUsers = availableUsers.filter(user => 
-    !members.some(member => member.user_id === user.id) && 
-    (user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-     user.email.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
 
   // Filter current organization members
   const filteredMembers = members.filter(member => {
