@@ -149,7 +149,7 @@ const UserManager: React.FC = () => {
       headerName: 'Actions',
       width: 120,
       renderCell: ({ row }) => (
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center h-full">
           <IconButton
             onClick={() => router.push(`/settings/admin/users/${row.id}`)}
             className="text-blue-600 hover:bg-blue-50"
