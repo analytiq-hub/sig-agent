@@ -80,7 +80,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     fetchOrganizations()
-  }, [])
+  }, [currentOrganization])
 
   return (
     <OrganizationContext.Provider value={{

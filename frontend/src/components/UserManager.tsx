@@ -317,7 +317,6 @@ const UserManager: React.FC = () => {
 
   // Calculate the current range for status text
   const startRange = (paginationModel.page * paginationModel.pageSize) + 1;
-  const endRange = Math.min(startRange + users.length - 1, totalCount);
 
   const handleAddUser = async (userData: UserCreate) => {
     try {
@@ -380,7 +379,7 @@ const UserManager: React.FC = () => {
       <div className="mt-4 text-sm text-gray-600">
         {loading ? 'Loading...' : 
           filteredUsers.length > 0 ? 
-            `Showing ${Math.min(filteredUsers.length, paginationModel.pageSize)} of ${filteredUsers.length} users` : 
+            `Showing ${startRange}-${startRange + filteredUsers.length - 1} of ${totalCount} users` : 
             'No users found'
         }
       </div>
