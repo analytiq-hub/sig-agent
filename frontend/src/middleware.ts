@@ -7,7 +7,7 @@ export default withAuth(
     const path = req.nextUrl.pathname;
 
     // Admin-only routes - comment in.
-    if (path.startsWith("/settings/admin")) {
+    if (path.startsWith("/settings/account")) {
       if (token?.role !== "admin") {
         return NextResponse.redirect(new URL("/settings", req.url));
       }

@@ -38,7 +38,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
                   Manage your Large Language Model (LLM) API tokens.
                 </p>
               </div>
-              <Link href="/settings/admin/development/llm-tokens" passHref>
+              <Link href="/settings/account/development/llm-tokens" passHref>
                 <Button variant="contained" color="primary">
                   Manage
                 </Button>
@@ -54,7 +54,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
                   Configure your AWS access keys and region settings.
                 </p>
               </div>
-              <Link href="/settings/admin/development/aws-credentials" passHref>
+              <Link href="/settings/account/development/aws-credentials" passHref>
                 <Button variant="contained" color="primary">
                   Manage
                 </Button>
@@ -100,12 +100,12 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
               <div className="p-4">
                 <div className="flex items-center gap-2 text-gray-400 font-medium mb-2">
                   <AdminPanelSettingsIcon className="w-5 h-5" />
-                  <span>Admin Settings</span>
+                  <span>Account Settings</span>
                 </div>
                 
                 <div className="ml-4 space-y-1">
                   <button
-                    onClick={() => router.push('/settings/admin/development')}
+                    onClick={() => router.push('/settings/account/development')}
                     className={`w-full text-left px-4 py-2 rounded-md transition-colors
                       ${selectedMenu === 'system_development' 
                         ? 'bg-blue-50 text-blue-600' 
@@ -116,7 +116,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
                   </button>
                   
                   <button
-                    onClick={() => router.push('/settings/admin/users')}
+                    onClick={() => router.push('/settings/account/users')}
                     className={`w-full text-left px-4 py-2 rounded-md transition-colors
                       ${selectedMenu === 'system_users' 
                         ? 'bg-blue-50 text-blue-600' 
@@ -127,7 +127,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
                   </button>
 
                   <button
-                    onClick={() => router.push('/settings/admin/workspaces')}
+                    onClick={() => router.push('/settings/account/workspaces')}
                     className={`w-full text-left px-4 py-2 rounded-md transition-colors
                       ${selectedMenu === 'system_workspaces' 
                         ? 'bg-blue-50 text-blue-600' 

@@ -201,7 +201,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
         signOut({ callbackUrl: '/signin' });
       } else {
         // Otherwise just redirect to user list
-        router.push('/settings/admin/users');
+        router.push('/settings/account/users');
       }
     } catch (error) {
       setError('Failed to delete user');
@@ -307,7 +307,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
           </button>
           <button
             type="button"
-            onClick={() => router.push('/settings/admin/users')}
+            onClick={() => router.push('/settings/account/users')}
             className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Cancel

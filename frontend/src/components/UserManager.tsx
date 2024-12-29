@@ -151,7 +151,7 @@ const UserManager: React.FC = () => {
       renderCell: ({ row }) => (
         <div className="flex gap-2 items-center h-full">
           <IconButton
-            onClick={() => router.push(`/settings/admin/users/${row.id}`)}
+            onClick={() => router.push(`/settings/account/users/${row.id}`)}
             className="text-blue-600 hover:bg-blue-50"
           >
             <EditIcon />
