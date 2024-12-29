@@ -153,7 +153,6 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
       renderCell: (params: GridRenderCellParams) => (
         <IconButton
           onClick={() => handleRemoveMember(params.row.id)}
-          color="error"
           size="small"
         >
           <DeleteIcon />
@@ -172,124 +171,129 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
 
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold mb-4">Edit Workspace</h2>
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-            <span className="block sm:inline">{error}</span>
+      <div className="flex flex-col h-[calc(100vh-200px)]">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">Edit Workspace</h2>
+          <div className="flex gap-4">
+            <button
+              type="submit"
+              form="workspace-form"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Save Changes
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/settings/account/workspaces')}
+              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Cancel
+            </button>
           </div>
-        )}
-        
-        {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded relative" role="alert">
-            <span className="block sm:inline">Workspace updated successfully</span>
-          </div>
-        )}
-
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-            Workspace Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
         </div>
-
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">Members</h3>
-          
-          {/* Search and Add Members */}
-          <div className="mb-6">
-            <label htmlFor="user-search" className="block text-sm font-medium text-gray-700 mb-1">
-              Add Member
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                id="user-search"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Search users by name or email"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {searchQuery && filteredUsers.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full bg-white rounded-md shadow-lg border border-gray-200">
-                  {filteredUsers.slice(0, 10).map((user) => (
-                    <button
-                      key={user.id}
-                      type="button"
-                      className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
-                      onClick={() => {
-                        handleAddMember(user.id)
-                        setSearchQuery('')
-                      }}
-                    >
-                      <div>
-                        <span className="font-medium">{user.name}</span>
-                        <span className="ml-2 text-sm text-gray-500">{user.email}</span>
-                      </div>
-                      <span className="text-blue-600 text-sm">Add</span>
-                    </button>
-                  ))}
-                </div>
-              )}
+        
+        <form id="workspace-form" onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+              <span className="block sm:inline">{error}</span>
             </div>
-          </div>
+          )}
+          
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded relative" role="alert">
+              <span className="block sm:inline">Workspace updated successfully</span>
+            </div>
+          )}
 
-          {/* Members Grid */}
-          <div style={{ height: 400, width: '100%' }}>
-            <DataGrid
-              rows={getGridRows()}
-              columns={columns}
-              initialState={{
-                pagination: {
-                  paginationModel: { pageSize: 5 }
-                }
-              }}
-              pageSizeOptions={[5, 10, 20]}
-              disableRowSelectionOnClick
-              disableColumnMenu
-              density="standard"
-              sx={{
-                '& .MuiDataGrid-row': {
-                  height: '60px'
-                },
-                '& .MuiDataGrid-row:nth-of-type(odd)': {
-                  backgroundColor: '#f9fafb'
-                },
-                '& .MuiDataGrid-cell': {
-                  height: '60px',
-                  alignItems: 'center',
-                  padding: '0 16px'
-                }
-              }}
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              Workspace Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-        </div>
 
-        <div className="flex gap-4 pt-4">
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            Save Changes
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push('/settings/account/workspaces')}
-            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
+          <div className="flex-1 min-h-0 space-y-4">
+            <h3 className="text-lg font-medium text-gray-900">Members</h3>
+            
+            <div className="mb-6">
+              <label htmlFor="user-search" className="block text-sm font-medium text-gray-700 mb-1">
+                Add Member
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  id="user-search"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Search users by name or email"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && filteredUsers.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white rounded-md shadow-lg border border-gray-200">
+                    {filteredUsers.slice(0, 10).map((user) => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
+                        onClick={() => {
+                          handleAddMember(user.id)
+                          setSearchQuery('')
+                        }}
+                      >
+                        <div>
+                          <span className="font-medium">{user.name}</span>
+                          <span className="ml-2 text-sm text-gray-500">{user.email}</span>
+                        </div>
+                        <span className="text-blue-600 text-sm">Add</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="h-[calc(100%-100px)]">
+              <DataGrid
+                rows={getGridRows()}
+                columns={columns}
+                initialState={{
+                  pagination: {
+                    paginationModel: { pageSize: 5 }
+                  }
+                }}
+                pageSizeOptions={[5, 10, 20]}
+                disableRowSelectionOnClick
+                disableColumnMenu
+                density="standard"
+                sx={{
+                  '& .MuiDataGrid-row': {
+                    height: '60px'
+                  },
+                  '& .MuiDataGrid-row:nth-of-type(odd)': {
+                    backgroundColor: '#f9fafb'
+                  },
+                  '& .MuiDataGrid-cell': {
+                    height: '60px',
+                    alignItems: 'center',
+                    padding: '0 16px'
+                  },
+                  '& .MuiDataGrid-root': {
+                    height: '100%'
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
