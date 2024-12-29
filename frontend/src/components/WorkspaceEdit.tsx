@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import { useRouter } from 'next/navigation'
 import { Workspace } from '@/app/types/Api'
 import { getWorkspacesApi, updateWorkspaceApi } from '@/utils/api'
 import { isAxiosError } from 'axios'
+import { WorkspaceContext } from '@/contexts/WorkspaceContext'
 
 interface WorkspaceEditProps {
   workspaceId: string
@@ -12,6 +13,7 @@ interface WorkspaceEditProps {
 
 const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
   const router = useRouter()
+  const { refreshWorkspaces } = useContext(WorkspaceContext)
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(true)
@@ -48,7 +50,7 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
     try {
       await updateWorkspaceApi(workspaceId, { name })
       setSuccess(true)
-      router.refresh()
+      await refreshWorkspaces()
     } catch (err) {
       if (isAxiosError(err)) {
         setError(err.response?.data?.detail || 'Failed to update workspace')
