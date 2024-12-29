@@ -520,32 +520,6 @@ export const updateTagApi = async (tagId: string, tag: TagCreate): Promise<Tag> 
 };
 
 // Workspace APIs
-
-export const getWorkspacesApi = async (): Promise<ListWorkspacesResponse> => {
-  const response = await api.get('/workspaces');
-  // Transform the response to match frontend expectations
-  const workspaces = response.data.workspaces.map((workspace: { 
-    _id?: string;
-    id?: string;
-    name: string;
-    owner_id: string;
-    members: Array<{ user_id: string; role: string }>;
-    created_at: string;
-    updated_at: string;
-  }) => ({
-    id: workspace.id || workspace._id,
-    name: workspace.name,
-    owner_id: workspace.owner_id,
-    members: workspace.members.map(member => ({
-      user_id: member.user_id,
-      role: member.role
-    })),
-    created_at: workspace.created_at,
-    updated_at: workspace.updated_at
-  }));
-  return { workspaces };
-};
-
 export const getAllWorkspacesApi = async (userId?: string): Promise<ListWorkspacesResponse> => {
   const response = await api.get('/account/workspaces', {
     params: userId ? { user_id: userId } : undefined
