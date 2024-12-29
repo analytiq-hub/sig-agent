@@ -73,7 +73,7 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
     }
   }
 
-  const handleRoleChange = (userId: string, newRole: 'admin' | 'member') => {
+  const handleRoleChange = (userId: string, newRole: 'admin' | 'user') => {
     setMembers(prevMembers => {
       const updatedMembers = prevMembers.map(member => 
         member.user_id === userId ? { ...member, role: newRole } : member
@@ -84,7 +84,7 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
 
   const handleAddMember = (userId: string) => {
     if (!members.some(member => member.user_id === userId)) {
-      setMembers(prev => [...prev, { user_id: userId, role: 'member' }])
+      setMembers(prev => [...prev, { user_id: userId, role: 'user' }])
     }
   }
 
@@ -142,10 +142,10 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
                     <div className="flex items-center gap-2">
                       <select
                         value={member.role}
-                        onChange={(e) => handleRoleChange(member.user_id, e.target.value as 'admin' | 'member')}
+                        onChange={(e) => handleRoleChange(member.user_id, e.target.value as 'admin' | 'user')}
                         className="rounded border border-gray-300 px-2 py-1"
                       >
-                        <option value="member">Member</option>
+                        <option value="user">User</option>
                         <option value="admin">Admin</option>
                       </select>
                       <button

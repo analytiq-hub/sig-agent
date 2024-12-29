@@ -1467,39 +1467,55 @@ async def create_workspace(
 @app.put("/account/workspaces/{workspace_id}", response_model=Workspace)
 async def update_workspace(
     workspace_id: str,
-    update: WorkspaceUpdate,
+    workspace_update: WorkspaceUpdate,
     current_user: User = Depends(get_current_user)
 ):
-    """Update workspace details (accountadmin or workspace admin)"""
-    # Get workspace and verify it exists
+    """Update a workspace"""
     workspace = await db.workspaces.find_one({"_id": ObjectId(workspace_id)})
     if not workspace:
-        raise HTTPException(404, "Workspace not found")
-    
-    # Check if user has permission (account admin or workspace admin)
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+        # Check if user has permission (account admin or workspace admin)
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_account_admin = db_user and db_user.get("role") == "admin"
-    is_workspace_member = current_user.user_id in [member["user_id"] for member in workspace["members"]]
     is_workspace_admin = any(member["role"] == "admin" and member["user_id"] == current_user.user_id for member in workspace["members"])
     
     if not (is_account_admin or is_workspace_admin):
         raise HTTPException(
             status_code=403,
-            detail="Not authorized to modify this workspace"
+            detail="Not authorized to update this workspace"
         )
-        
-    update_doc = {
-        "updated_at": datetime.utcnow(),
-        **{k: v for k, v in update.model_dump().items() if v is not None}
+
+    update_data = {}
+    if workspace_update.name is not None:
+        update_data["name"] = workspace_update.name
+    
+    if workspace_update.members is not None:
+        # Ensure at least one admin remains
+        if not any(m.role == "admin" for m in workspace_update.members):
+            raise HTTPException(
+                status_code=400,
+                detail="Workspace must have at least one admin"
+            )
+        update_data["members"] = [m.dict() for m in workspace_update.members]
+
+    if update_data:
+        update_data["updated_at"] = datetime.now(UTC)
+        result = await db.workspaces.update_one(
+            {"_id": ObjectId(workspace_id)},
+            {"$set": update_data}
+        )
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Workspace not found")
+
+    updated_workspace = await db.workspaces.find_one({"_id": ObjectId(workspace_id)})
+    return {
+        "id": str(updated_workspace["_id"]),
+        "name": updated_workspace["name"],
+        "members": updated_workspace["members"],
+        "created_at": updated_workspace["created_at"],
+        "updated_at": updated_workspace["updated_at"]
     }
-    
-    workspace = await db.workspaces.find_one_and_update(
-        {"_id": ObjectId(workspace_id)},
-        {"$set": update_doc},
-        return_document=True
-    )
-    
-    return Workspace(**{**workspace, "id": str(workspace["_id"])})
 
 @app.delete("/account/workspaces/{workspace_id}")
 async def delete_workspace(

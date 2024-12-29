@@ -155,7 +155,7 @@ class ListTagsResponse(BaseModel):
 # Add to schemas.py
 class WorkspaceMember(BaseModel):
     user_id: str
-    role: Literal["owner", "admin", "member"]
+    role: Literal['admin', 'user']  # Changed from 'owner', 'admin', 'member'
 
 class WorkspaceCreate(BaseModel):
     name: str

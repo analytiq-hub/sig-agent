@@ -1,6 +1,6 @@
 export interface WorkspaceMember {
   user_id: string;
-  role: 'admin' | 'member';
+  role: 'admin' | 'user';
 }
 
 export interface Workspace {
