@@ -23,8 +23,7 @@ import hmac
 import hashlib
 from bcrypt import hashpw, gensalt
 
-import api
-import models
+import utils
 from schemas import (
     User,
     AccessToken, ListAccessTokensResponse, CreateAccessTokenRequest,
@@ -152,6 +151,11 @@ async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(se
             detail="Admin access required"
         )
     return user
+
+# Add to startup
+@app.on_event("startup")
+async def startup_event():
+    await utils.create_admin(analytiq_client)
 
 # PDF management endpoints
 @app.post("/documents")
@@ -1357,56 +1361,6 @@ async def update_tag(
     # Get and return the updated tag
     updated_tag = await tags_collection.find_one({"_id": ObjectId(tag_id)})
     return Tag(**{**updated_tag, "id": str(updated_tag["_id"])})
-
-async def create_admin():
-    admin_email = os.getenv("ADMIN_EMAIL")
-    admin_password = os.getenv("ADMIN_PASSWORD")
-    
-    if not admin_email or not admin_password:
-        return
-        
-    try:
-        db = analytiq_client.mongodb_async[ENV]
-        users = db.users
-        
-        # Check if admin already exists
-        existing_admin = await users.find_one({"email": admin_email})
-        if existing_admin:
-            return
-            
-        # Create admin user with bcrypt hash
-        hashed_password = hashpw(admin_password.encode(), gensalt(12))
-        result = await users.insert_one({
-            "email": admin_email,
-            "password": hashed_password.decode(),
-            "name": "System Administrator",
-            "role": "admin",
-            "emailVerified": True,
-            "createdAt": datetime.now(UTC)
-        })
-        
-        admin_id = str(result.inserted_id)
-        
-        # Create organization for admin
-        await db.organizations.insert_one({
-            "_id": ObjectId(admin_id),
-            "name": "Admin",
-            "members": [{
-                "user_id": admin_id,
-                "role": "admin"
-            }],
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        })
-        
-        ad.log.info(f"Created default admin user: {admin_email}")
-    except Exception as e:
-        ad.log.error(f"Failed to create default admin: {e}")
-
-# Add to startup
-@app.on_event("startup")
-async def startup_event():
-    await create_admin()
 
 @app.get("/account/organizations", response_model=ListOrganizationsResponse)
 async def list_organizations(
