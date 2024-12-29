@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { getLLMTokensApi, LLMToken, createLLMTokenApi, deleteLLMTokenApi } from '@/utils/api';
 
@@ -61,93 +60,145 @@ const LLMTokenManager: React.FC = () => {
 
   return (
     <div>
-      <TableContainer component={Paper}>
-        <Table size="small" style={{ tableLayout: 'fixed' }}>
-          <TableHead>
-            <TableRow>
-              <TableCell style={{ width: '20%' }}>Provider</TableCell>
-              <TableCell style={{ width: '40%' }}>Token</TableCell>
-              <TableCell style={{ width: '25%' }}>Created At</TableCell>
-              <TableCell style={{ width: '7.5%' }}>Edit</TableCell>
-              <TableCell style={{ width: '7.5%' }}>Delete</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="w-1/5 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Provider
+              </th>
+              <th className="w-2/5 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Token
+              </th>
+              <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Created At
+              </th>
+              <th className="w-[7.5%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Edit
+              </th>
+              <th className="w-[7.5%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Delete
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
             {['OpenAI', 'Anthropic', 'Groq'].map((provider) => {
               const token = llmTokens.find(t => t.llm_vendor === provider);
               return (
-                <TableRow 
-                  key={provider} 
-                  sx={{ 
-                    '&:nth-of-type(odd)': { backgroundColor: 'rgba(0, 0, 0, 0.04)' },
-                    '&:last-child td, &:last-child th': { border: 0 },
-                    height: '30px'
-                  }}
+                <tr 
+                  key={provider}
+                  className="even:bg-gray-50"
                 >
-                  <TableCell style={{ width: '20%' }}>{provider}</TableCell>
-                  <TableCell style={{ width: '40%' }}>
+                  <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900">
+                    {provider}
+                  </td>
+                  <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900">
                     {token ? (
                       <span>{token.token.slice(0, 16)}••••••••</span>
                     ) : (
                       <span className="text-gray-400">Not set</span>
                     )}
-                  </TableCell>
-                  <TableCell style={{ width: '25%' }}>
+                  </td>
+                  <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900">
                     {token ? new Date(token.created_at).toLocaleString() : '-'}
-                  </TableCell>
-                  <TableCell style={{ width: '7.5%' }}>
-                    <IconButton
-                      aria-label="edit"
+                  </td>
+                  <td className="px-6 py-2 whitespace-nowrap text-sm">
+                    <button
                       onClick={() => handleEditLLMToken(provider)}
-                      size="small"
+                      className="p-1 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100"
                     >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
-                  <TableCell style={{ width: '7.5%' }}>
+                      <EditIcon className="w-4 h-4" />
+                    </button>
+                  </td>
+                  <td className="px-6 py-2 whitespace-nowrap text-sm">
                     {token && (
-                      <IconButton
-                        aria-label="delete"
+                      <button
                         onClick={() => handleDeleteLLMToken(token.id)}
-                        size="small"
+                        className="p-1 text-gray-600 hover:text-red-600 rounded-full hover:bg-gray-100"
                       >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
+                        <DeleteIcon className="w-4 h-4" />
+                      </button>
                     )}
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               );
             })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </tbody>
+        </table>
+      </div>
 
-      {/* LLM Token Edit Modal */}
-      <Dialog open={editModalOpen} onClose={() => setEditModalOpen(false)}>
-        <DialogTitle>Edit {editingProvider} Token</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Token"
-            fullWidth
-            variant="outlined"
-            value={editTokenValue}
-            onChange={(e) => setEditTokenValue(e.target.value)}
-            placeholder="Enter your token"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button variant="outlined" color="primary" onClick={() => setEditModalOpen(false)}>Cancel</Button>
-          <Button variant="contained" color="primary" onClick={handleSaveLLMToken}>Save</Button>
-        </DialogActions>
-      </Dialog>
+      {/* Edit Token Modal */}
+      {editModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Edit {editingProvider} Token</h2>
+              <button
+                onClick={() => setEditModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="mt-4">
+              <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-1">
+                Token
+              </label>
+              <input
+                id="token"
+                type="text"
+                value={editTokenValue}
+                onChange={(e) => setEditTokenValue(e.target.value)}
+                placeholder="Enter your token"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+              />
+            </div>
 
-      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
-        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
-      </Snackbar>
+            <div className="flex justify-end space-x-2 mt-6">
+              <button
+                onClick={() => setEditModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveLLMToken}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {error && (
+        <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white border-l-4 border-red-500 shadow-lg rounded-lg p-4 animate-slide-up">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="ml-3 w-full">
+              <p className="text-sm text-gray-800">{error}</p>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="ml-auto flex-shrink-0 text-gray-400 hover:text-gray-500"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
