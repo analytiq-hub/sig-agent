@@ -143,7 +143,19 @@ const OrganizationManager: React.FC = () => {
   };
 
   const columns: GridColDef[] = [
-    { field: 'name', headerName: 'Name', flex: 1 },
+    { 
+      field: 'name', 
+      headerName: 'Name', 
+      flex: 1,
+      renderCell: (params) => (
+        <button
+          onClick={() => router.push(`/settings/account/organizations/${params.row.id}`)}
+          className="text-left hover:text-blue-600 focus:outline-none"
+        >
+          {params.value}
+        </button>
+      )
+    },
     { 
       field: 'members', 
       headerName: 'Members', 
