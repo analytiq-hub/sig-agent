@@ -210,15 +210,21 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
   const columns: GridColDef[] = [
     {
       field: 'name',
-      headerName: 'Name',
+      headerName: 'User',
       flex: 1,
-      minWidth: 150
-    },
-    {
-      field: 'email',
-      headerName: 'Email',
-      flex: 1,
-      minWidth: 200
+      minWidth: 300,
+      renderCell: (params: GridRenderCellParams) => {
+        const user = availableUsers.find(u => u.id === params.row.id);
+        return (
+          <button
+            onClick={() => router.push(`/settings/account/users/${params.row.id}`)}
+            className="text-left hover:text-blue-600 focus:outline-none"
+          >
+            <span className="font-medium">{params.value}</span>
+            <span className="text-gray-500 ml-2">({params.row.email})</span>
+          </button>
+        );
+      }
     },
     {
       field: 'isAdmin',
