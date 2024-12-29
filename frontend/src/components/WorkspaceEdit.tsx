@@ -40,9 +40,10 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   // Filter users not in workspace
   const filteredUsers = availableUsers.filter(user => 
     !currentMembers.some(member => member.user_id === user.id) && 
-    (user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (searchQuery === '' || // Only apply name/email filter if there's a search query
+     user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
      user.email.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  ).slice(0, 10); // Limit to first 10 users
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -98,6 +99,8 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
   const [success, setSuccess] = useState(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
+  const [originalName, setOriginalName] = useState('')
+  const [originalMembers, setOriginalMembers] = useState<WorkspaceMember[]>([])
 
   // Filter users based on search query
   const filteredUsers = availableUsers.filter(user => 
@@ -128,6 +131,9 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
           setWorkspace(workspace)
           setName(workspace.name)
           setMembers(workspace.members)
+          // Store original values
+          setOriginalName(workspace.name)
+          setOriginalMembers(workspace.members)
         } else {
           setError('Workspace not found')
         }
@@ -156,6 +162,9 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
       })
       setSuccess(true)
       await refreshWorkspaces()
+      // Update original values after successful save
+      setOriginalName(name)
+      setOriginalMembers(members)
     } catch (err) {
       if (isAxiosError(err)) {
         setError(err.response?.data?.detail || 'Failed to update workspace')
@@ -238,6 +247,20 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
     }
   ]
 
+  // Check if form has changes
+  const hasChanges = () => {
+    if (name !== originalName) return true
+    if (members.length !== originalMembers.length) return true
+    
+    // Compare each member and their roles
+    const memberChanges = members.some(member => {
+      const originalMember = originalMembers.find(m => m.user_id === member.user_id)
+      return !originalMember || originalMember.role !== member.role
+    })
+    
+    return memberChanges
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center p-4">Loading...</div>
   }
@@ -255,7 +278,11 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
             <button
               type="submit"
               form="workspace-form"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              disabled={!hasChanges()}
+              className={`px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                ${hasChanges() 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
             >
               Save Changes
             </button>
