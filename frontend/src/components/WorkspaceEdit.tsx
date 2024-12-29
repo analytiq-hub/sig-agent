@@ -253,7 +253,20 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
               rowsPerPageOptions={[5, 10, 20]}
               disableSelectionOnClick
               disableColumnMenu
-              density="comfortable"
+              density="standard"
+              sx={{
+                '& .MuiDataGrid-row': {
+                  height: '60px'
+                },
+                '& .MuiDataGrid-row:nth-of-type(odd)': {
+                  backgroundColor: '#f9fafb'
+                },
+                '& .MuiDataGrid-cell': {
+                  height: '60px',
+                  alignItems: 'center',
+                  padding: '0 16px'
+                }
+              }}
             />
           </div>
         </div>
