@@ -194,73 +194,82 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
         
         <form id="workspace-form" onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
               <span className="block sm:inline">{error}</span>
             </div>
           )}
           
           {success && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded relative" role="alert">
+            <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded relative">
               <span className="block sm:inline">Workspace updated successfully</span>
             </div>
           )}
 
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Workspace Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          {/* Workspace Name Section */}
+          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+            {/* <h3 className="text-lg font-medium text-gray-900 mb-4">Workspace Details</h3> */}
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                Workspace Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              />
+            </div>
           </div>
 
-          <div className="flex-1 min-h-0 space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">Members</h3>
-            
-            <div className="mb-6">
-              <label htmlFor="user-search" className="block text-sm font-medium text-gray-700 mb-1">
-                Add Member
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  id="user-search"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Search users by name or email"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                {searchQuery && filteredUsers.length > 0 && (
-                  <div className="absolute z-10 mt-1 w-full bg-white rounded-md shadow-lg border border-gray-200">
-                    {filteredUsers.slice(0, 10).map((user) => (
-                      <button
-                        key={user.id}
-                        type="button"
-                        className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
-                        onClick={() => {
-                          handleAddMember(user.id)
-                          setSearchQuery('')
-                        }}
-                      >
-                        <div>
-                          <span className="font-medium">{user.name}</span>
-                          <span className="ml-2 text-sm text-gray-500">{user.email}</span>
-                        </div>
-                        <span className="text-blue-600 text-sm">Add</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+          {/* Members Section */}
+          <div className="flex-1 min-h-0 bg-gray-50 p-4 rounded-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Members</h3>
+              
+              {/* Add Member Search */}
+              <div className="w-96">
+                <label htmlFor="user-search" className="block text-sm font-medium text-gray-700 mb-1">
+                  Add Member
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="user-search"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    placeholder="Search users by name or email"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && filteredUsers.length > 0 && (
+                    <div className="absolute z-10 mt-1 w-full bg-white rounded-md shadow-lg border border-gray-200">
+                      {filteredUsers.slice(0, 10).map((user) => (
+                        <button
+                          key={user.id}
+                          type="button"
+                          className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
+                          onClick={() => {
+                            handleAddMember(user.id)
+                            setSearchQuery('')
+                          }}
+                        >
+                          <div>
+                            <span className="font-medium">{user.name}</span>
+                            <span className="ml-2 text-sm text-gray-500">{user.email}</span>
+                          </div>
+                          <span className="text-blue-600 text-sm">Add</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="h-[calc(100%-100px)]">
+            {/* Members Table */}
+            <div className="h-[calc(100%-80px)] bg-white rounded-lg">
               <DataGrid
                 rows={getGridRows()}
                 columns={columns}

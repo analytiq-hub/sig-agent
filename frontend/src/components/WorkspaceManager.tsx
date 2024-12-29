@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { IconButton } from '@mui/material';
+import { IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getWorkspacesApi} from '@/utils/api';
+import { getWorkspacesApi, deleteWorkspaceApi } from '@/utils/api';
 import { Workspace } from '@/app/types/Api';
 import colors from 'tailwindcss/colors';
 import { isAxiosError } from 'axios';
@@ -15,6 +15,8 @@ const WorkspaceManager: React.FC = () => {
   const router = useRouter()
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteWorkspaceId, setDeleteWorkspaceId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchWorkspaces = async () => {
     try {
@@ -32,6 +34,28 @@ const WorkspaceManager: React.FC = () => {
   useEffect(() => {
     fetchWorkspaces();
   }, []);
+
+  const handleDeleteClick = (workspaceId: string) => {
+    setDeleteWorkspaceId(workspaceId);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteWorkspaceId) return;
+
+    try {
+      await deleteWorkspaceApi(deleteWorkspaceId);
+      setWorkspaces(prevWorkspaces => 
+        prevWorkspaces.filter(w => w.id !== deleteWorkspaceId)
+      );
+      setDeleteWorkspaceId(null);
+    } catch (error) {
+      if (isAxiosError(error)) {
+        setError(error.response?.data?.detail || 'Failed to delete workspace');
+      } else {
+        setError('An unexpected error occurred');
+      }
+    }
+  };
 
   const columns: GridColDef[] = [
     { field: 'name', headerName: 'Name', flex: 1 },
@@ -64,7 +88,7 @@ const WorkspaceManager: React.FC = () => {
             <EditIcon />
           </IconButton>
           <IconButton
-            onClick={() => {/* TODO: Implement delete */}}
+            onClick={() => handleDeleteClick(params.row.id)}
             className="text-red-600 hover:bg-red-50"
           >
             <DeleteIcon />
@@ -76,6 +100,12 @@ const WorkspaceManager: React.FC = () => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md">
+          {error}
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Workspaces</h2>
       </div>
@@ -110,6 +140,35 @@ const WorkspaceManager: React.FC = () => {
             'No workspaces found'
         }
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={Boolean(deleteWorkspaceId)}
+        onClose={() => setDeleteWorkspaceId(null)}
+      >
+        <DialogTitle>Delete Workspace</DialogTitle>
+        <DialogContent>
+          <p className="mt-2">
+            Are you sure you want to delete this workspace? This action cannot be undone.
+          </p>
+        </DialogContent>
+        <DialogActions className="p-4">
+          <Button
+            onClick={() => setDeleteWorkspaceId(null)}
+            className="text-gray-600"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            className="bg-red-600 text-white hover:bg-red-700"
+            variant="contained"
+            color="error"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
