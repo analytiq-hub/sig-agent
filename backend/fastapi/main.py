@@ -46,8 +46,10 @@ from schemas import (
     ListOrganizationsResponse
 )
 
-# Add the parent directory to the sys path
-sys.path.append("..")
+# Set up the path
+cwd = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(f"{cwd}/..")
+
 import analytiq_data as ad
 
 # Set up the environment variables. This reads the .env file.
