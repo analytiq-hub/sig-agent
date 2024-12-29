@@ -546,8 +546,10 @@ export const getWorkspacesApi = async (): Promise<ListWorkspacesResponse> => {
   return { workspaces };
 };
 
-export const getAllWorkspacesApi = async (): Promise<ListWorkspacesResponse> => {
-  const response = await api.get('/account/workspaces');
+export const getAllWorkspacesApi = async (userId?: string): Promise<ListWorkspacesResponse> => {
+  const response = await api.get('/account/workspaces', {
+    params: userId ? { user_id: userId } : undefined
+  });
   return response.data;
 };
 

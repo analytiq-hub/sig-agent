@@ -1426,7 +1426,7 @@ async def list_user_workspaces(current_user: User = Depends(get_current_user)):
     return ret
 
 @app.get("/account/workspaces", response_model=ListWorkspacesResponse)
-async def list_all_workspaces(current_user: User = Depends(get_admin_user)):
+async def list_workspaces(current_user: User = Depends(get_admin_user)):
     """List all workspaces (admin only)"""
     ad.log.info("Listing all workspaces (admin)")
     workspaces = await db.workspaces.find({}).to_list(None)
