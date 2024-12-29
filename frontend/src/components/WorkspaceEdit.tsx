@@ -207,7 +207,6 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
 
           {/* Workspace Name Section */}
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            {/* <h3 className="text-lg font-medium text-gray-900 mb-4">Workspace Details</h3> */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                 Workspace Name
