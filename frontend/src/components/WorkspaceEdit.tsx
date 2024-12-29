@@ -14,10 +14,76 @@ import {
 } from '@mui/x-data-grid'
 import { Switch, IconButton } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material'
 
 interface WorkspaceEditProps {
   workspaceId: string
 }
+
+interface AddMemberModalProps {
+  open: boolean;
+  onClose: () => void;
+  onAdd: (userId: string) => void;
+  availableUsers: UserResponse[];
+  currentMembers: WorkspaceMember[];
+}
+
+const AddMemberModal: React.FC<AddMemberModalProps> = ({ 
+  open, 
+  onClose, 
+  onAdd, 
+  availableUsers,
+  currentMembers 
+}) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter users not in workspace
+  const filteredUsers = availableUsers.filter(user => 
+    !currentMembers.some(member => member.user_id === user.id) && 
+    (user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+     user.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Add Member</DialogTitle>
+      <DialogContent>
+        <div className="mt-4">
+          <input
+            type="text"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            placeholder="Search users by name or email"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoFocus
+          />
+          <div className="mt-4 max-h-[400px] overflow-auto">
+            {filteredUsers.map((user) => (
+              <button
+                key={user.id}
+                type="button"
+                className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between border-b"
+                onClick={() => {
+                  onAdd(user.id);
+                  onClose();
+                }}
+              >
+                <div>
+                  <div className="font-medium">{user.name}</div>
+                  <div className="text-sm text-gray-500">{user.email}</div>
+                </div>
+                <span className="text-blue-600">Add</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </DialogContent>
+      <DialogActions className="p-4">
+        <Button onClick={onClose}>Cancel</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
 
 const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
   const router = useRouter()
@@ -30,6 +96,8 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
 
   // Filter users based on search query
   const filteredUsers = availableUsers.filter(user => 
@@ -37,6 +105,15 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
     (user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
      user.email.toLowerCase().includes(searchQuery.toLowerCase()))
   )
+
+  // Filter current workspace members
+  const filteredMembers = members.filter(member => {
+    const user = availableUsers.find(u => u.id === member.user_id);
+    return user && (
+      user.name?.toLowerCase().includes(memberSearch.toLowerCase()) || 
+      user.email.toLowerCase().includes(memberSearch.toLowerCase())
+    );
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -107,9 +184,9 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
     setMembers(prev => prev.filter(member => member.user_id !== userId))
   }
 
-  // Add this function to prepare rows for the grid
+  // Update getGridRows to use filtered members
   const getGridRows = () => {
-    return members.map(member => {
+    return filteredMembers.map(member => {
       const user = availableUsers.find(u => u.id === member.user_id)
       return {
         id: member.user_id,
@@ -228,47 +305,28 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">Members</h3>
               
-              {/* Add Member Search */}
-              <div className="w-96">
-                <label htmlFor="user-search" className="block text-sm font-medium text-gray-700 mb-1">
-                  Add Member
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    id="user-search"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    placeholder="Search users by name or email"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  {searchQuery && filteredUsers.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full bg-white rounded-md shadow-lg border border-gray-200">
-                      {filteredUsers.slice(0, 10).map((user) => (
-                        <button
-                          key={user.id}
-                          type="button"
-                          className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
-                          onClick={() => {
-                            handleAddMember(user.id)
-                            setSearchQuery('')
-                          }}
-                        >
-                          <div>
-                            <span className="font-medium">{user.name}</span>
-                            <span className="ml-2 text-sm text-gray-500">{user.email}</span>
-                          </div>
-                          <span className="text-blue-600 text-sm">Add</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Add Member
+              </button>
+            </div>
+
+            {/* Search current members */}
+            <div className="mb-4">
+              <input
+                type="text"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                placeholder="Search members..."
+                value={memberSearch}
+                onChange={(e) => setMemberSearch(e.target.value)}
+              />
             </div>
 
             {/* Members Table */}
-            <div className="h-[calc(100%-80px)] bg-white rounded-lg">
+            <div className="h-[calc(100%-130px)] bg-white rounded-lg">
               <DataGrid
                 rows={getGridRows()}
                 columns={columns}
@@ -302,6 +360,15 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
           </div>
         </form>
       </div>
+
+      {/* Add Member Modal */}
+      <AddMemberModal
+        open={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleAddMember}
+        availableUsers={availableUsers}
+        currentMembers={members}
+      />
     </div>
   )
 }
