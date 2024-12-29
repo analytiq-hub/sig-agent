@@ -7,7 +7,6 @@ import { getWorkspacesApi, updateWorkspaceApi, getUsersApi } from '@/utils/api'
 import { isAxiosError } from 'axios'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { UserResponse } from '@/utils/api'
-import { RadioGroup } from '@headlessui/react'
 import { 
   DataGrid, 
   GridColDef, 
@@ -249,9 +248,13 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
             <DataGrid
               rows={getGridRows()}
               columns={columns}
-              pageSize={5}
-              rowsPerPageOptions={[5, 10, 20]}
-              disableSelectionOnClick
+              initialState={{
+                pagination: {
+                  paginationModel: { pageSize: 5 }
+                }
+              }}
+              pageSizeOptions={[5, 10, 20]}
+              disableRowSelectionOnClick
               disableColumnMenu
               density="standard"
               sx={{
