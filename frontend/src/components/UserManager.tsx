@@ -58,6 +58,7 @@ const UserManager: React.FC = () => {
     pageSize: 10,
     page: 0,
   });
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -111,6 +112,13 @@ const UserManager: React.FC = () => {
     }
   };
 
+  // Filter users based on search
+  const filteredUsers = users.filter(user => 
+    searchQuery === '' || 
+    user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const columns: GridColDef[] = [
     {
       field: 'name',
@@ -134,6 +142,16 @@ const UserManager: React.FC = () => {
       renderCell: (params) => (
         <span className={params.value === 'admin' ? 'text-blue-600' : ''}>
           {params.value}
+        </span>
+      )
+    },
+    {
+      field: 'emailVerified',
+      headerName: 'Email Verified',
+      width: 130,
+      renderCell: (params) => (
+        <span className={params.value ? 'text-green-600' : 'text-gray-500'}>
+          {params.value ? 'Yes' : 'No'}
         </span>
       )
     },
@@ -170,9 +188,20 @@ const UserManager: React.FC = () => {
         <h2 className="text-xl font-semibold">Users</h2>
       </div>
 
+      {/* Search Box */}
+      <div className="mb-4">
+        <input
+          type="text"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          placeholder="Search users by name or email..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
       <div style={{ height: 400, width: '100%' }}>
         <DataGrid
-          rows={users}
+          rows={filteredUsers}
           columns={columns}
           loading={loading}
           paginationModel={paginationModel}
@@ -198,8 +227,8 @@ const UserManager: React.FC = () => {
 
       <div className="mt-4 text-sm text-gray-600">
         {loading ? 'Loading...' : 
-          totalCount > 0 ? 
-            `Showing ${startRange}-${endRange} of ${totalCount} users` : 
+          filteredUsers.length > 0 ? 
+            `Showing ${Math.min(filteredUsers.length, paginationModel.pageSize)} of ${filteredUsers.length} users` : 
             'No users found'
         }
       </div>
