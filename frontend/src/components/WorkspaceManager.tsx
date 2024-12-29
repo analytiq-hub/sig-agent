@@ -5,7 +5,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getAllWorkspacesApi} from '@/utils/api';
+import { getWorkspacesApi} from '@/utils/api';
 import { Workspace } from '@/app/types/Api';
 import colors from 'tailwindcss/colors';
 import { isAxiosError } from 'axios';
@@ -15,7 +15,7 @@ const WorkspaceManager: React.FC = () => {
 
   const fetchWorkspaces = async () => {
     try {
-      const response = await getAllWorkspacesApi();
+      const response = await getWorkspacesApi();
       setWorkspaces(response.workspaces);
     } catch (error) {
       if (isAxiosError(error)) {

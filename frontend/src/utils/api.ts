@@ -520,7 +520,7 @@ export const updateTagApi = async (tagId: string, tag: TagCreate): Promise<Tag> 
 };
 
 // Workspace APIs
-export const getAllWorkspacesApi = async (userId?: string): Promise<ListWorkspacesResponse> => {
+export const getWorkspacesApi = async (userId?: string): Promise<ListWorkspacesResponse> => {
   const response = await api.get('/account/workspaces', {
     params: userId ? { user_id: userId } : undefined
   });

@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Workspace } from '@/app/types/Api';
-import { getAllWorkspacesApi } from '@/utils/api';
+import { getWorkspacesApi } from '@/utils/api';
 
 type WorkspaceRole = 'owner' | 'admin' | 'member';
 
@@ -38,7 +38,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     try {
       setIsRefreshing(true);
       console.log('Fetching workspaces...');
-      const data = await getAllWorkspacesApi(userId);
+      const data = await getWorkspacesApi(userId);
       console.log('Fetched workspaces:', data);
       
       setWorkspaces(data.workspaces);
