@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { IconButton, Paper, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { getAWSCredentialsApi, createAWSCredentialsApi, deleteAWSCredentialsApi, AWSCredentials } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
+
 const AWSCredentialsManager: React.FC = () => {
   const [credentials, setCredentials] = useState<AWSCredentials | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -61,7 +61,7 @@ const AWSCredentialsManager: React.FC = () => {
 
   return (
     <div>
-      <Paper className="p-4">
+      <div className="bg-white rounded-lg shadow p-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="mb-2">
@@ -81,26 +81,26 @@ const AWSCredentialsManager: React.FC = () => {
               )}
             </div>
           </div>
-          <div>
-            <IconButton
-              aria-label="edit"
+          <div className="flex space-x-2">
+            <button
               onClick={handleEditCredentials}
-              size="small"
+              className="p-2 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100"
+              aria-label="edit"
             >
-              <EditIcon />
-            </IconButton>
+              <EditIcon className="w-5 h-5" />
+            </button>
             {credentials && (
-              <IconButton
-                aria-label="delete"
+              <button
                 onClick={handleDeleteCredentials}
-                size="small"
+                className="p-2 text-gray-600 hover:text-red-600 rounded-full hover:bg-gray-100"
+                aria-label="delete"
               >
-                <DeleteIcon />
-              </IconButton>
+                <DeleteIcon className="w-5 h-5" />
+              </button>
             )}
           </div>
         </div>
-      </Paper>
+      </div>
 
       {/* Edit Credentials Modal */}
       {editModalOpen && (
@@ -166,11 +166,28 @@ const AWSCredentialsManager: React.FC = () => {
         </div>
       )}
 
-      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
-        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
-      </Snackbar>
+      {error && (
+        <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white border-l-4 border-red-500 shadow-lg rounded-lg p-4 animate-slide-up">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="ml-3 w-full">
+              <p className="text-sm text-gray-800">{error}</p>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="ml-auto flex-shrink-0 text-gray-400 hover:text-gray-500"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
