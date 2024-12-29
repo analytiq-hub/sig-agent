@@ -23,7 +23,7 @@ import hmac
 import hashlib
 from bcrypt import hashpw, gensalt
 
-import utils
+import startup
 from schemas import (
     User,
     AccessToken, ListAccessTokensResponse, CreateAccessTokenRequest,
@@ -155,7 +155,7 @@ async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(se
 # Add to startup
 @app.on_event("startup")
 async def startup_event():
-    await utils.create_admin(analytiq_client)
+    await startup.create_admin(analytiq_client)
 
 # PDF management endpoints
 @app.post("/documents")

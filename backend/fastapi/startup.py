@@ -2,7 +2,7 @@ import sys, os
 
 # Set up the path
 cwd = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(f"{cwd}/../..")
+sys.path.append(f"{cwd}/..")
 
 import analytiq_data as ad
 
