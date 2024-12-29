@@ -29,6 +29,42 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  useEffect(() => {
+    const initializeCurrentOrganization = () => {
+      const storedOrganizationId = localStorage.getItem('currentOrganizationId')
+      
+      if (storedOrganizationId) {
+        const storedOrganization = organizations.find(w => w.id === storedOrganizationId)
+        if (storedOrganization && !currentOrganization) {
+          setCurrentOrganization(storedOrganization)
+          return
+        }
+      }
+      
+      if (organizations.length > 0 && !currentOrganization) {
+        setCurrentOrganization(organizations[0])
+        localStorage.setItem('currentOrganizationId', organizations[0].id)
+      }
+    }
+
+    initializeCurrentOrganization()
+  }, [organizations, currentOrganization])
+
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const response = await getOrganizationsApi()
+        setOrganizations(response.organizations)
+      } catch (error) {
+        console.error('Failed to fetch organizations:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchOrganizations()
+  }, [])
+
   const switchOrganization = (organizationId: string) => {
     const organization = organizations.find(w => w.id === organizationId)
     if (organization) {
@@ -52,35 +88,6 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.error('Failed to refresh organizations:', error)
     }
   }
-
-  useEffect(() => {
-    const fetchOrganizations = async () => {
-      try {
-        const response = await getOrganizationsApi()
-        setOrganizations(response.organizations)
-        
-        const storedOrganizationId = localStorage.getItem('currentOrganizationId')
-        if (storedOrganizationId) {
-          const storedOrganization = response.organizations.find(w => w.id === storedOrganizationId)
-          if (storedOrganization) {
-            setCurrentOrganization(storedOrganization)
-            return
-          }
-        }
-        
-        if (response.organizations.length > 0 && !currentOrganization) {
-          setCurrentOrganization(response.organizations[0])
-          localStorage.setItem('currentOrganizationId', response.organizations[0].id)
-        }
-      } catch (error) {
-        console.error('Failed to fetch organizations:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchOrganizations()
-  }, [])
 
   return (
     <OrganizationContext.Provider value={{
