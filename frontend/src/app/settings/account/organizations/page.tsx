@@ -6,7 +6,7 @@ import OrganizationManager from '@/components/OrganizationManager';
 
 const OrganizationsPage: React.FC = () => {
   return (
-    <SettingsLayout selectedMenu="system_Organizations">
+    <SettingsLayout selectedMenu="system_organizations">
       <div>
         <h2 className="text-xl font-semibold mb-4">Organization Management</h2>
         <OrganizationManager />
