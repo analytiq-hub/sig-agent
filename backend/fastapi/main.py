@@ -157,7 +157,8 @@ async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(se
 # Add to startup
 @app.on_event("startup")
 async def startup_event():
-    await startup.create_admin(analytiq_client)
+    await startup.setup_admin(analytiq_client)
+    await startup.setup_api_creds(analytiq_client)
 
 # PDF management endpoints
 @app.post("/documents")
