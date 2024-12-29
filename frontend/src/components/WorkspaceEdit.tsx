@@ -110,7 +110,9 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-6">
+      <h2 className="text-xl font-semibold mb-4">Edit Workspace</h2>
+      
       <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
@@ -124,121 +126,113 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
           </div>
         )}
 
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            Workspace Name
+          </label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
         <div className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-              Workspace Name
+          <h3 className="text-lg font-medium text-gray-900">Members</h3>
+          
+          {/* Search and Add Members */}
+          <div className="mb-6">
+            <label htmlFor="user-search" className="block text-sm font-medium text-gray-700 mb-1">
+              Add Member
             </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                id="user-search"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Search users by name or email"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && filteredUsers.length > 0 && (
+                <div className="absolute z-10 mt-1 w-full bg-white rounded-md shadow-lg border border-gray-200">
+                  {filteredUsers.slice(0, 10).map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
+                      onClick={() => {
+                        handleAddMember(user.id)
+                        setSearchQuery('')
+                      }}
+                    >
+                      <div>
+                        <span className="font-medium">{user.name}</span>
+                        <span className="ml-2 text-sm text-gray-500">{user.email}</span>
+                      </div>
+                      <span className="text-blue-600 text-sm">Add</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">Members</h3>
-            <div className="mt-4 space-y-4">
-              {members.map(member => {
-                const user = availableUsers.find(u => u.id === member.user_id)
-                return (
-                  <div key={member.user_id} className="flex items-center justify-between p-2 border rounded">
-                    <span>{user?.name || user?.email || member.user_id}</span>
-                    <div className="flex items-center gap-4">
-                      <RadioGroup value={member.role} onChange={(value) => handleRoleChange(member.user_id, value)} className="flex gap-4">
-                        <RadioGroup.Option value="user">
-                          {({ checked }) => (
-                            <div className={`flex items-center gap-2 ${checked ? 'text-indigo-600' : 'text-gray-500'}`}>
-                              <input
-                                type="radio"
-                                checked={checked}
-                                className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                                readOnly
-                              />
-                              <span>User</span>
-                            </div>
-                          )}
-                        </RadioGroup.Option>
-                        <RadioGroup.Option value="admin">
-                          {({ checked }) => (
-                            <div className={`flex items-center gap-2 ${checked ? 'text-indigo-600' : 'text-gray-500'}`}>
-                              <input
-                                type="radio"
-                                checked={checked}
-                                className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                                readOnly
-                              />
-                              <span>Admin</span>
-                            </div>
-                          )}
-                        </RadioGroup.Option>
-                      </RadioGroup>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveMember(member.user_id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        Remove
-                      </button>
+          {/* Members Grid */}
+          <div className="grid gap-4">
+            {members.map(member => {
+              const user = availableUsers.find(u => u.id === member.user_id)
+              return (
+                <div 
+                  key={member.user_id} 
+                  className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 hover:bg-gray-100"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-medium">{user?.name || 'Unknown User'}</span>
+                    <span className="text-sm text-gray-500">{user?.email}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center space-x-2">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={member.role === 'admin'}
+                          onChange={(e) => handleRoleChange(member.user_id, e.target.checked ? 'admin' : 'user')}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                      <span className="text-sm font-medium text-gray-700">Admin</span>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMember(member.user_id)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      Remove
+                    </button>
                   </div>
-                )
-              })}
-            </div>
-
-            <div className="mt-4">
-              <label htmlFor="user-search" className="block text-sm font-medium text-gray-700">
-                Add Member
-              </label>
-              <div className="relative mt-1">
-                <input
-                  type="text"
-                  id="user-search"
-                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
-                  placeholder="Search users by name or email"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                {searchQuery && filteredUsers.length > 0 && (
-                  <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                    {filteredUsers.slice(0, 10).map((user) => (
-                      <button
-                        key={user.id}
-                        type="button"
-                        className="relative w-full cursor-pointer select-none py-2 px-3 text-left hover:bg-gray-100"
-                        onClick={() => {
-                          handleAddMember(user.id)
-                          setSearchQuery('')
-                        }}
-                      >
-                        <div className="flex items-center">
-                          <span className="font-medium">{user.name}</span>
-                          <span className="ml-2 text-sm text-gray-500">{user.email}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+                </div>
+              )
+            })}
           </div>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex gap-4 pt-4">
           <button
             type="submit"
-            className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Save Changes
           </button>
           <button
             type="button"
             onClick={() => router.push('/settings/account/workspaces')}
-            className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Cancel
           </button>
