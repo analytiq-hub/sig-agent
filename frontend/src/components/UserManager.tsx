@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -112,52 +112,45 @@ const UserManager: React.FC = () => {
   };
 
   const columns: GridColDef[] = [
-    { field: 'email', headerName: 'Email', flex: 1 },
-    { field: 'name', headerName: 'Name', flex: 1 },
+    {
+      field: 'name',
+      headerName: 'User',
+      flex: 1,
+      minWidth: 300,
+      renderCell: (params: GridRenderCellParams) => (
+        <button
+          onClick={() => router.push(`/settings/account/users/${params.row.id}`)}
+          className="text-left hover:text-blue-600 focus:outline-none"
+        >
+          <span className="font-medium">{params.value || 'Unnamed User'}</span>
+          <span className="text-gray-500 ml-2">({params.row.email})</span>
+        </button>
+      )
+    },
     { 
       field: 'role', 
       headerName: 'Role', 
-      width: 100,
-      renderCell: ({ value }) => (
-        <span className={`px-2 py-1 rounded-full text-sm ${
-          value === 'admin' 
-            ? 'bg-blue-100 text-blue-800' 
-            : 'bg-gray-100 text-gray-800'
-        }`}>
-          {value}
+      width: 120,
+      renderCell: (params) => (
+        <span className={params.value === 'admin' ? 'text-blue-600' : ''}>
+          {params.value}
         </span>
-      )
-    },
-    { 
-      field: 'emailVerified', 
-      headerName: 'Verified', 
-      width: 100,
-      renderCell: ({ value }) => (
-        <span>{value ? 'Yes' : 'No'}</span>
-      )
-    },
-    { 
-      field: 'createdAt', 
-      headerName: 'Created', 
-      flex: 1,
-      renderCell: ({ value }) => (
-        <span>{new Date(value).toLocaleDateString()}</span>
       )
     },
     {
       field: 'actions',
       headerName: 'Actions',
       width: 120,
-      renderCell: ({ row }) => (
+      renderCell: (params) => (
         <div className="flex gap-2 items-center h-full">
           <IconButton
-            onClick={() => router.push(`/settings/account/users/${row.id}`)}
+            onClick={() => router.push(`/settings/account/users/${params.row.id}`)}
             className="text-blue-600 hover:bg-blue-50"
           >
             <EditIcon />
           </IconButton>
           <IconButton
-            onClick={() => handleDeleteClick(row)}
+            onClick={() => handleDeleteClick(params.row.id)}
             className="text-red-600 hover:bg-red-50"
           >
             <DeleteIcon />
