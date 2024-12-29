@@ -1426,16 +1426,38 @@ async def list_user_workspaces(current_user: User = Depends(get_current_user)):
     return ret
 
 @app.get("/account/workspaces", response_model=ListWorkspacesResponse)
-async def list_workspaces(current_user: User = Depends(get_admin_user)):
-    """List all workspaces (admin only)"""
-    ad.log.info("Listing all workspaces (admin)")
-    workspaces = await db.workspaces.find({}).to_list(None)
+async def list_workspaces(
+    user_id: str | None = Query(None, description="Filter workspaces by user ID"),
+    current_user: User = Depends(get_current_user)
+):
+    """List workspaces (admin can see all or filter by user, users can only see their own)"""
+    # Check if user has admin role
+    db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
+    is_admin = db_user and db_user.get("role") == "admin"
     
-    ret = ListWorkspacesResponse(workspaces=[
+    # If user_id is provided, verify permissions
+    if user_id:
+        if not is_admin and user_id != current_user.user_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to view other users' workspaces"
+            )
+        filter_user_id = user_id
+    else:
+        # If no user_id provided, show all for admin, or only own for regular users
+        filter_user_id = None if is_admin else current_user.user_id
+
+    # Build query filter
+    query = {}
+    if filter_user_id:
+        query["members.user_id"] = filter_user_id
+
+    ad.log.info(f"Listing workspaces with query: {query}")
+    workspaces = await db.workspaces.find(query).to_list(None)
+    
+    return ListWorkspacesResponse(workspaces=[
         Workspace(**{**w, "id": str(w["_id"])}) for w in workspaces
     ])
-
-    return ret
 
 @app.post("/account/workspaces", response_model=Workspace)
 async def create_workspace(
