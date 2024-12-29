@@ -1470,12 +1470,24 @@ async def create_workspace(
 async def update_workspace(
     workspace_id: str,
     update: WorkspaceUpdate,
-    current_user: User = Depends(get_admin_user)
+    current_user: User = Depends(get_current_user)
 ):
-    """Update workspace details (admin only)"""
+    """Update workspace details (admin or owner)"""
+    # Get workspace and verify it exists
     workspace = await db.workspaces.find_one({"_id": ObjectId(workspace_id)})
     if not workspace:
         raise HTTPException(404, "Workspace not found")
+    
+    # Check if user has permission (admin or owner)
+    db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
+    is_admin = db_user and db_user.get("role") == "admin"
+    is_owner = workspace["owner_id"] == current_user.user_id
+    
+    if not (is_admin or is_owner):
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to modify this workspace"
+        )
         
     update_doc = {
         "updated_at": datetime.utcnow(),
@@ -1490,15 +1502,27 @@ async def update_workspace(
     
     return Workspace(**{**workspace, "id": str(workspace["_id"])})
 
-@app.delete("/account/workspaces/{workspace_id}", response_model=Workspace)
+@app.delete("/account/workspaces/{workspace_id}")
 async def delete_workspace(
     workspace_id: str,
-    current_user: User = Depends(get_admin_user)
+    current_user: User = Depends(get_current_user)
 ):
-    """Delete a workspace (admin only)"""
+    """Delete a workspace (admin or owner)"""
+    # Get workspace and verify it exists
     workspace = await db.workspaces.find_one({"_id": ObjectId(workspace_id)})
     if not workspace:
         raise HTTPException(404, "Workspace not found")
+    
+    # Check if user has permission (admin or owner)
+    db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
+    is_admin = db_user and db_user.get("role") == "admin"
+    is_owner = workspace["owner_id"] == current_user.user_id
+    
+    if not (is_admin or is_owner):
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to delete this workspace"
+        )
         
     await db.workspaces.delete_one({"_id": ObjectId(workspace_id)})
     return {"status": "success"}

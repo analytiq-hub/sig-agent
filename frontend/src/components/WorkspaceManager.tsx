@@ -9,7 +9,10 @@ import { getWorkspacesApi} from '@/utils/api';
 import { Workspace } from '@/app/types/Api';
 import colors from 'tailwindcss/colors';
 import { isAxiosError } from 'axios';
+import { useRouter } from 'next/navigation'
+
 const WorkspaceManager: React.FC = () => {
+  const router = useRouter()
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,10 +55,10 @@ const WorkspaceManager: React.FC = () => {
       field: 'actions',
       headerName: 'Actions',
       width: 120,
-      renderCell: () => (
+      renderCell: (params) => (
         <div className="flex gap-2 items-center h-full">
           <IconButton
-            onClick={() => {/* TODO: Implement edit */}}
+            onClick={() => router.push(`/settings/account/workspaces/${params.row.id}`)}
             className="text-blue-600 hover:bg-blue-50"
           >
             <EditIcon />
