@@ -60,8 +60,10 @@ const AWSCredentialsManager: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className="space-y-4">
+      {/* Configuration Section */}
       <div className="bg-white rounded-lg shadow p-4">
+        <h2 className="text-lg font-medium text-gray-900 mb-4">AWS Configuration</h2>
         <div className="flex items-center justify-between">
           <div>
             <div className="mb-2">
@@ -100,6 +102,22 @@ const AWSCredentialsManager: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Help Section */}
+      <div className="bg-blue-50 rounded-lg shadow p-4">
+        <h3 className="text-lg font-medium text-blue-900 mb-3">Configuration Guide</h3>
+        <ol className="list-decimal list-inside space-y-2 text-blue-900">
+          <li>In AWS IAM, create AWS user, for example named <code className="bg-blue-100 px-1.5 py-0.5 rounded font-mono text-sm">code-app</code></li>
+          <li>Create AWS role that can be assumed by the user, for example named <code className="bg-blue-100 px-1.5 py-0.5 rounded font-mono text-sm">code-app-role</code></li>
+          <li>Give the role the following permissions:
+            <ul className="list-disc list-inside ml-6 mt-1">
+              <li><code className="bg-blue-100 px-1.5 py-0.5 rounded font-mono text-sm">AmazonSESFullAccess</code></li>
+              <li><code className="bg-blue-100 px-1.5 py-0.5 rounded font-mono text-sm">AmazonTextractFullAccess</code></li>
+            </ul>
+          </li>
+          <li>Create an <code className="bg-blue-100 px-1.5 py-0.5 rounded font-mono text-sm">Access Key ID</code> and <code className="bg-blue-100 px-1.5 py-0.5 rounded font-mono text-sm">Secret Access Key</code> for the user, and save them on this page.</li>
+        </ol>
       </div>
 
       {/* Edit Credentials Modal */}

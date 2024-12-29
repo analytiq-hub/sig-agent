@@ -51,7 +51,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
               <div>
                 <h2 className="text-xl font-semibold">AWS Credentials</h2>
                 <p className="text-gray-600 mb-2">
-                  Configure your AWS access keys and region settings.
+                  Configure your AWS access keys.
                 </p>
               </div>
               <Link href="/settings/account/development/aws-credentials" passHref>
