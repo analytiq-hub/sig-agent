@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useState, useEffect, useContext } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Workspace } from '@/app/types/Api'
-import { getWorkspacesApi, updateWorkspaceApi } from '@/utils/api'
+import { Workspace, WorkspaceMember } from '@/app/types/Api'
+import { getWorkspacesApi, updateWorkspaceApi, getUsersApi } from '@/utils/api'
 import { isAxiosError } from 'axios'
-import { WorkspaceContext } from '@/contexts/WorkspaceContext'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { UserResponse } from '@/utils/api'
 
 interface WorkspaceEditProps {
   workspaceId: string
@@ -13,33 +14,42 @@ interface WorkspaceEditProps {
 
 const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
   const router = useRouter()
-  const { refreshWorkspaces } = useContext(WorkspaceContext)
+  const { refreshWorkspaces } = useWorkspace()
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [name, setName] = useState('')
+  const [members, setMembers] = useState<WorkspaceMember[]>([])
+  const [availableUsers, setAvailableUsers] = useState<UserResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    const fetchWorkspace = async () => {
+    const fetchData = async () => {
       try {
-        const response = await getWorkspacesApi()
-        const workspace = response.workspaces.find(w => w.id === workspaceId)
+        const [workspacesResponse, usersResponse] = await Promise.all([
+          getWorkspacesApi(),
+          getUsersApi()
+        ])
+        
+        const workspace = workspacesResponse.workspaces.find(w => w.id === workspaceId)
         if (workspace) {
           setWorkspace(workspace)
           setName(workspace.name)
+          setMembers(workspace.members)
         } else {
           setError('Workspace not found')
         }
+        
+        setAvailableUsers(usersResponse.users)
       } catch (err) {
-        setError('Failed to load workspace')
+        setError('Failed to load workspace data')
         console.error(err)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchWorkspace()
+    fetchData()
   }, [workspaceId])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,7 +58,10 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
     setSuccess(false)
 
     try {
-      await updateWorkspaceApi(workspaceId, { name })
+      await updateWorkspaceApi(workspaceId, { 
+        name,
+        members 
+      })
       setSuccess(true)
       await refreshWorkspaces()
     } catch (err) {
@@ -58,6 +71,25 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
         setError('An unexpected error occurred')
       }
     }
+  }
+
+  const handleRoleChange = (userId: string, newRole: 'owner' | 'admin' | 'member') => {
+    setMembers(prevMembers => {
+      const updatedMembers = prevMembers.map(member => 
+        member.user_id === userId ? { ...member, role: newRole } : member
+      )
+      return updatedMembers
+    })
+  }
+
+  const handleAddMember = (userId: string) => {
+    if (!members.some(member => member.user_id === userId)) {
+      setMembers(prev => [...prev, { user_id: userId, role: 'member' }])
+    }
+  }
+
+  const handleRemoveMember = (userId: string) => {
+    setMembers(prev => prev.filter(member => member.user_id !== userId))
   }
 
   if (loading) {
@@ -83,19 +115,80 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ workspaceId }) => {
           </div>
         )}
 
-        <div className="space-y-2">
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-            Workspace Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
-          />
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              Workspace Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-lg font-medium text-gray-900">Members</h3>
+            <div className="mt-4 space-y-4">
+              {members.map(member => {
+                const user = availableUsers.find(u => u.id === member.user_id)
+                return (
+                  <div key={member.user_id} className="flex items-center justify-between p-2 border rounded">
+                    <span>{user?.name || user?.email || member.user_id}</span>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={member.role}
+                        onChange={(e) => handleRoleChange(member.user_id, e.target.value as 'owner' | 'admin' | 'member')}
+                        className="rounded border border-gray-300 px-2 py-1"
+                        disabled={member.role === 'owner'}
+                      >
+                        <option value="member">Member</option>
+                        <option value="admin">Admin</option>
+                        <option value="owner">Owner</option>
+                      </select>
+                      {member.role !== 'owner' && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMember(member.user_id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="mt-4">
+              <label htmlFor="add-member" className="block text-sm font-medium text-gray-700">
+                Add Member
+              </label>
+              <select
+                id="add-member"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+                onChange={(e) => {
+                  if (e.target.value) handleAddMember(e.target.value)
+                  e.target.value = '' // Reset selection
+                }}
+                value=""
+              >
+                <option value="">Select a user to add</option>
+                {availableUsers
+                  .filter(user => !members.some(member => member.user_id === user.id))
+                  .map(user => (
+                    <option key={user.id} value={user.id}>
+                      {user.name || user.email}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-4">
