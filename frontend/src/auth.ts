@@ -182,6 +182,8 @@ export const authOptions: NextAuthOptions = {
                 }
             }
 
+            console.log('Token in auth.ts:', token);
+
             return token;
         },
         async session({ session, token }: { 
@@ -199,6 +201,8 @@ export const authOptions: NextAuthOptions = {
             if (session.user && token.name) {
                 session.user.name = token.name;
             }
+
+            console.log('AppSession in auth.ts:', appSession);
             
             return appSession;
         },
