@@ -182,7 +182,7 @@ export const authOptions: NextAuthOptions = {
                 }
             }
 
-            console.log('Token in auth.ts:', token);
+            //console.log('Token in auth.ts:', token);
 
             return token;
         },
@@ -202,7 +202,7 @@ export const authOptions: NextAuthOptions = {
                 session.user.name = token.name;
             }
 
-            console.log('AppSession in auth.ts:', appSession);
+            //console.log('AppSession in auth.ts:', appSession);
             
             return appSession;
         },
