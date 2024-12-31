@@ -1390,12 +1390,12 @@ async def list_organizations(
     if filter_user_id:
         query["members.user_id"] = filter_user_id
     
-    ad.log.info(f"All organizations: {await db.organizations.find({}).to_list(None)}")
-    ad.log.info(f"Listing organizations for user {current_user.user_id} with query {query}")
+    #ad.log.info(f"All organizations: {await db.organizations.find({}).to_list(None)}")
+    #ad.log.info(f"Listing organizations for user {current_user.user_id} with query {query}")
 
     organizations = await db.organizations.find(query).to_list(None)
 
-    ad.log.info(f"Organizations: {organizations}")
+    #ad.log.info(f"Organizations: {organizations}")
 
     return ListOrganizationsResponse(organizations=[
         Organization(**{**org, "id": str(org["_id"])}) for org in organizations
