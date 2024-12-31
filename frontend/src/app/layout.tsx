@@ -1,10 +1,10 @@
 import "@/styles/globals.css";
 import React from 'react';
-import { getServerSession } from "next-auth/next"
 import SessionProvider from "@/components/SessionProvider"
 import Layout from '@/components/Layout';
 import ThemeRegistry from '@/components/ThemeRegistry';
 import { OrganizationProvider } from '@/contexts/OrganizationContext';
+import { getAppServerSession } from '@/utils/session';
 
 export const metadata = {
   title: 'Smart Document Router',
@@ -19,7 +19,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession();
+  const session = await getAppServerSession();
   return (
     <html lang="en">
       <body>

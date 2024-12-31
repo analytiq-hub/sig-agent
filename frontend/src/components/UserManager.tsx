@@ -9,7 +9,8 @@ import { getUsersApi, deleteUserApi, createUserApi, UserResponse, UserCreate } f
 import { isAxiosError } from 'axios';
 import colors from 'tailwindcss/colors';
 import { useRouter } from 'next/navigation';
-import { signOut, getSession } from 'next-auth/react';
+import { signOut } from 'next-auth/react';
+import { useAppSession } from '@/hooks/useAppSession';
 
 interface DeleteUserModalProps {
   isOpen: boolean;
@@ -194,6 +195,8 @@ const UserManager: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
+  const { session } = useAppSession();
+
   const fetchUsers = useCallback(async () => {
     try {
       const response = await getUsersApi({
@@ -230,7 +233,6 @@ const UserManager: React.FC = () => {
       await deleteUserApi(userToDelete.id);
       
       // Check if deleting current user
-      const session = await getSession();
       if (session?.user?.id === userToDelete.id) {
         // Sign out if deleting self
         signOut({ callbackUrl: '/signin' });
