@@ -183,6 +183,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ open, onClose, onAdd }) => 
 
 const UserManager: React.FC = () => {
   const router = useRouter();
+  const session = useAppSession();
   const [users, setUsers] = useState<UserResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -230,14 +231,11 @@ const UserManager: React.FC = () => {
     try {
       await deleteUserApi(userToDelete.id);
       
-      // Check if deleting current user
-      if (session?.user?.id === userToDelete.id) {
-        // Sign out if deleting self
+      if (session?.session?.user?.id === userToDelete.id) {
         signOut({ callbackUrl: '/signin' });
         return;
       }
       
-      // Refresh the user list
       fetchUsers();
       setIsDeleteModalOpen(false);
       setUserToDelete(null);
