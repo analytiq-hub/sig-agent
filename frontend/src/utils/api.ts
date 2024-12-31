@@ -548,7 +548,7 @@ export const updateOrganizationApi = async (
 };
 
 export const deleteOrganizationApi = async (organizationId: string) => {
-  const response = await axios.delete(`/api/organizations/${organizationId}`);
+  const response = await api.delete(`/account/organizations/${organizationId}`);
   return response.data;
 };
 
