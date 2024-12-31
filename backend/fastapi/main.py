@@ -59,10 +59,12 @@ ad.common.setup()
 ENV = os.getenv("ENV", "dev")
 NEXTAUTH_URL = os.getenv("NEXTAUTH_URL")
 FASTAPI_ROOT_PATH = os.getenv("FASTAPI_ROOT_PATH", "/")
+MONGODB_URI = os.getenv("MONGODB_URI")
 
 ad.log.info(f"ENV: {ENV}")
 ad.log.info(f"NEXTAUTH_URL: {NEXTAUTH_URL}")
 ad.log.info(f"FASTAPI_ROOT_PATH: {FASTAPI_ROOT_PATH}")
+ad.log.info(f"MONGODB_URI: {MONGODB_URI}")
 
 # JWT settings
 FASTAPI_SECRET = os.getenv("FASTAPI_SECRET")
