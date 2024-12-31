@@ -2,6 +2,7 @@ import axios, { isAxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
 import { CreateOrganizationRequest, ListOrganizationsResponse, Organization, UpdateOrganizationRequest } from '@/app/types/Api';
+import { toast } from 'react-hot-toast';
 
 // These APIs execute from the frontend
 const NEXT_PUBLIC_FASTAPI_FRONTEND_URL = process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL || "http://localhost:8000";
@@ -45,20 +46,26 @@ const processQueue = (error: Error | null = null) => {
   failedQueue = [];
 };
 
-// Modify the response interceptor
+// Add a response interceptor that handles all errors
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle 401 errors (unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // If token refresh is in progress, queue this request
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then(() => api(originalRequest))
-          .catch((err) => Promise.reject(err));
+          .catch(() => {
+            toast.error('Your session has expired. Please login again.');
+            setTimeout(() => {
+              window.location.href = '/api/auth/signin';
+            }, 2000);
+            return Promise.reject(new Error('Session expired'));
+          });
       }
 
       originalRequest._retry = true;
@@ -70,33 +77,38 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${session.apiAccessToken}`;
           processQueue();
           return api(originalRequest);
-        }
-      } catch (refreshError: unknown) {
-        if (refreshError instanceof Error) {
-          processQueue(refreshError);
         } else {
-          processQueue(new Error('Unknown error occurred during token refresh'));
+          toast.error('Your session has expired. Please login again.');
+          setTimeout(() => {
+            window.location.href = '/api/auth/signin';
+          }, 2000);
+          return Promise.reject(new Error('Session expired'));
         }
+      } catch (refreshError) {
+        processQueue(refreshError instanceof Error ? refreshError : new Error('Token refresh failed'));
+        toast.error('Your session has expired. Please login again.');
+        setTimeout(() => {
+          window.location.href = '/api/auth/signin';
+        }, 2000);
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
 
+    // Handle all other errors
+    if (isAxiosError(error)) {
+      const responseData = error.response?.data as { detail?: string };
+      if (responseData?.detail) {
+        toast.error(responseData.detail);
+      } else {
+        toast.error('An unexpected error occurred. Please try again.');
+      }
+    }
+
     return Promise.reject(error);
   }
 );
-
-export function getApiErrorMsg(error: unknown) {
-  let errorMessage = '';
-  if (isAxiosError(error)) {
-    const responseData = error.response?.data as { detail?: string };
-    if (responseData?.detail) {
-      errorMessage = responseData.detail;
-    }
-  }
-  return errorMessage;
-}
 
 // Document APIs
 

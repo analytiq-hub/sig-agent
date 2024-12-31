@@ -30,6 +30,21 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const response = await getOrganizationsApi()
+        setOrganizations(response.organizations)
+      } catch (error) {
+        console.error('Failed to fetch organizations:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchOrganizations()
+  }, [])
+
+  useEffect(() => {
     const initializeCurrentOrganization = () => {
       const storedOrganizationId = localStorage.getItem('currentOrganizationId')
       
@@ -49,21 +64,6 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     initializeCurrentOrganization()
   }, [organizations, currentOrganization])
-
-  useEffect(() => {
-    const fetchOrganizations = async () => {
-      try {
-        const response = await getOrganizationsApi()
-        setOrganizations(response.organizations)
-      } catch (error) {
-        console.error('Failed to fetch organizations:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchOrganizations()
-  }, [])
 
   const switchOrganization = (organizationId: string) => {
     const organization = organizations.find(w => w.id === organizationId)
