@@ -10,7 +10,7 @@ import { isAxiosError } from 'axios';
 import colors from 'tailwindcss/colors';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
-import { useAppSession } from '@/hooks/useAppSession';
+import { useAppSession } from '@/utils/useAppSession';
 
 interface DeleteUserModalProps {
   isOpen: boolean;

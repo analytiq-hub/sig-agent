@@ -3,7 +3,7 @@
 import React from 'react';
 import SettingsLayout from '@/components/SettingsLayout';
 import UserEdit from '@/components/UserEdit';
-import { useAppSession } from '@/hooks/useAppSession';
+import { useAppSession } from '@/utils/useAppSession';
 
 const ProfilePage: React.FC = () => {
   const { session, status } = useAppSession();
