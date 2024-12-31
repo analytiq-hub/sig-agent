@@ -195,8 +195,6 @@ const UserManager: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const { session } = useAppSession();
-
   const fetchUsers = useCallback(async () => {
     try {
       const response = await getUsersApi({
