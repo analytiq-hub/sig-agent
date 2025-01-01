@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getUserApi, updateUserApi, deleteUserApi, UserResponse, UserUpdate } from '@/utils/api';
+import { getUserApi, updateUserApi, deleteUserApi, UserResponse, UserUpdate, sendVerificationEmailApi } from '@/utils/api';
 import { useSession, signOut } from 'next-auth/react';
+import { toast } from 'react-hot-toast';
 
 interface UserEditProps {
   userId: string;
@@ -209,6 +210,17 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
     }
   };
 
+  const handleSendVerification = async () => {
+    try {
+      await sendVerificationEmailApi(userId);
+      setSuccess(true);
+      toast.success('Verification email sent successfully');
+    } catch (error) {
+      setError('Failed to send verification email');
+      console.error('Error sending verification email:', error);
+    }
+  };
+
   if (!user) {
     return <div>Loading...</div>;
   }
@@ -284,6 +296,16 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
               <span className="text-sm font-medium text-gray-700">Email Verified</span>
             </div>
           </>
+        )}
+
+        {!user.emailVerified && (
+          <button
+            type="button"
+            onClick={handleSendVerification}
+            className="px-4 py-2 text-sm text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
+          >
+            Send Verification Email
+          </button>
         )}
 
         {user.hasPassword && (

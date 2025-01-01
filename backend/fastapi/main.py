@@ -60,12 +60,13 @@ ENV = os.getenv("ENV", "dev")
 NEXTAUTH_URL = os.getenv("NEXTAUTH_URL")
 FASTAPI_ROOT_PATH = os.getenv("FASTAPI_ROOT_PATH", "/")
 MONGODB_URI = os.getenv("MONGODB_URI")
+SES_FROM_EMAIL = os.getenv("SES_FROM_EMAIL")
 
 ad.log.info(f"ENV: {ENV}")
 ad.log.info(f"NEXTAUTH_URL: {NEXTAUTH_URL}")
 ad.log.info(f"FASTAPI_ROOT_PATH: {FASTAPI_ROOT_PATH}")
 ad.log.info(f"MONGODB_URI: {MONGODB_URI}")
-
+ad.log.info(f"SES_FROM_EMAIL: {SES_FROM_EMAIL}")
 # JWT settings
 FASTAPI_SECRET = os.getenv("FASTAPI_SECRET")
 ALGORITHM = "HS256"
@@ -1749,6 +1750,99 @@ async def get_user(
         createdAt=user.get("createdAt", datetime.now(UTC)),
         hasPassword=bool(user.get("password"))
     )
+
+@app.post("/auth/send-verification-email/{user_id}")
+async def send_verification_email(
+    user_id: str,
+    current_user: User = Depends(get_admin_user)
+):
+    """Send verification email to user (admin only)"""
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if user.get("emailVerified"):
+        raise HTTPException(status_code=400, detail="Email already verified")
+
+    # Generate verification token
+    token = secrets.token_urlsafe(32)
+    expires = datetime.now(UTC) + timedelta(hours=24)
+    
+    # Store verification token
+    await db.email_verifications.update_one(
+        {"user_id": user_id},
+        {
+            "$set": {
+                "token": token,
+                "expires": expires,
+                "email": user["email"]
+            }
+        },
+        upsert=True
+    )
+        
+    verification_url = f"{NEXTAUTH_URL}/verify-email?token={token}"
+    
+    # Send email using SES
+    try:
+        aws_client = ad.aws.get_aws_client(analytiq_client)
+        ses_client = aws_client.session.client("ses", region_name=aws_client.region_name)
+
+        ad.log.info(f"SES_FROM_EMAIL: {SES_FROM_EMAIL}")
+        ad.log.info(f"ToAddresses: {user['email']}")
+        ad.log.info(f"Verification URL: {verification_url}")
+
+        response = ses_client.send_email(
+            Source=SES_FROM_EMAIL,
+            Destination={
+                'ToAddresses': [user["email"]]
+            },
+            Message={
+                'Subject': {
+                    'Data': 'Verify your email address'
+                },
+                'Body': {
+                    'Html': {
+                        'Data': f"""
+                            <h1>Verify your email address</h1>
+                            <p>Please click the link below to verify your email address:</p>
+                            <p><a href="{verification_url}">{verification_url}</a></p>
+                            <p>This link will expire in 24 hours.</p>
+                        """
+                    }
+                }
+            }
+        )
+        return {"message": "Verification email sent"}
+    except Exception as e:
+        ad.log.error(f"Failed to send email: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+
+@app.post("/auth/verify-email")
+async def verify_email(token: str):
+    """Verify email address using token"""
+    # Find verification record
+    verification = await db.email_verifications.find_one({"token": token})
+    if not verification:
+        raise HTTPException(status_code=400, detail="Invalid verification token")
+        
+    # Check if token expired
+    if verification["expires"] < datetime.now(UTC):
+        raise HTTPException(status_code=400, detail="Verification token expired")
+    
+    # Update user's email verification status
+    result = await db.users.update_one(
+        {"_id": ObjectId(verification["user_id"])},
+        {"$set": {"emailVerified": True}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=400, detail="Failed to verify email")
+        
+    # Delete verification record
+    await db.email_verifications.delete_one({"token": token})
+    
+    return {"message": "Email verified successfully"}
 
 if __name__ == "__main__":
     import uvicorn

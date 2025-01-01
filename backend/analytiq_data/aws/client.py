@@ -7,7 +7,7 @@ import analytiq_data as ad
 class AWSClient:
     def __init__(self, analytiq_client, region_name: str = "us-east-1"):
         self.env = analytiq_client.env
-
+        self.region_name = region_name
         # Get the AWS keys
         aws_keys = get_aws_keys(analytiq_client)
         self.aws_access_key_id = aws_keys["aws_access_key_id"]
@@ -27,6 +27,7 @@ class AWSClient:
         self.session = self.user_session
         self.s3 = None
         self.textract = None
+        self.ses = None
 
         try:
             # Get the user's identity
@@ -55,6 +56,7 @@ class AWSClient:
 
             # Create the textract client
             self.textract = self.session.client("textract", region_name=region_name)
+
         except Exception as e:
             ad.log.info(f"AWS credentials are not correct: {e}")
             ad.log.info("AWS client created with empty AWS credentials")

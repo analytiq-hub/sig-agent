@@ -648,3 +648,13 @@ export function getApiErrorMsg(error: unknown): string {
   // Fallback for unknown error types
   return 'An unexpected error occurred. Please try again.';
 }
+
+export const sendVerificationEmailApi = async (userId: string) => {
+  const response = await api.post(`/auth/send-verification-email/${userId}`);
+  return response.data;
+};
+
+export const verifyEmailApi = async (token: string) => {
+  const response = await api.post('/auth/verify-email', { token });
+  return response.data;
+};
