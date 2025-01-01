@@ -624,3 +624,22 @@ export const updateUserApi = async (userId: string, update: UserUpdate): Promise
   const response = await api.put<UserResponse>(`/account/users/${userId}`, update);
   return response.data;
 };
+
+export function getApiErrorMsg(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  
+  if (isAxiosError(error)) {
+    const responseData = error.response?.data as { detail?: string };
+    if (responseData?.detail) {
+      return responseData.detail;
+    }
+    if (error.message) {
+      return error.message;
+    }
+  }
+
+  // Fallback for unknown error types
+  return 'An unexpected error occurred. Please try again.';
+}
