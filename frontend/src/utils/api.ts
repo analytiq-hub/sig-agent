@@ -655,6 +655,6 @@ export const sendVerificationEmailApi = async (userId: string) => {
 };
 
 export const verifyEmailApi = async (token: string) => {
-  const response = await api.post('/auth/verify-email', { token });
+  const response = await api.post(`/auth/verify-email/${token}`);
   return response.data;
 };

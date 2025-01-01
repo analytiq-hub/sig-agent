@@ -20,11 +20,13 @@ export default function VerifyEmailPage() {
       }
 
       try {
+        console.log(`Verifying email with token: ${token}`);
         await verifyEmailApi(token);
         setStatus('success');
         // Redirect to login after 3 seconds
         setTimeout(() => router.push('/signin'), 3000);
       } catch (error) {
+        console.error(`Failed to verify email: ${error}`);
         setStatus('error');
         setError('Failed to verify email. The link may be expired or invalid.');
       }

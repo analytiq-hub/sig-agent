@@ -1766,7 +1766,8 @@ async def send_verification_email(
 
     # Generate verification token
     token = secrets.token_urlsafe(32)
-    expires = datetime.now(UTC) + timedelta(hours=24)
+    # Ensure expiration time is stored with UTC timezone
+    expires = (datetime.now(UTC) + timedelta(hours=24)).replace(tzinfo=UTC)
     
     # Store verification token
     await db.email_verifications.update_one(
@@ -1788,9 +1789,9 @@ async def send_verification_email(
         aws_client = ad.aws.get_aws_client(analytiq_client)
         ses_client = aws_client.session.client("ses", region_name=aws_client.region_name)
 
-        ad.log.info(f"SES_FROM_EMAIL: {SES_FROM_EMAIL}")
-        ad.log.info(f"ToAddresses: {user['email']}")
-        ad.log.info(f"Verification URL: {verification_url}")
+        ad.log.debug(f"SES_FROM_EMAIL: {SES_FROM_EMAIL}")
+        ad.log.debug(f"ToAddresses: {user['email']}")
+        ad.log.debug(f"Verification URL: {verification_url}")
 
         response = ses_client.send_email(
             Source=SES_FROM_EMAIL,
@@ -1818,16 +1819,21 @@ async def send_verification_email(
         ad.log.error(f"Failed to send email: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
 
-@app.post("/auth/verify-email")
+@app.post("/auth/verify-email/{token}")
 async def verify_email(token: str):
     """Verify email address using token"""
+
+    ad.log.info(f"Verifying email with token: {token}")
+
     # Find verification record
     verification = await db.email_verifications.find_one({"token": token})
     if not verification:
         raise HTTPException(status_code=400, detail="Invalid verification token")
         
     # Check if token expired
-    if verification["expires"] < datetime.now(UTC):
+    # Convert stored expiration to UTC for comparison
+    stored_expiry = verification["expires"].replace(tzinfo=UTC)
+    if stored_expiry < datetime.now(UTC):
         raise HTTPException(status_code=400, detail="Verification token expired")
     
     # Update user's email verification status
