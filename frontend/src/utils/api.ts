@@ -60,7 +60,10 @@ api.interceptors.response.use(
         })
           .then(() => api(originalRequest))
           .catch(() => {
-            toast.error('Your session has expired. Please login again.');
+            // Only show session expiration toast once
+            toast.error('Your session has expired. Please login again.', {
+              id: 'session-expired', // This ensures only one toast is shown
+            });
             setTimeout(() => {
               window.location.href = '/api/auth/signin';
             }, 2000);
@@ -78,7 +81,9 @@ api.interceptors.response.use(
           processQueue();
           return api(originalRequest);
         } else {
-          toast.error('Your session has expired. Please login again.');
+          toast.error('Your session has expired. Please login again.', {
+            id: 'session-expired',
+          });
           setTimeout(() => {
             window.location.href = '/api/auth/signin';
           }, 2000);
@@ -86,7 +91,9 @@ api.interceptors.response.use(
         }
       } catch (refreshError) {
         processQueue(refreshError instanceof Error ? refreshError : new Error('Token refresh failed'));
-        toast.error('Your session has expired. Please login again.');
+        toast.error('Your session has expired. Please login again.', {
+          id: 'session-expired',
+        });
         setTimeout(() => {
           window.location.href = '/api/auth/signin';
         }, 2000);
@@ -96,13 +103,11 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle all other errors
+    // For all other errors, just pass through the error without showing toast
     if (isAxiosError(error)) {
       const responseData = error.response?.data as { detail?: string };
       if (responseData?.detail) {
-        toast.error(responseData.detail);
-      } else {
-        toast.error('An unexpected error occurred. Please try again.');
+        return Promise.reject(new Error(responseData.detail));
       }
     }
 
