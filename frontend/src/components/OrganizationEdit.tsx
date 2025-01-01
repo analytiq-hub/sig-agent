@@ -143,47 +143,72 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   }, [organizationId])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setSuccess(false)
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+
+    // Validate that there is at least one admin before submitting
+    if (!validateAdminPresence(members)) {
+      setError('Organization must have at least one admin');
+      return;
+    }
 
     try {
       await updateOrganizationApi(organizationId, { 
         name,
         members 
-      })
-      setSuccess(true)
-      await refreshOrganizations()
+      });
+      setSuccess(true);
+      await refreshOrganizations();
       // Update original values after successful save
-      setOriginalName(name)
-      setOriginalMembers(members)
+      setOriginalName(name);
+      setOriginalMembers(members);
     } catch (err) {
       if (isAxiosError(err)) {
-        setError(err.response?.data?.detail || 'Failed to update organization')
+        setError(err.response?.data?.detail || 'Failed to update organization');
       } else {
-        setError('An unexpected error occurred')
+        setError('An unexpected error occurred');
       }
     }
-  }
+  };
 
   const handleRoleChange = (userId: string, newRole: 'admin' | 'user') => {
     setMembers(prevMembers => {
       const updatedMembers = prevMembers.map(member => 
         member.user_id === userId ? { ...member, role: newRole } : member
-      )
-      return updatedMembers
-    })
-  }
+      );
+      
+      // If the change would result in no admins, prevent it
+      if (!validateAdminPresence(updatedMembers)) {
+        setError('Organization must have at least one admin');
+        return prevMembers; // Keep the original state
+      }
+      
+      setError(null); // Clear any existing error
+      return updatedMembers;
+    });
+  };
 
   const handleAddMember = (userId: string) => {
     if (!members.some(member => member.user_id === userId)) {
       setMembers(prev => [...prev, { user_id: userId, role: 'user' }])
     }
-  }
+  };
 
   const handleRemoveMember = (userId: string) => {
-    setMembers(prev => prev.filter(member => member.user_id !== userId))
-  }
+    const memberToRemove = members.find(member => member.user_id === userId);
+    if (memberToRemove?.role === 'admin') {
+      // Check if this is the last admin
+      const remainingAdmins = members.filter(m => m.role === 'admin' && m.user_id !== userId);
+      if (remainingAdmins.length === 0) {
+        setError('Cannot remove the last admin. Promote another member to admin first.');
+        return;
+      }
+    }
+    
+    setMembers(prev => prev.filter(member => member.user_id !== userId));
+    setError(null);
+  };
 
   // Update getGridRows to use filtered members
   const getGridRows = () => {
@@ -255,6 +280,11 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     
     return memberChanges
   }
+
+  // Add this validation function after the hasChanges function
+  const validateAdminPresence = (updatedMembers: OrganizationMember[]): boolean => {
+    return updatedMembers.some(member => member.role === 'admin');
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center p-4">Loading...</div>
