@@ -246,17 +246,17 @@ export interface LLMToken {
 }
 
 export const createLLMTokenApi = async (tokenRequest: CreateLLMTokenRequest) => {
-  const response = await api.post('/llm_tokens', tokenRequest);
+  const response = await api.post('/account/llm_tokens', tokenRequest);
   return response.data;
 };
 
 export const getLLMTokensApi = async () => {
-  const response = await api.get('/llm_tokens');
+  const response = await api.get('/account/llm_tokens');
   return response.data;
 };
 
 export const deleteLLMTokenApi = async (tokenId: string) => {
-  const response = await api.delete(`/llm_tokens/${tokenId}`);
+  const response = await api.delete(`/account/llm_tokens/${tokenId}`);
   return response.data;
 };
 
@@ -267,17 +267,17 @@ export interface AWSCredentials {
 }
 
 export const createAWSCredentialsApi = async (credentials: Omit<AWSCredentials, 'created_at'>) => {
-  const response = await api.post('/aws_credentials', credentials);
+  const response = await api.post('/account/aws_credentials', credentials);
   return response.data;
 };
 
 export const getAWSCredentialsApi = async () => {
-  const response = await api.get('/aws_credentials');
+  const response = await api.get('/account/aws_credentials');
   return response.data;
 };
 
 export const deleteAWSCredentialsApi = async () => {
-  const response = await api.delete('/aws_credentials');
+  const response = await api.delete('/account/aws_credentials');
   return response.data;
 };
 

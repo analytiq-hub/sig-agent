@@ -456,146 +456,6 @@ async def access_token_delete(
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
 
-@app.post("/llm_tokens", response_model=LLMToken)
-async def llm_token_create(
-    request: CreateLLMTokenRequest,
-    current_user: User = Depends(get_current_user)
-):
-    """Create or update an LLM token"""
-    ad.log.debug(f"Creating/Updating LLM token for user: {current_user} request: {request}")
-    
-    # Check if a token for this vendor already exists
-    existing_token = await llm_token_collection.find_one({
-        "user_id": current_user.user_id,
-        "llm_vendor": request.llm_vendor
-    })
-
-    new_token = {
-        "user_id": current_user.user_id,
-        "llm_vendor": request.llm_vendor,
-        "token": ad.crypto.encrypt_token(request.token),
-        "created_at": datetime.now(UTC),
-    }
-
-    if existing_token:
-        # Update the existing token
-        result = await llm_token_collection.replace_one(
-            {"_id": existing_token["_id"]},
-            new_token
-        )
-        new_token["id"] = str(existing_token["_id"])
-        ad.log.debug(f"Updated existing LLM token for {request.llm_vendor}")
-    else:
-        # Insert a new token
-        result = await llm_token_collection.insert_one(new_token)
-        new_token["id"] = str(result.inserted_id)
-        new_token["token"] = ad.crypto.decrypt_token(new_token["token"])
-        ad.log.debug(f"Created new LLM token for {request.llm_vendor}")
-
-    return new_token
-
-@app.get("/llm_tokens", response_model=ListLLMTokensResponse)
-async def llm_token_list(current_user: User = Depends(get_current_user)):
-    """List LLM tokens"""
-    cursor = llm_token_collection.find({"user_id": current_user.user_id})
-    tokens = await cursor.to_list(length=None)
-    llm_tokens = [
-        {
-            "id": str(token["_id"]),
-            "user_id": token["user_id"],
-            "llm_vendor": token["llm_vendor"],
-            "token": ad.crypto.decrypt_token(token["token"]),
-            "created_at": token["created_at"],
-        }
-        for token in tokens
-    ]
-    ad.log.debug(f"list_llm_tokens(): {llm_tokens}")
-    return ListLLMTokensResponse(llm_tokens=llm_tokens)
-
-@app.delete("/llm_tokens/{token_id}")
-async def llm_token_delete(
-    token_id: str,
-    current_user: User = Depends(get_current_user)
-):
-    """Delete an LLM token"""
-    result = await llm_token_collection.delete_one({
-        "_id": ObjectId(token_id),
-        "user_id": current_user.user_id
-    })
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="LLM Token not found")
-    return {"message": "LLM Token deleted successfully"}
-
-@app.post("/aws_credentials")
-async def aws_credentials_create(
-    request: AWSCredentials,
-    current_user: User = Depends(get_current_user)
-):
-    """Create or update AWS credentials"""
-    ad.log.debug(f"Creating/Updating AWS credentials for user: {current_user}")
-
-    # Validate AWS Access Key ID format
-    if not re.match(r'^[A-Z0-9]{20}$', request.access_key_id):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid AWS Access Key ID format. Must be 20 characters long and contain only uppercase letters and numbers."
-        )
-
-    # Validate AWS Secret Access Key format
-    if not re.match(r'^[A-Za-z0-9+/]{40}$', request.secret_access_key):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid AWS Secret Access Key format. Must be 40 characters long and contain only letters, numbers, and +/."
-        )
-
-    aws_credentials = {
-        "access_key_id": ad.crypto.encrypt_token(request.access_key_id),
-        "secret_access_key": ad.crypto.encrypt_token(request.secret_access_key),
-        "user_id": current_user.user_id,
-        "created_at": datetime.now(UTC),
-    }
-    # Replace the existing credentials if they already exist
-    existing_credentials = await aws_credentials_collection.find_one({
-        "user_id": current_user.user_id
-    })
-    if existing_credentials:
-        result = await aws_credentials_collection.replace_one(
-            {"_id": existing_credentials["_id"]},
-            aws_credentials
-        )
-    else:
-        result = await aws_credentials_collection.insert_one(aws_credentials)
-    return {"message": "AWS credentials created successfully"}
-
-
-@app.get("/aws_credentials", response_model=AWSCredentials)
-async def aws_credentials_get(current_user: User = Depends(get_current_user)):
-    """Get AWS credentials"""
-    ad.log.debug(f"Getting AWS credentials for user: {current_user}")
-    aws_credentials = await aws_credentials_collection.find_one({
-        "user_id": current_user.user_id
-    })
-    
-    if not aws_credentials:
-        raise HTTPException(status_code=404, detail="AWS credentials not found")
-    
-    # Decrypt the access key id
-    aws_credentials["access_key_id"] = ad.crypto.decrypt_token(aws_credentials["access_key_id"])
-
-    # Block the secret access key
-    aws_credentials["secret_access_key"] = "********"
-
-    return aws_credentials
-
-@app.delete("/aws_credentials")
-async def aws_credentials_delete(current_user: User = Depends(get_current_user)):
-    """Delete AWS credentials"""
-    ad.log.debug(f"Deleting AWS credentials for user: {current_user}")
-    result = await aws_credentials_collection.delete_one({
-        "user_id": current_user.user_id
-    })
-    return {"message": "AWS credentials deleted successfully"}
-
 @app.post("/auth/token")
 async def create_auth_token(user_data: dict = Body(...)):
     """Create an authentication token"""
@@ -1377,6 +1237,133 @@ async def update_tag(
     # Get and return the updated tag
     updated_tag = await tags_collection.find_one({"_id": ObjectId(tag_id)})
     return Tag(**{**updated_tag, "id": str(updated_tag["_id"])})
+
+@app.post("/account/llm_tokens", response_model=LLMToken)
+async def llm_token_create(
+    request: CreateLLMTokenRequest,
+    current_user: User = Depends(get_admin_user)
+):
+    """Create or update an LLM token (admin only)"""
+    ad.log.debug(f"Creating/Updating LLM token for user: {current_user} request: {request}")
+    
+    # Check if a token for this vendor already exists
+    existing_token = await llm_token_collection.find_one({
+        "user_id": current_user.user_id,
+        "llm_vendor": request.llm_vendor
+    })
+
+    new_token = {
+        "user_id": current_user.user_id,
+        "llm_vendor": request.llm_vendor,
+        "token": ad.crypto.encrypt_token(request.token),
+        "created_at": datetime.now(UTC),
+    }
+
+    if existing_token:
+        # Update the existing token
+        result = await llm_token_collection.replace_one(
+            {"_id": existing_token["_id"]},
+            new_token
+        )
+        new_token["id"] = str(existing_token["_id"])
+        ad.log.debug(f"Updated existing LLM token for {request.llm_vendor}")
+    else:
+        # Insert a new token
+        result = await llm_token_collection.insert_one(new_token)
+        new_token["id"] = str(result.inserted_id)
+        new_token["token"] = ad.crypto.decrypt_token(new_token["token"])
+        ad.log.debug(f"Created new LLM token for {request.llm_vendor}")
+
+    return new_token
+
+@app.get("/account/llm_tokens", response_model=ListLLMTokensResponse)
+async def llm_token_list(current_user: User = Depends(get_admin_user)):
+    """List LLM tokens (admin only)"""
+    cursor = llm_token_collection.find({"user_id": current_user.user_id})
+    tokens = await cursor.to_list(length=None)
+    llm_tokens = [
+        {
+            "id": str(token["_id"]),
+            "user_id": token["user_id"],
+            "llm_vendor": token["llm_vendor"],
+            "token": ad.crypto.decrypt_token(token["token"]),
+            "created_at": token["created_at"],
+        }
+        for token in tokens
+    ]
+    return ListLLMTokensResponse(llm_tokens=llm_tokens)
+
+@app.delete("/account/llm_tokens/{token_id}")
+async def llm_token_delete(
+    token_id: str,
+    current_user: User = Depends(get_admin_user)
+):
+    """Delete an LLM token (admin only)"""
+    result = await llm_token_collection.delete_one({
+        "_id": ObjectId(token_id),
+        "user_id": current_user.user_id
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Token not found")
+    return {"message": "Token deleted successfully"}
+
+@app.post("/account/aws_credentials")
+async def create_aws_credentials(
+    credentials: AWSCredentials,
+    current_user: User = Depends(get_admin_user)
+):  
+    """Create or update AWS credentials (admin only)"""
+
+    # Validate AWS Access Key ID format
+    if not re.match(r'^[A-Z0-9]{20}$', credentials.access_key_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid AWS Access Key ID format. Must be 20 characters long and contain only uppercase letters and numbers."
+        )
+
+    # Validate AWS Secret Access Key format
+    if not re.match(r'^[A-Za-z0-9+/]{40}$', credentials.secret_access_key):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid AWS Secret Access Key format. Must be 40 characters long and contain only letters, numbers, and +/."
+        )
+
+    encrypted_access_key = ad.crypto.encrypt_token(credentials.access_key_id)
+    encrypted_secret_key = ad.crypto.encrypt_token(credentials.secret_access_key)
+    
+    await aws_credentials_collection.update_one(
+        {"user_id": current_user.user_id},
+        {
+            "$set": {
+                "access_key_id": encrypted_access_key,
+                "secret_access_key": encrypted_secret_key,
+                "created_at": datetime.now(UTC)
+            }
+        },
+        upsert=True
+    )
+    
+    return {"message": "AWS credentials saved successfully"}
+
+@app.get("/account/aws_credentials")
+async def get_aws_credentials(current_user: User = Depends(get_admin_user)):
+    """Get AWS credentials (admin only)"""
+    credentials = await aws_credentials_collection.find_one({"user_id": current_user.user_id})
+    if not credentials:
+        raise HTTPException(status_code=404, detail="AWS credentials not found")
+        
+    return {
+        "access_key_id": ad.crypto.decrypt_token(credentials["access_key_id"]),
+        "secret_access_key": ad.crypto.decrypt_token(credentials["secret_access_key"])
+    }
+
+@app.delete("/account/aws_credentials")
+async def delete_aws_credentials(current_user: User = Depends(get_admin_user)):
+    """Delete AWS credentials (admin only)"""
+    result = await aws_credentials_collection.delete_one({"user_id": current_user.user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="AWS credentials not found")
+    return {"message": "AWS credentials deleted successfully"}
 
 @app.get("/account/organizations", response_model=ListOrganizationsResponse)
 async def list_organizations(
