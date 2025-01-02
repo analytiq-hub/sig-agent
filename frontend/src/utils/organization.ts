@@ -1,18 +1,19 @@
 import { ObjectId } from "mongodb";
 import mongoClient from "./mongodb";
 
-export async function createDefaultOrganization(userId: string) {
+export async function createDefaultOrganization(userId: string, email: string) {
     const db = mongoClient.db();
     
-    const existingOrganization = await db.collection("organizations").findOne({ _id: new ObjectId(userId) });
-    if (existingOrganization) {
-        console.log("Organization already exists");
-        return { status: "already_exists" };
-    }
+    // Delete any existing personal organizations for this user
+    await db.collection("organizations").deleteMany({
+        "members.user_id": userId,
+        isPersonal: true
+    });
     
     const organization = {
         _id: new ObjectId(userId),
-        name: "Default",
+        name: email,  // Use email as name
+        isPersonal: true,  // Mark as personal
         members: [{
             user_id: userId,
             role: "admin"

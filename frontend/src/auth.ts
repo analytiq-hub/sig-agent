@@ -138,8 +138,8 @@ export const authOptions: NextAuthOptions = {
                             refresh_token: account.refresh_token
                         });
 
-                        // Create personal organization for new user
-                        await createDefaultOrganization(result.insertedId.toString());
+                        // Create personal organization using email as name
+                        await createDefaultOrganization(result.insertedId.toString(), user.email as string);
                     }
                 }
                 return true;

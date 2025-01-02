@@ -560,6 +560,12 @@ export const updateOrganizationApi = async (
   organizationId: string, 
   update: UpdateOrganizationRequest
 ): Promise<Organization> => {
+  // If updating members, use the dedicated members endpoint
+  if (update.members) {
+    const response = await api.put(`/account/organizations/${organizationId}/members`, update.members);
+    return response.data;
+  }
+  // Otherwise use the general update endpoint
   const response = await api.put(`/account/organizations/${organizationId}`, update);
   return response.data;
 };

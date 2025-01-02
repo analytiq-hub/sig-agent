@@ -6,9 +6,10 @@ export interface OrganizationMember {
 export interface Organization {
   id: string;
   name: string;
+  isPersonal: boolean;
+  members: OrganizationMember[];
   created_at: string;
   updated_at: string;
-  members: OrganizationMember[];
 }
 
 export interface CreateOrganizationRequest {

@@ -16,6 +16,20 @@ export default function OrganizationSwitcher() {
     return <div className="text-white">No organization selected</div>;
   }
 
+  // console.log(`organizations: ${JSON.stringify(organizations, null, 2)}`);
+  // console.log(`currentOrganization: ${JSON.stringify(currentOrganization, null, 2)}`);
+  // console.log(`isPersonal: ${currentOrganization.isPersonal}`);
+
+  if (currentOrganization.isPersonal) {
+    return (
+      <div className="text-gray-200 text-base font-medium">
+        {currentOrganization.name}
+      </div>
+    );
+  }
+
+  const teamOrganizations = organizations.filter(org => !org.isPersonal);
+
   return (
     <Menu as="div" className="relative inline-block text-left">
       <div>
@@ -36,7 +50,7 @@ export default function OrganizationSwitcher() {
       >
         <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
           <div className="py-1">
-            {organizations.map((organization) => (
+            {teamOrganizations.map((organization) => (
               <Menu.Item key={organization.id}>
                 {({ active }) => (
                   <button

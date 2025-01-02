@@ -168,6 +168,7 @@ class Organization(BaseModel):
     id: str
     name: str
     members: List[OrganizationMember]
+    isPersonal: bool
     created_at: datetime
     updated_at: datetime
 

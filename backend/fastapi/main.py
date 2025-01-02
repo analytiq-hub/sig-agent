@@ -1399,7 +1399,11 @@ async def list_organizations(
     ad.log.info(f"Organizations: {organizations}")
 
     return ListOrganizationsResponse(organizations=[
-        Organization(**{**org, "id": str(org["_id"])}) for org in organizations
+        Organization(**{
+            **org,
+            "id": str(org["_id"]),
+            "isPersonal": org.get("isPersonal", False)  # Default to False for existing orgs
+        }) for org in organizations
     ])
 
 @app.post("/account/organizations", response_model=Organization)
@@ -1414,6 +1418,7 @@ async def create_organization(
             "user_id": current_user.user_id,
             "role": "admin"
         }],
+        "isPersonal": False,  # Team organizations created via API are never personal
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
@@ -1469,13 +1474,14 @@ async def update_organization(
             raise HTTPException(status_code=404, detail="Organization not found")
 
     updated_organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
-    return {
+    return Organization(**{
         "id": str(updated_organization["_id"]),
         "name": updated_organization["name"],
         "members": updated_organization["members"],
+        "isPersonal": updated_organization.get("isPersonal", False),
         "created_at": updated_organization["created_at"],
         "updated_at": updated_organization["updated_at"]
-    }
+    })
 
 @app.delete("/account/organizations/{organization_id}")
 async def delete_organization(
@@ -1849,6 +1855,55 @@ async def verify_email(token: str):
     await db.email_verifications.delete_one({"token": token})
     
     return {"message": "Email verified successfully"}
+
+@app.put("/account/organizations/{organization_id}/members", response_model=Organization)
+async def update_organization_members(
+    organization_id: str,
+    members: List[OrganizationMember],
+    current_user: User = Depends(get_current_user)
+):
+    """Update organization members"""
+    organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
+    if not organization:
+        raise HTTPException(404, "Organization not found")
+
+    # If adding members to a personal organization, convert it to team
+    if organization.get("isPersonal") and len(members) > 1:
+        await db.organizations.update_one(
+            {"_id": ObjectId(organization_id)},
+            {"$set": {"isPersonal": False}}
+        )
+
+    # For each new member, delete their personal organization
+    current_member_ids = {m["user_id"] for m in organization["members"]}
+    new_member_ids = {m.user_id for m in members}
+    added_member_ids = new_member_ids - current_member_ids
+
+    if added_member_ids:
+        await db.organizations.delete_many({
+            "members.user_id": {"$in": list(added_member_ids)},
+            "isPersonal": True
+        })
+
+    # Update members
+    await db.organizations.update_one(
+        {"_id": ObjectId(organization_id)},
+        {"$set": {
+            "members": [m.dict() for m in members],
+            "updated_at": datetime.utcnow()
+        }}
+    )
+
+    # Get and return updated organization
+    updated_organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
+    return Organization(**{
+        "id": str(updated_organization["_id"]),
+        "name": updated_organization["name"],
+        "members": updated_organization["members"],
+        "isPersonal": updated_organization.get("isPersonal", False),
+        "created_at": updated_organization["created_at"],
+        "updated_at": updated_organization["updated_at"]
+    })
 
 if __name__ == "__main__":
     import uvicorn
