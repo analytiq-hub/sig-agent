@@ -23,6 +23,19 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClo
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (open) {
+      setName('');
+      setError(null);
+      setLoading(false);
+    }
+  }, [open]);
+
+  const handleClose = () => {
+    setError(null);
+    onClose();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -31,7 +44,7 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClo
     try {
       await onAdd({ name });
       setName('');
-      onClose();
+      handleClose();
     } catch (error) {
       if (isAxiosError(error)) {
         setError(error.response?.data?.detail || 'Failed to create organization');
@@ -46,7 +59,7 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClo
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit}>
         <DialogTitle>Create New Organization</DialogTitle>
         <DialogContent>
@@ -72,7 +85,7 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClo
           </div>
         </DialogContent>
         <DialogActions className="p-4">
-          <Button onClick={onClose} disabled={loading}>
+          <Button onClick={handleClose} disabled={loading}>
             Cancel
           </Button>
           <Button
