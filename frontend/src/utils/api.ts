@@ -551,6 +551,7 @@ export const createOrganizationApi = async (organization: CreateOrganizationRequ
     id: data._id || data.id,
     name: data.name,
     members: data.members,
+    isPersonal: data.isPersonal,
     created_at: data.created_at,
     updated_at: data.updated_at
   };
