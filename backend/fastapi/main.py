@@ -52,6 +52,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(f"{cwd}/..")
 
 import analytiq_data as ad
+import users
 
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
@@ -1441,7 +1442,7 @@ async def update_organization(
     if not organization:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-        # Check if user has permission (account admin or organization admin)
+    # Check if user has permission (account admin or organization admin)
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_account_admin = db_user and db_user.get("role") == "admin"
     is_organization_admin = any(member["role"] == "admin" and member["user_id"] == current_user.user_id for member in organization["members"])
@@ -1693,33 +1694,8 @@ async def delete_user(
             )
     
     try:
-        ad.log.info(f"Deleting user {user_id} OAuth accounts")
-        # Delete all OAuth accounts for this user
-        await db.accounts.delete_many({"userId": user_id})
-        
-        ad.log.info(f"Deleting user {user_id} sessions")
-        # Delete all sessions for this user
-        await db.sessions.delete_many({"userId": user_id})
-        
-        ad.log.info(f"Removing user {user_id} from all organizations they're a member of")
-        # Remove user from all organizations they're a member of
-        await db.organizations.update_many(
-            {"members.user_id": user_id},
-            {"$pull": {"members": {"user_id": user_id}}}
-        )
-        
-        ad.log.info(f"Deleting user {user_id}")
-        # Finally, delete the user
-        result = await db.users.delete_one({"_id": ObjectId(user_id)})
-        
-        if result.deleted_count == 0:
-            raise HTTPException(
-                status_code=404,
-                detail="User not found"
-            )
-        
+        await users.delete_user(db, user_id)
         return {"message": "User and related data deleted successfully"}
-        
     except Exception as e:
         ad.log.error(f"Error deleting user {user_id}: {str(e)}")
         raise HTTPException(
