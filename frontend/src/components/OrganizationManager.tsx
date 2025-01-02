@@ -93,6 +93,7 @@ const OrganizationManager: React.FC = () => {
   const [deleteOrganizationId, setDeleteOrganizationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchOrganizations = async () => {
     try {
@@ -106,6 +107,10 @@ const OrganizationManager: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const filteredOrganizations = organizations.filter(org =>
+    org.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   useEffect(() => {
     fetchOrganizations();
@@ -227,9 +232,34 @@ const OrganizationManager: React.FC = () => {
         </button>
       </div>
 
+      <div className="mb-4">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search organizations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white pl-10"
+          />
+          <svg
+            className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+        </div>
+      </div>
+
       <div style={{ height: 400, width: '100%' }}>
         <DataGrid
-          rows={organizations}
+          rows={filteredOrganizations}
           columns={columns}
           loading={loading}
           pageSizeOptions={[10, 25, 50]}
@@ -253,7 +283,7 @@ const OrganizationManager: React.FC = () => {
       <div className="mt-4 text-sm text-gray-600">
         {loading ? 'Loading...' : 
           organizations.length > 0 ? 
-            `Showing ${organizations.length} organizations` : 
+            `Showing ${filteredOrganizations.length} of ${organizations.length} organizations` : 
             'No organizations found'
         }
       </div>
