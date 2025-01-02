@@ -156,6 +156,20 @@ const OrganizationManager: React.FC = () => {
         </button>
       )
     },
+    {
+      field: 'isPersonal',
+      headerName: 'Type',
+      flex: 1,
+      renderCell: (params) => (
+        <span className={`px-2 py-1 rounded-full text-sm ${
+          params.value 
+            ? 'bg-gray-100 text-gray-800' 
+            : 'bg-blue-100 text-blue-800'
+        }`}>
+          {params.value ? 'Personal' : 'Team'}
+        </span>
+      )
+    },
     { 
       field: 'members', 
       headerName: 'Members', 
