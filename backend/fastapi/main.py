@@ -24,6 +24,7 @@ import hashlib
 from bcrypt import hashpw, gensalt
 
 import startup
+import organizations
 from schemas import (
     User,
     AccessToken, ListAccessTokensResponse, CreateAccessTokenRequest,
