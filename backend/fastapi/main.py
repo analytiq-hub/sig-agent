@@ -1414,6 +1414,17 @@ async def create_organization(
     current_user: User = Depends(get_admin_user)
 ):
     """Create a new organization (admin only)"""
+    # Check for existing organization with same name (case-insensitive)
+    existing = await db.organizations.find_one({
+        "name": {"$regex": f"^{organization.name}$", "$options": "i"}
+    })
+    
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"An organization named '{organization.name}' already exists"
+        )
+
     organization_doc = {
         "name": organization.name,
         "members": [{

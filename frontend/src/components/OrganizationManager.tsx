@@ -35,6 +35,8 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClo
     } catch (error) {
       if (isAxiosError(error)) {
         setError(error.response?.data?.detail || 'Failed to create organization');
+      } else if (error instanceof Error) {
+        setError(error.message);
       } else {
         setError('An unexpected error occurred');
       }
@@ -143,6 +145,15 @@ const OrganizationManager: React.FC = () => {
 
   const handleAddOrganization = async (organization: CreateOrganizationRequest) => {
     try {
+      // Check for duplicate names (case-insensitive)
+      const isDuplicate = organizations.some(
+        org => org.name.toLowerCase() === organization.name.toLowerCase()
+      );
+      
+      if (isDuplicate) {
+        throw new Error(`An organization named "${organization.name}" already exists`);
+      }
+
       await createOrganizationApi(organization);
       await fetchOrganizations();
       await refreshOrganizations();
