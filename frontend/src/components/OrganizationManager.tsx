@@ -10,6 +10,7 @@ import { Organization, CreateOrganizationRequest } from '@/app/types/Api';
 import colors from 'tailwindcss/colors';
 import { isAxiosError } from 'axios';
 import { useRouter } from 'next/navigation'
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface AddOrganizationModalProps {
   open: boolean;
@@ -88,6 +89,7 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClo
 
 const OrganizationManager: React.FC = () => {
   const router = useRouter()
+  const { refreshOrganizations } = useOrganization();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteOrganizationId, setDeleteOrganizationId] = useState<string | null>(null);
@@ -129,6 +131,7 @@ const OrganizationManager: React.FC = () => {
         prevOrganizations.filter(o => o.id !== deleteOrganizationId)
       );
       setDeleteOrganizationId(null);
+      await refreshOrganizations();
     } catch (error) {
       if (isAxiosError(error)) {
         setError(error.response?.data?.detail || 'Failed to delete organization');
@@ -142,8 +145,9 @@ const OrganizationManager: React.FC = () => {
     try {
       await createOrganizationApi(organization);
       await fetchOrganizations();
+      await refreshOrganizations();
     } catch (error) {
-      throw error; // Let the modal handle the error
+      throw error;
     }
   };
 
