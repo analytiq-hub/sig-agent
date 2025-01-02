@@ -1448,7 +1448,7 @@ async def update_organization(
     organization_update: OrganizationUpdate,
     current_user: User = Depends(get_current_user)
 ):
-    """Update an organization"""
+    """Update an organization (account admin or organization admin)"""
     organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
     if not organization:
         raise HTTPException(status_code=404, detail="Organization not found")
