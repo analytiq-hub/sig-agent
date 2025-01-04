@@ -23,7 +23,10 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'admin';
 
-  const menuItems = [
+  const menuItems: Array<{
+    title: string;
+    items: Array<MenuItem>;
+  }> = [
     {
       title: 'User',
       items: [
