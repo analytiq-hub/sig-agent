@@ -53,6 +53,7 @@ sys.path.append(f"{cwd}/..")
 
 import analytiq_data as ad
 import users
+import limits
 
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
@@ -1450,9 +1451,28 @@ async def list_organizations(
 @app.post("/account/organizations", response_model=Organization)
 async def create_organization(
     organization: OrganizationCreate,
-    current_user: User = Depends(get_admin_user)
+    current_user: User = Depends(get_current_user)
 ):
-    """Create a new organization (admin only)"""
+    """Create a new organization"""
+    
+    # Check total organizations limit
+    total_orgs = await db.organizations.count_documents({})
+    if total_orgs >= limits.MAX_TOTAL_ORGANIZATIONS:
+        raise HTTPException(
+            status_code=403,
+            detail="System limit reached: Maximum number of organizations exceeded"
+        )
+
+    # Check user's organization limit
+    user_orgs = await db.organizations.count_documents({
+        "members.user_id": current_user.user_id
+    })
+    if user_orgs >= limits.MAX_ORGANIZATIONS_PER_USER:
+        raise HTTPException(
+            status_code=403,
+            detail=f"User limit reached: Cannot be member of more than {limits.MAX_ORGANIZATIONS_PER_USER} organizations"
+        )
+
     # Check for existing organization with same name (case-insensitive)
     existing = await db.organizations.find_one({
         "name": {"$regex": f"^{organization.name}$", "$options": "i"}
@@ -1470,9 +1490,9 @@ async def create_organization(
             "user_id": current_user.user_id,
             "role": "admin"
         }],
-        "type": organization.type,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "type": organization.type or "team",  # Default to team if not specified
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC)
     }
     
     result = await db.organizations.insert_one(organization_doc)
@@ -1696,6 +1716,14 @@ async def create_user(
     current_user: User = Depends(get_admin_user)
 ):
     """Create a new user (admin only)"""
+    # Check total users limit
+    total_users = await db.users.count_documents({})
+    if total_users >= limits.MAX_TOTAL_USERS:
+        raise HTTPException(
+            status_code=403,
+            detail="System limit reached: Maximum number of users exceeded"
+        )
+
     # Check if email already exists
     if await db.users.find_one({"email": user.email}):
         raise HTTPException(
