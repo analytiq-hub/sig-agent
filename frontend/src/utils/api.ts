@@ -537,10 +537,17 @@ export const updateTagApi = async (tagId: string, tag: TagCreate): Promise<Tag> 
 };
 
 // Organization APIs
-export const getOrganizationsApi = async (userId?: string): Promise<ListOrganizationsResponse> => {
-  const response = await api.get('/account/organizations', {
-    params: userId ? { user_id: userId } : undefined
-  });
+export const getOrganizationsApi = async (params?: { 
+  userId?: string;
+  organizationId?: string;
+}): Promise<ListOrganizationsResponse> => {
+  const queryParams = new URLSearchParams();
+  if (params?.userId) queryParams.append('user_id', params.userId);
+  if (params?.organizationId) queryParams.append('organization_id', params.organizationId);
+  
+  const response = await api.get<ListOrganizationsResponse>(
+    `/account/organizations?${queryParams.toString()}`
+  );
   return response.data;
 };
 
@@ -558,8 +565,8 @@ export const createOrganizationApi = async (organization: CreateOrganizationRequ
 };
 
 export const getOrganizationApi = async (organizationId: string): Promise<Organization> => {
-  const response = await api.get<Organization>(`/account/organizations/${organizationId}`);
-  return response.data;
+  const response = await getOrganizationsApi({ organizationId });
+  return response.organizations[0]; // Will always return exactly one organization
 };
 
 export const updateOrganizationApi = async (

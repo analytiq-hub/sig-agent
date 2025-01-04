@@ -1371,34 +1371,65 @@ async def delete_aws_credentials(current_user: User = Depends(get_admin_user)):
 @app.get("/account/organizations", response_model=ListOrganizationsResponse)
 async def list_organizations(
     user_id: str | None = Query(None, description="Filter organizations by user ID"),
+    organization_id: str | None = Query(None, description="Get a specific organization by ID"),
     current_user: User = Depends(get_current_user)
 ):
-    """List organizations (admin can see all or filter by user, users can only see their own)"""
-    ad.log.info(f"Listing organizations for user {current_user.user_id}")
-  
+    """
+    List organizations or get a specific organization.
+    - If organization_id is provided, returns just that organization
+    - If user_id is provided, returns organizations for that user
+    - Otherwise returns all organizations (admin only)
+    """
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_admin = db_user and db_user.get("role") == "admin"
-    
+    is_system_admin = db_user and db_user.get("role") == "admin"
+
+    # Handle single organization request
+    if organization_id:
+        try:
+            organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
+        except:
+            raise HTTPException(status_code=404, detail="Organization not found")
+            
+        if not organization:
+            raise HTTPException(status_code=404, detail="Organization not found")
+
+        # Check permissions
+        is_org_admin = any(
+            m["user_id"] == current_user.user_id and m["role"] == "admin" 
+            for m in organization["members"]
+        )
+
+        if not (is_system_admin or is_org_admin):
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to view this organization"
+            )
+
+        return ListOrganizationsResponse(organizations=[
+            Organization(**{
+                **organization,
+                "id": str(organization["_id"]),
+                "type": organization["type"]
+            })
+        ])
+
+    # Handle user filter
     if user_id:
-        if not is_admin and user_id != current_user.user_id:
+        if not is_system_admin and user_id != current_user.user_id:
             raise HTTPException(
                 status_code=403,
                 detail="Not authorized to view other users' organizations"
             )
         filter_user_id = user_id
     else:
-        filter_user_id = None if is_admin else current_user.user_id
+        filter_user_id = None if is_system_admin else current_user.user_id
 
+    # Build query for list request
     query = {}
     if filter_user_id:
         query["members.user_id"] = filter_user_id
-    
-    ad.log.info(f"All organizations: {await db.organizations.find({}).to_list(None)}")
-    ad.log.info(f"Listing organizations for user {current_user.user_id} with query {query}")
 
     organizations = await db.organizations.find(query).to_list(None)
-
-    ad.log.info(f"Organizations: {organizations}")
 
     return ListOrganizationsResponse(organizations=[
         Organization(**{
@@ -1760,58 +1791,6 @@ async def update_user(
         emailVerified=result.get("emailVerified"),
         createdAt=result.get("createdAt", datetime.now(UTC)),
         hasPassword=bool(result.get("password"))
-    )
-
-@app.get("/account/users/{user_id}", response_model=UserResponse)
-async def get_user(
-    user_id: str,
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Get a single user by ID.
-    System admins can view any user.
-    Organization admins can view users in their organizations.
-    Regular users can only view themselves.
-    """
-    try:
-        user = await db.users.find_one({"_id": ObjectId(user_id)})
-    except:
-        raise HTTPException(status_code=404, detail="User not found")
-        
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # Check permissions
-    db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_admin = db_user and db_user.get("role") == "admin"
-    is_self = current_user.user_id == user_id
-
-    if not (is_admin or is_self):
-        # Check if user is an admin of any organization that the target user is in
-        user_orgs = await db.organizations.find({
-            "members.user_id": user_id
-        }).to_list(None)
-        
-        is_org_admin = any(
-            any(m["user_id"] == current_user.user_id and m["role"] == "admin" 
-                for m in org["members"])
-            for org in user_orgs
-        )
-        
-        if not is_org_admin:
-            raise HTTPException(
-                status_code=403,
-                detail="Not authorized to view this user"
-            )
-
-    return UserResponse(
-        id=str(user["_id"]),
-        email=user["email"],
-        name=user.get("name"),
-        role=user.get("role", "user"),
-        emailVerified=user.get("emailVerified"),
-        createdAt=user.get("createdAt", datetime.now(UTC)),
-        hasPassword=bool(user.get("password"))
     )
 
 
