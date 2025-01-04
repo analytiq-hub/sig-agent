@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Organization, OrganizationMember } from '@/app/types/Api'
+import { Organization, OrganizationMember, OrganizationType } from '@/app/types/Api'
 import { getOrganizationsApi, updateOrganizationApi, getUsersApi } from '@/utils/api'
 import { isAxiosError } from 'axios'
 import { useOrganization } from '@/contexts/OrganizationContext'
@@ -91,6 +91,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const { refreshOrganizations } = useOrganization()
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [name, setName] = useState('')
+  const [type, setType] = useState<OrganizationType>('personal')
   const [members, setMembers] = useState<OrganizationMember[]>([])
   const [availableUsers, setAvailableUsers] = useState<UserResponse[]>([])
   const [loading, setLoading] = useState(true)
@@ -99,6 +100,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
   const [originalName, setOriginalName] = useState('')
+  const [originalType, setOriginalType] = useState<OrganizationType>('personal')
   const [originalMembers, setOriginalMembers] = useState<OrganizationMember[]>([])
 
   // Filter current organization members
@@ -122,9 +124,11 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         if (organization) {
           setOrganization(organization)
           setName(organization.name)
+          setType(organization.type)
           setMembers(organization.members)
           // Store original values
           setOriginalName(organization.name)
+          setOriginalType(organization.type)
           setOriginalMembers(organization.members)
         } else {
           setError('Organization not found')
@@ -156,12 +160,14 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     try {
       await updateOrganizationApi(organizationId, { 
         name,
+        type,
         members 
       });
       setSuccess(true);
       await refreshOrganizations();
       // Update original values after successful save
       setOriginalName(name);
+      setOriginalType(type);
       setOriginalMembers(members);
     } catch (err) {
       if (isAxiosError(err)) {
@@ -269,17 +275,18 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
 
   // Check if form has changes
   const hasChanges = () => {
-    if (name !== originalName) return true
-    if (members.length !== originalMembers.length) return true
+    if (name !== originalName) return true;
+    if (type !== originalType) return true;
+    if (members.length !== originalMembers.length) return true;
     
     // Compare each member and their roles
     const memberChanges = members.some(member => {
-      const originalMember = originalMembers.find(m => m.user_id === member.user_id)
-      return !originalMember || originalMember.role !== member.role
-    })
+      const originalMember = originalMembers.find(m => m.user_id === member.user_id);
+      return !originalMember || originalMember.role !== member.role;
+    });
     
-    return memberChanges
-  }
+    return memberChanges;
+  };
 
   // Add this validation function after the hasChanges function
   const validateAdminPresence = (updatedMembers: OrganizationMember[]): boolean => {
@@ -336,19 +343,39 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
 
           {/* Organization Name Section */}
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Organization Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              />
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                  Organization Name
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+                  Organization Type
+                </label>
+                <select
+                  id="type"
+                  name="type"
+                  value={type}
+                  onChange={(e) => setType(e.target.value as OrganizationType)}
+                  disabled={type === 'personal'} // Can't change personal organizations
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="personal">Personal</option>
+                  <option value="team">Team</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+              </div>
             </div>
           </div>
 

@@ -1467,12 +1467,10 @@ async def update_organization(
     # Is the type changing?
     if organization_update.type is not None and organization_update.type != organization["type"]:
         ad.log.info(f"Updating organization type from {organization['type']} to {organization_update.type}")
-        await update_organization_type(
-            db,
-            organization_id,
-            organization_update.type,
-            organization_update.members,
-            organization_update.user_id
+        await organizations.update_organization_type(
+            db=db,
+            organization_id=organization_id,
+            update=organization_update
         )
 
     update_data = {}
