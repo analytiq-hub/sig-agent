@@ -1913,7 +1913,7 @@ async def send_verification_email(
     )
         
     # Update verification URL to use new path
-    verification_url = f"{NEXTAUTH_URL}/account/auth/verify-email?token={token}"
+    verification_url = f"{NEXTAUTH_URL}/auth/verify-email?token={token}"
     
     # Send email using SES
     try:
