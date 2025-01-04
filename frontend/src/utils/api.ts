@@ -557,6 +557,11 @@ export const createOrganizationApi = async (organization: CreateOrganizationRequ
   };
 };
 
+export const getOrganizationApi = async (organizationId: string): Promise<Organization> => {
+  const response = await api.get<Organization>(`/account/organizations/${organizationId}`);
+  return response.data;
+};
+
 export const updateOrganizationApi = async (
   organizationId: string, 
   update: UpdateOrganizationRequest
@@ -607,6 +612,7 @@ export const getUsersApi = async (params?: ListUsersParams): Promise<ListUsersRe
   if (params?.skip) queryParams.append('skip', params.skip.toString());
   if (params?.limit) queryParams.append('limit', params.limit.toString());
   if (params?.organization_id) queryParams.append('organization_id', params.organization_id);
+  if (params?.user_id) queryParams.append('user_id', params.user_id);
 
   const response = await api.get<ListUsersResponse>(
     `/account/users?${queryParams.toString()}`
@@ -624,8 +630,8 @@ export const deleteUserApi = async (userId: string): Promise<void> => {
 };
 
 export const getUserApi = async (userId: string): Promise<UserResponse> => {
-  const response = await api.get<UserResponse>(`/account/users/${userId}`);
-  return response.data;
+  const response = await getUsersApi({ user_id: userId });
+  return response.users[0]; // Will always return exactly one user
 };
 
 export const updateUserApi = async (userId: string, update: UserUpdate): Promise<UserResponse> => {

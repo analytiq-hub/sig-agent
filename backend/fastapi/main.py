@@ -1534,14 +1534,16 @@ async def delete_organization(
 @app.get("/account/users", response_model=ListUsersResponse)
 async def list_users(
     organization_id: str | None = Query(None, description="Filter users by organization ID"),
+    user_id: str | None = Query(None, description="Get a specific user by ID"),
     skip: int = Query(0, description="Number of users to skip"),
     limit: int = Query(10, description="Number of users to return"),
     current_user: User = Depends(get_current_user)
 ):
     """
-    List users with optional organization filtering.
-    If organization_id is provided, only returns users from that organization.
-    Requires either system admin or organization admin access.
+    List users or get a specific user.
+    - If user_id is provided, returns just that user (requires proper permissions)
+    - If organization_id is provided, returns users from that organization
+    - Otherwise returns all users (admin only)
     """
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_system_admin = db_user and db_user.get("role") == "admin"
@@ -1549,8 +1551,53 @@ async def list_users(
     # Base query
     query = {}
     
+    # Handle single user request
+    if user_id:
+        try:
+            user = await db.users.find_one({"_id": ObjectId(user_id)})
+        except:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Check permissions
+        is_self = current_user.user_id == user_id
+        
+        if not (is_system_admin or is_self):
+            # Check if user is an org admin for any org the target user is in
+            user_orgs = await db.organizations.find({
+                "members.user_id": user_id
+            }).to_list(None)
+            
+            is_org_admin = any(
+                any(m["user_id"] == current_user.user_id and m["role"] == "admin" 
+                    for m in org["members"])
+                for org in user_orgs
+            )
+            
+            if not is_org_admin:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Not authorized to view this user"
+                )
+                
+        return ListUsersResponse(
+            users=[UserResponse(
+                id=str(user["_id"]),
+                email=user["email"],
+                name=user.get("name"),
+                role=user.get("role", "user"),
+                emailVerified=user.get("emailVerified"),
+                createdAt=user.get("createdAt", datetime.now(UTC)),
+                hasPassword=bool(user.get("password"))
+            )],
+            total_count=1,
+            skip=0
+        )
+
+    # Handle organization filter
     if organization_id:
-        # Check if user has permission to view org users
         org = await db.organizations.find_one({"_id": ObjectId(organization_id)})
         if not org:
             raise HTTPException(status_code=404, detail="Organization not found")
@@ -1566,7 +1613,6 @@ async def list_users(
                 detail="Not authorized to view organization users"
             )
             
-        # Get user IDs from organization members
         member_ids = [m["user_id"] for m in org["members"]]
         query["_id"] = {"$in": [ObjectId(uid) for uid in member_ids]}
     else:
@@ -1716,49 +1762,6 @@ async def update_user(
         hasPassword=bool(result.get("password"))
     )
 
-@app.delete("/account/users/{user_id}")
-async def delete_user(
-    user_id: str,
-    current_user: User = Depends(get_current_user)
-):
-    """Delete a user (admin or self)"""
-    # Check if user has permission (admin or self)
-    db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_admin = db_current_user.get("role") == "admin"
-    is_self = current_user.user_id == user_id
-    
-    if not (is_admin or is_self):
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to delete this user"
-        )
-    
-    # Don't allow deleting the last admin user
-    target_user = await db.users.find_one({"_id": ObjectId(user_id)})
-    if not target_user:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found"
-        )
-    
-    if target_user.get("role") == "admin":
-        admin_count = await db.users.count_documents({"role": "admin"})
-        if admin_count == 1:
-            raise HTTPException(
-                status_code=400,
-                detail="Cannot delete the last admin user"
-            )
-    
-    try:
-        await users.delete_user(db, user_id)
-        return {"message": "User and related data deleted successfully"}
-    except Exception as e:
-        ad.log.error(f"Error deleting user {user_id}: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to delete user and related data"
-        )
-
 @app.get("/account/users/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: str,
@@ -1810,6 +1813,50 @@ async def get_user(
         createdAt=user.get("createdAt", datetime.now(UTC)),
         hasPassword=bool(user.get("password"))
     )
+
+
+@app.delete("/account/users/{user_id}")
+async def delete_user(
+    user_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a user (admin or self)"""
+    # Check if user has permission (admin or self)
+    db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
+    is_admin = db_current_user.get("role") == "admin"
+    is_self = current_user.user_id == user_id
+    
+    if not (is_admin or is_self):
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to delete this user"
+        )
+    
+    # Don't allow deleting the last admin user
+    target_user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not target_user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    
+    if target_user.get("role") == "admin":
+        admin_count = await db.users.count_documents({"role": "admin"})
+        if admin_count == 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot delete the last admin user"
+            )
+    
+    try:
+        await users.delete_user(db, user_id)
+        return {"message": "User and related data deleted successfully"}
+    except Exception as e:
+        ad.log.error(f"Error deleting user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to delete user and related data"
+        )
 
 @app.post("/auth/send-verification-email/{user_id}")
 async def send_verification_email(

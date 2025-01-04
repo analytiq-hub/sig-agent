@@ -41,4 +41,5 @@ export interface ListUsersParams {
   skip?: number;
   limit?: number;
   organization_id?: string;
+  user_id?: string;
 }
