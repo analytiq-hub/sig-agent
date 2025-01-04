@@ -1,7 +1,7 @@
 import axios, { isAxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
-import { CreateOrganizationRequest, ListOrganizationsResponse, Organization, UpdateOrganizationRequest } from '@/app/types/Api';
+import { CreateOrganizationRequest, ListOrganizationsResponse, Organization, UpdateOrganizationRequest, ListUsersParams } from '@/app/types/Api';
 import { toast } from 'react-hot-toast';
 
 // These APIs execute from the frontend
@@ -602,13 +602,15 @@ export interface UserUpdate {
   password?: string;
 }
 
-export const getUsersApi = async (params?: { skip?: number; limit?: number }): Promise<ListUsersResponse> => {
-  const response = await api.get('/account/users', { 
-    params: {
-      skip: params?.skip || 0,
-      limit: params?.limit || 10
-    }
-  });
+export const getUsersApi = async (params?: ListUsersParams): Promise<ListUsersResponse> => {
+  const queryParams = new URLSearchParams();
+  if (params?.skip) queryParams.append('skip', params.skip.toString());
+  if (params?.limit) queryParams.append('limit', params.limit.toString());
+  if (params?.organization_id) queryParams.append('organization_id', params.organization_id);
+
+  const response = await api.get<ListUsersResponse>(
+    `/account/users?${queryParams.toString()}`
+  );
   return response.data;
 };
 

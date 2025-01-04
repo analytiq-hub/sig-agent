@@ -1533,18 +1533,53 @@ async def delete_organization(
 # Add these new endpoints after the existing ones
 @app.get("/account/users", response_model=ListUsersResponse)
 async def list_users(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
-    current_user: User = Depends(get_admin_user)
+    organization_id: str | None = Query(None, description="Filter users by organization ID"),
+    skip: int = Query(0, description="Number of users to skip"),
+    limit: int = Query(10, description="Number of users to return"),
+    current_user: User = Depends(get_current_user)
 ):
-    """List all users (admin only)"""
-    # Get total count
-    total_count = await db.users.count_documents({})
+    """
+    List users with optional organization filtering.
+    If organization_id is provided, only returns users from that organization.
+    Requires either system admin or organization admin access.
+    """
+    db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
+    is_system_admin = db_user and db_user.get("role") == "admin"
+
+    # Base query
+    query = {}
     
-    # Get paginated users
-    cursor = db.users.find({}).sort("_id", -1).skip(skip).limit(limit)
-    users = await cursor.to_list(length=None)
-    
+    if organization_id:
+        # Check if user has permission to view org users
+        org = await db.organizations.find_one({"_id": ObjectId(organization_id)})
+        if not org:
+            raise HTTPException(status_code=404, detail="Organization not found")
+            
+        is_org_admin = any(
+            m["user_id"] == current_user.user_id and m["role"] == "admin" 
+            for m in org["members"]
+        )
+        
+        if not (is_system_admin or is_org_admin):
+            raise HTTPException(
+                status_code=403, 
+                detail="Not authorized to view organization users"
+            )
+            
+        # Get user IDs from organization members
+        member_ids = [m["user_id"] for m in org["members"]]
+        query["_id"] = {"$in": [ObjectId(uid) for uid in member_ids]}
+    else:
+        # Only system admins can list all users
+        if not is_system_admin:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to view all users"
+            )
+
+    total_count = await db.users.count_documents(query)
+    users = await db.users.find(query).skip(skip).limit(limit).to_list(None)
+
     return ListUsersResponse(
         users=[
             UserResponse(

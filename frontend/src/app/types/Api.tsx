@@ -36,3 +36,9 @@ export interface UserCreate {
   role?: string;
   provider?: 'google' | 'github';
 }
+
+export interface ListUsersParams {
+  skip?: number;
+  limit?: number;
+  organization_id?: string;
+}

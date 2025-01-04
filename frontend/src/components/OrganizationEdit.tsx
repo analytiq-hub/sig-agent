@@ -115,36 +115,36 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [organizationsResponse, usersResponse] = await Promise.all([
-          getOrganizationsApi(),
-          getUsersApi()
-        ])
+        // Get all organizations and find the one we need
+        const organizationsResponse = await getOrganizationsApi();
+        const organization = organizationsResponse.organizations.find(o => o.id === organizationId);
         
-        const organization = organizationsResponse.organizations.find(o => o.id === organizationId)
         if (organization) {
-          setOrganization(organization)
-          setName(organization.name)
-          setType(organization.type)
-          setMembers(organization.members)
+          setOrganization(organization);
+          setName(organization.name);
+          setType(organization.type);
+          setMembers(organization.members);
           // Store original values
-          setOriginalName(organization.name)
-          setOriginalType(organization.type)
-          setOriginalMembers(organization.members)
-        } else {
-          setError('Organization not found')
-        }
-        
-        setAvailableUsers(usersResponse.users)
-      } catch (err) {
-        setError('Failed to load organization data')
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
+          setOriginalName(organization.name);
+          setOriginalType(organization.type);
+          setOriginalMembers(organization.members);
 
-    fetchData()
-  }, [organizationId])
+          // Get users with organization_id parameter
+          const usersResponse = await getUsersApi({ organization_id: organizationId });
+          setAvailableUsers(usersResponse.users);
+        } else {
+          setError('Organization not found');
+        }
+      } catch (err) {
+        setError('Failed to load organization data');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [organizationId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
