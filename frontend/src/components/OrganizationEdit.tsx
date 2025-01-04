@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Organization, OrganizationMember, OrganizationType } from '@/app/types/Api'
-import { getOrganizationsApi, updateOrganizationApi, getUsersApi, getOrganizationApi } from '@/utils/api'
+import { updateOrganizationApi, getUsersApi, getOrganizationApi } from '@/utils/api'
 import { isAxiosError } from 'axios'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { UserResponse } from '@/utils/api'

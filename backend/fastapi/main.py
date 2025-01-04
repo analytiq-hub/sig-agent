@@ -1881,7 +1881,7 @@ async def delete_user(
             detail="Failed to delete user and related data"
         )
 
-@app.post("/auth/send-verification-email/{user_id}")
+@app.post("/account/auth/send-verification-email/{user_id}")
 async def send_verification_email(
     user_id: str,
     current_user: User = Depends(get_admin_user)
@@ -1912,7 +1912,8 @@ async def send_verification_email(
         upsert=True
     )
         
-    verification_url = f"{NEXTAUTH_URL}/verify-email?token={token}"
+    # Update verification URL to use new path
+    verification_url = f"{NEXTAUTH_URL}/account/auth/verify-email?token={token}"
     
     # Send email using SES
     try:
@@ -1949,10 +1950,9 @@ async def send_verification_email(
         ad.log.error(f"Failed to send email: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
 
-@app.post("/auth/verify-email/{token}")
+@app.post("/account/auth/verify-email/{token}")
 async def verify_email(token: str):
     """Verify email address using token"""
-
     ad.log.info(f"Verifying email with token: {token}")
 
     # Find verification record
