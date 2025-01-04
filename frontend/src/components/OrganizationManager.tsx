@@ -200,7 +200,7 @@ const OrganizationManager: React.FC = () => {
       flex: 1,
       renderCell: (params) => (
         <button
-          onClick={() => router.push(`/settings/account/organizations/${params.row.id}`)}
+          onClick={() => router.push(`/settings/organizations/${params.row.id}`)}
           className="text-left hover:text-blue-600 focus:outline-none"
         >
           {params.value}
@@ -248,7 +248,7 @@ const OrganizationManager: React.FC = () => {
       renderCell: (params) => (
         <div className="flex gap-2 items-center h-full">
           <IconButton
-            onClick={() => router.push(`/settings/account/organizations/${params.row.id}`)}
+            onClick={() => router.push(`/settings/organizations/${params.row.id}`)}
             className="text-blue-600 hover:bg-blue-50"
           >
             <EditIcon />
