@@ -1,6 +1,6 @@
 # main.py
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body, Security, Response
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body, Security, Response, BackgroundTasks
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,6 +22,7 @@ import logging
 import hmac
 import hashlib
 from bcrypt import hashpw, gensalt
+import asyncio
 
 import startup
 import organizations
@@ -1951,32 +1952,47 @@ async def send_verification_email(
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
 
 @app.post("/account/auth/verify-email/{token}")
-async def verify_email(token: str):
+async def verify_email(token: str, background_tasks: BackgroundTasks):
     """Verify email address using token"""
     ad.log.info(f"Verifying email with token: {token}")
 
     # Find verification record
     verification = await db.email_verifications.find_one({"token": token})
     if not verification:
+        ad.log.info(f"No verification record found for token: {token}")
         raise HTTPException(status_code=400, detail="Invalid verification token")
         
     # Check if token expired
     # Convert stored expiration to UTC for comparison
     stored_expiry = verification["expires"].replace(tzinfo=UTC)
     if stored_expiry < datetime.now(UTC):
+        ad.log.info(f"Verification token expired: {stored_expiry} < {datetime.now(UTC)}")
         raise HTTPException(status_code=400, detail="Verification token expired")
     
-    # Update user's email verification status
-    result = await db.users.update_one(
-        {"_id": ObjectId(verification["user_id"])},
-        {"$set": {"emailVerified": True}}
-    )
+    # Check if the user has already verified their email
+    result = await db.users.find_one({"_id": ObjectId(verification["user_id"])})
+    if not result.get("emailVerified"):
+        # Update user's email verification status
+        result = await db.users.update_one(
+            {"_id": ObjectId(verification["user_id"])},
+            {"$set": {"emailVerified": True}}
+        )
     
-    if result.modified_count == 0:
-        raise HTTPException(status_code=400, detail="Failed to verify email")
-        
-    # Delete verification record
-    await db.email_verifications.delete_one({"token": token})
+        if result.modified_count == 0:
+            ad.log.info(f"Failed to verify email for user {verification['user_id']}")
+            raise HTTPException(status_code=400, detail="Failed to verify email")
+
+    # In dev mode, nextjs will call this endpoint twice
+    # so we can't delete the verification record immediately
+
+    # Allow the user to re-verify their email for 1 minute
+    ad.log.info(f"Scheduling deletion of verification record for token: {token}")
+    async def delete_verification_later():
+        await asyncio.sleep(60)  # Wait 60 seconds
+        await db.email_verifications.delete_one({"token": token})
+        ad.log.info(f"Deleted verification record for token: {token}")
+
+    background_tasks.add_task(delete_verification_later)
     
     return {"message": "Email verified successfully"}
 
