@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Organization, OrganizationMember, OrganizationType } from '@/app/types/Api'
-import { getOrganizationsApi, updateOrganizationApi, getUsersApi } from '@/utils/api'
+import { getOrganizationsApi, updateOrganizationApi, getUsersApi, getOrganizationApi } from '@/utils/api'
 import { isAxiosError } from 'axios'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { UserResponse } from '@/utils/api'
@@ -115,26 +115,19 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get all organizations and find the one we need
-        const organizationsResponse = await getOrganizationsApi();
-        const organization = organizationsResponse.organizations.find(o => o.id === organizationId);
-        
-        if (organization) {
-          setOrganization(organization);
-          setName(organization.name);
-          setType(organization.type);
-          setMembers(organization.members);
-          // Store original values
-          setOriginalName(organization.name);
-          setOriginalType(organization.type);
-          setOriginalMembers(organization.members);
+        const organization = await getOrganizationApi(organizationId);
+        setOrganization(organization);
+        setName(organization.name);
+        setType(organization.type);
+        setMembers(organization.members);
+        // Store original values
+        setOriginalName(organization.name);
+        setOriginalType(organization.type);
+        setOriginalMembers(organization.members);
 
-          // Get users with organization_id parameter
-          const usersResponse = await getUsersApi({ organization_id: organizationId });
-          setAvailableUsers(usersResponse.users);
-        } else {
-          setError('Organization not found');
-        }
+        // Get users with organization_id parameter
+        const usersResponse = await getUsersApi({ organization_id: organizationId });
+        setAvailableUsers(usersResponse.users);
       } catch (err) {
         setError('Failed to load organization data');
         console.error(err);

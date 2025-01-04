@@ -1379,9 +1379,17 @@ async def list_organizations(
     - If organization_id is provided, returns just that organization
     - If user_id is provided, returns organizations for that user
     - Otherwise returns all organizations (admin only)
+    - user_id and organization_id are mutually exclusive
     """
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_system_admin = db_user and db_user.get("role") == "admin"
+
+    # user_id and organization_id are mutually exclusive
+    if user_id and organization_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot specify both user_id and organization_id"
+        )
 
     # Handle single organization request
     if organization_id:
@@ -1575,9 +1583,17 @@ async def list_users(
     - If user_id is provided, returns just that user (requires proper permissions)
     - If organization_id is provided, returns users from that organization
     - Otherwise returns all users (admin only)
+    - user_id and organization_id are mutually exclusive
     """
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_system_admin = db_user and db_user.get("role") == "admin"
+
+    # user_id and organization_id are mutually exclusive
+    if user_id and organization_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot specify both user_id and organization_id"
+        )
 
     # Base query
     query = {}
