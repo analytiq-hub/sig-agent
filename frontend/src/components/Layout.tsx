@@ -8,15 +8,15 @@ import AuthButton from '@/components/AuthButton';
 import UserMenu from '@/components/UserMenu';
 import PDFViewerControls from '@/components/PDFViewerControls';
 import OrganizationSwitcher from './OrganizationSwitcher';
-import {
-  Bars3Icon,
-  ChartPieIcon,
-  ArrowUpTrayIcon,
-  ListBulletIcon,
-  CubeIcon,
-  Square3Stack3DIcon,
-  BeakerIcon,
-} from '@heroicons/react/24/outline';
+import { 
+  Menu as Bars3Icon,
+  PieChart as ChartPieIcon,
+  FileUpload as ArrowUpTrayIcon,
+  FormatListBulleted as ListBulletIcon,
+  Apps as CubeIcon,
+  ViewQuilt as Square3Stack3DIcon,
+  Science as BeakerIcon,
+} from '@mui/icons-material';
 
 // First, let's fix the type errors
 interface PDFViewerControlsType {
