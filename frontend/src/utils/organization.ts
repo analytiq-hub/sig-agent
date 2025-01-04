@@ -7,13 +7,13 @@ export async function createDefaultOrganization(userId: string, email: string) {
     // Delete any existing personal organizations for this user
     await db.collection("organizations").deleteMany({
         "members.user_id": userId,
-        isPersonal: true
+        type: "personal"
     });
     
     const organization = {
         _id: new ObjectId(userId),
         name: email,  // Use email as name
-        isPersonal: true,  // Mark as personal
+        type: "personal",  // Mark as personal
         members: [{
             user_id: userId,
             role: "admin"

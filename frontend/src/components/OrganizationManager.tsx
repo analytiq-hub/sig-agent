@@ -20,12 +20,14 @@ interface AddOrganizationModalProps {
 
 const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClose, onAdd }) => {
   const [name, setName] = useState('');
+  const [type, setType] = useState<'personal' | 'team' | 'enterprise'>('team');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
       setName('');
+      setType('team');
       setError(null);
       setLoading(false);
     }
@@ -42,7 +44,7 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClo
     setLoading(true);
 
     try {
-      await onAdd({ name });
+      await onAdd({ name, type });
       setName('');
       handleClose();
     } catch (error) {
@@ -68,20 +70,36 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClo
               <span className="block sm:inline">{error}</span>
             </div>
           )}
-          <div className="mt-4">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Organization Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              placeholder="Enter organization name"
-              required
-              autoFocus
-            />
+          <div className="mt-4 space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                Organization Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                placeholder="Enter organization name"
+                required
+                autoFocus
+              />
+            </div>
+            <div>
+              <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+                Organization Type
+              </label>
+              <select
+                id="type"
+                value={type}
+                onChange={(e) => setType(e.target.value as 'personal' | 'team' | 'enterprise')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="team">Team</option>
+                <option value="enterprise">Enterprise</option>
+              </select>
+            </div>
           </div>
         </DialogContent>
         <DialogActions className="p-4">
@@ -190,18 +208,22 @@ const OrganizationManager: React.FC = () => {
       )
     },
     {
-      field: 'isPersonal',
+      field: 'type',
       headerName: 'Type',
       flex: 1,
-      renderCell: (params) => (
-        <span className={`px-2 py-1 rounded-full text-sm ${
-          params.value 
-            ? 'bg-gray-100 text-gray-800' 
-            : 'bg-blue-100 text-blue-800'
-        }`}>
-          {params.value ? 'Personal' : 'Team'}
-        </span>
-      )
+      renderCell: (params) => {
+        const typeColors = {
+          personal: 'bg-gray-100 text-gray-800',
+          team: 'bg-blue-100 text-blue-800',
+          enterprise: 'bg-purple-100 text-purple-800'
+        };
+        
+        return (
+          <span className={`px-2 py-1 rounded-full text-sm ${typeColors[params.value]}`}>
+            {params.value.charAt(0).toUpperCase() + params.value.slice(1)}
+          </span>
+        );
+      }
     },
     { 
       field: 'members', 

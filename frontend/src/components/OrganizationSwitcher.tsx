@@ -18,9 +18,9 @@ export default function OrganizationSwitcher() {
 
   // console.log(`organizations: ${JSON.stringify(organizations, null, 2)}`);
   // console.log(`currentOrganization: ${JSON.stringify(currentOrganization, null, 2)}`);
-  // console.log(`isPersonal: ${currentOrganization.isPersonal}`);
+  // console.log(`organization type: ${currentOrganization.type}`);
 
-  if (currentOrganization.isPersonal) {
+  if (currentOrganization.type === "personal") {
     return (
       <div className="text-gray-200 text-base font-medium">
         {currentOrganization.name}
@@ -28,7 +28,7 @@ export default function OrganizationSwitcher() {
     );
   }
 
-  const teamOrganizations = organizations.filter(org => !org.isPersonal);
+  const teamOrganizations = organizations.filter(org => org.type !== "personal");
 
   return (
     <Menu as="div" className="relative inline-block text-left">

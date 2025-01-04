@@ -1404,7 +1404,7 @@ async def list_organizations(
         Organization(**{
             **org,
             "id": str(org["_id"]),
-            "isPersonal": org.get("isPersonal", False)  # Default to False for existing orgs
+            "type": org["type"]
         }) for org in organizations
     ])
 
@@ -1431,7 +1431,7 @@ async def create_organization(
             "user_id": current_user.user_id,
             "role": "admin"
         }],
-        "isPersonal": False,  # Team organizations created via API are never personal
+        "type": organization.type,
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
@@ -1468,6 +1468,9 @@ async def update_organization(
     if organization_update.name is not None:
         update_data["name"] = organization_update.name
     
+    if organization_update.type is not None:
+        update_data["type"] = organization_update.type
+    
     if organization_update.members is not None:
         # Ensure at least one admin remains
         if not any(m.role == "admin" for m in organization_update.members):
@@ -1491,7 +1494,7 @@ async def update_organization(
         "id": str(updated_organization["_id"]),
         "name": updated_organization["name"],
         "members": updated_organization["members"],
-        "isPersonal": updated_organization.get("isPersonal", False),
+        "type": updated_organization["type"],
         "created_at": updated_organization["created_at"],
         "updated_at": updated_organization["updated_at"]
     })
@@ -1583,7 +1586,7 @@ async def create_user(
     user_doc["id"] = str(result.inserted_id)
     user_doc["hasPassword"] = True
     
-    # Create default organization for new user
+    # Create default personal organization for new user
     await db.organizations.insert_one({
         "_id": result.inserted_id,
         "name": "Default",
@@ -1591,6 +1594,7 @@ async def create_user(
             "user_id": str(result.inserted_id),
             "role": "admin"
         }],
+        "type": "personal",  # Default organization is personal type
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     })
