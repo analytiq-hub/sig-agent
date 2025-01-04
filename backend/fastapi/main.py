@@ -1464,12 +1464,20 @@ async def update_organization(
             detail="Not authorized to update this organization"
         )
 
+    # Is the type changing?
+    if organization_update.type is not None and organization_update.type != organization["type"]:
+        ad.log.info(f"Updating organization type from {organization['type']} to {organization_update.type}")
+        await update_organization_type(
+            db,
+            organization_id,
+            organization_update.type,
+            organization_update.members,
+            organization_update.user_id
+        )
+
     update_data = {}
     if organization_update.name is not None:
         update_data["name"] = organization_update.name
-    
-    if organization_update.type is not None:
-        update_data["type"] = organization_update.type
     
     if organization_update.members is not None:
         # Ensure at least one admin remains
