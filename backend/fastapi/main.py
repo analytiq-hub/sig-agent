@@ -23,6 +23,7 @@ import hmac
 import hashlib
 from bcrypt import hashpw, gensalt
 import asyncio
+from email_utils import get_verification_email_content, get_email_subject
 
 import startup
 import organizations
@@ -1916,6 +1917,13 @@ async def send_verification_email(
     # Update verification URL to use new path
     verification_url = f"{NEXTAUTH_URL}/auth/verify-email?token={token}"
     
+    # Get email content from template
+    html_content = get_verification_email_content(
+        verification_url=verification_url,
+        site_url=NEXTAUTH_URL,
+        user_name=user.get("name")
+    )
+
     # Send email using SES
     try:
         aws_client = ad.aws.get_aws_client(analytiq_client)
@@ -1932,16 +1940,11 @@ async def send_verification_email(
             },
             Message={
                 'Subject': {
-                    'Data': 'Verify your email address'
+                    'Data': get_email_subject("verification")
                 },
                 'Body': {
                     'Html': {
-                        'Data': f"""
-                            <h1>Verify your email address</h1>
-                            <p>Please click the link below to verify your email address:</p>
-                            <p><a href="{verification_url}">{verification_url}</a></p>
-                            <p>This link will expire in 24 hours.</p>
-                        """
+                        'Data': html_content
                     }
                 }
             }
@@ -1995,48 +1998,6 @@ async def verify_email(token: str, background_tasks: BackgroundTasks):
     background_tasks.add_task(delete_verification_later)
     
     return {"message": "Email verified successfully"}
-
-@app.get("/account/organizations/{organization_id}", response_model=Organization)
-async def get_organization(
-    organization_id: str,
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Get a single organization by ID.
-    System admins can view any organization.
-    Organization admins can view their organizations.
-    Regular members cannot access this endpoint.
-    """
-    try:
-        organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
-    except:
-        raise HTTPException(status_code=404, detail="Organization not found")
-        
-    if not organization:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    # Check permissions
-    db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_system_admin = db_user and db_user.get("role") == "admin"
-    is_org_admin = any(
-        m["user_id"] == current_user.user_id and m["role"] == "admin" 
-        for m in organization["members"]
-    )
-
-    if not (is_system_admin or is_org_admin):
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to view this organization"
-        )
-
-    return Organization(
-        id=str(organization["_id"]),
-        name=organization["name"],
-        type=organization["type"],
-        members=organization["members"],
-        created_at=organization["created_at"],
-        updated_at=organization["updated_at"]
-    )
 
 if __name__ == "__main__":
     import uvicorn
