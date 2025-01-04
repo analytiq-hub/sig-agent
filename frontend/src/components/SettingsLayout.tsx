@@ -3,6 +3,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { 
+  Person as UserIcon,
+  Business as OrganizationsIcon,
+  Settings as SystemIcon
+} from '@mui/icons-material';
 
 interface SettingsLayoutProps {
   selectedMenu?: string;
@@ -25,10 +30,12 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
 
   const menuItems: Array<{
     title: string;
+    icon: React.ElementType;
     items: Array<MenuItem>;
   }> = [
     {
       title: 'User',
+      icon: UserIcon,
       items: [
         {
           name: 'Profile',
@@ -44,6 +51,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
     },
     {
       title: 'Organizations',
+      icon: OrganizationsIcon,
       items: [
         {
           name: 'Organizations',
@@ -55,6 +63,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
     },
     {
       title: 'System',
+      icon: SystemIcon,
       items: [
         {
           name: 'Users',
@@ -75,32 +84,34 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-64 border-r border-gray-200 bg-white">
-        <nav className="p-6 space-y-8">
+      <aside className="w-64 bg-white">
+        <nav className="h-full py-6">
           {menuItems.map((section) => {
-            // Filter out admin-only items for non-admin users
             const visibleItems = section.items.filter(item => 
               !item.adminOnly || isAdmin
             );
 
-            // Only show sections that have visible items
             if (visibleItems.length === 0) return null;
 
+            const Icon = section.icon;
+
             return (
-              <div key={section.title} className="space-y-2">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <div key={section.title} className="mb-6 last:mb-0">
+                <h2 className="px-6 mb-1 text-sm font-medium text-gray-500 flex items-center">
+                  <Icon className="h-5 w-5 mr-2" />
                   {section.title}
                 </h2>
-                <div className="space-y-1">
+                <div className="mt-1">
                   {visibleItems.map((item) => (
                     <Link
                       key={item.id}
                       href={item.href}
                       className={`
-                        flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
+                        flex items-center h-10 pl-[48px] pr-4 text-sm font-medium
+                        transition-colors duration-200 rounded-md mx-2
                         ${selectedMenu === item.id
-                          ? 'bg-blue-50 text-blue-700'
-                          : 'text-gray-700 hover:bg-gray-100'
+                          ? 'bg-blue-50 text-blue-600'
+                          : 'text-gray-600 hover:bg-gray-100'
                         }
                       `}
                     >
@@ -116,7 +127,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto py-8 px-6">
           {children}
         </div>
       </main>
