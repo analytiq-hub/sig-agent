@@ -1761,25 +1761,46 @@ async def delete_user(
 
 @app.get("/account/users/{user_id}", response_model=UserResponse)
 async def get_user(
-    user_id: str, 
+    user_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Get a user's details (admin or self)"""
-    # Check if user has permission (admin or self)
-    db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_admin = db_current_user.get("role") == "admin"
-    is_self = current_user.user_id == user_id
-    
-    if not (is_admin or is_self):
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to view this user's details"
-        )
-    
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    """
+    Get a single user by ID.
+    System admins can view any user.
+    Organization admins can view users in their organizations.
+    Regular users can only view themselves.
+    """
+    try:
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
+    except:
+        raise HTTPException(status_code=404, detail="User not found")
+        
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
+    # Check permissions
+    db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
+    is_admin = db_user and db_user.get("role") == "admin"
+    is_self = current_user.user_id == user_id
+
+    if not (is_admin or is_self):
+        # Check if user is an admin of any organization that the target user is in
+        user_orgs = await db.organizations.find({
+            "members.user_id": user_id
+        }).to_list(None)
+        
+        is_org_admin = any(
+            any(m["user_id"] == current_user.user_id and m["role"] == "admin" 
+                for m in org["members"])
+            for org in user_orgs
+        )
+        
+        if not is_org_admin:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to view this user"
+            )
+
     return UserResponse(
         id=str(user["_id"]),
         email=user["email"],
@@ -1888,6 +1909,48 @@ async def verify_email(token: str):
     await db.email_verifications.delete_one({"token": token})
     
     return {"message": "Email verified successfully"}
+
+@app.get("/account/organizations/{organization_id}", response_model=Organization)
+async def get_organization(
+    organization_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get a single organization by ID.
+    System admins can view any organization.
+    Organization admins can view their organizations.
+    Regular members cannot access this endpoint.
+    """
+    try:
+        organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
+    except:
+        raise HTTPException(status_code=404, detail="Organization not found")
+        
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    # Check permissions
+    db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
+    is_system_admin = db_user and db_user.get("role") == "admin"
+    is_org_admin = any(
+        m["user_id"] == current_user.user_id and m["role"] == "admin" 
+        for m in organization["members"]
+    )
+
+    if not (is_system_admin or is_org_admin):
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to view this organization"
+        )
+
+    return Organization(
+        id=str(organization["_id"]),
+        name=organization["name"],
+        type=organization["type"],
+        members=organization["members"],
+        created_at=organization["created_at"],
+        updated_at=organization["updated_at"]
+    )
 
 if __name__ == "__main__":
     import uvicorn
