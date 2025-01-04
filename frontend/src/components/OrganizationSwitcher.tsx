@@ -20,7 +20,8 @@ export default function OrganizationSwitcher() {
   // console.log(`currentOrganization: ${JSON.stringify(currentOrganization, null, 2)}`);
   // console.log(`organization type: ${currentOrganization.type}`);
 
-  if (currentOrganization.type === "personal") {
+  // If user has only one organization, show it as text
+  if (organizations.length === 1) {
     return (
       <div className="text-gray-200 text-base font-medium">
         {currentOrganization.name}
@@ -28,8 +29,7 @@ export default function OrganizationSwitcher() {
     );
   }
 
-  const teamOrganizations = organizations.filter(org => org.type !== "personal");
-
+  // For multiple organizations, show dropdown
   return (
     <Menu as="div" className="relative inline-block text-left">
       <div>
@@ -50,17 +50,26 @@ export default function OrganizationSwitcher() {
       >
         <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
           <div className="py-1">
-            {teamOrganizations.map((organization) => (
+            {organizations.map((organization) => (
               <Menu.Item key={organization.id}>
                 {({ active }) => (
                   <button
                     onClick={() => switchOrganization(organization.id)}
                     className={`
                       ${active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'}
-                      block px-4 py-2 text-sm w-full text-left
+                      block px-4 py-2 text-sm w-full text-left flex items-center justify-between
                     `}
                   >
-                    {organization.name}
+                    <span>{organization.name}</span>
+                    <span className={`text-xs ml-2 px-2 py-1 rounded-full ${
+                      organization.type === 'personal' 
+                        ? 'bg-gray-100 text-gray-600'
+                        : organization.type === 'team'
+                        ? 'bg-blue-100 text-blue-600'
+                        : 'bg-purple-100 text-purple-600'
+                    }`}>
+                      {organization.type}
+                    </span>
                   </button>
                 )}
               </Menu.Item>
