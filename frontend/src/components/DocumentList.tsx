@@ -7,11 +7,11 @@ import { isAxiosError } from 'axios';
 import { 
   listDocumentsApi, 
   deleteDocumentApi, 
-  DocumentMetadata,
   Tag,
   getTagsApi,
   updateDocumentApi
 } from '@/utils/api';
+import { DocumentMetadata } from '@/types/index';
 import Link from 'next/link';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { isColorLight } from '@/utils/colors';

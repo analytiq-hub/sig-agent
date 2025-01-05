@@ -4,10 +4,10 @@ import { Button, Typography, Box, CircularProgress } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { 
   uploadDocumentsApi,
-  DocumentWithContent,
   Tag,
   getTagsApi
 } from '@/utils/api';
+import { DocumentWithContent } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
 
 const DocumentUpload: React.FC = () => {

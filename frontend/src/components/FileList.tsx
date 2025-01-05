@@ -10,8 +10,8 @@ import { isAxiosError } from 'axios';
 import { 
   listDocumentsApi, 
   deleteDocumentApi, 
-  DocumentMetadata 
 } from '@/utils/api';
+import { DocumentMetadata } from '@/types/index';
 
 type File = DocumentMetadata;
 

@@ -2,6 +2,13 @@ import axios, { isAxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/types/AppSession';
 import { 
+  DocumentWithContent,
+  UploadDocumentsResponse,
+  GetDocumentResponse,
+  DocumentUpdate,
+  ListDocumentsParams,
+} from '@/types/index';
+import { 
   UserCreate, 
   UserUpdate, 
   UserResponse, 
@@ -143,49 +150,10 @@ api.interceptors.response.use(
 
 // Document APIs
 
-export interface DocumentWithContent {
-    name: string;
-    content: string;
-    tag_ids?: string[];  // Optional list of tag IDs
-}
-
-export interface UploadDocumentsResponse {
-  uploaded_documents: Array<{
-    document_name: string;
-    document_id: string;
-  }>;
-}
-
 export const uploadDocumentsApi = async (documents: DocumentWithContent[]): Promise<UploadDocumentsResponse> => {
   const response = await api.post<UploadDocumentsResponse>('/documents', { files: documents });
   return response.data;
 };
-
-export interface UploadedDocument {
-    document_name: string;
-    document_id: string;
-}
-
-export interface DocumentMetadata {
-    id: string;
-    document_name: string;
-    upload_date: string;
-    uploaded_by: string;
-    state: string;
-    tag_ids: string[];  // List of tag IDs
-}
-
-export interface ListDocumentsResponse {
-    documents: DocumentMetadata[];
-    total_count: number;
-    skip: number;
-}
-
-interface ListDocumentsParams {
-  skip?: number;
-  limit?: number;
-  tag_ids?: string;  // Added tag_ids parameter for filtering
-}
 
 export const listDocumentsApi = async (params?: ListDocumentsParams) => {
   const response = await api.get('/documents', { 
@@ -197,11 +165,6 @@ export const listDocumentsApi = async (params?: ListDocumentsParams) => {
   });
   return response.data;
 };
-
-export interface GetDocumentResponse {
-  metadata: DocumentMetadata;
-  content: ArrayBuffer;
-}
 
 export const getDocumentApi = async (id: string): Promise<GetDocumentResponse> => {
   const response = await api.get(`/documents/${id}`);
@@ -220,10 +183,6 @@ export const getDocumentApi = async (id: string): Promise<GetDocumentResponse> =
     content: bytes.buffer
   };
 };
-
-export interface DocumentUpdate {
-  tag_ids: string[];
-}
 
 export const updateDocumentApi = async (documentId: string, update: DocumentUpdate) => {
   const response = await api.put(`/documents/${documentId}`, update);
