@@ -6,7 +6,7 @@ import { IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { getUsersApi, deleteUserApi, createUserApi } from '@/utils/api';
-import { UserResponse, UserCreate } from '@/app/types/Api';
+import { UserResponse, UserCreate } from '@/types/index';
 import { isAxiosError } from 'axios';
 import colors from 'tailwindcss/colors';
 import { useRouter } from 'next/navigation';

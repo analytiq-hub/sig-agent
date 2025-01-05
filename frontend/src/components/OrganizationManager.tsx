@@ -6,7 +6,7 @@ import { IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button }
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { getOrganizationsApi, deleteOrganizationApi, createOrganizationApi } from '@/utils/api';
-import { Organization, CreateOrganizationRequest } from '@/app/types/Api';
+import { Organization, CreateOrganizationRequest } from '@/types/index';
 import colors from 'tailwindcss/colors';
 import { isAxiosError } from 'axios';
 import { useRouter } from 'next/navigation'

@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Organization, OrganizationMember, OrganizationType } from '@/app/types/Api'
+import { Organization, OrganizationMember, OrganizationType } from '@/types/index'
 import { updateOrganizationApi, getUsersApi, getOrganizationApi } from '@/utils/api'
 import { isAxiosError } from 'axios'
 import { useOrganization } from '@/contexts/OrganizationContext'
-import { UserResponse } from '@/app/types/Api'
+import { UserResponse } from '@/types/index'
 import { 
   DataGrid, 
   GridColDef, 

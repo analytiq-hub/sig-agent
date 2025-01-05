@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { getOrganizationsApi } from '@/utils/api'
-import { Organization } from '@/app/types/Api'
+import { Organization } from '@/types/index'
 import { getSession } from 'next-auth/react'
 import { AppSession } from '@/types/AppSession'
 

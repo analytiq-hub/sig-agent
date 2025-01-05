@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Prompt, PromptCreate, createPromptApi, getPromptsApi, deletePromptApi, updatePromptApi, getSchemasApi, getSchemaApi, Tag, getTagsApi } from '@/utils/api';
-import { Schema } from '@/app/types/Api';
+import { Schema } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';

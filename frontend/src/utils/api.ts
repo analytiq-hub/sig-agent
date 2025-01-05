@@ -1,10 +1,10 @@
 import axios, { isAxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/types/AppSession';
-import { UserCreate, UserUpdate, UserResponse, ListUsersParams, ListUsersResponse } from '@/app/types/Api';
-import { CreateOrganizationRequest, ListOrganizationsResponse, Organization, UpdateOrganizationRequest } from '@/app/types/Api';
-import { Schema, SchemaField, SchemaCreate, ListSchemasParams, ListSchemasResponse } from '@/app/types/Api';
-import { InvitationResponse, CreateInvitationRequest, ListInvitationsParams, ListInvitationsResponse, AcceptInvitationRequest } from '@/app/types/Api';
+import { UserCreate, UserUpdate, UserResponse, ListUsersParams, ListUsersResponse } from '@/types/index';
+import { CreateOrganizationRequest, ListOrganizationsResponse, Organization, UpdateOrganizationRequest } from '@/types/index';
+import { Schema, SchemaField, SchemaCreate, ListSchemasParams, ListSchemasResponse } from '@/types/index';
+import { InvitationResponse, CreateInvitationRequest, ListInvitationsParams, ListInvitationsResponse, AcceptInvitationRequest } from '@/types/index';
 import { toast } from 'react-hot-toast';
 
 // These APIs execute from the frontend
