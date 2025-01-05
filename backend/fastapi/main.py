@@ -2002,7 +2002,7 @@ async def verify_email(token: str, background_tasks: BackgroundTasks):
     
     return {"message": "Email verified successfully"}
 
-@app.post("/account/invitations", response_model=InvitationResponse)
+@app.post("/account/email/invitations", response_model=InvitationResponse)
 async def create_invitation(
     invitation: CreateInvitationRequest,
     current_user: User = Depends(get_admin_user)
@@ -2083,7 +2083,7 @@ async def create_invitation(
             detail=f"Failed to send invitation email: {str(e)}"
         )
 
-@app.get("/account/invitations", response_model=ListInvitationsResponse)
+@app.get("/account/email/invitations", response_model=ListInvitationsResponse)
 async def list_invitations(
     skip: int = Query(0),
     limit: int = Query(10),
@@ -2114,7 +2114,7 @@ async def list_invitations(
         skip=skip
     )
 
-@app.post("/account/invitations/{token}/accept")
+@app.post("/account/email/invitations/{token}/accept")
 async def accept_invitation(
     token: str,
     password: str = Body(...),
@@ -2241,7 +2241,7 @@ async def accept_invitation(
             detail=f"Failed to create account: {str(e)}"
         )
 
-@app.get("/account/invitations/{token}", response_model=InvitationResponse)
+@app.get("/account/email/invitations/{token}", response_model=InvitationResponse)
 async def get_invitation(token: str):
     """Get invitation details by token"""
     invitation = await db.invitations.find_one({

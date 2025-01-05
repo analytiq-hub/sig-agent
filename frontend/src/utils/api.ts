@@ -687,7 +687,7 @@ export const verifyEmailApi = async (token: string) => {
 
 // Invitation APIs
 export const createInvitationApi = async (invitation: CreateInvitationRequest): Promise<InvitationResponse> => {
-  const response = await api.post<InvitationResponse>('/account/invitations', invitation);
+  const response = await api.post<InvitationResponse>('/account/email/invitations', invitation);
   return response.data;
 };
 
@@ -702,17 +702,17 @@ export const getInvitationsApi = async (params?: ListInvitationsParams): Promise
   if (params?.limit) queryParams.append('limit', params.limit.toString());
 
   const response = await api.get<ListInvitationsResponse>(
-    `/account/invitations?${queryParams.toString()}`
+    `/account/email/invitations?${queryParams.toString()}`
   );
   return response.data;
 };
 
 export const acceptInvitationApi = async (token: string, data: AcceptInvitationRequest): Promise<{ message: string }> => {
-  const response = await api.post(`/account/invitations/${token}/accept`, data);
+  const response = await api.post(`/account/email/invitations/${token}/accept`, data);
   return response.data;
 };
 
 export const getInvitationApi = async (token: string): Promise<InvitationResponse> => {
-  const response = await api.get<InvitationResponse>(`/account/invitations/${token}`);
+  const response = await api.get<InvitationResponse>(`/account/email/invitations/${token}`);
   return response.data;
 };
