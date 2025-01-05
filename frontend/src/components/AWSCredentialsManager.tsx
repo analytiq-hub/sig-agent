@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
-import { getAWSCredentialsApi, createAWSCredentialsApi, deleteAWSCredentialsApi, AWSCredentials } from '@/utils/api';
+import { getAWSCredentialsApi, createAWSCredentialsApi, deleteAWSCredentialsApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
+import { AWSCredentials } from '@/types/index';
 
 const AWSCredentialsManager: React.FC = () => {
   const [credentials, setCredentials] = useState<AWSCredentials | null>(null);

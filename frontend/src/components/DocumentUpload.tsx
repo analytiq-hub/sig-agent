@@ -4,9 +4,9 @@ import { Button, Typography, Box, CircularProgress } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { 
   uploadDocumentsApi,
-  Tag,
   getTagsApi
 } from '@/utils/api';
+import { Tag } from '@/types/index';
 import { DocumentWithContent } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
 

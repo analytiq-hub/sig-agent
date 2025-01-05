@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Divider, CircularProgress } from '@mui/material';
-import { getOCRMetadataApi, getOCRTextApi, OCRMetadataResponse } from '@/utils/api';
+import { getOCRMetadataApi, getOCRTextApi } from '@/utils/api';
+import { OCRMetadataResponse } from '@/types/index';
 
 const PDFRightSidebar = ({ id }: { id: string }) => {
   const [metadata, setMetadata] = useState<OCRMetadataResponse | null>(null);

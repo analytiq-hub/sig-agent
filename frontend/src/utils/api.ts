@@ -37,6 +37,16 @@ import {
 } from '@/types/index';
 import { CreateTokenRequest } from '@/types/index';
 import { CreateLLMTokenRequest } from '@/types/index';
+import { AWSCredentials } from '@/types/index';
+import { OCRMetadataResponse } from '@/types/index';
+import { LLMRunResponse, LLMResult } from '@/types/index';
+import { 
+  PromptCreate, 
+  Prompt, 
+  ListPromptsResponse, 
+  ListPromptsParams 
+} from '@/types/index';
+import { TagCreate, Tag, ListTagsResponse } from '@/types/index';
 import { toast } from 'react-hot-toast';
 
 // These APIs execute from the frontend
@@ -230,11 +240,6 @@ export const deleteLLMTokenApi = async (tokenId: string) => {
 };
 
 // AWS APIs
-export interface AWSCredentials {
-  access_key_id: string;
-  secret_access_key: string;
-}
-
 export const createAWSCredentialsApi = async (credentials: Omit<AWSCredentials, 'created_at'>) => {
   const response = await api.post('/account/aws_credentials', credentials);
   return response.data;
@@ -251,11 +256,6 @@ export const deleteAWSCredentialsApi = async () => {
 };
 
 // OCR APIs
-export interface OCRMetadataResponse {
-  n_pages: number;
-  ocr_date: string;
-}
-
 export const getOCRBlocksApi = async (documentId: string) => {
   const response = await api.get(`/ocr/download/blocks/${documentId}`);
   return response.data;
@@ -273,20 +273,6 @@ export const getOCRMetadataApi = async (documentId: string) => {
 };
 
 // LLM APIs
-
-type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
-
-export interface LLMRunResponse {
-  status: string;
-  result: Record<string, JsonValue>;
-}
-
-export interface LLMResult {
-  prompt_id: string;
-  document_id: string;
-  llm_result: Record<string, JsonValue>;
-}
-
 export const runLLMAnalysisApi = async (
   documentId: string,
   promptId: string = 'default',
@@ -368,49 +354,10 @@ export const updateSchemaApi = async (id: string, schema: {name: string; fields:
 };
 
 // Prompt APIs
-
-export interface PromptField {
-  name: string;
-  type: 'str' | 'int' | 'float' | 'bool' | 'datetime';
-}
-
-export interface PromptCreate {
-  name: string;
-  content: string;
-  schema_name?: string;
-  schema_version?: number;
-  tag_ids?: string[];
-}
-
-export interface Prompt {
-  id: string;
-  name: string;
-  content: string;
-  schema_name: string;
-  schema_version: number;
-  version: number;
-  created_at: string;
-  created_by: string;
-  tag_ids: string[];
-}
-
-export interface ListPromptsResponse {
-  prompts: Prompt[];
-  total_count: number;
-  skip: number;
-}
-
 export const createPromptApi = async (prompt: PromptCreate): Promise<Prompt> => {
   const response = await api.post<Prompt>('/prompts', prompt);
   return response.data;
 };
-
-export interface ListPromptsParams {
-  skip?: number;
-  limit?: number;
-  document_id?: string;
-  tag_ids?: string;
-}
 
 export const getPromptsApi = async (params?: ListPromptsParams): Promise<ListPromptsResponse> => {
   const response = await api.get<ListPromptsResponse>('/prompts', {
@@ -440,24 +387,6 @@ export const deletePromptApi = async (promptId: string): Promise<void> => {
 };
 
 // Tag APIs
-
-export interface TagCreate {
-    name: string;
-    color?: string;
-    description?: string;
-}
-
-export interface Tag {
-  id: string;
-  name: string;
-  color: string;
-  description?: string;
-}
-
-export interface ListTagsResponse {
-    tags: Tag[];
-}
-
 export const createTagApi = async (tag: TagCreate): Promise<Tag> => {
     const response = await api.post<Tag>('/tags', tag);
     return response.data;

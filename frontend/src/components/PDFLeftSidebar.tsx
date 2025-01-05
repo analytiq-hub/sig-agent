@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronDownIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { getLLMResultApi, getPromptsApi, runLLMAnalysisApi } from '@/utils/api';
-import type { Prompt } from '@/utils/api';
+import type { Prompt } from '@/types/index';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 

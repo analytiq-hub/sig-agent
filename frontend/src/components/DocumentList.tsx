@@ -7,10 +7,10 @@ import { isAxiosError } from 'axios';
 import { 
   listDocumentsApi, 
   deleteDocumentApi, 
-  Tag,
   getTagsApi,
   updateDocumentApi
 } from '@/utils/api';
+import { Tag } from '@/types/index';
 import { DocumentMetadata } from '@/types/index';
 import Link from 'next/link';
 import DeleteIcon from '@mui/icons-material/Delete';

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Tag, TagCreate, createTagApi, getTagsApi, deleteTagApi, getApiErrorMsg, updateTagApi } from '@/utils/api';
+import { createTagApi, getTagsApi, deleteTagApi, getApiErrorMsg, updateTagApi } from '@/utils/api';
+import { Tag, TagCreate } from '@/types/index';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
