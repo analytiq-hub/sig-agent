@@ -1,17 +1,10 @@
 import axios, { isAxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
-import { 
-  CreateOrganizationRequest, 
-  ListOrganizationsResponse, 
-  Organization, 
-  UpdateOrganizationRequest, 
-  ListUsersParams,
-  InvitationResponse,
-  CreateInvitationRequest,
-  ListInvitationsResponse,
-  AcceptInvitationRequest
-} from '@/app/types/Api';
+import { UserCreate, UserUpdate, UserResponse, ListUsersParams, ListUsersResponse } from '@/app/types/Api';
+import { CreateOrganizationRequest, ListOrganizationsResponse, Organization, UpdateOrganizationRequest } from '@/app/types/Api';
+import { Schema, SchemaField, SchemaCreate, ListSchemasParams, ListSchemasResponse } from '@/app/types/Api';
+import { InvitationResponse, CreateInvitationRequest, ListInvitationsParams, ListInvitationsResponse, AcceptInvitationRequest } from '@/app/types/Api';
 import { toast } from 'react-hot-toast';
 
 // These APIs execute from the frontend
@@ -378,34 +371,6 @@ export const deleteLLMResultApi = async (
 
 // Schema APIs
 
-export interface SchemaField {
-  name: string;
-  type: 'str' | 'int' | 'float' | 'bool' | 'datetime';
-}
-
-export interface SchemaCreate {
-  name: string;
-  fields: SchemaField[];
-}
-
-export interface Schema extends SchemaCreate {
-  id: string;
-  version: number;
-  created_at: string;
-  created_by: string;
-}
-
-export interface ListSchemasParams {
-  skip?: number;
-  limit?: number;
-}
-
-export interface ListSchemasResponse {
-  schemas: Schema[];
-  total_count: number;
-  skip: number;
-}
-
 export const createSchemaApi = async (schema: SchemaCreate) => {
   const response = await api.post<Schema>('/schemas', schema);
   return response.data;
@@ -594,36 +559,6 @@ export const deleteOrganizationApi = async (organizationId: string) => {
 
 // User APIs
 
-export interface UserResponse {
-  id: string;
-  email: string;
-  name: string | null;
-  role: string;
-  emailVerified: boolean | null;
-  createdAt: string;
-  hasPassword: boolean;
-}
-
-export interface ListUsersResponse {
-  users: UserResponse[];
-  total_count: number;
-  skip: number;
-}
-
-export interface UserCreate {
-  email: string;
-  name: string;
-  password: string;
-  role?: string;
-}
-
-export interface UserUpdate {
-  name?: string;
-  role?: string;
-  emailVerified?: boolean;
-  password?: string;
-}
-
 export const getUsersApi = async (params?: ListUsersParams): Promise<ListUsersResponse> => {
   const queryParams = new URLSearchParams();
   if (params?.skip) queryParams.append('skip', params.skip.toString());
@@ -690,11 +625,6 @@ export const createInvitationApi = async (invitation: CreateInvitationRequest): 
   const response = await api.post<InvitationResponse>('/account/email/invitations', invitation);
   return response.data;
 };
-
-export interface ListInvitationsParams {
-  skip?: number;
-  limit?: number;
-}
 
 export const getInvitationsApi = async (params?: ListInvitationsParams): Promise<ListInvitationsResponse> => {
   const queryParams = new URLSearchParams();

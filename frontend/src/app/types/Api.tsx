@@ -32,9 +32,25 @@ export interface ListOrganizationsResponse {
 export interface UserCreate {
   email: string;
   name: string;
-  password?: string;
+  password: string;
   role?: string;
-  provider?: 'google' | 'github';
+}
+
+export interface UserUpdate {
+  name?: string;
+  role?: string;
+  emailVerified?: boolean;
+  password?: string;
+}
+
+export interface UserResponse {
+  id: string;
+  email: string;
+  name: string | null;
+  role: string;
+  emailVerified: boolean | null;
+  createdAt: string;
+  hasPassword: boolean;
 }
 
 export interface ListUsersParams {
@@ -42,6 +58,40 @@ export interface ListUsersParams {
   limit?: number;
   organization_id?: string;
   user_id?: string;
+}
+
+export interface ListUsersResponse {
+  users: UserResponse[];
+  total_count: number;
+  skip: number;
+}
+
+export interface SchemaField {
+  name: string;
+  type: 'str' | 'int' | 'float' | 'bool' | 'datetime';
+}
+
+export interface SchemaCreate {
+  name: string;
+  fields: SchemaField[];
+}
+
+export interface Schema extends SchemaCreate {
+  id: string;
+  version: number;
+  created_at: string;
+  created_by: string;
+}
+
+export interface ListSchemasParams {
+  skip?: number;
+  limit?: number;
+}
+
+export interface ListSchemasResponse {
+  schemas: Schema[];
+  total_count: number;
+  skip: number;
 }
 
 export type InvitationStatus = 'pending' | 'accepted' | 'expired';
@@ -59,6 +109,11 @@ export interface InvitationResponse {
   created_by: string;
   created_at: string;
   organization_id?: string;
+}
+
+export interface ListInvitationsParams {
+  skip?: number;
+  limit?: number;
 }
 
 export interface ListInvitationsResponse {
