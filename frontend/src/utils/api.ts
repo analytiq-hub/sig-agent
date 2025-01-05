@@ -35,6 +35,7 @@ import {
   ListInvitationsResponse, 
   AcceptInvitationRequest 
 } from '@/types/index';
+import { CreateTokenRequest } from '@/types/index';
 import { toast } from 'react-hot-toast';
 
 // These APIs execute from the frontend
@@ -195,11 +196,6 @@ export const deleteDocumentApi = async (id: string) => {
 };
 
 // Token APIs
-
-export interface CreateTokenRequest {
-  name: string;
-  lifetime: number;
-}
 
 export const createTokenApi = async (token: CreateTokenRequest) => {
   const response = await api.post('/access_tokens', token);

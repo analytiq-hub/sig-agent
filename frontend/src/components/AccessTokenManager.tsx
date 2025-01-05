@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
-import { createTokenApi, getTokensApi, deleteTokenApi, CreateTokenRequest } from '@/utils/api';
+import { createTokenApi, getTokensApi, deleteTokenApi } from '@/utils/api';
+import { CreateTokenRequest } from '@/types/index';
 
 export interface AccessToken {
   id: string;
