@@ -36,6 +36,7 @@ import {
   AcceptInvitationRequest 
 } from '@/types/index';
 import { CreateTokenRequest } from '@/types/index';
+import { CreateLLMTokenRequest } from '@/types/index';
 import { toast } from 'react-hot-toast';
 
 // These APIs execute from the frontend
@@ -212,19 +213,6 @@ export const deleteTokenApi = async (tokenId: string) => {
   const response = await api.delete(`/access_tokens/${tokenId}`);
   return response.data;
 };
-
-export interface CreateLLMTokenRequest {
-  llm_vendor: 'OpenAI' | 'Anthropic' | 'Groq';
-  token: string;
-}
-
-export interface LLMToken {
-  id: string;
-  user_id: string;
-  llm_vendor: 'OpenAI' | 'Anthropic' | 'Groq';
-  token: string;
-  created_at: string;
-}
 
 export const createLLMTokenApi = async (tokenRequest: CreateLLMTokenRequest) => {
   const response = await api.post('/account/llm_tokens', tokenRequest);

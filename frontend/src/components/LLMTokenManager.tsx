@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
-import { getLLMTokensApi, LLMToken, createLLMTokenApi, deleteLLMTokenApi } from '@/utils/api';
-
+import { getLLMTokensApi, createLLMTokenApi, deleteLLMTokenApi } from '@/utils/api';
+import { LLMToken } from '@/types/index';
 const LLMTokenManager: React.FC = () => {
   const [llmTokens, setLLMTokens] = useState<LLMToken[]>([]);
   const [editModalOpen, setEditModalOpen] = useState(false);
