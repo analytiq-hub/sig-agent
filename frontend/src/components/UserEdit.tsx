@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getUserApi, updateUserApi, deleteUserApi, UserResponse, UserUpdate, sendVerificationEmailApi } from '@/utils/api';
+import { getUserApi, updateUserApi, deleteUserApi, sendVerificationEmailApi } from '@/utils/api';
+import { UserResponse, UserUpdate } from '@/app/types/Api';
 import { useSession, signOut } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
 

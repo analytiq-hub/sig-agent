@@ -29,7 +29,7 @@ export async function POST(req: Request) {
         });
 
         // Create personal organization
-        await createDefaultOrganization(result.insertedId.toString());
+        await createDefaultOrganization(result.insertedId.toString(), email);
 
         return NextResponse.json({ success: true });
     } catch (error) {

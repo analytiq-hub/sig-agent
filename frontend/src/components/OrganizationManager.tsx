@@ -219,7 +219,7 @@ const OrganizationManager: React.FC = () => {
         };
         
         return (
-          <span className={`px-2 py-1 rounded-full text-sm ${typeColors[params.value]}`}>
+          <span className={`px-2 py-1 rounded-full text-sm ${typeColors[params.value as keyof typeof typeColors]}`}>
             {params.value.charAt(0).toUpperCase() + params.value.slice(1)}
           </span>
         );

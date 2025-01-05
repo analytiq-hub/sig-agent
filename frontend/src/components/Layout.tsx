@@ -17,6 +17,7 @@ import {
   ViewQuilt as Square3Stack3DIcon,
   Science as BeakerIcon,
 } from '@mui/icons-material';
+import { SvgIconProps } from '@mui/material';
 
 // First, let's fix the type errors
 interface PDFViewerControlsType {
@@ -35,7 +36,7 @@ declare global {
 // Update the icon type
 interface MenuItem {
   text: string;
-  icon: React.ForwardRefExoticComponent<React.SVGProps<SVGSVGElement>>;
+  icon: React.ComponentType<SvgIconProps>;
   href: string;
   tooltip: string;
 }

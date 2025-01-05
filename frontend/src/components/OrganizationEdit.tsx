@@ -6,7 +6,7 @@ import { Organization, OrganizationMember, OrganizationType } from '@/app/types/
 import { updateOrganizationApi, getUsersApi, getOrganizationApi } from '@/utils/api'
 import { isAxiosError } from 'axios'
 import { useOrganization } from '@/contexts/OrganizationContext'
-import { UserResponse } from '@/utils/api'
+import { UserResponse } from '@/app/types/Api'
 import { 
   DataGrid, 
   GridColDef, 
@@ -163,7 +163,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     };
 
     fetchData();
-  }, [organizationId, session?.user?.id]);
+  }, [organizationId, session?.user?.id, isOrgAdmin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -316,7 +316,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   if (!isOrgAdmin) {
     return (
       <div className="flex items-center justify-center p-4">
-        You don't have permission to edit this organization
+        You don&apos;t have permission to edit this organization
       </div>
     );
   }

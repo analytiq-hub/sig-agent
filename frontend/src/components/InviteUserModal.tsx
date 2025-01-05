@@ -26,34 +26,38 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({
   const [isSearching, setIsSearching] = useState(false);
 
   // Debounced search function
-  const searchOrganizations = useCallback(
-    debounce(async (query: string) => {
-      if (!query) {
-        setSearchResults([]);
-        return;
-      }
-      
-      setIsSearching(true);
-      try {
-        // Only fetch team and enterprise organizations
-        const response = await getOrganizationsApi();
+  const searchOrganizations = useCallback((query: string) => {
+    if (!query) {
+      setSearchResults([]);
+      return;
+    }
+    
+    setIsSearching(true);
+    getOrganizationsApi()
+      .then(response => {
         const filteredOrgs = response.organizations.filter(org => 
           (org.type === 'team' || org.type === 'enterprise') &&
           org.name.toLowerCase().includes(query.toLowerCase())
         );
         setSearchResults(filteredOrgs);
-      } catch (error) {
+      })
+      .catch(error => {
         console.error('Failed to search organizations:', error);
         toast.error('Failed to search organizations');
-      } finally {
+      })
+      .finally(() => {
         setIsSearching(false);
-      }
-    }, 300),
-    []
-  );
+      });
+  }, []);
 
+  // Use debounce when calling the function
   useEffect(() => {
-    searchOrganizations(searchQuery);
+    const debouncedSearch = debounce(searchOrganizations, 300);
+    debouncedSearch(searchQuery);
+    
+    return () => {
+      debouncedSearch.cancel();
+    };
   }, [searchQuery, searchOrganizations]);
 
   const handleSubmit = async (e: React.FormEvent) => {
