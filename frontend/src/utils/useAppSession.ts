@@ -1,6 +1,6 @@
 'use client'
 import { useSession } from 'next-auth/react';
-import { AppSession } from '@/app/types/AppSession';
+import { AppSession } from '@/types/AppSession';
 
 export function useAppSession() {
   const { data: session, status } = useSession();

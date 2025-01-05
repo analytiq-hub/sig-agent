@@ -8,7 +8,7 @@ import type { Account, DefaultUser } from "next-auth"
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import { JWT } from "next-auth/jwt";
-import { AppSession } from '@/app/types/AppSession';
+import { AppSession } from '@/types/AppSession';
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { createDefaultOrganization } from '@/utils/organization';

@@ -1,6 +1,6 @@
 import axios, { isAxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
-import { AppSession } from '@/app/types/AppSession';
+import { AppSession } from '@/types/AppSession';
 import { UserCreate, UserUpdate, UserResponse, ListUsersParams, ListUsersResponse } from '@/app/types/Api';
 import { CreateOrganizationRequest, ListOrganizationsResponse, Organization, UpdateOrganizationRequest } from '@/app/types/Api';
 import { Schema, SchemaField, SchemaCreate, ListSchemasParams, ListSchemasResponse } from '@/app/types/Api';

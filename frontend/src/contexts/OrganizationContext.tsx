@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { getOrganizationsApi } from '@/utils/api'
 import { Organization } from '@/app/types/Api'
 import { getSession } from 'next-auth/react'
-import { AppSession } from '@/app/types/AppSession'
+import { AppSession } from '@/types/AppSession'
 
 interface OrganizationContextType {
   organizations: Organization[]
