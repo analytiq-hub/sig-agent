@@ -1,7 +1,17 @@
 import axios, { isAxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/app/types/AppSession';
-import { CreateOrganizationRequest, ListOrganizationsResponse, Organization, UpdateOrganizationRequest, ListUsersParams } from '@/app/types/Api';
+import { 
+  CreateOrganizationRequest, 
+  ListOrganizationsResponse, 
+  Organization, 
+  UpdateOrganizationRequest, 
+  ListUsersParams,
+  InvitationResponse,
+  CreateInvitationRequest,
+  ListInvitationsResponse,
+  AcceptInvitationRequest
+} from '@/app/types/Api';
 import { toast } from 'react-hot-toast';
 
 // These APIs execute from the frontend
@@ -672,5 +682,37 @@ export const sendVerificationEmailApi = async (userId: string) => {
 
 export const verifyEmailApi = async (token: string) => {
   const response = await api.post(`/account/auth/verify-email/${token}`);
+  return response.data;
+};
+
+// Invitation APIs
+export const createInvitationApi = async (invitation: CreateInvitationRequest): Promise<InvitationResponse> => {
+  const response = await api.post<InvitationResponse>('/account/invitations', invitation);
+  return response.data;
+};
+
+export interface ListInvitationsParams {
+  skip?: number;
+  limit?: number;
+}
+
+export const getInvitationsApi = async (params?: ListInvitationsParams): Promise<ListInvitationsResponse> => {
+  const queryParams = new URLSearchParams();
+  if (params?.skip) queryParams.append('skip', params.skip.toString());
+  if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+  const response = await api.get<ListInvitationsResponse>(
+    `/account/invitations?${queryParams.toString()}`
+  );
+  return response.data;
+};
+
+export const acceptInvitationApi = async (token: string, data: AcceptInvitationRequest): Promise<{ message: string }> => {
+  const response = await api.post(`/account/invitations/${token}/accept`, data);
+  return response.data;
+};
+
+export const getInvitationApi = async (token: string): Promise<InvitationResponse> => {
+  const response = await api.get<InvitationResponse>(`/account/invitations/${token}`);
   return response.data;
 };

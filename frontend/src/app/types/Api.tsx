@@ -43,3 +43,31 @@ export interface ListUsersParams {
   organization_id?: string;
   user_id?: string;
 }
+
+export type InvitationStatus = 'pending' | 'accepted' | 'expired';
+
+export interface CreateInvitationRequest {
+  email: string;
+  organization_id?: string;
+}
+
+export interface InvitationResponse {
+  id: string;
+  email: string;
+  status: InvitationStatus;
+  expires: string;
+  created_by: string;
+  created_at: string;
+  organization_id?: string;
+}
+
+export interface ListInvitationsResponse {
+  invitations: InvitationResponse[];
+  total_count: number;
+  skip: number;
+}
+
+export interface AcceptInvitationRequest {
+  name: string;
+  password: string;
+}

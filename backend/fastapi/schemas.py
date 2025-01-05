@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List, Literal, Optional
+from enum import Enum
 
 # Pydantic models
 class User(BaseModel):
@@ -204,5 +205,28 @@ class UserResponse(BaseModel):
 
 class ListUsersResponse(BaseModel):
     users: List[UserResponse]
+    total_count: int
+    skip: int
+
+class InvitationStatus(str, Enum):
+    pending = "pending"
+    accepted = "accepted"
+    expired = "expired"
+
+class CreateInvitationRequest(BaseModel):
+    email: str
+    organization_id: Optional[str] = None  # For future use
+
+class InvitationResponse(BaseModel):
+    id: str
+    email: str
+    status: InvitationStatus
+    expires: datetime
+    created_by: str
+    created_at: datetime
+    organization_id: Optional[str] = None
+
+class ListInvitationsResponse(BaseModel):
+    invitations: list[InvitationResponse]
     total_count: int
     skip: int

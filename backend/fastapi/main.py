@@ -23,7 +23,7 @@ import hmac
 import hashlib
 from bcrypt import hashpw, gensalt
 import asyncio
-from email_utils import get_verification_email_content, get_email_subject
+from email_utils import get_verification_email_content, get_email_subject, get_invitation_email_content
 
 import startup
 import organizations
@@ -46,7 +46,10 @@ from schemas import (
     OrganizationCreate,
     OrganizationUpdate,
     Organization,
-    ListOrganizationsResponse
+    ListOrganizationsResponse,
+    InvitationResponse,
+    CreateInvitationRequest,
+    ListInvitationsResponse
 )
 
 # Set up the path
@@ -1981,9 +1984,9 @@ async def verify_email(token: str, background_tasks: BackgroundTasks):
             {"$set": {"emailVerified": True}}
         )
     
-        if result.modified_count == 0:
-            ad.log.info(f"Failed to verify email for user {verification['user_id']}")
-            raise HTTPException(status_code=400, detail="Failed to verify email")
+    if result.modified_count == 0:
+        ad.log.info(f"Failed to verify email for user {verification['user_id']}")
+        raise HTTPException(status_code=400, detail="Failed to verify email")
 
     # In dev mode, nextjs will call this endpoint twice
     # so we can't delete the verification record immediately
@@ -1998,6 +2001,281 @@ async def verify_email(token: str, background_tasks: BackgroundTasks):
     background_tasks.add_task(delete_verification_later)
     
     return {"message": "Email verified successfully"}
+
+@app.post("/account/invitations", response_model=InvitationResponse)
+async def create_invitation(
+    invitation: CreateInvitationRequest,
+    current_user: User = Depends(get_admin_user)
+):
+    """Create a new invitation (admin only)"""
+    # Check if email already registered
+    if await db.users.find_one({"email": invitation.email}):
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+        )
+        
+    # Check if there's already a pending invitation
+    existing_invitation = await db.invitations.find_one({
+        "email": invitation.email,
+        "status": "pending",
+        "expires": {"$gt": datetime.now(UTC)}
+    })
+    if existing_invitation:
+        raise HTTPException(
+            status_code=400,
+            detail="Active invitation already exists for this email"
+        )
+
+    # Generate invitation token
+    token = secrets.token_urlsafe(32)
+    expires = datetime.now(UTC) + timedelta(hours=24)
+    
+    # Create invitation document
+    invitation_doc = {
+        "email": invitation.email,
+        "token": token,
+        "status": "pending",
+        "expires": expires,
+        "created_by": current_user.user_id,
+        "created_at": datetime.now(UTC),
+    }
+    
+    # Get organization name if this is an org invitation
+    organization_name = None
+    if invitation.organization_id:
+        invitation_doc["organization_id"] = invitation.organization_id
+        
+        org = await db.organizations.find_one({"_id": ObjectId(invitation.organization_id)})
+        if org:
+            organization_name = org["name"]
+    
+    result = await db.invitations.insert_one(invitation_doc)
+    invitation_doc["id"] = str(result.inserted_id)
+    
+    # Send invitation email
+    invitation_url = f"{NEXTAUTH_URL}/auth/accept-invitation?token={token}"
+    html_content = get_invitation_email_content(
+        invitation_url=invitation_url,
+        site_url=NEXTAUTH_URL,
+        expires=expires,
+        organization_name=organization_name
+    )
+    
+    try:
+        aws_client = ad.aws.get_aws_client(analytiq_client)
+        ses_client = aws_client.session.client("ses", region_name=aws_client.region_name)
+        
+        response = ses_client.send_email(
+            Source=SES_FROM_EMAIL,
+            Destination={'ToAddresses': [invitation.email]},
+            Message={
+                'Subject': {'Data': get_email_subject("invitation")},
+                'Body': {'Html': {'Data': html_content}}
+            }
+        )
+        return InvitationResponse(**invitation_doc)
+    except Exception as e:
+        # Delete invitation if email fails
+        await db.invitations.delete_one({"_id": result.inserted_id})
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to send invitation email: {str(e)}"
+        )
+
+@app.get("/account/invitations", response_model=ListInvitationsResponse)
+async def list_invitations(
+    skip: int = Query(0),
+    limit: int = Query(10),
+    current_user: User = Depends(get_admin_user)
+):
+    """List all invitations (admin only)"""
+    query = {}
+    total_count = await db.invitations.count_documents(query)
+    cursor = db.invitations.find(query).skip(skip).limit(limit)
+    invitations = await cursor.to_list(None)
+    
+    return ListInvitationsResponse(
+        invitations=[
+            InvitationResponse(
+                id=str(inv["_id"]),
+                email=inv["email"],
+                status=inv["status"],
+                expires=inv["expires"],
+                created_by=inv["created_by"],
+                created_at=inv["created_at"],
+                role=inv["role"],
+                organization_id=inv.get("organization_id"),
+                organization_role=inv.get("organization_role")
+            )
+            for inv in invitations
+        ],
+        total_count=total_count,
+        skip=skip
+    )
+
+@app.post("/account/invitations/{token}/accept")
+async def accept_invitation(
+    token: str,
+    password: str = Body(...),
+    name: str = Body(...)
+):
+    """Accept an invitation and create user account"""
+    # Find and validate invitation
+    invitation = await db.invitations.find_one({
+        "token": token,
+        "status": "pending"
+    })
+    
+    if not invitation:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired invitation"
+        )
+        
+    # Ensure both datetimes are timezone-aware for comparison
+    invitation_expires = invitation["expires"].replace(tzinfo=UTC)
+    if invitation_expires < datetime.now(UTC):
+        await db.invitations.update_one(
+            {"_id": invitation["_id"]},
+            {"$set": {"status": "expired"}}
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Invitation has expired"
+        )
+    
+    # Check if user already exists
+    existing_user = await db.users.find_one({"email": invitation["email"]})
+    
+    if existing_user:
+        user_id = str(existing_user["_id"])
+        
+        # If this is an organization invitation, add user to the organization
+        if invitation.get("organization_id"):
+            # Check if user is already in the organization
+            org = await db.organizations.find_one({
+                "_id": ObjectId(invitation["organization_id"]),
+                "members.user_id": user_id
+            })
+            
+            if org:
+                raise HTTPException(
+                    status_code=400,
+                    detail="User is already a member of this organization"
+                )
+            
+            # Add user to organization
+            await db.organizations.update_one(
+                {"_id": ObjectId(invitation["organization_id"])},
+                {
+                    "$push": {
+                        "members": {
+                            "user_id": user_id,
+                            "role": "user"  # Default all invited users to regular member role
+                        }
+                    }
+                }
+            )
+        
+        # Mark invitation as accepted
+        await db.invitations.update_one(
+            {"_id": invitation["_id"]},
+            {"$set": {"status": "accepted"}}
+        )
+        
+        return {"message": "User added to organization successfully"}
+    
+    # Create new user account if they don't exist
+    hashed_password = hashpw(password.encode(), gensalt(12))
+    user_doc = {
+        "email": invitation["email"],
+        "name": name,
+        "password": hashed_password.decode(),
+        "role": "user",  # Default all invited users to regular user role
+        "emailVerified": True,  # Auto-verify since it's from invitation
+        "createdAt": datetime.now(UTC)
+    }
+    
+    try:
+        result = await db.users.insert_one(user_doc)
+        user_id = str(result.inserted_id)
+        
+        # Create default personal organization
+        await db.organizations.insert_one({
+            "_id": result.inserted_id,
+            "name": "Default",
+            "members": [{
+                "user_id": user_id,
+                "role": "admin"  # User is admin of their personal org
+            }],
+            "type": "personal",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        })
+        
+        # If organization invitation, add to organization
+        if invitation.get("organization_id"):
+            await db.organizations.update_one(
+                {"_id": ObjectId(invitation["organization_id"])},
+                {
+                    "$push": {
+                        "members": {
+                            "user_id": user_id,
+                            "role": "user"  # Default all invited users to regular member role
+                        }
+                    }
+                }
+            )
+        
+        # Mark invitation as accepted
+        await db.invitations.update_one(
+            {"_id": invitation["_id"]},
+            {"$set": {"status": "accepted"}}
+        )
+        
+        return {"message": "Account created successfully"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create account: {str(e)}"
+        )
+
+@app.get("/account/invitations/{token}", response_model=InvitationResponse)
+async def get_invitation(token: str):
+    """Get invitation details by token"""
+    invitation = await db.invitations.find_one({
+        "token": token,
+        "status": "pending"
+    })
+    
+    if not invitation:
+        raise HTTPException(
+            status_code=404,
+            detail="Invalid or expired invitation"
+        )
+        
+    # Ensure both datetimes are timezone-aware for comparison
+    invitation_expires = invitation["expires"].replace(tzinfo=UTC)
+    if invitation_expires < datetime.now(UTC):
+        await db.invitations.update_one(
+            {"_id": invitation["_id"]},
+            {"$set": {"status": "expired"}}
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Invitation has expired"
+        )
+    
+    return InvitationResponse(
+        id=str(invitation["_id"]),
+        email=invitation["email"],
+        status=invitation["status"],
+        expires=invitation["expires"],
+        created_by=invitation["created_by"],
+        created_at=invitation["created_at"],
+        organization_id=invitation.get("organization_id")
+    )
 
 if __name__ == "__main__":
     import uvicorn

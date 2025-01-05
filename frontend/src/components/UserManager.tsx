@@ -11,6 +11,7 @@ import colors from 'tailwindcss/colors';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useAppSession } from '@/utils/useAppSession';
+import InviteUserModal from './InviteUserModal';
 
 interface DeleteUserModalProps {
   isOpen: boolean;
@@ -195,6 +196,7 @@ const UserManager: React.FC = () => {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -329,12 +331,20 @@ const UserManager: React.FC = () => {
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Users</h2>
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          Add User
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            Add User
+          </button>
+          <button
+            onClick={() => setIsInviteModalOpen(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          >
+            Invite User
+          </button>
+        </div>
       </div>
 
       {/* Search Box */}
@@ -396,6 +406,12 @@ const UserManager: React.FC = () => {
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddUser}
+      />
+
+      <InviteUserModal
+        open={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        onInvited={fetchUsers}
       />
     </div>
   );
