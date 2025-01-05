@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { getOrganizationsApi } from '@/utils/api'
 import { Organization } from '@/app/types/Api'
+import { getSession } from 'next-auth/react'
+import { AppSession } from '@/app/types/AppSession'
 
 interface OrganizationContextType {
   organizations: Organization[]
@@ -32,17 +34,24 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
-        const response = await getOrganizationsApi()
-        setOrganizations(response.organizations)
+        const session = await getSession() as AppSession | null;
+        if (!session?.user?.id) {
+          console.warn('No user ID found in session');
+          setIsLoading(false);
+          return;
+        }
+
+        const response = await getOrganizationsApi({ userId: session.user.id });
+        setOrganizations(response.organizations);
       } catch (error) {
-        console.error('Failed to fetch organizations:', error)
+        console.error('Failed to fetch organizations:', error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
 
-    fetchOrganizations()
-  }, [])
+    fetchOrganizations();
+  }, []);
 
   useEffect(() => {
     const initializeCurrentOrganization = () => {
@@ -75,17 +84,23 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const refreshOrganizations = async () => {
     try {
-      const response = await getOrganizationsApi()
-      setOrganizations(response.organizations)
+      const session = await getSession() as AppSession | null;
+      if (!session?.user?.id) {
+        console.warn('No user ID found in session');
+        return;
+      }
+
+      const response = await getOrganizationsApi({ userId: session.user.id });
+      setOrganizations(response.organizations);
       
       if (currentOrganization) {
-        const updatedOrganization = response.organizations.find(w => w.id === currentOrganization.id)
+        const updatedOrganization = response.organizations.find(w => w.id === currentOrganization.id);
         if (updatedOrganization) {
-          setCurrentOrganization(updatedOrganization)
+          setCurrentOrganization(updatedOrganization);
         }
       }
     } catch (error) {
-      console.error('Failed to refresh organizations:', error)
+      console.error('Failed to refresh organizations:', error);
     }
   }
 

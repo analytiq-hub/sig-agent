@@ -15,6 +15,7 @@ import {
 import { Switch, IconButton } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material'
+import { useSession } from 'next-auth/react'
 
 interface OrganizationEditProps {
   organizationId: string
@@ -26,6 +27,7 @@ interface AddMemberModalProps {
   onAdd: (userId: string) => void;
   availableUsers: UserResponse[];
   currentMembers: OrganizationMember[];
+  isAdmin: boolean;
 }
 
 const AddMemberModal: React.FC<AddMemberModalProps> = ({ 
@@ -33,17 +35,22 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   onClose, 
   onAdd, 
   availableUsers,
-  currentMembers 
+  currentMembers,
+  isAdmin
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter users not in organization
-  const filteredUsers = availableUsers.filter(user => 
-    !currentMembers.some(member => member.user_id === user.id) && 
-    (searchQuery === '' || // Only apply name/email filter if there's a search query
-     user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-     user.email.toLowerCase().includes(searchQuery.toLowerCase()))
-  ).slice(0, 10); // Limit to first 10 users
+  // Filter users based on admin status
+  const filteredUsers = availableUsers.filter(user => {
+    const matchesSearch = searchQuery === '' || // Only apply name/email filter if there's a search query
+      user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // If admin, only filter by search. If not admin, also filter out users already in org
+    return isAdmin 
+      ? matchesSearch 
+      : (matchesSearch && !currentMembers.some(member => member.user_id === user.id));
+  }).slice(0, 10); // Limit to first 10 users
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -102,6 +109,8 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [originalName, setOriginalName] = useState('')
   const [originalType, setOriginalType] = useState<OrganizationType>('personal')
   const [originalMembers, setOriginalMembers] = useState<OrganizationMember[]>([])
+  const { data: session } = useSession();
+  const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
 
   // Filter current organization members
   const filteredMembers = members.filter(member => {
@@ -120,6 +129,14 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         setName(organization.name);
         setType(organization.type);
         setMembers(organization.members);
+
+        // Check if current user is admin
+        if (session?.user?.role === 'admin') {
+          setIsCurrentUserAdmin(true);
+        } else {
+          setIsCurrentUserAdmin(false);
+        }
+
         // Store original values
         setOriginalName(organization.name);
         setOriginalType(organization.type);
@@ -137,7 +154,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     };
 
     fetchData();
-  }, [organizationId]);
+  }, [organizationId, session?.user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -440,6 +457,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         onAdd={handleAddMember}
         availableUsers={availableUsers}
         currentMembers={members}
+        isAdmin={isCurrentUserAdmin}
       />
     </div>
   )
