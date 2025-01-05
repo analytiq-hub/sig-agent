@@ -40,17 +40,22 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter users based on admin status
-  const filteredUsers = availableUsers.filter(user => {
-    const matchesSearch = searchQuery === '' || // Only apply name/email filter if there's a search query
-      user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // If admin, only filter by search. If not admin, also filter out users already in org
-    return isAdmin 
-      ? matchesSearch 
-      : (matchesSearch && !currentMembers.some(member => member.user_id === user.id));
-  }).slice(0, 10); // Limit to first 10 users
+  // If not an admin of the organization, show no users
+  if (!isAdmin) {
+    return null;
+  }
+
+  // Filter out users that are already members
+  const filteredUsers = availableUsers
+    .filter(user => {
+      const matchesSearch = searchQuery === '' || 
+        user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        user.email.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Only show users not already in the organization
+      return matchesSearch && !currentMembers.some(member => member.user_id === user.id);
+    })
+    .slice(0, 10);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -110,7 +115,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [originalType, setOriginalType] = useState<OrganizationType>('personal')
   const [originalMembers, setOriginalMembers] = useState<OrganizationMember[]>([])
   const { data: session } = useSession();
-  const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
+  const [isOrgAdmin, setIsOrgAdmin] = useState(false);
 
   // Filter current organization members
   const filteredMembers = members.filter(member => {
@@ -130,11 +135,18 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         setType(organization.type);
         setMembers(organization.members);
 
-        // Check if current user is admin
-        if (session?.user?.role === 'admin') {
-          setIsCurrentUserAdmin(true);
-        } else {
-          setIsCurrentUserAdmin(false);
+        // Check if current user is system admin or organization admin
+        if (session?.user?.id) {
+          const currentUserMember = organization.members.find(
+            member => member.user_id === session.user.id
+          );
+          setIsOrgAdmin(currentUserMember?.role === 'admin');
+        }
+
+        // Only fetch available users if user is admin of this organization
+        if (isOrgAdmin) {
+          const usersResponse = await getUsersApi({ organization_id: organizationId });
+          setAvailableUsers(usersResponse.users);
         }
 
         // Store original values
@@ -142,9 +154,6 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         setOriginalType(organization.type);
         setOriginalMembers(organization.members);
 
-        // Get users with organization_id parameter
-        const usersResponse = await getUsersApi({ organization_id: organizationId });
-        setAvailableUsers(usersResponse.users);
       } catch (err) {
         setError('Failed to load organization data');
         console.error(err);
@@ -303,6 +312,15 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     return updatedMembers.some(member => member.role === 'admin');
   };
 
+  // If not an admin of the organization, show nothing
+  if (!isOrgAdmin) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        You don't have permission to edit this organization
+      </div>
+    );
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center p-4">Loading...</div>
   }
@@ -457,7 +475,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         onAdd={handleAddMember}
         availableUsers={availableUsers}
         currentMembers={members}
-        isAdmin={isCurrentUserAdmin}
+        isAdmin={isOrgAdmin}
       />
     </div>
   )
