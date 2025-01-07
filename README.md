@@ -4,7 +4,7 @@ The Smart Document Router is an open source Document Understanding and Data Extr
 * It ingests unstructured docs from faxes, email, and ERPs.
 * It selects streams of docs that can be processed autonomously with LLMs and NLP - reducing the need for time-consuming, expensive manual workflows.
 
-The Document Router is designed with a human-in-the-loop and can processes financial data correctly ‘on the nose’. (We are not doing RAG!)
+The Document Router is designed to work with a human-in-the-loop and can processes financial data correctly ‘on the nose’. (We are not doing RAG!)
 
 Tech stack:
 * NextJS, NextAuth, MaterialUI, TailwindCSS
