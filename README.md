@@ -1,6 +1,8 @@
 # Smart Document Router
 
-The Smart Document Router ingests unstructured docs into ERPs from faxes, email, and other ERPs. It peels off streams of docs that can be processed autonomously with LLMs and NLP - reducing the need for time-consuming, expensive manual workflows.
+The Smart Document Router is an open source Document Understanding and Data Extraction tool. It is like [LLamaCloud](https://docs.llamaindex.ai), but for Enterprises using ERP systems.
+* It ingests unstructured docs from faxes, email, and ERPs.
+* It selects streams of docs that can be processed autonomously with LLMs and NLP - reducing the need for time-consuming, expensive manual workflows.
 
 The Document Router is designed with a human-in-the-loop and can processes financial data correctly ‘on the nose’. (We are not doing RAG!)
 
