@@ -1886,7 +1886,7 @@ async def delete_user(
             detail="Failed to delete user and related data"
         )
 
-@app.post("/account/auth/send-verification-email/{user_id}")
+@app.post("/account/email/verification/send/{user_id}")
 async def send_verification_email(
     user_id: str,
     current_user: User = Depends(get_admin_user)
@@ -1957,7 +1957,7 @@ async def send_verification_email(
         ad.log.error(f"Failed to send email: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
 
-@app.post("/account/auth/verify-email/{token}")
+@app.post("/account/email/verification/{token}")
 async def verify_email(token: str, background_tasks: BackgroundTasks):
     """Verify email address using token"""
     ad.log.info(f"Verifying email with token: {token}")

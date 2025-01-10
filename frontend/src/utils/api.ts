@@ -506,12 +506,12 @@ export function getApiErrorMsg(error: unknown): string {
 }
 
 export const sendVerificationEmailApi = async (userId: string) => {
-  const response = await api.post(`/account/auth/send-verification-email/${userId}`);
+  const response = await api.post(`/account/email/verification/send/${userId}`);
   return response.data;
 };
 
 export const verifyEmailApi = async (token: string) => {
-  const response = await api.post(`/account/auth/verify-email/${token}`);
+  const response = await api.post(`/account/email/verification/${token}`);
   return response.data;
 };
 
