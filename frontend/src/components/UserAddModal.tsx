@@ -32,7 +32,9 @@ const UserAddModal: React.FC<AddUserModalProps> = ({ open, onClose, onAdd }) => 
       onClose();
     } catch (error) {
       if (isAxiosError(error)) {
-        setError(error.response?.data?.detail || 'Failed to create user');
+        setError(error.response?.data?.detail || error.response?.data?.message || error.message);
+      } else if (error instanceof Error) {
+        setError(error.message);
       } else {
         setError('An unexpected error occurred');
       }
