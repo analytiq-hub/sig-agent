@@ -6,6 +6,7 @@ import { createInvitationApi, getOrganizationsApi } from '@/utils/api';
 import { Organization } from '@/types/index';
 import { toast } from 'react-hot-toast';
 import debounce from 'lodash/debounce';
+import { isAxiosError } from 'axios';
 
 interface InviteUserModalProps {
   open: boolean;
@@ -88,9 +89,10 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({
       setEmail('');
       setSelectedOrgs([]);
       setSearchQuery('');
-    } catch (error: any) {
-      // Display the specific error message from the API if available
-      const errorMessage = error.response?.data?.detail || error.message || 'Failed to send invitation';
+    } catch (error: unknown) {
+      const errorMessage = isAxiosError(error) 
+        ? error.response?.data?.detail || error.message 
+        : 'Failed to send invitation';
       toast.error(errorMessage);
       console.error('Invitation error:', error);
     } finally {
