@@ -12,7 +12,7 @@ import colors from 'tailwindcss/colors';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useAppSession } from '@/utils/useAppSession';
-import InviteUserModal from './InviteUserModal';
+import UserInviteModal from './UserInviteModal';
 
 interface DeleteUserModalProps {
   isOpen: boolean;
@@ -409,7 +409,7 @@ const UserManager: React.FC = () => {
         onAdd={handleAddUser}
       />
 
-      <InviteUserModal
+      <UserInviteModal
         open={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
         onInvited={fetchUsers}

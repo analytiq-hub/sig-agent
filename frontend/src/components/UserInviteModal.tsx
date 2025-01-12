@@ -8,13 +8,13 @@ import { toast } from 'react-hot-toast';
 import debounce from 'lodash/debounce';
 import { isAxiosError } from 'axios';
 
-interface InviteUserModalProps {
+interface UserInviteModalProps {
   open: boolean;
   onClose: () => void;
   onInvited: () => void;
 }
 
-const InviteUserModal: React.FC<InviteUserModalProps> = ({
+const UserInviteModal: React.FC<UserInviteModalProps> = ({
   open,
   onClose,
   onInvited
@@ -206,4 +206,4 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({
   );
 };
 
-export default InviteUserModal; 
+export default UserInviteModal; 
