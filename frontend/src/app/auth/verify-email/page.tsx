@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { verifyEmailApi } from '@/utils/api';
+import { useSession } from 'next-auth/react';
 
 export default function VerifyEmailPage() {
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
   const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { data: session } = useSession();
 
   useEffect(() => {
     const verifyEmail = async () => {
@@ -23,8 +25,14 @@ export default function VerifyEmailPage() {
         console.log(`Verifying email with token: ${token}`);
         await verifyEmailApi(token);
         setStatus('success');
-        // Redirect to login after 3 seconds
-        setTimeout(() => router.push('/signin'), 3000);
+        // Only redirect to signin if user is not already logged in
+        setTimeout(() => {
+          if (!session) {
+            router.push('/signin');
+          } else {
+            router.push('/dashboard');
+          }
+        }, 3000);
       } catch (error) {
         console.error(`Failed to verify email: ${error}`);
         setStatus('error');
@@ -33,7 +41,7 @@ export default function VerifyEmailPage() {
     };
 
     verifyEmail();
-  }, [searchParams, router]);
+  }, [searchParams, router, session]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -53,7 +61,7 @@ export default function VerifyEmailPage() {
             <div className="text-green-600">
               Your email has been verified successfully!
               <p className="text-sm mt-2">
-                Redirecting to login page...
+                Redirecting to {session ? 'dashboard' : 'signin'} page...
               </p>
             </div>
           )}

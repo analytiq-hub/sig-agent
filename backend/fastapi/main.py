@@ -1975,21 +1975,21 @@ async def verify_email(token: str, background_tasks: BackgroundTasks):
         ad.log.info(f"Verification token expired: {stored_expiry} < {datetime.now(UTC)}")
         raise HTTPException(status_code=400, detail="Verification token expired")
     
-    # Check if the user has already verified their email
-    result = await db.users.find_one({"_id": ObjectId(verification["user_id"])})
-    if not result.get("emailVerified"):
-        # Update user's email verification status
-        result = await db.users.update_one(
-            {"_id": ObjectId(verification["user_id"])},
-            {"$set": {"emailVerified": True}}
-        )
-    
+    # Update user's email verification status
+    result = await db.users.update_one(
+        {"_id": ObjectId(verification["user_id"])},
+        {"$set": {"emailVerified": True}}
+    )
+
     if result.modified_count == 0:
         ad.log.info(f"Failed to verify email for user {verification['user_id']}")
+        # Check if the user is already verified
+        user = await db.users.find_one({"_id": ObjectId(verification["user_id"])})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        if user.get("emailVerified"):
+            return {"message": "Email already verified"}
         raise HTTPException(status_code=400, detail="Failed to verify email")
-
-    # In dev mode, nextjs will call this endpoint twice
-    # so we can't delete the verification record immediately
 
     # Allow the user to re-verify their email for 1 minute
     ad.log.info(f"Scheduling deletion of verification record for token: {token}")
