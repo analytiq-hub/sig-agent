@@ -1737,6 +1737,14 @@ async def create_user(
             status_code=400,
             detail="Email already registered"
         )
+
+    # Check if an organization exists with same name as the user email
+    existing_org = await db.organizations.find_one({"name": user.email})
+    if existing_org:
+        raise HTTPException(
+            status_code=400,
+            detail=f"An organization with the same name as the user email ({user.email}) already exists"
+        )
     
     # Hash password
     hashed_password = hashpw(user.password.encode(), gensalt(12))
@@ -1758,7 +1766,7 @@ async def create_user(
     # Create default individual organization for new user
     await db.organizations.insert_one({
         "_id": result.inserted_id,
-        "name": "Default",
+        "name": user.email,
         "members": [{
             "user_id": str(result.inserted_id),
             "role": "admin"
