@@ -224,7 +224,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
       // Check if deleting current user
       if (session?.user?.id === userId) {
         // Sign out if deleting self
-        signOut({ callbackUrl: '/signin' });
+        signOut({ callbackUrl: '/auth/signin' });
       } else {
         // Otherwise just redirect to user list
         router.push('/settings/account/users');

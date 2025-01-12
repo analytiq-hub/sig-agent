@@ -102,7 +102,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     // Don't redirect if on the accept-invitation page
     if (status === 'unauthenticated' && 
         !pathname.startsWith('/auth/')) {
-      router.push('/signin');
+      router.push('/auth/signin');
     }
   }, [status, router, pathname]);
 

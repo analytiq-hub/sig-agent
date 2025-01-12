@@ -25,7 +25,7 @@ const AcceptInvitationPage = () => {
     const fetchInvitation = async () => {
       if (!token) {
         toast.error('Invalid invitation link');
-        router.push('/signin');
+        router.push('/auth/signin');
         return;
       }
 
@@ -35,7 +35,7 @@ const AcceptInvitationPage = () => {
       } catch (error) {
         console.error('Error fetching invitation:', error);
         toast.error('Invalid or expired invitation');
-        router.push('/signin');
+        router.push('/auth/signin');
       }
     };
 

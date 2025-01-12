@@ -235,7 +235,7 @@ const UserManager: React.FC = () => {
       await deleteUserApi(userToDelete.id);
       
       if (session?.session?.user?.id === userToDelete.id) {
-        signOut({ callbackUrl: '/signin' });
+        signOut({ callbackUrl: '/auth/signin' });
         return;
       }
       

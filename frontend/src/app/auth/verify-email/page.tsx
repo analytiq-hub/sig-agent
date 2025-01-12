@@ -28,7 +28,7 @@ export default function VerifyEmailPage() {
         // Only redirect to signin if user is not already logged in
         setTimeout(() => {
           if (!session) {
-            router.push('/signin');
+            router.push('/auth/signin');
           } else {
             router.push('/');
           }

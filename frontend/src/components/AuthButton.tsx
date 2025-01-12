@@ -27,7 +27,7 @@ function AuthButton() {
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <Typography variant="body1" sx={{ mr: 2 }}>
         </Typography>
-        <Button color="inherit" component={Link} href="/signin" startIcon={<LoginIcon />}>
+        <Button color="inherit" component={Link} href="/auth/signin" startIcon={<LoginIcon />}>
           Sign In
         </Button>
       </Box>
