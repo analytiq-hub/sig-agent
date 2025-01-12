@@ -99,10 +99,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [forceUpdate]);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    // Don't redirect if on the accept-invitation page
+    if (status === 'unauthenticated' && !pathname.startsWith('/auth/accept-invitation')) {
       router.push('/signin');
     }
-  }, [status, router]);
+  }, [status, router, pathname]);
 
   // Update the renderMenuItem function to match burger icon size and alignment
   const renderMenuItem = (item: MenuItem) => {
