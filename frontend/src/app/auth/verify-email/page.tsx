@@ -30,7 +30,7 @@ export default function VerifyEmailPage() {
           if (!session) {
             router.push('/signin');
           } else {
-            router.push('/dashboard');
+            router.push('/');
           }
         }, 3000);
       } catch (error) {
@@ -61,7 +61,7 @@ export default function VerifyEmailPage() {
             <div className="text-green-600">
               Your email has been verified successfully!
               <p className="text-sm mt-2">
-                Redirecting to {session ? 'dashboard' : 'signin'} page...
+                Redirecting to {session ? 'homepage' : 'signin page'}...
               </p>
             </div>
           )}
