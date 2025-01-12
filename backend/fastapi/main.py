@@ -1741,12 +1741,12 @@ async def create_user(
     # Hash password
     hashed_password = hashpw(user.password.encode(), gensalt(12))
     
-    # Create user document
+    # Create user document with default role
     user_doc = {
         "email": user.email,
         "name": user.name,
         "password": hashed_password.decode(),
-        "role": "user",
+        "role": "user",  # Always set default role as user
         "emailVerified": False,
         "createdAt": datetime.now(UTC)
     }
@@ -1763,7 +1763,7 @@ async def create_user(
             "user_id": str(result.inserted_id),
             "role": "admin"
         }],
-        "type": "individual",  # Default organization type
+        "type": "individual",
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     })

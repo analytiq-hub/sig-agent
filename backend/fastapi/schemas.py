@@ -186,7 +186,6 @@ class UserCreate(BaseModel):
     email: str
     name: str
     password: str
-    role: str = "user"  # Replace isAdmin with role
 
 class UserUpdate(BaseModel):
     name: str | None = None
@@ -230,3 +229,15 @@ class ListInvitationsResponse(BaseModel):
     invitations: list[InvitationResponse]
     total_count: int
     skip: int
+
+# Add this to your OrganizationType documentation if you have it
+class OrganizationType(str, Enum):
+    """
+    Organization type with upgrade restrictions:
+    - individual can upgrade to team or enterprise
+    - team can upgrade to enterprise
+    - enterprise cannot be downgraded
+    """
+    INDIVIDUAL = "individual"
+    TEAM = "team"
+    ENTERPRISE = "enterprise"
