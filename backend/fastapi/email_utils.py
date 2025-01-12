@@ -89,12 +89,11 @@ def get_verification_email_content(verification_url: str, site_url: str, user_na
         str: HTML content for the email
     """
     greeting = f"Hello {user_name}" if user_name else "Hello"
-    site_name = get_site_name(site_url)
     
     return f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>{greeting},</h2>
-        <p>Please verify your email address for your account on {site_name} by clicking the link below:</p>
+        <p>Please verify your email address for your Smart Document Router account by clicking the link below:</p>
         <p style="margin: 20px 0;">
             <a href="{verification_url}" 
                style="background-color: #0070f3; color: white; padding: 12px 24px; 
@@ -126,7 +125,7 @@ def get_email_subject(email_type: str) -> str:
     """
     subjects = {
         "verification": "Verify your email address",
-        "invitation": "You've been invited to join an organization",
+        "invitation": "You've been invited to join a Smart Document Router organization",
         "password_reset": "Reset your password"
     }
     return subjects.get(email_type, "Notification") 
@@ -150,13 +149,12 @@ def get_invitation_email_content(
         str: HTML content for the email
     """
     expires_str = expires.strftime("%B %d, %Y at %I:%M %p UTC")
-    site_name = get_site_name(site_url)
     
     # Customize message based on whether it's an org invite
     invite_message = (
-        f"You've been invited to join {organization_name} on {site_name}" 
+        f"You've been invited to join a Smart Document Router organization: {organization_name}" 
         if organization_name 
-        else f"You've been invited to join {site_name}"
+        else f"You've been invited to join a Smart Document Router organization"
     )
     
     return f"""
