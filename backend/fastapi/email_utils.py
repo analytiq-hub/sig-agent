@@ -5,6 +5,8 @@ from typing import Optional
 from datetime import datetime
 import re
 
+SITE_NAME = "Smart Document Router"
+
 async def send_email(
     to_email: str,
     subject: str,
@@ -60,22 +62,6 @@ async def send_email(
         logging.error(f"Failed to send email: {str(e)}")
         raise Exception(f"Failed to send email: {str(e)}")
 
-def get_site_name(url: str) -> str:
-    """
-    Extract site name from URL by removing protocol and any trailing paths
-    
-    Args:
-        url: Full site URL (e.g., https://example.com/path)
-    
-    Returns:
-        str: Clean site name (e.g., example.com)
-    """
-    # Remove protocol (http:// or https://)
-    site_name = re.sub(r'^https?://', '', url)
-    # Remove any paths or query parameters
-    site_name = site_name.split('/')[0]
-    return site_name
-
 def get_verification_email_content(verification_url: str, site_url: str, user_name: Optional[str] = None) -> str:
     """
     Generate HTML content for verification email
@@ -93,7 +79,7 @@ def get_verification_email_content(verification_url: str, site_url: str, user_na
     return f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>{greeting},</h2>
-        <p>Please verify your email address for your Smart Document Router account by clicking the link below:</p>
+        <p>Please verify your email address for your {SITE_NAME} account by clicking the link below:</p>
         <p style="margin: 20px 0;">
             <a href="{verification_url}" 
                style="background-color: #0070f3; color: white; padding: 12px 24px; 
@@ -108,7 +94,7 @@ def get_verification_email_content(verification_url: str, site_url: str, user_na
         <p>This link will expire in 24 hours.</p>
         <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;">
         <p style="color: #666; font-size: 0.9em;">
-            If you didn't request this verification for {site_name}, you can safely ignore this email.
+            If you didn't request this verification for {SITE_NAME}, you can safely ignore this email.
         </p>
     </div>
     """
@@ -125,7 +111,7 @@ def get_email_subject(email_type: str) -> str:
     """
     subjects = {
         "verification": "Verify your email address",
-        "invitation": "You've been invited to join a Smart Document Router organization",
+        "invitation": f"You've been invited to join a {SITE_NAME} organization",
         "password_reset": "Reset your password"
     }
     return subjects.get(email_type, "Notification") 
@@ -152,9 +138,9 @@ def get_invitation_email_content(
     
     # Customize message based on whether it's an org invite
     invite_message = (
-        f"You've been invited to join a Smart Document Router organization: {organization_name}" 
+        f"You've been invited to join a {SITE_NAME} organization: {organization_name}" 
         if organization_name 
-        else f"You've been invited to join a Smart Document Router organization"
+        else f"You've been invited to join a {SITE_NAME} organization"
     )
     
     return f"""
@@ -175,7 +161,7 @@ def get_invitation_email_content(
         <p>This invitation will expire on {expires_str}.</p>
         <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;">
         <p style="color: #666; font-size: 0.9em;">
-            If you weren't expecting this invitation to {site_name}, you can safely ignore this email.
+            If you weren't expecting this invitation to {SITE_NAME}, you can safely ignore this email.
         </p>
     </div>
     """ 
