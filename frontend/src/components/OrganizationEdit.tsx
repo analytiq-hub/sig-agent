@@ -98,6 +98,19 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   );
 };
 
+const getAvailableOrganizationTypes = (currentType: OrganizationType): OrganizationType[] => {
+  switch (currentType) {
+    case 'individual':
+      return ['individual', 'team', 'enterprise'];
+    case 'team':
+      return ['team', 'enterprise'];
+    case 'enterprise':
+      return ['enterprise'];
+    default:
+      return ['individual', 'team', 'enterprise'];
+  }
+};
+
 const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) => {
   const router = useRouter()
   const { refreshOrganizations } = useOrganization()
@@ -396,12 +409,13 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
                   name="type"
                   value={type}
                   onChange={(e) => setType(e.target.value as OrganizationType)}
-                  disabled={type === 'individual'} // Can't change individual organizations
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
-                  <option value="individual">Individual</option>
-                  <option value="team">Team</option>
-                  <option value="enterprise">Enterprise</option>
+                  {getAvailableOrganizationTypes(originalType).map((orgType) => (
+                    <option key={orgType} value={orgType}>
+                      {orgType.charAt(0).toUpperCase() + orgType.slice(1)}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

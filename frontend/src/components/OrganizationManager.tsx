@@ -20,14 +20,14 @@ interface AddOrganizationModalProps {
 
 const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClose, onAdd }) => {
   const [name, setName] = useState('');
-  const [type, setType] = useState<'individual' | 'team' | 'enterprise'>('team');
+  const [type, setType] = useState<'individual' | 'team' | 'enterprise'>('individual');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
       setName('');
-      setType('team');
+      setType('individual');
       setError(null);
       setLoading(false);
     }
@@ -96,6 +96,7 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClo
                 onChange={(e) => setType(e.target.value as 'individual' | 'team' | 'enterprise')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
+                <option value="individual">Individual</option>
                 <option value="team">Team</option>
                 <option value="enterprise">Enterprise</option>
               </select>

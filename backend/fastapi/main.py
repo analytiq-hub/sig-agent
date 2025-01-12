@@ -1512,6 +1512,8 @@ async def update_organization(
     organization_update: OrganizationUpdate,
     current_user: User = Depends(get_current_user)
 ):
+    ad.log.info(f"Updating organization {organization_id} with {organization_update}")
+
     """Update an organization (account admin or organization admin)"""
     organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
     if not organization:
