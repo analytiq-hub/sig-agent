@@ -150,23 +150,17 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
 
         // Check if current user is system admin or organization admin
         if (session?.user?.id) {
+          const isSystemAdmin = session.user.role === 'admin';
           const currentUserMember = organization.members.find(
             member => member.user_id === session.user.id
           );
-          setIsOrgAdmin(currentUserMember?.role === 'admin');
-        }
-
-        // Only fetch available users if user is admin of this organization
-        if (isOrgAdmin) {
-          const usersResponse = await getUsersApi({ organization_id: organizationId });
-          setAvailableUsers(usersResponse.users);
+          setIsOrgAdmin(isSystemAdmin || currentUserMember?.role === 'admin');
         }
 
         // Store original values
         setOriginalName(organization.name);
         setOriginalType(organization.type);
         setOriginalMembers(organization.members);
-
       } catch (err) {
         setError('Failed to load organization data');
         console.error(err);
@@ -176,7 +170,23 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     };
 
     fetchData();
-  }, [organizationId, session?.user?.id, isOrgAdmin]);
+  }, [organizationId, session?.user?.id, session?.user?.role]);
+
+  // Separate useEffect for fetching users
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (isOrgAdmin) {
+        try {
+          const usersResponse = await getUsersApi({ organization_id: organizationId });
+          setAvailableUsers(usersResponse.users);
+        } catch (err) {
+          console.error('Failed to fetch users:', err);
+        }
+      }
+    };
+
+    fetchUsers();
+  }, [organizationId, isOrgAdmin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -329,7 +339,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   if (!isOrgAdmin) {
     return (
       <div className="flex items-center justify-center p-4">
-        You don&apos;t have permission to edit this organization
+        You don&apos;t have permission to edit this organization. Only organization admins and system admins can edit organizations.
       </div>
     );
   }
