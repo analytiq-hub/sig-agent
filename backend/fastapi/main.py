@@ -2015,17 +2015,15 @@ async def create_invitation(
             detail="Email already registered"
         )
         
-    # Check if there's already a pending invitation
-    existing_invitation = await db.invitations.find_one({
-        "email": invitation.email,
-        "status": "pending",
-        "expires": {"$gt": datetime.now(UTC)}
-    })
-    if existing_invitation:
-        raise HTTPException(
-            status_code=400,
-            detail="Active invitation already exists for this email"
-        )
+    # If there's an existing pending invitation, invalidate it
+    await db.invitations.update_many(
+        {
+            "email": invitation.email,
+            "status": "pending",
+            "expires": {"$gt": datetime.now(UTC)}
+        },
+        {"$set": {"status": "invalidated"}}
+    )
 
     # Generate invitation token
     token = secrets.token_urlsafe(32)

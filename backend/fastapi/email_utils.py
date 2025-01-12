@@ -3,6 +3,7 @@ from botocore.exceptions import ClientError
 import logging
 from typing import Optional
 from datetime import datetime
+import re
 
 async def send_email(
     to_email: str,
@@ -59,6 +60,22 @@ async def send_email(
         logging.error(f"Failed to send email: {str(e)}")
         raise Exception(f"Failed to send email: {str(e)}")
 
+def get_site_name(url: str) -> str:
+    """
+    Extract site name from URL by removing protocol and any trailing paths
+    
+    Args:
+        url: Full site URL (e.g., https://example.com/path)
+    
+    Returns:
+        str: Clean site name (e.g., example.com)
+    """
+    # Remove protocol (http:// or https://)
+    site_name = re.sub(r'^https?://', '', url)
+    # Remove any paths or query parameters
+    site_name = site_name.split('/')[0]
+    return site_name
+
 def get_verification_email_content(verification_url: str, site_url: str, user_name: Optional[str] = None) -> str:
     """
     Generate HTML content for verification email
@@ -72,11 +89,12 @@ def get_verification_email_content(verification_url: str, site_url: str, user_na
         str: HTML content for the email
     """
     greeting = f"Hello {user_name}" if user_name else "Hello"
+    site_name = get_site_name(site_url)
     
     return f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>{greeting},</h2>
-        <p>Please verify your email address by clicking the link below:</p>
+        <p>Please verify your email address for your account on {site_name} by clicking the link below:</p>
         <p style="margin: 20px 0;">
             <a href="{verification_url}" 
                style="background-color: #0070f3; color: white; padding: 12px 24px; 
@@ -91,7 +109,7 @@ def get_verification_email_content(verification_url: str, site_url: str, user_na
         <p>This link will expire in 24 hours.</p>
         <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;">
         <p style="color: #666; font-size: 0.9em;">
-            If you didn't request this verification, you can safely ignore this email.
+            If you didn't request this verification for {site_name}, you can safely ignore this email.
         </p>
     </div>
     """
@@ -132,12 +150,13 @@ def get_invitation_email_content(
         str: HTML content for the email
     """
     expires_str = expires.strftime("%B %d, %Y at %I:%M %p UTC")
+    site_name = get_site_name(site_url)
     
     # Customize message based on whether it's an org invite
     invite_message = (
-        f"You've been invited to join {organization_name}" 
+        f"You've been invited to join {organization_name} on {site_name}" 
         if organization_name 
-        else "You've been invited to join our platform"
+        else f"You've been invited to join {site_name}"
     )
     
     return f"""
@@ -158,7 +177,7 @@ def get_invitation_email_content(
         <p>This invitation will expire on {expires_str}.</p>
         <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;">
         <p style="color: #666; font-size: 0.9em;">
-            If you weren't expecting this invitation, you can safely ignore this email.
+            If you weren't expecting this invitation to {site_name}, you can safely ignore this email.
         </p>
     </div>
     """ 

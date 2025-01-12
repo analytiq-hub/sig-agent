@@ -88,8 +88,10 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({
       setEmail('');
       setSelectedOrgs([]);
       setSearchQuery('');
-    } catch (error) {
-      toast.error('Failed to send invitation');
+    } catch (error: any) {
+      // Display the specific error message from the API if available
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to send invitation';
+      toast.error(errorMessage);
       console.error('Invitation error:', error);
     } finally {
       setIsSubmitting(false);
