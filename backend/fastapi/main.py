@@ -2070,8 +2070,14 @@ async def create_invitation(
             Source=SES_FROM_EMAIL,
             Destination={'ToAddresses': [invitation.email]},
             Message={
-                'Subject': {'Data': get_email_subject("invitation")},
-                'Body': {'Html': {'Data': html_content}}
+                'Subject': {
+                    'Data': get_email_subject("invitation")
+                },
+                'Body': {
+                    'Html': {
+                        'Data': html_content
+                    }
+                }
             }
         )
         return InvitationResponse(**invitation_doc)
