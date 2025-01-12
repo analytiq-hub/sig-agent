@@ -4,16 +4,16 @@ import mongoClient from "./mongodb";
 export async function createDefaultOrganization(userId: string, email: string) {
     const db = mongoClient.db();
     
-    // Delete any existing personal organizations for this user
+    // Delete any existing individual organizations for this user
     await db.collection("organizations").deleteMany({
         "members.user_id": userId,
-        type: "personal"
+        type: "individual"
     });
     
     const organization = {
         _id: new ObjectId(userId),
         name: email,  // Use email as name
-        type: "personal",  // Mark as personal
+        type: "individual",  // Mark as individual
         members: [{
             user_id: userId,
             role: "admin"

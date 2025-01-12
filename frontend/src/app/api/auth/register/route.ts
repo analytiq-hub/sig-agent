@@ -28,7 +28,7 @@ export async function POST(req: Request) {
             createdAt: new Date(),
         });
 
-        // Create personal organization
+        // Create default individual organization
         await createDefaultOrganization(result.insertedId.toString(), email);
 
         return NextResponse.json({ success: true });

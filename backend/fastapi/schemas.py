@@ -159,22 +159,22 @@ class OrganizationMember(BaseModel):
     role: Literal['admin', 'user']
 
 # Add this new type definition near the top with other Literal types
-OrganizationType = Literal["personal", "team", "enterprise"]
+OrganizationType = Literal["individual", "team", "enterprise"]
 
 class OrganizationCreate(BaseModel):
     name: str
-    type: OrganizationType = "personal"
+    type: OrganizationType = "individual"
 
 class OrganizationUpdate(BaseModel):
     name: str | None = None
-    type: OrganizationType = "personal"
+    type: OrganizationType = "individual"
     members: List[OrganizationMember] | None = None
 
 class Organization(BaseModel):
     id: str
     name: str
     members: List[OrganizationMember]
-    type: OrganizationType = "personal"
+    type: OrganizationType = "individual"
     created_at: datetime
     updated_at: datetime
 

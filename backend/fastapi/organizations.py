@@ -34,21 +34,21 @@ async def update_organization_type(
         raise HTTPException(status_code=400, detail="Organization must have at least one admin")
 
     # Validate parameters based on new type
-    if update.type == "personal":
+    if update.type == "individual":
         # Get user details for setting organization name
         user = await db.users.find_one({"_id": ObjectId(first_admin["user_id"])})
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
             
-        # Delete personal organizations of the user
+        # Delete individual organizations of the user
         await db.organizations.delete_many({
             "members.user_id": first_admin["user_id"],
-            "type": "personal"
+            "type": "individual"
         })
         
-        # Set up personal organization data
+        # Set up individual organization data
         update_data = {
-            "type": "personal",
+            "type": "individual",
             "name": user["email"],
             "members": [{
                 "user_id": first_admin["user_id"],
@@ -63,14 +63,14 @@ async def update_organization_type(
         if not any(m.role == "admin" for m in update.members):
             raise HTTPException(status_code=400, detail="Organization must have at least one admin")
             
-        # Delete personal organizations of all new team members
+        # Delete individual organizations of all new team members
         member_ids = [m.user_id for m in update.members]
         if member_ids:
             result = await db.organizations.delete_many({
                 "members.user_id": {"$in": member_ids},
-                "type": "personal"
+                "type": "individual"
             })
-            logging.info(f"Deleted {result.deleted_count} personal organizations")
+            logging.info(f"Deleted {result.deleted_count} individual organizations")
             
         # Set up team/enterprise organization data
         update_data = {

@@ -5,6 +5,12 @@ import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import { useOrganization } from '@/contexts/OrganizationContext';
 
+const typeLabels = {
+  individual: { bg: 'bg-gray-100', text: 'text-gray-600' },
+  team: { bg: 'bg-blue-100', text: 'text-blue-600' },
+  enterprise: { bg: 'bg-purple-100', text: 'text-purple-600' }
+};
+
 export default function OrganizationSwitcher() {
   const { currentOrganization, switchOrganization, organizations, isLoading } = useOrganization();
 
@@ -61,13 +67,7 @@ export default function OrganizationSwitcher() {
                     `}
                   >
                     <span>{organization.name}</span>
-                    <span className={`text-xs ml-2 px-2 py-1 rounded-full ${
-                      organization.type === 'personal' 
-                        ? 'bg-gray-100 text-gray-600'
-                        : organization.type === 'team'
-                        ? 'bg-blue-100 text-blue-600'
-                        : 'bg-purple-100 text-purple-600'
-                    }`}>
+                    <span className={`text-xs ml-2 px-2 py-1 rounded-full ${typeLabels[organization.type].bg} ${typeLabels[organization.type].text}`}>
                       {organization.type}
                     </span>
                   </button>

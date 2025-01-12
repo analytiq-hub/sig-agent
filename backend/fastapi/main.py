@@ -1753,7 +1753,7 @@ async def create_user(
     user_doc["id"] = str(result.inserted_id)
     user_doc["hasPassword"] = True
     
-    # Create default personal organization for new user
+    # Create default individual organization for new user
     await db.organizations.insert_one({
         "_id": result.inserted_id,
         "name": "Default",
@@ -1761,7 +1761,7 @@ async def create_user(
             "user_id": str(result.inserted_id),
             "role": "admin"
         }],
-        "type": "personal",  # Default organization is personal type
+        "type": "individual",  # Default organization type
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     })
@@ -2205,15 +2205,15 @@ async def accept_invitation(
         result = await db.users.insert_one(user_doc)
         user_id = str(result.inserted_id)
         
-        # Create default personal organization
+        # Create default individual organization
         await db.organizations.insert_one({
             "_id": result.inserted_id,
             "name": "Default",
             "members": [{
                 "user_id": user_id,
-                "role": "admin"  # User is admin of their personal org
+                "role": "admin"  # User is admin of their individual org
             }],
-            "type": "personal",
+            "type": "individual",
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         })
