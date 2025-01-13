@@ -1518,6 +1518,7 @@ async def update_organization(
     """Update an organization (account admin or organization admin)"""
     organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
     if not organization:
+        ad.log.error(f"Organization not found: {organization_id}")
         raise HTTPException(status_code=404, detail="Organization not found")
 
     # Check if user has permission (account admin or organization admin)
@@ -1547,6 +1548,7 @@ async def update_organization(
     if organization_update.members is not None:
         # Ensure at least one admin remains
         if not any(m.role == "admin" for m in organization_update.members):
+            ad.log.error(f"Organization must have at least one admin: {organization_update.members}")
             raise HTTPException(
                 status_code=400,
                 detail="Organization must have at least one admin"
@@ -1555,14 +1557,20 @@ async def update_organization(
 
     if update_data:
         update_data["updated_at"] = datetime.now(UTC)
-        result = await db.organizations.update_one(
+        # Use find_one_and_update instead of update_one to get the updated document atomically
+        updated_organization = await db.organizations.find_one_and_update(
             {"_id": ObjectId(organization_id)},
-            {"$set": update_data}
+            {"$set": update_data},
+            return_document=True  # Return the updated document
         )
-        if result.modified_count == 0:
+        
+        if not updated_organization:
+            ad.log.error(f"Organization not found after update: {organization_id}")
             raise HTTPException(status_code=404, detail="Organization not found")
+    else:
+        # If no updates were needed, just return the current organization
+        updated_organization = organization
 
-    updated_organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
     return Organization(**{
         "id": str(updated_organization["_id"]),
         "name": updated_organization["name"],

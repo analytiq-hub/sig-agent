@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { acceptInvitationApi, getInvitationApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
@@ -30,6 +30,23 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const handleExistingUserAccept = useCallback(async () => {
+    setIsSubmitting(true);
+    try {
+      await acceptInvitationApi(token, {});
+      toast.success(invitationDetails?.organizationName 
+        ? `Successfully joined ${invitationDetails.organizationName}`
+        : 'Invitation accepted successfully'
+      );
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Error accepting invitation:', error);
+      toast.error('Failed to accept invitation');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [token, invitationDetails, router]);
+
   useEffect(() => {
     const fetchInvitation = async () => {
       try {
@@ -56,24 +73,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
     };
 
     fetchInvitation();
-  }, [token, router, session]);
-
-  const handleExistingUserAccept = async () => {
-    setIsSubmitting(true);
-    try {
-      await acceptInvitationApi(token, {});
-      toast.success(invitationDetails?.organizationName 
-        ? `Successfully joined ${invitationDetails.organizationName}`
-        : 'Invitation accepted successfully'
-      );
-      router.push('/dashboard');
-    } catch (error) {
-      console.error('Error accepting invitation:', error);
-      toast.error('Failed to accept invitation');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  }, [token, router, session, handleExistingUserAccept]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
