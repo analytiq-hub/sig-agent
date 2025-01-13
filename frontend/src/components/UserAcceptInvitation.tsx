@@ -100,7 +100,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
             Accept Invitation
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
-            Create your account
+            Create your account for {invitationEmail}
             </p>
         </div>
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
