@@ -25,10 +25,9 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Debounced search function
-  const searchUsers = useCallback(
-    debounce(async (query: string) => {
-      if (!query) {
+  const searchUsers = useCallback((query: string) => {
+    const search = debounce(async (q: string) => {
+      if (!q) {
         setSearchResults([]);
         return;
       }
@@ -37,8 +36,8 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
       try {
         const response = await getUsersApi();
         const filteredUsers = response.users.filter(user =>
-          user.email.toLowerCase().includes(query.toLowerCase()) ||
-          (user.name && user.name.toLowerCase().includes(query.toLowerCase()))
+          user.email.toLowerCase().includes(q.toLowerCase()) ||
+          (user.name && user.name.toLowerCase().includes(q.toLowerCase()))
         );
         setSearchResults(filteredUsers);
       } catch (error) {
@@ -47,13 +46,14 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
       } finally {
         setIsSearching(false);
       }
-    }, 300),
-    []
-  );
+    }, 300);
+
+    search(query);
+    return () => search.cancel();
+  }, []);
 
   useEffect(() => {
     searchUsers(email);
-    return () => searchUsers.cancel();
   }, [email, searchUsers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,7 +82,7 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
       onClose();
       setEmail('');
     } catch (error) {
-      console.error('Failed to add user:', error);
+      console.error('Failed to add user: ' + error);
       toast.error('Failed to add user');
     } finally {
       setIsSubmitting(false);
@@ -95,7 +95,7 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
       toast.success('User added successfully');
       onClose();
     } catch (error) {
-      toast.error('Failed to add user');
+      toast.error('Failed to add user: ' + error);
     }
   };
 
