@@ -29,7 +29,7 @@ export default function OrganizationSwitcher() {
   // If user has only one organization, show it as text
   if (organizations.length === 1) {
     return (
-      <div className="text-gray-200 text-base font-medium px-2">
+      <div className="text-gray-200 text-base font-medium px-3 py-2">
         {currentOrganization.name}
       </div>
     );
