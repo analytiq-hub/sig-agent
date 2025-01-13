@@ -14,90 +14,13 @@ import {
 } from '@mui/x-data-grid'
 import { Switch, IconButton } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material'
 import { useSession } from 'next-auth/react'
+import UserAddToOrgModal from './UserAddToOrgModal'
+import UserInviteModal from './UserInviteModal'
 
 interface OrganizationEditProps {
   organizationId: string
 }
-
-interface AddMemberModalProps {
-  open: boolean;
-  onClose: () => void;
-  onAdd: (userId: string) => void;
-  allUsers: UserResponse[];
-  currentMembers: OrganizationMember[];
-  isAdmin: boolean;
-}
-
-const AddMemberModal: React.FC<AddMemberModalProps> = ({ 
-  open, 
-  onClose, 
-  onAdd, 
-  allUsers,
-  currentMembers,
-  isAdmin
-}) => {
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // If not an admin of the organization, show no users
-  if (!isAdmin) {
-    return null;
-  }
-
-  // Filter out users that are already members
-  const filteredUsers = allUsers
-    .filter(user => {
-      const matchesSearch = searchQuery === '' || 
-        user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        user.email.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      // Only show users not already in the organization
-      const ret = matchesSearch && !currentMembers.some(member => member.user_id === user.id);
-      return ret;
-    })
-    .slice(0, 10);
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Add Member</DialogTitle>
-      <DialogContent>
-        <div className="mt-4">
-          <input
-            type="text"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            placeholder="Search users by name or email"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            autoFocus
-          />
-          <div className="mt-4 max-h-[400px] overflow-auto">
-            {filteredUsers.map((user) => (
-              <button
-                key={user.id}
-                type="button"
-                className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between border-b"
-                onClick={() => {
-                  onAdd(user.id);
-                  onClose();
-                }}
-              >
-                <div>
-                  <div className="font-medium">{user.name}</div>
-                  <div className="text-sm text-gray-500">{user.email}</div>
-                </div>
-                <span className="text-blue-600">Add</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </DialogContent>
-      <DialogActions className="p-4">
-        <Button onClick={onClose}>Cancel</Button>
-      </DialogActions>
-    </Dialog>
-  );
-};
 
 const getAvailableOrganizationTypes = (currentType: OrganizationType): OrganizationType[] => {
   switch (currentType) {
@@ -130,6 +53,8 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [originalMembers, setOriginalMembers] = useState<OrganizationMember[]>([])
   const { data: session } = useSession();
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   // Filter current organization members
   const filteredMembers = members.filter(member => {
@@ -238,9 +163,9 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     });
   };
 
-  const handleAddMember = (userId: string) => {
+  const handleAddMember = async (userId: string): Promise<void> => {
     if (!members.some(member => member.user_id === userId)) {
-      setMembers(prev => [...prev, { user_id: userId, role: 'user' }])
+      setMembers(prev => [...prev, { user_id: userId, role: 'user' }]);
     }
   };
 
@@ -334,6 +259,19 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   // Add this validation function after the hasChanges function
   const validateAdminPresence = (updatedMembers: OrganizationMember[]): boolean => {
     return updatedMembers.some(member => member.role === 'admin');
+  };
+
+  const handleUserInvited = () => {
+    // Refresh the members list after a successful invitation
+    const fetchData = async () => {
+      try {
+        const organization = await getOrganizationApi(organizationId);
+        setMembers(organization.members);
+      } catch (error) {
+        console.error('Failed to refresh members:', error);
+      }
+    };
+    fetchData();
   };
 
   // If not an admin of the organization, show nothing
@@ -437,13 +375,20 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">Members</h3>
               
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Add Member
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowAddUserModal(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  Add Existing User
+                </button>
+                <button
+                  onClick={() => setShowInviteModal(true)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                >
+                  Invite New User
+                </button>
+              </div>
             </div>
 
             {/* Search current members */}
@@ -493,14 +438,17 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         </form>
       </div>
 
-      {/* Add Member Modal */}
-      <AddMemberModal
-        open={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+      <UserAddToOrgModal
+        open={showAddUserModal}
+        onClose={() => setShowAddUserModal(false)}
         onAdd={handleAddMember}
-        allUsers={allUsers}
-        currentMembers={members}
-        isAdmin={isOrgAdmin}
+        organizationId={organizationId}
+      />
+
+      <UserInviteModal
+        open={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        onInvited={handleUserInvited}
       />
     </div>
   )
