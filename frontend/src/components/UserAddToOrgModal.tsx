@@ -66,7 +66,6 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
 
       if (existingUser) {
         await onAdd(existingUser.id);
-        toast.success('User added successfully');
       } else {
         await createInvitationApi({
           email,
@@ -87,7 +86,6 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
   const handleSelectUser = async (userId: string) => {
     try {
       await onAdd(userId);
-      toast.success('User added successfully');
       onClose();
     } catch (error) {
       toast.error('Failed to add user: ' + error);
