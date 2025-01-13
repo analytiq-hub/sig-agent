@@ -33,7 +33,10 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
   const handleExistingUserAccept = useCallback(async () => {
     setIsSubmitting(true);
     try {
-      await acceptInvitationApi(token, {});
+      await acceptInvitationApi(token, {
+        name: session?.user?.name || '',
+        password: '' // Password not needed for existing users
+      });
       toast.success(invitationDetails?.organizationName 
         ? `Successfully joined ${invitationDetails.organizationName}`
         : 'Invitation accepted successfully'
@@ -45,27 +48,36 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
     } finally {
       setIsSubmitting(false);
     }
-  }, [token, invitationDetails, router]);
+  }, [token, invitationDetails, router, session?.user?.name]);
 
   useEffect(() => {
+    let mounted = true;
+
     const fetchInvitation = async () => {
+      if (!token) return;
+      
       try {
         const invitation = await getInvitationApi(token);
-        setInvitationDetails({
+        if (!mounted) return;
+
+        const details = {
           email: invitation.email,
           organizationId: invitation.organization_id,
           organizationName: invitation.organization_name,
           userExists: invitation.user_exists
-        });
+        };
         
-        // If user exists and is logged in with the same email
-        if (session?.user?.email === invitation.email && invitation.user_exists) {
-          // Auto-accept the invitation if it's just for organization joining
-          if (invitation.organization_id) {
-            handleExistingUserAccept();
-          }
+        setInvitationDetails(details);
+        
+        // Only auto-accept if user is logged in with matching email and invitation is valid
+        if (session?.user?.email === invitation.email && 
+            invitation.user_exists && 
+            invitation.organization_id && 
+            !isSubmitting) {
+          handleExistingUserAccept();
         }
       } catch (error) {
+        if (!mounted) return;
         console.error('Error fetching invitation:', error);
         toast.error('Invalid or expired invitation');
         router.push('/auth/signin');
@@ -73,7 +85,11 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
     };
 
     fetchInvitation();
-  }, [token, router, session, handleExistingUserAccept]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [token, session?.user?.email]); // Removed handleExistingUserAccept from dependencies
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

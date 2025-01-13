@@ -12,18 +12,21 @@ interface UserAddToOrgModalProps {
   onClose: () => void;
   onAdd: (userId: string) => Promise<void>;
   organizationId: string;
+  currentMembers: string[];
 }
 
 const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
   open,
   onClose,
   onAdd,
-  organizationId
+  organizationId,
+  currentMembers
 }) => {
   const [email, setEmail] = useState('');
   const [searchResults, setSearchResults] = useState<UserResponse[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showNoResults, setShowNoResults] = useState(false);
 
   const searchUsers = useCallback((query: string) => {
     const search = debounce(async (q: string) => {
@@ -36,8 +39,10 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
       try {
         const response = await getUsersApi();
         const filteredUsers = response.users.filter(user =>
-          user.email.toLowerCase().includes(q.toLowerCase()) ||
-          (user.name && user.name.toLowerCase().includes(q.toLowerCase()))
+          !currentMembers.includes(user.id) && (
+            user.email.toLowerCase().includes(q.toLowerCase()) ||
+            (user.name && user.name.toLowerCase().includes(q.toLowerCase()))
+          )
         );
         setSearchResults(filteredUsers);
       } catch (error) {
@@ -50,11 +55,19 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
 
     search(query);
     return () => search.cancel();
-  }, []);
+  }, [currentMembers]);
 
   useEffect(() => {
     searchUsers(email);
   }, [email, searchUsers]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowNoResults(!!email && !isSearching && searchResults.length === 0);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [email, isSearching, searchResults.length]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,9 +128,7 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
             />
 
             <div className="mt-4 max-h-96 overflow-y-auto">
-              {isSearching ? (
-                <div className="text-gray-500 p-4">Searching...</div>
-              ) : searchResults.length > 0 ? (
+              {searchResults.length > 0 && (
                 <div className="divide-y">
                   {searchResults.map((user) => (
                     <button
@@ -134,11 +145,7 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
                     </button>
                   ))}
                 </div>
-              ) : email ? (
-                <div className="text-gray-500 p-4">
-                  No existing user found. Submit to send invitation.
-                </div>
-              ) : null}
+              )}
             </div>
           </div>
         </DialogContent>

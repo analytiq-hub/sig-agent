@@ -443,6 +443,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         onClose={() => setShowAddUserModal(false)}
         onAdd={handleAddMember}
         organizationId={organizationId}
+        currentMembers={members.map(member => member.user_id)}
       />
     </div>
   )
