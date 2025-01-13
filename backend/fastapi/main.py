@@ -1689,13 +1689,22 @@ async def list_users(
             
         member_ids = [m["user_id"] for m in org["members"]]
         query["_id"] = {"$in": [ObjectId(uid) for uid in member_ids]}
+    elif not is_system_admin:
+        # List all users in organizations the current user is an admin of
+        orgs = await db.organizations.find({
+            "members.user_id": current_user.user_id,
+            "members.role": "admin"
+        }).to_list(None)
+        member_ids = [m["user_id"] for org in orgs for m in org["members"]]
+        
+        # Add the current user to the list of users, if they are not already in the list
+        if current_user.user_id not in member_ids:
+            member_ids.append(current_user.user_id)
+        
+        query["_id"] = {"$in": [ObjectId(uid) for uid in member_ids]}
     else:
-        # Only system admins can list all users
-        if not is_system_admin:
-            raise HTTPException(
-                status_code=403,
-                detail="Not authorized to view all users"
-            )
+        # A system admin can list all users. No need to filter by organization.
+        pass
 
     total_count = await db.users.count_documents(query)
     users = await db.users.find(query).skip(skip).limit(limit).to_list(None)
