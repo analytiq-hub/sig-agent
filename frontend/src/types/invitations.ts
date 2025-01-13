@@ -13,6 +13,8 @@ export interface InvitationResponse {
   created_by: string;
   created_at: string;
   organization_id?: string;
+  organization_name: string;
+  user_exists: boolean;
 }
 
 export interface ListInvitationsParams {

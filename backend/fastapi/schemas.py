@@ -224,6 +224,8 @@ class InvitationResponse(BaseModel):
     created_by: str
     created_at: datetime
     organization_id: Optional[str] = None
+    organization_name: Optional[str] = None
+    user_exists: Optional[bool] = None
 
 class ListInvitationsResponse(BaseModel):
     invitations: list[InvitationResponse]
@@ -241,3 +243,7 @@ class OrganizationType(str, Enum):
     INDIVIDUAL = "individual"
     TEAM = "team"
     ENTERPRISE = "enterprise"
+
+class AcceptInvitationRequest(BaseModel):
+    name: Optional[str] = None
+    password: Optional[str] = None
