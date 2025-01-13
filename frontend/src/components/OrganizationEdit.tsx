@@ -25,7 +25,7 @@ interface AddMemberModalProps {
   open: boolean;
   onClose: () => void;
   onAdd: (userId: string) => void;
-  availableUsers: UserResponse[];
+  allUsers: UserResponse[];
   currentMembers: OrganizationMember[];
   isAdmin: boolean;
 }
@@ -34,7 +34,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   open, 
   onClose, 
   onAdd, 
-  availableUsers,
+  allUsers,
   currentMembers,
   isAdmin
 }) => {
@@ -46,7 +46,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   }
 
   // Filter out users that are already members
-  const filteredUsers = availableUsers
+  const filteredUsers = allUsers
     .filter(user => {
       const matchesSearch = searchQuery === '' || 
         user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -119,7 +119,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [name, setName] = useState('')
   const [type, setType] = useState<OrganizationType>('individual')
   const [members, setMembers] = useState<OrganizationMember[]>([])
-  const [availableUsers, setAvailableUsers] = useState<UserResponse[]>([])
+  const [allUsers, setAllUsers] = useState<UserResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -133,7 +133,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
 
   // Filter current organization members
   const filteredMembers = members.filter(member => {
-    const user = availableUsers.find(u => u.id === member.user_id);
+    const user = allUsers.find(u => u.id === member.user_id);
     return user && (
       user.name?.toLowerCase().includes(memberSearch.toLowerCase()) || 
       user.email.toLowerCase().includes(memberSearch.toLowerCase())
@@ -178,8 +178,8 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     const fetchUsers = async () => {
       if (isOrgAdmin) {
         try {
-          const usersResponse = await getUsersApi({ organization_id: organizationId });
-          setAvailableUsers(usersResponse.users);
+          const usersResponse = await getUsersApi();
+          setAllUsers(usersResponse.users);
         } catch (err) {
           console.error('Failed to fetch users:', err);
         }
@@ -262,7 +262,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   // Update getGridRows to use filtered members
   const getGridRows = () => {
     return filteredMembers.map(member => {
-      const user = availableUsers.find(u => u.id === member.user_id)
+      const user = allUsers.find(u => u.id === member.user_id)
       return {
         id: member.user_id,
         name: user?.name || 'Unknown User',
@@ -498,7 +498,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddMember}
-        availableUsers={availableUsers}
+        allUsers={allUsers}
         currentMembers={members}
         isAdmin={isOrgAdmin}
       />
