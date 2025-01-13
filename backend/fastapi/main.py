@@ -299,15 +299,16 @@ async def update_document(
             )
 
     # Update the document
-    result = await db.docs.update_one(
+    updated_doc = await db.docs.find_one_and_update(
         {"_id": ObjectId(document_id)},
-        {"$set": {"tag_ids": update.tag_ids}}
+        {"$set": {"tag_ids": update.tag_ids}},
+        return_document=True
     )
 
-    if result.modified_count == 0:
+    if not updated_doc:
         raise HTTPException(
             status_code=404,
-            detail="Document not found or no changes made"
+            detail="Document not found"
         )
 
     return {"message": "Document tags updated successfully"}
@@ -1236,16 +1237,15 @@ async def update_tag(
         "description": tag.description
     }
     
-    result = await tags_collection.update_one(
+    updated_tag = await tags_collection.find_one_and_update(
         {"_id": ObjectId(tag_id)},
-        {"$set": update_data}
+        {"$set": update_data},
+        return_document=True
     )
     
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Tag not found or not modified")
+    if not updated_tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
     
-    # Get and return the updated tag
-    updated_tag = await tags_collection.find_one({"_id": ObjectId(tag_id)})
     return Tag(**{**updated_tag, "id": str(updated_tag["_id"])})
 
 @app.post("/account/llm_tokens", response_model=LLMToken)
@@ -2004,20 +2004,18 @@ async def verify_email(token: str, background_tasks: BackgroundTasks):
         raise HTTPException(status_code=400, detail="Verification token expired")
     
     # Update user's email verification status
-    result = await db.users.update_one(
+    updated_user = await db.users.find_one_and_update(
         {"_id": ObjectId(verification["user_id"])},
-        {"$set": {"emailVerified": True}}
+        {"$set": {"emailVerified": True}},
+        return_document=True
     )
 
-    if result.modified_count == 0:
+    if not updated_user:
         ad.log.info(f"Failed to verify email for user {verification['user_id']}")
-        # Check if the user is already verified
-        user = await db.users.find_one({"_id": ObjectId(verification["user_id"])})
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        if user.get("emailVerified"):
-            return {"message": "Email already verified"}
-        raise HTTPException(status_code=400, detail="Failed to verify email")
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if updated_user.get("emailVerified"):
+        return {"message": "Email already verified"}
 
     # Allow the user to re-verify their email for 1 minute
     ad.log.info(f"Scheduling deletion of verification record for token: {token}")
