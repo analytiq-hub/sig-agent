@@ -44,7 +44,6 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [members, setMembers] = useState<OrganizationMember[]>([])
   const [allUsers, setAllUsers] = useState<UserResponse[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [memberSearch, setMemberSearch] = useState('');
   const [originalName, setOriginalName] = useState('')
   const [originalType, setOriginalType] = useState<OrganizationType>('individual')
@@ -88,7 +87,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         setOriginalType(organization.type);
         setOriginalMembers(organization.members);
       } catch (err) {
-        setError('Failed to load organization data');
+        toast.error('Failed to load organization data');
         console.error(err);
       } finally {
         setLoading(false);
@@ -116,10 +115,9 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
     if (!validateAdminPresence(members)) {
-      setError('Organization must have at least one admin');
+      toast.error('Organization must have at least one admin');
       return;
     }
 
@@ -137,9 +135,9 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
       setOriginalMembers(members);
     } catch (err) {
       if (isAxiosError(err)) {
-        setError(err.response?.data?.detail || 'Failed to update organization');
+        toast.error(err.response?.data?.detail || 'Failed to update organization');
       } else {
-        setError('An unexpected error occurred');
+        toast.error('An unexpected error occurred');
       }
     }
   };
@@ -152,11 +150,10 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
       
       // If the change would result in no admins, prevent it
       if (!validateAdminPresence(updatedMembers)) {
-        setError('Organization must have at least one admin');
+        toast.error('Organization must have at least one admin');
         return prevMembers; // Keep the original state
       }
-      
-      setError(null); // Clear any existing error
+
       return updatedMembers;
     });
   };
@@ -173,13 +170,12 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
       // Check if this is the last admin
       const remainingAdmins = members.filter(m => m.role === 'admin' && m.user_id !== userId);
       if (remainingAdmins.length === 0) {
-        setError('Cannot remove the last admin. Promote another member to admin first.');
+        toast.error('Cannot remove the last admin. Promote another member to admin first.');
         return;
       }
     }
     
     setMembers(prev => prev.filter(member => member.user_id !== userId));
-    setError(null);
   };
 
   // Update getGridRows to use filtered members
@@ -325,11 +321,6 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         </div>
         
         <form id="organization-form" onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-          {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
-              <span className="block sm:inline">{error}</span>
-            </div>
-          )}
 
           {/* Organization Name Section */}
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
