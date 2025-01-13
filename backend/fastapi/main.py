@@ -2028,7 +2028,26 @@ async def create_invitation(
     current_user: User = Depends(get_admin_user)
 ):
     """Create a new invitation (admin only)"""
-    # Check if email already registered
+    # Check if email already registered, if so, set user_exists to True
+    existing_user = await db.users.find_one({"email": invitation.email})
+    if existing_user:
+        user_exists = True
+    else:
+        user_exists = False
+    
+    if user_exists:
+        if invitation.organization_id:
+            # Check if user is already in the organization
+            org = await db.organizations.find_one({
+                "_id": ObjectId(invitation.organization_id),
+                "members.user_id": existing_user["_id"]
+            })
+            if org:
+                raise HTTPException(status_code=400, detail="User is already a member of this organization")
+        else:
+            # User already exists, and this is not an org invitation
+            raise HTTPException(status_code=400, detail="User already exists")
+
     if await db.users.find_one({"email": invitation.email}):
         raise HTTPException(
             status_code=400,
@@ -2066,6 +2085,7 @@ async def create_invitation(
         "expires": expires,
         "created_by": current_user.user_id,
         "created_at": datetime.now(UTC),
+        "user_exists": user_exists
     }
     
     # Get organization name if this is an org invitation

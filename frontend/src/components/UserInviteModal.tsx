@@ -72,10 +72,19 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
     try {
       // Send invitations for each selected organization
       for (const org of selectedOrgs) {
-        await createInvitationApi({
-          email,
-          organization_id: org.id
-        });
+        try {
+          await createInvitationApi({
+            email,
+            organization_id: org.id
+          });
+        } catch (error) {
+          // Show specific error for each organization invitation
+          const errorMessage = isAxiosError(error) 
+            ? error.response?.data?.detail || `Failed to invite to ${org.name}`
+            : `Failed to invite to ${org.name}`;
+          toast.error(errorMessage);
+          throw error; // Re-throw to stop processing
+        }
       }
       
       // If no organizations selected, send a general invitation
@@ -89,11 +98,8 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
       setEmail('');
       setSelectedOrgs([]);
       setSearchQuery('');
-    } catch (error: unknown) {
-      const errorMessage = isAxiosError(error) 
-        ? error.response?.data?.detail || error.message 
-        : 'Failed to send invitation';
-      toast.error(errorMessage);
+    } catch (error) {
+      // Don't show a generic error since we already showed specific ones
       console.error('Invitation error:', error);
     } finally {
       setIsSubmitting(false);
