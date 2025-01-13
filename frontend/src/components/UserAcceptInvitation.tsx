@@ -6,7 +6,7 @@ import { acceptInvitationApi, getInvitationApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
 import { signIn, useSession } from 'next-auth/react';
 
-interface InvitationDetails {
+interface Invitation {
   email: string;
   organizationId?: string;
   organizationName?: string;
@@ -48,7 +48,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
     password: '',
     confirmPassword: ''
   });
-  const [invitationDetails, setInvitationDetails] = useState<InvitationDetails | null>(null);
+  const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,29 +60,30 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
       if (!token) return;
       
       try {
-        const invitation = await getInvitationApi(token);
-        if (!mounted) return;
+        if (!invitation) {
+          const invitationResp = await getInvitationApi(token);
+          if (!mounted) return;
 
-        const details = {
-          email: invitation.email,
-          organizationId: invitation.organization_id,
-          organizationName: invitation.organization_name,
-          userExists: invitation.user_exists
-        };
+          const info = {
+            email: invitationResp.email,
+            organizationId: invitationResp.organization_id,
+            organizationName: invitationResp.organization_name,
+            userExists: invitationResp.user_exists
+          };
+          
+          setInvitation(info);
+        }
         
-        setInvitationDetails(details);
-        
-        // Auto-accept logic
         if (!autoAcceptAttempted && 
-            session?.user?.email === invitation.email && 
-            invitation.user_exists && 
-            invitation.organization_id) {
+            session?.user?.email === invitation?.email && 
+            invitation?.userExists && 
+            invitation?.organizationId) {
           autoAcceptAttempted = true;
           setIsSubmitting(true);
           await handleExistingUserAccept(
             token,
             session?.user?.name,
-            details.organizationName,
+            invitation.organizationName,
             router
           );
           if (mounted) {
@@ -102,13 +103,13 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
     return () => {
       mounted = false;
     };
-  }, [token, session?.user?.email, session?.user?.name, router]);
+  }, [token, session?.user?.email, session?.user?.name, router, invitation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!invitationDetails) {
+    if (!invitation) {
       setError('Invalid invitation');
       return;
     }
@@ -138,7 +139,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
       
       // Then attempt to sign in
       const result = await signIn('credentials', {
-        email: invitationDetails.email,
+        email: invitation.email,
         password: formData.password,
         redirect: false,
         callbackUrl: '/dashboard'
@@ -158,7 +159,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
     }
   };
 
-  if (!invitationDetails) {
+  if (!invitation) {
     return (
       <div className="text-center">
         Loading invitation...
@@ -167,14 +168,14 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
   }
 
   // If user exists and is logged in with the same email, show joining status
-  if (session?.user?.email === invitationDetails?.email && invitationDetails.userExists) {
+  if (session?.user?.email === invitation?.email && invitation.userExists) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="text-center">
             <h2 className="text-2xl font-semibold">
-              {invitationDetails.organizationName 
-                ? `Joining ${invitationDetails.organizationName}`
+              {invitation.organizationName 
+                ? `Joining ${invitation.organizationName}`
                 : 'Accepting Invitation'}
             </h2>
             <p className="mt-2 text-gray-600">Please wait...</p>
@@ -185,7 +186,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
   }
 
   // If user exists but is not logged in, show message to sign in
-  if (invitationDetails?.userExists) {
+  if (invitation?.userExists) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -195,7 +196,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
               Please sign in with your existing account to accept this invitation.
             </p>
             <button
-              onClick={() => router.push(`/auth/signin?email=${encodeURIComponent(invitationDetails.email)}`)}
+              onClick={() => router.push(`/auth/signin?email=${encodeURIComponent(invitation.email)}`)}
               className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Sign In
@@ -214,9 +215,9 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
           Accept Invitation
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Create your account for {invitationDetails?.email}
-          {invitationDetails?.organizationName && (
-            <> to join {invitationDetails.organizationName}</>
+          Create your account for {invitation?.email}
+          {invitation?.organizationName && (
+            <> to join {invitation.organizationName}</>
           )}
         </p>
       </div>
