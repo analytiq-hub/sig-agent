@@ -16,7 +16,6 @@ import { Switch, IconButton } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { useSession } from 'next-auth/react'
 import UserAddToOrgModal from './UserAddToOrgModal'
-import UserInviteModal from './UserInviteModal'
 
 interface OrganizationEditProps {
   organizationId: string
@@ -54,7 +53,6 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [isSysAdmin, setIsSysAdmin] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
 
   // Filter current organization members
   const filteredMembers = members.filter(member => {
@@ -385,20 +383,12 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">Members</h3>
               
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowAddUserModal(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                  Add Existing User
-                </button>
-                <button
-                  onClick={() => setShowInviteModal(true)}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                >
-                  Invite New User
-                </button>
-              </div>
+              <button
+                onClick={() => setShowAddUserModal(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Add User
+              </button>
             </div>
 
             {/* Search current members */}
@@ -453,12 +443,6 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         onClose={() => setShowAddUserModal(false)}
         onAdd={handleAddMember}
         organizationId={organizationId}
-      />
-
-      <UserInviteModal
-        open={showInviteModal}
-        onClose={() => setShowInviteModal(false)}
-        onInvited={handleUserInvited}
       />
     </div>
   )

@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent } from '@mui/material';
-import { getUsersApi } from '@/utils/api';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
+import { getUsersApi, createInvitationApi } from '@/utils/api';
 import { UserResponse } from '@/types/index';
 import debounce from 'lodash/debounce';
 import { toast } from 'react-hot-toast';
@@ -20,9 +20,10 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
   onAdd,
   organizationId
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [email, setEmail] = useState('');
   const [searchResults, setSearchResults] = useState<UserResponse[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Debounced search function
   const searchUsers = useCallback(
@@ -51,9 +52,42 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
   );
 
   useEffect(() => {
-    searchUsers(searchQuery);
+    searchUsers(email);
     return () => searchUsers.cancel();
-  }, [searchQuery, searchUsers]);
+  }, [email, searchUsers]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+
+    setIsSubmitting(true);
+    try {
+      // Check if user exists in search results
+      const existingUser = searchResults.find(
+        user => user.email.toLowerCase() === email.toLowerCase()
+      );
+
+      if (existingUser) {
+        // Add existing user
+        await onAdd(existingUser.id);
+        toast.success('User added successfully');
+      } else {
+        // Send invitation to new user
+        await createInvitationApi({
+          email,
+          organization_id: organizationId
+        });
+        toast.success('Invitation sent successfully');
+      }
+      onClose();
+      setEmail('');
+    } catch (error) {
+      console.error('Failed to add user:', error);
+      toast.error('Failed to add user');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSelectUser = async (userId: string) => {
     try {
@@ -67,43 +101,58 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Add Existing User</DialogTitle>
-      <DialogContent>
-        <div className="mt-4">
-          <input
-            type="text"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Search users by email or name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            autoFocus
-          />
+      <DialogTitle>Add User</DialogTitle>
+      <form onSubmit={handleSubmit}>
+        <DialogContent>
+          <div className="mt-4">
+            <input
+              type="email"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter email address..."
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoFocus
+            />
 
-          <div className="mt-4 max-h-96 overflow-y-auto">
-            {isSearching ? (
-              <div className="text-gray-500 p-4">Searching...</div>
-            ) : searchResults.length > 0 ? (
-              <div className="divide-y">
-                {searchResults.map((user) => (
-                  <button
-                    key={user.id}
-                    onClick={() => handleSelectUser(user.id)}
-                    className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between"
-                  >
-                    <div>
-                      <div className="font-medium">{user.name || 'Unnamed User'}</div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
-                    </div>
-                    <span className="text-blue-600">Add</span>
-                  </button>
-                ))}
-              </div>
-            ) : searchQuery ? (
-              <div className="text-gray-500 p-4">No users found</div>
-            ) : null}
+            <div className="mt-4 max-h-96 overflow-y-auto">
+              {isSearching ? (
+                <div className="text-gray-500 p-4">Searching...</div>
+              ) : searchResults.length > 0 ? (
+                <div className="divide-y">
+                  {searchResults.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => handleSelectUser(user.id)}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="font-medium">{user.name || 'Unnamed User'}</div>
+                        <div className="text-sm text-gray-500">{user.email}</div>
+                      </div>
+                      <span className="text-blue-600">Add</span>
+                    </button>
+                  ))}
+                </div>
+              ) : email ? (
+                <div className="text-gray-500 p-4">
+                  No existing user found. Submit to send invitation.
+                </div>
+              ) : null}
+            </div>
           </div>
-        </div>
-      </DialogContent>
+        </DialogContent>
+        <DialogActions className="p-4">
+          <Button onClick={onClose}>Cancel</Button>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={isSubmitting || !email}
+          >
+            {isSubmitting ? 'Adding...' : 'Add User'}
+          </Button>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 };
