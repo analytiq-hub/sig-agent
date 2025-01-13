@@ -74,6 +74,13 @@ async def update_organization_type(
             "members": [m.dict() for m in update.members]
         }
 
+    # Validate individual organization member count
+    if update.type == "individual" and len(update.members) > 1:
+        raise HTTPException(
+            status_code=400, 
+            detail="Individual organizations cannot have multiple members"
+        )
+
     # Update the organization
     update_data["updated_at"] = datetime.now(UTC)
     await db.organizations.update_one(

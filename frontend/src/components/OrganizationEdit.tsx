@@ -121,6 +121,12 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
       return;
     }
 
+    // Validate individual organization member count
+    if (type === 'individual' && members.length > 1) {
+      toast.error('Individual organizations cannot have multiple members');
+      return;
+    }
+
     try {
       await updateOrganizationApi(organizationId, { 
         name,
@@ -159,6 +165,12 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   };
 
   const handleAddMember = async (userId: string): Promise<void> => {
+    // Prevent adding members to individual organizations
+    if (type === 'individual') {
+      toast.error('Individual organizations cannot have multiple members');
+      return;
+    }
+
     if (!members.some(member => member.user_id === userId)) {
       setMembers(prev => [...prev, { user_id: userId, role: 'user' }]);
     }
@@ -369,7 +381,11 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
               <button
                 type="button"
                 onClick={() => setShowAddUserModal(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                disabled={type === 'individual'}
+                className={`px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                  ${type === 'individual' 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                    : 'bg-blue-600 text-white hover:bg-blue-700'}`}
               >
                 Add User
               </button>
