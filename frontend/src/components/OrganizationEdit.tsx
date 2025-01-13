@@ -53,7 +53,8 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
         user.email.toLowerCase().includes(searchQuery.toLowerCase());
       
       // Only show users not already in the organization
-      return matchesSearch && !currentMembers.some(member => member.user_id === user.id);
+      const ret = matchesSearch && !currentMembers.some(member => member.user_id === user.id);
+      return ret;
     })
     .slice(0, 10);
 
