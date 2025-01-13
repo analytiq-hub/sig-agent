@@ -202,6 +202,10 @@ const OrganizationManager: React.FC = () => {
     );
   };
 
+  const isSysAdmin = () => {
+    return session?.user?.role === 'admin';
+  }
+
   const columns: GridColDef[] = [
     { 
       field: 'name', 
@@ -255,7 +259,7 @@ const OrganizationManager: React.FC = () => {
       headerName: 'Actions',
       width: 120,
       renderCell: (params) => {
-        const isAdmin = isOrgAdmin(params.row);
+        const isAdmin = isOrgAdmin(params.row) || isSysAdmin();
         
         return (
           <div className="flex gap-2 items-center h-full">

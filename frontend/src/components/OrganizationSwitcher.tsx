@@ -1,9 +1,10 @@
 'use client'
 
-import { Fragment } from 'react';
+import { Fragment, useEffect } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSession } from 'next-auth/react';
 
 const typeLabels = {
   individual: { bg: 'bg-gray-100', text: 'text-gray-600' },
@@ -12,14 +13,38 @@ const typeLabels = {
 };
 
 export default function OrganizationSwitcher() {
-  const { currentOrganization, switchOrganization, organizations, isLoading } = useOrganization();
+  const { currentOrganization, switchOrganization, organizations, isLoading, refreshOrganizations } = useOrganization();
+  const { data: session, status } = useSession();
 
-  if (isLoading) {
-    return <div className="text-white">Loading organizations...</div>;
+  useEffect(() => {
+    let mounted = true;
+
+    if (status === 'authenticated' && session?.user && mounted) {
+      refreshOrganizations();
+    }
+
+    return () => {
+      mounted = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);  // Only depend on auth status changes
+
+  // Show loading state while session or organizations are loading
+  if (status === 'loading' || isLoading || !organizations) {
+    return (
+      <div className="text-gray-200 text-base font-medium px-3 py-2 flex items-center">
+        <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+        Loading...
+      </div>
+    );
   }
 
-  if (!currentOrganization) {
-    return <div className="text-white">No organization selected</div>;
+  // Show message if no organization is selected or available
+  if (!currentOrganization || organizations.length === 0) {
+    return <div className="text-gray-200 text-base font-medium px-3 py-2">No organization available</div>;
   }
 
   // console.log(`organizations: ${JSON.stringify(organizations, null, 2)}`);
