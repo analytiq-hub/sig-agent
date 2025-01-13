@@ -2034,13 +2034,22 @@ async def create_invitation(
             detail="Email already registered"
         )
         
-    # If there's an existing pending invitation, invalidate it
+    # If there's an existing pending invitation for the same organization, invalidate it
+    query = {
+        "email": invitation.email,
+        "status": "pending",
+        "expires": {"$gt": datetime.now(UTC)}
+    }
+    
+    # Only add organization_id to query if it exists
+    if invitation.organization_id:
+        query["organization_id"] = invitation.organization_id
+    else:
+        # If this is not an org invitation, only invalidate other non-org invitations
+        query["organization_id"] = {"$exists": False}
+
     await db.invitations.update_many(
-        {
-            "email": invitation.email,
-            "status": "pending",
-            "expires": {"$gt": datetime.now(UTC)}
-        },
+        query,
         {"$set": {"status": "invalidated"}}
     )
 
@@ -2224,19 +2233,6 @@ async def accept_invitation(
         result = await db.users.insert_one(user_doc)
         user_id = str(result.inserted_id)
         
-        # Create default individual organization
-        await db.organizations.insert_one({
-            "_id": result.inserted_id,
-            "name": "Default",
-            "members": [{
-                "user_id": user_id,
-                "role": "admin"  # User is admin of their individual org
-            }],
-            "type": "individual",
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        })
-        
         # If organization invitation, add to organization
         if invitation.get("organization_id"):
             await db.organizations.update_one(
@@ -2250,6 +2246,19 @@ async def accept_invitation(
                     }
                 }
             )
+        else:
+            # Create default individual organization
+            await db.organizations.insert_one({
+                "_id": result.inserted_id,
+                "name": invitation["email"],
+                "members": [{
+                    "user_id": user_id,
+                    "role": "admin"  # User is admin of their individual org
+                }],
+                "type": "individual",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            })
         
         # Mark invitation as accepted
         await db.invitations.update_one(
