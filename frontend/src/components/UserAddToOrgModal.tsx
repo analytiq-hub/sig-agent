@@ -26,7 +26,6 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
   const [searchResults, setSearchResults] = useState<UserResponse[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showNoResults, setShowNoResults] = useState(false);
 
   const searchUsers = useCallback((query: string) => {
     const search = debounce(async (q: string) => {
@@ -60,14 +59,6 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
   useEffect(() => {
     searchUsers(email);
   }, [email, searchUsers]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowNoResults(!!email && !isSearching && searchResults.length === 0);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [email, isSearching, searchResults.length]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,6 +135,11 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
                       <span className="text-blue-600">Add</span>
                     </button>
                   ))}
+                </div>
+              )}
+              {searchResults.length === 0 && email && !isSearching && (
+                <div className="p-4 text-gray-500 text-center">
+                  No users found
                 </div>
               )}
             </div>
