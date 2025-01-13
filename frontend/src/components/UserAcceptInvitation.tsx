@@ -72,12 +72,11 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
         
         setInvitationDetails(details);
         
-        // Only attempt auto-accept once
+        // Auto-accept logic
         if (!autoAcceptAttempted && 
             session?.user?.email === invitation.email && 
             invitation.user_exists && 
-            invitation.organization_id && 
-            !isSubmitting) {
+            invitation.organization_id) {
           autoAcceptAttempted = true;
           setIsSubmitting(true);
           await handleExistingUserAccept(
@@ -103,7 +102,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
     return () => {
       mounted = false;
     };
-  }, [token, session?.user?.email, session?.user?.name, isSubmitting, router]);
+  }, [token, session?.user?.email, session?.user?.name, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
