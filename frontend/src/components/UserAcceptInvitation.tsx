@@ -17,6 +17,28 @@ interface UserAcceptInvitationProps {
   token: string;
 }
 
+const handleExistingUserAccept = async (
+  token: string,
+  userName: string | undefined | null,
+  organizationName: string | undefined,
+  router: ReturnType<typeof useRouter>
+) => {
+  try {
+    await acceptInvitationApi(token, {
+      name: userName || '',
+      password: ''
+    });
+    toast.success(organizationName 
+      ? `Successfully joined ${organizationName}`
+      : 'Invitation accepted successfully'
+    );
+    router.push('/dashboard');
+  } catch (error) {
+    console.error('Error accepting invitation:', error);
+    toast.error('Failed to accept invitation');
+  }
+};
+
 const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) => {
   const router = useRouter();
   const { data: session } = useSession();
@@ -30,28 +52,9 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleExistingUserAccept = useCallback(async () => {
-    setIsSubmitting(true);
-    try {
-      await acceptInvitationApi(token, {
-        name: session?.user?.name || '',
-        password: '' // Password not needed for existing users
-      });
-      toast.success(invitationDetails?.organizationName 
-        ? `Successfully joined ${invitationDetails.organizationName}`
-        : 'Invitation accepted successfully'
-      );
-      router.push('/dashboard');
-    } catch (error) {
-      console.error('Error accepting invitation:', error);
-      toast.error('Failed to accept invitation');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [token, invitationDetails, router, session?.user?.name]);
-
   useEffect(() => {
     let mounted = true;
+    let autoAcceptAttempted = false;
 
     const fetchInvitation = async () => {
       if (!token) return;
@@ -69,12 +72,23 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
         
         setInvitationDetails(details);
         
-        // Only auto-accept if user is logged in with matching email and invitation is valid
-        if (session?.user?.email === invitation.email && 
+        // Only attempt auto-accept once
+        if (!autoAcceptAttempted && 
+            session?.user?.email === invitation.email && 
             invitation.user_exists && 
             invitation.organization_id && 
             !isSubmitting) {
-          handleExistingUserAccept();
+          autoAcceptAttempted = true;
+          setIsSubmitting(true);
+          await handleExistingUserAccept(
+            token,
+            session?.user?.name,
+            details.organizationName,
+            router
+          );
+          if (mounted) {
+            setIsSubmitting(false);
+          }
         }
       } catch (error) {
         if (!mounted) return;
@@ -89,7 +103,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
     return () => {
       mounted = false;
     };
-  }, [token, session?.user?.email]); // Removed handleExistingUserAccept from dependencies
+  }, [token, session?.user?.email, session?.user?.name, isSubmitting, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,12 +111,6 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
 
     if (!invitationDetails) {
       setError('Invalid invitation');
-      return;
-    }
-
-    // If user exists, they should just sign in
-    if (invitationDetails.userExists) {
-      router.push(`/auth/signin?email=${encodeURIComponent(invitationDetails.email)}`);
       return;
     }
 
@@ -118,6 +126,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
 
     setIsSubmitting(true);
     try {
+      // First accept the invitation
       await acceptInvitationApi(token, {
         name: formData.name,
         password: formData.password
@@ -125,10 +134,15 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
 
       toast.success('Account created successfully');
       
+      // Wait a brief moment to ensure the backend has processed the account creation
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Then attempt to sign in
       const result = await signIn('credentials', {
         email: invitationDetails.email,
         password: formData.password,
-        redirect: false
+        redirect: false,
+        callbackUrl: '/dashboard'
       });
 
       if (result?.error) {

@@ -2228,6 +2228,8 @@ async def accept_invitation(
     data: AcceptInvitationRequest = Body(...)  # Change to use AcceptInvitationRequest
 ):
     """Accept an invitation and create user account if needed"""
+    ad.log.info(f"Accepting invitation with token: {token}")
+
     # Find and validate invitation
     invitation = await db.invitations.find_one({
         "token": token,

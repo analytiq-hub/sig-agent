@@ -24,41 +24,35 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
 }) => {
   const [email, setEmail] = useState('');
   const [searchResults, setSearchResults] = useState<UserResponse[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const searchUsers = useCallback((query: string) => {
-    const search = debounce(async (q: string) => {
-      if (!q) {
+  const debouncedSearch = useCallback(
+    debounce(async (query: string) => {
+      if (!query) {
         setSearchResults([]);
         return;
       }
 
-      setIsSearching(true);
       try {
         const response = await getUsersApi();
         const filteredUsers = response.users.filter(user =>
           !currentMembers.includes(user.id) && (
-            user.email.toLowerCase().includes(q.toLowerCase()) ||
-            (user.name && user.name.toLowerCase().includes(q.toLowerCase()))
+            user.email.toLowerCase().includes(query.toLowerCase()) ||
+            (user.name && user.name.toLowerCase().includes(query.toLowerCase()))
           )
         );
         setSearchResults(filteredUsers);
       } catch (error) {
         console.error('Failed to search users:', error);
-        toast.error('Failed to search users');
-      } finally {
-        setIsSearching(false);
       }
-    }, 300);
-
-    search(query);
-    return () => search.cancel();
-  }, [currentMembers]);
+    }, 500),
+    [currentMembers]
+  );
 
   useEffect(() => {
-    searchUsers(email);
-  }, [email, searchUsers]);
+    debouncedSearch(email);
+    return () => debouncedSearch.cancel();
+  }, [email, debouncedSearch]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,17 +60,14 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      // Check if user exists in search results
       const existingUser = searchResults.find(
         user => user.email.toLowerCase() === email.toLowerCase()
       );
 
       if (existingUser) {
-        // Add existing user
         await onAdd(existingUser.id);
         toast.success('User added successfully');
       } else {
-        // Send invitation to new user
         await createInvitationApi({
           email,
           organization_id: organizationId
@@ -118,31 +109,24 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
               autoFocus
             />
 
-            <div className="mt-4 max-h-96 overflow-y-auto">
-              {searchResults.length > 0 && (
-                <div className="divide-y">
-                  {searchResults.map((user) => (
-                    <button
-                      key={user.id}
-                      type="button"
-                      onClick={() => handleSelectUser(user.id)}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between"
-                    >
-                      <div>
-                        <div className="font-medium">{user.name || 'Unnamed User'}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
-                      </div>
-                      <span className="text-blue-600">Add</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {searchResults.length === 0 && email && !isSearching && (
-                <div className="p-4 text-gray-500 text-center">
-                  No users found
-                </div>
-              )}
-            </div>
+            {searchResults.length > 0 && (
+              <div className="mt-4 max-h-96 overflow-y-auto border rounded-md divide-y">
+                {searchResults.map((user) => (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => handleSelectUser(user.id)}
+                    className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="font-medium">{user.name || 'Unnamed User'}</div>
+                      <div className="text-sm text-gray-500">{user.email}</div>
+                    </div>
+                    <span className="text-blue-600">Add</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </DialogContent>
         <DialogActions className="p-4">
