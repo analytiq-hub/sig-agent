@@ -78,12 +78,11 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
             organization_id: org.id
           });
         } catch (error) {
-          // Show specific error for each organization invitation
           const errorMessage = isAxiosError(error) 
             ? error.response?.data?.detail || `Failed to invite to ${org.name}`
             : `Failed to invite to ${org.name}`;
           toast.error(errorMessage);
-          throw error; // Re-throw to stop processing
+          throw error;
         }
       }
       
@@ -99,7 +98,6 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
       setSelectedOrgs([]);
       setSearchQuery('');
     } catch (error) {
-      // Don't show a generic error since we already showed specific ones
       console.error('Invitation error:', error);
     } finally {
       setIsSubmitting(false);

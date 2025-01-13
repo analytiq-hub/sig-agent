@@ -11,6 +11,7 @@ import colors from 'tailwindcss/colors';
 import { isAxiosError } from 'axios';
 import { useRouter } from 'next/navigation'
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useSession } from "next-auth/react";
 
 interface AddOrganizationModalProps {
   open: boolean;
@@ -130,6 +131,7 @@ const OrganizationManager: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { data: session } = useSession();
 
   const fetchOrganizations = async () => {
     try {
@@ -194,6 +196,12 @@ const OrganizationManager: React.FC = () => {
     }
   };
 
+  const isOrgAdmin = (organization: Organization) => {
+    return organization.members.some(
+      member => member.user_id === session?.user?.id && member.role === 'admin'
+    );
+  };
+
   const columns: GridColDef[] = [
     { 
       field: 'name', 
@@ -246,22 +254,28 @@ const OrganizationManager: React.FC = () => {
       field: 'actions',
       headerName: 'Actions',
       width: 120,
-      renderCell: (params) => (
-        <div className="flex gap-2 items-center h-full">
-          <IconButton
-            onClick={() => router.push(`/settings/organizations/${params.row.id}`)}
-            className="text-blue-600 hover:bg-blue-50"
-          >
-            <EditIcon />
-          </IconButton>
-          <IconButton
-            onClick={() => handleDeleteClick(params.row.id)}
-            className="text-red-600 hover:bg-red-50"
-          >
-            <DeleteIcon />
-          </IconButton>
-        </div>
-      ),
+      renderCell: (params) => {
+        const isAdmin = isOrgAdmin(params.row);
+        
+        return (
+          <div className="flex gap-2 items-center h-full">
+            <IconButton
+              onClick={() => router.push(`/settings/organizations/${params.row.id}`)}
+              className={`${isAdmin ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400'}`}
+              disabled={!isAdmin}
+            >
+              <EditIcon />
+            </IconButton>
+            <IconButton
+              onClick={() => handleDeleteClick(params.row.id)}
+              className={`${isAdmin ? 'text-red-600 hover:bg-red-50' : 'text-gray-400'}`}
+              disabled={!isAdmin}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </div>
+        );
+      },
     },
   ];
 
