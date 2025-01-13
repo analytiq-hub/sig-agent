@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { acceptInvitationApi, getInvitationApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
