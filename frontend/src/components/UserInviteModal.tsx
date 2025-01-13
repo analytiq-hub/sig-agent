@@ -20,7 +20,7 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
   onInvited
 }) => {
   const [email, setEmail] = useState('');
-  const [selectedOrgs, setSelectedOrgs] = useState<Organization[]>([]);
+  const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Organization[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,49 +70,33 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      // Send invitations for each selected organization
-      for (const org of selectedOrgs) {
-        try {
-          await createInvitationApi({
-            email,
-            organization_id: org.id
-          });
-        } catch (error) {
-          const errorMessage = isAxiosError(error) 
-            ? error.response?.data?.detail || `Failed to invite to ${org.name}`
-            : `Failed to invite to ${org.name}`;
-          toast.error(errorMessage);
-          throw error;
-        }
-      }
+      // Send invitation with optional organization
+      await createInvitationApi({
+        email,
+        organization_id: selectedOrg?.id // Now just one optional org
+      });
       
-      // If no organizations selected, send a general invitation
-      if (selectedOrgs.length === 0) {
-        await createInvitationApi({ email });
-      }
-
-      toast.success('Invitation(s) sent successfully');
+      toast.success('Invitation sent successfully');
       onInvited();
       onClose();
       setEmail('');
-      setSelectedOrgs([]);
+      setSelectedOrg(null);
       setSearchQuery('');
     } catch (error) {
       console.error('Invitation error:', error);
+      if (isAxiosError(error)) {
+        toast.error(error.response?.data?.detail || 'Failed to send invitation');
+      } else {
+        toast.error('An unexpected error occurred');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const addOrganization = (org: Organization) => {
-    if (!selectedOrgs.find(o => o.id === org.id)) {
-      setSelectedOrgs(prev => [...prev, org]);
-    }
+  const selectOrganization = (org: Organization) => {
+    setSelectedOrg(org);
     setSearchQuery(''); // Clear search after selection
-  };
-
-  const removeOrganization = (orgId: string) => {
-    setSelectedOrgs(prev => prev.filter(org => org.id !== orgId));
   };
 
   return (
@@ -137,7 +121,7 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Add to Organizations (Optional)
+                Add to Organization (Optional)
               </label>
               <input
                 type="text"
@@ -146,7 +130,7 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Search organizations..."
               />
-              
+
               {/* Search Results */}
               {searchQuery && (
                 <div className="mt-2 max-h-40 overflow-y-auto border rounded-md">
@@ -158,7 +142,7 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
                         <button
                           key={org.id}
                           type="button"
-                          onClick={() => addOrganization(org)}
+                          onClick={() => selectOrganization(org)}
                           className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
                         >
                           <span>{org.name}</span>
@@ -172,23 +156,19 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
                 </div>
               )}
 
-              {/* Selected Organizations */}
-              {selectedOrgs.length > 0 && (
+              {/* Selected Organization */}
+              {selectedOrg && (
                 <div className="mt-3">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Selected Organizations:</h4>
-                  <div className="space-y-2">
-                    {selectedOrgs.map(org => (
-                      <div key={org.id} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
-                        <span>{org.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeOrganization(org.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Selected Organization:</h4>
+                  <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
+                    <span>{selectedOrg.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedOrg(null)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      Remove
+                    </button>
                   </div>
                 </div>
               )}
@@ -197,9 +177,9 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
         </DialogContent>
         <DialogActions className="p-4">
           <Button onClick={onClose}>Cancel</Button>
-          <Button 
+          <Button
             type="submit"
-            variant="contained" 
+            variant="contained"
             disabled={isSubmitting || !email}
           >
             {isSubmitting ? 'Sending...' : 'Send Invitation'}
