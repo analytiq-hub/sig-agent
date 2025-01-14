@@ -1,62 +1,37 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import ReactFlow, {
   Controls,
   Background,
   Connection,
   Edge,
+  Node,
   addEdge,
   useNodesState,
   useEdgesState,
+  ReactFlowInstance,
+  XYPosition
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import FileInputNode from '@/components/flow-nodes/FileInputNode';
 import PromptNode from '@/components/flow-nodes/PromptNode';
 import LLMOutputNode from '@/components/flow-nodes/LLMOutputNode';
+import FlowSidebar from '@/components/flow-nodes/FlowSidebar';
 import { FlowNodeType, NodeData } from '@/types/flows';
 import { Prompt } from '@/types/prompts';
 import { useFlowContext } from '@/contexts/FlowContext';
 import { getPromptsApi, runLLMAnalysisApi } from '@/utils/api';
 
-const initialNodes = [
-  {
-    id: 'file-1',
-    type: 'fileInput',
-    position: { x: 100, y: 100 },
-    data: { 
-      label: 'Contract Excel',
-      accept: ['.xlsx', '.xls'],
-      required: true 
-    },
-  },
-  {
-    id: 'prompt-1',
-    type: 'prompt',
-    position: { x: 400, y: 100 },
-    data: { label: 'Validation Prompt' },
-  },
-  {
-    id: 'output-1',
-    type: 'llmOutput',
-    position: { x: 700, y: 100 },
-    data: { label: 'Validation Results' },
-  },
-];
-
-const initialEdges = [
-  { id: 'e1-2', source: 'file-1', target: 'prompt-1' },
-  { id: 'e2-3', source: 'prompt-1', target: 'output-1' },
-];
-
 const Flows: React.FC = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const { nodeData, updateNodeData, clearNodeData } = useFlowContext();
   const [prompts, setPrompts] = useState<Prompt[]>([]);
 
   useEffect(() => {
-    // Load available prompts
     const loadPrompts = async () => {
       try {
         const response = await getPromptsApi();
@@ -67,6 +42,39 @@ const Flows: React.FC = () => {
     };
     loadPrompts();
   }, []);
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      if (!reactFlowWrapper.current || !reactFlowInstance) {
+        return;
+      }
+
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const data = JSON.parse(event.dataTransfer.getData('application/reactflow'));
+      
+      const position = reactFlowInstance.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+
+      const newNode = {
+        id: `${data.type}-${Date.now()}`,
+        type: data.type,
+        position,
+        data: data.data,
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [reactFlowInstance, setNodes]
+  );
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -87,7 +95,8 @@ const Flows: React.FC = () => {
     [setEdges, nodes, edges]
   );
 
-  const hasPath = (edges: Edge[], from: string, to: string, visited = new Set<string>()): boolean => {
+  const hasPath = (edges: Edge[], from: string | null, to: string | null, visited = new Set<string>()): boolean => {
+    if (!from || !to) return false;
     if (from === to) return true;
     if (visited.has(from)) return false;
     
@@ -238,13 +247,13 @@ const Flows: React.FC = () => {
   }, [setNodes]);
 
   const nodeTypes = {
-    fileInput: (props: any) => <FileInputNode {...props} handleFileSelect={handleFileSelect} />,
-    prompt: (props: any) => <PromptNode {...props} prompts={prompts} handlePromptSelect={handlePromptSelect} />,
+    fileInput: (props: FileInputNodeProps) => <FileInputNode {...props} handleFileSelect={handleFileSelect} />,
+    prompt: (props: PromptNodeProps) => <PromptNode {...props} prompts={prompts} handlePromptSelect={handlePromptSelect} />,
     llmOutput: LLMOutputNode,
   };
 
-  const topologicalSort = (nodes: any[], edges: Edge[]) => {
-    const sorted: any[] = [];
+  const topologicalSort = (nodes: Node[], edges: Edge[]): Node[] => {
+    const sorted: Node[] = [];
     const visited = new Set<string>();
     const temp = new Set<string>();
 
@@ -259,7 +268,7 @@ const Flows: React.FC = () => {
       }
       temp.delete(nodeId);
       visited.add(nodeId);
-      sorted.unshift(nodes.find(n => n.id === nodeId));
+      sorted.unshift(nodes.find(n => n.id === nodeId)!);
     };
 
     nodes.forEach(node => {
@@ -272,29 +281,47 @@ const Flows: React.FC = () => {
   };
 
   return (
-    <div className="h-[800px]">
-      <div className="mb-4 flex gap-2">
-        <button
-          onClick={executeFlow}
-          disabled={isExecuting}
-          className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
-        >
-          {isExecuting ? 'Executing...' : 'Execute Flow'}
-        </button>
-      </div>
+    <div className="flex h-[800px]">
+      <FlowSidebar />
+      <div className="flex-1">
+        <div className="mb-4 flex gap-2 p-4">
+          <button
+            onClick={executeFlow}
+            disabled={isExecuting}
+            className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+          >
+            {isExecuting ? 'Executing...' : 'Execute Flow'}
+          </button>
+          <button
+            onClick={() => {
+              setNodes([]);
+              setEdges([]);
+              clearNodeData();
+            }}
+            className="px-4 py-2 bg-gray-600 text-white rounded"
+          >
+            Clear Flow
+          </button>
+        </div>
 
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        nodeTypes={nodeTypes}
-        fitView
-      >
-        <Background />
-        <Controls />
-      </ReactFlow>
+        <div ref={reactFlowWrapper} className="h-full">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onInit={setReactFlowInstance}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            nodeTypes={nodeTypes}
+            fitView
+          >
+            <Background />
+            <Controls />
+          </ReactFlow>
+        </div>
+      </div>
     </div>
   );
 };
