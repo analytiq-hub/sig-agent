@@ -1,11 +1,14 @@
-export type FlowNodeType = 'file_input' | 'prompt' | 'llm_output' | 'transform';
+export type FlowNodeType = 'triggerDocument' | 'staticDocument' | 'prompt' | 'llm_output' | 'transform';
 
 export interface NodeData {
   label: string;
+  description?: string;
   // File input specific
   accept?: string[];
   required?: boolean;
   file?: File;
+  isTrigger?: boolean;
+  isStatic?: boolean;
   
   // Prompt specific
   promptId?: string;
@@ -72,7 +75,7 @@ export interface ListFlowsResponse {
   skip: number;
 }
 
-export interface FileInputNodeProps {
+export interface DocumentNodeProps {
   id: string;
   data: NodeData;
   handleFileSelect: (nodeId: string, file: File) => void;

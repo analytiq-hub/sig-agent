@@ -14,7 +14,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import FileInputNode from '@/components/flow-nodes/FileInputNode';
+import DocumentNode from '@/components/flow-nodes/DocumentNode';
 import PromptNode from '@/components/flow-nodes/PromptNode';
 import LLMOutputNode from '@/components/flow-nodes/LLMOutputNode';
 import FlowSidebar from '@/components/flow-nodes/FlowSidebar';
@@ -262,7 +262,8 @@ const Flows: React.FC = () => {
   }, [setNodes]);
 
   const nodeTypes = {
-    fileInput: (props: FileInputNodeProps) => <FileInputNode {...props} handleFileSelect={handleFileSelect} />,
+    triggerDocument: (props: DocumentNodeProps) => <DocumentNode {...props} handleFileSelect={handleFileSelect} />,
+    staticDocument: (props: DocumentNodeProps) => <DocumentNode {...props} handleFileSelect={handleFileSelect} />,
     prompt: (props: PromptNodeProps) => <PromptNode {...props} prompts={prompts} handlePromptSelect={handlePromptSelect} />,
     llmOutput: LLMOutputNode,
   };
