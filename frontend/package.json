@@ -39,7 +39,8 @@
     "react-dropzone": "^14.2.9",
     "react-hot-toast": "^2.5.1",
     "react-pdf": "^9.1.1",
-    "react-resizable-panels": "^2.1.4"
+    "react-resizable-panels": "^2.1.4",
+    "reactflow": "^11.11.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
