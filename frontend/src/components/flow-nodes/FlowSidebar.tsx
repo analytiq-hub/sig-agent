@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   DocumentIcon, 
   ChatBubbleLeftRightIcon, 
-  DocumentTextIcon 
+  DocumentTextIcon,
+  FolderIcon
 } from '@heroicons/react/24/outline';
-import { NodeData } from '@/types/flows';
+import { NodeData, Flow, FlowMetadata } from '@/types/flows';
+import { getFlowsApi } from '@/utils/api';
 
 interface NodeType {
   type: string;
@@ -53,7 +55,26 @@ const nodeTypes: NodeType[] = [
 ];
 
 const FlowSidebar = () => {
-  const onDragStart = (event: React.DragEvent, nodeType: string, data: NodeData) => {
+  const [savedFlows, setSavedFlows] = useState<FlowMetadata[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    loadSavedFlows();
+  }, []);
+
+  const loadSavedFlows = async () => {
+    try {
+      setIsLoading(true);
+      const response = await getFlowsApi();
+      setSavedFlows(response.flows);
+    } catch (error) {
+      console.error('Error loading flows:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onDragStart = (event: React.DragEvent, nodeType: string, data: NodeData | Flow) => {
     event.dataTransfer.setData('application/reactflow', JSON.stringify({
       type: nodeType,
       data
@@ -79,6 +100,27 @@ const FlowSidebar = () => {
             </div>
           );
         })}
+      </div>
+
+      <h3 className="text-sm font-semibold text-gray-900 mt-8 mb-4">Saved Flows</h3>
+      <div className="space-y-2">
+        {isLoading ? (
+          <div className="text-sm text-gray-500">Loading...</div>
+        ) : savedFlows.length === 0 ? (
+          <div className="text-sm text-gray-500">No saved flows</div>
+        ) : (
+          savedFlows.map((flow) => (
+            <div
+              key={flow.id}
+              className="flex items-center p-3 bg-white border border-gray-200 rounded-lg cursor-move hover:bg-gray-50 transition-colors"
+              draggable
+              onDragStart={(e) => onDragStart(e, 'savedFlow', flow)}
+            >
+              <FolderIcon className="h-5 w-5 text-gray-400 mr-2" />
+              <span className="text-sm text-gray-900">{flow.name}</span>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

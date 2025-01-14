@@ -21,7 +21,9 @@ import FlowSidebar from '@/components/flow-nodes/FlowSidebar';
 import { FlowNodeType, NodeData } from '@/types/flows';
 import { Prompt } from '@/types/prompts';
 import { useFlowContext } from '@/contexts/FlowContext';
-import { getPromptsApi, runLLMAnalysisApi } from '@/utils/api';
+import { getPromptsApi, runLLMAnalysisApi, saveFlowApi, getTagsApi } from '@/utils/api';
+import SaveFlowModal from '@/components/flow-nodes/SaveFlowModal';
+import { Tag } from '@/types/index';
 
 const Flows: React.FC = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -31,17 +33,23 @@ const Flows: React.FC = () => {
   const [isExecuting, setIsExecuting] = useState(false);
   const { nodeData, updateNodeData, clearNodeData } = useFlowContext();
   const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
 
   useEffect(() => {
-    const loadPrompts = async () => {
+    const loadData = async () => {
       try {
-        const response = await getPromptsApi();
-        setPrompts(response.prompts);
+        const [promptsResponse, tagsResponse] = await Promise.all([
+          getPromptsApi(),
+          getTagsApi()
+        ]);
+        setPrompts(promptsResponse.prompts);
+        setAvailableTags(tagsResponse.tags);
       } catch (error) {
-        console.error('Error loading prompts:', error);
+        console.error('Error loading data:', error);
       }
     };
-    loadPrompts();
+    loadData();
   }, []);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -296,6 +304,47 @@ const Flows: React.FC = () => {
     return sorted;
   };
 
+  const validateFlow = (): string | null => {
+    // Check for trigger document
+    const hasTrigger = nodes.some(node => 
+      node.type === 'triggerDocument'
+    );
+    if (!hasTrigger) {
+      return 'Flow must contain a trigger document';
+    }
+
+    // Check for loose connections
+    const connectedNodes = new Set<string>();
+    edges.forEach(edge => {
+      connectedNodes.add(edge.source);
+      connectedNodes.add(edge.target);
+    });
+
+    const looseNodes = nodes.filter(node => !connectedNodes.has(node.id));
+    if (looseNodes.length > 0) {
+      return 'All nodes must be connected';
+    }
+
+    return null;
+  };
+
+  const handleSaveFlow = async (name: string, description: string, tagIds: string[]) => {
+    const error = validateFlow();
+    if (error) {
+      throw new Error(error);
+    }
+
+    const flowData = {
+      name,
+      description,
+      nodes,
+      edges,
+      tag_ids: tagIds
+    };
+
+    await saveFlowApi(flowData);
+  };
+
   return (
     <div className="flex h-[800px]">
       <FlowSidebar />
@@ -317,6 +366,12 @@ const Flows: React.FC = () => {
             className="px-4 py-2 bg-gray-600 text-white rounded"
           >
             Clear Flow
+          </button>
+          <button
+            onClick={() => setShowSaveModal(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            Save Flow
           </button>
         </div>
 
@@ -349,6 +404,12 @@ const Flows: React.FC = () => {
           </ReactFlow>
         </div>
       </div>
+      <SaveFlowModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSave={handleSaveFlow}
+        availableTags={availableTags}
+      />
     </div>
   );
 };

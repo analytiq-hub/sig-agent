@@ -48,6 +48,7 @@ import {
 } from '@/types/index';
 import { TagCreate, Tag, ListTagsResponse } from '@/types/index';
 import { toast } from 'react-hot-toast';
+import { SaveFlowRequest, Flow, ListFlowsResponse } from '@/types/index';
 
 // These APIs execute from the frontend
 const NEXT_PUBLIC_FASTAPI_FRONTEND_URL = process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL || "http://localhost:8000";
@@ -540,4 +541,23 @@ export const acceptInvitationApi = async (token: string, data: AcceptInvitationR
 export const getInvitationApi = async (token: string): Promise<InvitationResponse> => {
   const response = await api.get<InvitationResponse>(`/account/email/invitations/${token}`);
   return response.data;
+};
+
+export const saveFlowApi = async (flowData: SaveFlowRequest): Promise<Flow> => {
+  const response = await api.post('/flows', flowData);
+  return response.data;
+};
+
+export const getFlowsApi = async (params?: { skip?: number; limit?: number }): Promise<ListFlowsResponse> => {
+  const response = await api.get('/flows', { params });
+  return response.data;
+};
+
+export const getFlowApi = async (flowId: string): Promise<Flow> => {
+  const response = await api.get(`/flows/${flowId}`);
+  return response.data;
+};
+
+export const deleteFlowApi = async (flowId: string): Promise<void> => {
+  await api.delete(`/flows/${flowId}`);
 };

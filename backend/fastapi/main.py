@@ -50,7 +50,10 @@ from schemas import (
     InvitationResponse,
     CreateInvitationRequest,
     ListInvitationsResponse,
-    AcceptInvitationRequest
+    AcceptInvitationRequest,
+    SaveFlowRequest,
+    Flow,
+    ListFlowsResponse
 )
 
 # Set up the path
@@ -2355,6 +2358,51 @@ async def accept_invitation(
             status_code=500,
             detail=f"Failed to create account: {str(e)}"
         )
+
+@app.post("/flows")
+async def create_flow(
+    flow: SaveFlowRequest,
+    current_user: User = Depends(get_current_user)
+) -> Flow:
+    flow_id = ad.common.create_id()
+    flow_data = {
+        "_id": ObjectId(flow_id),
+        "name": flow.name,
+        "description": flow.description,
+        "nodes": [jsonable_encoder(node) for node in flow.nodes],
+        "edges": [jsonable_encoder(edge) for edge in flow.edges],
+        "tag_ids": flow.tag_ids,
+        "version": 1,
+        "created_at": datetime.utcnow(),
+        "created_by": current_user.user_name
+    }
+    
+    await ad.common.save_doc(analytiq_client, flow_data)
+    return Flow(**flow_data)
+
+@app.get("/flows")
+async def list_flows(
+    skip: int = 0,
+    limit: int = 10,
+    current_user: User = Depends(get_current_user)
+) -> ListFlowsResponse:
+    flows = await ad.common.get_docs(
+        analytiq_client,
+        {"created_by": current_user.user_name},
+        skip=skip,
+        limit=limit
+    )
+    
+    total_count = await ad.common.count_docs(
+        analytiq_client,
+        {"created_by": current_user.user_name}
+    )
+    
+    return ListFlowsResponse(
+        flows=[Flow(**flow) for flow in flows],
+        total_count=total_count,
+        skip=skip
+    )
 
 if __name__ == "__main__":
     import uvicorn

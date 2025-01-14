@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Any, Dict
 from enum import Enum
 
 # Pydantic models
@@ -249,10 +249,14 @@ class AcceptInvitationRequest(BaseModel):
     password: Optional[str] = None
 
 # Add these new models for flow management
+class Position(BaseModel):
+    x: float
+    y: float
+
 class FlowNode(BaseModel):
     id: str
     type: str
-    position: dict
+    position: Position
     data: dict
 
 class FlowEdge(BaseModel):
@@ -262,19 +266,29 @@ class FlowEdge(BaseModel):
     sourceHandle: Optional[str] = None
     targetHandle: Optional[str] = None
 
-class FlowCreate(BaseModel):
+class SaveFlowRequest(BaseModel):
     name: str
     description: Optional[str] = None
-    nodes: List[FlowNode]
-    edges: List[FlowEdge]
+    nodes: List[Dict[str, Any]]  # Accept any valid ReactFlow node structure
+    edges: List[Dict[str, Any]]  # Accept any valid ReactFlow edge structure
+    tag_ids: Optional[List[str]] = None
 
-class Flow(FlowCreate):
+class Flow(SaveFlowRequest):
     id: str
     version: int
     created_at: datetime
     created_by: str
 
+class FlowMetadata(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+    version: int
+    created_at: datetime
+    created_by: str
+    tag_ids: Optional[List[str]] = None
+
 class ListFlowsResponse(BaseModel):
-    flows: List[Flow]
+    flows: List[FlowMetadata]
     total_count: int
     skip: int
