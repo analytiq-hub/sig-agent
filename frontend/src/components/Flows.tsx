@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import ReactFlow, {
   Controls,
   Background,
@@ -272,13 +272,6 @@ const Flows: React.FC = () => {
     );
   }, [setNodes]);
 
-  const nodeTypes = {
-    triggerDocument: (props: DocumentNodeProps) => <DocumentNode {...props} handleFileSelect={handleFileSelect} />,
-    staticDocument: (props: DocumentNodeProps) => <DocumentNode {...props} handleFileSelect={handleFileSelect} />,
-    prompt: (props: PromptNodeProps) => <PromptNode {...props} prompts={prompts} handlePromptSelect={handlePromptSelect} />,
-    llmOutput: LLMOutputNode,
-  };
-
   const topologicalSort = (nodes: Node[], edges: Edge[]): Node[] => {
     const sorted: Node[] = [];
     const visited = new Set<string>();
@@ -355,6 +348,7 @@ const Flows: React.FC = () => {
       }
       // Trigger sidebar refresh after successful save
       setRefreshSidebarTrigger(prev => prev + 1);
+      setShowSaveModal(false);
     } catch (error) {
       console.error('Error saving flow:', error);
       throw error;
@@ -394,6 +388,20 @@ const Flows: React.FC = () => {
     setCurrentFlowId(null);
     setCurrentFlow(null);
   };
+
+  // Create nodeTypes inside component using useMemo
+  const nodeTypes = useMemo(() => ({
+    triggerDocument: (props: DocumentNodeProps) => (
+      <DocumentNode {...props} handleFileSelect={handleFileSelect} />
+    ),
+    staticDocument: (props: DocumentNodeProps) => (
+      <DocumentNode {...props} handleFileSelect={handleFileSelect} />
+    ),
+    prompt: (props: PromptNodeProps) => (
+      <PromptNode {...props} prompts={prompts} handlePromptSelect={handlePromptSelect} />
+    ),
+    llm_output: LLMOutputNode,
+  }), [handleFileSelect, handlePromptSelect, prompts]);
 
   return (
     <div className="flex h-[800px]">
