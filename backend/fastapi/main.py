@@ -2528,7 +2528,7 @@ async def update_flow(
             "nodes": jsonable_encoder(flow.nodes),
             "edges": jsonable_encoder(flow.edges),
             "tag_ids": flow.tag_ids,
-            "version": existing_flow.get("version", 1) + 1,  # Increment version
+            "version": existing_flow.get("version", 1) + 1,
             "updated_at": datetime.utcnow()
         }
         

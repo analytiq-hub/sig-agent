@@ -56,7 +56,10 @@ const nodeTypes: NodeType[] = [
     type: 'llmOutput',
     label: 'LLM Output',
     icon: DocumentTextIcon,
-    data: { label: 'Output' }
+    data: { 
+      label: 'LLM Output',
+      description: 'Display LLM processing results'
+    }
   }
 ];
 

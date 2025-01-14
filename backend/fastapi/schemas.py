@@ -269,8 +269,8 @@ class FlowEdge(BaseModel):
 class SaveFlowRequest(BaseModel):
     name: str
     description: Optional[str] = None
-    nodes: List[Dict[str, Any]]  # Accept any valid ReactFlow node structure
-    edges: List[Dict[str, Any]]  # Accept any valid ReactFlow edge structure
+    nodes: List[Dict[str, Any]]
+    edges: List[Dict[str, Any]]
     tag_ids: Optional[List[str]] = None
 
 class Flow(SaveFlowRequest):

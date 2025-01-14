@@ -400,7 +400,7 @@ const Flows: React.FC = () => {
     prompt: (props: PromptNodeProps) => (
       <PromptNode {...props} prompts={prompts} handlePromptSelect={handlePromptSelect} />
     ),
-    llm_output: LLMOutputNode,
+    llmOutput: LLMOutputNode,
   }), [handleFileSelect, handlePromptSelect, prompts]);
 
   return (
