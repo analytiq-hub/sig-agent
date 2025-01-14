@@ -56,8 +56,8 @@ const flowMenuItems = [
   { text: 'Flows', icon: Square3Stack3DIcon, tooltip: 'Flows', href: '/flows' },
 ];
 
-const debugMenuItems = [
-  { text: 'Test', icon: BeakerIcon, tooltip: 'Test Page', href: '/test' },
+const systemMenuItems = [
+  { text: 'System', icon: BeakerIcon, tooltip: 'System Page', href: '/test' },
 ];
 
 interface LayoutProps {
@@ -213,7 +213,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <>
                 <hr className="border-gray-200 dark:border-gray-800" />
                 <div className="py-1">
-                  {debugMenuItems.map(renderMenuItem)}
+                  {systemMenuItems.map(renderMenuItem)}
                 </div>
               </>
             )}
