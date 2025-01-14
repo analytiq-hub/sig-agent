@@ -18,6 +18,7 @@ import {
   Science as BeakerIcon,
 } from '@mui/icons-material';
 import { SvgIconProps } from '@mui/material';
+import { useRole } from '@/utils/useRole';
 
 // First, let's fix the type errors
 interface PDFViewerControlsType {
@@ -66,6 +67,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [open, setOpen] = useState(true);
   const { data: session, status } = useSession();
+  const { role } = useRole();
   const router = useRouter();
   const pathname = usePathname();
   const isPDFViewer = pathname.startsWith('/pdf-viewer/');
@@ -206,10 +208,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
               </>
             )}
-            <hr className="border-gray-200 dark:border-gray-800" />
-            <div className="py-1">
-              {debugMenuItems.map(renderMenuItem)}
-            </div>
+            {/* Only show debug menu for admin users */}
+            {role === 'admin' && (
+              <>
+                <hr className="border-gray-200 dark:border-gray-800" />
+                <div className="py-1">
+                  {debugMenuItems.map(renderMenuItem)}
+                </div>
+              </>
+            )}
           </nav>
         </aside>
 
