@@ -9,7 +9,8 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   ReactFlowInstance,
-  MarkerType
+  MarkerType,
+  NodeProps
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -17,7 +18,7 @@ import DocumentNode from '@/components/flow-nodes/DocumentNode';
 import PromptNode from '@/components/flow-nodes/PromptNode';
 import LLMOutputNode from '@/components/flow-nodes/LLMOutputNode';
 import FlowSidebar from '@/components/flow-nodes/FlowSidebar';
-import { Flow, NodeData, DocumentNodeProps, PromptNodeProps } from '@/types';
+import { Flow } from '@/types';
 import { Prompt } from '@/types/prompts';
 import { useFlowContext } from '@/contexts/FlowContext';
 import { getPromptsApi, runLLMAnalysisApi, saveFlowApi, getTagsApi, getFlowApi, updateFlowApi } from '@/utils/api';
@@ -228,7 +229,7 @@ const Flows: React.FC = () => {
       };
       
       reader.onerror = (e) => {
-        reject(new Error('Error reading file'));
+        reject(new Error(`Error reading file: ${e}`));
       };
 
       if (file.type === 'application/json') {
@@ -390,16 +391,18 @@ const Flows: React.FC = () => {
 
   // Create nodeTypes inside component using useMemo
   const nodeTypes = useMemo(() => ({
-    triggerDocument: (props: DocumentNodeProps) => (
+    triggerDocument: (props: NodeProps) => (
       <DocumentNode {...props} handleFileSelect={handleFileSelect} />
     ),
-    staticDocument: (props: DocumentNodeProps) => (
+    staticDocument: (props: NodeProps) => (
       <DocumentNode {...props} handleFileSelect={handleFileSelect} />
     ),
-    prompt: (props: PromptNodeProps) => (
+    prompt: (props: NodeProps) => (
       <PromptNode {...props} prompts={prompts} handlePromptSelect={handlePromptSelect} />
     ),
-    llmOutput: LLMOutputNode,
+    llmOutput: (props: NodeProps) => (
+      <LLMOutputNode {...props} />
+    ),
   }), [handleFileSelect, handlePromptSelect, prompts]);
 
   return (
