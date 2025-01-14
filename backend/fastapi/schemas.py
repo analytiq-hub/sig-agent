@@ -247,3 +247,34 @@ class OrganizationType(str, Enum):
 class AcceptInvitationRequest(BaseModel):
     name: Optional[str] = None
     password: Optional[str] = None
+
+# Add these new models for flow management
+class FlowNode(BaseModel):
+    id: str
+    type: str
+    position: dict
+    data: dict
+
+class FlowEdge(BaseModel):
+    id: str
+    source: str
+    target: str
+    sourceHandle: Optional[str] = None
+    targetHandle: Optional[str] = None
+
+class FlowCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    nodes: List[FlowNode]
+    edges: List[FlowEdge]
+
+class Flow(FlowCreate):
+    id: str
+    version: int
+    created_at: datetime
+    created_by: str
+
+class ListFlowsResponse(BaseModel):
+    flows: List[Flow]
+    total_count: int
+    skip: int
