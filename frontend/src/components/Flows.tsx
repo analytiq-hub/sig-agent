@@ -21,7 +21,7 @@ import FlowSidebar from '@/components/flow-nodes/FlowSidebar';
 import { FlowNodeType, NodeData } from '@/types/flows';
 import { Prompt } from '@/types/prompts';
 import { useFlowContext } from '@/contexts/FlowContext';
-import { getPromptsApi, runLLMAnalysisApi, saveFlowApi, getTagsApi, getFlowApi } from '@/utils/api';
+import { getPromptsApi, runLLMAnalysisApi, saveFlowApi, getTagsApi, getFlowApi, updateFlowApi } from '@/utils/api';
 import SaveFlowModal from '@/components/flow-nodes/SaveFlowModal';
 import { Tag } from '@/types/index';
 
@@ -36,6 +36,7 @@ const Flows: React.FC = () => {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [refreshSidebarTrigger, setRefreshSidebarTrigger] = useState(0);
+  const [currentFlowId, setCurrentFlowId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -344,7 +345,13 @@ const Flows: React.FC = () => {
     };
 
     try {
-      await saveFlowApi(flowData);
+      if (currentFlowId) {
+        // Update existing flow
+        await updateFlowApi(currentFlowId, flowData);
+      } else {
+        // Create new flow
+        await saveFlowApi(flowData);
+      }
       // Trigger sidebar refresh after successful save
       setRefreshSidebarTrigger(prev => prev + 1);
     } catch (error) {
@@ -366,15 +373,23 @@ const Flows: React.FC = () => {
       // Set nodes and edges from the loaded flow
       setNodes(flow.nodes.map(node => ({
         ...node,
-        // Ensure position is properly set
         position: node.position || { x: 0, y: 0 }
       })));
       setEdges(flow.edges);
       
+      // Set the current flow ID
+      setCurrentFlowId(flowId);
+      
     } catch (error) {
       console.error('Error loading flow:', error);
-      // Optionally show an error message to the user
     }
+  };
+
+  const handleClearFlow = () => {
+    setNodes([]);
+    setEdges([]);
+    clearNodeData();
+    setCurrentFlowId(null); // Reset current flow ID
   };
 
   return (
@@ -393,11 +408,7 @@ const Flows: React.FC = () => {
             {isExecuting ? 'Executing...' : 'Execute Flow'}
           </button>
           <button
-            onClick={() => {
-              setNodes([]);
-              setEdges([]);
-              clearNodeData();
-            }}
+            onClick={handleClearFlow}
             className="px-4 py-2 bg-gray-600 text-white rounded"
           >
             Clear Flow
@@ -406,7 +417,7 @@ const Flows: React.FC = () => {
             onClick={() => setShowSaveModal(true)}
             className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
           >
-            Save Flow
+            {currentFlowId ? 'Update Flow' : 'Save Flow'}
           </button>
         </div>
 

@@ -561,3 +561,8 @@ export const getFlowApi = async (flowId: string): Promise<Flow> => {
 export const deleteFlowApi = async (flowId: string): Promise<void> => {
   await api.delete(`/flows/${flowId}`);
 };
+
+export const updateFlowApi = async (flowId: string, flowData: SaveFlowRequest): Promise<Flow> => {
+  const response = await api.put<Flow>(`/flows/${flowId}`, flowData);
+  return response.data;
+};

@@ -2542,14 +2542,7 @@ async def update_flow(
             return_document=True
         )
         
-        if not result:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Flow with id {flow_id} not found"
-            )
-        
-        # Convert MongoDB document to Flow model
-        flow_dict = {
+        return Flow(**{
             "id": str(result["_id"]),
             "name": result["name"],
             "description": result.get("description"),
@@ -2559,9 +2552,7 @@ async def update_flow(
             "version": result["version"],
             "created_at": result["created_at"],
             "created_by": result["created_by"]
-        }
-        
-        return Flow(**flow_dict)
+        })
         
     except Exception as e:
         ad.log.error(f"Error updating flow {flow_id}: {str(e)}")
