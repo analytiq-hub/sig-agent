@@ -1,3 +1,5 @@
+import { Prompt } from './prompts';
+
 export type FlowNodeType = 'triggerDocument' | 'staticDocument' | 'prompt' | 'llm_output' | 'transform';
 
 export interface NodeData {
@@ -42,31 +44,29 @@ export interface FlowEdge {
   targetHandle?: string;
 }
 
-export interface Flow {
-  id: string;
+export interface SaveFlowRequest {
   name: string;
   description?: string;
   nodes: FlowNode[];
   edges: FlowEdge[];
+  tag_ids?: string[];
+}
+
+export interface Flow extends SaveFlowRequest {
+  id: string;
+  version: number;
   created_at: string;
   created_by: string;
-  version: number;
 }
 
 export interface FlowMetadata {
   id: string;
   name: string;
   description?: string;
+  version: number;
   created_at: string;
   created_by: string;
-  version: number;
-}
-
-export interface SaveFlowRequest {
-  name: string;
-  description?: string;
-  nodes: FlowNode[];
-  edges: FlowEdge[];
+  tag_ids?: string[];
 }
 
 export interface ListFlowsResponse {

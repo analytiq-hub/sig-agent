@@ -21,7 +21,7 @@ import FlowSidebar from '@/components/flow-nodes/FlowSidebar';
 import { FlowNodeType, NodeData } from '@/types/flows';
 import { Prompt } from '@/types/prompts';
 import { useFlowContext } from '@/contexts/FlowContext';
-import { getPromptsApi, runLLMAnalysisApi, saveFlowApi, getTagsApi } from '@/utils/api';
+import { getPromptsApi, runLLMAnalysisApi, saveFlowApi, getTagsApi, getFlowApi } from '@/utils/api';
 import SaveFlowModal from '@/components/flow-nodes/SaveFlowModal';
 import { Tag } from '@/types/index';
 
@@ -35,6 +35,7 @@ const Flows: React.FC = () => {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [refreshSidebarTrigger, setRefreshSidebarTrigger] = useState(0);
 
   useEffect(() => {
     const loadData = async () => {
@@ -342,12 +343,46 @@ const Flows: React.FC = () => {
       tag_ids: tagIds
     };
 
-    await saveFlowApi(flowData);
+    try {
+      await saveFlowApi(flowData);
+      // Trigger sidebar refresh after successful save
+      setRefreshSidebarTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error('Error saving flow:', error);
+      throw error;
+    }
+  };
+
+  const handleFlowSelect = async (flowId: string) => {
+    try {
+      // Clear existing flow
+      setNodes([]);
+      setEdges([]);
+      clearNodeData();
+
+      // Load selected flow
+      const flow = await getFlowApi(flowId);
+      
+      // Set nodes and edges from the loaded flow
+      setNodes(flow.nodes.map(node => ({
+        ...node,
+        // Ensure position is properly set
+        position: node.position || { x: 0, y: 0 }
+      })));
+      setEdges(flow.edges);
+      
+    } catch (error) {
+      console.error('Error loading flow:', error);
+      // Optionally show an error message to the user
+    }
   };
 
   return (
     <div className="flex h-[800px]">
-      <FlowSidebar />
+      <FlowSidebar 
+        refreshTrigger={refreshSidebarTrigger} 
+        onFlowSelect={handleFlowSelect}
+      />
       <div className="flex-1">
         <div className="mb-4 flex gap-2 p-4">
           <button

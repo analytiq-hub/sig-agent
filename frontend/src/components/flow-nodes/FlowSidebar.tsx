@@ -3,16 +3,22 @@ import {
   DocumentIcon, 
   ChatBubbleLeftRightIcon, 
   DocumentTextIcon,
-  FolderIcon
+  FolderIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import { NodeData, Flow, FlowMetadata } from '@/types/flows';
-import { getFlowsApi } from '@/utils/api';
+import { getFlowsApi, deleteFlowApi } from '@/utils/api';
 
 interface NodeType {
   type: string;
   label: string;
   icon: React.ForwardRefExoticComponent<React.SVGProps<SVGSVGElement>>;
   data: NodeData;
+}
+
+interface FlowSidebarProps {
+  refreshTrigger?: number;
+  onFlowSelect: (flowId: string) => void;
 }
 
 const nodeTypes: NodeType[] = [
@@ -54,13 +60,13 @@ const nodeTypes: NodeType[] = [
   }
 ];
 
-const FlowSidebar = () => {
+const FlowSidebar: React.FC<FlowSidebarProps> = ({ refreshTrigger, onFlowSelect }) => {
   const [savedFlows, setSavedFlows] = useState<FlowMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     loadSavedFlows();
-  }, []);
+  }, [refreshTrigger]);
 
   const loadSavedFlows = async () => {
     try {
@@ -80,6 +86,16 @@ const FlowSidebar = () => {
       data
     }));
     event.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDelete = async (e: React.MouseEvent, flowId: string) => {
+    e.stopPropagation(); // Prevent flow selection when clicking delete
+    try {
+      await deleteFlowApi(flowId);
+      loadSavedFlows(); // Refresh the list
+    } catch (error) {
+      console.error('Error deleting flow:', error);
+    }
   };
 
   return (
@@ -112,12 +128,20 @@ const FlowSidebar = () => {
           savedFlows.map((flow) => (
             <div
               key={flow.id}
-              className="flex items-center p-3 bg-white border border-gray-200 rounded-lg cursor-move hover:bg-gray-50 transition-colors"
-              draggable
-              onDragStart={(e) => onDragStart(e, 'savedFlow', flow)}
+              className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors group"
+              onClick={() => onFlowSelect(flow.id)}
             >
-              <FolderIcon className="h-5 w-5 text-gray-400 mr-2" />
-              <span className="text-sm text-gray-900">{flow.name}</span>
+              <div className="flex items-center">
+                <FolderIcon className="h-5 w-5 text-gray-400 mr-2" />
+                <span className="text-sm text-gray-900">{flow.name}</span>
+              </div>
+              <button
+                onClick={(e) => handleDelete(e, flow.id)}
+                className="hidden group-hover:block p-1 hover:bg-gray-100 rounded"
+                title="Delete flow"
+              >
+                <TrashIcon className="h-4 w-4 text-gray-500 hover:text-red-500" />
+              </button>
             </div>
           ))
         )}
