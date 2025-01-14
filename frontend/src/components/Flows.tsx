@@ -9,7 +9,8 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   ReactFlowInstance,
-  XYPosition
+  XYPosition,
+  MarkerType
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -90,7 +91,21 @@ const Flows: React.FC = () => {
         return;
       }
       
-      setEdges((eds) => addEdge(params, eds));
+      // Add edge with arrow marker
+      const edge = {
+        ...params,
+        type: 'smoothstep',  // smooth curved edges
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 20,
+          height: 20,
+        },
+        style: {
+          strokeWidth: 2,
+        },
+      };
+      
+      setEdges((eds) => addEdge(edge, eds));
     },
     [setEdges, nodes, edges]
   );
@@ -315,6 +330,17 @@ const Flows: React.FC = () => {
             onDrop={onDrop}
             onDragOver={onDragOver}
             nodeTypes={nodeTypes}
+            defaultEdgeOptions={{
+              type: 'smoothstep',
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                width: 20,
+                height: 20,
+              },
+              style: {
+                strokeWidth: 2,
+              },
+            }}
             fitView
           >
             <Background />
