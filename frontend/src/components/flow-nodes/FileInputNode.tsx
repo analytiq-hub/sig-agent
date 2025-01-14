@@ -5,15 +5,16 @@ import { NodeData } from '@/types/flows';
 interface FileInputNodeProps {
   id: string;
   data: NodeData;
+  handleFileSelect: (nodeId: string, file: File) => void;
 }
 
-const FileInputNode = ({ id, data }: FileInputNodeProps) => {
+const FileInputNode = ({ id, data, handleFileSelect }: FileInputNodeProps) => {
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      handleFileSelect(id, file); // This comes from Flows component
+      handleFileSelect(id, file);
     }
-  }, [id]);
+  }, [id, handleFileSelect]);
 
   return (
     <div className="px-4 py-2 shadow-md rounded-md bg-white border border-gray-200">
