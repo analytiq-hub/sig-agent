@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWind, faBars, faChevronLeft } from '@fortawesome/free-solid-svg-icons';
 import { useSession } from 'next-auth/react';
-const Test: React.FC = () => {
+const System: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   const { data: session } = useSession();
@@ -99,4 +99,4 @@ const Test: React.FC = () => {
   );
 };
 
-export default Test;
+export default System;
