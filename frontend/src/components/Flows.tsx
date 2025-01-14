@@ -37,6 +37,7 @@ const Flows: React.FC = () => {
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [refreshSidebarTrigger, setRefreshSidebarTrigger] = useState(0);
   const [currentFlowId, setCurrentFlowId] = useState<string | null>(null);
+  const [currentFlow, setCurrentFlow] = useState<Flow | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -377,7 +378,8 @@ const Flows: React.FC = () => {
       })));
       setEdges(flow.edges);
       
-      // Set the current flow ID
+      // Store the current flow
+      setCurrentFlow(flow);
       setCurrentFlowId(flowId);
       
     } catch (error) {
@@ -389,7 +391,8 @@ const Flows: React.FC = () => {
     setNodes([]);
     setEdges([]);
     clearNodeData();
-    setCurrentFlowId(null); // Reset current flow ID
+    setCurrentFlowId(null);
+    setCurrentFlow(null);
   };
 
   return (
@@ -455,6 +458,11 @@ const Flows: React.FC = () => {
         onClose={() => setShowSaveModal(false)}
         onSave={handleSaveFlow}
         availableTags={availableTags}
+        initialValues={currentFlow ? {
+          name: currentFlow.name,
+          description: currentFlow.description,
+          tag_ids: currentFlow.tag_ids
+        } : undefined}
       />
     </div>
   );
