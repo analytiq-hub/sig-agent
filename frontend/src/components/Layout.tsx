@@ -57,7 +57,7 @@ const flowMenuItems = [
 ];
 
 const systemMenuItems = [
-  { text: 'System', icon: BeakerIcon, tooltip: 'System Page', href: '/test' },
+  { text: 'System', icon: BeakerIcon, tooltip: 'System Page', href: '/system' },
 ];
 
 interface LayoutProps {
