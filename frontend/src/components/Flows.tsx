@@ -9,7 +9,6 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   ReactFlowInstance,
-  XYPosition,
   MarkerType
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -18,7 +17,7 @@ import DocumentNode from '@/components/flow-nodes/DocumentNode';
 import PromptNode from '@/components/flow-nodes/PromptNode';
 import LLMOutputNode from '@/components/flow-nodes/LLMOutputNode';
 import FlowSidebar from '@/components/flow-nodes/FlowSidebar';
-import { FlowNodeType, NodeData } from '@/types/flows';
+import { Flow, NodeData, DocumentNodeProps, PromptNodeProps } from '@/types';
 import { Prompt } from '@/types/prompts';
 import { useFlowContext } from '@/contexts/FlowContext';
 import { getPromptsApi, runLLMAnalysisApi, saveFlowApi, getTagsApi, getFlowApi, updateFlowApi } from '@/utils/api';
@@ -88,6 +87,17 @@ const Flows: React.FC = () => {
     [reactFlowInstance, setNodes]
   );
 
+  const hasPath = useCallback((edges: Edge[], from: string | null, to: string | null, visited = new Set<string>()): boolean => {
+    if (!from || !to) return false;
+    if (from === to) return true;
+    if (visited.has(from)) return false;
+    
+    visited.add(from);
+    return edges.some(edge => 
+      edge.source === from && hasPath(edges, edge.target, to, visited)
+    );
+  }, []);
+
   const onConnect = useCallback(
     (params: Connection) => {
       // Validate connection
@@ -118,19 +128,8 @@ const Flows: React.FC = () => {
       
       setEdges((eds) => addEdge(edge, eds));
     },
-    [setEdges, nodes, edges]
+    [setEdges, nodes, edges, hasPath]
   );
-
-  const hasPath = (edges: Edge[], from: string | null, to: string | null, visited = new Set<string>()): boolean => {
-    if (!from || !to) return false;
-    if (from === to) return true;
-    if (visited.has(from)) return false;
-    
-    visited.add(from);
-    return edges.some(edge => 
-      edge.source === from && hasPath(edges, edge.target, to, visited)
-    );
-  };
 
   const executeFlow = async () => {
     setIsExecuting(true);
@@ -149,7 +148,7 @@ const Flows: React.FC = () => {
     }
   };
 
-  const executeNode = async (node: { id: string; type: string; data: NodeData }) => {
+  const executeNode = async (node: Node) => {
     try {
       // Get input nodes for this node
       const inputEdges = edges.filter(e => e.target === node.id);
@@ -187,7 +186,7 @@ const Flows: React.FC = () => {
             context.documentId, 
             node.data.promptId,
             true,
-            context
+            //context // TODO: add context
           );
 
           updateNodeData(node.id, result);

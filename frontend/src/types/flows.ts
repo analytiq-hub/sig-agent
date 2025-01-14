@@ -1,54 +1,11 @@
+import { Node, Edge } from 'reactflow';
 import { Prompt } from './prompts';
-
-export type FlowNodeType = 'triggerDocument' | 'staticDocument' | 'prompt' | 'llm_output' | 'transform';
-
-export interface NodeData {
-  label: string;
-  description?: string;
-  // File input specific
-  accept?: string[];
-  required?: boolean;
-  file?: File;
-  isTrigger?: boolean;
-  isStatic?: boolean;
-  
-  // Prompt specific
-  promptId?: string;
-  promptName?: string;
-  
-  // Transform specific
-  transformType?: 'json_to_table' | 'extract_field' | 'custom';
-  transformConfig?: {
-    field?: string;
-    format?: string;
-    template?: string;
-  };
-  
-  // LLM output specific
-  result?: Record<string, unknown>;
-}
-
-export interface FlowNode {
-  id: string;
-  type: FlowNodeType;
-  name: string;
-  position: { x: number; y: number };
-  data: NodeData;
-}
-
-export interface FlowEdge {
-  id: string;
-  source: string;
-  target: string;
-  sourceHandle?: string;
-  targetHandle?: string;
-}
 
 export interface SaveFlowRequest {
   name: string;
   description?: string;
-  nodes: FlowNode[];
-  edges: FlowEdge[];
+  nodes: Node[];
+  edges: Edge[];
   tag_ids?: string[];
 }
 
@@ -73,6 +30,19 @@ export interface ListFlowsResponse {
   flows: FlowMetadata[];
   total_count: number;
   skip: number;
+}
+
+export interface NodeData {
+  label: string;
+  description?: string;
+  accept?: string[];
+  required?: boolean;
+  isTrigger?: boolean;
+  isStatic?: boolean;
+  promptId?: string;
+  promptName?: string;
+  file?: File;
+  result?: Record<string, unknown>;
 }
 
 export interface DocumentNodeProps {
