@@ -188,7 +188,7 @@ async def startup_event():
     await startup.setup_api_creds(analytiq_client)
 
 # PDF management endpoints
-@app.post("/documents")
+@app.post("/documents", tags=["documents"])
 async def upload_document(
     documents_upload: DocumentsUpload = Body(...),
     current_user: User = Depends(get_current_user)
@@ -266,7 +266,7 @@ async def upload_document(
     
     return {"uploaded_documents": uploaded_documents}
 
-@app.put("/documents/{document_id}")
+@app.put("/documents/{document_id}", tags=["documents"])
 async def update_document(
     document_id: str,
     update: DocumentUpdate,
@@ -318,7 +318,7 @@ async def update_document(
     return {"message": "Document tags updated successfully"}
 
 
-@app.get("/documents", response_model=ListDocumentsResponse)
+@app.get("/documents", response_model=ListDocumentsResponse, tags=["documents"])
 async def list_documents(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
@@ -357,7 +357,7 @@ async def list_documents(
         skip=skip
     )
 
-@app.get("/documents/{document_id}", response_model=DocumentResponse)
+@app.get("/documents/{document_id}", response_model=DocumentResponse, tags=["documents"])
 async def get_document(
     document_id: str,
     current_user: User = Depends(get_current_user)
@@ -394,7 +394,7 @@ async def get_document(
         content=base64.b64encode(file["blob"]).decode('utf-8')
     )
 
-@app.delete("/documents/{document_id}")
+@app.delete("/documents/{document_id}", tags=["documents"])
 async def delete_document(
     document_id: str,
     current_user: User = Depends(get_current_user)
@@ -416,7 +416,7 @@ async def delete_document(
 
     return {"message": "Document deleted successfully"}
 
-@app.post("/access_tokens", response_model=AccessToken)
+@app.post("/access_tokens", response_model=AccessToken, tags=["access_tokens"])
 async def access_token_create(
     request: CreateAccessTokenRequest,
     current_user: User = Depends(get_current_user)
@@ -438,7 +438,7 @@ async def access_token_create(
     new_token["id"] = str(result.inserted_id)
     return new_token
 
-@app.get("/access_tokens", response_model=ListAccessTokensResponse)
+@app.get("/access_tokens", response_model=ListAccessTokensResponse, tags=["access_tokens"])
 async def access_token_list(current_user: User = Depends(get_current_user)):
     """List API tokens"""
     cursor = access_token_collection.find({"user_id": current_user.user_id})
@@ -457,7 +457,7 @@ async def access_token_list(current_user: User = Depends(get_current_user)):
     ad.log.debug(f"list_access_tokens(): {ret}")
     return ListAccessTokensResponse(access_tokens=ret)
 
-@app.delete("/access_tokens/{token_id}")
+@app.delete("/access_tokens/{token_id}", tags=["access_tokens"])
 async def access_token_delete(
     token_id: str,
     current_user: User = Depends(get_current_user)
@@ -471,7 +471,7 @@ async def access_token_delete(
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
 
-@app.post("/auth/token")
+@app.post("/auth/token", tags=["auth"])
 async def create_auth_token(user_data: dict = Body(...)):
     """Create an authentication token"""
     ad.log.debug(f"create_auth_token(): user_data: {user_data}")
@@ -486,7 +486,7 @@ async def create_auth_token(user_data: dict = Body(...)):
     )
     return {"token": token}
 
-@app.get("/ocr/download/blocks/{document_id}")
+@app.get("/ocr/download/blocks/{document_id}", tags=["ocr"])
 async def download_ocr_blocks(
     document_id: str,
     current_user: User = Depends(get_current_user)
@@ -506,7 +506,7 @@ async def download_ocr_blocks(
     
     return JSONResponse(content=ocr_list)
 
-@app.get("/ocr/download/text/{document_id}", response_model=str)
+@app.get("/ocr/download/text/{document_id}", response_model=str, tags=["ocr"])
 async def download_ocr_text(
     document_id: str,
     page_num: Optional[int] = Query(None, description="Specific page number to retrieve"),
@@ -531,7 +531,7 @@ async def download_ocr_text(
     
     return Response(content=text, media_type="text/plain")
 
-@app.get("/ocr/download/metadata/{document_id}", response_model=OCRMetadataResponse)
+@app.get("/ocr/download/metadata/{document_id}", response_model=OCRMetadataResponse, tags=["ocr"])
 async def get_ocr_metadata(
     document_id: str,
     current_user: User = Depends(get_current_user)
@@ -554,7 +554,7 @@ async def get_ocr_metadata(
     )
 
 # LLM Run Endpoints
-@app.post("/llm/run/{document_id}", response_model=LLMRunResponse)
+@app.post("/llm/run/{document_id}", response_model=LLMRunResponse, tags=["llm"])
 async def run_llm_analysis(
     document_id: str,
     prompt_id: str = Query(default="default", description="The prompt ID to use"),
@@ -596,7 +596,7 @@ async def run_llm_analysis(
             detail=f"Error processing document: {str(e)}"
         )
 
-@app.get("/llm/result/{document_id}", response_model=LLMResult)
+@app.get("/llm/result/{document_id}", response_model=LLMResult, tags=["llm"])
 async def get_llm_result(
     document_id: str,
     prompt_id: str = Query(default="default", description="The prompt ID to retrieve"),
@@ -621,7 +621,7 @@ async def get_llm_result(
     
     return result
 
-@app.delete("/llm/result/{document_id}")
+@app.delete("/llm/result/{document_id}", tags=["llm"])
 async def delete_llm_result(
     document_id: str,
     prompt_id: str = Query(..., description="The prompt ID to delete"),
@@ -659,7 +659,7 @@ async def get_next_schema_version(schema_name: str) -> int:
     return result["version"]
 
 # Schema management endpoints
-@app.post("/schemas", response_model=Schema)
+@app.post("/schemas", response_model=Schema, tags=["schemas"])
 async def create_schema(
     schema: SchemaCreate,
     current_user: User = Depends(get_current_user)
@@ -701,7 +701,7 @@ async def create_schema(
     schema_dict["id"] = str(result.inserted_id)
     return Schema(**schema_dict)
 
-@app.get("/schemas", response_model=ListSchemasResponse)
+@app.get("/schemas", response_model=ListSchemasResponse, tags=["schemas"])
 async def list_schemas(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
@@ -752,7 +752,7 @@ async def list_schemas(
         skip=skip
     )
 
-@app.get("/schemas/{schema_id}", response_model=Schema)
+@app.get("/schemas/{schema_id}", response_model=Schema, tags=["schemas"])
 async def get_schema(
     schema_id: str,
     current_user: User = Depends(get_current_user)
@@ -765,7 +765,7 @@ async def get_schema(
     # version is already included from MongoDB doc, no need to add it
     return Schema(**schema)
 
-@app.put("/schemas/{schema_id}", response_model=Schema)
+@app.put("/schemas/{schema_id}", response_model=Schema, tags=["schemas"])
 async def update_schema(
     schema_id: str,
     schema: SchemaCreate,
@@ -808,7 +808,7 @@ async def update_schema(
     new_schema["id"] = str(result.inserted_id)
     return Schema(**new_schema)
 
-@app.delete("/schemas/{schema_id}")
+@app.delete("/schemas/{schema_id}", tags=["schemas"])
 async def delete_schema(
     schema_id: str,
     current_user: User = Depends(get_current_user)
@@ -870,7 +870,7 @@ async def get_next_prompt_version(prompt_name: str) -> int:
     return result["version"]
 
 # Prompt management endpoints
-@app.post("/prompts", response_model=Prompt)
+@app.post("/prompts", response_model=Prompt, tags=["prompts"])
 async def create_prompt(
     prompt: PromptCreate,
     current_user: User = Depends(get_current_user)
@@ -931,7 +931,7 @@ async def create_prompt(
     prompt_dict["id"] = str(result.inserted_id)
     return Prompt(**prompt_dict)
 
-@app.get("/prompts", response_model=ListPromptsResponse)
+@app.get("/prompts", response_model=ListPromptsResponse, tags=["prompts"])
 async def list_prompts(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
@@ -1005,7 +1005,7 @@ async def list_prompts(
         skip=skip
     )
 
-@app.get("/prompts/{prompt_id}", response_model=Prompt)
+@app.get("/prompts/{prompt_id}", response_model=Prompt, tags=["prompts"])
 async def get_prompt(
     prompt_id: str,
     current_user: User = Depends(get_current_user)
@@ -1017,7 +1017,7 @@ async def get_prompt(
     prompt['id'] = str(prompt.pop('_id'))
     return Prompt(**prompt)
 
-@app.put("/prompts/{prompt_id}", response_model=Prompt)
+@app.put("/prompts/{prompt_id}", response_model=Prompt, tags=["prompts"])
 async def update_prompt(
     prompt_id: str,
     prompt: PromptCreate,
@@ -1083,7 +1083,7 @@ async def update_prompt(
     new_prompt["id"] = str(result.inserted_id)
     return Prompt(**new_prompt)
 
-@app.delete("/prompts/{prompt_id}")
+@app.delete("/prompts/{prompt_id}", tags=["prompts"])
 async def delete_prompt(
     prompt_id: str,
     current_user: User = Depends(get_current_user)
@@ -1108,7 +1108,7 @@ async def delete_prompt(
     return {"message": "Prompt deleted successfully"}
 
 # Tag management endpoints
-@app.post("/tags", response_model=Tag)
+@app.post("/tags", response_model=Tag, tags=["tags"])
 async def create_tag(
     tag: TagCreate,
     current_user: User = Depends(get_current_user)
@@ -1139,7 +1139,7 @@ async def create_tag(
     
     return Tag(**new_tag)
 
-@app.get("/tags", response_model=ListTagsResponse)
+@app.get("/tags", response_model=ListTagsResponse, tags=["tags"])
 async def list_tags(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
@@ -1172,7 +1172,7 @@ async def list_tags(
         skip=skip
     )
 
-@app.delete("/tags/{tag_id}")
+@app.delete("/tags/{tag_id}", tags=["tags"])
 async def delete_tag(
     tag_id: str,
     current_user: User = Depends(get_current_user)
@@ -1219,7 +1219,7 @@ async def delete_tag(
     
     return {"message": "Tag deleted successfully"}
 
-@app.put("/tags/{tag_id}", response_model=Tag)
+@app.put("/tags/{tag_id}", response_model=Tag, tags=["tags"])
 async def update_tag(
     tag_id: str,
     tag: TagCreate,
@@ -1252,7 +1252,7 @@ async def update_tag(
     
     return Tag(**{**updated_tag, "id": str(updated_tag["_id"])})
 
-@app.post("/account/llm_tokens", response_model=LLMToken)
+@app.post("/account/llm_tokens", response_model=LLMToken, tags=["account/llm_tokens"])
 async def llm_token_create(
     request: CreateLLMTokenRequest,
     current_user: User = Depends(get_admin_user)
@@ -1290,7 +1290,7 @@ async def llm_token_create(
 
     return new_token
 
-@app.get("/account/llm_tokens", response_model=ListLLMTokensResponse)
+@app.get("/account/llm_tokens", response_model=ListLLMTokensResponse, tags=["account/llm_tokens"])
 async def llm_token_list(current_user: User = Depends(get_admin_user)):
     """List LLM tokens (admin only)"""
     cursor = llm_token_collection.find({"user_id": current_user.user_id})
@@ -1307,7 +1307,7 @@ async def llm_token_list(current_user: User = Depends(get_admin_user)):
     ]
     return ListLLMTokensResponse(llm_tokens=llm_tokens)
 
-@app.delete("/account/llm_tokens/{token_id}")
+@app.delete("/account/llm_tokens/{token_id}", tags=["account/llm_tokens"])
 async def llm_token_delete(
     token_id: str,
     current_user: User = Depends(get_admin_user)
@@ -1321,7 +1321,7 @@ async def llm_token_delete(
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
 
-@app.post("/account/aws_credentials")
+@app.post("/account/aws_credentials", tags=["account/aws_credentials"])
 async def create_aws_credentials(
     credentials: AWSCredentials,
     current_user: User = Depends(get_admin_user)
@@ -1359,7 +1359,7 @@ async def create_aws_credentials(
     
     return {"message": "AWS credentials saved successfully"}
 
-@app.get("/account/aws_credentials")
+@app.get("/account/aws_credentials", tags=["account/aws_credentials"])
 async def get_aws_credentials(current_user: User = Depends(get_admin_user)):
     """Get AWS credentials (admin only)"""
     credentials = await aws_credentials_collection.find_one({"user_id": current_user.user_id})
@@ -1371,7 +1371,7 @@ async def get_aws_credentials(current_user: User = Depends(get_admin_user)):
         "secret_access_key": ad.crypto.decrypt_token(credentials["secret_access_key"])
     }
 
-@app.delete("/account/aws_credentials")
+@app.delete("/account/aws_credentials", tags=["account/aws_credentials"])
 async def delete_aws_credentials(current_user: User = Depends(get_admin_user)):
     """Delete AWS credentials (admin only)"""
     result = await aws_credentials_collection.delete_one({"user_id": current_user.user_id})
@@ -1379,7 +1379,7 @@ async def delete_aws_credentials(current_user: User = Depends(get_admin_user)):
         raise HTTPException(status_code=404, detail="AWS credentials not found")
     return {"message": "AWS credentials deleted successfully"}
 
-@app.get("/account/organizations", response_model=ListOrganizationsResponse)
+@app.get("/account/organizations", response_model=ListOrganizationsResponse, tags=["account/organizations"])
 async def list_organizations(
     user_id: str | None = Query(None, description="Filter organizations by user ID"),
     organization_id: str | None = Query(None, description="Get a specific organization by ID"),
@@ -1458,7 +1458,7 @@ async def list_organizations(
         }) for org in organizations
     ])
 
-@app.post("/account/organizations", response_model=Organization)
+@app.post("/account/organizations", response_model=Organization, tags=["account/organizations"])
 async def create_organization(
     organization: OrganizationCreate,
     current_user: User = Depends(get_current_user)
@@ -1511,7 +1511,7 @@ async def create_organization(
         "id": str(result.inserted_id)
     })
 
-@app.put("/account/organizations/{organization_id}", response_model=Organization)
+@app.put("/account/organizations/{organization_id}", response_model=Organization, tags=["account/organizations"])
 async def update_organization(
     organization_id: str,
     organization_update: OrganizationUpdate,
@@ -1584,7 +1584,7 @@ async def update_organization(
         "updated_at": updated_organization["updated_at"]
     })
 
-@app.delete("/account/organizations/{organization_id}")
+@app.delete("/account/organizations/{organization_id}", tags=["account/organizations"])
 async def delete_organization(
     organization_id: str,
     current_user: User = Depends(get_current_user)
@@ -1610,7 +1610,7 @@ async def delete_organization(
     return {"status": "success"}
 
 # Add these new endpoints after the existing ones
-@app.get("/account/users", response_model=ListUsersResponse)
+@app.get("/account/users", response_model=ListUsersResponse, tags=["account/users"])
 async def list_users(
     organization_id: str | None = Query(None, description="Filter users by organization ID"),
     user_id: str | None = Query(None, description="Get a specific user by ID"),
@@ -1739,7 +1739,7 @@ async def list_users(
         skip=skip
     )
 
-@app.post("/account/users", response_model=UserResponse)
+@app.post("/account/users", response_model=UserResponse, tags=["account/users"])
 async def create_user(
     user: UserCreate,
     current_user: User = Depends(get_admin_user)
@@ -1800,7 +1800,7 @@ async def create_user(
     
     return UserResponse(**user_doc)
 
-@app.put("/account/users/{user_id}", response_model=UserResponse)
+@app.put("/account/users/{user_id}", response_model=UserResponse, tags=["account/users"])
 async def update_user(
     user_id: str,
     user: UserUpdate,
@@ -1875,7 +1875,7 @@ async def update_user(
     )
 
 
-@app.delete("/account/users/{user_id}")
+@app.delete("/account/users/{user_id}", tags=["account/users"])
 async def delete_user(
     user_id: str,
     current_user: User = Depends(get_current_user)
@@ -1918,7 +1918,7 @@ async def delete_user(
             detail="Failed to delete user and related data"
         )
 
-@app.post("/account/email/verification/send/{user_id}")
+@app.post("/account/email/verification/send/{user_id}", tags=["account/email"])
 async def send_verification_email(
     user_id: str,
     current_user: User = Depends(get_admin_user)
@@ -1989,7 +1989,7 @@ async def send_verification_email(
         ad.log.error(f"Failed to send email: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
 
-@app.post("/account/email/verification/{token}")
+@app.post("/account/email/verification/{token}", tags=["account/email"])
 async def verify_email(token: str, background_tasks: BackgroundTasks):
     """Verify email address using token"""
     ad.log.info(f"Verifying email with token: {token}")
@@ -2032,7 +2032,7 @@ async def verify_email(token: str, background_tasks: BackgroundTasks):
     
     return {"message": "Email verified successfully"}
 
-@app.post("/account/email/invitations", response_model=InvitationResponse)
+@app.post("/account/email/invitations", response_model=InvitationResponse, tags=["account/email"])
 async def create_invitation(
     invitation: CreateInvitationRequest,
     current_user: User = Depends(get_admin_user)
@@ -2147,7 +2147,7 @@ async def create_invitation(
             detail=f"Failed to send invitation email: {str(e)}"
         )
 
-@app.get("/account/email/invitations", response_model=ListInvitationsResponse)
+@app.get("/account/email/invitations", response_model=ListInvitationsResponse, tags=["account/email"])
 async def list_invitations(
     skip: int = Query(0),
     limit: int = Query(10),
@@ -2178,7 +2178,7 @@ async def list_invitations(
         skip=skip
     )
 
-@app.get("/account/email/invitations/{token}", response_model=InvitationResponse)
+@app.get("/account/email/invitations/{token}", response_model=InvitationResponse, tags=["account/email"])
 async def get_invitation(token: str):
     """Get invitation details by token"""
     invitation = await db.invitations.find_one({
@@ -2226,7 +2226,7 @@ async def get_invitation(token: str):
         user_exists=user_exists  # Add user existence status
     )
 
-@app.post("/account/email/invitations/{token}/accept")
+@app.post("/account/email/invitations/{token}/accept", tags=["account/email"])
 async def accept_invitation(
     token: str,
     data: AcceptInvitationRequest = Body(...)  # Change to use AcceptInvitationRequest
@@ -2360,7 +2360,7 @@ async def accept_invitation(
             detail=f"Failed to create account: {str(e)}"
         )
 
-@app.post("/flows")
+@app.post("/flows", tags=["flows"])
 async def create_flow(
     flow: SaveFlowRequest,
     current_user: User = Depends(get_current_user)
@@ -2393,7 +2393,7 @@ async def create_flow(
             detail=f"Error creating flow: {str(e)}"
         )
 
-@app.get("/flows")
+@app.get("/flows", tags=["flows"])
 async def list_flows(
     skip: int = 0,
     limit: int = 10,
@@ -2431,7 +2431,7 @@ async def list_flows(
         skip=skip
     )
 
-@app.get("/flows/{flow_id}")
+@app.get("/flows/{flow_id}", tags=["flows"])
 async def get_flow(
     flow_id: str,
     current_user: User = Depends(get_current_user)
@@ -2473,7 +2473,7 @@ async def get_flow(
             detail=f"Error getting flow: {str(e)}"
         )
 
-@app.delete("/flows/{flow_id}")
+@app.delete("/flows/{flow_id}", tags=["flows"])
 async def delete_flow(
     flow_id: str,
     current_user: User = Depends(get_current_user)
@@ -2502,7 +2502,7 @@ async def delete_flow(
             detail=f"Error deleting flow: {str(e)}"
         )
 
-@app.put("/flows/{flow_id}")
+@app.put("/flows/{flow_id}", tags=["flows"])
 async def update_flow(
     flow_id: str,
     flow: SaveFlowRequest,
