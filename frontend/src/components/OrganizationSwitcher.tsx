@@ -5,6 +5,7 @@ import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useSession } from 'next-auth/react';
+import { useRouter, usePathname } from 'next/navigation';
 
 const typeLabels = {
   individual: { bg: 'bg-gray-100', text: 'text-gray-600' },
@@ -13,8 +14,23 @@ const typeLabels = {
 };
 
 export default function OrganizationSwitcher() {
+  const router = useRouter();
+  const pathname = usePathname();
   const { currentOrganization, switchOrganization, organizations, isLoading, refreshOrganizations } = useOrganization();
   const { data: session, status } = useSession();
+
+  const handleOrganizationSwitch = (organizationId: string) => {
+    switchOrganization(organizationId);
+    
+    // If we're on an organization-specific route, update the URL
+    if (pathname.includes('/orgs/')) {
+      const newPath = pathname.replace(
+        /\/orgs\/[^/]+/,
+        `/orgs/${organizationId}`
+      );
+      router.push(newPath);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -85,7 +101,7 @@ export default function OrganizationSwitcher() {
               <Menu.Item key={organization.id}>
                 {({ active }) => (
                   <button
-                    onClick={() => switchOrganization(organization.id)}
+                    onClick={() => handleOrganizationSwitch(organization.id)}
                     className={`
                       ${active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'}
                       block px-4 py-2 text-sm w-full text-left flex items-center justify-between
