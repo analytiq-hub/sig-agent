@@ -24,6 +24,7 @@ import hmac
 import hashlib
 from bcrypt import hashpw, gensalt
 import asyncio
+from pydantic import BaseModel
 from email_utils import get_verification_email_content, get_email_subject, get_invitation_email_content
 
 import startup
@@ -113,18 +114,6 @@ app.add_middleware(
 analytiq_client = ad.common.get_analytiq_client(env=ENV)
 db_name = ENV
 db = analytiq_client.mongodb_async[db_name]
-job_queue_collection = db.job_queue
-access_token_collection = db.access_tokens
-llm_token_collection = db.llm_tokens
-aws_credentials_collection = db.aws_credentials
-schemas_collection = db.schemas
-schema_versions_collection = db.schema_versions
-prompts_collection = db.prompts
-prompt_versions_collection = db.prompt_versions
-tags_collection = db.tags
-organizations_collection = db.organizations
-
-from pydantic import BaseModel
 
 # Modify get_current_user to validate userId in database
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
@@ -152,7 +141,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
         ad.log.debug(f"get_current_user(): JWT validation failed")
         # If JWT validation fails, check if it's an API token
         encrypted_token = ad.crypto.encrypt_token(token)
-        stored_token = await access_token_collection.find_one({"token": encrypted_token})
+        stored_token = await db.access_tokens.find_one({"token": encrypted_token})
         
         if stored_token:
             # Validate that user_id from stored token exists in database
@@ -204,7 +193,7 @@ async def upload_document(
     
     if all_tag_ids:
         # Check if all tags exist and belong to the user
-        tags_cursor = tags_collection.find({
+        tags_cursor = db.tags.find({
             "_id": {"$in": [ObjectId(tag_id) for tag_id in all_tag_ids]},
             "created_by": current_user.user_id
         })
@@ -288,7 +277,7 @@ async def update_document(
 
     # Validate all tag IDs
     if update.tag_ids:
-        tags_cursor = tags_collection.find({
+        tags_cursor = db.tags.find({
             "_id": {"$in": [ObjectId(tag_id) for tag_id in update.tag_ids]},
             "created_by": current_user.user_id
         })
@@ -431,7 +420,7 @@ async def access_token_create(
         "created_at": datetime.now(UTC),
         "lifetime": request.lifetime
     }
-    result = await access_token_collection.insert_one(new_token)
+    result = await db.access_tokens.insert_one(new_token)
 
     # Return the new token with the id
     new_token["token"] = token  # Return plaintext token to user
@@ -441,7 +430,7 @@ async def access_token_create(
 @app.get("/access_tokens", response_model=ListAccessTokensResponse, tags=["access_tokens"])
 async def access_token_list(current_user: User = Depends(get_current_user)):
     """List API tokens"""
-    cursor = access_token_collection.find({"user_id": current_user.user_id})
+    cursor = db.access_tokens.find({"user_id": current_user.user_id})
     tokens = await cursor.to_list(length=None)
     ret = [
         {
@@ -463,7 +452,7 @@ async def access_token_delete(
     current_user: User = Depends(get_current_user)
 ):
     """Delete an API token"""
-    result = await access_token_collection.delete_one({
+    result = await db.access_tokens.delete_one({
         "_id": ObjectId(token_id),
         "user_id": current_user.user_id
     })
@@ -635,7 +624,7 @@ async def delete_llm_result(
 # Add this helper function near the top of the file with other functions
 async def get_next_schema_version(schema_name: str) -> int:
     """Atomically get the next version number for a schema"""
-    result = await schema_versions_collection.find_one_and_update(
+    result = await db.schema_versions.find_one_and_update(
         {"_id": schema_name},
         {"$inc": {"version": 1}},
         upsert=True,
@@ -651,7 +640,7 @@ async def create_schema(
 ):
     """Create a schema"""
     # Check if schema with this name already exists (case-insensitive)
-    existing_schema = await schemas_collection.find_one({
+    existing_schema = await db.schemas.find_one({
         "name": {"$regex": f"^{schema.name}$", "$options": "i"}
     })
     
@@ -680,7 +669,7 @@ async def create_schema(
         }
     
     # Insert into MongoDB
-    result = await schemas_collection.insert_one(schema_dict)
+    result = await db.schemas.insert_one(schema_dict)
     
     # Return complete schema
     schema_dict["id"] = str(result.inserted_id)
@@ -721,7 +710,7 @@ async def list_schemas(
         }
     ]
     
-    result = await schemas_collection.aggregate(pipeline).to_list(length=1)
+    result = await db.schemas.aggregate(pipeline).to_list(length=1)
     result = result[0]
     
     total_count = result["total"][0]["count"] if result["total"] else 0
@@ -743,7 +732,7 @@ async def get_schema(
     current_user: User = Depends(get_current_user)
 ):
     """Get a schema"""
-    schema = await schemas_collection.find_one({"_id": ObjectId(schema_id)})
+    schema = await db.schemas.find_one({"_id": ObjectId(schema_id)})
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
     schema['id'] = str(schema.pop('_id'))
@@ -758,7 +747,7 @@ async def update_schema(
 ):
     """Update a schema"""
     # Get the existing schema
-    existing_schema = await schemas_collection.find_one({"_id": ObjectId(schema_id)})
+    existing_schema = await db.schemas.find_one({"_id": ObjectId(schema_id)})
     if not existing_schema:
         raise HTTPException(status_code=404, detail="Schema not found")
     
@@ -787,7 +776,7 @@ async def update_schema(
     }
     
     # Insert new version
-    result = await schemas_collection.insert_one(new_schema)
+    result = await db.schemas.insert_one(new_schema)
     
     # Return updated schema
     new_schema["id"] = str(result.inserted_id)
@@ -800,7 +789,7 @@ async def delete_schema(
 ):
     """Delete a schema"""
     # Get the schema to find its name
-    schema = await schemas_collection.find_one({"_id": ObjectId(schema_id)})
+    schema = await db.schemas.find_one({"_id": ObjectId(schema_id)})
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
     
@@ -808,7 +797,7 @@ async def delete_schema(
         raise HTTPException(status_code=403, detail="Not authorized to delete this schema")
     
     # Check for dependent prompts
-    dependent_prompts = await prompts_collection.find({
+    dependent_prompts = await db.prompts.find({
         "schema_name": schema["name"]
     }).to_list(length=None)
     
@@ -824,10 +813,10 @@ async def delete_schema(
         )
     
     # If no dependent prompts, proceed with deletion
-    result = await schemas_collection.delete_many({"name": schema["name"]})
+    result = await db.schemas.delete_many({"name": schema["name"]})
     
     # Also delete the version counter
-    await schema_versions_collection.delete_one({"_id": schema["name"]})
+    await db.schema_versions.delete_one({"_id": schema["name"]})
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -846,7 +835,7 @@ def validate_schema_fields(fields: list) -> tuple[bool, str]:
 # Add this helper function near get_next_schema_version
 async def get_next_prompt_version(prompt_name: str) -> int:
     """Atomically get the next version number for a prompt"""
-    result = await prompt_versions_collection.find_one_and_update(
+    result = await db.prompt_versions.find_one_and_update(
         {"_id": prompt_name},
         {"$inc": {"version": 1}},
         upsert=True,
@@ -863,7 +852,7 @@ async def create_prompt(
     """Create a prompt"""
     # Only verify schema if one is specified
     if prompt.schema_name and prompt.schema_version:
-        schema = await schemas_collection.find_one({
+        schema = await db.schemas.find_one({
             "name": prompt.schema_name,
             "version": prompt.schema_version
         })
@@ -875,7 +864,7 @@ async def create_prompt(
 
     # Validate tag IDs if provided
     if prompt.tag_ids:
-        tags_cursor = tags_collection.find({
+        tags_cursor = db.tags.find({
             "_id": {"$in": [ObjectId(tag_id) for tag_id in prompt.tag_ids]},
             "created_by": current_user.user_id
         })
@@ -890,7 +879,7 @@ async def create_prompt(
             )
 
     # Check if prompt with this name already exists (case-insensitive)
-    existing_prompt = await prompts_collection.find_one({
+    existing_prompt = await db.prompts.find_one({
         "name": {"$regex": f"^{prompt.name}$", "$options": "i"}
     })
     
@@ -910,7 +899,7 @@ async def create_prompt(
     }
     
     # Insert into MongoDB
-    result = await prompts_collection.insert_one(prompt_dict)
+    result = await db.prompts.insert_one(prompt_dict)
     
     # Return complete prompt
     prompt_dict["id"] = str(result.inserted_id)
@@ -974,7 +963,7 @@ async def list_prompts(
         }
     ])
     
-    result = await prompts_collection.aggregate(pipeline).to_list(length=1)
+    result = await db.prompts.aggregate(pipeline).to_list(length=1)
     result = result[0]
     
     total_count = result["total"][0]["count"] if result["total"] else 0
@@ -996,7 +985,7 @@ async def get_prompt(
     current_user: User = Depends(get_current_user)
 ):
     """Get a prompt"""
-    prompt = await prompts_collection.find_one({"_id": ObjectId(prompt_id)})
+    prompt = await db.prompts.find_one({"_id": ObjectId(prompt_id)})
     if not prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
     prompt['id'] = str(prompt.pop('_id'))
@@ -1010,7 +999,7 @@ async def update_prompt(
 ):
     """Update a prompt"""
     # Get the existing prompt
-    existing_prompt = await prompts_collection.find_one({"_id": ObjectId(prompt_id)})
+    existing_prompt = await db.prompts.find_one({"_id": ObjectId(prompt_id)})
     if not existing_prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
     
@@ -1020,7 +1009,7 @@ async def update_prompt(
     
     # Only verify schema if one is specified
     if prompt.schema_name and prompt.schema_version:
-        schema = await schemas_collection.find_one({
+        schema = await db.schemas.find_one({
             "name": prompt.schema_name,
             "version": prompt.schema_version
         })
@@ -1032,7 +1021,7 @@ async def update_prompt(
     
     # Validate tag IDs if provided
     if prompt.tag_ids:
-        tags_cursor = tags_collection.find({
+        tags_cursor = db.tags.find({
             "_id": {"$in": [ObjectId(tag_id) for tag_id in prompt.tag_ids]},
             "created_by": current_user.user_id
         })
@@ -1062,7 +1051,7 @@ async def update_prompt(
     }
     
     # Insert new version
-    result = await prompts_collection.insert_one(new_prompt)
+    result = await db.prompts.insert_one(new_prompt)
     
     # Return updated prompt
     new_prompt["id"] = str(result.inserted_id)
@@ -1075,7 +1064,7 @@ async def delete_prompt(
 ):
     """Delete a prompt"""
     # Get the prompt to find its name
-    prompt = await prompts_collection.find_one({"_id": ObjectId(prompt_id)})
+    prompt = await db.prompts.find_one({"_id": ObjectId(prompt_id)})
     if not prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
     
@@ -1083,10 +1072,10 @@ async def delete_prompt(
         raise HTTPException(status_code=403, detail="Not authorized to delete this prompt")
     
     # Delete all versions of this prompt
-    result = await prompts_collection.delete_many({"name": prompt["name"]})
+    result = await db.prompts.delete_many({"name": prompt["name"]})
     
     # Also delete the version counter
-    await prompt_versions_collection.delete_one({"_id": prompt["name"]})
+    await db.prompt_versions.delete_one({"_id": prompt["name"]})
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Prompt not found")
@@ -1100,7 +1089,7 @@ async def create_tag(
 ):
     """Create a tag"""
     # Check if tag with this name already exists for this user
-    existing_tag = await tags_collection.find_one({
+    existing_tag = await db.tags.find_one({
         "name": tag.name,
         "created_by": current_user.user_id
     })
@@ -1119,7 +1108,7 @@ async def create_tag(
         "created_by": current_user.user_id
     }
     
-    result = await tags_collection.insert_one(new_tag)
+    result = await db.tags.insert_one(new_tag)
     new_tag["id"] = str(result.inserted_id)
     
     return Tag(**new_tag)
@@ -1132,10 +1121,10 @@ async def list_tags(
 ):
     """List tags"""
     # Get total count
-    total_count = await tags_collection.count_documents({"created_by": current_user.user_id})
+    total_count = await db.tags.count_documents({"created_by": current_user.user_id})
     
     # Get paginated tags with sorting by _id in descending order
-    cursor = tags_collection.find(
+    cursor = db.tags.find(
         {"created_by": current_user.user_id}
     ).sort("_id", -1).skip(skip).limit(limit)  # Sort by _id descending (newest first)
     
@@ -1164,7 +1153,7 @@ async def delete_tag(
 ):
     """Delete a tag"""
     # Verify tag exists and belongs to user
-    tag = await tags_collection.find_one({
+    tag = await db.tags.find_one({
         "_id": ObjectId(tag_id),
         "created_by": current_user.user_id
     })
@@ -1184,7 +1173,7 @@ async def delete_tag(
         )
 
     # Check if tag is used in any prompts
-    prompts_with_tag = await prompts_collection.find_one({
+    prompts_with_tag = await db.prompts.find_one({
         "tag_ids": tag_id
     })
     
@@ -1194,7 +1183,7 @@ async def delete_tag(
             detail=f"Cannot delete tag '{tag['name']}' because it is assigned to one or more prompts"
         )
     
-    result = await tags_collection.delete_one({
+    result = await db.tags.delete_one({
         "_id": ObjectId(tag_id),
         "created_by": current_user.user_id
     })
@@ -1212,7 +1201,7 @@ async def update_tag(
 ):
     """Update a tag"""
     # Verify tag exists and belongs to user
-    existing_tag = await tags_collection.find_one({
+    existing_tag = await db.tags.find_one({
         "_id": ObjectId(tag_id),
         "created_by": current_user.user_id
     })
@@ -1226,7 +1215,7 @@ async def update_tag(
         "description": tag.description
     }
     
-    updated_tag = await tags_collection.find_one_and_update(
+    updated_tag = await db.tags.find_one_and_update(
         {"_id": ObjectId(tag_id)},
         {"$set": update_data},
         return_document=True
@@ -1465,7 +1454,7 @@ async def llm_token_create(
     ad.log.debug(f"Creating/Updating LLM token for user: {current_user} request: {request}")
     
     # Check if a token for this vendor already exists
-    existing_token = await llm_token_collection.find_one({
+    existing_token = await db.llm_tokens.find_one({
         "user_id": current_user.user_id,
         "llm_vendor": request.llm_vendor
     })
@@ -1479,7 +1468,7 @@ async def llm_token_create(
 
     if existing_token:
         # Update the existing token
-        result = await llm_token_collection.replace_one(
+        result = await db.llm_tokens.replace_one(
             {"_id": existing_token["_id"]},
             new_token
         )
@@ -1487,7 +1476,7 @@ async def llm_token_create(
         ad.log.debug(f"Updated existing LLM token for {request.llm_vendor}")
     else:
         # Insert a new token
-        result = await llm_token_collection.insert_one(new_token)
+        result = await db.llm_tokens.insert_one(new_token)
         new_token["id"] = str(result.inserted_id)
         new_token["token"] = ad.crypto.decrypt_token(new_token["token"])
         ad.log.debug(f"Created new LLM token for {request.llm_vendor}")
@@ -1497,7 +1486,7 @@ async def llm_token_create(
 @app.get("/account/llm_tokens", response_model=ListLLMTokensResponse, tags=["account/llm_tokens"])
 async def llm_token_list(current_user: User = Depends(get_admin_user)):
     """List LLM tokens (admin only)"""
-    cursor = llm_token_collection.find({"user_id": current_user.user_id})
+    cursor = db.llm_tokens.find({"user_id": current_user.user_id})
     tokens = await cursor.to_list(length=None)
     llm_tokens = [
         {
@@ -1517,7 +1506,7 @@ async def llm_token_delete(
     current_user: User = Depends(get_admin_user)
 ):
     """Delete an LLM token (admin only)"""
-    result = await llm_token_collection.delete_one({
+    result = await db.llm_tokens.delete_one({
         "_id": ObjectId(token_id),
         "user_id": current_user.user_id
     })
@@ -1549,7 +1538,7 @@ async def create_aws_credentials(
     encrypted_access_key = ad.crypto.encrypt_token(credentials.access_key_id)
     encrypted_secret_key = ad.crypto.encrypt_token(credentials.secret_access_key)
     
-    await aws_credentials_collection.update_one(
+    await db.aws_credentials.update_one(
         {"user_id": current_user.user_id},
         {
             "$set": {
@@ -1566,7 +1555,7 @@ async def create_aws_credentials(
 @app.get("/account/aws_credentials", tags=["account/aws_credentials"])
 async def get_aws_credentials(current_user: User = Depends(get_admin_user)):
     """Get AWS credentials (admin only)"""
-    credentials = await aws_credentials_collection.find_one({"user_id": current_user.user_id})
+    credentials = await db.aws_credentials.find_one({"user_id": current_user.user_id})
     if not credentials:
         raise HTTPException(status_code=404, detail="AWS credentials not found")
         
@@ -1578,7 +1567,7 @@ async def get_aws_credentials(current_user: User = Depends(get_admin_user)):
 @app.delete("/account/aws_credentials", tags=["account/aws_credentials"])
 async def delete_aws_credentials(current_user: User = Depends(get_admin_user)):
     """Delete AWS credentials (admin only)"""
-    result = await aws_credentials_collection.delete_one({"user_id": current_user.user_id})
+    result = await db.aws_credentials.delete_one({"user_id": current_user.user_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="AWS credentials not found")
     return {"message": "AWS credentials deleted successfully"}
