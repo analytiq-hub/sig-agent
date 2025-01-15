@@ -9,7 +9,7 @@ class AnalytiqClient:
         self.mongodb_async = ad.mongodb.get_mongodb_client_async(env)
         self.mongodb = ad.mongodb.get_mongodb_client(env)
 
-def get_analytiq_client(env: str = os.getenv("ENV", "dev")) -> AnalytiqClient:
+def get_analytiq_client(env: str = None) -> AnalytiqClient:
     """
     Get the AnalytiqClient.
 
@@ -19,9 +19,11 @@ def get_analytiq_client(env: str = os.getenv("ENV", "dev")) -> AnalytiqClient:
     Returns:
         The AnalytiqClient.
     """
+    if not env:
+        env = os.getenv("ENV", "dev")
     return AnalytiqClient(env)
 
-def get_db(analytiq_client: AnalytiqClient = get_analytiq_client()) -> MongoClient:
+def get_db(analytiq_client: AnalytiqClient = None) -> MongoClient:
     """
     Get the MongoDB client.
 
@@ -31,9 +33,11 @@ def get_db(analytiq_client: AnalytiqClient = get_analytiq_client()) -> MongoClie
     Returns:
         The MongoDB client.
     """
+    if not analytiq_client:
+        analytiq_client = get_analytiq_client()
     return analytiq_client.mongodb[analytiq_client.env]
 
-def get_async_db(analytiq_client: AnalytiqClient = get_analytiq_client()) -> AsyncIOMotorClient:
+def get_async_db(analytiq_client: AnalytiqClient = None) -> AsyncIOMotorClient:
     """
     Get the async MongoDB client.
 
@@ -43,4 +47,6 @@ def get_async_db(analytiq_client: AnalytiqClient = get_analytiq_client()) -> Asy
     Returns:
         The async MongoDB client.
     """
+    if not analytiq_client:
+        analytiq_client = get_analytiq_client()
     return analytiq_client.mongodb_async[analytiq_client.env]

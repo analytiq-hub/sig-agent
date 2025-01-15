@@ -117,6 +117,7 @@ db = analytiq_client.mongodb_async[db_name]
 
 # Modify get_current_user to validate userId in database
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
+    db = ad.common.get_async_db()
     token = credentials.credentials
     try:
         # First, try to validate as JWT
@@ -159,6 +160,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
 
 # Add this helper function to check admin status
 async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(security)):
+    db = ad.common.get_async_db()
     user = await get_current_user(credentials)
     
     # Check if user has admin role in database
