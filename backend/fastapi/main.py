@@ -110,11 +110,6 @@ app.add_middleware(
     expose_headers=["Content-Disposition"] # Needed to expose the Content-Disposition header to the frontend
 )
 
-# MongoDB connection
-#analytiq_client = ad.common.get_analytiq_client(env=ENV)
-#db_name = ENV
-#db = analytiq_client.mongodb_async[db_name]
-
 # Modify get_current_user to validate userId in database
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     
@@ -326,7 +321,7 @@ async def list_documents(
 ):
     """List documents"""
     db = ad.common.get_async_db()
-    
+
     # Build the query filter
     query_filter = {}
     
