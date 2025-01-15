@@ -471,21 +471,6 @@ async def access_token_delete(
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
 
-@app.post("/auth/token", tags=["auth"])
-async def create_auth_token(user_data: dict = Body(...)):
-    """Create an authentication token"""
-    ad.log.debug(f"create_auth_token(): user_data: {user_data}")
-    token = jwt.encode(
-        {
-            "userId": user_data["id"],
-            "userName": user_data["name"],
-            "email": user_data["email"]
-        },
-        FASTAPI_SECRET,
-        algorithm=ALGORITHM
-    )
-    return {"token": token}
-
 @app.get("/ocr/download/blocks/{document_id}", tags=["ocr"])
 async def download_ocr_blocks(
     document_id: str,
@@ -1454,6 +1439,22 @@ async def update_flow(
             status_code=500,
             detail=f"Error updating flow: {str(e)}"
         )
+
+@app.post("/account/auth/token", tags=["account/auth"])
+async def create_auth_token(user_data: dict = Body(...)):
+    """Create an authentication token"""
+    ad.log.debug(f"create_auth_token(): user_data: {user_data}")
+    token = jwt.encode(
+        {
+            "userId": user_data["id"],
+            "userName": user_data["name"],
+            "email": user_data["email"]
+        },
+        FASTAPI_SECRET,
+        algorithm=ALGORITHM
+    )
+    return {"token": token}
+
 
 @app.post("/account/llm_tokens", response_model=LLMToken, tags=["account/llm_tokens"])
 async def llm_token_create(
