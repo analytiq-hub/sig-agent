@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone, DropzoneOptions } from 'react-dropzone';
 import { Button, Typography, Box, CircularProgress } from '@mui/material';
@@ -10,7 +12,11 @@ import { Tag } from '@/types/index';
 import { DocumentWithContent } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
 
-const DocumentUpload: React.FC = () => {
+interface DocumentUploadProps {
+  organizationId: string;
+}
+
+const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
   const [files, setFiles] = useState<DocumentWithContent[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
@@ -75,7 +81,7 @@ const DocumentUpload: React.FC = () => {
     setUploadStatus(null);
 
     try {
-      const response = await uploadDocumentsApi(filesWithTags);
+      const response = await uploadDocumentsApi(filesWithTags, organizationId);
       setUploadStatus(`Successfully uploaded ${response.uploaded_documents.length} file(s)`);
       setFiles([]);
       setSelectedTags([]); // Reset selected tags after successful upload

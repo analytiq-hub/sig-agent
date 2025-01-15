@@ -177,8 +177,9 @@ async def startup_event():
     await startup.setup_api_creds(analytiq_client)
 
 # PDF management endpoints
-@app.post("/documents", tags=["documents"])
+@app.post("/orgs/{organization_id}/documents", tags=["documents"])
 async def upload_document(
+    organization_id: str,
     documents_upload: DocumentsUpload = Body(...),
     current_user: User = Depends(get_current_user)
 ):
@@ -557,6 +558,7 @@ async def run_llm_analysis(
     Run LLM on a document, with optional force refresh.
     """
     ad.log.debug(f"run_llm_analysis() start: document_id: {document_id}, prompt_id: {prompt_id}, force: {force}")
+    analytiq_client = ad.common.get_analytiq_client()
     
     # Verify document exists and user has access
     document = await ad.common.get_doc(analytiq_client, document_id)

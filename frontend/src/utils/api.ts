@@ -163,8 +163,8 @@ api.interceptors.response.use(
 
 // Document APIs
 
-export const uploadDocumentsApi = async (documents: DocumentWithContent[]): Promise<UploadDocumentsResponse> => {
-  const response = await api.post<UploadDocumentsResponse>('/documents', { files: documents });
+export const uploadDocumentsApi = async (documents: DocumentWithContent[], organizationId: string): Promise<UploadDocumentsResponse> => {
+  const response = await api.post<UploadDocumentsResponse>(`/orgs/${organizationId}/documents`, { files: documents });
   return response.data;
 };
 
@@ -568,3 +568,12 @@ export const updateFlowApi = async (flowId: string, flowData: SaveFlowRequest): 
   console.log('Update response:', response.data);
   return response.data;
 };
+
+export interface DocumentsUpload {
+  files: {
+    name: string;
+    content: string;
+    tag_ids: string[];
+  }[];
+  organization_id: string;
+}

@@ -8,6 +8,7 @@ import AuthButton from '@/components/AuthButton';
 import UserMenu from '@/components/UserMenu';
 import PDFViewerControls from '@/components/PDFViewerControls';
 import OrganizationSwitcher from './OrganizationSwitcher';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { 
   Menu as Bars3Icon,
   PieChart as ChartPieIcon,
@@ -42,29 +43,12 @@ interface MenuItem {
   tooltip: string;
 }
 
-const fileMenuItems = [
-  { text: 'Dashboard', icon: ChartPieIcon, tooltip: 'Dashboard', href: '/dashboard' },
-  { text: 'Upload', icon: ArrowUpTrayIcon, tooltip: 'Upload', href: '/upload' },
-  { text: 'Documents', icon: ListBulletIcon, tooltip: 'Documents', href: '/list' },
-];
-
-const modelMenuItems = [
-  { text: 'Models', icon: CubeIcon, tooltip: 'Models', href: '/models' },
-];
-
-const flowMenuItems = [
-  { text: 'Flows', icon: Square3Stack3DIcon, tooltip: 'Flows', href: '/flows' },
-];
-
-const systemMenuItems = [
-  { text: 'System', icon: BeakerIcon, tooltip: 'System Page', href: '/system' },
-];
-
 interface LayoutProps {
   children: ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { currentOrganization } = useOrganization();
   const [open, setOpen] = useState(true);
   const { data: session, status } = useSession();
   const { role } = useRole();
@@ -73,6 +57,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isPDFViewer = pathname.startsWith('/pdf-viewer/');
   const [forceUpdate, setForceUpdate] = useState(0);
   const [pdfControls, setPdfControls] = useState<PDFViewerControlsType | null>(null);
+
+  const fileMenuItems = [
+    { text: 'Dashboard', icon: ChartPieIcon, tooltip: 'Dashboard', href: '/dashboard' },
+    { text: 'Upload', icon: ArrowUpTrayIcon, tooltip: 'Upload', href: `/orgs/${currentOrganization?.id}/upload` },
+    { text: 'Documents', icon: ListBulletIcon, tooltip: 'Documents', href: '/list' },
+  ];
+
+  const modelMenuItems = [
+    { text: 'Models', icon: CubeIcon, tooltip: 'Models', href: '/models' },
+  ];
+
+  const flowMenuItems = [
+    { text: 'Flows', icon: Square3Stack3DIcon, tooltip: 'Flows', href: '/flows' },
+  ];
+
+  const systemMenuItems = [
+    { text: 'System', icon: BeakerIcon, tooltip: 'System Page', href: '/system' },
+  ];
 
   useEffect(() => {
     const handleResize = () => {
