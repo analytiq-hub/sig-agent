@@ -111,13 +111,15 @@ app.add_middleware(
 )
 
 # MongoDB connection
-analytiq_client = ad.common.get_analytiq_client(env=ENV)
-db_name = ENV
-db = analytiq_client.mongodb_async[db_name]
+#analytiq_client = ad.common.get_analytiq_client(env=ENV)
+#db_name = ENV
+#db = analytiq_client.mongodb_async[db_name]
 
 # Modify get_current_user to validate userId in database
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
+    
     db = ad.common.get_async_db()
+
     token = credentials.credentials
     try:
         # First, try to validate as JWT
@@ -160,9 +162,9 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
 
 # Add this helper function to check admin status
 async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(security)):
-    db = ad.common.get_async_db()
     user = await get_current_user(credentials)
-    
+    db = ad.common.get_async_db()
+
     # Check if user has admin role in database
     db_user = await db.users.find_one({"_id": ObjectId(user.user_id)})
     if not db_user or db_user.get("role") != "admin":
@@ -175,6 +177,7 @@ async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(se
 # Add to startup
 @app.on_event("startup")
 async def startup_event():
+    analytiq_client = ad.common.get_analytiq_client()
     await startup.setup_admin(analytiq_client)
     await startup.setup_api_creds(analytiq_client)
 
@@ -192,6 +195,9 @@ async def upload_document(
     all_tag_ids = set()
     for document in documents_upload.files:
         all_tag_ids.update(document.tag_ids)
+
+    analytiq_client = ad.common.get_analytiq_client()
+    db = ad.common.get_async_db(analytiq_client)
     
     if all_tag_ids:
         # Check if all tags exist and belong to the user
@@ -265,6 +271,8 @@ async def update_document(
 ):
     """Update a document"""
     ad.log.debug(f"Updating document {document_id} with data: {update}")
+    analytiq_client = ad.common.get_analytiq_client()
+    db = ad.common.get_async_db(analytiq_client)
 
     # Validate the document exists and user has access
     document = await ad.common.get_doc(analytiq_client, document_id)
@@ -276,7 +284,7 @@ async def update_document(
             status_code=403,
             detail="Not authorized to modify this document"
         )
-
+    
     # Validate all tag IDs
     if update.tag_ids:
         tags_cursor = db.tags.find({
@@ -317,6 +325,8 @@ async def list_documents(
     user: User = Depends(get_current_user)
 ):
     """List documents"""
+    db = ad.common.get_async_db()
+    
     # Build the query filter
     query_filter = {}
     
@@ -355,6 +365,8 @@ async def get_document(
 ):
     """Get a document"""
     ad.log.debug(f"get_document() start: document_id: {document_id}")
+    analytiq_client = ad.common.get_analytiq_client()
+
     document = await ad.common.get_doc(analytiq_client, document_id)
     
     if not document:
@@ -391,6 +403,7 @@ async def delete_document(
     current_user: User = Depends(get_current_user)
 ):
     """Delete a document"""
+    analytiq_client = ad.common.get_analytiq_client()
     document = await ad.common.get_doc(analytiq_client, document_id)
     
     if not document:
@@ -414,6 +427,8 @@ async def access_token_create(
 ):
     """Create an API token"""
     ad.log.debug(f"Creating API token for user: {current_user} request: {request}")
+    db = ad.common.get_async_db()
+
     token = secrets.token_urlsafe(32)
     new_token = {
         "user_id": current_user.user_id,
@@ -432,6 +447,7 @@ async def access_token_create(
 @app.get("/access_tokens", response_model=ListAccessTokensResponse, tags=["access_tokens"])
 async def access_token_list(current_user: User = Depends(get_current_user)):
     """List API tokens"""
+    db = ad.common.get_async_db()
     cursor = db.access_tokens.find({"user_id": current_user.user_id})
     tokens = await cursor.to_list(length=None)
     ret = [
@@ -454,6 +470,7 @@ async def access_token_delete(
     current_user: User = Depends(get_current_user)
 ):
     """Delete an API token"""
+    db = ad.common.get_async_db()
     result = await db.access_tokens.delete_one({
         "_id": ObjectId(token_id),
         "user_id": current_user.user_id
@@ -469,6 +486,7 @@ async def download_ocr_blocks(
 ):
     """Download OCR blocks for a document"""
     ad.log.debug(f"download_ocr_blocks() start: document_id: {document_id}")
+    analytiq_client = ad.common.get_analytiq_client()
 
     document = await ad.common.get_doc(analytiq_client, document_id)
     
@@ -490,6 +508,8 @@ async def download_ocr_text(
 ):
     """Download OCR text for a document"""
     ad.log.debug(f"download_ocr_text() start: document_id: {document_id}, page_num: {page_num}")
+    
+    analytiq_client = ad.common.get_analytiq_client()
     document = await ad.common.get_doc(analytiq_client, document_id)
     
     if not document:
@@ -515,6 +535,7 @@ async def get_ocr_metadata(
     """Get OCR metadata for a document"""
     ad.log.debug(f"get_ocr_metadata() start: document_id: {document_id}")
     
+    analytiq_client = ad.common.get_analytiq_client()
     document = await ad.common.get_doc(analytiq_client, document_id)
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -582,6 +603,7 @@ async def get_llm_result(
     Retrieve existing LLM results for a document.
     """
     ad.log.debug(f"get_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
+    analytiq_client = ad.common.get_analytiq_client()
     
     # Verify document exists and user has access
     document = await ad.common.get_doc(analytiq_client, document_id)
@@ -607,7 +629,7 @@ async def delete_llm_result(
     Delete LLM results for a specific document and prompt.
     """
     ad.log.debug(f"delete_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
-    
+    analytiq_client = ad.common.get_analytiq_client()
     # Verify document exists and user has access
     document = await ad.common.get_doc(analytiq_client, document_id)
     if not document:
@@ -641,6 +663,8 @@ async def create_schema(
     current_user: User = Depends(get_current_user)
 ):
     """Create a schema"""
+    db = ad.common.get_async_db()
+
     # Check if schema with this name already exists (case-insensitive)
     existing_schema = await db.schemas.find_one({
         "name": {"$regex": f"^{schema.name}$", "$options": "i"}
@@ -684,6 +708,7 @@ async def list_schemas(
     current_user: User = Depends(get_current_user)
 ):
     """List schemas"""
+    db = ad.common.get_async_db()
     # Build the base pipeline
     pipeline = [
         {
@@ -734,6 +759,7 @@ async def get_schema(
     current_user: User = Depends(get_current_user)
 ):
     """Get a schema"""
+    db = ad.common.get_async_db()
     schema = await db.schemas.find_one({"_id": ObjectId(schema_id)})
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -749,6 +775,7 @@ async def update_schema(
 ):
     """Update a schema"""
     # Get the existing schema
+    db = ad.common.get_async_db()
     existing_schema = await db.schemas.find_one({"_id": ObjectId(schema_id)})
     if not existing_schema:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -791,6 +818,7 @@ async def delete_schema(
 ):
     """Delete a schema"""
     # Get the schema to find its name
+    db = ad.common.get_async_db()
     schema = await db.schemas.find_one({"_id": ObjectId(schema_id)})
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -837,6 +865,7 @@ def validate_schema_fields(fields: list) -> tuple[bool, str]:
 # Add this helper function near get_next_schema_version
 async def get_next_prompt_version(prompt_name: str) -> int:
     """Atomically get the next version number for a prompt"""
+    db = ad.common.get_async_db()
     result = await db.prompt_versions.find_one_and_update(
         {"_id": prompt_name},
         {"$inc": {"version": 1}},
@@ -853,6 +882,7 @@ async def create_prompt(
 ):
     """Create a prompt"""
     # Only verify schema if one is specified
+    db = ad.common.get_async_db()
     if prompt.schema_name and prompt.schema_version:
         schema = await db.schemas.find_one({
             "name": prompt.schema_name,
@@ -916,9 +946,10 @@ async def list_prompts(
     current_user: User = Depends(get_current_user)
 ):
     """List prompts"""
+    db = ad.common.get_async_db()
     # Build the base pipeline
     pipeline = []
-    
+
     # Add document tag filtering if document_id is provided
     if document_id:
         document = await db.docs.find_one({"_id": ObjectId(document_id)})
@@ -987,6 +1018,7 @@ async def get_prompt(
     current_user: User = Depends(get_current_user)
 ):
     """Get a prompt"""
+    db = ad.common.get_async_db()
     prompt = await db.prompts.find_one({"_id": ObjectId(prompt_id)})
     if not prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
@@ -1000,6 +1032,7 @@ async def update_prompt(
     current_user: User = Depends(get_current_user)
 ):
     """Update a prompt"""
+    db = ad.common.get_async_db()
     # Get the existing prompt
     existing_prompt = await db.prompts.find_one({"_id": ObjectId(prompt_id)})
     if not existing_prompt:
@@ -1065,6 +1098,7 @@ async def delete_prompt(
     current_user: User = Depends(get_current_user)
 ):
     """Delete a prompt"""
+    db = ad.common.get_async_db()
     # Get the prompt to find its name
     prompt = await db.prompts.find_one({"_id": ObjectId(prompt_id)})
     if not prompt:
@@ -1090,6 +1124,7 @@ async def create_tag(
     current_user: User = Depends(get_current_user)
 ):
     """Create a tag"""
+    db = ad.common.get_async_db()
     # Check if tag with this name already exists for this user
     existing_tag = await db.tags.find_one({
         "name": tag.name,
@@ -1122,6 +1157,7 @@ async def list_tags(
     current_user: User = Depends(get_current_user)
 ):
     """List tags"""
+    db = ad.common.get_async_db()
     # Get total count
     total_count = await db.tags.count_documents({"created_by": current_user.user_id})
     
@@ -1154,6 +1190,7 @@ async def delete_tag(
     current_user: User = Depends(get_current_user)
 ):
     """Delete a tag"""
+    db = ad.common.get_async_db()
     # Verify tag exists and belongs to user
     tag = await db.tags.find_one({
         "_id": ObjectId(tag_id),
@@ -1233,6 +1270,7 @@ async def create_flow(
     flow: SaveFlowRequest,
     current_user: User = Depends(get_current_user)
 ) -> Flow:
+    db = ad.common.get_async_db()
     try:
         flow_id = ad.common.create_id()
         flow_data = {
@@ -1248,7 +1286,7 @@ async def create_flow(
         }
         
         # Save to MongoDB
-        await analytiq_client.mongodb_async[ENV].flows.insert_one(flow_data)
+        await db.flows.insert_one(flow_data)
         
         # Convert _id to string for response
         flow_data["id"] = str(flow_data.pop("_id"))
@@ -1267,13 +1305,14 @@ async def list_flows(
     limit: int = 10,
     current_user: User = Depends(get_current_user)
 ) -> ListFlowsResponse:
-    cursor = analytiq_client.mongodb_async[ENV].flows.find(
+    db = ad.common.get_async_db()
+    cursor = db.flows.find(
         {"created_by": current_user.user_name}
     ).skip(skip).limit(limit)
     
     flows = await cursor.to_list(None)
     
-    total_count = await analytiq_client.mongodb_async[ENV].flows.count_documents(
+    total_count = await db.flows.count_documents(
         {"created_by": current_user.user_name}
     )
     
@@ -1304,9 +1343,10 @@ async def get_flow(
     flow_id: str,
     current_user: User = Depends(get_current_user)
 ) -> Flow:
+    db = ad.common.get_async_db()
     try:
         # Find the flow in MongoDB
-        flow = await analytiq_client.mongodb_async[ENV].flows.find_one({
+        flow = await db.flows.find_one({
             "_id": ObjectId(flow_id),
             "created_by": current_user.user_name  # Ensure user can only access their own flows
         })
@@ -1346,9 +1386,10 @@ async def delete_flow(
     flow_id: str,
     current_user: User = Depends(get_current_user)
 ) -> dict:
+    db = ad.common.get_async_db()
     try:
         # Find and delete the flow, ensuring user can only delete their own flows
-        result = await analytiq_client.mongodb_async[ENV].flows.delete_one({
+        result = await db.flows.delete_one({
             "_id": ObjectId(flow_id),
             "created_by": current_user.user_name
         })
@@ -1376,9 +1417,10 @@ async def update_flow(
     flow: SaveFlowRequest,
     current_user: User = Depends(get_current_user)
 ) -> Flow:
+    db = ad.common.get_async_db()
     try:
         # Find the flow and verify ownership
-        existing_flow = await analytiq_client.mongodb_async[ENV].flows.find_one({
+        existing_flow = await db.flows.find_one({
             "_id": ObjectId(flow_id),
             "created_by": current_user.user_name
         })
@@ -1401,7 +1443,7 @@ async def update_flow(
         }
         
         # Update the flow
-        result = await analytiq_client.mongodb_async[ENV].flows.find_one_and_update(
+        result = await db.flows.find_one_and_update(
             {
                 "_id": ObjectId(flow_id),
                 "created_by": current_user.user_name
@@ -1454,7 +1496,8 @@ async def llm_token_create(
 ):
     """Create or update an LLM token (admin only)"""
     ad.log.debug(f"Creating/Updating LLM token for user: {current_user} request: {request}")
-    
+    db = ad.common.get_async_db()
+
     # Check if a token for this vendor already exists
     existing_token = await db.llm_tokens.find_one({
         "user_id": current_user.user_id,
@@ -1488,6 +1531,7 @@ async def llm_token_create(
 @app.get("/account/llm_tokens", response_model=ListLLMTokensResponse, tags=["account/llm_tokens"])
 async def llm_token_list(current_user: User = Depends(get_admin_user)):
     """List LLM tokens (admin only)"""
+    db = ad.common.get_async_db()
     cursor = db.llm_tokens.find({"user_id": current_user.user_id})
     tokens = await cursor.to_list(length=None)
     llm_tokens = [
@@ -1508,6 +1552,7 @@ async def llm_token_delete(
     current_user: User = Depends(get_admin_user)
 ):
     """Delete an LLM token (admin only)"""
+    db = ad.common.get_async_db()
     result = await db.llm_tokens.delete_one({
         "_id": ObjectId(token_id),
         "user_id": current_user.user_id
@@ -1522,7 +1567,7 @@ async def create_aws_credentials(
     current_user: User = Depends(get_admin_user)
 ):  
     """Create or update AWS credentials (admin only)"""
-
+    db = ad.common.get_async_db()
     # Validate AWS Access Key ID format
     if not re.match(r'^[A-Z0-9]{20}$', credentials.access_key_id):
         raise HTTPException(
@@ -1557,6 +1602,7 @@ async def create_aws_credentials(
 @app.get("/account/aws_credentials", tags=["account/aws_credentials"])
 async def get_aws_credentials(current_user: User = Depends(get_admin_user)):
     """Get AWS credentials (admin only)"""
+    db = ad.common.get_async_db()
     credentials = await db.aws_credentials.find_one({"user_id": current_user.user_id})
     if not credentials:
         raise HTTPException(status_code=404, detail="AWS credentials not found")
@@ -1569,6 +1615,7 @@ async def get_aws_credentials(current_user: User = Depends(get_admin_user)):
 @app.delete("/account/aws_credentials", tags=["account/aws_credentials"])
 async def delete_aws_credentials(current_user: User = Depends(get_admin_user)):
     """Delete AWS credentials (admin only)"""
+    db = ad.common.get_async_db()
     result = await db.aws_credentials.delete_one({"user_id": current_user.user_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="AWS credentials not found")
@@ -1587,6 +1634,9 @@ async def list_organizations(
     - Otherwise returns all organizations (admin only)
     - user_id and organization_id are mutually exclusive
     """
+    ad.log.info(f"list_organizations(): current_user: {current_user}")
+    db = ad.common.get_async_db()
+    ad.log.info(f"list_organizations(): db: {db}")
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_system_admin = db_user and db_user.get("role") == "admin"
 
@@ -1659,7 +1709,8 @@ async def create_organization(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new organization"""
-    
+    db = ad.common.get_async_db()
+
     # Check total organizations limit
     total_orgs = await db.organizations.count_documents({})
     if total_orgs >= limits.MAX_TOTAL_ORGANIZATIONS:
@@ -1712,9 +1763,10 @@ async def update_organization(
     organization_update: OrganizationUpdate,
     current_user: User = Depends(get_current_user)
 ):
-    ad.log.info(f"Updating organization {organization_id} with {organization_update}")
-
     """Update an organization (account admin or organization admin)"""
+    ad.log.info(f"Updating organization {organization_id} with {organization_update}")
+    db = ad.common.get_async_db()
+
     organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
     if not organization:
         ad.log.error(f"Organization not found: {organization_id}")
@@ -1786,6 +1838,7 @@ async def delete_organization(
 ):
     """Delete an organization (account admin or organization admin)"""
     # Get organization and verify it exists
+    db = ad.common.get_async_db()
     organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
     if not organization:
         raise HTTPException(404, "Organization not found")
@@ -1820,6 +1873,7 @@ async def list_users(
     - Otherwise returns all users (admin only)
     - user_id and organization_id are mutually exclusive
     """
+    db = ad.common.get_async_db()
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_system_admin = db_user and db_user.get("role") == "admin"
 
@@ -1940,6 +1994,7 @@ async def create_user(
     current_user: User = Depends(get_admin_user)
 ):
     """Create a new user (admin only)"""
+    db = ad.common.get_async_db()
     # Check total users limit
     total_users = await db.users.count_documents({})
     if total_users >= limits.MAX_TOTAL_USERS:
@@ -2002,6 +2057,7 @@ async def update_user(
     current_user: User = Depends(get_current_user)
 ):
     """Update a user's details (admin or self)"""
+    db = ad.common.get_async_db()
     # Check if user has permission (admin or self)
     db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_admin = db_current_user.get("role") == "admin"
@@ -2076,6 +2132,8 @@ async def delete_user(
     current_user: User = Depends(get_current_user)
 ):
     """Delete a user (admin or self)"""
+    db = ad.common.get_async_db()
+
     # Check if user has permission (admin or self)
     db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_admin = db_current_user.get("role") == "admin"
@@ -2119,6 +2177,9 @@ async def send_verification_email(
     current_user: User = Depends(get_admin_user)
 ):
     """Send verification email to user (admin only)"""
+    analytiq_client = ad.common.get_analytiq_client()
+    db = ad.common.get_async_db(analytiq_client)
+
     user = await db.users.find_one({"_id": ObjectId(user_id)})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -2188,6 +2249,7 @@ async def send_verification_email(
 async def verify_email(token: str, background_tasks: BackgroundTasks):
     """Verify email address using token"""
     ad.log.info(f"Verifying email with token: {token}")
+    db = ad.common.get_async_db()
 
     # Find verification record
     verification = await db.email_verifications.find_one({"token": token})
@@ -2233,6 +2295,9 @@ async def create_invitation(
     current_user: User = Depends(get_admin_user)
 ):
     """Create a new invitation (admin only)"""
+    analytiq_client = ad.common.get_analytiq_client()
+    db = ad.common.get_async_db(analytiq_client)
+
     # Check if email already registered, if so, set user_exists to True
     existing_user = await db.users.find_one({"email": invitation.email})
     if existing_user:
@@ -2349,6 +2414,7 @@ async def list_invitations(
     current_user: User = Depends(get_admin_user)
 ):
     """List all invitations (admin only)"""
+    db = ad.common.get_async_db()
     query = {}
     total_count = await db.invitations.count_documents(query)
     cursor = db.invitations.find(query).skip(skip).limit(limit)
@@ -2376,6 +2442,7 @@ async def list_invitations(
 @app.get("/account/email/invitations/{token}", response_model=InvitationResponse, tags=["account/email"])
 async def get_invitation(token: str):
     """Get invitation details by token"""
+    db = ad.common.get_async_db()
     invitation = await db.invitations.find_one({
         "token": token,
         "status": "pending"
@@ -2428,7 +2495,7 @@ async def accept_invitation(
 ):
     """Accept an invitation and create user account if needed"""
     ad.log.info(f"Accepting invitation with token: {token}")
-
+    db = ad.common.get_async_db()
     # Find and validate invitation
     invitation = await db.invitations.find_one({
         "token": token,
