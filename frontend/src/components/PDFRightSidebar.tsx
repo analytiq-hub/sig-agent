@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Divider, CircularProgress } from '@mui/material';
 import { getOCRMetadataApi, getOCRTextApi } from '@/utils/api';
-import { OCRMetadataResponse } from '@/types/index';
+import { GetOCRMetadataResponse } from '@/types/index';
 
 const PDFRightSidebar = ({ id }: { id: string }) => {
-  const [metadata, setMetadata] = useState<OCRMetadataResponse | null>(null);
+  const [metadata, setMetadata] = useState<GetOCRMetadataResponse | null>(null);
   const [pages, setPages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,12 +16,19 @@ const PDFRightSidebar = ({ id }: { id: string }) => {
         setError(null);
         
         // First get metadata to know number of pages
-        const meta = await getOCRMetadataApi(id);
+        const meta = await getOCRMetadataApi({
+          organizationId: "org_unknown",
+          documentId: id
+        });
         setMetadata(meta);
 
         // Then fetch text for each page
         const pagePromises = Array.from({ length: meta.n_pages }, (_, i) => 
-          getOCRTextApi(id, i + 1)
+          getOCRTextApi({
+            organizationId: "org_unknown",
+            documentId: id,
+            pageNum: i + 1
+          })
         );
         const pageTexts = await Promise.all(pagePromises);
         setPages(pageTexts);

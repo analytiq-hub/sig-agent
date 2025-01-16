@@ -8,7 +8,13 @@ import {
   GetDocumentResponse,
   UpdateDocumentParams,
   DeleteDocumentParams,
-  ListDocumentsParams
+  ListDocumentsParams,
+} from '@/types/index';
+import {
+  GetOCRBlocksParams,
+  GetOCRTextParams,
+  GetOCRMetadataParams,
+  GetOCRMetadataResponse
 } from '@/types/index';
 import { 
   UserCreate, 
@@ -40,7 +46,6 @@ import {
 import { CreateTokenRequest } from '@/types/index';
 import { CreateLLMTokenRequest } from '@/types/index';
 import { AWSCredentials } from '@/types/index';
-import { OCRMetadataResponse } from '@/types/index';
 import { LLMRunResponse, LLMResult } from '@/types/index';
 import { 
   PromptCreate, 
@@ -164,7 +169,6 @@ api.interceptors.response.use(
 );
 
 // Document APIs
-
 export const uploadDocumentsApi = async (params: UploadDocumentsParams): Promise<UploadDocumentsResponse> => {
   const { organizationId, documents } = params;
   const response = await api.post<UploadDocumentsResponse>(`/orgs/${organizationId}/documents`, { documents: documents });
@@ -214,19 +218,22 @@ export const deleteDocumentApi = async (params: DeleteDocumentParams) => {
 };
 
 // OCR APIs
-export const getOCRBlocksApi = async (documentId: string) => {
-  const response = await api.get(`/orgs/org_id/ocr/download/blocks/${documentId}`);
+export const getOCRBlocksApi = async (params: GetOCRBlocksParams) => {
+  const { organizationId, documentId } = params;
+  const response = await api.get(`/orgs/${organizationId}/ocr/download/blocks/${documentId}`);
   return response.data;
 };
 
-export const getOCRTextApi = async (documentId: string, pageNum?: number) => {
-  const url = `/orgs/org_id/ocr/download/text/${documentId}${pageNum ? `?page_num=${pageNum}` : ''}`;
+export const getOCRTextApi = async (params: GetOCRTextParams) => {
+  const { organizationId, documentId, pageNum } = params;
+  const url = `/orgs/${organizationId}/ocr/download/text/${documentId}${pageNum ? `?page_num=${pageNum}` : ''}`;
   const response = await api.get(url);
   return response.data;
 };
 
-export const getOCRMetadataApi = async (documentId: string) => {
-  const response = await api.get<OCRMetadataResponse>(`/orgs/org_id/ocr/download/metadata/${documentId}`);
+export const getOCRMetadataApi = async (params: GetOCRMetadataParams) => {
+  const { organizationId, documentId } = params;
+  const response = await api.get<GetOCRMetadataResponse>(`/orgs/${organizationId}/ocr/download/metadata/${documentId}`);
   return response.data;
 };
 

@@ -37,7 +37,7 @@ from schemas import (
     DocumentUpload, DocumentsUpload, DocumentUpdate,
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
-    OCRMetadataResponse,
+    GetOCRMetadataResponse,
     LLMRunResponse, LLMResult,
     Schema, SchemaCreate, ListSchemasResponse,
     Prompt, PromptCreate, ListPromptsResponse,
@@ -530,7 +530,7 @@ async def download_ocr_text(
     
     return Response(content=text, media_type="text/plain")
 
-@app.get("/orgs/{organization_id}/ocr/download/metadata/{document_id}", response_model=OCRMetadataResponse, tags=["ocr"])
+@app.get("/orgs/{organization_id}/ocr/download/metadata/{document_id}", response_model=GetOCRMetadataResponse, tags=["ocr"])
 async def get_ocr_metadata(
     organization_id: str,
     document_id: str,
@@ -549,7 +549,7 @@ async def get_ocr_metadata(
     if metadata is None:
         raise HTTPException(status_code=404, detail="OCR metadata not found")
     
-    return OCRMetadataResponse(
+    return GetOCRMetadataResponse(
         n_pages=metadata["n_pages"],
         ocr_date=metadata["ocr_date"].isoformat()
     )

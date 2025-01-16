@@ -356,7 +356,11 @@ const PDFViewer = ({ id }: { id: string }) => {
       try {
         setOcrLoading(true);
         setOcrError(null);
-        const text = await getOCRTextApi(id, pageNumber);
+        const text = await getOCRTextApi({
+          organizationId: "org_unknown",
+          documentId: id,
+          pageNum: pageNumber
+        });
         setOcrText(text);
       } catch (err) {
         console.error('Error fetching OCR text:', err);
