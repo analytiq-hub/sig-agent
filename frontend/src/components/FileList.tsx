@@ -30,7 +30,7 @@ const FileList: React.FC = () => {
       setIsLoading(true);
       console.log('Fetching documents...', paginationModel);
       const response = await listDocumentsApi({
-        organizationId: currentOrganization?.id || '',
+        organizationId: "org_unknown",
         skip: paginationModel.page * paginationModel.pageSize,
         limit: paginationModel.pageSize
       });
@@ -71,7 +71,7 @@ const FileList: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [paginationModel, currentOrganization?.id]);
+  }, [paginationModel]);
 
   useEffect(() => {
     console.log('FileList component mounted or pagination changed');
