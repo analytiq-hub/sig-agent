@@ -7,7 +7,7 @@ import { isAxiosError } from 'axios';
 import { 
   listDocumentsApi, 
   deleteDocumentApi, 
-  getTagsApi,
+  listTagsApi,
   updateDocumentApi
 } from '@/utils/api';
 import { Tag } from '@/types/index';
@@ -89,7 +89,7 @@ const DocumentList: React.FC = () => {
   useEffect(() => {
     const loadTags = async () => {
       try {
-        const response = await getTagsApi();
+        const response = await listTagsApi({ organizationId: "org_unknown" });
         setTags(response.tags);
       } catch (error) {
         console.error('Error loading tags:', error);

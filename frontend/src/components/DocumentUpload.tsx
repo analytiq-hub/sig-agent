@@ -6,7 +6,7 @@ import { Button, Typography, Box, CircularProgress } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { 
   uploadDocumentsApi,
-  getTagsApi
+  listTagsApi
 } from '@/utils/api';
 import { Tag } from '@/types/index';
 import { DocumentWithContent } from '@/types/index';
@@ -27,7 +27,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
   useEffect(() => {
     const fetchTags = async () => {
       try {
-        const response = await getTagsApi();
+        const response = await listTagsApi({ organizationId: organizationId });
         setAvailableTags(response.tags);
       } catch (error) {
         console.error('Error fetching tags:', error);

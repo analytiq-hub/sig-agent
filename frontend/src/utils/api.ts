@@ -64,7 +64,15 @@ import {
   UpdatePromptParams,
   DeletePromptParams,
 } from '@/types/index';
-import { TagConfig, Tag, ListTagsResponse } from '@/types/index';
+import { 
+  TagConfig, 
+  Tag, 
+  ListTagsResponse,
+  CreateTagParams,
+  ListTagsParams,
+  UpdateTagParams,
+  DeleteTagParams,
+} from '@/types/index';
 import { toast } from 'react-hot-toast';
 import { SaveFlowRequest, Flow, ListFlowsResponse } from '@/types/index';
 
@@ -370,18 +378,21 @@ export const createTagApi = async (tag: TagConfig): Promise<Tag> => {
     return response.data;
 };
 
-export const getTagsApi = async (): Promise<ListTagsResponse> => {
-    const response = await api.get<ListTagsResponse>(`/orgs/org_id/tags`);
+export const listTagsApi = async (params: ListTagsParams): Promise<ListTagsResponse> => {
+    const { organizationId } = params;
+    const response = await api.get<ListTagsResponse>(`/orgs/${organizationId}/tags`);
     return response.data;
 };
 
-export const deleteTagApi = async (tagId: string): Promise<void> => {
-    await api.delete(`/orgs/org_id/tags/${tagId}`);
+export const updateTagApi = async (params: UpdateTagParams): Promise<Tag> => {
+    const { organizationId, tagId, tag } = params;
+    const response = await api.put<Tag>(`/orgs/${organizationId}/tags/${tagId}`, tag);
+    return response.data;
 };
 
-export const updateTagApi = async (tagId: string, tag: TagConfig): Promise<Tag> => {
-    const response = await api.put<Tag>(`/orgs/org_id/tags/${tagId}`, tag);
-    return response.data;
+export const deleteTagApi = async (params: DeleteTagParams): Promise<void> => {
+  const { organizationId, tagId } = params;
+  await api.delete(`/orgs/${organizationId}/tags/${tagId}`);
 };
 
 // Flow APIs

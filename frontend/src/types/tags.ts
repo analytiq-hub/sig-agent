@@ -11,6 +11,27 @@ export interface Tag {
   description?: string;
 }
 
+
+export interface CreateTagParams {
+  organizationId: string;
+  tag: TagConfig;
+}
+
+export interface ListTagsParams {
+  organizationId: string;
+}
+
 export interface ListTagsResponse {
     tags: Tag[];
+}
+
+export interface UpdateTagParams {
+  organizationId: string;
+  tagId: string;
+  tag: TagConfig;
+}
+
+export interface DeleteTagParams {
+  organizationId: string;
+  tagId: string;
 }

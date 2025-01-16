@@ -1262,6 +1262,8 @@ async def update_tag(
     current_user: User = Depends(get_current_user)
 ):
     """Update a tag"""
+    db = ad.common.get_async_db()
+    
     # Verify tag exists and belongs to user
     existing_tag = await db.tags.find_one({
         "_id": ObjectId(tag_id),

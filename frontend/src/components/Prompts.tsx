@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { createPromptApi, listPromptsApi, deletePromptApi, updatePromptApi, listSchemasApi, getSchemaApi, getTagsApi } from '@/utils/api';
+import { createPromptApi, listPromptsApi, deletePromptApi, updatePromptApi, listSchemasApi, getSchemaApi, listTagsApi } from '@/utils/api';
 import { Prompt, PromptConfig, Schema, Tag} from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -167,7 +167,7 @@ const Prompts: React.FC = () => {
 
   const loadTags = async () => {
     try {
-      const response = await getTagsApi();
+      const response = await listTagsApi({ organizationId: "org_unknown" });
       setAvailableTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { createTagApi, getTagsApi, deleteTagApi, getApiErrorMsg, updateTagApi } from '@/utils/api';
+import { createTagApi, listTagsApi, deleteTagApi, getApiErrorMsg, updateTagApi } from '@/utils/api';
 import { Tag, TagConfig } from '@/types/index';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
@@ -29,10 +29,14 @@ const Tags = () => {
       
       if (currentTag.id) {
         // Update existing tag
-        savedTag = await updateTagApi(currentTag.id, {
-          name: tag.name,
-          color: tag.color,
-          description: tag.description
+        savedTag = await updateTagApi({
+          organizationId: "org_unknown",
+          tagId: currentTag.id,
+          tag: {
+            name: tag.name,
+            color: tag.color,
+            description: tag.description
+          }
         });
         // Update existing tag in the list
         setTags(tags.map(t => t.id === currentTag.id ? savedTag : t));
@@ -58,7 +62,7 @@ const Tags = () => {
   const loadTags = async () => {
     try {
       setIsLoading(true);
-      const response = await getTagsApi();
+      const response = await listTagsApi({ organizationId: "org_unknown" });
       setTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
@@ -71,7 +75,7 @@ const Tags = () => {
   const handleDelete = async (tagId: string) => {
     try {
       setIsLoading(true);
-      await deleteTagApi(tagId);
+      await deleteTagApi({ organizationId: "org_unknown", tagId: tagId });
       setTags(tags.filter(tag => tag.id !== tagId));
       setMessage('Tag deleted successfully');
     } catch (error) {
