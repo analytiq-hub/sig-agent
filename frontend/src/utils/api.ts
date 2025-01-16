@@ -169,7 +169,7 @@ export const uploadDocumentsApi = async (documents: DocumentWithContent[], organ
 };
 
 export const listDocumentsApi = async (params?: ListDocumentsParams) => {
-  const response = await api.get('/documents', { 
+  const response = await api.get(`/orgs/${params?.organization_id}/documents`, { 
     params: {
       skip: params?.skip || 0,
       limit: params?.limit || 10,
@@ -180,7 +180,7 @@ export const listDocumentsApi = async (params?: ListDocumentsParams) => {
 };
 
 export const getDocumentApi = async (id: string): Promise<GetDocumentResponse> => {
-  const response = await api.get(`/documents/${id}`);
+  const response = await api.get(`/orgs/org_id/documents/${id}`);
   const data = response.data;
   
   // Convert base64 content back to ArrayBuffer
@@ -198,12 +198,12 @@ export const getDocumentApi = async (id: string): Promise<GetDocumentResponse> =
 };
 
 export const updateDocumentApi = async (documentId: string, update: DocumentUpdate) => {
-  const response = await api.put(`/documents/${documentId}`, update);
+  const response = await api.put(`/orgs/org_id/documents/${documentId}`, update);
   return response.data;
 };
 
 export const deleteDocumentApi = async (id: string) => {
-  const response = await api.delete(`/documents/${id}`);
+  const response = await api.delete(`/orgs/org_id/documents/${id}`);
   return response.data;
 };
 
@@ -258,18 +258,18 @@ export const deleteAWSCredentialsApi = async () => {
 
 // OCR APIs
 export const getOCRBlocksApi = async (documentId: string) => {
-  const response = await api.get(`/ocr/download/blocks/${documentId}`);
+  const response = await api.get(`/orgs/org_id/ocr/download/blocks/${documentId}`);
   return response.data;
 };
 
 export const getOCRTextApi = async (documentId: string, pageNum?: number) => {
-  const url = `/ocr/download/text/${documentId}${pageNum ? `?page_num=${pageNum}` : ''}`;
+  const url = `/orgs/org_id/ocr/download/text/${documentId}${pageNum ? `?page_num=${pageNum}` : ''}`;
   const response = await api.get(url);
   return response.data;
 };
 
 export const getOCRMetadataApi = async (documentId: string) => {
-  const response = await api.get<OCRMetadataResponse>(`/ocr/download/metadata/${documentId}`);
+  const response = await api.get<OCRMetadataResponse>(`/orgs/org_id/ocr/download/metadata/${documentId}`);
   return response.data;
 };
 
@@ -280,7 +280,7 @@ export const runLLMAnalysisApi = async (
   force: boolean = false
 ) => {
   const response = await api.post<LLMRunResponse>(
-    `/llm/run/${documentId}`,
+    `/orgs/org_id/llm/run/${documentId}`,
     {},
     {
       params: {
@@ -297,7 +297,7 @@ export const getLLMResultApi = async (
   promptId: string = 'default'
 ) => {
   const response = await api.get<LLMResult>(
-    `/llm/result/${documentId}`,
+    `/orgs/org_id/llm/result/${documentId}`,
     {
       params: {
         prompt_id: promptId
@@ -312,7 +312,7 @@ export const deleteLLMResultApi = async (
   promptId: string
 ) => {
   const response = await api.delete(
-    `/llm/result/${documentId}`,
+    `/orgs/org_id/llm/result/${documentId}`,
     {
       params: {
         prompt_id: promptId
@@ -325,12 +325,12 @@ export const deleteLLMResultApi = async (
 // Schema APIs
 
 export const createSchemaApi = async (schema: SchemaCreate) => {
-  const response = await api.post<Schema>('/schemas', schema);
+  const response = await api.post<Schema>(`/orgs/org_id/schemas`, schema);
   return response.data;
 };
 
 export const getSchemasApi = async (params?: ListSchemasParams): Promise<ListSchemasResponse> => {
-  const response = await api.get<ListSchemasResponse>('/schemas', {
+  const response = await api.get<ListSchemasResponse>(`/orgs/org_id/schemas`, {
     params: {
       skip: params?.skip || 0,
       limit: params?.limit || 10
@@ -340,28 +340,28 @@ export const getSchemasApi = async (params?: ListSchemasParams): Promise<ListSch
 };
 
 export const getSchemaApi = async (schemaId: string) => {
-  const response = await api.get<Schema>(`/schemas/${schemaId}`);
+  const response = await api.get<Schema>(`/orgs/org_id/schemas/${schemaId}`);
   return response.data;
 };
 
 export const deleteSchemaApi = async (schemaId: string) => {
-  const response = await api.delete(`/schemas/${schemaId}`);
+  const response = await api.delete(`/orgs/org_id/schemas/${schemaId}`);
   return response.data;
 };
 
 export const updateSchemaApi = async (id: string, schema: {name: string; fields: SchemaField[]}) => {
-  const response = await api.put<Schema>(`/schemas/${id}`, schema);
+  const response = await api.put<Schema>(`/orgs/org_id/schemas/${id}`, schema);
   return response.data;
 };
 
 // Prompt APIs
 export const createPromptApi = async (prompt: PromptCreate): Promise<Prompt> => {
-  const response = await api.post<Prompt>('/prompts', prompt);
+  const response = await api.post<Prompt>(`/orgs/org_id/prompts`, prompt);
   return response.data;
 };
 
 export const getPromptsApi = async (params?: ListPromptsParams): Promise<ListPromptsResponse> => {
-  const response = await api.get<ListPromptsResponse>('/prompts', {
+  const response = await api.get<ListPromptsResponse>(`/orgs/org_id/prompts`, {
     params: {
       skip: params?.skip || 0,
       limit: params?.limit || 10,
@@ -373,37 +373,37 @@ export const getPromptsApi = async (params?: ListPromptsParams): Promise<ListPro
 };
 
 export const getPromptApi = async (promptId: string): Promise<Prompt> => {
-  const response = await api.get<Prompt>(`/prompts/${promptId}`);
+  const response = await api.get<Prompt>(`/orgs/org_id/prompts/${promptId}`);
   return response.data;
 };
 
 export const updatePromptApi = async (id: string, prompt: PromptCreate): Promise<Prompt> => {
-  const response = await api.put<Prompt>(`/prompts/${id}`, prompt);
+  const response = await api.put<Prompt>(`/orgs/org_id/prompts/${id}`, prompt);
   return response.data;
 };
 
 export const deletePromptApi = async (promptId: string): Promise<void> => {
-  const response = await api.delete(`/prompts/${promptId}`);
+  const response = await api.delete(`/orgs/org_id/prompts/${promptId}`);
   return response.data;
 };
 
 // Tag APIs
 export const createTagApi = async (tag: TagCreate): Promise<Tag> => {
-    const response = await api.post<Tag>('/tags', tag);
+    const response = await api.post<Tag>(`/orgs/org_id/tags`, tag);
     return response.data;
 };
 
 export const getTagsApi = async (): Promise<ListTagsResponse> => {
-    const response = await api.get<ListTagsResponse>('/tags');
+    const response = await api.get<ListTagsResponse>(`/orgs/org_id/tags`);
     return response.data;
 };
 
 export const deleteTagApi = async (tagId: string): Promise<void> => {
-    await api.delete(`/tags/${tagId}`);
+    await api.delete(`/orgs/org_id/tags/${tagId}`);
 };
 
 export const updateTagApi = async (tagId: string, tag: TagCreate): Promise<Tag> => {
-    const response = await api.put<Tag>(`/tags/${tagId}`, tag);
+    const response = await api.put<Tag>(`/orgs/org_id/tags/${tagId}`, tag);
     return response.data;
 };
 
