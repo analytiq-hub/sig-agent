@@ -31,10 +31,12 @@ import {
 } from '@/types/index';
 import { 
   Schema, 
-  SchemaField, 
-  SchemaConfig, 
+  CreateSchemaParams,
   ListSchemasParams, 
-  ListSchemasResponse 
+  ListSchemasResponse, 
+  GetSchemaParams,
+  UpdateSchemaParams,
+  DeleteSchemaParams,
 } from '@/types/index';
 import { 
   InvitationResponse, 
@@ -286,33 +288,38 @@ export const deleteLLMResultApi = async (params: DeleteLLMResultParams) => {
 };
 
 // Schema APIs
-export const createSchemaApi = async (schema: SchemaConfig) => {
-  const response = await api.post<Schema>(`/orgs/org_id/schemas`, schema);
+export const createSchemaApi = async (schema: CreateSchemaParams) => {
+  const { organizationId, ...schemaConfig } = schema;
+  const response = await api.post<Schema>(`/orgs/${organizationId}/schemas`, schemaConfig);
   return response.data;
 };
 
-export const getSchemasApi = async (params?: ListSchemasParams): Promise<ListSchemasResponse> => {
-  const response = await api.get<ListSchemasResponse>(`/orgs/org_id/schemas`, {
+export const listSchemasApi = async (params: ListSchemasParams): Promise<ListSchemasResponse> => {
+  const { organizationId, ...rest } = params;
+  const response = await api.get<ListSchemasResponse>(`/orgs/${organizationId}/schemas`, {
     params: {
-      skip: params?.skip || 0,
-      limit: params?.limit || 10
+      skip: rest?.skip || 0,
+      limit: rest?.limit || 10
     }
   });
   return response.data;
 };
 
-export const getSchemaApi = async (schemaId: string) => {
-  const response = await api.get<Schema>(`/orgs/org_id/schemas/${schemaId}`);
+export const getSchemaApi = async (params: GetSchemaParams): Promise<Schema> => {
+  const { organizationId, schemaId } = params;
+  const response = await api.get<Schema>(`/orgs/${organizationId}/schemas/${schemaId}`);
   return response.data;
 };
 
-export const deleteSchemaApi = async (schemaId: string) => {
-  const response = await api.delete(`/orgs/org_id/schemas/${schemaId}`);
+export const updateSchemaApi = async (params: UpdateSchemaParams): Promise<Schema> => {
+  const { organizationId, schemaId, schema } = params;
+  const response = await api.put<Schema>(`/orgs/${organizationId}/schemas/${schemaId}`, schema);
   return response.data;
 };
 
-export const updateSchemaApi = async (id: string, schema: {name: string; fields: SchemaField[]}) => {
-  const response = await api.put<Schema>(`/orgs/org_id/schemas/${id}`, schema);
+export const deleteSchemaApi = async (params: DeleteSchemaParams) => {
+  const { organizationId, schemaId } = params;
+  const response = await api.delete(`/orgs/${organizationId}/schemas/${schemaId}`);
   return response.data;
 };
 

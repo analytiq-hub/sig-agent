@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { createSchemaApi, getSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
+import { createSchemaApi, listSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
 import { SchemaField, Schema, SchemaConfig } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -29,9 +29,9 @@ const Schemas = () => {
       setIsLoading(true);
       
       if (currentSchemaId) {
-        await updateSchemaApi(currentSchemaId, schema);
+        await updateSchemaApi({organizationId: "org_unknown", schemaId: currentSchemaId, schema});
       } else {
-        await createSchemaApi(schema);
+        await createSchemaApi({organizationId: "org_unknown", ...schema });
       }
 
       setPage(0);
@@ -48,7 +48,8 @@ const Schemas = () => {
   const loadSchemas = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await getSchemasApi({
+      const response = await listSchemasApi({
+        organizationId: "org_unknown",
         skip: page * pageSize,
         limit: pageSize
       });
@@ -65,7 +66,7 @@ const Schemas = () => {
   const handleDelete = async (schemaId: string) => {
     try {
       setIsLoading(true);
-      await deleteSchemaApi(schemaId);
+      await deleteSchemaApi({organizationId: "org_unknown", schemaId});
       setSchemas(schemas.filter(schema => schema.id !== schemaId));
       setMessage('Schema deleted successfully');
     } catch (error) {

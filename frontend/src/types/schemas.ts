@@ -15,7 +15,12 @@ export interface Schema extends SchemaConfig {
   created_by: string;
 }
 
+export interface CreateSchemaParams extends SchemaConfig {
+  organizationId: string;
+}
+
 export interface ListSchemasParams {
+  organizationId: string;
   skip?: number;
   limit?: number;
 }
@@ -24,4 +29,20 @@ export interface ListSchemasResponse {
   schemas: Schema[];
   total_count: number;
   skip: number;
+}
+
+export interface GetSchemaParams {
+  organizationId: string;
+  schemaId: string;
+}
+
+export interface UpdateSchemaParams {
+  organizationId: string;
+  schemaId: string;
+  schema: SchemaConfig;
+}
+
+export interface DeleteSchemaParams {
+  organizationId: string;
+  schemaId: string;
 }

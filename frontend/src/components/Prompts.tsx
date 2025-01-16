@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { createPromptApi, getPromptsApi, deletePromptApi, updatePromptApi, getSchemasApi, getSchemaApi, getTagsApi } from '@/utils/api';
+import { createPromptApi, getPromptsApi, deletePromptApi, updatePromptApi, listSchemasApi, getSchemaApi, getTagsApi } from '@/utils/api';
 import { Prompt, PromptConfig, Schema, Tag} from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -119,7 +119,7 @@ const Prompts: React.FC = () => {
 
   const loadSchemas = async () => {
     try {
-      const response = await getSchemasApi();
+      const response = await listSchemasApi({ organizationId: "org_unknown" });
       setSchemas(response.schemas);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
@@ -141,7 +141,7 @@ const Prompts: React.FC = () => {
       const schemaId = schemas.find(s => s.name === schemaName)?.id;
       if (schemaId) {
         try {
-          const schema = await getSchemaApi(schemaId);
+          const schema = await getSchemaApi({ organizationId: "org_unknown", schemaId });
           setSelectedSchemaDetails(schema);
           // Update currentPrompt with the schema version
           setCurrentPrompt(prev => ({
