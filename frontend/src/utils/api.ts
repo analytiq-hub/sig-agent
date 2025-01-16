@@ -64,7 +64,7 @@ import {
   UpdatePromptParams,
   DeletePromptParams,
 } from '@/types/index';
-import { TagCreate, Tag, ListTagsResponse } from '@/types/index';
+import { TagConfig, Tag, ListTagsResponse } from '@/types/index';
 import { toast } from 'react-hot-toast';
 import { SaveFlowRequest, Flow, ListFlowsResponse } from '@/types/index';
 
@@ -365,7 +365,7 @@ export const deletePromptApi = async (params: DeletePromptParams): Promise<void>
 };
 
 // Tag APIs
-export const createTagApi = async (tag: TagCreate): Promise<Tag> => {
+export const createTagApi = async (tag: TagConfig): Promise<Tag> => {
     const response = await api.post<Tag>(`/orgs/org_id/tags`, tag);
     return response.data;
 };
@@ -379,7 +379,7 @@ export const deleteTagApi = async (tagId: string): Promise<void> => {
     await api.delete(`/orgs/org_id/tags/${tagId}`);
 };
 
-export const updateTagApi = async (tagId: string, tag: TagCreate): Promise<Tag> => {
+export const updateTagApi = async (tagId: string, tag: TagConfig): Promise<Tag> => {
     const response = await api.put<Tag>(`/orgs/org_id/tags/${tagId}`, tag);
     return response.data;
 };

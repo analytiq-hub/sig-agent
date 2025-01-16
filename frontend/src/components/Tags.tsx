@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createTagApi, getTagsApi, deleteTagApi, getApiErrorMsg, updateTagApi } from '@/utils/api';
-import { Tag, TagCreate } from '@/types/index';
+import { Tag, TagConfig } from '@/types/index';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
@@ -22,7 +22,7 @@ const Tags = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const saveTag = async (tag: TagCreate) => {
+  const saveTag = async (tag: TagConfig) => {
     try {
       setIsLoading(true);
       let savedTag: Tag;

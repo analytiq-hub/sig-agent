@@ -1,4 +1,4 @@
-export interface TagCreate {
+export interface TagConfig {
     name: string;
     color?: string;
     description?: string;

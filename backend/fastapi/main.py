@@ -41,7 +41,7 @@ from schemas import (
     LLMRunResponse, LLMResult,
     Schema, SchemaConfig, ListSchemasResponse,
     Prompt, PromptConfig, ListPromptsResponse,
-    TagCreate, Tag, ListTagsResponse,
+    TagConfig, Tag, ListTagsResponse,
     DocumentResponse,
     UserCreate, UserUpdate, UserResponse, ListUsersResponse,
     OrganizationMember,
@@ -1140,7 +1140,7 @@ async def delete_prompt(
 @app.post("/orgs/{organization_id}/tags", response_model=Tag, tags=["tags"])
 async def create_tag(
     organization_id: str,
-    tag: TagCreate,
+    tag: TagConfig,
     current_user: User = Depends(get_current_user)
 ):
     """Create a tag"""
@@ -1258,7 +1258,7 @@ async def delete_tag(
 async def update_tag(
     organization_id: str,
     tag_id: str,
-    tag: TagCreate,
+    tag: TagConfig,
     current_user: User = Depends(get_current_user)
 ):
     """Update a tag"""

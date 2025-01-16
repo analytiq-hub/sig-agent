@@ -133,12 +133,12 @@ class ListPromptsResponse(BaseModel):
     skip: int
 
 # Add these new models for tag management
-class TagCreate(BaseModel):
+class TagConfig(BaseModel):
     name: str
     color: str | None = None  # Optional hex color code for UI display
     description: str | None = None
 
-class Tag(TagCreate):
+class Tag(TagConfig):
     id: str
     created_at: datetime
     created_by: str
