@@ -213,55 +213,6 @@ export const deleteDocumentApi = async (params: DeleteDocumentParams) => {
   return response.data;
 };
 
-// Token APIs
-
-export const createTokenApi = async (token: CreateTokenRequest) => {
-  const response = await api.post('/access_tokens', token);
-  return response.data;
-};
-
-// A more consistent name for this function would be getAccessTokensApi, but that is too repetitive
-export const getTokensApi = async () => {
-  const response = await api.get('/access_tokens');
-  return response.data;
-};
-
-export const deleteTokenApi = async (tokenId: string) => {
-  const response = await api.delete(`/access_tokens/${tokenId}`);
-  return response.data;
-};
-
-export const createLLMTokenApi = async (tokenRequest: CreateLLMTokenRequest) => {
-  const response = await api.post('/account/llm_tokens', tokenRequest);
-  return response.data;
-};
-
-export const getLLMTokensApi = async () => {
-  const response = await api.get('/account/llm_tokens');
-  return response.data;
-};
-
-export const deleteLLMTokenApi = async (tokenId: string) => {
-  const response = await api.delete(`/account/llm_tokens/${tokenId}`);
-  return response.data;
-};
-
-// AWS APIs
-export const createAWSCredentialsApi = async (credentials: Omit<AWSCredentials, 'created_at'>) => {
-  const response = await api.post('/account/aws_credentials', credentials);
-  return response.data;
-};
-
-export const getAWSCredentialsApi = async () => {
-  const response = await api.get('/account/aws_credentials');
-  return response.data;
-};
-
-export const deleteAWSCredentialsApi = async () => {
-  const response = await api.delete('/account/aws_credentials');
-  return response.data;
-};
-
 // OCR APIs
 export const getOCRBlocksApi = async (documentId: string) => {
   const response = await api.get(`/orgs/org_id/ocr/download/blocks/${documentId}`);
@@ -413,6 +364,81 @@ export const updateTagApi = async (tagId: string, tag: TagCreate): Promise<Tag> 
     return response.data;
 };
 
+// Flow APIs
+export const saveFlowApi = async (flowData: SaveFlowRequest): Promise<Flow> => {
+  const response = await api.post('/flows', flowData);
+  return response.data;
+};
+
+export const getFlowsApi = async (params?: { skip?: number; limit?: number }): Promise<ListFlowsResponse> => {
+  const response = await api.get('/flows', { params });
+  return response.data;
+};
+
+export const getFlowApi = async (flowId: string): Promise<Flow> => {
+  const response = await api.get(`/flows/${flowId}`);
+  return response.data;
+};
+
+export const deleteFlowApi = async (flowId: string): Promise<void> => {
+  await api.delete(`/flows/${flowId}`);
+};
+
+export const updateFlowApi = async (flowId: string, flowData: SaveFlowRequest): Promise<Flow> => {
+  console.log('Updating flow:', flowId, flowData);
+  const response = await api.put<Flow>(`/flows/${flowId}`, flowData);
+  console.log('Update response:', response.data);
+  return response.data;
+};
+
+// Token APIs
+export const createTokenApi = async (token: CreateTokenRequest) => {
+  const response = await api.post('/access_tokens', token);
+  return response.data;
+};
+
+// A more consistent name for this function would be getAccessTokensApi, but that is too repetitive
+export const getTokensApi = async () => {
+  const response = await api.get('/access_tokens');
+  return response.data;
+};
+
+export const deleteTokenApi = async (tokenId: string) => {
+  const response = await api.delete(`/access_tokens/${tokenId}`);
+  return response.data;
+};
+
+export const createLLMTokenApi = async (tokenRequest: CreateLLMTokenRequest) => {
+  const response = await api.post('/account/llm_tokens', tokenRequest);
+  return response.data;
+};
+
+export const getLLMTokensApi = async () => {
+  const response = await api.get('/account/llm_tokens');
+  return response.data;
+};
+
+export const deleteLLMTokenApi = async (tokenId: string) => {
+  const response = await api.delete(`/account/llm_tokens/${tokenId}`);
+  return response.data;
+};
+
+// AWS APIs
+export const createAWSCredentialsApi = async (credentials: Omit<AWSCredentials, 'created_at'>) => {
+  const response = await api.post('/account/aws_credentials', credentials);
+  return response.data;
+};
+
+export const getAWSCredentialsApi = async () => {
+  const response = await api.get('/account/aws_credentials');
+  return response.data;
+};
+
+export const deleteAWSCredentialsApi = async () => {
+  const response = await api.delete('/account/aws_credentials');
+  return response.data;
+};
+
 // Organization APIs
 export const getOrganizationsApi = async (params?: { 
   userId?: string;
@@ -548,38 +574,3 @@ export const getInvitationApi = async (token: string): Promise<InvitationRespons
   const response = await api.get<InvitationResponse>(`/account/email/invitations/${token}`);
   return response.data;
 };
-
-export const saveFlowApi = async (flowData: SaveFlowRequest): Promise<Flow> => {
-  const response = await api.post('/flows', flowData);
-  return response.data;
-};
-
-export const getFlowsApi = async (params?: { skip?: number; limit?: number }): Promise<ListFlowsResponse> => {
-  const response = await api.get('/flows', { params });
-  return response.data;
-};
-
-export const getFlowApi = async (flowId: string): Promise<Flow> => {
-  const response = await api.get(`/flows/${flowId}`);
-  return response.data;
-};
-
-export const deleteFlowApi = async (flowId: string): Promise<void> => {
-  await api.delete(`/flows/${flowId}`);
-};
-
-export const updateFlowApi = async (flowId: string, flowData: SaveFlowRequest): Promise<Flow> => {
-  console.log('Updating flow:', flowId, flowData);
-  const response = await api.put<Flow>(`/flows/${flowId}`, flowData);
-  console.log('Update response:', response.data);
-  return response.data;
-};
-
-export interface DocumentsUpload {
-  files: {
-    name: string;
-    content: string;
-    tag_ids: string[];
-  }[];
-  organization_id: string;
-}
