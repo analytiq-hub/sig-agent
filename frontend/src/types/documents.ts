@@ -1,7 +1,12 @@
 export interface DocumentWithContent {
-    name: string;
-    content: string;
-    tag_ids?: string[];  // Optional list of tag IDs
+  name: string;
+  content: string;
+  tag_ids?: string[];  // Optional list of tag IDs
+}
+
+export interface UploadDocumentsParams {
+  organizationId: string;
+  documents: DocumentWithContent[];
 }
 
 export interface UploadDocumentsResponse {

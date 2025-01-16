@@ -81,7 +81,10 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
     setUploadStatus(null);
 
     try {
-      const response = await uploadDocumentsApi(filesWithTags, organizationId);
+      const response = await uploadDocumentsApi({
+        organizationId: organizationId, 
+        documents: filesWithTags
+      });
       setUploadStatus(`Successfully uploaded ${response.uploaded_documents.length} file(s)`);
       setFiles([]);
       setSelectedTags([]); // Reset selected tags after successful upload

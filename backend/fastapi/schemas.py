@@ -30,7 +30,7 @@ class DocumentUpload(BaseModel):
     tag_ids: List[str] = []  # Optional list of tag IDs
 
 class DocumentsUpload(BaseModel):
-    files: List[DocumentUpload]
+    documents: List[DocumentUpload]
 
 class DocumentMetadata(BaseModel):
     id: str

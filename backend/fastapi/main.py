@@ -184,12 +184,12 @@ async def upload_document(
     current_user: User = Depends(get_current_user)
 ):
     """Upload one or more documents"""
-    ad.log.debug(f"upload_document(): documents: {[doc.name for doc in documents_upload.files]}")
+    ad.log.debug(f"upload_document(): documents: {[doc.name for doc in documents_upload.documents]}")
     uploaded_documents = []
 
     # Validate all tag IDs first
     all_tag_ids = set()
-    for document in documents_upload.files:
+    for document in documents_upload.documents:
         all_tag_ids.update(document.tag_ids)
 
     analytiq_client = ad.common.get_analytiq_client()
@@ -211,7 +211,7 @@ async def upload_document(
                 detail=f"Invalid tag IDs: {list(invalid_tags)}"
             )
 
-    for document in documents_upload.files:
+    for document in documents_upload.documents:
         if not document.name.endswith('.pdf'):
             raise HTTPException(status_code=400, detail=f"Document {document.name} is not a PDF")
         

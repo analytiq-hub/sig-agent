@@ -3,6 +3,7 @@ import { getSession } from 'next-auth/react';
 import { AppSession } from '@/types/AppSession';
 import { 
   DocumentWithContent,
+  UploadDocumentsParams,
   UploadDocumentsResponse,
   GetDocumentResponse,
   DocumentUpdate,
@@ -163,8 +164,9 @@ api.interceptors.response.use(
 
 // Document APIs
 
-export const uploadDocumentsApi = async (documents: DocumentWithContent[], organizationId: string): Promise<UploadDocumentsResponse> => {
-  const response = await api.post<UploadDocumentsResponse>(`/orgs/${organizationId}/documents`, { files: documents });
+export const uploadDocumentsApi = async (params: UploadDocumentsParams): Promise<UploadDocumentsResponse> => {
+  const { organizationId, documents } = params;
+  const response = await api.post<UploadDocumentsResponse>(`/orgs/${organizationId}/documents`, { documents: documents });
   return response.data;
 };
 
