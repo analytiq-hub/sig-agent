@@ -98,11 +98,11 @@ class SchemaField(BaseModel):
     name: str
     type: FieldType
 
-class SchemaCreate(BaseModel):
+class SchemaConfig(BaseModel):
     name: str
     fields: List[SchemaField]
 
-class Schema(SchemaCreate):
+class Schema(SchemaConfig):
     id: str
     version: int
     created_at: datetime
@@ -114,23 +114,18 @@ class ListSchemasResponse(BaseModel):
     skip: int
 
 # Add these new models
-class PromptCreate(BaseModel):
+class PromptConfig(BaseModel):
     name: str
     content: str
     schema_name: Optional[str] = None
     schema_version: Optional[int] = None
     tag_ids: List[str] = []
 
-class Prompt(BaseModel):
+class Prompt(PromptConfig):
     id: str
-    name: str
-    content: str
-    schema_name: str
-    schema_version: int
     version: int
     created_at: datetime
     created_by: str
-    tag_ids: List[str] = []
 
 class ListPromptsResponse(BaseModel):
     prompts: List[Prompt]

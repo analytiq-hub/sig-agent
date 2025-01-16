@@ -3,7 +3,7 @@ export interface PromptField {
   type: 'str' | 'int' | 'float' | 'bool' | 'datetime';
 }
 
-export interface PromptCreate {
+export interface PromptConfig {
   name: string;
   content: string;
   schema_name?: string;
@@ -11,16 +11,11 @@ export interface PromptCreate {
   tag_ids?: string[];
 }
 
-export interface Prompt {
+export interface Prompt extends PromptConfig {
   id: string;
-  name: string;
-  content: string;
-  schema_name: string;
-  schema_version: number;
   version: number;
   created_at: string;
   created_by: string;
-  tag_ids: string[];
 }
 
 export interface ListPromptsResponse {

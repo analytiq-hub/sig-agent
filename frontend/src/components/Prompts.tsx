@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPromptApi, getPromptsApi, deletePromptApi, updatePromptApi, getSchemasApi, getSchemaApi, getTagsApi } from '@/utils/api';
-import { Prompt, PromptCreate, Schema, Tag } from '@/types/index';
+import { Prompt, PromptConfig, Schema, Tag} from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
@@ -19,7 +19,7 @@ const MonacoEditor = dynamic(() => import('./MonacoEditor'), {
 const Prompts: React.FC = () => {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [currentPromptId, setCurrentPromptId] = useState<string | null>(null);
-  const [currentPrompt, setCurrentPrompt] = useState<PromptCreate>({
+  const [currentPrompt, setCurrentPrompt] = useState<PromptConfig>({
     name: '',
     content: '',
     schema_name: undefined,
@@ -38,7 +38,7 @@ const Prompts: React.FC = () => {
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
 
-  const savePrompt = async (prompt: PromptCreate) => {
+  const savePrompt = async (prompt: PromptConfig) => {
     try {
       setIsLoading(true);
       

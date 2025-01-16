@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createSchemaApi, getSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
-import { SchemaField, SchemaCreate, Schema } from '@/types/index';
+import { SchemaField, Schema, SchemaConfig, Schema } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
@@ -13,7 +13,7 @@ import colors from 'tailwindcss/colors'
 const Schemas = () => {
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
-  const [currentSchema, setCurrentSchema] = useState<SchemaCreate>({
+  const [currentSchema, setCurrentSchema] = useState<SchemaConfig>({
     name: '',
     fields: [{ name: '', type: 'str' }]
   });
@@ -24,7 +24,7 @@ const Schemas = () => {
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
 
-  const saveSchema = async (schema: SchemaCreate) => {
+  const saveSchema = async (schema: SchemaConfig) => {
     try {
       setIsLoading(true);
       

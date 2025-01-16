@@ -39,8 +39,8 @@ from schemas import (
     AWSCredentials,
     GetOCRMetadataResponse,
     LLMRunResponse, LLMResult,
-    Schema, SchemaCreate, ListSchemasResponse,
-    Prompt, PromptCreate, ListPromptsResponse,
+    Schema, SchemaConfig, ListSchemasResponse,
+    Prompt, PromptConfig, ListPromptsResponse,
     TagCreate, Tag, ListTagsResponse,
     DocumentResponse,
     UserCreate, UserUpdate, UserResponse, ListUsersResponse,
@@ -669,7 +669,7 @@ async def get_next_schema_version(schema_name: str) -> int:
 @app.post("/orgs/{organization_id}/schemas", response_model=Schema, tags=["schemas"])
 async def create_schema(
     organization_id: str,
-    schema: SchemaCreate,
+    schema: SchemaConfig,
     current_user: User = Depends(get_current_user)
 ):
     """Create a schema"""
@@ -783,7 +783,7 @@ async def get_schema(
 async def update_schema(
     organization_id: str,
     schema_id: str,
-    schema: SchemaCreate,
+    schema: SchemaConfig,
     current_user: User = Depends(get_current_user)
 ):
     """Update a schema"""
@@ -892,7 +892,7 @@ async def get_next_prompt_version(prompt_name: str) -> int:
 @app.post("/orgs/{organization_id}/prompts", response_model=Prompt, tags=["prompts"])
 async def create_prompt(
     organization_id: str,
-    prompt: PromptCreate,
+    prompt: PromptConfig,
     current_user: User = Depends(get_current_user)
 ):
     """Create a prompt"""
@@ -1046,7 +1046,7 @@ async def get_prompt(
 async def update_prompt(
     organization_id: str,
     prompt_id: str,
-    prompt: PromptCreate,
+    prompt: PromptConfig,
     current_user: User = Depends(get_current_user)
 ):
     """Update a prompt"""

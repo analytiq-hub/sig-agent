@@ -32,7 +32,7 @@ import {
 import { 
   Schema, 
   SchemaField, 
-  SchemaCreate, 
+  SchemaConfig, 
   ListSchemasParams, 
   ListSchemasResponse 
 } from '@/types/index';
@@ -54,7 +54,7 @@ import {
   DeleteLLMResultParams,
 } from '@/types/index';
 import { 
-  PromptCreate, 
+  PromptConfig, 
   Prompt, 
   ListPromptsResponse, 
   ListPromptsParams 
@@ -286,8 +286,7 @@ export const deleteLLMResultApi = async (params: DeleteLLMResultParams) => {
 };
 
 // Schema APIs
-
-export const createSchemaApi = async (schema: SchemaCreate) => {
+export const createSchemaApi = async (schema: SchemaConfig) => {
   const response = await api.post<Schema>(`/orgs/org_id/schemas`, schema);
   return response.data;
 };
@@ -318,7 +317,7 @@ export const updateSchemaApi = async (id: string, schema: {name: string; fields:
 };
 
 // Prompt APIs
-export const createPromptApi = async (prompt: PromptCreate): Promise<Prompt> => {
+export const createPromptApi = async (prompt: PromptConfig): Promise<Prompt> => {
   const response = await api.post<Prompt>(`/orgs/org_id/prompts`, prompt);
   return response.data;
 };
@@ -340,7 +339,7 @@ export const getPromptApi = async (promptId: string): Promise<Prompt> => {
   return response.data;
 };
 
-export const updatePromptApi = async (id: string, prompt: PromptCreate): Promise<Prompt> => {
+export const updatePromptApi = async (id: string, prompt: PromptConfig): Promise<Prompt> => {
   const response = await api.put<Prompt>(`/orgs/org_id/prompts/${id}`, prompt);
   return response.data;
 };

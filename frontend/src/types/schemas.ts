@@ -3,12 +3,12 @@ export interface SchemaField {
   type: 'str' | 'int' | 'float' | 'bool' | 'datetime';
 }
 
-export interface SchemaCreate {
+export interface SchemaConfig {
   name: string;
   fields: SchemaField[];
 }
 
-export interface Schema extends SchemaCreate {
+export interface Schema extends SchemaConfig {
   id: string;
   version: number;
   created_at: string;
