@@ -72,8 +72,16 @@ import {
   UpdateTagParams,
   DeleteTagParams,
 } from '@/types/index';
+import { 
+  Flow, 
+  ListFlowsResponse,
+  CreateFlowParams,
+  UpdateFlowParams,
+  ListFlowsParams,
+  GetFlowParams,
+  DeleteFlowParams,
+} from '@/types/index';
 import { toast } from 'react-hot-toast';
-import { FlowConfig, Flow, ListFlowsResponse } from '@/types/index';
 
 // These APIs execute from the frontend
 const NEXT_PUBLIC_FASTAPI_FRONTEND_URL = process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL || "http://localhost:8000";
@@ -396,30 +404,38 @@ export const deleteTagApi = async (params: DeleteTagParams): Promise<void> => {
 };
 
 // Flow APIs
-export const createFlowApi = async (flowData: FlowConfig): Promise<Flow> => {
-  const response = await api.post('/orgs/org_id/flows', flowData);
+export const createFlowApi = async (params: CreateFlowParams): Promise<Flow> => {
+  const { organizationId, flow } = params;
+  const response = await api.post(`/orgs/${organizationId}/flows`, flow);
   return response.data;
 };
 
-export const getFlowsApi = async (params?: { skip?: number; limit?: number }): Promise<ListFlowsResponse> => {
-  const response = await api.get('/orgs/org_id/flows', { params });
+export const updateFlowApi = async (params: UpdateFlowParams): Promise<Flow> => {
+  const { organizationId, flowId, flow } = params;
+  const response = await api.put<Flow>(`/orgs/${organizationId}/flows/${flowId}`, flow);
   return response.data;
 };
 
-export const getFlowApi = async (flowId: string): Promise<Flow> => {
-  const response = await api.get(`/orgs/org_id/flows/${flowId}`);
+export const listFlowsApi = async (params: ListFlowsParams): Promise<ListFlowsResponse> => {
+  const { organizationId, ...rest } = params;
+  const response = await api.get(`/orgs/${organizationId}/flows`, {
+    params: {
+      skip: rest?.skip || 0,
+      limit: rest?.limit || 10
+    }
+  });
   return response.data;
 };
 
-export const deleteFlowApi = async (flowId: string): Promise<void> => {
-  await api.delete(`/orgs/org_id/flows/${flowId}`);
+export const getFlowApi = async (params: GetFlowParams): Promise<Flow> => {
+  const { organizationId, flowId } = params;
+  const response = await api.get<Flow>(`/orgs/${organizationId}/flows/${flowId}`);
+  return response.data;
 };
 
-export const updateFlowApi = async (flowId: string, flowData: FlowConfig): Promise<Flow> => {
-  console.log('Updating flow:', flowId, flowData);
-  const response = await api.put<Flow>(`/orgs/org_id/flows/${flowId}`, flowData);
-  console.log('Update response:', response.data);
-  return response.data;
+export const deleteFlowApi = async (params: DeleteFlowParams): Promise<void> => {
+  const { organizationId, flowId } = params;
+  await api.delete(`/orgs/${organizationId}/flows/${flowId}`);
 };
 
 // Token APIs

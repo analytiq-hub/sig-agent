@@ -342,10 +342,17 @@ const Flows: React.FC = () => {
     try {
       if (currentFlowId) {
         // Update existing flow
-        await updateFlowApi(currentFlowId, flowData);
+        await updateFlowApi({
+          organizationId: "org_unknown",
+          flowId: currentFlowId,
+          flow: flowData
+        });
       } else {
         // Create new flow
-        await createFlowApi(flowData);
+        await createFlowApi({
+          organizationId: "org_unknown",
+          flow: flowData
+        });
       }
       // Trigger sidebar refresh after successful save
       setRefreshSidebarTrigger(prev => prev + 1);
@@ -364,7 +371,10 @@ const Flows: React.FC = () => {
       clearNodeData();
 
       // Load selected flow
-      const flow = await getFlowApi(flowId);
+      const flow = await getFlowApi({
+        organizationId: "org_unknown",
+        flowId: flowId
+      });
       
       // Set nodes and edges from the loaded flow
       setNodes(flow.nodes.map(node => ({

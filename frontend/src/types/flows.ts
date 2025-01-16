@@ -56,8 +56,35 @@ export interface LLMOutputNodeProps {
   data: NodeData;
 } 
 
+export interface CreateFlowParams {
+  organizationId: string;
+  flow: FlowConfig;
+}
+
+export interface UpdateFlowParams {
+  organizationId: string;
+  flowId: string;
+  flow: FlowConfig;
+}
+
+export interface ListFlowsParams {
+  organizationId: string;
+  skip?: number;
+  limit?: number;
+}
+
 export interface ListFlowsResponse {
   flows: FlowMetadata[];
   total_count: number;
   skip: number;
+}
+
+export interface GetFlowParams {
+  organizationId: string;
+  flowId: string;
+}
+
+export interface DeleteFlowParams {
+  organizationId: string;
+  flowId: string;
 }

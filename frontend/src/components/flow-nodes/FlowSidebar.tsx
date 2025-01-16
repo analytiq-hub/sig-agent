@@ -7,7 +7,7 @@ import {
   TrashIcon
 } from '@heroicons/react/24/outline';
 import { NodeData, Flow, FlowMetadata } from '@/types/flows';
-import { getFlowsApi, deleteFlowApi } from '@/utils/api';
+import { listFlowsApi, deleteFlowApi } from '@/utils/api';
 
 interface NodeType {
   type: string;
@@ -74,7 +74,9 @@ const FlowSidebar: React.FC<FlowSidebarProps> = ({ refreshTrigger, onFlowSelect 
   const loadSavedFlows = async () => {
     try {
       setIsLoading(true);
-      const response = await getFlowsApi();
+      const response = await listFlowsApi({
+        organizationId: "org_unknown"
+      });
       setSavedFlows(response.flows);
     } catch (error) {
       console.error('Error loading flows:', error);
@@ -94,7 +96,10 @@ const FlowSidebar: React.FC<FlowSidebarProps> = ({ refreshTrigger, onFlowSelect 
   const handleDelete = async (e: React.MouseEvent, flowId: string) => {
     e.stopPropagation(); // Prevent flow selection when clicking delete
     try {
-      await deleteFlowApi(flowId);
+      await deleteFlowApi({
+        organizationId: "org_unknown",
+        flowId: flowId
+      });
       loadSavedFlows(); // Refresh the list
     } catch (error) {
       console.error('Error deleting flow:', error);
