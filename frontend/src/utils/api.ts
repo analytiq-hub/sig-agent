@@ -56,7 +56,8 @@ import {
   DeleteLLMResultParams,
 } from '@/types/index';
 import { 
-  Prompt, 
+  Prompt,
+  CreatePromptParams,
   ListPromptsResponse, 
   ListPromptsParams,
   GetPromptParams,
