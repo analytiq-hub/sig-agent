@@ -43,7 +43,10 @@ const Tags = () => {
         setMessage('Tag updated successfully');
       } else {
         // Create new tag
-        savedTag = await createTagApi(tag);
+        savedTag = await createTagApi({
+          organizationId: "org_unknown",
+          tag: tag
+        });
         // Add new tag to the beginning of the list
         setTags([savedTag, ...tags]);
         setMessage('Tag created successfully');

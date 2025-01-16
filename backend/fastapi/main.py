@@ -53,7 +53,7 @@ from schemas import (
     CreateInvitationRequest,
     ListInvitationsResponse,
     AcceptInvitationRequest,
-    SaveFlowRequest,
+    FlowConfig,
     Flow,
     ListFlowsResponse, FlowMetadata
 )
@@ -1293,7 +1293,7 @@ async def update_tag(
 @app.post("/orgs/{organization_id}/flows", tags=["flows"])
 async def create_flow(
     organization_id: str,
-    flow: SaveFlowRequest,
+    flow: FlowConfig,
     current_user: User = Depends(get_current_user)
 ) -> Flow:
     db = ad.common.get_async_db()
@@ -1444,7 +1444,7 @@ async def delete_flow(
 async def update_flow(
     organization_id: str,
     flow_id: str,
-    flow: SaveFlowRequest,
+    flow: FlowConfig,
     current_user: User = Depends(get_current_user)
 ) -> Flow:
     db = ad.common.get_async_db()

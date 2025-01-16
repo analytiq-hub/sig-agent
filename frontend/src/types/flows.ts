@@ -1,7 +1,7 @@
 import { Node, Edge } from 'reactflow';
 import { Prompt } from './prompts';
 
-export interface SaveFlowRequest {
+export interface FlowConfig {
   name: string;
   description?: string;
   nodes: Node[];
@@ -9,7 +9,7 @@ export interface SaveFlowRequest {
   tag_ids?: string[];
 }
 
-export interface Flow extends SaveFlowRequest {
+export interface Flow extends FlowConfig {
   id: string;
   version: number;
   created_at: string;

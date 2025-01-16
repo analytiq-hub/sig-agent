@@ -261,14 +261,14 @@ class FlowEdge(BaseModel):
     sourceHandle: Optional[str] = None
     targetHandle: Optional[str] = None
 
-class SaveFlowRequest(BaseModel):
+class FlowConfig(BaseModel):
     name: str
     description: Optional[str] = None
     nodes: List[Dict[str, Any]]
     edges: List[Dict[str, Any]]
     tag_ids: Optional[List[str]] = None
 
-class Flow(SaveFlowRequest):
+class Flow(FlowConfig):
     id: str
     version: int
     created_at: datetime

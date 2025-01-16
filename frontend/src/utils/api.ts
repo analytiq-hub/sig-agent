@@ -74,7 +74,7 @@ import {
   DeleteTagParams,
 } from '@/types/index';
 import { toast } from 'react-hot-toast';
-import { SaveFlowRequest, Flow, ListFlowsResponse } from '@/types/index';
+import { FlowConfig, Flow, ListFlowsResponse } from '@/types/index';
 
 // These APIs execute from the frontend
 const NEXT_PUBLIC_FASTAPI_FRONTEND_URL = process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL || "http://localhost:8000";
@@ -373,8 +373,9 @@ export const deletePromptApi = async (params: DeletePromptParams): Promise<void>
 };
 
 // Tag APIs
-export const createTagApi = async (tag: TagConfig): Promise<Tag> => {
-    const response = await api.post<Tag>(`/orgs/org_id/tags`, tag);
+export const createTagApi = async (params: CreateTagParams): Promise<Tag> => {
+    const { organizationId, tag } = params;
+    const response = await api.post<Tag>(`/orgs/${organizationId}/tags`, tag);
     return response.data;
 };
 
@@ -396,28 +397,28 @@ export const deleteTagApi = async (params: DeleteTagParams): Promise<void> => {
 };
 
 // Flow APIs
-export const saveFlowApi = async (flowData: SaveFlowRequest): Promise<Flow> => {
-  const response = await api.post('/flows', flowData);
+export const saveFlowApi = async (flowData: FlowConfig): Promise<Flow> => {
+  const response = await api.post('/orgs/org_id/flows', flowData);
   return response.data;
 };
 
 export const getFlowsApi = async (params?: { skip?: number; limit?: number }): Promise<ListFlowsResponse> => {
-  const response = await api.get('/flows', { params });
+  const response = await api.get('/orgs/org_id/flows', { params });
   return response.data;
 };
 
 export const getFlowApi = async (flowId: string): Promise<Flow> => {
-  const response = await api.get(`/flows/${flowId}`);
+  const response = await api.get(`/orgs/org_id/flows/${flowId}`);
   return response.data;
 };
 
 export const deleteFlowApi = async (flowId: string): Promise<void> => {
-  await api.delete(`/flows/${flowId}`);
+  await api.delete(`/orgs/org_id/flows/${flowId}`);
 };
 
-export const updateFlowApi = async (flowId: string, flowData: SaveFlowRequest): Promise<Flow> => {
+export const updateFlowApi = async (flowId: string, flowData: FlowConfig): Promise<Flow> => {
   console.log('Updating flow:', flowId, flowData);
-  const response = await api.put<Flow>(`/flows/${flowId}`, flowData);
+  const response = await api.put<Flow>(`/orgs/org_id/flows/${flowId}`, flowData);
   console.log('Update response:', response.data);
   return response.data;
 };
