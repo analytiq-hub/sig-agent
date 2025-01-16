@@ -26,12 +26,6 @@ export interface FlowMetadata {
   tag_ids?: string[];
 }
 
-export interface ListFlowsResponse {
-  flows: FlowMetadata[];
-  total_count: number;
-  skip: number;
-}
-
 export interface NodeData {
   label: string;
   description?: string;
@@ -61,3 +55,9 @@ export interface PromptNodeProps {
 export interface LLMOutputNodeProps {
   data: NodeData;
 } 
+
+export interface ListFlowsResponse {
+  flows: FlowMetadata[];
+  total_count: number;
+  skip: number;
+}

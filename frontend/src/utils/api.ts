@@ -65,7 +65,6 @@ import {
   DeletePromptParams,
 } from '@/types/index';
 import { 
-  TagConfig, 
   Tag, 
   ListTagsResponse,
   CreateTagParams,
@@ -397,7 +396,7 @@ export const deleteTagApi = async (params: DeleteTagParams): Promise<void> => {
 };
 
 // Flow APIs
-export const saveFlowApi = async (flowData: FlowConfig): Promise<Flow> => {
+export const createFlowApi = async (flowData: FlowConfig): Promise<Flow> => {
   const response = await api.post('/orgs/org_id/flows', flowData);
   return response.data;
 };

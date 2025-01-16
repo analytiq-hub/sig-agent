@@ -21,7 +21,7 @@ import FlowSidebar from '@/components/flow-nodes/FlowSidebar';
 import { Flow } from '@/types';
 import { Prompt } from '@/types/prompts';
 import { useFlowContext } from '@/contexts/FlowContext';
-import { listPromptsApi, runLLMApi, saveFlowApi, listTagsApi, getFlowApi, updateFlowApi } from '@/utils/api';
+import { listPromptsApi, runLLMApi, createFlowApi, listTagsApi, getFlowApi, updateFlowApi } from '@/utils/api';
 import SaveFlowModal from '@/components/flow-nodes/SaveFlowModal';
 import { Tag } from '@/types/index';
 
@@ -345,7 +345,7 @@ const Flows: React.FC = () => {
         await updateFlowApi(currentFlowId, flowData);
       } else {
         // Create new flow
-        await saveFlowApi(flowData);
+        await createFlowApi(flowData);
       }
       // Trigger sidebar refresh after successful save
       setRefreshSidebarTrigger(prev => prev + 1);
