@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useLayoutEffect } from 'react';
 import * as monaco from 'monaco-editor';
 
 interface MonacoEditorProps {
@@ -21,50 +21,30 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
   const modelRef = useRef<monaco.editor.ITextModel | null>(null);
   const subscriptionRef = useRef<monaco.IDisposable | null>(null);
 
+  // Initialize editor once with layout effect
   useEffect(() => {
-    if (divRef.current) {
+    if (divRef.current && !editorRef.current) {
       // Create model first
       if (!modelRef.current) {
         modelRef.current = monaco.editor.createModel(value, language);
       }
 
-      // Create editor if it doesn't exist
-      if (!editorRef.current) {
-        editorRef.current = monaco.editor.create(divRef.current, {
-          model: modelRef.current,
-          minimap: { enabled: false },
-          scrollBeyondLastLine: false,
-          lineNumbers: 'on',
-          readOnly,
-          automaticLayout: true,
-          theme: 'vs',
-        });
-
-        // Set up change handler
-        if (onChange) {
-          subscriptionRef.current = editorRef.current.onDidChangeModelContent(() => {
-            const newValue = editorRef.current?.getValue() || '';
-            onChange(newValue);
-          });
-        }
-      }
-
-      // Update editor properties if they change
-      const editor = editorRef.current;
-      const model = modelRef.current;
-      
-      if (editor && model) {
-        if (model.getValue() !== value) {
-          const position = editor.getPosition();
-          model.setValue(value);
-          editor.setPosition(position || new monaco.Position(1, 1));
-        }
-
-        monaco.editor.setModelLanguage(model, language);
-      }
+      // Create editor
+      editorRef.current = monaco.editor.create(divRef.current, {
+        model: modelRef.current,
+        minimap: { enabled: false },
+        scrollBeyondLastLine: false,
+        lineNumbers: 'on',
+        readOnly,
+        automaticLayout: true,
+        theme: 'vs',
+      });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps since we only want to initialize once
 
-    // Cleanup
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
       if (subscriptionRef.current) {
         subscriptionRef.current.dispose();
@@ -79,20 +59,44 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
         modelRef.current = null;
       }
     };
-  }, [language, readOnly]);
+  }, []); // Empty deps since this is cleanup only
 
-  // Update value separately to avoid recreation
+  // Handle onChange subscription
   useEffect(() => {
-    const model = modelRef.current;
-    if (model && model.getValue() !== value) {
-      const editor = editorRef.current;
-      const position = editor?.getPosition();
-      model.setValue(value);
-      if (editor && position) {
-        editor.setPosition(position);
+    if (editorRef.current) {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.dispose();
+      }
+      if (onChange) {
+        subscriptionRef.current = editorRef.current.onDidChangeModelContent(() => {
+          const newValue = editorRef.current?.getValue() || '';
+          onChange(newValue);
+        });
       }
     }
-  }, [value]);
+  }, [onChange]);
+
+  // Handle readOnly updates
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.updateOptions({ readOnly });
+    }
+  }, [readOnly]);
+
+  // Handle value and language updates
+  useEffect(() => {
+    const editor = editorRef.current;
+    const model = modelRef.current;
+    
+    if (editor && model) {
+      monaco.editor.setModelLanguage(model, language);
+      if (model.getValue() !== value) {
+        const position = editor.getPosition();
+        model.setValue(value);
+        editor.setPosition(position || new monaco.Position(1, 1));
+      }
+    }
+  }, [value, language]);
 
   return (
     <div 
