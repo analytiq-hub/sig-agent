@@ -53,6 +53,8 @@ export interface GetDocumentResponse {
   content: ArrayBuffer;
 }
 
-export interface DocumentUpdate {
-  tag_ids: string[];
+export interface UpdateDocumentParams {
+  organizationId: string;
+  documentId: string;
+  tagIds: string[];
 }

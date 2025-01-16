@@ -123,9 +123,13 @@ const DocumentList: React.FC = () => {
         newTags: tagIds
       });
       
-      await updateDocumentApi(editingDocument.id, {
-        tag_ids: tagIds
-      });
+      await updateDocumentApi(
+        {
+          organizationId: "org_unknown",
+          documentId: editingDocument.id,
+          tagIds: tagIds
+        }
+      );
       console.log('Tags updated successfully, refreshing document list');
       
       // Refresh the document list to show updated tags

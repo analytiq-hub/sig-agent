@@ -6,7 +6,7 @@ import {
   UploadDocumentsResponse,
   GetDocumentParams,
   GetDocumentResponse,
-  DocumentUpdate,
+  UpdateDocumentParams,
   ListDocumentsParams,
 } from '@/types/index';
 import { 
@@ -200,8 +200,9 @@ export const getDocumentApi = async (params: GetDocumentParams): Promise<GetDocu
   };
 };
 
-export const updateDocumentApi = async (documentId: string, update: DocumentUpdate) => {
-  const response = await api.put(`/orgs/org_id/documents/${documentId}`, update);
+export const updateDocumentApi = async (params: UpdateDocumentParams) => {
+  const { organizationId, documentId, tagIds } = params;
+  const response = await api.put(`/orgs/${organizationId}/documents/${documentId}`, { tag_ids: tagIds });
   return response.data;
 };
 
