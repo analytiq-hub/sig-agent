@@ -4,6 +4,7 @@ import { AppSession } from '@/types/AppSession';
 import { 
   UploadDocumentsParams,
   UploadDocumentsResponse,
+  GetDocumentParams,
   GetDocumentResponse,
   DocumentUpdate,
   ListDocumentsParams,
@@ -180,8 +181,9 @@ export const listDocumentsApi = async (params?: ListDocumentsParams) => {
   return response.data;
 };
 
-export const getDocumentApi = async (id: string): Promise<GetDocumentResponse> => {
-  const response = await api.get(`/orgs/org_id/documents/${id}`);
+export const getDocumentApi = async (params: GetDocumentParams): Promise<GetDocumentResponse> => {
+  const { organizationId, documentId } = params;
+  const response = await api.get(`/orgs/${organizationId}/documents/${documentId}`);
   const data = response.data;
   
   // Convert base64 content back to ArrayBuffer

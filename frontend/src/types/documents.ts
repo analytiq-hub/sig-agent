@@ -43,6 +43,11 @@ export interface ListDocumentsParams {
   tagIds?: string;  // Added tag_ids parameter for filtering
 }
 
+export interface GetDocumentParams {
+  organizationId: string;
+  documentId: string;
+}
+
 export interface GetDocumentResponse {
   metadata: DocumentMetadata;
   content: ArrayBuffer;

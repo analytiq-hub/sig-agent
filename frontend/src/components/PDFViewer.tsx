@@ -100,7 +100,12 @@ const PDFViewer = ({ id }: { id: string }) => {
 
     const loadPDF = async () => {
       try {
-        const response = await getDocumentApi(id);
+        const response = await getDocumentApi(
+          {
+            organizationId: "org_unknown",
+            documentId: id
+          }
+        );
         
         // Create a blob from the array buffer
         const blob = new Blob([response.content], { type: 'application/pdf' });
