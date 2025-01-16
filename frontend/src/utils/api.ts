@@ -56,10 +56,12 @@ import {
   DeleteLLMResultParams,
 } from '@/types/index';
 import { 
-  PromptConfig, 
   Prompt, 
   ListPromptsResponse, 
-  ListPromptsParams 
+  ListPromptsParams,
+  GetPromptParams,
+  UpdatePromptParams,
+  DeletePromptParams,
 } from '@/types/index';
 import { TagCreate, Tag, ListTagsResponse } from '@/types/index';
 import { toast } from 'react-hot-toast';
@@ -324,35 +326,40 @@ export const deleteSchemaApi = async (params: DeleteSchemaParams) => {
 };
 
 // Prompt APIs
-export const createPromptApi = async (prompt: PromptConfig): Promise<Prompt> => {
-  const response = await api.post<Prompt>(`/orgs/org_id/prompts`, prompt);
+export const createPromptApi = async (params: CreatePromptParams): Promise<Prompt> => {
+  const { organizationId, prompt } = params;
+  const response = await api.post<Prompt>(`/orgs/${organizationId}/prompts`, prompt);
   return response.data;
 };
 
-export const getPromptsApi = async (params?: ListPromptsParams): Promise<ListPromptsResponse> => {
-  const response = await api.get<ListPromptsResponse>(`/orgs/org_id/prompts`, {
+export const listPromptsApi = async (params: ListPromptsParams): Promise<ListPromptsResponse> => {
+  const { organizationId, ...rest } = params;
+  const response = await api.get<ListPromptsResponse>(`/orgs/${organizationId}/prompts`, {
     params: {
-      skip: params?.skip || 0,
-      limit: params?.limit || 10,
-      document_id: params?.document_id,
-      tag_ids: params?.tag_ids
+      skip: rest?.skip || 0,
+      limit: rest?.limit || 10,
+      document_id: rest?.document_id,
+      tag_ids: rest?.tag_ids
     }
   });
   return response.data;
 };
 
-export const getPromptApi = async (promptId: string): Promise<Prompt> => {
-  const response = await api.get<Prompt>(`/orgs/org_id/prompts/${promptId}`);
+export const getPromptApi = async (params: GetPromptParams): Promise<Prompt> => {
+  const { organizationId, promptId } = params;
+  const response = await api.get<Prompt>(`/orgs/${organizationId}/prompts/${promptId}`);
   return response.data;
 };
 
-export const updatePromptApi = async (id: string, prompt: PromptConfig): Promise<Prompt> => {
-  const response = await api.put<Prompt>(`/orgs/org_id/prompts/${id}`, prompt);
+export const updatePromptApi = async (params: UpdatePromptParams): Promise<Prompt> => {
+  const { organizationId, promptId, prompt } = params;
+  const response = await api.put<Prompt>(`/orgs/${organizationId}/prompts/${promptId}`, prompt);
   return response.data;
 };
 
-export const deletePromptApi = async (promptId: string): Promise<void> => {
-  const response = await api.delete(`/orgs/org_id/prompts/${promptId}`);
+export const deletePromptApi = async (params: DeletePromptParams): Promise<void> => {
+  const { organizationId, promptId } = params;
+  const response = await api.delete(`/orgs/${organizationId}/prompts/${promptId}`);
   return response.data;
 };
 

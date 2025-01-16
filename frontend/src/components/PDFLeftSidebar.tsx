@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronDownIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { getLLMResultApi, getPromptsApi, runLLMApi } from '@/utils/api';
+import { getLLMResultApi, listPromptsApi, runLLMApi } from '@/utils/api';
 import type { Prompt } from '@/types/index';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
@@ -14,7 +14,7 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const promptsResponse = await getPromptsApi({ document_id: id, limit: 100 });
+        const promptsResponse = await listPromptsApi({organizationId: "org_unknown", document_id: id, limit: 100 });
         setMatchingPrompts(promptsResponse.prompts);
         
         // Fetch default prompt results

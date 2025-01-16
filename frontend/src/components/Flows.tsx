@@ -21,7 +21,7 @@ import FlowSidebar from '@/components/flow-nodes/FlowSidebar';
 import { Flow } from '@/types';
 import { Prompt } from '@/types/prompts';
 import { useFlowContext } from '@/contexts/FlowContext';
-import { getPromptsApi, runLLMApi, saveFlowApi, getTagsApi, getFlowApi, updateFlowApi } from '@/utils/api';
+import { listPromptsApi, runLLMApi, saveFlowApi, getTagsApi, getFlowApi, updateFlowApi } from '@/utils/api';
 import SaveFlowModal from '@/components/flow-nodes/SaveFlowModal';
 import { Tag } from '@/types/index';
 
@@ -43,7 +43,7 @@ const Flows: React.FC = () => {
     const loadData = async () => {
       try {
         const [promptsResponse, tagsResponse] = await Promise.all([
-          getPromptsApi(),
+          listPromptsApi({organizationId: "org_unknown"}),
           getTagsApi()
         ]);
         setPrompts(promptsResponse.prompts);

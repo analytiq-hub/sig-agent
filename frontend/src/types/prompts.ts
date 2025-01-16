@@ -18,15 +18,37 @@ export interface Prompt extends PromptConfig {
   created_by: string;
 }
 
+export interface CreatePromptParams {
+  organizationId: string;
+  prompt: PromptConfig;
+}
+
+export interface ListPromptsParams {
+  organizationId: string;
+  skip?: number;
+  limit?: number;
+  document_id?: string;
+  tag_ids?: string;
+}
+
 export interface ListPromptsResponse {
   prompts: Prompt[];
   total_count: number;
   skip: number;
 }
 
-export interface ListPromptsParams {
-  skip?: number;
-  limit?: number;
-  document_id?: string;
-  tag_ids?: string;
+export interface GetPromptParams {
+  organizationId: string;
+  promptId: string;
+}
+
+export interface UpdatePromptParams {
+  organizationId: string;
+  promptId: string;
+  prompt: PromptConfig;
+}
+
+export interface DeletePromptParams {
+  organizationId: string;
+  promptId: string;
 }

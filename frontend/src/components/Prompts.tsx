@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { createPromptApi, getPromptsApi, deletePromptApi, updatePromptApi, listSchemasApi, getSchemaApi, getTagsApi } from '@/utils/api';
+import { createPromptApi, listPromptsApi, deletePromptApi, updatePromptApi, listSchemasApi, getSchemaApi, getTagsApi } from '@/utils/api';
 import { Prompt, PromptConfig, Schema, Tag} from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -38,14 +38,14 @@ const Prompts: React.FC = () => {
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
 
-  const savePrompt = async (prompt: PromptConfig) => {
+  const savePrompt = async () => {
     try {
       setIsLoading(true);
       
       // Check for existing prompt with same name when creating new prompt
       if (!currentPromptId) {
         const existingPrompt = prompts.find(
-          p => p.name.toLowerCase() === prompt.name.toLowerCase()
+          p => p.name.toLowerCase() === currentPrompt.name.toLowerCase()
         );
         if (existingPrompt) {
           setMessage('Error: A prompt with this name already exists. To modify it, please use the edit button in the table.');
@@ -55,10 +55,10 @@ const Prompts: React.FC = () => {
 
       if (currentPromptId) {
         // Update existing prompt
-        await updatePromptApi(currentPromptId, prompt);
+        await updatePromptApi({organizationId: "org_unknown", promptId: currentPromptId, prompt: currentPrompt});
       } else {
         // Create new prompt
-        await createPromptApi(prompt);
+        await createPromptApi({organizationId: "org_unknown", prompt: currentPrompt});
       }
 
       // After successful save, reset to first page and reload
@@ -90,7 +90,8 @@ const Prompts: React.FC = () => {
   const loadPrompts = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await getPromptsApi({
+      const response = await listPromptsApi({
+        organizationId: "org_unknown",
         skip: page * pageSize,
         limit: pageSize
       });
@@ -107,7 +108,7 @@ const Prompts: React.FC = () => {
   const handleDelete = async (promptId: string) => {
     try {
       setIsLoading(true);
-      await deletePromptApi(promptId);
+      await deletePromptApi({organizationId: "org_unknown", promptId: promptId});
       setPrompts(prompts.filter(prompt => prompt.id !== promptId));
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error deleting prompt';
@@ -181,7 +182,7 @@ const Prompts: React.FC = () => {
       return;
     }
 
-    savePrompt(currentPrompt);
+    savePrompt();
   };
 
   // Add filtered prompts
