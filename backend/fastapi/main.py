@@ -363,23 +363,23 @@ async def get_document(
     current_user: User = Depends(get_current_user)
 ):
     """Get a document"""
-    ad.log.info(f"get_document() start: document_id: {document_id}")
+    ad.log.debug(f"get_document() start: document_id: {document_id}")
     analytiq_client = ad.common.get_analytiq_client()
 
     document = await ad.common.get_doc(analytiq_client, document_id)
     
     if not document:
-        ad.log.info(f"get_document() document not found: {document}")
+        ad.log.debug(f"get_document() document not found: {document}")
         raise HTTPException(status_code=404, detail="Document not found")
         
-    ad.log.info(f"get_document() found document: {document}")
+    ad.log.debug(f"get_document() found document: {document}")
 
     # Get the file from mongodb
     file = ad.common.get_file(analytiq_client, document["mongo_file_name"])
     if file is None:
         raise HTTPException(status_code=404, detail="File not found")
 
-    ad.log.info(f"get_document() got file: {document}")
+    ad.log.debug(f"get_document() got file: {document}")
 
     # Create metadata response
     metadata = DocumentMetadata(
