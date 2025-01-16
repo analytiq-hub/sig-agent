@@ -28,6 +28,7 @@ const FileList: React.FC = () => {
       setIsLoading(true);
       console.log('Fetching documents...', paginationModel);
       const response = await listDocumentsApi({
+        organizationId: "org_unknown",
         skip: paginationModel.page * paginationModel.pageSize,
         limit: paginationModel.pageSize
       });
@@ -80,7 +81,12 @@ const FileList: React.FC = () => {
 
   const handleDeleteFile = async (fileId: string) => {
     try {
-      await deleteDocumentApi(fileId);
+      await deleteDocumentApi(
+        {
+          organizationId: "org_unknown",
+          documentId: fileId
+        }
+      );
       // Refresh the file list after deletion
       fetchFiles();
     } catch (error) {

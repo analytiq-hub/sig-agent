@@ -104,7 +104,12 @@ const DocumentList: React.FC = () => {
 
   const handleDeleteFile = async (fileId: string) => {
     try {
-      await deleteDocumentApi(fileId);
+      await deleteDocumentApi(
+        {
+          organizationId: "org_unknown",
+          documentId: fileId
+        }
+      );
       // Refresh the file list after deletion
       fetchFiles();
     } catch (error) {

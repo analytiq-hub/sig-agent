@@ -58,3 +58,8 @@ export interface UpdateDocumentParams {
   documentId: string;
   tagIds: string[];
 }
+
+export interface DeleteDocumentParams {
+  organizationId: string;
+  documentId: string;
+}

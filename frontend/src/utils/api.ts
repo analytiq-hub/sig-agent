@@ -7,7 +7,8 @@ import {
   GetDocumentParams,
   GetDocumentResponse,
   UpdateDocumentParams,
-  ListDocumentsParams,
+  DeleteDocumentParams,
+  ListDocumentsParams
 } from '@/types/index';
 import { 
   UserCreate, 
@@ -206,8 +207,9 @@ export const updateDocumentApi = async (params: UpdateDocumentParams) => {
   return response.data;
 };
 
-export const deleteDocumentApi = async (id: string) => {
-  const response = await api.delete(`/orgs/org_id/documents/${id}`);
+export const deleteDocumentApi = async (params: DeleteDocumentParams) => {
+  const { organizationId, documentId } = params;
+  const response = await api.delete(`/orgs/${organizationId}/documents/${documentId}`);
   return response.data;
 };
 
