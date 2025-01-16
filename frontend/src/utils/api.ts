@@ -2,7 +2,6 @@ import axios, { isAxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/types/AppSession';
 import { 
-  DocumentWithContent,
   UploadDocumentsParams,
   UploadDocumentsResponse,
   GetDocumentResponse,
@@ -171,11 +170,11 @@ export const uploadDocumentsApi = async (params: UploadDocumentsParams): Promise
 };
 
 export const listDocumentsApi = async (params?: ListDocumentsParams) => {
-  const response = await api.get(`/orgs/${params?.organization_id}/documents`, { 
+  const response = await api.get(`/orgs/${params?.organizationId}/documents`, { 
     params: {
       skip: params?.skip || 0,
       limit: params?.limit || 10,
-      tag_ids: params?.tag_ids
+      tag_ids: params?.tagIds
     }
   });
   return response.data;

@@ -37,10 +37,10 @@ export interface ListDocumentsResponse {
 }
 
 export interface ListDocumentsParams {
-  organization_id: string;
+  organizationId: string;
   skip?: number;
   limit?: number;
-  tag_ids?: string;  // Added tag_ids parameter for filtering
+  tagIds?: string;  // Added tag_ids parameter for filtering
 }
 
 export interface GetDocumentResponse {

@@ -37,6 +37,7 @@ const DocumentList: React.FC = () => {
       setIsLoading(true);
       console.log('Fetching documents...', paginationModel);
       const response = await listDocumentsApi({
+        organizationId: "org_unknown",
         skip: paginationModel.page * paginationModel.pageSize,
         limit: paginationModel.pageSize
       });
@@ -53,6 +54,7 @@ const DocumentList: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 1000));
         try {
           const retryResponse = await listDocumentsApi({
+            organizationId: "org_unknown",
             skip: paginationModel.page * paginationModel.pageSize,
             limit: paginationModel.pageSize
           }); 
