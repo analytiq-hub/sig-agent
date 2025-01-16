@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createSchemaApi, getSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
-import { SchemaField, Schema } from '@/types/index';
+import { SchemaField, SchemaCreate, Schema } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
@@ -12,9 +12,11 @@ import colors from 'tailwindcss/colors'
 
 const Schemas = () => {
   const [schemas, setSchemas] = useState<Schema[]>([]);
-  const [currentSchema, setCurrentSchema] = useState<{id?: string; name: string; fields: SchemaField[]}>(
-    { name: '', fields: [{ name: '', type: 'str' }] }
-  );
+  const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
+  const [currentSchema, setCurrentSchema] = useState<SchemaCreate>({
+    name: '',
+    fields: [{ name: '', type: 'str' }]
+  });
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,12 +24,12 @@ const Schemas = () => {
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
 
-  const saveSchema = async (schema: {name: string; fields: SchemaField[]}) => {
+  const saveSchema = async (schema: SchemaCreate) => {
     try {
       setIsLoading(true);
       
-      if (currentSchema.id) {
-        await updateSchemaApi(currentSchema.id, schema);
+      if (currentSchemaId) {
+        await updateSchemaApi(currentSchemaId, schema);
       } else {
         await createSchemaApi(schema);
       }
@@ -115,7 +117,6 @@ const Schemas = () => {
       return;
     }
 
-    // Check for duplicate field names
     const fieldError = validateFields(currentSchema.fields);
     if (fieldError) {
       setMessage(`Error: ${fieldError}`);
@@ -124,6 +125,7 @@ const Schemas = () => {
 
     saveSchema(currentSchema);
     setCurrentSchema({ name: '', fields: [{ name: '', type: 'str' }] });
+    setCurrentSchemaId(null);
   };
 
   // Add filtered schemas
@@ -184,8 +186,8 @@ const Schemas = () => {
         <div className="flex gap-2 items-center h-full">
           <IconButton
             onClick={() => {
+              setCurrentSchemaId(params.row.id);
               setCurrentSchema({
-                id: params.row.id,
                 name: params.row.name,
                 fields: params.row.fields
               });

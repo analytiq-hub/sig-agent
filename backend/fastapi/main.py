@@ -656,6 +656,7 @@ async def delete_llm_result(
 # Add this helper function near the top of the file with other functions
 async def get_next_schema_version(schema_name: str) -> int:
     """Atomically get the next version number for a schema"""
+    db = ad.common.get_async_db()
     result = await db.schema_versions.find_one_and_update(
         {"_id": schema_name},
         {"$inc": {"version": 1}},
