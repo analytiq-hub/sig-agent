@@ -46,7 +46,13 @@ import {
 import { CreateTokenRequest } from '@/types/index';
 import { CreateLLMTokenRequest } from '@/types/index';
 import { AWSCredentials } from '@/types/index';
-import { LLMRunResponse, LLMResult } from '@/types/index';
+import { 
+  RunLLMParams,
+  RunLLMResponse, 
+  GetLLMResultParams,
+  GetLLMResultResponse,
+  DeleteLLMResultParams,
+} from '@/types/index';
 import { 
   PromptCreate, 
   Prompt, 
@@ -238,13 +244,10 @@ export const getOCRMetadataApi = async (params: GetOCRMetadataParams) => {
 };
 
 // LLM APIs
-export const runLLMAnalysisApi = async (
-  documentId: string,
-  promptId: string = 'default',
-  force: boolean = false
-) => {
-  const response = await api.post<LLMRunResponse>(
-    `/orgs/org_id/llm/run/${documentId}`,
+export const runLLMApi = async (params: RunLLMParams) => {
+  const { organizationId, documentId, promptId, force } = params;
+  const response = await api.post<RunLLMResponse>(
+    `/orgs/${organizationId}/llm/run/${documentId}`,
     {},
     {
       params: {
@@ -256,12 +259,10 @@ export const runLLMAnalysisApi = async (
   return response.data;
 };
 
-export const getLLMResultApi = async (
-  documentId: string,
-  promptId: string = 'default'
-) => {
-  const response = await api.get<LLMResult>(
-    `/orgs/org_id/llm/result/${documentId}`,
+export const getLLMResultApi = async (params: GetLLMResultParams) => {
+  const { organizationId, documentId, promptId } = params;
+  const response = await api.get<GetLLMResultResponse>(
+    `/orgs/${organizationId}/llm/result/${documentId}`,
     {
       params: {
         prompt_id: promptId
@@ -271,12 +272,10 @@ export const getLLMResultApi = async (
   return response.data;
 };
 
-export const deleteLLMResultApi = async (
-  documentId: string,
-  promptId: string
-) => {
+export const deleteLLMResultApi = async (params: DeleteLLMResultParams) => {
+  const { organizationId, documentId, promptId } = params;
   const response = await api.delete(
-    `/orgs/org_id/llm/result/${documentId}`,
+    `/orgs/${organizationId}/llm/result/${documentId}`,
     {
       params: {
         prompt_id: promptId

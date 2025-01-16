@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronDownIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { getLLMResultApi, getPromptsApi, runLLMAnalysisApi } from '@/utils/api';
+import { getLLMResultApi, getPromptsApi, runLLMApi } from '@/utils/api';
 import type { Prompt } from '@/types/index';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
@@ -18,7 +18,11 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
         setMatchingPrompts(promptsResponse.prompts);
         
         // Fetch default prompt results
-        const defaultResults = await getLLMResultApi(id);
+        const defaultResults = await getLLMResultApi({
+          organizationId: "org_unknown",
+          documentId: id, 
+          promptId: 'default',
+        });
         setLlmResults(prev => ({
           ...prev,
           default: defaultResults.llm_result
@@ -43,7 +47,11 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
     
     if (!llmResults[promptId]) {
       try {
-        const results = await getLLMResultApi(id, promptId);
+        const results = await getLLMResultApi({
+          organizationId: "org_unknown",
+          documentId: id, 
+          promptId: promptId,
+        });
         setLlmResults(prev => ({
           ...prev,
           [promptId]: results.llm_result
@@ -57,8 +65,17 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
   const handleRunPrompt = async (promptId: string) => {
     setRunningPrompts(prev => new Set(prev).add(promptId));
     try {
-      await runLLMAnalysisApi(id, promptId, true);
-      const results = await getLLMResultApi(id, promptId);
+      await runLLMApi({
+        organizationId: "org_unknown",
+        documentId: id, 
+        promptId: promptId,
+        force: true,
+      });
+      const results = await getLLMResultApi({
+        organizationId: "org_unknown",
+        documentId: id, 
+        promptId: promptId,
+      });
       setLlmResults(prev => ({
         ...prev,
         [promptId]: results.llm_result

@@ -21,7 +21,7 @@ import FlowSidebar from '@/components/flow-nodes/FlowSidebar';
 import { Flow } from '@/types';
 import { Prompt } from '@/types/prompts';
 import { useFlowContext } from '@/contexts/FlowContext';
-import { getPromptsApi, runLLMAnalysisApi, saveFlowApi, getTagsApi, getFlowApi, updateFlowApi } from '@/utils/api';
+import { getPromptsApi, runLLMApi, saveFlowApi, getTagsApi, getFlowApi, updateFlowApi } from '@/utils/api';
 import SaveFlowModal from '@/components/flow-nodes/SaveFlowModal';
 import { Tag } from '@/types/index';
 
@@ -183,12 +183,13 @@ const Flows: React.FC = () => {
           }), {});
 
           // Run LLM analysis with context
-          const result = await runLLMAnalysisApi(
-            context.documentId, 
-            node.data.promptId,
-            true,
+          const result = await runLLMApi({
+            organizationId: "org_unknown",
+            documentId: context.documentId, 
+            promptId: node.data.promptId,
+            force: true,
             //context // TODO: add context
-          );
+          });
 
           updateNodeData(node.id, result);
           break;
