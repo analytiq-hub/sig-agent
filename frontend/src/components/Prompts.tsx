@@ -18,9 +18,13 @@ const MonacoEditor = dynamic(() => import('./MonacoEditor'), {
 
 const Prompts: React.FC = () => {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
-  const [currentPrompt, setCurrentPrompt] = useState<{id?: string; name: string; content: string}>({
+  const [currentPromptId, setCurrentPromptId] = useState<string | null>(null);
+  const [currentPrompt, setCurrentPrompt] = useState<PromptCreate>({
     name: '',
-    content: ''
+    content: '',
+    schema_name: undefined,
+    schema_version: undefined,
+    tag_ids: []
   });
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,12 +38,12 @@ const Prompts: React.FC = () => {
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
 
-  const savePrompt = async (prompt: {name: string; content: string}) => {
+  const savePrompt = async (prompt: PromptCreate) => {
     try {
       setIsLoading(true);
       
       // Check for existing prompt with same name when creating new prompt
-      if (!currentPrompt.id) {
+      if (!currentPromptId) {
         const existingPrompt = prompts.find(
           p => p.name.toLowerCase() === prompt.name.toLowerCase()
         );
@@ -48,40 +52,13 @@ const Prompts: React.FC = () => {
           return;
         }
       }
-      
-      let savedPrompt: Prompt;
-      const promptData: PromptCreate = {
-        name: prompt.name,
-        content: prompt.content,
-        schema_name: selectedSchema || undefined,
-        schema_version: undefined,
-        tag_ids: selectedTagIds
-      };
 
-      // Only validate schema if one is selected
-      if (selectedSchema && selectedSchema !== "") {
-        try {
-          const schemaId = schemas.find(s => s.name === selectedSchema)?.id;
-          if (schemaId) {
-            const schema = await getSchemaApi(schemaId);
-            promptData.schema_version = schema.version || undefined;
-          }
-        } catch (error) {
-          console.error('Error fetching schema version:', error);
-          setMessage('Error: Unable to fetch schema version');
-          return;
-        }
-      }
-
-      if (currentPrompt.id) {
+      if (currentPromptId) {
         // Update existing prompt
-        savedPrompt = await updatePromptApi(currentPrompt.id, promptData);
-        // Reload all prompts to get the latest versions
-        await loadPrompts();
+        await updatePromptApi(currentPromptId, prompt);
       } else {
         // Create new prompt
-        savedPrompt = await createPromptApi(promptData);
-        setPrompts([...prompts, savedPrompt]);
+        await createPromptApi(prompt);
       }
 
       // After successful save, reset to first page and reload
@@ -89,7 +66,14 @@ const Prompts: React.FC = () => {
       await loadPrompts();
 
       // Clear the form
-      setCurrentPrompt({ name: '', content: '' });
+      setCurrentPrompt({
+        name: '',
+        content: '',
+        schema_name: undefined,
+        schema_version: undefined,
+        tag_ids: []
+      });
+      setCurrentPromptId(null);
       setSelectedSchema('');
       setSelectedSchemaDetails(null);
       setSelectedTagIds([]);
@@ -145,12 +129,25 @@ const Prompts: React.FC = () => {
 
   const handleSchemaSelect = async (schemaName: string) => {
     setSelectedSchema(schemaName);
+    
+    // Update currentPrompt with the new schema name (or undefined if no schema selected)
+    setCurrentPrompt(prev => ({
+      ...prev,
+      schema_name: schemaName || undefined,
+      schema_version: undefined  // Reset version until we load schema details
+    }));
+
     if (schemaName) {
       const schemaId = schemas.find(s => s.name === schemaName)?.id;
       if (schemaId) {
         try {
           const schema = await getSchemaApi(schemaId);
           setSelectedSchemaDetails(schema);
+          // Update currentPrompt with the schema version
+          setCurrentPrompt(prev => ({
+            ...prev,
+            schema_version: schema.version
+          }));
         } catch (error) {
           console.error('Error fetching schema details:', error);
           setMessage('Error: Unable to fetch schema details');
@@ -185,7 +182,6 @@ const Prompts: React.FC = () => {
     }
 
     savePrompt(currentPrompt);
-    setCurrentPrompt({ name: '', content: '' });
   };
 
   // Add filtered prompts
@@ -283,22 +279,20 @@ const Prompts: React.FC = () => {
         <div className="flex gap-2 items-center h-full">
           <IconButton
             onClick={async () => {
-              // Create the prompt data object first
-              const promptData = {
-                id: params.row.id,
+              setCurrentPromptId(params.row.id);
+              setCurrentPrompt({
                 name: params.row.name,
-                content: params.row.content
-              };
+                content: params.row.content,
+                schema_name: params.row.schema_name,
+                schema_version: params.row.schema_version,
+                tag_ids: params.row.tag_ids || []
+              });
               
-              // Update state in a more direct way
-              setCurrentPrompt(promptData);
+              setSelectedSchema(params.row.schema_name || '');
               
-              // Handle the rest of the updates
-              setSelectedTagIds(params.row.tag_ids || []);
               if (params.row.schema_name) {
                 await handleSchemaSelect(params.row.schema_name);
               } else {
-                setSelectedSchema('');
                 setSelectedSchemaDetails(null);
               }
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -335,7 +329,7 @@ const Prompts: React.FC = () => {
       {/* Prompt Creation Form */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
         <h2 className="text-xl font-bold mb-4">
-          {currentPrompt.id ? 'Edit Prompt' : 'Create Prompt'}
+          {currentPromptId ? 'Edit Prompt' : 'Create Prompt'}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
