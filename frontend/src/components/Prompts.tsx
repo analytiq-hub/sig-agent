@@ -53,12 +53,18 @@ const Prompts: React.FC = () => {
         }
       }
 
+      // Create the prompt object with tag_ids
+      const promptToSave = {
+        ...currentPrompt,
+        tag_ids: selectedTagIds
+      };
+
       if (currentPromptId) {
         // Update existing prompt
-        await updatePromptApi({organizationId: "org_unknown", promptId: currentPromptId, prompt: currentPrompt});
+        await updatePromptApi({organizationId: "org_unknown", promptId: currentPromptId, prompt: promptToSave});
       } else {
         // Create new prompt
-        await createPromptApi({organizationId: "org_unknown", prompt: currentPrompt});
+        await createPromptApi({organizationId: "org_unknown", prompt: promptToSave});
       }
 
       // After successful save, reset to first page and reload
@@ -288,6 +294,8 @@ const Prompts: React.FC = () => {
                 schema_version: params.row.schema_version,
                 tag_ids: params.row.tag_ids || []
               });
+              
+              setSelectedTagIds(params.row.tag_ids || []);
               
               setSelectedSchema(params.row.schema_name || '');
               
