@@ -59,7 +59,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [pdfControls, setPdfControls] = useState<PDFViewerControlsType | null>(null);
 
   const fileMenuItems = [
-    { text: 'Dashboard', icon: ChartPieIcon, tooltip: 'Dashboard', href: '/dashboard' },
+    { text: 'Dashboard', icon: ChartPieIcon, tooltip: 'Dashboard', href: `/orgs/${currentOrganization?.id}/dashboard` },
     { text: 'Upload', icon: ArrowUpTrayIcon, tooltip: 'Upload', href: `/orgs/${currentOrganization?.id}/upload` },
     { text: 'Documents', icon: ListBulletIcon, tooltip: 'Documents', href: `/orgs/${currentOrganization?.id}/list` },
   ];

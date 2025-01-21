@@ -16,8 +16,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 
 type File = DocumentMetadata;
 
-const FileList: React.FC = () => {
-  const { currentOrganization } = useOrganization();
+const FileList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [files, setFiles] = useState<File[]>([]);
   const [skipRows, setSkipRows] = useState<number>(0);
   const [countRows, setCountRows] = useState<number>(0);
@@ -30,7 +29,7 @@ const FileList: React.FC = () => {
       setIsLoading(true);
       console.log('Fetching documents...', paginationModel);
       const response = await listDocumentsApi({
-        organizationId: "org_unknown",
+        organizationId: organizationId,
         skip: paginationModel.page * paginationModel.pageSize,
         limit: paginationModel.pageSize
       });
@@ -47,7 +46,7 @@ const FileList: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 1000));
         try {
           const retryResponse = await listDocumentsApi({
-            organizationId: 'org_unknown',
+            organizationId: organizationId,
             skip: paginationModel.page * paginationModel.pageSize,
             limit: paginationModel.pageSize
           }); 
@@ -86,7 +85,7 @@ const FileList: React.FC = () => {
     try {
       await deleteDocumentApi(
         {
-          organizationId: "org_unknown",
+          organizationId: organizationId,
           documentId: fileId
         }
       );

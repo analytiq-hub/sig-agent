@@ -1,10 +1,10 @@
 import FileList from './FileList';
 
-const Dashboard: React.FC = () => {
+const Dashboard: React.FC<{ organizationId: string }> = ({ organizationId }) => {
 
   return (
     <div className="dashboard">
-      <FileList />
+      <FileList organizationId={organizationId} />
     </div>
   );
 };

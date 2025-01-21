@@ -3,11 +3,11 @@
 import React from 'react';
 import Dashboard from '@/components/Dashboard';
 
-const DashboardPage: React.FC = () => {
+const DashboardPage: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-xl font-bold mb-4">File Dashboard</h1>
-      <Dashboard />
+      <Dashboard organizationId={organizationId} />
     </div>
   );
 };
