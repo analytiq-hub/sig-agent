@@ -4,13 +4,13 @@ import DocumentList from '@/components/DocumentList';
 import Tags from '@/components/Tags';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function DocumentsPage() {
+export default function DocumentsPage({ params }: { params: { organizationId: string } }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tab = searchParams.get('tab') || 'documents';
 
   const handleTabChange = (newValue: string) => {
-    router.push(`/list?tab=${newValue}`);
+    router.push(`/orgs/${params.organizationId}/list?tab=${newValue}`);
   };
 
   return (
@@ -42,10 +42,10 @@ export default function DocumentsPage() {
 
       <div className="max-w-6xl mx-auto">
         <div role="tabpanel" hidden={tab !== 'documents'}>
-          {tab === 'documents' && <DocumentList />}
+          {tab === 'documents' && <DocumentList organizationId={params.organizationId} />}
         </div>
         <div role="tabpanel" hidden={tab !== 'tags'}>
-          {tab === 'tags' && <Tags />}
+          {tab === 'tags' && <Tags organizationId={params.organizationId} />}
         </div>
       </div>
     </div>

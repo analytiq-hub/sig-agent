@@ -21,7 +21,7 @@ import { DocumentUpdate } from './DocumentUpdate';
 
 type File = DocumentMetadata;  // Use type alias instead of interface
 
-const DocumentList: React.FC = () => {
+const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [files, setFiles] = useState<File[]>([]);
   const [skipRows, setSkipRows] = useState<number>(0);
   const [countRows, setCountRows] = useState<number>(0);
@@ -37,7 +37,7 @@ const DocumentList: React.FC = () => {
       setIsLoading(true);
       console.log('Fetching documents...', paginationModel);
       const response = await listDocumentsApi({
-        organizationId: "org_unknown",
+        organizationId: organizationId,
         skip: paginationModel.page * paginationModel.pageSize,
         limit: paginationModel.pageSize
       });
@@ -54,7 +54,7 @@ const DocumentList: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 1000));
         try {
           const retryResponse = await listDocumentsApi({
-            organizationId: "org_unknown",
+            organizationId: organizationId,
             skip: paginationModel.page * paginationModel.pageSize,
             limit: paginationModel.pageSize
           }); 
@@ -89,7 +89,7 @@ const DocumentList: React.FC = () => {
   useEffect(() => {
     const loadTags = async () => {
       try {
-        const response = await listTagsApi({ organizationId: "org_unknown" });
+        const response = await listTagsApi({ organizationId: organizationId });
         setTags(response.tags);
       } catch (error) {
         console.error('Error loading tags:', error);
@@ -106,7 +106,7 @@ const DocumentList: React.FC = () => {
     try {
       await deleteDocumentApi(
         {
-          organizationId: "org_unknown",
+          organizationId: organizationId,
           documentId: fileId
         }
       );
@@ -130,7 +130,7 @@ const DocumentList: React.FC = () => {
       
       await updateDocumentApi(
         {
-          organizationId: "org_unknown",
+          organizationId: organizationId,
           documentId: editingDocument.id,
           tagIds: tagIds
         }

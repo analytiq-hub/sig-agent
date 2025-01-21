@@ -11,7 +11,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors';
 import { isColorLight } from '@/utils/colors';
 
-const Tags = () => {
+const Tags = ({ organizationId }: { organizationId: string }) => {
   const [tags, setTags] = useState<Tag[]>([]);
   const [currentTag, setCurrentTag] = useState<{id?: string; name: string; color: string; description: string}>({
     name: '',
@@ -30,7 +30,7 @@ const Tags = () => {
       if (currentTag.id) {
         // Update existing tag
         savedTag = await updateTagApi({
-          organizationId: "org_unknown",
+          organizationId: organizationId,
           tagId: currentTag.id,
           tag: {
             name: tag.name,
@@ -44,7 +44,7 @@ const Tags = () => {
       } else {
         // Create new tag
         savedTag = await createTagApi({
-          organizationId: "org_unknown",
+          organizationId: organizationId,
           tag: tag
         });
         // Add new tag to the beginning of the list
@@ -65,7 +65,7 @@ const Tags = () => {
   const loadTags = async () => {
     try {
       setIsLoading(true);
-      const response = await listTagsApi({ organizationId: "org_unknown" });
+      const response = await listTagsApi({ organizationId: organizationId });
       setTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
@@ -78,7 +78,7 @@ const Tags = () => {
   const handleDelete = async (tagId: string) => {
     try {
       setIsLoading(true);
-      await deleteTagApi({ organizationId: "org_unknown", tagId: tagId });
+      await deleteTagApi({ organizationId: organizationId, tagId: tagId });
       setTags(tags.filter(tag => tag.id !== tagId));
       setMessage('Tag deleted successfully');
     } catch (error) {
