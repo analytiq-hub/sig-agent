@@ -12,7 +12,6 @@ import {
   deleteDocumentApi, 
 } from '@/utils/api';
 import { DocumentMetadata } from '@/types/index';
-import { useOrganization } from '@/contexts/OrganizationContext';
 
 type File = DocumentMetadata;
 

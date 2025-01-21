@@ -419,6 +419,7 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   return (
     <div className="flex h-[800px]">
       <FlowSidebar 
+        organizationId={organizationId}
         refreshTrigger={refreshSidebarTrigger} 
         onFlowSelect={handleFlowSelect}
       />
