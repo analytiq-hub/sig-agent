@@ -54,7 +54,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { role } = useRole();
   const router = useRouter();
   const pathname = usePathname();
-  const isPDFViewer = pathname.startsWith('/pdf-viewer/');
+  const isPDFViewer = pathname.includes('/pdf-viewer/');
   const [forceUpdate, setForceUpdate] = useState(0);
   const [pdfControls, setPdfControls] = useState<PDFViewerControlsType | null>(null);
 
@@ -65,11 +65,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   const modelMenuItems = [
-    { text: 'Models', icon: CubeIcon, tooltip: 'Models', href: '/models' },
+    { text: 'Models', icon: CubeIcon, tooltip: 'Models', href: `/orgs/${currentOrganization?.id}/models` },
   ];
 
   const flowMenuItems = [
-    { text: 'Flows', icon: Square3Stack3DIcon, tooltip: 'Flows', href: '/flows' },
+    { text: 'Flows', icon: Square3Stack3DIcon, tooltip: 'Flows', href: `/orgs/${currentOrganization?.id}/flows` },
   ];
 
   const systemMenuItems = [

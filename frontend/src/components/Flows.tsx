@@ -25,7 +25,7 @@ import { listPromptsApi, runLLMApi, createFlowApi, listTagsApi, getFlowApi, upda
 import SaveFlowModal from '@/components/flow-nodes/SaveFlowModal';
 import { Tag } from '@/types/index';
 
-const Flows: React.FC = () => {
+const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -43,8 +43,8 @@ const Flows: React.FC = () => {
     const loadData = async () => {
       try {
         const [promptsResponse, tagsResponse] = await Promise.all([
-          listPromptsApi({organizationId: "org_unknown"}),
-          listTagsApi({organizationId: "org_unknown"})
+          listPromptsApi({organizationId: organizationId}),
+          listTagsApi({organizationId: organizationId})
         ]);
         setPrompts(promptsResponse.prompts);
         setAvailableTags(tagsResponse.tags);
@@ -184,7 +184,7 @@ const Flows: React.FC = () => {
 
           // Run LLM analysis with context
           const result = await runLLMApi({
-            organizationId: "org_unknown",
+            organizationId: organizationId,
             documentId: context.documentId, 
             promptId: node.data.promptId,
             force: true,
@@ -343,14 +343,14 @@ const Flows: React.FC = () => {
       if (currentFlowId) {
         // Update existing flow
         await updateFlowApi({
-          organizationId: "org_unknown",
+          organizationId: organizationId,
           flowId: currentFlowId,
           flow: flowData
         });
       } else {
         // Create new flow
         await createFlowApi({
-          organizationId: "org_unknown",
+          organizationId: organizationId,
           flow: flowData
         });
       }
@@ -372,7 +372,7 @@ const Flows: React.FC = () => {
 
       // Load selected flow
       const flow = await getFlowApi({
-        organizationId: "org_unknown",
+        organizationId: organizationId,
         flowId: flowId
       });
       

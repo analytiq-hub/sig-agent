@@ -3,7 +3,7 @@ import { Box, Typography, Divider, CircularProgress } from '@mui/material';
 import { getOCRMetadataApi, getOCRTextApi } from '@/utils/api';
 import { GetOCRMetadataResponse } from '@/types/index';
 
-const PDFRightSidebar = ({ id }: { id: string }) => {
+const PDFRightSidebar = ({ organizationId, id }: { organizationId: string, id: string }) => {
   const [metadata, setMetadata] = useState<GetOCRMetadataResponse | null>(null);
   const [pages, setPages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +17,7 @@ const PDFRightSidebar = ({ id }: { id: string }) => {
         
         // First get metadata to know number of pages
         const meta = await getOCRMetadataApi({
-          organizationId: "org_unknown",
+          organizationId: organizationId,
           documentId: id
         });
         setMetadata(meta);
@@ -25,7 +25,7 @@ const PDFRightSidebar = ({ id }: { id: string }) => {
         // Then fetch text for each page
         const pagePromises = Array.from({ length: meta.n_pages }, (_, i) => 
           getOCRTextApi({
-            organizationId: "org_unknown",
+            organizationId: organizationId,
             documentId: id,
             pageNum: i + 1
           })

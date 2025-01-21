@@ -75,7 +75,7 @@ interface PDFMetadata {
   PDFFormatVersion?: string;
 }
 
-const PDFViewer = ({ id }: { id: string }) => {
+const PDFViewer = ({ organizationId, id }: { organizationId: string, id: string }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [error, setError] = useState<string | null>(null);
@@ -102,7 +102,7 @@ const PDFViewer = ({ id }: { id: string }) => {
       try {
         const response = await getDocumentApi(
           {
-            organizationId: "org_unknown",
+            organizationId: organizationId,
             documentId: id
           }
         );
@@ -357,7 +357,7 @@ const PDFViewer = ({ id }: { id: string }) => {
         setOcrLoading(true);
         setOcrError(null);
         const text = await getOCRTextApi({
-          organizationId: "org_unknown",
+          organizationId: organizationId,
           documentId: id,
           pageNum: pageNumber
         });

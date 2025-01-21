@@ -5,7 +5,7 @@ import type { Prompt } from '@/types/index';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
-const PDFLeftSidebar = ({ id }: { id: string }) => {
+const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: string }) => {
   const [llmResults, setLlmResults] = useState<Record<string, Record<string, JsonValue>>>({});
   const [matchingPrompts, setMatchingPrompts] = useState<Prompt[]>([]);
   const [runningPrompts, setRunningPrompts] = useState<Set<string>>(new Set());
@@ -14,12 +14,12 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const promptsResponse = await listPromptsApi({organizationId: "org_unknown", document_id: id, limit: 100 });
+        const promptsResponse = await listPromptsApi({organizationId: organizationId, document_id: id, limit: 100 });
         setMatchingPrompts(promptsResponse.prompts);
         
         // Fetch default prompt results
         const defaultResults = await getLLMResultApi({
-          organizationId: "org_unknown",
+          organizationId: organizationId,
           documentId: id, 
           promptId: 'default',
         });
@@ -48,7 +48,7 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
     if (!llmResults[promptId]) {
       try {
         const results = await getLLMResultApi({
-          organizationId: "org_unknown",
+          organizationId: organizationId,
           documentId: id, 
           promptId: promptId,
         });
@@ -66,13 +66,13 @@ const PDFLeftSidebar = ({ id }: { id: string }) => {
     setRunningPrompts(prev => new Set(prev).add(promptId));
     try {
       await runLLMApi({
-        organizationId: "org_unknown",
+        organizationId: organizationId,
         documentId: id, 
         promptId: promptId,
         force: true,
       });
       const results = await getLLMResultApi({
-        organizationId: "org_unknown",
+        organizationId: organizationId,
         documentId: id, 
         promptId: promptId,
       });

@@ -10,7 +10,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors'
 
 
-const Schemas = () => {
+const Schemas = ({ organizationId }: { organizationId: string }) => {
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
   const [currentSchema, setCurrentSchema] = useState<SchemaConfig>({
@@ -29,9 +29,9 @@ const Schemas = () => {
       setIsLoading(true);
       
       if (currentSchemaId) {
-        await updateSchemaApi({organizationId: "org_unknown", schemaId: currentSchemaId, schema});
+        await updateSchemaApi({organizationId: organizationId, schemaId: currentSchemaId, schema});
       } else {
-        await createSchemaApi({organizationId: "org_unknown", ...schema });
+        await createSchemaApi({organizationId: organizationId, ...schema });
       }
 
       setPage(0);
@@ -49,7 +49,7 @@ const Schemas = () => {
     try {
       setIsLoading(true);
       const response = await listSchemasApi({
-        organizationId: "org_unknown",
+        organizationId: organizationId,
         skip: page * pageSize,
         limit: pageSize
       });
@@ -66,7 +66,7 @@ const Schemas = () => {
   const handleDelete = async (schemaId: string) => {
     try {
       setIsLoading(true);
-      await deleteSchemaApi({organizationId: "org_unknown", schemaId});
+      await deleteSchemaApi({organizationId: organizationId, schemaId});
       setSchemas(schemas.filter(schema => schema.id !== schemaId));
       setMessage('Schema deleted successfully');
     } catch (error) {

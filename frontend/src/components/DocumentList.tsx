@@ -157,7 +157,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       flex: 1,
       renderCell: (params) => {
         return (
-          <Link href={`/pdf-viewer/${params.row.id}`}
+          <Link href={`/orgs/${organizationId}/pdf-viewer/${params.row.id}`}
             style={{ color: 'blue', textDecoration: 'underline' }}>
             {params.value}
           </Link>

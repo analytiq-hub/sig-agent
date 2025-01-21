@@ -16,7 +16,7 @@ const MonacoEditor = dynamic(() => import('./MonacoEditor'), {
   ssr: false,
 });
 
-const Prompts: React.FC = () => {
+const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [currentPromptId, setCurrentPromptId] = useState<string | null>(null);
   const [currentPrompt, setCurrentPrompt] = useState<PromptConfig>({
@@ -61,10 +61,10 @@ const Prompts: React.FC = () => {
 
       if (currentPromptId) {
         // Update existing prompt
-        await updatePromptApi({organizationId: "org_unknown", promptId: currentPromptId, prompt: promptToSave});
+        await updatePromptApi({organizationId: organizationId, promptId: currentPromptId, prompt: promptToSave});
       } else {
         // Create new prompt
-        await createPromptApi({organizationId: "org_unknown", prompt: promptToSave});
+        await createPromptApi({organizationId: organizationId, prompt: promptToSave});
       }
 
       // After successful save, reset to first page and reload
@@ -97,7 +97,7 @@ const Prompts: React.FC = () => {
     try {
       setIsLoading(true);
       const response = await listPromptsApi({
-        organizationId: "org_unknown",
+        organizationId: organizationId,
         skip: page * pageSize,
         limit: pageSize
       });
@@ -114,7 +114,7 @@ const Prompts: React.FC = () => {
   const handleDelete = async (promptId: string) => {
     try {
       setIsLoading(true);
-      await deletePromptApi({organizationId: "org_unknown", promptId: promptId});
+      await deletePromptApi({organizationId: organizationId, promptId: promptId});
       setPrompts(prompts.filter(prompt => prompt.id !== promptId));
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error deleting prompt';
@@ -126,7 +126,7 @@ const Prompts: React.FC = () => {
 
   const loadSchemas = async () => {
     try {
-      const response = await listSchemasApi({ organizationId: "org_unknown" });
+      const response = await listSchemasApi({ organizationId: organizationId });
       setSchemas(response.schemas);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
@@ -148,7 +148,7 @@ const Prompts: React.FC = () => {
       const schemaId = schemas.find(s => s.name === schemaName)?.id;
       if (schemaId) {
         try {
-          const schema = await getSchemaApi({ organizationId: "org_unknown", schemaId });
+          const schema = await getSchemaApi({ organizationId: organizationId, schemaId });
           setSelectedSchemaDetails(schema);
           // Update currentPrompt with the schema version
           setCurrentPrompt(prev => ({
@@ -167,7 +167,7 @@ const Prompts: React.FC = () => {
 
   const loadTags = async () => {
     try {
-      const response = await listTagsApi({ organizationId: "org_unknown" });
+      const response = await listTagsApi({ organizationId: organizationId });
       setAvailableTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';

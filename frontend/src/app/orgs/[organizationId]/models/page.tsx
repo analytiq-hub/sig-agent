@@ -4,13 +4,13 @@ import Schemas from '@/components/Schemas';
 import Prompts from '@/components/Prompts';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function ModelsPage() {
+export default function ModelsPage({ params }: { params: { organizationId: string } }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tab = searchParams.get('tab') || 'schemas';
 
   const handleTabChange = (newValue: string) => {
-    router.push(`/models?tab=${newValue}`);
+    router.push(`/orgs/${params.organizationId}/models?tab=${newValue}`);
   };
 
   return (
@@ -42,10 +42,10 @@ export default function ModelsPage() {
 
       <div className="max-w-6xl mx-auto">
         <div role="tabpanel" hidden={tab !== 'schemas'}>
-          {tab === 'schemas' && <Schemas />}
+          {tab === 'schemas' && <Schemas organizationId={params.organizationId} />}
         </div>
         <div role="tabpanel" hidden={tab !== 'prompts'}>
-          {tab === 'prompts' && <Prompts />}
+          {tab === 'prompts' && <Prompts organizationId={params.organizationId} />}
         </div>
       </div>
     </div>

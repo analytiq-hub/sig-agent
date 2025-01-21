@@ -17,6 +17,7 @@ interface NodeType {
 }
 
 interface FlowSidebarProps {
+  organizationId: string;
   refreshTrigger?: number;
   onFlowSelect: (flowId: string) => void;
 }
@@ -63,19 +64,19 @@ const nodeTypes: NodeType[] = [
   }
 ];
 
-const FlowSidebar: React.FC<FlowSidebarProps> = ({ refreshTrigger, onFlowSelect }) => {
+const FlowSidebar: React.FC<FlowSidebarProps> = ({ organizationId, refreshTrigger, onFlowSelect }) => {
   const [savedFlows, setSavedFlows] = useState<FlowMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    loadSavedFlows();
-  }, [refreshTrigger]);
+    loadSavedFlows(organizationId);
+  }, [refreshTrigger, organizationId]);
 
-  const loadSavedFlows = async () => {
+  const loadSavedFlows = async (organizationId: string) => {
     try {
       setIsLoading(true);
       const response = await listFlowsApi({
-        organizationId: "org_unknown"
+        organizationId: organizationId
       });
       setSavedFlows(response.flows);
     } catch (error) {
@@ -97,10 +98,10 @@ const FlowSidebar: React.FC<FlowSidebarProps> = ({ refreshTrigger, onFlowSelect 
     e.stopPropagation(); // Prevent flow selection when clicking delete
     try {
       await deleteFlowApi({
-        organizationId: "org_unknown",
+        organizationId: organizationId,
         flowId: flowId
       });
-      loadSavedFlows(); // Refresh the list
+      loadSavedFlows(organizationId); // Refresh the list
     } catch (error) {
       console.error('Error deleting flow:', error);
     }
