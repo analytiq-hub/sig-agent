@@ -9,6 +9,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors';
+import { useCallback } from 'react';
 import { isColorLight } from '@/utils/colors';
 
 const Tags = ({ organizationId }: { organizationId: string }) => {
