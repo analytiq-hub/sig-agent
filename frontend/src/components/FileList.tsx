@@ -69,7 +69,7 @@ const FileList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [paginationModel]);
+  }, [paginationModel, organizationId]);
 
   useEffect(() => {
     console.log('FileList component mounted or pagination changed');

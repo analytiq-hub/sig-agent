@@ -78,7 +78,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     } finally {
       setIsLoading(false);
     }
-  }, [paginationModel]);
+  }, [paginationModel, organizationId]);
 
   useEffect(() => {
     console.log('FileList component mounted or pagination changed');
@@ -96,7 +96,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       }
     };
     loadTags();
-  }, []);
+  }, [organizationId]);
 
   // Calculate the current range
   const startRange = skipRows + 1;

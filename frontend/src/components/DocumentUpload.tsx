@@ -34,7 +34,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
       }
     };
     fetchTags();
-  }, []);
+  }, [organizationId]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const readFiles = acceptedFiles.map(file => 

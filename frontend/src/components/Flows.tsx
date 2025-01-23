@@ -53,7 +53,7 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       }
     };
     loadData();
-  }, []);
+  }, [organizationId]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
