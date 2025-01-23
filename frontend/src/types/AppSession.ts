@@ -3,9 +3,9 @@ import { Session } from "next-auth";
 export interface AppSession extends Session {
     user: {
       id: string;
-      email?: string | null;
+      email: string;
       name?: string | null;
-      role: string;
+      role: "user" | "admin";
     };
     providerAccessToken: string;
     apiAccessToken: string;
