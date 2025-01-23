@@ -26,22 +26,12 @@ const SaveFlowModal: React.FC<SaveFlowModalProps> = ({
   const [error, setError] = useState('');
 
   useEffect(() => {
-    console.log('Modal effect triggered:', {
-      isOpen,
-      initialValues,
-      currentName: name,
-      currentDescription: description,
-      currentTags: selectedTagIds
-    });
-
     if (isOpen) {
       if (initialValues) {
-        console.log('Setting initial values:', initialValues);
         setName(initialValues.name);
         setDescription(initialValues.description || '');
         setSelectedTagIds(initialValues.tag_ids || []);
       } else {
-        console.log('Resetting to empty values');
         setName('');
         setDescription('');
         setSelectedTagIds([]);
@@ -49,6 +39,16 @@ const SaveFlowModal: React.FC<SaveFlowModalProps> = ({
       setError('');
     }
   }, [isOpen, initialValues]);
+
+  useEffect(() => {
+    console.log('Modal effect triggered:', {
+      isOpen,
+      initialValues,
+      currentName: name,
+      currentDescription: description,
+      currentTags: selectedTagIds
+    });
+  }, [isOpen, initialValues, name, description, selectedTagIds]);
 
   const handleSave = async () => {
     console.log('Saving with values:', {

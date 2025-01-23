@@ -62,7 +62,7 @@ const Tags = ({ organizationId }: { organizationId: string }) => {
     }
   };
 
-  const loadTags = async () => {
+  const loadTags = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await listTagsApi({ organizationId: organizationId });
@@ -73,7 +73,11 @@ const Tags = ({ organizationId }: { organizationId: string }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [organizationId]);
+
+  useEffect(() => {
+    loadTags();
+  }, [loadTags]);
 
   const handleDelete = async (tagId: string) => {
     try {
@@ -91,7 +95,7 @@ const Tags = ({ organizationId }: { organizationId: string }) => {
 
   useEffect(() => {
     loadTags();
-  }, []);
+  }, [loadTags]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

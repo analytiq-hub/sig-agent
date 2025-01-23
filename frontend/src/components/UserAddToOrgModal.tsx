@@ -1,10 +1,9 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { getUsersApi, createInvitationApi } from '@/utils/api';
 import { UserResponse } from '@/types/index';
-import debounce from 'lodash/debounce';
 import { toast } from 'react-hot-toast';
 
 interface UserAddToOrgModalProps {
@@ -26,33 +25,30 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
   const [searchResults, setSearchResults] = useState<UserResponse[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const debouncedSearch = useCallback(
-    debounce(async (query: string) => {
-      if (!query) {
-        setSearchResults([]);
-        return;
-      }
-
-      try {
-        const response = await getUsersApi();
-        const filteredUsers = response.users.filter(user =>
-          !currentMembers.includes(user.id) && (
-            user.email.toLowerCase().includes(query.toLowerCase()) ||
-            (user.name && user.name.toLowerCase().includes(query.toLowerCase()))
-          )
-        );
-        setSearchResults(filteredUsers);
-      } catch (error) {
-        console.error('Failed to search users:', error);
-      }
-    }, 500),
-    [currentMembers]
-  );
-
   useEffect(() => {
-    debouncedSearch(email);
-    return () => debouncedSearch.cancel();
-  }, [email, debouncedSearch]);
+    if (!email) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      getUsersApi()
+        .then(response => {
+          const filteredUsers = response.users.filter(user =>
+            !currentMembers.includes(user.id) && (
+              user.email.toLowerCase().includes(email.toLowerCase()) ||
+              (user.name && user.name.toLowerCase().includes(email.toLowerCase()))
+            )
+          );
+          setSearchResults(filteredUsers);
+        })
+        .catch(error => {
+          console.error('Failed to search users:', error);
+        });
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [email, currentMembers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
