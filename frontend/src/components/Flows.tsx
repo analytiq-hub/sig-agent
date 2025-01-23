@@ -151,7 +151,6 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
 
   const executeNode = async (node: Node) => {
     try {
-      // Get input nodes for this node
       const inputEdges = edges.filter(e => e.target === node.id);
       const inputData = inputEdges.map(edge => nodeData[edge.source]);
 
@@ -161,9 +160,9 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             throw new Error(`File not selected for node ${node.data.label}`);
           }
           
-          // Read file content
           const content = await readFileContent(node.data.file);
           updateNodeData(node.id, {
+            label: node.data.label,
             content,
             type: node.data.file.type,
             name: node.data.file.name
@@ -176,33 +175,26 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             throw new Error(`Prompt not selected for node ${node.data.label}`);
           }
 
-          // Combine all input data into context
-          const context = inputData.reduce((acc, input) => ({
-            ...acc,
-            ...input
-          }), {});
-
-          // Run LLM analysis with context
           const result = await runLLMApi({
             organizationId: organizationId,
-            documentId: context.documentId, 
+            documentId: "TO DO: get documentId from node data",
             promptId: node.data.promptId,
             force: true,
-            //context // TODO: add context
           });
 
-          updateNodeData(node.id, result);
+          updateNodeData(node.id, {
+            label: node.data.label,
+            ...result
+          });
           break;
         }
 
         case 'llmOutput': {
-          // Combine all input results
           const result = inputData.reduce((acc, input) => ({
             ...acc,
             ...input
           }), {});
 
-          // Update node display
           setNodes(nds => 
             nds.map(n => 
               n.id === node.id 
@@ -211,7 +203,10 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             )
           );
 
-          updateNodeData(node.id, result);
+          updateNodeData(node.id, {
+            label: node.data.label,
+            ...result
+          });
           break;
         }
       }

@@ -40,6 +40,7 @@ export interface NodeData {
   content?: string;
   type?: string;
   name?: string;
+  documentId?: string;
 }
 
 export interface DocumentNodeProps {
