@@ -35,7 +35,7 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
     if (id) {
       fetchData();
     }
-  }, [id]);
+  }, [id, organizationId]);
 
   const handlePromptChange = async (promptId: string) => {
     if (expandedPrompt === promptId) {

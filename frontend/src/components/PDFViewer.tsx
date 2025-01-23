@@ -146,7 +146,7 @@ const PDFViewer = ({ organizationId, id }: { organizationId: string, id: string 
       }
       setFile(null);
     };
-  }, [id]);
+  }, [id, organizationId]);
 
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -371,7 +371,7 @@ const PDFViewer = ({ organizationId, id }: { organizationId: string, id: string 
     };
 
     fetchOcrText();
-  }, [id, pageNumber, showOcr]);
+  }, [id, pageNumber, showOcr, organizationId]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>

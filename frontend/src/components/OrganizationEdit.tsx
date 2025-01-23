@@ -267,19 +267,6 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     return updatedMembers.some(member => member.role === 'admin');
   };
 
-  const handleUserInvited = () => {
-    // Refresh the members list after a successful invitation
-    const fetchData = async () => {
-      try {
-        const organization = await getOrganizationApi(organizationId);
-        setMembers(organization.members);
-      } catch (error) {
-        console.error('Failed to refresh members:', error);
-      }
-    };
-    fetchData();
-  };
-
   // Replace the permission check block with this:
   if (!loading && !isOrgAdmin && !isSysAdmin) {
     return (

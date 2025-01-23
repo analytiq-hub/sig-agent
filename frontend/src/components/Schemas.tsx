@@ -61,7 +61,7 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize]);
+  }, [page, pageSize, organizationId]);
 
   const handleDelete = async (schemaId: string) => {
     try {

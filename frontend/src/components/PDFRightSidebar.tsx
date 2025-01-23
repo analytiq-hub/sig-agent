@@ -41,7 +41,7 @@ const PDFRightSidebar = ({ organizationId, id }: { organizationId: string, id: s
     };
 
     fetchOCRData();
-  }, [id]);
+  }, [id, organizationId]);
 
   if (loading) {
     return (

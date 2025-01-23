@@ -109,7 +109,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize]);
+  }, [page, pageSize, organizationId]);
 
   const handleDelete = async (promptId: string) => {
     try {
@@ -124,7 +124,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     }
   };
 
-  const loadSchemas = async () => {
+  const loadSchemas = useCallback(async () => {
     try {
       const response = await listSchemasApi({ organizationId: organizationId });
       setSchemas(response.schemas);
@@ -132,7 +132,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
       setMessage('Error: ' + errorMsg);
     }
-  };
+  }, [organizationId]);
 
   const handleSchemaSelect = async (schemaName: string) => {
     setSelectedSchema(schemaName);
@@ -165,7 +165,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     }
   };
 
-  const loadTags = async () => {
+  const loadTags = useCallback(async () => {
     try {
       const response = await listTagsApi({ organizationId: organizationId });
       setAvailableTags(response.tags);
@@ -173,13 +173,13 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
       setMessage('Error: ' + errorMsg);
     }
-  };
+  }, [organizationId]);
 
   useEffect(() => {
     loadPrompts();
     loadSchemas();
     loadTags();
-  }, [loadPrompts]);
+  }, [loadPrompts, loadSchemas, loadTags]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
