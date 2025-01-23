@@ -5,7 +5,7 @@ export interface AppSession extends Session {
       id: string;
       email: string;
       name?: string | null;
-      role: "user" | "admin";
+      role: string;
     };
     providerAccessToken: string;
     apiAccessToken: string;
