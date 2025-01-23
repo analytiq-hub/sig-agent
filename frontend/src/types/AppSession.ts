@@ -9,4 +9,5 @@ export interface AppSession extends Session {
     };
     providerAccessToken: string;
     apiAccessToken: string;
+    expires: string;
 }

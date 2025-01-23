@@ -1,6 +1,5 @@
 import "@/styles/globals.css";
 import React from 'react';
-import { Session } from "next-auth";
 import SessionProvider from "@/components/SessionProvider"
 import Layout from '@/components/Layout';
 import ThemeRegistry from '@/components/ThemeRegistry';
@@ -21,13 +20,13 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await getAppServerSession();
+  const appSession = await getAppServerSession();
   return (
     <html lang="en">
       <body>
         <Toaster position="top-right" />
         <ThemeRegistry>
-          <SessionProvider session={session as Session | null | undefined}>
+          <SessionProvider session={appSession}>
             <OrganizationProvider>
               <Layout>{children}</Layout>
             </OrganizationProvider>

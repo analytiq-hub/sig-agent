@@ -197,12 +197,11 @@ export const authOptions: NextAuthOptions = {
             appSession.user.role = token.role;
             appSession.providerAccessToken = token.providerAccessToken as string;
             appSession.apiAccessToken = token.apiAccessToken as string;
+            appSession.expires = session.expires;
             
             if (session.user && token.name) {
                 session.user.name = token.name;
             }
-
-            //console.log('AppSession in auth.ts:', appSession);
             
             return appSession;
         },
