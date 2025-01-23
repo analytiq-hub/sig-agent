@@ -37,6 +37,9 @@ export interface NodeData {
   promptName?: string;
   file?: File;
   result?: Record<string, unknown>;
+  content?: string;
+  type?: string;
+  name?: string;
 }
 
 export interface DocumentNodeProps {
