@@ -88,7 +88,7 @@ const AccessTokenManager: React.FC = () => {
         className="mb-4"
         onClick={() => setOpenModal(true)}
       >
-        Generate token
+        Generate Account Token
       </Button>
       <div className="mb-6"></div>
       <TableContainer component={Paper}>
@@ -130,7 +130,7 @@ const AccessTokenManager: React.FC = () => {
       </TableContainer>
 
       <Dialog open={openModal} onClose={() => setOpenModal(false)}>
-        <DialogTitle>Generate token</DialogTitle>
+        <DialogTitle>Generate Account Token</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus

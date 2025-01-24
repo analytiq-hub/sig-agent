@@ -1,6 +1,6 @@
 # main.py
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body, Security, Response, BackgroundTasks
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body, Security, Response, BackgroundTasks, Request
 from fastapi.encoders import jsonable_encoder  # Add this import
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
@@ -110,19 +110,39 @@ app.add_middleware(
     expose_headers=["Content-Disposition"] # Needed to expose the Content-Disposition header to the frontend
 )
 
-# Modify get_current_user to validate userId in database
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
-    
-    db = ad.common.get_async_db()
+# Add this helper to get API context
+def get_api_context(path: str) -> tuple[str, Optional[str]]:
+    """
+    Parse the API path to determine context (account vs org) and org_id if present.
+    Returns (context_type, organization_id)
+    """
+    parts = path.split('/')
+    if parts[1] == "account":
+        return "account", None
+    elif parts[1] == "orgs" and len(parts) > 2:
+        return "organization", parts[2]
+    return "unknown", None
 
+# Modify get_current_user to validate based on context
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security), request: Request = None):
+    """
+    Validate user based on JWT or API token, considering the API context.
+    Account APIs only accept account-level tokens.
+    Organization APIs only accept org-specific tokens for that organization.
+    """
+    db = ad.common.get_async_db()
     token = credentials.credentials
+    
+    # Get API context
+    context_type, org_id = get_api_context(request.url.path)
+    
     try:
-        # First, try to validate as JWT
+        # First, try to validate as JWT (always valid for both contexts)
         payload = jwt.decode(token, FASTAPI_SECRET, algorithms=[ALGORITHM])
         userId: str = payload.get("userId")
         userName: str = payload.get("userName")
         email: str = payload.get("email")
-        ad.log.debug(f"get_current_user(): userId: {userId}, userName: {userName}, email: {email}")
+        
         if userName is None:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
         
@@ -131,15 +151,29 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
         if not user:
             raise HTTPException(status_code=401, detail="User not found in database")
             
-        return User(user_id=userId,
-                    user_name=userName,
-                    token_type="jwt")
+        return User(
+            user_id=userId,
+            user_name=userName,
+            token_type="jwt"
+        )
                    
     except JWTError:
-        ad.log.debug(f"get_current_user(): JWT validation failed")
         # If JWT validation fails, check if it's an API token
         encrypted_token = ad.crypto.encrypt_token(token)
-        stored_token = await db.access_tokens.find_one({"token": encrypted_token})
+        
+        # Build query based on context
+        token_query = {"token": encrypted_token}
+        
+        if context_type == "account":
+            # For account APIs, only accept account-level tokens
+            token_query["organization_id"] = None
+        elif context_type == "organization" and org_id:
+            # For org APIs, only accept tokens for that specific org
+            token_query["organization_id"] = org_id
+        else:
+            raise HTTPException(status_code=401, detail="Invalid API context")
+            
+        stored_token = await db.access_tokens.find_one(token_query)
         
         if stored_token:
             # Validate that user_id from stored token exists in database
@@ -156,8 +190,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
 # Add this helper function to check admin status
-async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(security)):
-    user = await get_current_user(credentials)
+async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(security), request: Request = None):
+    user = await get_current_user(credentials, request)
     db = ad.common.get_async_db()
 
     # Check if user has admin role in database
@@ -1459,10 +1493,44 @@ async def create_auth_token(user_data: dict = Body(...)):
     )
     return {"token": token}
 
+async def get_current_org(
+    current_user: User = Depends(get_current_user),
+    organization_id: Optional[str] = None
+) -> Optional[str]:
+    """
+    Get the current organization ID if valid for the user.
+    Returns None for account-level access.
+    Raises HTTPException if organization_id is provided but invalid.
+    """
+    if not organization_id:
+        return None
+        
+    db = ad.common.get_async_db()
+    
+    # Check if user is member of the organization
+    org = await db.organizations.find_one({
+        "_id": ObjectId(organization_id),
+        "members": {
+            "$elemMatch": {
+                "user_id": current_user.user_id
+            }
+        }
+    })
+    
+    if not org:
+        raise HTTPException(
+            status_code=403,
+            detail="User is not a member of this organization"
+        )
+    
+    return organization_id
+
+# Update the access token endpoints to use organization context
 @app.post("/account/access_tokens", response_model=AccessToken, tags=["account/access_tokens"])
 async def access_token_create(
     request: CreateAccessTokenRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    organization_id: Optional[str] = Depends(get_current_org)
 ):
     """Create an API token"""
     ad.log.debug(f"Creating API token for user: {current_user} request: {request}")
@@ -1471,8 +1539,9 @@ async def access_token_create(
     token = secrets.token_urlsafe(32)
     new_token = {
         "user_id": current_user.user_id,
+        "organization_id": organization_id,  # This will be None for account-level tokens
         "name": request.name,
-        "token": ad.crypto.encrypt_token(token),  # Store encrypted token
+        "token": ad.crypto.encrypt_token(token),
         "created_at": datetime.now(UTC),
         "lifetime": request.lifetime
     }
@@ -1484,15 +1553,30 @@ async def access_token_create(
     return new_token
 
 @app.get("/account/access_tokens", response_model=ListAccessTokensResponse, tags=["account/access_tokens"])
-async def access_token_list(current_user: User = Depends(get_current_user)):
+async def access_token_list(
+    current_user: User = Depends(get_current_user),
+    organization_id: Optional[str] = Depends(get_current_org)
+):
     """List API tokens"""
     db = ad.common.get_async_db()
-    cursor = db.access_tokens.find({"user_id": current_user.user_id})
+    
+    # Build query for either org-specific or account-level tokens
+    query = {
+        "user_id": current_user.user_id,
+    }
+    if organization_id:
+        query["organization_id"] = organization_id
+    else:
+        # For account-level listing, only show tokens without organization_id
+        query["organization_id"] = None
+        
+    cursor = db.access_tokens.find(query)
     tokens = await cursor.to_list(length=None)
     ret = [
         {
             "id": str(token["_id"]),
             "user_id": token["user_id"],
+            "organization_id": token.get("organization_id"),
             "name": token["name"],
             "token": token["token"],
             "created_at": token["created_at"],
@@ -1500,24 +1584,31 @@ async def access_token_list(current_user: User = Depends(get_current_user)):
         }
         for token in tokens
     ]
-    ad.log.debug(f"list_access_tokens(): {ret}")
     return ListAccessTokensResponse(access_tokens=ret)
 
 @app.delete("/account/access_tokens/{token_id}", tags=["account/access_tokens"])
 async def access_token_delete(
     token_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    organization_id: Optional[str] = Depends(get_current_org)
 ):
     """Delete an API token"""
     db = ad.common.get_async_db()
-    result = await db.access_tokens.delete_one({
+    
+    # Build query to ensure user can only delete their own tokens
+    query = {
         "_id": ObjectId(token_id),
-        "user_id": current_user.user_id
-    })
+        "user_id": current_user.user_id,
+    }
+    if organization_id:
+        query["organization_id"] = organization_id
+    else:
+        query["organization_id"] = None
+        
+    result = await db.access_tokens.delete_one(query)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
-
 
 @app.post("/account/llm_tokens", response_model=LLMToken, tags=["account/llm_tokens"])
 async def llm_token_create(
@@ -2651,6 +2742,150 @@ async def accept_invitation(
             status_code=500,
             detail=f"Failed to create account: {str(e)}"
         )
+
+# Account-level access tokens
+@app.post("/account/access_tokens", response_model=AccessToken, tags=["account/access_tokens"])
+async def create_account_token(
+    request: CreateAccessTokenRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Create an account-level API token"""
+    ad.log.debug(f"Creating account token for user: {current_user} request: {request}")
+    db = ad.common.get_async_db()
+
+    token = secrets.token_urlsafe(32)
+    new_token = {
+        "user_id": current_user.user_id,
+        "organization_id": None,  # Explicitly set to None for account-level tokens
+        "name": request.name,
+        "token": ad.crypto.encrypt_token(token),
+        "created_at": datetime.now(UTC),
+        "lifetime": request.lifetime
+    }
+    result = await db.access_tokens.insert_one(new_token)
+
+    new_token["token"] = token  # Return plaintext token to user
+    new_token["id"] = str(result.inserted_id)
+    return new_token
+
+@app.get("/account/access_tokens", response_model=ListAccessTokensResponse, tags=["account/access_tokens"])
+async def list_account_tokens(
+    current_user: User = Depends(get_current_user)
+):
+    """List account-level API tokens"""
+    db = ad.common.get_async_db()
+    
+    cursor = db.access_tokens.find({
+        "user_id": current_user.user_id,
+        "organization_id": None  # Only get account-level tokens
+    })
+    tokens = await cursor.to_list(length=None)
+    ret = [
+        {
+            "id": str(token["_id"]),
+            "user_id": token["user_id"],
+            "organization_id": None,
+            "name": token["name"],
+            "token": token["token"],
+            "created_at": token["created_at"],
+            "lifetime": token["lifetime"]
+        }
+        for token in tokens
+    ]
+    return ListAccessTokensResponse(access_tokens=ret)
+
+@app.delete("/account/access_tokens/{token_id}", tags=["account/access_tokens"])
+async def delete_account_token(
+    token_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an account-level API token"""
+    db = ad.common.get_async_db()
+    
+    result = await db.access_tokens.delete_one({
+        "_id": ObjectId(token_id),
+        "user_id": current_user.user_id,
+        "organization_id": None  # Only delete account-level tokens
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Token not found")
+    return {"message": "Token deleted successfully"}
+
+# Organization-level access tokens
+@app.post("/orgs/{organization_id}/access_tokens", response_model=AccessToken, tags=["organizations/access_tokens"])
+async def create_org_token(
+    organization_id: str,
+    request: CreateAccessTokenRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Create an organization-level API token"""
+    # First verify organization membership
+    org_id = await get_current_org(current_user, organization_id)
+    
+    db = ad.common.get_async_db()
+    token = secrets.token_urlsafe(32)
+    new_token = {
+        "user_id": current_user.user_id,
+        "organization_id": org_id,
+        "name": request.name,
+        "token": ad.crypto.encrypt_token(token),
+        "created_at": datetime.now(UTC),
+        "lifetime": request.lifetime
+    }
+    result = await db.access_tokens.insert_one(new_token)
+
+    new_token["token"] = token  # Return plaintext token to user
+    new_token["id"] = str(result.inserted_id)
+    return new_token
+
+@app.get("/orgs/{organization_id}/access_tokens", response_model=ListAccessTokensResponse, tags=["organizations/access_tokens"])
+async def list_org_tokens(
+    organization_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """List organization-level API tokens"""
+    # First verify organization membership
+    org_id = await get_current_org(current_user, organization_id)
+    
+    db = ad.common.get_async_db()
+    cursor = db.access_tokens.find({
+        "user_id": current_user.user_id,
+        "organization_id": org_id
+    })
+    tokens = await cursor.to_list(length=None)
+    ret = [
+        {
+            "id": str(token["_id"]),
+            "user_id": token["user_id"],
+            "organization_id": token["organization_id"],
+            "name": token["name"],
+            "token": token["token"],
+            "created_at": token["created_at"],
+            "lifetime": token["lifetime"]
+        }
+        for token in tokens
+    ]
+    return ListAccessTokensResponse(access_tokens=ret)
+
+@app.delete("/orgs/{organization_id}/access_tokens/{token_id}", tags=["organizations/access_tokens"])
+async def delete_org_token(
+    organization_id: str,
+    token_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an organization-level API token"""
+    # First verify organization membership
+    org_id = await get_current_org(current_user, organization_id)
+    
+    db = ad.common.get_async_db()
+    result = await db.access_tokens.delete_one({
+        "_id": ObjectId(token_id),
+        "user_id": current_user.user_id,
+        "organization_id": org_id
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Token not found")
+    return {"message": "Token deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn

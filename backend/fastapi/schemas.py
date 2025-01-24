@@ -12,6 +12,7 @@ class User(BaseModel):
 class AccessToken(BaseModel):
     id: str
     user_id: str
+    organization_id: Optional[str] = None
     name: str
     token: str
     created_at: datetime
@@ -23,6 +24,7 @@ class ListAccessTokensResponse(BaseModel):
 class CreateAccessTokenRequest(BaseModel):
     name: str
     lifetime: int
+    organization_id: Optional[str] = None
 
 class DocumentUpload(BaseModel):
     name: str

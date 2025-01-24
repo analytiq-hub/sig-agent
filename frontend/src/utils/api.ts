@@ -439,18 +439,27 @@ export const deleteFlowApi = async (params: DeleteFlowParams): Promise<void> => 
 };
 
 // Token APIs
-export const createTokenApi = async (token: CreateTokenRequest) => {
-  const response = await api.post('/account/access_tokens', token);
+export const createTokenApi = async (token: CreateTokenRequest, organizationId?: string) => {
+  const endpoint = organizationId 
+    ? `/orgs/${organizationId}/access_tokens`
+    : '/account/access_tokens';
+  const response = await api.post(endpoint, token);
   return response.data;
 };
 
-export const getTokensApi = async () => {
-  const response = await api.get('/account/access_tokens');
+export const getTokensApi = async (organizationId?: string) => {
+  const endpoint = organizationId
+    ? `/orgs/${organizationId}/access_tokens`
+    : '/account/access_tokens';
+  const response = await api.get(endpoint);
   return response.data;
 };
 
-export const deleteTokenApi = async (tokenId: string) => {
-  const response = await api.delete(`/account/access_tokens/${tokenId}`);
+export const deleteTokenApi = async (tokenId: string, organizationId?: string) => {
+  const endpoint = organizationId
+    ? `/orgs/${organizationId}/access_tokens/${tokenId}`
+    : `/account/access_tokens/${tokenId}`;
+  const response = await api.delete(endpoint);
   return response.data;
 };
 
