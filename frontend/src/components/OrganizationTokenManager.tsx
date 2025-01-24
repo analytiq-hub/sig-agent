@@ -3,6 +3,7 @@ import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, Dial
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { createTokenApi, getTokensApi, deleteTokenApi } from '@/utils/api';
 import { CreateTokenRequest } from '@/types/index';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 export interface AccessToken {
   id: string;
@@ -13,6 +14,7 @@ export interface AccessToken {
 }
 
 const OrganizationTokenManager: React.FC = () => {
+  const { currentOrganization } = useOrganization();
   const [tokens, setTokens] = useState<AccessToken[]>([]);
   const [openModal, setOpenModal] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');
@@ -23,8 +25,10 @@ const OrganizationTokenManager: React.FC = () => {
 
   useEffect(() => {
     const getTokensData = async () => {
+      if (!currentOrganization?.id) return;
+      
       try {
-        const tokensData = await getTokensApi();
+        const tokensData = await getTokensApi(currentOrganization.id);
         setTokens(tokensData.access_tokens);
       } catch (error) {
         console.error('Error fetching tokens:', error);
@@ -32,9 +36,14 @@ const OrganizationTokenManager: React.FC = () => {
     };
 
     getTokensData();
-  }, []);
+  }, [currentOrganization?.id]);
 
   const createToken = async () => {
+    if (!currentOrganization?.id) {
+      setError('No organization selected');
+      return;
+    }
+
     try {
       const trimmedName = newTokenName.trim();
       if (tokens.some(token => token.name === trimmedName)) {
@@ -47,8 +56,8 @@ const OrganizationTokenManager: React.FC = () => {
       const request: CreateTokenRequest = {
         name: trimmedName,
         lifetime: lifetime
-      }
-      const response = await createTokenApi(request)
+      };
+      const response = await createTokenApi(request, currentOrganization.id);
 
       setNewToken(response);
       setShowTokenModal(true);
@@ -75,9 +84,16 @@ const OrganizationTokenManager: React.FC = () => {
     });
   };
 
-  const handleDeleteToken = (tokenId: string) => {
-    deleteTokenApi(tokenId);
-    setTokens(tokens.filter(token => token.id !== tokenId));
+  const handleDeleteToken = async (tokenId: string) => {
+    if (!currentOrganization?.id) return;
+    
+    try {
+      await deleteTokenApi(tokenId, currentOrganization.id);
+      setTokens(tokens.filter(token => token.id !== tokenId));
+    } catch (error) {
+      console.error('Error deleting token:', error);
+      setError('Failed to delete token');
+    }
   };
 
   return (
@@ -87,8 +103,9 @@ const OrganizationTokenManager: React.FC = () => {
         color="primary"
         className="mb-4"
         onClick={() => setOpenModal(true)}
+        disabled={!currentOrganization?.id}
       >
-        Generate Account Token
+        Generate Organization Token
       </Button>
       <div className="mb-6"></div>
       <TableContainer component={Paper}>
@@ -130,7 +147,7 @@ const OrganizationTokenManager: React.FC = () => {
       </TableContainer>
 
       <Dialog open={openModal} onClose={() => setOpenModal(false)}>
-        <DialogTitle>Generate Account Token</DialogTitle>
+        <DialogTitle>Generate Organization Token</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
