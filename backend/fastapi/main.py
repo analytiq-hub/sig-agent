@@ -421,65 +421,6 @@ async def delete_document(
 
     return {"message": "Document deleted successfully"}
 
-@app.post("/access_tokens", response_model=AccessToken, tags=["access_tokens"])
-async def access_token_create(
-    request: CreateAccessTokenRequest,
-    current_user: User = Depends(get_current_user)
-):
-    """Create an API token"""
-    ad.log.debug(f"Creating API token for user: {current_user} request: {request}")
-    db = ad.common.get_async_db()
-
-    token = secrets.token_urlsafe(32)
-    new_token = {
-        "user_id": current_user.user_id,
-        "name": request.name,
-        "token": ad.crypto.encrypt_token(token),  # Store encrypted token
-        "created_at": datetime.now(UTC),
-        "lifetime": request.lifetime
-    }
-    result = await db.access_tokens.insert_one(new_token)
-
-    # Return the new token with the id
-    new_token["token"] = token  # Return plaintext token to user
-    new_token["id"] = str(result.inserted_id)
-    return new_token
-
-@app.get("/access_tokens", response_model=ListAccessTokensResponse, tags=["access_tokens"])
-async def access_token_list(current_user: User = Depends(get_current_user)):
-    """List API tokens"""
-    db = ad.common.get_async_db()
-    cursor = db.access_tokens.find({"user_id": current_user.user_id})
-    tokens = await cursor.to_list(length=None)
-    ret = [
-        {
-            "id": str(token["_id"]),
-            "user_id": token["user_id"],
-            "name": token["name"],
-            "token": token["token"],
-            "created_at": token["created_at"],
-            "lifetime": token["lifetime"]
-        }
-        for token in tokens
-    ]
-    ad.log.debug(f"list_access_tokens(): {ret}")
-    return ListAccessTokensResponse(access_tokens=ret)
-
-@app.delete("/access_tokens/{token_id}", tags=["access_tokens"])
-async def access_token_delete(
-    token_id: str,
-    current_user: User = Depends(get_current_user)
-):
-    """Delete an API token"""
-    db = ad.common.get_async_db()
-    result = await db.access_tokens.delete_one({
-        "_id": ObjectId(token_id),
-        "user_id": current_user.user_id
-    })
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Token not found")
-    return {"message": "Token deleted successfully"}
-
 @app.get("/orgs/{organization_id}/ocr/download/blocks/{document_id}", tags=["ocr"])
 async def download_ocr_blocks(
     organization_id: str,
@@ -1517,6 +1458,65 @@ async def create_auth_token(user_data: dict = Body(...)):
         algorithm=ALGORITHM
     )
     return {"token": token}
+
+@app.post("/account/access_tokens", response_model=AccessToken, tags=["account/access_tokens"])
+async def access_token_create(
+    request: CreateAccessTokenRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Create an API token"""
+    ad.log.debug(f"Creating API token for user: {current_user} request: {request}")
+    db = ad.common.get_async_db()
+
+    token = secrets.token_urlsafe(32)
+    new_token = {
+        "user_id": current_user.user_id,
+        "name": request.name,
+        "token": ad.crypto.encrypt_token(token),  # Store encrypted token
+        "created_at": datetime.now(UTC),
+        "lifetime": request.lifetime
+    }
+    result = await db.access_tokens.insert_one(new_token)
+
+    # Return the new token with the id
+    new_token["token"] = token  # Return plaintext token to user
+    new_token["id"] = str(result.inserted_id)
+    return new_token
+
+@app.get("/account/access_tokens", response_model=ListAccessTokensResponse, tags=["account/access_tokens"])
+async def access_token_list(current_user: User = Depends(get_current_user)):
+    """List API tokens"""
+    db = ad.common.get_async_db()
+    cursor = db.access_tokens.find({"user_id": current_user.user_id})
+    tokens = await cursor.to_list(length=None)
+    ret = [
+        {
+            "id": str(token["_id"]),
+            "user_id": token["user_id"],
+            "name": token["name"],
+            "token": token["token"],
+            "created_at": token["created_at"],
+            "lifetime": token["lifetime"]
+        }
+        for token in tokens
+    ]
+    ad.log.debug(f"list_access_tokens(): {ret}")
+    return ListAccessTokensResponse(access_tokens=ret)
+
+@app.delete("/account/access_tokens/{token_id}", tags=["account/access_tokens"])
+async def access_token_delete(
+    token_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an API token"""
+    db = ad.common.get_async_db()
+    result = await db.access_tokens.delete_one({
+        "_id": ObjectId(token_id),
+        "user_id": current_user.user_id
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Token not found")
+    return {"message": "Token deleted successfully"}
 
 
 @app.post("/account/llm_tokens", response_model=LLMToken, tags=["account/llm_tokens"])

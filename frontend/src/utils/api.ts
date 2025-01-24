@@ -440,18 +440,17 @@ export const deleteFlowApi = async (params: DeleteFlowParams): Promise<void> => 
 
 // Token APIs
 export const createTokenApi = async (token: CreateTokenRequest) => {
-  const response = await api.post('/access_tokens', token);
+  const response = await api.post('/account/access_tokens', token);
   return response.data;
 };
 
-// A more consistent name for this function would be getAccessTokensApi, but that is too repetitive
 export const getTokensApi = async () => {
-  const response = await api.get('/access_tokens');
+  const response = await api.get('/account/access_tokens');
   return response.data;
 };
 
 export const deleteTokenApi = async (tokenId: string) => {
-  const response = await api.delete(`/access_tokens/${tokenId}`);
+  const response = await api.delete(`/account/access_tokens/${tokenId}`);
   return response.data;
 };
 
