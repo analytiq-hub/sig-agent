@@ -213,7 +213,7 @@ const OrganizationManager: React.FC = () => {
       flex: 1,
       renderCell: (params) => (
         <button
-          onClick={() => router.push(`/settings/organizations/${params.row.id}`)}
+          onClick={() => router.push(`/orgs/${params.row.id}/dashboard`)}
           className="text-left hover:text-blue-600 focus:outline-none"
         >
           {params.value}
