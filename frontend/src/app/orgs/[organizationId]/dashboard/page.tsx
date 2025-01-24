@@ -25,7 +25,13 @@ const DashboardPage: React.FC<{ params: { organizationId: string } }> = ({ param
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-xl font-bold mb-4">
-        {organization ? `Organization: ${organization.name}` : 'Organization Dashboard'}
+        {organization ? (
+          <>
+            Organization: <span className="text-blue-600">{organization.name}</span>
+          </>
+        ) : (
+          'Organization Dashboard'
+        )}
       </h1>
       <Dashboard organizationId={params.organizationId} />
     </div>
