@@ -25,6 +25,20 @@ const DeveloperPage: React.FC = () => {
           </Link>
         </div>
 
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl font-semibold">Organization Tokens</h2>
+            <p className="text-gray-600 mb-2">
+              Use Organization Tokens to authenticate with our organization API.
+            </p>
+          </div>
+          <Link href="/settings/user/developer/organization-access-tokens" passHref>
+            <Button variant="contained" color="primary">
+              Manage
+            </Button>
+          </Link>
+        </div>
+
         <div className="bg-blue-50 rounded-lg shadow p-4">
           <div className="space-y-2 text-blue-900">
             <p>

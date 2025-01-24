@@ -2,17 +2,17 @@
 
 import React from 'react';
 import SettingsLayout from '@/components/SettingsLayout';
-import AccessTokenManager from '@/components/AccessTokenManager';
+import AccountTokenManager from '@/components/AccountTokenManager';
 
-const AccessTokensPage: React.FC = () => {
+const AccountTokensPage: React.FC = () => {
   return (
     <SettingsLayout selectedMenu="user_developer">
       <div>
         <h2 className="text-xl font-semibold mb-4">Account Token Management</h2>
-        <AccessTokenManager />
+        <AccountTokenManager />
       </div>
     </SettingsLayout>
   );
 };
 
-export default AccessTokensPage; 
+export default AccountTokensPage; 

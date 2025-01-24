@@ -12,7 +12,7 @@ export interface AccessToken {
   token?: string;
 }
 
-const AccessTokenManager: React.FC = () => {
+const OrganizationTokenManager: React.FC = () => {
   const [tokens, setTokens] = useState<AccessToken[]>([]);
   const [openModal, setOpenModal] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');
@@ -186,4 +186,4 @@ const AccessTokenManager: React.FC = () => {
   );
 };
 
-export default AccessTokenManager;
+export default OrganizationTokenManager;
