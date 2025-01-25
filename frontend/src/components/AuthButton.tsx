@@ -1,8 +1,8 @@
 "use client"
 
 import { signOut, useSession, signIn } from "next-auth/react";
-import { Typography, Button, Link, Box } from '@mui/material';
-import { ExitToApp as LogoutIcon, Login as LoginIcon } from '@mui/icons-material';
+import { Typography, Button, Box } from '@mui/material';
+import { ExitToApp as LogoutIcon } from '@mui/icons-material';
 
 function AuthButton() {
   const { data: session } = useSession();
