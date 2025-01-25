@@ -120,17 +120,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Link
         key={item.text}
         href={item.href}
-        className="block px-2 py-1"
+        className={`
+          block px-2 py-1
+          ${!open ? 'tooltip' : ''}
+        `}
         title={!open ? item.tooltip : ''}
       >
-        <button
+        <div
           className={`
             flex items-center
             h-10 w-full
             rounded-md
             ${isSelected ? 'bg-blue-100' : 'hover:bg-blue-100'} dark:hover:bg-gray-800
             transition-colors duration-200
-            text-left
             px-3
           `}
         >
@@ -145,7 +147,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {item.text}
             </span>
           )}
-        </button>
+        </div>
       </Link>
     );
   };
@@ -156,15 +158,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <header className="bg-blue-600 dark:bg-blue-800 border-b border-blue-700 dark:border-blue-900">
         <div className="flex h-16 items-center justify-between px-3">
           <div className="flex items-center">
-            <button
-              onClick={() => setOpen(!open)}
-              className="p-2 rounded-md hover:bg-blue-500 dark:hover:bg-blue-700"
-            >
-              <Bars3Icon className="h-6 w-6 text-white" />
-            </button>
-            <Link href="/" className={`${open ? 'ml-3' : 'ml-6'} text-xl font-semibold text-white`}>
-              Smart Document Router
-            </Link>
+            <div className="flex items-center">
+              <button
+                onClick={() => setOpen(!open)}
+                className="p-2 rounded-md hover:bg-blue-500 dark:hover:bg-blue-700"
+              >
+                <Bars3Icon className="h-6 w-6 text-white" />
+              </button>
+              <Link href="/" className={`${open ? 'ml-3' : 'ml-6'} text-xl font-semibold text-white`}>
+                Smart Document Router
+              </Link>
+            </div>
           </div>
 
           <div className="flex-1 flex justify-end">
@@ -175,11 +179,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {isPDFViewer && pdfControls && (
               <PDFViewerControls key={forceUpdate} {...pdfControls} />
             )}
-            {session ? (
-              <UserMenu user={session?.user} />
-            ) : (
-              <AuthButton />
-            )}
+            <div className="flex items-center">
+              {session ? (
+                <UserMenu user={session?.user} />
+              ) : (
+                <AuthButton />
+              )}
+            </div>
           </div>
         </div>
       </header>

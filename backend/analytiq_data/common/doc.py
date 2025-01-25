@@ -12,15 +12,17 @@ DOCUMENT_STATE_LLM_PROCESSING = "llm_processing"
 DOCUMENT_STATE_LLM_COMPLETED = "llm_completed"
 DOCUMENT_STATE_LLM_FAILED = "llm_failed"
 
-async def get_doc(analytiq_client, document_id: str) -> dict:
+async def get_doc(analytiq_client, document_id: str, organization_id: str) -> dict:
     """
-    Get a document by its ID
+    Get a document by its ID within an organization
     
     Args:
         analytiq_client: AnalytiqClient
             The analytiq client
         document_id: str
             Document ID
+        organization_id: str
+            Organization ID
 
     Returns:
         dict
@@ -30,11 +32,14 @@ async def get_doc(analytiq_client, document_id: str) -> dict:
     db = analytiq_client.mongodb_async[db_name]
     collection = db["docs"]
     
-    return await collection.find_one({"_id": ObjectId(document_id)})
+    return await collection.find_one({
+        "_id": ObjectId(document_id),
+        "organization_id": organization_id
+    })
 
 async def save_doc(analytiq_client, document: dict) -> str:
     """
-    Save a document
+    Save a document (organization_id should be included in document)
     
     Args:
         analytiq_client: AnalytiqClient
@@ -48,13 +53,18 @@ async def save_doc(analytiq_client, document: dict) -> str:
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    collection = db["docs"]
     
     if "_id" not in document:
         document["_id"] = ObjectId()
     
-    await collection.replace_one(
-        {"_id": document["_id"]},
+    if "organization_id" not in document:
+        raise ValueError("organization_id is required")
+    
+    await db.docs.replace_one(
+        {
+            "_id": document["_id"],
+            "organization_id": document["organization_id"]
+        },
         document,
         upsert=True
     )
@@ -62,21 +72,26 @@ async def save_doc(analytiq_client, document: dict) -> str:
     ad.log.debug(f"Document {document['_id']} has been saved.")
     return str(document["_id"])
 
-async def delete_doc(analytiq_client, document_id: str):
+async def delete_doc(analytiq_client, document_id: str, organization_id: str):
     """
-    Delete a document
+    Delete a document within an organization
     
     Args:
         analytiq_client: AnalytiqClient
             The analytiq client
         document_id: str
             Document ID to delete
+        organization_id: str
+            Organization ID
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
     collection = db["docs"]
     
-    await collection.delete_one({"_id": ObjectId(document_id)})
+    await collection.delete_one({
+        "_id": ObjectId(document_id),
+        "organization_id": organization_id
+    })
     ad.log.debug(f"Document {document_id} has been deleted.")
 
 async def list_docs(analytiq_client, skip: int = 0, limit: int = 10) -> tuple[list, int]:

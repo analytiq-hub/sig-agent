@@ -230,10 +230,10 @@ async def upload_document(
     db = ad.common.get_async_db(analytiq_client)
     
     if all_tag_ids:
-        # Check if all tags exist and belong to the user
+        # Check if all tags exist and belong to the organization
         tags_cursor = db.tags.find({
             "_id": {"$in": [ObjectId(tag_id) for tag_id in all_tag_ids]},
-            "created_by": current_user.user_id
+            "organization_id": organization_id
         })
         existing_tags = await tags_cursor.to_list(None)
         existing_tag_ids = {str(tag["_id"]) for tag in existing_tags}
@@ -277,7 +277,8 @@ async def upload_document(
             "upload_date": datetime.utcnow(),
             "uploaded_by": current_user.user_name,
             "state": ad.common.doc.DOCUMENT_STATE_UPLOADED,
-            "tag_ids": document.tag_ids  # Add tags to the document metadata
+            "tag_ids": document.tag_ids,
+            "organization_id": organization_id  # Add organization_id
         }
         
         await ad.common.save_doc(analytiq_client, document_metadata)
@@ -305,8 +306,12 @@ async def update_document(
     analytiq_client = ad.common.get_analytiq_client()
     db = ad.common.get_async_db(analytiq_client)
 
-    # Validate the document exists and user has access
-    document = await ad.common.get_doc(analytiq_client, document_id)
+    # Validate the document exists and belongs to the organization
+    document = await db.docs.find_one({
+        "_id": ObjectId(document_id),
+        "organization_id": organization_id
+    })
+    
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
@@ -320,7 +325,7 @@ async def update_document(
     if update.tag_ids:
         tags_cursor = db.tags.find({
             "_id": {"$in": [ObjectId(tag_id) for tag_id in update.tag_ids]},
-            "created_by": current_user.user_id
+            "organization_id": organization_id
         })
         existing_tags = await tags_cursor.to_list(None)
         existing_tag_ids = {str(tag["_id"]) for tag in existing_tags}
@@ -334,7 +339,10 @@ async def update_document(
 
     # Update the document
     updated_doc = await db.docs.find_one_and_update(
-        {"_id": ObjectId(document_id)},
+        {
+            "_id": ObjectId(document_id),
+            "organization_id": organization_id
+        },
         {"$set": {"tag_ids": update.tag_ids}},
         return_document=True
     )
@@ -359,8 +367,8 @@ async def list_documents(
     """List documents"""
     db = ad.common.get_async_db()
 
-    # Build the query filter
-    query_filter = {}
+    # Build the query filter with organization scope
+    query_filter = {"organization_id": organization_id}
     
     # Add tag filtering if tag_ids are provided
     if tag_ids:
@@ -399,8 +407,13 @@ async def get_document(
     """Get a document"""
     ad.log.debug(f"get_document() start: document_id: {document_id}")
     analytiq_client = ad.common.get_analytiq_client()
+    db = ad.common.get_async_db(analytiq_client)
 
-    document = await ad.common.get_doc(analytiq_client, document_id)
+    # Get document with organization scope
+    document = await db.docs.find_one({
+        "_id": ObjectId(document_id),
+        "organization_id": organization_id
+    })
     
     if not document:
         ad.log.debug(f"get_document() document not found: {document}")
@@ -439,7 +452,13 @@ async def delete_document(
 ):
     """Delete a document"""
     analytiq_client = ad.common.get_analytiq_client()
-    document = await ad.common.get_doc(analytiq_client, document_id)
+    db = ad.common.get_async_db(analytiq_client)
+
+    # Get document with organization scope
+    document = await db.docs.find_one({
+        "_id": ObjectId(document_id),
+        "organization_id": organization_id
+    })
     
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -588,7 +607,7 @@ async def get_llm_result(
     analytiq_client = ad.common.get_analytiq_client()
     
     # Verify document exists and user has access
-    document = await ad.common.get_doc(analytiq_client, document_id)
+    document = await ad.common.get_doc(analytiq_client, document_id, organization_id)
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
@@ -614,7 +633,7 @@ async def delete_llm_result(
     ad.log.debug(f"delete_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
     analytiq_client = ad.common.get_analytiq_client()
     # Verify document exists and user has access
-    document = await ad.common.get_doc(analytiq_client, document_id)
+    document = await ad.common.get_doc(analytiq_client, document_id, organization_id)
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
@@ -888,7 +907,7 @@ async def create_prompt(
     if prompt.tag_ids:
         tags_cursor = db.tags.find({
             "_id": {"$in": [ObjectId(tag_id) for tag_id in prompt.tag_ids]},
-            "created_by": current_user.user_id
+            "organization_id": organization_id
         })
         existing_tags = await tags_cursor.to_list(None)
         existing_tag_ids = {str(tag["_id"]) for tag in existing_tags}
@@ -917,7 +936,8 @@ async def create_prompt(
         "version": new_version,
         "created_at": datetime.utcnow(),
         "created_by": current_user.user_id,
-        "tag_ids": prompt.tag_ids  # Add tag_ids to the document
+        "tag_ids": prompt.tag_ids,  # Add tag_ids to the document
+        "organization_id": organization_id  # Add organization_id
     }
     
     # Insert into MongoDB
@@ -1051,7 +1071,7 @@ async def update_prompt(
     if prompt.tag_ids:
         tags_cursor = db.tags.find({
             "_id": {"$in": [ObjectId(tag_id) for tag_id in prompt.tag_ids]},
-            "created_by": current_user.user_id
+            "organization_id": organization_id
         })
         existing_tags = await tags_cursor.to_list(None)
         existing_tag_ids = {str(tag["_id"]) for tag in existing_tags}
@@ -1075,7 +1095,8 @@ async def update_prompt(
         "version": new_version,
         "created_at": datetime.utcnow(),
         "created_by": current_user.user_id,
-        "tag_ids": prompt.tag_ids  # Add tag_ids to the document
+        "tag_ids": prompt.tag_ids,  # Add tag_ids to the document
+        "organization_id": organization_id  # Add organization_id
     }
     
     # Insert new version
@@ -1123,7 +1144,7 @@ async def create_tag(
     # Check if tag with this name already exists for this user
     existing_tag = await db.tags.find_one({
         "name": tag.name,
-        "created_by": current_user.user_id
+        "organization_id": organization_id
     })
     
     if existing_tag:
@@ -1137,7 +1158,8 @@ async def create_tag(
         "color": tag.color,
         "description": tag.description,
         "created_at": datetime.now(UTC),
-        "created_by": current_user.user_id
+        "created_by": current_user.user_id,
+        "organization_id": organization_id  # Add organization_id
     }
     
     result = await db.tags.insert_one(new_tag)
@@ -1155,11 +1177,11 @@ async def list_tags(
     """List tags"""
     db = ad.common.get_async_db()
     # Get total count
-    total_count = await db.tags.count_documents({"created_by": current_user.user_id})
+    total_count = await db.tags.count_documents({"organization_id": organization_id})
     
     # Get paginated tags with sorting by _id in descending order
     cursor = db.tags.find(
-        {"created_by": current_user.user_id}
+        {"organization_id": organization_id}
     ).sort("_id", -1).skip(skip).limit(limit)  # Sort by _id descending (newest first)
     
     tags = await cursor.to_list(length=None)
@@ -1191,7 +1213,7 @@ async def delete_tag(
     # Verify tag exists and belongs to user
     tag = await db.tags.find_one({
         "_id": ObjectId(tag_id),
-        "created_by": current_user.user_id
+        "organization_id": organization_id
     })
     
     if not tag:
@@ -1221,7 +1243,7 @@ async def delete_tag(
     
     result = await db.tags.delete_one({
         "_id": ObjectId(tag_id),
-        "created_by": current_user.user_id
+        "organization_id": organization_id
     })
     
     if result.deleted_count == 0:
@@ -1242,7 +1264,7 @@ async def update_tag(
     # Verify tag exists and belongs to user
     existing_tag = await db.tags.find_one({
         "_id": ObjectId(tag_id),
-        "created_by": current_user.user_id
+        "organization_id": organization_id
     })
     
     if not existing_tag:
