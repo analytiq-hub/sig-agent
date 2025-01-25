@@ -470,7 +470,7 @@ async def delete_document(
         )
 
     ad.common.delete_file(analytiq_client, file_name=document["mongo_file_name"])
-    await ad.common.delete_doc(analytiq_client, document_id)
+    await ad.common.delete_doc(analytiq_client, document_id, organization_id)
 
     return {"message": "Document deleted successfully"}
 
@@ -839,17 +839,21 @@ async def delete_schema(
     """Delete a schema"""
     # Get the schema to find its name
     db = ad.common.get_async_db()
-    schema = await db.schemas.find_one({"_id": ObjectId(schema_id)})
+    schema = await db.schemas.find_one({
+        "_id": ObjectId(schema_id),
+        "organization_id": organization_id  # Add organization check
+    })
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
     
     if schema["created_by"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this schema")
     
-    # Check for dependent prompts
+    # Check for dependent prompts within the same organization
     dependent_prompts = await db.prompts.find({
-        "schema_name": schema["name"]
-    }).to_list(length=None)
+        "schema_name": schema["name"],
+        "organization_id": organization_id  # Add organization check
+    }).to_list(None)
     
     if dependent_prompts:
         # Format the list of dependent prompts
@@ -863,7 +867,10 @@ async def delete_schema(
         )
     
     # If no dependent prompts, proceed with deletion
-    result = await db.schemas.delete_many({"name": schema["name"]})
+    result = await db.schemas.delete_many({
+        "name": schema["name"],
+        "organization_id": organization_id  # Add organization check
+    })
     
     # Also delete the version counter
     await db.schema_versions.delete_one({"_id": schema["name"]})
@@ -1142,15 +1149,21 @@ async def delete_prompt(
     """Delete a prompt"""
     db = ad.common.get_async_db()
     # Get the prompt to find its name
-    prompt = await db.prompts.find_one({"_id": ObjectId(prompt_id)})
+    prompt = await db.prompts.find_one({
+        "_id": ObjectId(prompt_id),
+        "organization_id": organization_id  # Add organization check
+    })
     if not prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
     
     if prompt["created_by"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this prompt")
     
-    # Delete all versions of this prompt
-    result = await db.prompts.delete_many({"name": prompt["name"]})
+    # Delete all versions of this prompt within the organization
+    result = await db.prompts.delete_many({
+        "name": prompt["name"],
+        "organization_id": organization_id  # Add organization check
+    })
     
     # Also delete the version counter
     await db.prompt_versions.delete_one({"_id": prompt["name"]})
@@ -1461,10 +1474,11 @@ async def delete_flow(
 ) -> dict:
     db = ad.common.get_async_db()
     try:
-        # Find and delete the flow, ensuring user can only delete their own flows
+        # Find and delete the flow, ensuring user can only delete their own flows within the organization
         result = await db.flows.delete_one({
             "_id": ObjectId(flow_id),
-            "created_by": current_user.user_name
+            "created_by": current_user.user_name,
+            "organization_id": organization_id  # Add organization check
         })
         
         if result.deleted_count == 0:
