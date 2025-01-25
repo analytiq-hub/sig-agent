@@ -10,6 +10,8 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
   const [matchingPrompts, setMatchingPrompts] = useState<Prompt[]>([]);
   const [runningPrompts, setRunningPrompts] = useState<Set<string>>(new Set());
   const [expandedPrompt, setExpandedPrompt] = useState<string>('default');
+  const [loadingPrompts, setLoadingPrompts] = useState<Set<string>>(new Set());
+  const [failedPrompts, setFailedPrompts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -18,15 +20,27 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
         setMatchingPrompts(promptsResponse.prompts);
         
         // Fetch default prompt results
-        const defaultResults = await getLLMResultApi({
-          organizationId: organizationId,
-          documentId: id, 
-          promptId: 'default',
-        });
-        setLlmResults(prev => ({
-          ...prev,
-          default: defaultResults.llm_result
-        }));
+        setLoadingPrompts(prev => new Set(prev).add('default'));
+        try {
+          const defaultResults = await getLLMResultApi({
+            organizationId: organizationId,
+            documentId: id, 
+            promptId: 'default',
+          });
+          setLlmResults(prev => ({
+            ...prev,
+            default: defaultResults.llm_result
+          }));
+        } catch (error) {
+          console.error('Error fetching LLM results:', error);
+          setFailedPrompts(prev => new Set(prev).add('default'));
+        } finally {
+          setLoadingPrompts(prev => {
+            const newSet = new Set(prev);
+            newSet.delete('default');
+            return newSet;
+          });
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -46,6 +60,7 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
     setExpandedPrompt(promptId);
     
     if (!llmResults[promptId]) {
+      setLoadingPrompts(prev => new Set(prev).add(promptId));
       try {
         const results = await getLLMResultApi({
           organizationId: organizationId,
@@ -56,14 +71,32 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
           ...prev,
           [promptId]: results.llm_result
         }));
+        setFailedPrompts(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(promptId);
+          return newSet;
+        });
       } catch (error) {
         console.error('Error fetching LLM results:', error);
+        setFailedPrompts(prev => new Set(prev).add(promptId));
+      } finally {
+        setLoadingPrompts(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(promptId);
+          return newSet;
+        });
       }
     }
   };
 
   const handleRunPrompt = async (promptId: string) => {
     setRunningPrompts(prev => new Set(prev).add(promptId));
+    setFailedPrompts(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(promptId);
+      return newSet;
+    });
+    
     try {
       await runLLMApi({
         organizationId: organizationId,
@@ -82,6 +115,7 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
       }));
     } catch (error) {
       console.error('Error running prompt:', error);
+      setFailedPrompts(prev => new Set(prev).add(promptId));
     } finally {
       setRunningPrompts(prev => {
         const newSet = new Set(prev);
@@ -94,8 +128,17 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
   const renderPromptResults = (promptId: string) => {
     const results = llmResults[promptId] || {};
     
-    // If no results exist for this prompt
-    if (Object.keys(results).length === 0) {
+    if (loadingPrompts.has(promptId)) {
+      return (
+        <div className="bg-white p-4 flex flex-col items-center justify-center gap-2 text-center">
+          <span className="text-sm text-gray-600">Loading...</span>
+          <div className="w-4 h-4 border-2 border-gray-400/60 border-t-transparent rounded-full animate-spin" />
+        </div>
+      );
+    }
+
+    // If no results exist and the prompt has failed
+    if (Object.keys(results).length === 0 && failedPrompts.has(promptId)) {
       return (
         <div className="bg-white p-4 flex flex-col items-center justify-center gap-2 text-center">
           <span className="text-sm text-gray-600">
