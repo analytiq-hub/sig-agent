@@ -95,10 +95,15 @@ export default function OrganizationSwitcher() {
                     className={`
                       ${active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'}
                       px-4 py-2 text-sm w-full text-left flex items-center justify-between cursor-pointer
+                      max-w-full
                     `}
                   >
-                    <span>{organization.name}</span>
-                    <span className={`text-xs ml-2 px-2 py-1 rounded-full ${typeLabels[organization.type].bg} ${typeLabels[organization.type].text}`}>
+                    <span className="truncate mr-2">{organization.name}</span>
+                    <span className={`
+                      text-xs px-2 py-1 rounded-full whitespace-nowrap
+                      ${typeLabels[organization.type].bg} 
+                      ${typeLabels[organization.type].text}
+                    `}>
                       {organization.type}
                     </span>
                   </div>
