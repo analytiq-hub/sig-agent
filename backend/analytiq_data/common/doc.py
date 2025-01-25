@@ -12,7 +12,7 @@ DOCUMENT_STATE_LLM_PROCESSING = "llm_processing"
 DOCUMENT_STATE_LLM_COMPLETED = "llm_completed"
 DOCUMENT_STATE_LLM_FAILED = "llm_failed"
 
-async def get_doc(analytiq_client, document_id: str, organization_id: str) -> dict:
+async def get_doc(analytiq_client, document_id: str, organization_id: str | None = None) -> dict:
     """
     Get a document by its ID within an organization
     
@@ -21,8 +21,8 @@ async def get_doc(analytiq_client, document_id: str, organization_id: str) -> di
             The analytiq client
         document_id: str
             Document ID
-        organization_id: str
-            Organization ID
+        organization_id: str | None
+            Organization ID. If None, will not filter by organization.
 
     Returns:
         dict
@@ -32,10 +32,12 @@ async def get_doc(analytiq_client, document_id: str, organization_id: str) -> di
     db = analytiq_client.mongodb_async[db_name]
     collection = db["docs"]
     
-    return await collection.find_one({
-        "_id": ObjectId(document_id),
-        "organization_id": organization_id
-    })
+    # Build query based on whether organization_id is provided
+    query = {"_id": ObjectId(document_id)}
+    if organization_id:
+        query["organization_id"] = organization_id
+    
+    return await collection.find_one(query)
 
 async def save_doc(analytiq_client, document: dict) -> str:
     """
