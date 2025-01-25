@@ -15,7 +15,7 @@ Tech stack:
 * Future: OpenAI, Anthropic, LLama3...
 
 Example display of Smart Document Router docs:
-![Smart Document Router](./assets/file_list.png)
+![Smart Document Router](./docs/assets/file_list.png)
 
 # Project Slides
 [Smart Document Router Slides](https://docs.google.com/presentation/d/10NPy_kRrVfhWHY-No1GAEeNSAr0C-DCpZL2whSzZH9c/edit#slide=id.g302dd857fb2_0_30)
