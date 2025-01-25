@@ -365,6 +365,9 @@ async def list_documents(
     user: User = Depends(get_current_user)
 ):
     """List documents within an organization"""
+    # Get analytiq client
+    analytiq_client = ad.common.get_analytiq_client()
+    
     # Get documents from database with organization scope
     documents, total_count = await ad.common.list_docs(
         analytiq_client, 
@@ -709,10 +712,13 @@ async def list_schemas(
     limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_user)
 ):
-    """List schemas"""
+    """List schemas within an organization"""
     db = ad.common.get_async_db()
-    # Build the base pipeline
+    # Build the base pipeline with organization filter
     pipeline = [
+        {
+            "$match": {"organization_id": organization_id}
+        },
         {
             "$sort": {"_id": -1}
         },
@@ -953,14 +959,21 @@ async def list_prompts(
     tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
     current_user: User = Depends(get_current_user)
 ):
-    """List prompts"""
+    """List prompts within an organization"""
     db = ad.common.get_async_db()
     # Build the base pipeline
-    pipeline = []
+    pipeline = [
+        {
+            "$match": {"organization_id": organization_id}
+        }
+    ]
 
     # Add document tag filtering if document_id is provided
     if document_id:
-        document = await db.docs.find_one({"_id": ObjectId(document_id)})
+        document = await db.docs.find_one({
+            "_id": ObjectId(document_id),
+            "organization_id": organization_id  # Ensure document belongs to org
+        })
         if not document:
             raise HTTPException(status_code=404, detail="Document not found")
         
