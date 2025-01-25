@@ -85,11 +85,8 @@ docker compose --profile with-mongodb up</code></pre>
                         <h3 class="text-lg font-medium text-gray-900">Development Setup</h3>
                         <pre class="bg-gray-50 rounded-lg p-4 text-sm overflow-x-auto">
 <code># Set up backend/anaytiq_data/.env and frontend/.env_local based on example files
-cd backend
-pip install -r requirements.txt
-cd ../frontend
-npm install
-cd ..
+pip install -r backend/requirements.txt
+cd ../frontend; npm install; cd ..
 ./start-all.sh
 </code></pre>
                     </div>
