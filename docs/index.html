@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Document Router</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Smart Document Router</h1>
+            <p class="text-xl text-gray-600">An Open Source Document Understanding and Data Extraction Tool</p>
+        </header>
+
+        <main>
+            <section class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">About</h2>
+                <p class="text-gray-600 mb-6">
+                    The Smart Document Router is like LLamaCloud, but designed specifically for Enterprises using ERP systems.
+                    It processes unstructured documents from various sources and uses AI to automate document workflows.
+                </p>
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-3">Key Features</h3>
+                    <ul class="list-disc list-inside text-gray-600 space-y-2">
+                        <li>Ingests unstructured docs from faxes, email, and ERPs</li>
+                        <li>Autonomous processing with LLMs and NLP</li>
+                        <li>Human-in-the-loop design for financial accuracy</li>
+                        <li>Direct ERP integration capabilities</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="grid md:grid-cols-2 gap-8 mb-12">
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">Tech Stack</h2>
+                    <ul class="space-y-2 text-gray-600">
+                        <li>• NextJS, NextAuth, MaterialUI, TailwindCSS</li>
+                        <li>• FastAPI</li>
+                        <li>• MongoDB</li>
+                        <li>• Pydantic</li>
+                        <li>• Future: OpenAI, Anthropic, LLama3</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">Documentation</h2>
+                    <ul class="space-y-4">
+                        <li>
+                            <a href="https://github.com/yourusername/smart-document-router/blob/main/docs/README.local_devel.md" 
+                               class="text-blue-600 hover:text-blue-800 flex items-center">
+                                <span class="mr-2">📖</span>
+                                Local Development Guide
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://github.com/yourusername/smart-document-router/blob/main/docs/INSTALL.docker.md"
+                               class="text-blue-600 hover:text-blue-800 flex items-center">
+                                <span class="mr-2">🐳</span>
+                                Docker Setup Guide
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-6">Getting Started</h2>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-medium text-gray-900">Quick Start</h3>
+                        <pre class="bg-gray-50 rounded-lg p-4 text-sm overflow-x-auto">
+<code>git clone https://github.com/yourusername/smart-document-router.git
+cd smart-document-router
+docker compose --profile with-mongodb up</code></pre>
+                    </div>
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-medium text-gray-900">Development Setup</h3>
+                        <pre class="bg-gray-50 rounded-lg p-4 text-sm overflow-x-auto">
+<code>npm install
+npm run dev
+# In another terminal:
+cd backend/fastapi
+uvicorn main:app --host 0.0.0.0 --port 8000</code></pre>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="mt-12 text-center text-gray-600">
+            <p>© 2024 Smart Document Router. All rights reserved.</p>
+            <div class="mt-4">
+                <a href="https://github.com/yourusername/smart-document-router" 
+                   class="text-blue-600 hover:text-blue-800">
+                    View on GitHub
+                </a>
+            </div>
+        </footer>
+    </div>
+</body>
+</html> 
