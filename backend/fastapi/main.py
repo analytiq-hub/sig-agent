@@ -772,11 +772,13 @@ async def get_schema(
 ):
     """Get a schema"""
     db = ad.common.get_async_db()
-    schema = await db.schemas.find_one({"_id": ObjectId(schema_id)})
+    schema = await db.schemas.find_one({
+        "_id": ObjectId(schema_id),
+        "organization_id": organization_id  # Add organization check
+    })
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
     schema['id'] = str(schema.pop('_id'))
-    # version is already included from MongoDB doc, no need to add it
     return Schema(**schema)
 
 @app.put("/orgs/{organization_id}/schemas/{schema_id}", response_model=Schema, tags=["schemas"])
@@ -787,9 +789,12 @@ async def update_schema(
     current_user: User = Depends(get_current_user)
 ):
     """Update a schema"""
-    # Get the existing schema
     db = ad.common.get_async_db()
-    existing_schema = await db.schemas.find_one({"_id": ObjectId(schema_id)})
+    # Get the existing schema with organization check
+    existing_schema = await db.schemas.find_one({
+        "_id": ObjectId(schema_id),
+        "organization_id": organization_id
+    })
     if not existing_schema:
         raise HTTPException(status_code=404, detail="Schema not found")
     
@@ -1047,7 +1052,10 @@ async def get_prompt(
 ):
     """Get a prompt"""
     db = ad.common.get_async_db()
-    prompt = await db.prompts.find_one({"_id": ObjectId(prompt_id)})
+    prompt = await db.prompts.find_one({
+        "_id": ObjectId(prompt_id),
+        "organization_id": organization_id  # Add organization check
+    })
     if not prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
     prompt['id'] = str(prompt.pop('_id'))
@@ -1062,8 +1070,11 @@ async def update_prompt(
 ):
     """Update a prompt"""
     db = ad.common.get_async_db()
-    # Get the existing prompt
-    existing_prompt = await db.prompts.find_one({"_id": ObjectId(prompt_id)})
+    # Get the existing prompt with organization check
+    existing_prompt = await db.prompts.find_one({
+        "_id": ObjectId(prompt_id),
+        "organization_id": organization_id
+    })
     if not existing_prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
     
@@ -1363,15 +1374,17 @@ async def list_flows(
     current_user: User = Depends(get_current_user)
 ) -> ListFlowsResponse:
     db = ad.common.get_async_db()
-    cursor = db.flows.find(
-        {"created_by": current_user.user_name}
-    ).skip(skip).limit(limit)
+    cursor = db.flows.find({
+        "created_by": current_user.user_name,
+        "organization_id": organization_id  # Add organization filter
+    }).skip(skip).limit(limit)
     
     flows = await cursor.to_list(None)
     
-    total_count = await db.flows.count_documents(
-        {"created_by": current_user.user_name}
-    )
+    total_count = await db.flows.count_documents({
+        "created_by": current_user.user_name,
+        "organization_id": organization_id  # Add organization filter
+    })
     
     # Convert MongoDB documents to Flow models
     flow_list = []
@@ -1403,10 +1416,11 @@ async def get_flow(
 ) -> Flow:
     db = ad.common.get_async_db()
     try:
-        # Find the flow in MongoDB
+        # Find the flow in MongoDB with organization check
         flow = await db.flows.find_one({
             "_id": ObjectId(flow_id),
-            "created_by": current_user.user_name  # Ensure user can only access their own flows
+            "organization_id": organization_id,
+            "created_by": current_user.user_name
         })
         
         if not flow:
@@ -1479,9 +1493,10 @@ async def update_flow(
 ) -> Flow:
     db = ad.common.get_async_db()
     try:
-        # Find the flow and verify ownership
+        # Find the flow and verify ownership with organization check
         existing_flow = await db.flows.find_one({
             "_id": ObjectId(flow_id),
+            "organization_id": organization_id,
             "created_by": current_user.user_name
         })
         
