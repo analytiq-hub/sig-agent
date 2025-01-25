@@ -364,23 +364,20 @@ async def list_documents(
     tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
     user: User = Depends(get_current_user)
 ):
-    """List documents"""
-    db = ad.common.get_async_db()
-
-    # Build the query filter with organization scope
-    query_filter = {"organization_id": organization_id}
+    """List documents within an organization"""
+    # Get documents from database with organization scope
+    documents, total_count = await ad.common.list_docs(
+        analytiq_client, 
+        organization_id=organization_id,
+        skip=skip, 
+        limit=limit
+    )
     
     # Add tag filtering if tag_ids are provided
     if tag_ids:
         tag_id_list = [tid.strip() for tid in tag_ids.split(",")]
-        query_filter["tag_ids"] = {"$all": tag_id_list}
-    
-    # Get total count with filters
-    total_count = await db.docs.count_documents(query_filter)
-    
-    # Get paginated documents with sorting and filters
-    cursor = db.docs.find(query_filter).sort("_id", -1).skip(skip).limit(limit)
-    documents = await cursor.to_list(length=None)
+        documents = [doc for doc in documents if all(tid in doc.get("tag_ids", []) for tid in tag_id_list)]
+        total_count = len(documents)
     
     return ListDocumentsResponse(
         documents=[

@@ -96,13 +96,15 @@ async def delete_doc(analytiq_client, document_id: str, organization_id: str):
     })
     ad.log.debug(f"Document {document_id} has been deleted.")
 
-async def list_docs(analytiq_client, skip: int = 0, limit: int = 10) -> tuple[list, int]:
+async def list_docs(analytiq_client, organization_id: str, skip: int = 0, limit: int = 10) -> tuple[list, int]:
     """
-    List documents with pagination
+    List documents with pagination within an organization
     
     Args:
         analytiq_client: AnalytiqClient
             The analytiq client
+        organization_id: str
+            Organization ID to filter documents by
         skip: int
             Number of documents to skip
         limit: int
@@ -116,8 +118,11 @@ async def list_docs(analytiq_client, skip: int = 0, limit: int = 10) -> tuple[li
     db = analytiq_client.mongodb_async[db_name]
     collection = db["docs"]
     
-    total_count = await collection.count_documents({})
-    cursor = collection.find().sort("upload_date", 1).skip(skip).limit(limit)
+    # Add organization filter
+    query = {"organization_id": organization_id}
+    
+    total_count = await collection.count_documents(query)
+    cursor = collection.find(query).sort("upload_date", -1).skip(skip).limit(limit)
     documents = await cursor.to_list(length=limit)
     
     return documents, total_count
