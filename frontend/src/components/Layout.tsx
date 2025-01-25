@@ -158,17 +158,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <header className="bg-blue-600 dark:bg-blue-800 border-b border-blue-700 dark:border-blue-900">
         <div className="flex h-16 items-center justify-between px-3">
           <div className="flex items-center">
-            <div className="flex items-center">
-              <button
-                onClick={() => setOpen(!open)}
-                className="p-2 rounded-md hover:bg-blue-500 dark:hover:bg-blue-700"
-              >
-                <Bars3Icon className="h-6 w-6 text-white" />
-              </button>
-              <Link href="/" className={`${open ? 'ml-3' : 'ml-6'} text-xl font-semibold text-white`}>
-                Smart Document Router
-              </Link>
-            </div>
+            <button
+              onClick={() => setOpen(!open)}
+              className="p-2 rounded-md hover:bg-blue-500 dark:hover:bg-blue-700"
+            >
+              <Bars3Icon className="h-6 w-6 text-white" />
+            </button>
+            <Link href="/" className={`${open ? 'ml-3' : 'ml-6'} text-xl font-semibold text-white`}>
+              Smart Document Router
+            </Link>
           </div>
 
           <div className="flex-1 flex justify-end">
@@ -179,13 +177,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {isPDFViewer && pdfControls && (
               <PDFViewerControls key={forceUpdate} {...pdfControls} />
             )}
-            <div className="flex items-center">
-              {session ? (
-                <UserMenu user={session?.user} />
-              ) : (
-                <AuthButton />
-              )}
-            </div>
+            {session ? (
+              <UserMenu user={session?.user} />
+            ) : (
+              <AuthButton />
+            )}
           </div>
         </div>
       </header>
