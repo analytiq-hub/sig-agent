@@ -103,9 +103,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [forceUpdate]);
 
   useEffect(() => {
-    // Don't redirect if on the accept-invitation page
     if (status === 'unauthenticated' && 
-        !pathname.startsWith('/auth/')) {
+        pathname !== '/' &&
+        !pathname.startsWith('/auth/') &&
+        !pathname.startsWith('/dashboard')) {
       router.push('/auth/signin');
     }
   }, [status, router, pathname]);
@@ -195,6 +196,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           `}
         >
           <nav className="flex h-full flex-col overflow-hidden">
+            {/* Only show these menu items for authenticated users */}
             {status === 'authenticated' && (
               <>
                 <div className="py-1">

@@ -26,10 +26,6 @@ export const config = {
   matcher: [
     // Only protect these specific routes
     "/settings/:path*",
-    "/models/:path*",
-    "/flows/:path*",
-    "/dashboard/:path*",
-    "/upload/:path*",
-    "/list/:path*"
+    "/orgs/:path*",
   ]
 };
