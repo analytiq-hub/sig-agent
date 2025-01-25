@@ -210,6 +210,83 @@ async def startup_event():
     await startup.setup_admin(analytiq_client)
     await startup.setup_api_creds(analytiq_client)
 
+# Organization-level access tokens
+@app.post("/orgs/{organization_id}/access_tokens", response_model=AccessToken, tags=["access_tokens"])
+async def create_org_token(
+    organization_id: str,
+    request: CreateAccessTokenRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Create an organization-level API token"""
+    # First verify organization membership
+    org_id = await get_current_org(current_user, organization_id)
+    
+    db = ad.common.get_async_db()
+    token = secrets.token_urlsafe(32)
+    new_token = {
+        "user_id": current_user.user_id,
+        "organization_id": org_id,
+        "name": request.name,
+        "token": ad.crypto.encrypt_token(token),
+        "created_at": datetime.now(UTC),
+        "lifetime": request.lifetime
+    }
+    result = await db.access_tokens.insert_one(new_token)
+
+    new_token["token"] = token  # Return plaintext token to user
+    new_token["id"] = str(result.inserted_id)
+    return new_token
+
+@app.get("/orgs/{organization_id}/access_tokens", response_model=ListAccessTokensResponse, tags=["access_tokens"])
+async def list_org_tokens(
+    organization_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """List organization-level API tokens"""
+    # First verify organization membership
+    org_id = await get_current_org(current_user, organization_id)
+    
+    db = ad.common.get_async_db()
+    cursor = db.access_tokens.find({
+        "user_id": current_user.user_id,
+        "organization_id": org_id
+    })
+    tokens = await cursor.to_list(length=None)
+    ret = [
+        {
+            "id": str(token["_id"]),
+            "user_id": token["user_id"],
+            "organization_id": token["organization_id"],
+            "name": token["name"],
+            "token": token["token"],
+            "created_at": token["created_at"],
+            "lifetime": token["lifetime"]
+        }
+        for token in tokens
+    ]
+    return ListAccessTokensResponse(access_tokens=ret)
+
+@app.delete("/orgs/{organization_id}/access_tokens/{token_id}", tags=["access_tokens"])
+async def delete_org_token(
+    organization_id: str,
+    token_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an organization-level API token"""
+    # First verify organization membership
+    org_id = await get_current_org(current_user, organization_id)
+    
+    db = ad.common.get_async_db()
+    result = await db.access_tokens.delete_one({
+        "_id": ObjectId(token_id),
+        "user_id": current_user.user_id,
+        "organization_id": org_id
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Token not found")
+    return {"message": "Token deleted successfully"}
+
+
 # PDF management endpoints
 @app.post("/orgs/{organization_id}/documents", tags=["documents"])
 async def upload_document(
@@ -2890,82 +2967,6 @@ async def delete_account_token(
         "_id": ObjectId(token_id),
         "user_id": current_user.user_id,
         "organization_id": None  # Only delete account-level tokens
-    })
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Token not found")
-    return {"message": "Token deleted successfully"}
-
-# Organization-level access tokens
-@app.post("/orgs/{organization_id}/access_tokens", response_model=AccessToken, tags=["organizations/access_tokens"])
-async def create_org_token(
-    organization_id: str,
-    request: CreateAccessTokenRequest,
-    current_user: User = Depends(get_current_user)
-):
-    """Create an organization-level API token"""
-    # First verify organization membership
-    org_id = await get_current_org(current_user, organization_id)
-    
-    db = ad.common.get_async_db()
-    token = secrets.token_urlsafe(32)
-    new_token = {
-        "user_id": current_user.user_id,
-        "organization_id": org_id,
-        "name": request.name,
-        "token": ad.crypto.encrypt_token(token),
-        "created_at": datetime.now(UTC),
-        "lifetime": request.lifetime
-    }
-    result = await db.access_tokens.insert_one(new_token)
-
-    new_token["token"] = token  # Return plaintext token to user
-    new_token["id"] = str(result.inserted_id)
-    return new_token
-
-@app.get("/orgs/{organization_id}/access_tokens", response_model=ListAccessTokensResponse, tags=["organizations/access_tokens"])
-async def list_org_tokens(
-    organization_id: str,
-    current_user: User = Depends(get_current_user)
-):
-    """List organization-level API tokens"""
-    # First verify organization membership
-    org_id = await get_current_org(current_user, organization_id)
-    
-    db = ad.common.get_async_db()
-    cursor = db.access_tokens.find({
-        "user_id": current_user.user_id,
-        "organization_id": org_id
-    })
-    tokens = await cursor.to_list(length=None)
-    ret = [
-        {
-            "id": str(token["_id"]),
-            "user_id": token["user_id"],
-            "organization_id": token["organization_id"],
-            "name": token["name"],
-            "token": token["token"],
-            "created_at": token["created_at"],
-            "lifetime": token["lifetime"]
-        }
-        for token in tokens
-    ]
-    return ListAccessTokensResponse(access_tokens=ret)
-
-@app.delete("/orgs/{organization_id}/access_tokens/{token_id}", tags=["organizations/access_tokens"])
-async def delete_org_token(
-    organization_id: str,
-    token_id: str,
-    current_user: User = Depends(get_current_user)
-):
-    """Delete an organization-level API token"""
-    # First verify organization membership
-    org_id = await get_current_org(current_user, organization_id)
-    
-    db = ad.common.get_async_db()
-    result = await db.access_tokens.delete_one({
-        "_id": ObjectId(token_id),
-        "user_id": current_user.user_id,
-        "organization_id": org_id
     })
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Token not found")
