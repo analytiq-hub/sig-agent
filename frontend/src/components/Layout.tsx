@@ -196,7 +196,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           `}
         >
           <nav className="flex h-full flex-col overflow-hidden">
-            {/* Only show these menu items for authenticated users */}
             {status === 'authenticated' && (
               <>
                 <div className="py-1">
