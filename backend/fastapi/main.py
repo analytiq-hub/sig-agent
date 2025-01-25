@@ -671,7 +671,8 @@ async def create_schema(
 
     # Check if schema with this name already exists (case-insensitive)
     existing_schema = await db.schemas.find_one({
-        "name": {"$regex": f"^{schema.name}$", "$options": "i"}
+        "name": {"$regex": f"^{schema.name}$", "$options": "i"},
+        "organization_id": organization_id  # Scope to organization
     })
     
     # If schema exists, treat this as an update operation
@@ -685,7 +686,8 @@ async def create_schema(
             "fields": [field.model_dump() for field in schema.fields],
             "version": new_version,
             "created_at": datetime.utcnow(),
-            "created_by": current_user.user_id
+            "created_by": current_user.user_id,
+            "organization_id": organization_id  # Add organization_id
         }
     else:
         # This is a new schema
@@ -695,7 +697,8 @@ async def create_schema(
             "fields": [field.model_dump() for field in schema.fields],
             "version": new_version,
             "created_at": datetime.utcnow(),
-            "created_by": current_user.user_id
+            "created_by": current_user.user_id,
+            "organization_id": organization_id  # Add organization_id
         }
     
     # Insert into MongoDB
@@ -811,7 +814,8 @@ async def update_schema(
         "fields": [field.model_dump() for field in schema.fields],
         "version": new_version,
         "created_at": datetime.utcnow(),
-        "created_by": current_user.user_id
+        "created_by": current_user.user_id,
+        "organization_id": organization_id  # Add organization_id
     }
     
     # Insert new version
@@ -898,7 +902,8 @@ async def create_prompt(
     if prompt.schema_name and prompt.schema_version:
         schema = await db.schemas.find_one({
             "name": prompt.schema_name,
-            "version": prompt.schema_version
+            "version": prompt.schema_version,
+            "organization_id": organization_id  # Verify schema belongs to org
         })
         if not schema:
             raise HTTPException(
@@ -924,7 +929,8 @@ async def create_prompt(
 
     # Check if prompt with this name already exists (case-insensitive)
     existing_prompt = await db.prompts.find_one({
-        "name": {"$regex": f"^{prompt.name}$", "$options": "i"}
+        "name": {"$regex": f"^{prompt.name}$", "$options": "i"},
+        "organization_id": organization_id  # Scope to organization
     })
     
     # Get the next version
@@ -939,7 +945,7 @@ async def create_prompt(
         "version": new_version,
         "created_at": datetime.utcnow(),
         "created_by": current_user.user_id,
-        "tag_ids": prompt.tag_ids,  # Add tag_ids to the document
+        "tag_ids": prompt.tag_ids,
         "organization_id": organization_id  # Add organization_id
     }
     
@@ -1305,6 +1311,22 @@ async def create_flow(
 ) -> Flow:
     db = ad.common.get_async_db()
     try:
+        # Validate tag IDs if provided
+        if flow.tag_ids:
+            tags_cursor = db.tags.find({
+                "_id": {"$in": [ObjectId(tag_id) for tag_id in flow.tag_ids]},
+                "organization_id": organization_id
+            })
+            existing_tags = await tags_cursor.to_list(None)
+            existing_tag_ids = {str(tag["_id"]) for tag in existing_tags}
+            
+            invalid_tags = set(flow.tag_ids) - existing_tag_ids
+            if invalid_tags:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid tag IDs: {list(invalid_tags)}"
+                )
+
         flow_id = ad.common.create_id()
         flow_data = {
             "_id": ObjectId(flow_id),
@@ -1315,7 +1337,8 @@ async def create_flow(
             "tag_ids": flow.tag_ids,
             "version": 1,
             "created_at": datetime.utcnow(),
-            "created_by": current_user.user_name
+            "created_by": current_user.user_name,
+            "organization_id": organization_id  # Add organization_id
         }
         
         # Save to MongoDB
