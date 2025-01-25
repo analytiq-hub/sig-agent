@@ -101,12 +101,12 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
           <span className="text-sm text-gray-600">
             No extractions available for this prompt
           </span>
-          <button
+          <div
             onClick={(e) => {
               e.stopPropagation();
               handleRunPrompt(promptId);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors cursor-pointer"
           >
             {runningPrompts.has(promptId) ? (
               <>
@@ -119,7 +119,7 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
                 Run extraction
               </>
             )}
-          </button>
+          </div>
         </div>
       );
     }
@@ -150,32 +150,32 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
       <div className="overflow-auto flex-grow">
         {/* Default Prompt */}
         <div className="border-b border-black/10">
-          <button
+          <div
             onClick={() => handlePromptChange('default')}
-            className="w-full min-h-[48px] flex items-center justify-between px-4 bg-gray-100/[0.6] hover:bg-gray-100/[0.8] transition-colors"
+            className="w-full min-h-[48px] flex items-center justify-between px-4 bg-gray-100/[0.6] hover:bg-gray-100/[0.8] transition-colors cursor-pointer"
           >
             <span className="text-sm text-gray-900">Default Prompt</span>
             <div className="flex items-center gap-2">
-              <button
+              <div
                 onClick={(e) => {
                   e.stopPropagation();
                   handleRunPrompt('default');
                 }}
-                className="p-1 rounded-full hover:bg-black/5 transition-colors"
+                className="p-1 rounded-full hover:bg-black/5 transition-colors cursor-pointer"
               >
                 {runningPrompts.has('default') ? (
                   <div className="w-4 h-4 border-2 border-[#2B4479]/60 border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <ArrowPathIcon className="w-4 h-4 text-gray-600" />
                 )}
-              </button>
+              </div>
               <ChevronDownIcon 
                 className={`w-5 h-5 text-gray-600 transition-transform ${
                   expandedPrompt === 'default' ? 'rotate-180' : ''
                 }`}
               />
             </div>
-          </button>
+          </div>
           <div 
             className={`transition-all duration-200 ease-in-out bg-white ${
               expandedPrompt === 'default' ? '' : 'hidden'
@@ -188,34 +188,34 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
         {/* Other Prompts */}
         {matchingPrompts.map((prompt) => (
           <div key={prompt.id} className="border-b border-black/10">
-            <button
+            <div
               onClick={() => handlePromptChange(prompt.id)}
-              className="w-full min-h-[48px] flex items-center justify-between px-4 bg-gray-100/[0.6] hover:bg-gray-100/[0.8] transition-colors"
+              className="w-full min-h-[48px] flex items-center justify-between px-4 bg-gray-100/[0.6] hover:bg-gray-100/[0.8] transition-colors cursor-pointer"
             >
               <span className="text-sm text-gray-900">
                 {prompt.name} <span className="text-gray-500 text-xs">(v{prompt.version})</span>
               </span>
               <div className="flex items-center gap-2">
-                <button
+                <div
                   onClick={(e) => {
                     e.stopPropagation();
                     handleRunPrompt(prompt.id);
                   }}
-                  className="p-1 rounded-full hover:bg-black/5 transition-colors"
+                  className="p-1 rounded-full hover:bg-black/5 transition-colors cursor-pointer"
                 >
                   {runningPrompts.has(prompt.id) ? (
                     <div className="w-4 h-4 border-2 border-[#2B4479]/60 border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <ArrowPathIcon className="w-4 h-4 text-gray-600" />
                   )}
-                </button>
+                </div>
                 <ChevronDownIcon 
                   className={`w-5 h-5 text-gray-600 transition-transform ${
                     expandedPrompt === prompt.id ? 'rotate-180' : ''
                   }`}
                 />
               </div>
-            </button>
+            </div>
             <div 
               className={`transition-all duration-200 ease-in-out ${
                 expandedPrompt === prompt.id ? '' : 'hidden'
