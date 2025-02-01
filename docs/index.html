@@ -17,7 +17,7 @@
         /* Mobile menu animation */
         .mobile-menu {
             transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-            transform: translateY(-150%);
+            transform: translateY(-100%);
             opacity: 0;
             pointer-events: none;
             position: fixed;
@@ -27,27 +27,17 @@
             max-height: calc(100vh - 64px);
             overflow-y: auto;
             z-index: 40;
-            background-color: white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         .mobile-menu.show {
             transform: translateY(0);
             opacity: 1;
             pointer-events: auto;
-            visibility: visible;
-        }
-        /* Ensure the nav stays above mobile menu */
-        nav.sticky {
-            z-index: 50;
-            position: fixed;
-            width: 100%;
-            top: 0;
         }
     </style>
 </head>
-<body class="bg-gray-50 pt-16">
+<body class="bg-gray-50">
     <!-- Sticky Navigation -->
-    <nav class="fixed top-0 bg-white shadow-md z-50 w-full">
+    <nav class="sticky top-0 bg-white shadow-md z-50">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex-shrink-0">
