@@ -154,6 +154,109 @@
             </section>
 
             <section id="use-cases" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-6">Use Cases</h2>
+                
+                <p class="text-gray-600 mb-6 italic">
+                    Development and integration services are available for use cases exemplified below. 
+                    Contact us to discuss your specific requirements.
+                </p>
+                
+                <div class="space-y-6">
+                    <!-- Clinical Trial Lab Services Use Case -->
+                    <div class="border border-gray-200 rounded-lg">
+                        <button class="w-full text-left px-6 py-4 focus:outline-none" 
+                                onclick="toggleUseCase('clinical-trial')">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-medium text-gray-900">Clinical Trial Lab Services</h3>
+                                <svg class="w-5 h-5 transform transition-transform duration-200" 
+                                     id="clinical-trial-arrow"
+                                     fill="none" 
+                                     viewBox="0 0 24 24" 
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" 
+                                          stroke-linejoin="round" 
+                                          stroke-width="2" 
+                                          d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </button>
+                        <div class="hidden px-6 pb-4" id="clinical-trial-content">
+                            <div class="prose prose-blue max-w-none">
+                                <p class="text-gray-600 mb-4">
+                                    A lab service provider sends an invoice for services rendered during a clinical trial, 
+                                    including details like invoice number, date, service descriptions, and the billed amount.
+                                </p>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Document Processing</h4>
+                                <p class="text-gray-600 mb-4">
+                                    docrouter.ai receives the invoice and, if necessary, converts the document into a machine-readable format.
+                                </p>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Data Extraction</h4>
+                                <ul class="list-disc list-inside text-gray-600 mb-4">
+                                    <li>Invoice number</li>
+                                    <li>Vendor name</li>
+                                    <li>Contract/reference number</li>
+                                    <li>Invoice date</li>
+                                    <li>Billed amounts and line-item details</li>
+                                </ul>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Automated Verification</h4>
+                                <ul class="list-disc list-inside text-gray-600">
+                                    <li>Rate Verification: Compares billed rates against those specified in the contract</li>
+                                    <li>Service Eligibility: Confirms that the billed services are covered under the contract</li>
+                                    <li>Quantity & Billing Cycles: Ensures the invoiced quantities fall within agreed limits and that billing is aligned with contract terms</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Shipping Container Manifest Use Case -->
+                    <div class="border border-gray-200 rounded-lg">
+                        <button class="w-full text-left px-6 py-4 focus:outline-none" 
+                                onclick="toggleUseCase('shipping-manifest')">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-medium text-gray-900">Shipping Container Manifest Processing</h3>
+                                <svg class="w-5 h-5 transform transition-transform duration-200" 
+                                     id="shipping-manifest-arrow"
+                                     fill="none" 
+                                     viewBox="0 0 24 24" 
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" 
+                                          stroke-linejoin="round" 
+                                          stroke-width="2" 
+                                          d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </button>
+                        <div class="hidden px-6 pb-4" id="shipping-manifest-content">
+                            <div class="prose prose-blue max-w-none">
+                                <p class="text-gray-600 mb-4">
+                                    Shipping container manifests are critical documents that list all items loaded into a container. 
+                                    docrouter.ai automates the extraction and verification of manifest data against physical inventory, 
+                                    dramatically reducing processing time and errors.
+                                </p>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Document Processing</h4>
+                                <p class="text-gray-600 mb-4">
+                                    When a manifest is submitted (PDF, scan, or API), docrouter.ai processes it to extract structured data that can be matched against inventory systems.
+                                </p>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Key Data Extraction</h4>
+                                <ul class="list-disc list-inside text-gray-600 mb-4">
+                                    <li>Container and seal numbers</li>
+                                    <li>Shipping dates and route information</li>
+                                    <li>Item descriptions and quantities</li>
+                                    <li>Weights and dimensions</li>
+                                    <li>Special handling instructions</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="architecture" class="bg-white rounded-lg shadow-lg p-8 mb-12">
                 <h2 class="text-2xl font-semibold text-gray-900 mb-4">Example Deployment</h2>
                 <img src="assets/doc-router-arch.png" alt="Example Deployment" class="w-full max-w-md mx-auto">
             </section>
@@ -329,6 +432,14 @@ cd ../frontend; npm install; cd ..
         mobileMenu.addEventListener('click', (e) => {
             e.stopPropagation();
         });
+
+        function toggleUseCase(id) {
+            const content = document.getElementById(`${id}-content`);
+            const arrow = document.getElementById(`${id}-arrow`);
+            
+            content.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180');
+        }
     </script>
 </body>
 </html> 
