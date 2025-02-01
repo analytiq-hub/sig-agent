@@ -16,11 +16,15 @@
         }
         /* Mobile menu animation */
         .mobile-menu {
-            transition: transform 0.3s ease-in-out;
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
             transform: translateY(-100%);
+            opacity: 0;
+            pointer-events: none;
         }
         .mobile-menu.show {
             transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
         }
     </style>
 </head>
@@ -286,22 +290,39 @@ cd ../frontend; npm install; cd ..
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.querySelector('.mobile-menu');
 
-        mobileMenuButton.addEventListener('click', () => {
+        mobileMenuButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent click from bubbling to document
             mobileMenu.classList.toggle('show');
         });
 
-        // Close mobile menu when clicking a link
+        // Handle all mobile menu link clicks
         document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
             link.addEventListener('click', () => {
                 mobileMenu.classList.remove('show');
+                
+                // Handle smooth scrolling for anchor links
+                if (link.getAttribute('href').startsWith('#')) {
+                    const targetId = link.getAttribute('href').slice(1);
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
             });
         });
 
         // Close mobile menu when clicking outside
         document.addEventListener('click', (e) => {
-            if (!mobileMenu.contains(e.target) && !mobileMenuButton.contains(e.target)) {
+            if (mobileMenu.classList.contains('show') && 
+                !mobileMenu.contains(e.target) && 
+                !mobileMenuButton.contains(e.target)) {
                 mobileMenu.classList.remove('show');
             }
+        });
+
+        // Prevent clicks inside mobile menu from closing it
+        mobileMenu.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
     </script>
 </body>
