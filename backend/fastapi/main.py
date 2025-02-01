@@ -1387,8 +1387,9 @@ async def update_tag(
     if not existing_tag:
         raise HTTPException(status_code=404, detail="Tag not found")
     
-    # Keep the original name, only update color and description
+    # Update all fields including name
     update_data = {
+        "name": tag.name,
         "color": tag.color,
         "description": tag.description
     }

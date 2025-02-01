@@ -198,7 +198,7 @@ const Tags = ({ organizationId }: { organizationId: string }) => {
                 value={currentTag.name}
                 onChange={e => setCurrentTag({ ...currentTag, name: e.target.value })}
                 placeholder="Tag Name"
-                disabled={isLoading || !!currentTag.id}
+                disabled={isLoading}
               />
             </div>
             <div className="w-32">
