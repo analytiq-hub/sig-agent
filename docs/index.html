@@ -255,29 +255,47 @@
                     </div>
                 </div>
 
-                <div class="text-gray-600 mt-6">
-                    
-                    <ul class="list-disc list-inside space-y-2 italic">
-                        <li>The Smart Document Router supports multiple industry verticals and integrates with a wide range of ERP systems</li>
-                        <li>It eliminates manual processes by preprocessing documents into structured data using:
-                            <ul class="list-disc list-inside ml-6 mt-2">
-                                <li>User-configured schemas</li>
-                                <li>Customizable AI prompts</li>
-                            </ul>
-                        </li>
-                        <li>Our flexible deployment options:
-                            <ul class="list-disc list-inside ml-6 mt-2">
-                                <li>Self-hosted on your infrastructure</li>
-                                <li>SaaS and cloud-based deployment</li>
-                            </ul>
-                        </li>
-                        <li>Our implementation options:
-                            <ul class="list-disc list-inside ml-6 mt-2">
-                                <li>DIY customization and integration</li>
-                                <li>Full-service development and integration through our services company <a href="https://analytiqhub.com" class="text-blue-600 hover:text-blue-800">Analytiq Hub</a></li>
-                            </ul>
-                        </li>
-                    </ul>
+                <!-- Add new expandable container -->
+                <div class="border border-gray-200 rounded-lg mt-6">
+                    <button class="w-full text-left px-6 py-4 focus:outline-none" 
+                            onclick="toggleUseCase('product-overview')">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-medium text-gray-900">Deployment and Integration Options</h3>
+                            <svg class="w-5 h-5 transform transition-transform duration-200" 
+                                 id="product-overview-arrow"
+                                 fill="none" 
+                                 viewBox="0 0 24 24" 
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" 
+                                      stroke-linejoin="round" 
+                                      stroke-width="2" 
+                                      d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </button>
+                    <div class="hidden px-6 pb-4" id="product-overview-content">
+                        <ul class="list-disc list-inside space-y-2">
+                            <li class="text-gray-600">The Smart Document Router supports multiple industry verticals and integrates with a wide range of ERP systems</li>
+                            <li class="text-gray-600">It eliminates manual processes by preprocessing documents into structured data using:
+                                <ul class="list-disc list-inside ml-6 mt-2 text-gray-600">
+                                    <li>User-configured schemas</li>
+                                    <li>Customizable AI prompts</li>
+                                </ul>
+                            </li>
+                            <li class="text-gray-600">Our flexible deployment options:
+                                <ul class="list-disc list-inside ml-6 mt-2 text-gray-600">
+                                    <li>Self-hosted on your infrastructure</li>
+                                    <li>SaaS and cloud-based deployment</li>
+                                </ul>
+                            </li>
+                            <li class="text-gray-600">Our implementation options:
+                                <ul class="list-disc list-inside ml-6 mt-2 text-gray-600">
+                                    <li>DIY customization and integration</li>
+                                    <li>Full-service development and integration through our services company <a href="https://analytiqhub.com" class="text-blue-600 hover:text-blue-800">Analytiq Hub</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </section>
 
