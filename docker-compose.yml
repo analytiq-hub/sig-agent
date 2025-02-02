@@ -77,6 +77,7 @@ services:
     environment:
       # Runtime environment
       - ENV=${ENV:-dev}
+      - N_WORKERS=${N_WORKERS:-1}
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
       - FASTAPI_SECRET=${FASTAPI_SECRET:-default_fastapi_secret_for_development}
     command: sh -c "cd /app/backend/worker && python3 worker.py"
