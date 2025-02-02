@@ -1,3 +1,4 @@
+from bson.objectid import ObjectId
 import analytiq_data as ad
 
 async def get_llm_model(analytiq_client, prompt_id: str) -> dict:
@@ -19,7 +20,7 @@ async def get_llm_model(analytiq_client, prompt_id: str) -> dict:
 
     default_model = "gpt-4o-mini"
 
-    prompt = await collection.find_one({"_id": prompt_id})
+    prompt = await collection.find_one({"_id": ObjectId(prompt_id)})
     if prompt is None:
         return default_model
     
