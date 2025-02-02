@@ -7,7 +7,7 @@ import json
 async def run_llm(analytiq_client, 
                   document_id: str,
                   prompt_id: str = "default",
-                  model: str = "gpt-4o-mini",  # Default to OpenAI's model
+                  llm_model: str = None,
                   force: bool = False) -> dict:
     """
     Run the LLM for the given document and prompt.
@@ -17,6 +17,7 @@ async def run_llm(analytiq_client,
         document_id: The document ID
         prompt_id: The prompt ID
         model: The model to use (e.g. "gpt-4-turbo", "claude-3-sonnet", "mixtral-8x7b-32768")
+               If not provided, the model will be retrieved from the prompt.
         force: If True, run the LLM even if the result is already cached
     
     Returns:
@@ -33,12 +34,17 @@ async def run_llm(analytiq_client,
         await delete_llm_result(analytiq_client, document_id, prompt_id)
 
     ad.log.info(f"Running new LLM analysis for document_id: {document_id}, prompt_id: {prompt_id}")
-    
+
+    if llm_model is None:
+        llm_model = await ad.llm.get_llm_model(analytiq_client, prompt_id)
+
+    ad.log.info(f"LLM model: {llm_model}")
+
     # Get the appropriate API key based on the model prefix
     provider = "OpenAI"  # Default
-    if model.startswith("claude"):
+    if llm_model.startswith("claude"):
         provider = "Anthropic"
-    elif model.startswith("groq"):
+    elif llm_model.startswith("groq"):
         provider = "Groq"
         
     api_key = await ad.llm.get_llm_key(analytiq_client, provider)
@@ -61,7 +67,7 @@ async def run_llm(analytiq_client,
     
     # Remove asyncio.to_thread since acompletion is already async
     response = await acompletion(
-        model=model,
+        model=llm_model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}

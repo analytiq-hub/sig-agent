@@ -16,6 +16,11 @@ async def get_llm_model(analytiq_client, prompt_id: str) -> dict:
     db_name = analytiq_client.env
     db = mongo[db_name]
     collection = db["prompts"]
+
+    default_model = "gpt-4o-mini"
+
     prompt = await collection.find_one({"_id": prompt_id})
+    if prompt is None:
+        return default_model
     
-    return prompt.get("model", "gpt-4o-mini")
+    return prompt.get("model", default_model)
