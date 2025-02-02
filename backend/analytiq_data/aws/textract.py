@@ -3,15 +3,16 @@ from collections import defaultdict
 import json
 import re
 import time
+import asyncio
 from datetime import datetime
 import uuid
 
 import analytiq_data as ad
 
-def run_textract(aws_client,
-                 blob: bytes,
-                 feature_types: list = [],
-                 query_list: list = None) -> dict:
+async def run_textract(aws_client,
+                       blob: bytes,
+                       feature_types: list = [],
+                       query_list: list = None) -> dict:
     """
     Run textract on a blob and return the blocks formatted as a dict.
 
@@ -82,7 +83,7 @@ def run_textract(aws_client,
             if status in ["SUCCEEDED", "FAILED"]:
                 break
 
-            time.sleep(2)
+            await asyncio.sleep(1)
 
         if status == "SUCCEEDED":
             blocks = []
