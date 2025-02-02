@@ -9,6 +9,77 @@ sys.path.append(f"{cwd}/..")
 
 import analytiq_data as ad
 
+async def setup_llm_models(db):
+    """Set up default LLM models if they don't exist"""
+    # Check if collection exists and has any documents
+    count = await db.llm_models.count_documents({})
+    if count > 0:
+        return
+
+    # Default LLM models
+    default_models = [
+        {
+            "id": "gpt-40-mini",
+            "name": "GPT-4 Mini",
+            "provider": "OpenAI",
+            "description": "Smaller, faster version of GPT-4",
+            "max_tokens": 128000,
+            "cost_per_1m_input_tokens": 0.15,
+            "cost_per_1m_output_tokens": 0.6
+        },
+        {
+            "id": "gpt-4-turbo",
+            "name": "GPT-4 Turbo",
+            "provider": "OpenAI",
+            "description": "Latest version of GPT-4 with improved performance",
+            "max_tokens": 128000,
+            "cost_per_1m_input_tokens": 2.5,
+            "cost_per_1m_output_tokens": 10
+        },
+        {
+            "id": "o1-mini",
+            "name": "OpenAI O1 Mini",
+            "provider": "OpenAI",
+            "description": "OpenAI O1 Mini",
+            "max_tokens": 200000,
+            "cost_per_1m_input_tokens": 15,
+            "cost_per_1m_output_tokens": 60
+        },
+        {
+            "id": "o3-mini",
+            "name": "OpenAI O3 Mini",
+            "provider": "OpenAI",
+            "description": "OpenAI O3 Mini",
+            "max_tokens": 200000,
+            "cost_per_1m_input_tokens": 1.10,
+            "cost_per_1m_output_tokens": 4.4
+        },
+        {
+            "id": "claude-3.5",
+            "name": "Claude 3 Sonnet",
+            "provider": "Anthropic",
+            "description": "Latest Claude model optimized for reliability and safety",
+            "max_tokens": 200000,
+            "cost_per_1m_input_tokens": 3,
+            "cost_per_1m_output_tokens": 15
+        },
+        {
+            "id": "groq/deepseek-r1-distill-llama-70b",
+            "name": "DeepSeek Llama 70B",
+            "provider": "Groq",
+            "description": "High performance open source model optimized for Groq",
+            "max_tokens": 128000,
+            "cost_per_1m_input_tokens": 0.59,
+            "cost_per_1m_output_tokens": 0.79
+        }
+    ]
+
+    try:
+        await db.llm_models.insert_many(default_models)
+        ad.log.info("Default LLM models initialized")
+    except Exception as e:
+        ad.log.error(f"Failed to initialize LLM models: {e}")
+
 async def setup_admin(analytiq_client):
     """
     Create admin user during application startup if it doesn't exist
@@ -25,6 +96,10 @@ async def setup_admin(analytiq_client):
         
     try:
         db = analytiq_client.mongodb_async[env]
+        
+        # Initialize LLM models
+        await setup_llm_models(db)
+        
         users = db.users
         
         # Check if admin already exists
