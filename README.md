@@ -12,7 +12,8 @@ Tech stack:
 * FastAPI
 * MongoDB
 * Pydantic
-* OpenAI, Anthropic, LLama3...
+* LiteLLM
+* OpenAI, Anthropic, Groq/DeepSeek...
 
 # User Experience
 ![Smart Document Router](./docs/assets/files.png)
