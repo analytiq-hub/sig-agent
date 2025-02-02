@@ -200,25 +200,13 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const columns: GridColDef[] = [
     {
       field: 'name',
-      headerName: 'Prompt Name',
+      headerName: 'Prompt',
       flex: 1,
       headerAlign: 'left',
       align: 'left',
       renderCell: (params) => (
         <div className="text-blue-600 flex items-center h-full">
           {params.row.name}
-        </div>
-      ),
-    },
-    {
-      field: 'content',
-      headerName: 'Content',
-      flex: 2,
-      headerAlign: 'left',
-      align: 'left',
-      renderCell: (params) => (
-        <div className="text-gray-600 truncate flex items-center h-full">
-          {params.row.content}
         </div>
       ),
     },
@@ -245,6 +233,18 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           {params.row.schema_name 
             ? `${params.row.schema_name}:v${params.row.schema_version}`
             : '-'}
+        </div>
+      ),
+    },
+    {
+      field: 'model',
+      headerName: 'Model',
+      width: 150,
+      headerAlign: 'left',
+      align: 'left',
+      renderCell: (params) => (
+        <div className="text-gray-600 flex items-center h-full">
+          {params.row.model || 'gpt-40-mini'}
         </div>
       ),
     },

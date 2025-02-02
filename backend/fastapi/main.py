@@ -987,7 +987,7 @@ async def create_prompt(
     current_user: User = Depends(get_current_user)
 ):
     """Create a prompt"""
-    # Only verify schema if one is specified
+    # First verify schema if one is specified
     db = ad.common.get_async_db()
     if prompt.schema_name and prompt.schema_version:
         schema = await db.schemas.find_one({
@@ -1000,6 +1000,14 @@ async def create_prompt(
                 status_code=404,
                 detail=f"Schema {prompt.schema_name} version {prompt.schema_version} not found"
             )
+
+    # Validate model exists
+    model = await db.llm_models.find_one({"name": prompt.model})
+    if not model:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid model: {prompt.model}"
+        )
 
     # Validate tag IDs if provided
     if prompt.tag_ids:
@@ -1036,7 +1044,8 @@ async def create_prompt(
         "created_at": datetime.utcnow(),
         "created_by": current_user.user_id,
         "tag_ids": prompt.tag_ids,
-        "organization_id": organization_id  # Add organization_id
+        "model": prompt.model,  # Add model field
+        "organization_id": organization_id
     }
     
     # Insert into MongoDB
@@ -1178,6 +1187,14 @@ async def update_prompt(
                 status_code=404,
                 detail=f"Schema {prompt.schema_name} version {prompt.schema_version} not found"
             )
+
+    # Validate model exists
+    model = await db.llm_models.find_one({"name": prompt.model})
+    if not model:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid model: {prompt.model}"
+        )
     
     # Validate tag IDs if provided
     if prompt.tag_ids:
@@ -1202,13 +1219,14 @@ async def update_prompt(
     new_prompt = {
         "name": prompt.name,
         "content": prompt.content,
-        "schema_name": prompt.schema_name or "",  # Use empty string if None
-        "schema_version": prompt.schema_version or 0,  # Use 0 if None
+        "schema_name": prompt.schema_name or "",
+        "schema_version": prompt.schema_version or 0,
         "version": new_version,
         "created_at": datetime.utcnow(),
         "created_by": current_user.user_id,
-        "tag_ids": prompt.tag_ids,  # Add tag_ids to the document
-        "organization_id": organization_id  # Add organization_id
+        "tag_ids": prompt.tag_ids,
+        "model": prompt.model,  # Add model field
+        "organization_id": organization_id
     }
     
     # Insert new version

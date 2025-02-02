@@ -9,6 +9,7 @@ export interface PromptConfig {
   schema_name?: string;
   schema_version?: number;
   tag_ids?: string[];
+  model?: string;
 }
 
 export interface Prompt extends PromptConfig {
