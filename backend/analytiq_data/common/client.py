@@ -4,12 +4,13 @@ from pymongo import MongoClient
 import analytiq_data as ad
 
 class AnalytiqClient:
-    def __init__(self, env: str = "dev"):
+    def __init__(self, env: str = "dev", name: str = None):
         self.env = env
+        self.name = name
         self.mongodb_async = ad.mongodb.get_mongodb_client_async(env)
         self.mongodb = ad.mongodb.get_mongodb_client(env)
 
-def get_analytiq_client(env: str = None) -> AnalytiqClient:
+def get_analytiq_client(env: str = None, name: str = None) -> AnalytiqClient:
     """
     Get the AnalytiqClient.
 
@@ -21,7 +22,7 @@ def get_analytiq_client(env: str = None) -> AnalytiqClient:
     """
     if not env:
         env = os.getenv("ENV", "dev")
-    return AnalytiqClient(env)
+    return AnalytiqClient(env, name)
 
 def get_db(analytiq_client: AnalytiqClient = None) -> MongoClient:
     """

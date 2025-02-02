@@ -19,7 +19,7 @@ N_WORKERS = int(os.getenv("N_WORKERS", "1"))  # Convert to int with default valu
 ad.log.info(f"ENV: {ENV}")
 ad.log.info(f"N_WORKERS: {N_WORKERS}")
 
-async def worker_ocr(worker_id: int) -> None:
+async def worker_ocr(worker_id: str) -> None:
     """
     Worker for OCR jobs
 
@@ -27,8 +27,8 @@ async def worker_ocr(worker_id: int) -> None:
         worker_id: The worker ID
     """
     # Create a separate client instance for each worker
-    analytiq_client = ad.common.get_analytiq_client(env=ENV)
-    ad.log.info(f"Starting OCR worker {worker_id}")
+    analytiq_client = ad.common.get_analytiq_client(env=ENV, name=worker_id)
+    ad.log.info(f"Starting worker {worker_id}")
 
     while True:
         msg = await ad.queue.recv_msg(analytiq_client, "ocr")
@@ -38,7 +38,7 @@ async def worker_ocr(worker_id: int) -> None:
         else:
             await asyncio.sleep(0.2)  # Avoid tight loop
 
-async def worker_llm(worker_id: int) -> None:
+async def worker_llm(worker_id: str) -> None:
     """
     Worker for LLM jobs
 
@@ -46,8 +46,8 @@ async def worker_llm(worker_id: int) -> None:
         worker_id: The worker ID
     """
     # Create a separate client instance for each worker
-    analytiq_client = ad.common.get_analytiq_client(env=ENV)
-    ad.log.info(f"Starting LLM worker {worker_id}")
+    analytiq_client = ad.common.get_analytiq_client(env=ENV, name=worker_id)
+    ad.log.info(f"Starting worker {worker_id}")
 
     while True:
         msg = await ad.queue.recv_msg(analytiq_client, "llm")
@@ -59,8 +59,8 @@ async def worker_llm(worker_id: int) -> None:
 
 async def main():
     # Create N_WORKERS workers of worker_ocr and worker_llm
-    ocr_workers = [worker_ocr(i) for i in range(N_WORKERS)]
-    llm_workers = [worker_llm(i) for i in range(N_WORKERS)]
+    ocr_workers = [worker_ocr(f"ocr_{i}") for i in range(N_WORKERS)]
+    llm_workers = [worker_llm(f"llm_{i}") for i in range(N_WORKERS)]
 
     # Run all workers concurrently
     await asyncio.gather(*ocr_workers, *llm_workers)

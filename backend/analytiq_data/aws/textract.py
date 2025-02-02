@@ -9,7 +9,7 @@ import uuid
 
 import analytiq_data as ad
 
-async def run_textract(aws_client,
+async def run_textract(analytiq_client,
                        blob: bytes,
                        feature_types: list = [],
                        query_list: list = None) -> dict:
@@ -17,7 +17,7 @@ async def run_textract(aws_client,
     Run textract on a blob and return the blocks formatted as a dict.
 
     Args:
-        aws_client: AWS client
+        analytiq_client: Analytiq client
         doc_blob: Bytes to be textracted
         feature_types: List of feature types, e.g. ["TABLES", "FORMS", "QUERIES"]
         query_list: List of queries
@@ -25,6 +25,11 @@ async def run_textract(aws_client,
     Returns:
         Textract blocks formatted as a dict
     """
+    # Get the AWS client. This will give None for textract if the AWS keys are not set.
+    aws_client = ad.aws.get_aws_client(analytiq_client)
+    if aws_client.textract is None:
+        raise Exception(f"AWS textract client not created. Cannot run OCR.")
+
     textract = aws_client.textract
     s3_bucket_name = aws_client.s3_bucket_name
 
@@ -77,7 +82,7 @@ async def run_textract(aws_client,
         while True:
             status_response = textract_get_completion(JobId=job_id)
             status = status_response['JobStatus']
-            ad.log.info(f"OCR step {idx}: {status}")
+            ad.log.info(f"{analytiq_client.name}: ocr step {idx}: {status}")
             idx += 1
 
             if status in ["SUCCEEDED", "FAILED"]:
