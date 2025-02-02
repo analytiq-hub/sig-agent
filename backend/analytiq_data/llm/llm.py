@@ -67,8 +67,8 @@ async def run_llm(analytiq_client,
     return resp_dict
 
 async def get_llm_result(analytiq_client,
-                        document_id: str,
-                        prompt_id: str) -> dict | None:
+                         document_id: str,
+                         prompt_id: str) -> dict | None:
     """
     Retrieve the latest LLM result from MongoDB.
     
@@ -130,8 +130,8 @@ async def save_llm_result(analytiq_client,
     return str(result.inserted_id)
 
 async def delete_llm_result(analytiq_client,
-                           document_id: str,
-                           prompt_id: str) -> bool:
+                            document_id: str,
+                            prompt_id: str) -> bool:
     """
     Delete an LLM result from MongoDB.
     
