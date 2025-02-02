@@ -1,12 +1,13 @@
 import asyncio
 import analytiq_data as ad
-from openai import AsyncOpenAI
+from litellm.main import acompletion  # Changed import path
 import json
 
 
 async def run_llm(analytiq_client, 
                   document_id: str,
                   prompt_id: str = "default",
+                  model: str = "gpt-4o-mini",  # Default to OpenAI's model
                   force: bool = False) -> dict:
     """
     Run the LLM for the given document and prompt.
@@ -15,6 +16,7 @@ async def run_llm(analytiq_client,
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
         prompt_id: The prompt ID
+        model: The model to use (e.g. "gpt-4-turbo", "claude-3-sonnet", "mixtral-8x7b-32768")
         force: If True, run the LLM even if the result is already cached
     
     Returns:
@@ -32,10 +34,15 @@ async def run_llm(analytiq_client,
 
     ad.log.info(f"Running new LLM analysis for document_id: {document_id}, prompt_id: {prompt_id}")
     
-    llm_key = await ad.llm.get_llm_key(analytiq_client)
+    # Get the appropriate API key based on the model prefix
+    provider = "OpenAI"  # Default
+    if model.startswith("claude"):
+        provider = "Anthropic"
+    elif model.startswith("groq"):
+        provider = "Groq"
+        
+    api_key = await ad.llm.get_llm_key(analytiq_client, provider)
     ocr_text = ad.common.get_ocr_text(analytiq_client, document_id)
-    
-    client = AsyncOpenAI(api_key=llm_key)
     
     prompt1 = await ad.common.get_prompt_content(analytiq_client, prompt_id)
     
@@ -45,21 +52,26 @@ async def run_llm(analytiq_client,
         Now extract from this text: 
         
         {ocr_text}"""
-    
-    response = await client.chat.completions.create(
-        model="gpt-4o-mini", # gpt-4-turbo has 30,000 TPM limit in stage 1
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant that extracts document information into JSON format."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.1,
-        response_format={ "type": "json_object" }
+
+    system_prompt = (
+        "You are a helpful assistant that extracts document information into JSON format. "
+        "Always respond with valid JSON only, no other text. "
+        "Format your entire response as a JSON object."
     )
     
-    resp_json = response.choices[0].message.content
+    # Remove asyncio.to_thread since acompletion is already async
+    response = await acompletion(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ],
+        api_key=api_key,
+        temperature=0.1,
+        response_format={"type": "json_object"} if provider in ["OpenAI", "Anthropic", "Groq"] else None
+    )
 
-    # Convert to dict
-    resp_dict = json.loads(resp_json)
+    resp_dict = json.loads(response.choices[0].message.content)
 
     # Save the new result
     await save_llm_result(analytiq_client, document_id, prompt_id, resp_dict)
