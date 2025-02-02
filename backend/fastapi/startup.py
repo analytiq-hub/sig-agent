@@ -19,54 +19,48 @@ async def setup_llm_models(db):
     # Default LLM models
     default_models = [
         {
-            "id": "gpt-40-mini",
-            "name": "GPT-4 Mini",
-            "provider": "OpenAI",
+            "name": "gpt-40-mini",
+            "provider": "openai",
             "description": "Smaller, faster version of GPT-4",
             "max_tokens": 128000,
             "cost_per_1m_input_tokens": 0.15,
             "cost_per_1m_output_tokens": 0.6
         },
         {
-            "id": "gpt-4-turbo",
-            "name": "GPT-4 Turbo",
-            "provider": "OpenAI",
+            "name": "gpt-4-turbo",
+            "provider": "openai",
             "description": "Latest version of GPT-4 with improved performance",
             "max_tokens": 128000,
             "cost_per_1m_input_tokens": 2.5,
             "cost_per_1m_output_tokens": 10
         },
         {
-            "id": "o1-mini",
-            "name": "OpenAI O1 Mini",
-            "provider": "OpenAI",
+            "name": "o1-mini",
+            "provider": "openai",
             "description": "OpenAI O1 Mini",
             "max_tokens": 200000,
             "cost_per_1m_input_tokens": 15,
             "cost_per_1m_output_tokens": 60
         },
         {
-            "id": "o3-mini",
-            "name": "OpenAI O3 Mini",
-            "provider": "OpenAI",
+            "name": "o3-mini",
+            "provider": "openai",
             "description": "OpenAI O3 Mini",
             "max_tokens": 200000,
             "cost_per_1m_input_tokens": 1.10,
             "cost_per_1m_output_tokens": 4.4
         },
         {
-            "id": "claude-3.5",
-            "name": "Claude 3 Sonnet",
-            "provider": "Anthropic",
+            "name": "claude-3.5",
+            "provider": "anthropic",
             "description": "Latest Claude model optimized for reliability and safety",
             "max_tokens": 200000,
             "cost_per_1m_input_tokens": 3,
             "cost_per_1m_output_tokens": 15
         },
         {
-            "id": "groq/deepseek-r1-distill-llama-70b",
-            "name": "DeepSeek Llama 70B",
-            "provider": "Groq",
+            "name": "groq/deepseek-r1-distill-llama-70b",
+            "provider": "groq",
             "description": "High performance open source model optimized for Groq",
             "max_tokens": 128000,
             "cost_per_1m_input_tokens": 0.59,

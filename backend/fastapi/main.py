@@ -1783,7 +1783,18 @@ async def list_llm_models():
     models = await cursor.to_list(length=None)
     
     # Convert MongoDB documents to LLMModel instances
-    llm_models = [LLMModel(**model) for model in models]
+    llm_models = []
+    for model in models:
+        ad.log.info(f"model: {model}")
+        llm_models.append(LLMModel(
+            id=str(model["_id"]),
+            name=model["name"],
+            provider=model["provider"],
+            description=model["description"],
+            max_tokens=model["max_tokens"],
+            cost_per_1m_input_tokens=model["cost_per_1m_input_tokens"],
+            cost_per_1m_output_tokens=model["cost_per_1m_output_tokens"]
+        ))
     
     return ListLLMModelsResponse(models=llm_models)
 
