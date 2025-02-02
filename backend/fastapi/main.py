@@ -35,6 +35,7 @@ from schemas import (
     ListDocumentsResponse,
     DocumentMetadata,
     DocumentUpload, DocumentsUpload, DocumentUpdate,
+    LLMModel, ListLLMModelsResponse,
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
     GetOCRMetadataResponse,
@@ -1771,6 +1772,72 @@ async def access_token_delete(
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
+
+@app.get("/account/llms", response_model=ListLLMModelsResponse, tags=["account/llms"])
+async def list_llm_models():
+    """List all supported LLM models"""
+    models = [
+        # See https://openai.com/api/pricing
+        LLMModel(
+            id="gpt-40-mini",
+            name="GPT-4 Mini",
+            provider="OpenAI",
+            description="Smaller, faster version of GPT-4",
+            max_tokens=128000,
+            cost_per_1m_input_tokens=0.15,
+            cost_per_1m_output_tokens=0.6
+        ),
+        LLMModel(
+            id="gpt-4-turbo",
+            name="GPT-4 Turbo",
+            provider="OpenAI", 
+            description="Latest version of GPT-4 with improved performance",
+            max_tokens=128000,
+            cost_per_1m_input_tokens=2.5,
+            cost_per_1m_output_tokens=10
+        ),
+        LLMModel(
+            id="o1-mini",
+            name="OpenAI O1 Mini",
+            provider="OpenAI", 
+            description="OpenAI O1 Mini",
+            max_tokens=200000,
+            cost_per_1m_input_tokens=15,
+            cost_per_1m_output_tokens=60
+        ),
+        LLMModel(
+            id="o3-mini",
+            name="OpenAI O3 Mini",
+            provider="OpenAI", 
+            description="OpenAI O3 Mini",
+            max_tokens=200000,
+            cost_per_1m_input_tokens=1.10,
+            cost_per_1m_output_tokens=4.4
+        ),
+        # See https://www.anthropic.com/pricing#anthropic-api
+        LLMModel(
+            id="claude-3.5",
+            name="Claude 3 Sonnet",
+            provider="Anthropic",
+            description="Latest Claude model optimized for reliability and safety",
+            max_tokens=200000,
+            cost_per_1m_input_tokens=3,
+            cost_per_1m_output_tokens=15
+        ),
+        # See https://www.groq.com/pricing
+        LLMModel(
+            id="groq/deepseek-r1-distill-llama-70b",
+            name="DeepSeek Llama 70B",
+            provider="Groq",
+            description="High performance open source model optimized for Groq",
+            max_tokens=128000,
+            cost_per_1m_input_tokens=0.59,
+            cost_per_1m_output_tokens=0.79
+        )
+    ]
+    
+    return ListLLMModelsResponse(models=models)
+
 
 @app.post("/account/llm_tokens", response_model=LLMToken, tags=["account/llm_tokens"])
 async def llm_token_create(

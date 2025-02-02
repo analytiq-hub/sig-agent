@@ -62,6 +62,18 @@ class DocumentUpdate(BaseModel):
         description="List of tag IDs associated with the document"
     )
 
+class LLMModel(BaseModel):
+    id: str
+    name: str
+    provider: str
+    description: str
+    max_tokens: int
+    cost_per_1m_input_tokens: float
+    cost_per_1m_output_tokens: float
+
+class ListLLMModelsResponse(BaseModel):
+    models: List[LLMModel]
+
 class LLMToken(BaseModel):
     id: str
     user_id: str
