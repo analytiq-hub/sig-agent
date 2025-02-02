@@ -1,3 +1,17 @@
+export interface LLMModel {
+  id: string;
+  name: string;
+  provider: string;
+  description: string;
+  max_tokens: number;
+  cost_per_1m_input_tokens: number;
+  cost_per_1m_output_tokens: number;
+}
+
+export interface ListLLMModelsResponse {
+  models: LLMModel[];
+}
+
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 export interface RunLLMParams {

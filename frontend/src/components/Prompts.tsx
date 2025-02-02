@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { createPromptApi, listPromptsApi, deletePromptApi, updatePromptApi, listSchemasApi, getSchemaApi, listTagsApi } from '@/utils/api';
-import { Prompt, PromptConfig, Schema, Tag} from '@/types/index';
+import { createPromptApi, listPromptsApi, deletePromptApi, updatePromptApi, listSchemasApi, getSchemaApi, listTagsApi, listLLMModelsApi } from '@/utils/api';
+import { Prompt, PromptConfig, Schema, Tag, LLMModel } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
@@ -24,7 +24,8 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     content: '',
     schema_name: undefined,
     schema_version: undefined,
-    tag_ids: []
+    tag_ids: [],
+    model: undefined
   });
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +38,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
+  const [llmModels, setLLMModels] = useState<LLMModel[]>([]);
 
   const savePrompt = async () => {
     try {
@@ -77,7 +79,8 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         content: '',
         schema_name: undefined,
         schema_version: undefined,
-        tag_ids: []
+        tag_ids: [],
+        model: undefined
       });
       setCurrentPromptId(null);
       setSelectedSchema('');
@@ -175,11 +178,22 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     }
   }, [organizationId]);
 
+  const loadLLMModels = useCallback(async () => {
+    try {
+      const response = await listLLMModelsApi();
+      setLLMModels(response.models);
+    } catch (error) {
+      const errorMsg = getApiErrorMsg(error) || 'Error loading LLM models';
+      setMessage('Error: ' + errorMsg);
+    }
+  }, []);
+
   useEffect(() => {
     loadPrompts();
     loadSchemas();
     loadTags();
-  }, [loadPrompts, loadSchemas, loadTags]);
+    loadLLMModels();
+  }, [loadPrompts, loadSchemas, loadTags, loadLLMModels]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,7 +306,8 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                 content: params.row.content,
                 schema_name: params.row.schema_name,
                 schema_version: params.row.schema_version,
-                tag_ids: params.row.tag_ids || []
+                tag_ids: params.row.tag_ids || [],
+                model: params.row.model
               });
               
               setSelectedTagIds(params.row.tag_ids || []);
@@ -377,6 +392,24 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                   {schemas.map((schema) => (
                     <option key={schema.id} value={schema.name}>
                       {schema.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Model
+                </label>
+                <select
+                  value={currentPrompt.model || 'gpt-40-mini'}
+                  onChange={(e) => setCurrentPrompt(prev => ({ ...prev, model: e.target.value }))}
+                  disabled={isLoading}
+                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  {llmModels.map((model) => (
+                    <option key={model.id} value={model.name}>
+                      {model.name} ({model.provider})
                     </option>
                   ))}
                 </select>
