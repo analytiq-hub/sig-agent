@@ -14,8 +14,10 @@ ad.common.setup()
 
 # Environment variables
 ENV = os.getenv("ENV", "dev")
+N_WORKERS = int(os.getenv("N_WORKERS", "1"))  # Convert to int with default value of 1
 
 ad.log.info(f"ENV: {ENV}")
+ad.log.info(f"N_WORKERS: {N_WORKERS}")
 
 async def worker_ocr(analytiq_client) -> None:
     """
@@ -50,11 +52,12 @@ async def worker_llm(analytiq_client) -> None:
 async def main():
     analytiq_client = ad.common.get_analytiq_client(env=ENV)
 
-    # Run both workers concurrently
-    await asyncio.gather(
-        worker_ocr(analytiq_client),
-        worker_llm(analytiq_client)
-    )
+    # Create N_WORKERS workers of worker_ocr and worker_llm
+    ocr_workers = [worker_ocr(analytiq_client) for _ in range(N_WORKERS)]
+    llm_workers = [worker_llm(analytiq_client) for _ in range(N_WORKERS)]
+
+    # Run all workers concurrently
+    await asyncio.gather(*ocr_workers, *llm_workers)
 
 if __name__ == "__main__":
     try:    
