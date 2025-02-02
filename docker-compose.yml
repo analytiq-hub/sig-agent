@@ -80,6 +80,7 @@ services:
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
       - FASTAPI_SECRET=${FASTAPI_SECRET:-default_fastapi_secret_for_development}
     command: sh -c "cd /app/backend/worker && python3 worker.py"
+    restart: unless-stopped
     deploy:
       resources:
         limits:
