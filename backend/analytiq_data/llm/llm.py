@@ -167,7 +167,7 @@ async def delete_llm_result(analytiq_client,
     return result.deleted_count > 0
 
 
-async def run_llm_for_prompt_ids(analytiq_client, document_id: str, prompt_ids: list[str]) -> None:
+async def run_llm_for_prompt_ids(analytiq_client, document_id: str, prompt_ids: list[str], model: str = "gpt-4o-mini") -> None:
     """
     Run the LLM for the given prompt IDs.
 
@@ -180,7 +180,7 @@ async def run_llm_for_prompt_ids(analytiq_client, document_id: str, prompt_ids: 
     n_prompts = len(prompt_ids)
 
     # Create n_prompts concurrent tasks
-    tasks = [run_llm(analytiq_client, document_id, prompt_id) for prompt_id in prompt_ids]
+    tasks = [run_llm(analytiq_client, document_id, prompt_id, model) for prompt_id in prompt_ids]
 
     # Run the tasks
     results = await asyncio.gather(*tasks)
