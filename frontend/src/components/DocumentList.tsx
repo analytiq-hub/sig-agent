@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { Box, IconButton, TextField, InputAdornment, Autocomplete, Collapse, FormGroup, FormControlLabel, Checkbox } from '@mui/material';
+import { Box, IconButton, TextField, InputAdornment, Autocomplete } from '@mui/material';
 import { isAxiosError } from 'axios';
 import { 
   listDocumentsApi, 
@@ -287,12 +287,24 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
               placeholder="Filter by tags..."
             />
           )}
+          renderOption={(props, tag) => (
+            <li {...props}>
+              <div
+                className={`px-2 py-1 rounded text-sm ${
+                  isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                }`}
+                style={{ backgroundColor: tag.color }}
+              >
+                {tag.name}
+              </div>
+            </li>
+          )}
           renderTags={(tagValue, getTagProps) =>
             tagValue.map((tag, index) => (
               <div
                 key={tag.id}
                 {...getTagProps({ index })}
-                className={`px-2 py-1 m-1 rounded-full text-sm ${
+                className={`px-2 py-0.5 m-0.5 rounded text-sm ${
                   isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
                 }`}
                 style={{ backgroundColor: tag.color }}
@@ -301,7 +313,13 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
               </div>
             ))
           }
-          sx={{ minWidth: 300 }}
+          sx={{ 
+            minWidth: 300,
+            '& .MuiAutocomplete-tag': {
+              margin: 0,
+              padding: 0
+            }
+          }}
         />
       </div>
 
