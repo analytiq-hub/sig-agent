@@ -411,9 +411,6 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     ),
   }), [handleFileSelect, handlePromptSelect, prompts]);
 
-  // Add defaultViewport to set initial zoom
-  const defaultViewport = { x: 0, y: 0, zoom: 1 };
-
   return (
     <div className="flex h-[800px]">
       <FlowSidebar 
@@ -455,9 +452,6 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             onDrop={onDrop}
             onDragOver={onDragOver}
             nodeTypes={nodeTypes}
-            defaultViewport={defaultViewport}
-            minZoom={0.1}
-            maxZoom={1.5}
             defaultEdgeOptions={{
               type: 'smoothstep',
               markerEnd: {
