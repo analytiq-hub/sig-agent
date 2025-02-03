@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { Box, IconButton, TextField, InputAdornment } from '@mui/material';
+import { Box, IconButton, TextField, InputAdornment, Autocomplete, Collapse, FormGroup, FormControlLabel, Checkbox } from '@mui/material';
 import { isAxiosError } from 'axios';
 import { 
   listDocumentsApi, 
@@ -33,6 +33,9 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [editingDocument, setEditingDocument] = useState<DocumentMetadata | null>(null);
   const [isTagEditorOpen, setIsTagEditorOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTagFilters, setSelectedTagFilters] = useState<Tag[]>([]);
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -256,7 +259,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   return (
     <Box sx={{ height: 400, width: '100%' }}>
-      <div className="mb-4">
+      <div className="flex gap-4 mb-4">
         <TextField
           fullWidth
           variant="outlined"
@@ -271,12 +274,43 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
             ),
           }}
         />
+        <Autocomplete
+          multiple
+          options={tags}
+          value={selectedTagFilters}
+          onChange={(_, newValue) => setSelectedTagFilters(newValue)}
+          getOptionLabel={(tag) => tag.name}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              variant="outlined"
+              placeholder="Filter by tags..."
+            />
+          )}
+          renderTags={(tagValue, getTagProps) =>
+            tagValue.map((tag, index) => (
+              <div
+                key={tag.id}
+                {...getTagProps({ index })}
+                className={`px-2 py-1 m-1 rounded-full text-sm ${
+                  isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                }`}
+                style={{ backgroundColor: tag.color }}
+              >
+                {tag.name}
+              </div>
+            ))
+          }
+          sx={{ minWidth: 300 }}
+        />
       </div>
 
       <DataGrid
         loading={isLoading}
         rows={files.filter(file => 
-          file.document_name.toLowerCase().includes(searchTerm.toLowerCase())
+          file.document_name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+          (selectedTagFilters.length === 0 || 
+           selectedTagFilters.every(tag => file.tag_ids.includes(tag.id)))
         )}
         columns={columns}
         paginationModel={paginationModel}
