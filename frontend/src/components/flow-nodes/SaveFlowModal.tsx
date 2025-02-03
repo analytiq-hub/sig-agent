@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tag } from '@/types/index';
+import colors from 'tailwindcss/colors';
+import { isColorLight } from '@/utils/colors';
 
 interface SaveFlowModalProps {
   isOpen: boolean;
@@ -117,27 +119,39 @@ const SaveFlowModal: React.FC<SaveFlowModalProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
-            <div className="flex flex-wrap gap-2">
-              {availableTags.map(tag => (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedTagIds(prev => 
-                      prev.includes(tag.id)
-                        ? prev.filter(id => id !== tag.id)
-                        : [...prev, tag.id]
-                    );
-                  }}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors
-                    ${selectedTagIds.includes(tag.id)
-                      ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                      : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                    }`}
-                >
-                  {tag.name}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-1">
+              {availableTags.map(tag => {
+                const isSelected = selectedTagIds.includes(tag.id);
+                const textColor = isColorLight(tag.color || '') ? 'text-gray-800' : 'text-white';
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTagIds(prev => 
+                        prev.includes(tag.id)
+                          ? prev.filter(id => id !== tag.id)
+                          : [...prev, tag.id]
+                      );
+                    }}
+                    className={`
+                      inline-flex items-center gap-1.5 px-2 py-1 leading-none rounded shadow-sm
+                      ${textColor} transition-opacity hover:opacity-80
+                    `}
+                    style={{ 
+                      backgroundColor: tag.color || colors.blue[500]
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {}}
+                      className="h-3 w-3"
+                    />
+                    {tag.name}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

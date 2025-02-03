@@ -417,6 +417,7 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         organizationId={organizationId}
         refreshTrigger={refreshSidebarTrigger} 
         onFlowSelect={handleFlowSelect}
+        availableTags={availableTags}
       />
       <div className="flex-1">
         <div className="mb-4 flex gap-2 p-4">

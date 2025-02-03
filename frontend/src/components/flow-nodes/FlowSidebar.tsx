@@ -8,6 +8,9 @@ import {
 } from '@heroicons/react/24/outline';
 import { NodeData, Flow, FlowMetadata } from '@/types/flows';
 import { listFlowsApi, deleteFlowApi } from '@/utils/api';
+import { Tag } from '@/types/index';
+import colors from 'tailwindcss/colors';
+import { isColorLight } from '@/utils/colors';
 
 interface NodeType {
   type: string;
@@ -20,6 +23,7 @@ interface FlowSidebarProps {
   organizationId: string;
   refreshTrigger?: number;
   onFlowSelect: (flowId: string) => void;
+  availableTags: Tag[];
 }
 
 const nodeTypes: NodeType[] = [
@@ -64,7 +68,7 @@ const nodeTypes: NodeType[] = [
   }
 ];
 
-const FlowSidebar: React.FC<FlowSidebarProps> = ({ organizationId, refreshTrigger, onFlowSelect }) => {
+const FlowSidebar: React.FC<FlowSidebarProps> = ({ organizationId, refreshTrigger, onFlowSelect, availableTags }) => {
   const [savedFlows, setSavedFlows] = useState<FlowMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -107,6 +111,27 @@ const FlowSidebar: React.FC<FlowSidebarProps> = ({ organizationId, refreshTrigge
     }
   };
 
+  const renderTags = (tags: Tag[]) => {
+    return (
+      <div className="flex flex-wrap gap-1 mt-1">
+        {tags.map((tag) => (
+          <span
+            key={tag.id}
+            className={`
+              inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium
+              ${tag.color ? 
+                `bg-${tag.color}-100 text-${tag.color}-800` : 
+                'bg-gray-100 text-gray-800'
+              }
+            `}
+          >
+            {tag.name}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="w-64 bg-white border-r border-gray-200 p-4">
       <h3 className="text-sm font-semibold text-gray-900 mb-4">Flow Elements</h3>
@@ -137,20 +162,42 @@ const FlowSidebar: React.FC<FlowSidebarProps> = ({ organizationId, refreshTrigge
           savedFlows.map((flow) => (
             <div
               key={flow.id}
-              className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors group"
+              className="flex flex-col p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors group"
               onClick={() => onFlowSelect(flow.id)}
             >
-              <div className="flex items-center">
-                <FolderIcon className="h-5 w-5 text-gray-400 mr-2" />
-                <span className="text-sm text-gray-900">{flow.name}</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <FolderIcon className="h-5 w-5 text-gray-400 mr-2" />
+                  <span className="text-sm text-gray-900">{flow.name}</span>
+                </div>
+                <button
+                  onClick={(e) => handleDelete(e, flow.id)}
+                  className="hidden group-hover:block p-1 hover:bg-gray-100 rounded"
+                  title="Delete flow"
+                >
+                  <TrashIcon className="h-4 w-4 text-gray-500 hover:text-red-500" />
+                </button>
               </div>
-              <button
-                onClick={(e) => handleDelete(e, flow.id)}
-                className="hidden group-hover:block p-1 hover:bg-gray-100 rounded"
-                title="Delete flow"
-              >
-                <TrashIcon className="h-4 w-4 text-gray-500 hover:text-red-500" />
-              </button>
+              {flow.tag_ids && flow.tag_ids.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {flow.tag_ids.map(tagId => {
+                    const tag = availableTags.find(t => t.id === tagId);
+                    if (!tag) return null;
+                    const textColor = isColorLight(tag.color || '') ? 'text-gray-800' : 'text-white';
+                    return (
+                      <span
+                        key={tag.id}
+                        className={`px-2 py-1 leading-none rounded shadow-sm ${textColor}`}
+                        style={{ 
+                          backgroundColor: tag.color || colors.blue[500]
+                        }}
+                      >
+                        {tag.name}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ))
         )}
