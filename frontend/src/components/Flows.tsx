@@ -463,7 +463,13 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                 strokeWidth: 2,
               },
             }}
+            defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
             fitView
+            fitViewOptions={{ 
+              padding: 0.2,
+              maxZoom: 1,
+              minZoom: 0.1
+            }}
           >
             <Background />
             <Controls />
