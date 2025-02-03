@@ -371,6 +371,8 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         flowId: flowId
       });
       
+      console.log('Selected flow:', flow);
+      
       // Set nodes and edges from the loaded flow
       setNodes(flow.nodes.map(node => ({
         ...node,
@@ -485,7 +487,7 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         initialValues={currentFlow ? {
           name: currentFlow.name,
           description: currentFlow.description,
-          tag_ids: currentFlow.tag_ids
+          tag_ids: currentFlow.tag_ids || []
         } : undefined}
       />
     </div>

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Tag } from '@/types/index';
-import colors from 'tailwindcss/colors';
 import { isColorLight } from '@/utils/colors';
 
 interface SaveFlowModalProps {
