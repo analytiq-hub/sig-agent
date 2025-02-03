@@ -402,9 +402,6 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     triggerDocument: (props: NodeProps) => (
       <DocumentNode {...props} handleFileSelect={handleFileSelect} />
     ),
-    staticDocument: (props: NodeProps) => (
-      <DocumentNode {...props} handleFileSelect={handleFileSelect} />
-    ),
     prompt: (props: NodeProps) => (
       <PromptNode {...props} prompts={prompts} handlePromptSelect={handlePromptSelect} />
     ),

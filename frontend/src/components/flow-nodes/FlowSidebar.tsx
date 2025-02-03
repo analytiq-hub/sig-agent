@@ -40,18 +40,6 @@ const nodeTypes: NodeType[] = [
     }
   },
   {
-    type: 'staticDocument',
-    label: 'Static Document',
-    icon: DocumentIcon,
-    data: { 
-      label: 'Static Document',
-      description: 'Reference document that remains unchanged',
-      accept: ['.pdf', '.txt', '.json', '.xlsx'],
-      required: true,
-      isStatic: true
-    }
-  },
-  {
     type: 'prompt',
     label: 'Prompt',
     icon: ChatBubbleLeftRightIcon,
