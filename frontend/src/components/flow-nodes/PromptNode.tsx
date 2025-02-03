@@ -12,7 +12,7 @@ interface PromptNodeProps {
 
 const PromptNode = ({ id, data, prompts, handlePromptSelect }: PromptNodeProps) => {
   return (
-    <div className="px-4 py-2 shadow-md rounded-md bg-white border border-gray-200">
+    <div className="scale-[0.33] origin-top-left px-4 py-2 shadow-md rounded-md bg-white border border-gray-200">
       <Handle type="target" position={Position.Left} />
       <Handle type="source" position={Position.Right} />
       
