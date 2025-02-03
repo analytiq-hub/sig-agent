@@ -119,39 +119,40 @@ const SaveFlowModal: React.FC<SaveFlowModalProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
-            <div className="flex flex-wrap gap-1">
-              {availableTags.map(tag => {
-                const isSelected = selectedTagIds.includes(tag.id);
-                const textColor = isColorLight(tag.color || '') ? 'text-gray-800' : 'text-white';
-                return (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedTagIds(prev => 
-                        prev.includes(tag.id)
-                          ? prev.filter(id => id !== tag.id)
-                          : [...prev, tag.id]
-                      );
-                    }}
-                    className={`
-                      inline-flex items-center gap-1.5 px-2 py-1 leading-none rounded shadow-sm
-                      ${textColor} transition-opacity hover:opacity-80
-                    `}
-                    style={{ 
-                      backgroundColor: tag.color || colors.blue[500]
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => {}}
-                      className="h-3 w-3"
-                    />
-                    {tag.name}
-                  </button>
-                );
-              })}
+            <div className="flex flex-wrap gap-2">
+              {availableTags.map(tag => (
+                <button
+                  key={tag.id}
+                  onClick={() => {
+                    setSelectedTagIds(prev => 
+                      prev.includes(tag.id)
+                        ? prev.filter(id => id !== tag.id)
+                        : [...prev, tag.id]
+                    )
+                  }}
+                  className={`group transition-all ${
+                    selectedTagIds.includes(tag.id)
+                      ? 'ring-2 ring-blue-500 ring-offset-2'
+                      : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
+                  }`}
+                >
+                  <div className="flex items-center h-full w-full">
+                    <div 
+                      className={`px-2 py-1 leading-none rounded shadow-sm flex items-center gap-2 text-sm ${
+                        isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                      }`}
+                      style={{ backgroundColor: tag.color }}
+                    >
+                      {tag.name}
+                      {selectedTagIds.includes(tag.id) && (
+                        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 

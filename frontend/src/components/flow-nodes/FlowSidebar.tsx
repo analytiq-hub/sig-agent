@@ -179,7 +179,7 @@ const FlowSidebar: React.FC<FlowSidebarProps> = ({ organizationId, refreshTrigge
                 </button>
               </div>
               {flow.tag_ids && flow.tag_ids.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
+                <div className="flex flex-wrap gap-1 mt-1">
                   {flow.tag_ids.map(tagId => {
                     const tag = availableTags.find(t => t.id === tagId);
                     if (!tag) return null;
@@ -187,7 +187,7 @@ const FlowSidebar: React.FC<FlowSidebarProps> = ({ organizationId, refreshTrigge
                     return (
                       <span
                         key={tag.id}
-                        className={`px-2 py-1 leading-none rounded shadow-sm ${textColor}`}
+                        className={`px-1.5 py-0.5 text-xs leading-none rounded shadow-sm ${textColor}`}
                         style={{ 
                           backgroundColor: tag.color || colors.blue[500]
                         }}
