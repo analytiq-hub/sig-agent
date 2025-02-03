@@ -28,15 +28,13 @@ interface FlowSidebarProps {
 
 const nodeTypes: NodeType[] = [
   {
-    type: 'triggerDocument',
-    label: 'Trigger Document',
+    type: 'document',
+    label: 'Document',
     icon: DocumentIcon,
     data: { 
-      label: 'Trigger Document',
-      description: 'Uploaded document that triggers the flow',
-      accept: ['.pdf', '.txt', '.json', '.xlsx'],
+      label: 'Document',
+      description: 'Uploaded document',
       required: true,
-      isTrigger: true
     }
   },
   {

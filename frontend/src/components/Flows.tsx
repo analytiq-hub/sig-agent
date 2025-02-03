@@ -299,10 +299,10 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const validateFlow = (): string | null => {
     // Check for trigger document
     const hasTrigger = nodes.some(node => 
-      node.type === 'triggerDocument'
+      node.type === 'document'
     );
     if (!hasTrigger) {
-      return 'Flow must contain a trigger document';
+      return 'Flow must contain a document';
     }
 
     // Check for loose connections
@@ -399,7 +399,7 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
 
   // Create nodeTypes inside component using useMemo
   const nodeTypes = useMemo(() => ({
-    triggerDocument: (props: NodeProps) => (
+    document: (props: NodeProps) => (
       <DocumentNode {...props} handleFileSelect={handleFileSelect} />
     ),
     prompt: (props: NodeProps) => (
