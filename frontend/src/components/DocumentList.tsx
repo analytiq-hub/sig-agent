@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { Box, IconButton } from '@mui/material';
+import { Box, IconButton, TextField, InputAdornment } from '@mui/material';
 import { isAxiosError } from 'axios';
 import { 
   listDocumentsApi, 
@@ -18,6 +18,7 @@ import { isColorLight } from '@/utils/colors';
 import colors from 'tailwindcss/colors';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { DocumentUpdate } from './DocumentUpdate';
+import SearchIcon from '@mui/icons-material/Search';
 
 type File = DocumentMetadata;  // Use type alias instead of interface
 
@@ -31,6 +32,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [tags, setTags] = useState<Tag[]>([]);
   const [editingDocument, setEditingDocument] = useState<DocumentMetadata | null>(null);
   const [isTagEditorOpen, setIsTagEditorOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -254,9 +256,28 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   return (
     <Box sx={{ height: 400, width: '100%' }}>
+      <div className="mb-4">
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Search documents..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </div>
+
       <DataGrid
         loading={isLoading}
-        rows={files}
+        rows={files.filter(file => 
+          file.document_name.toLowerCase().includes(searchTerm.toLowerCase())
+        )}
         columns={columns}
         paginationModel={paginationModel}
         onPaginationModelChange={(newModel) => {
