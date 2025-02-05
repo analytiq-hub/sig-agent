@@ -16,7 +16,7 @@ async def run_llm(analytiq_client,
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
         prompt_id: The prompt ID
-        model: The model to use (e.g. "gpt-4-turbo", "claude-3-sonnet", "mixtral-8x7b-32768")
+        llm_model: The model to use (e.g. "gpt-4", "claude-3-sonnet", "mixtral-8x7b-32768")
                If not provided, the model will be retrieved from the prompt.
         force: If True, run the LLM even if the result is already cached
     

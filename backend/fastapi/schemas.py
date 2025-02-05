@@ -134,7 +134,7 @@ class PromptConfig(BaseModel):
     schema_name: Optional[str] = None
     schema_version: Optional[int] = None
     tag_ids: List[str] = []
-    model: str = "gpt-40-mini"  # Default to gpt-40-mini
+    model: str = "gpt-4o-mini"  # Default to gpt-4o-mini
 
 class Prompt(PromptConfig):
     id: str

@@ -19,7 +19,7 @@ async def setup_llm_models(db):
     # Default LLM models
     default_models = [
         {
-            "name": "gpt-40-mini",
+            "name": "gpt-4o-mini",
             "provider": "openai",
             "description": "Smaller, faster version of GPT-4",
             "max_tokens": 128000,

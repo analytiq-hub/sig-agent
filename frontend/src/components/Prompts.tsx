@@ -258,7 +258,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       align: 'left',
       renderCell: (params) => (
         <div className="text-gray-600 flex items-center h-full">
-          {params.row.model || 'gpt-40-mini'}
+          {params.row.model || 'gpt-4o-mini'}
         </div>
       ),
     },
@@ -402,7 +402,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                   Model
                 </label>
                 <select
-                  value={currentPrompt.model || 'gpt-40-mini'}
+                  value={currentPrompt.model || 'gpt-4o-mini'}
                   onChange={(e) => setCurrentPrompt(prev => ({ ...prev, model: e.target.value }))}
                   disabled={isLoading}
                   className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
