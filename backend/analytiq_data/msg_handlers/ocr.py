@@ -53,10 +53,11 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
 
             # Save the OCR dictionary
             ad.common.save_ocr_list(analytiq_client, document_id, ocr_list)
+            ad.log.info(f"OCR list for {document_id} has been saved.")
         
         # Extract the text
         ad.common.save_ocr_text_from_list(analytiq_client, document_id, ocr_list, force=force)
-
+        ad.log.info(f"OCR text for {document_id} has been saved.")
         # Update state to OCR completed
         await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_COMPLETED)
 

@@ -49,7 +49,7 @@ def get_blob(analytiq_client, bucket: str, key: str) -> dict:
 
     return blob_dict
 
-def save_blob(analytiq_client, bucket: str, key: str, blob: bytes, metadata: dict, chunk_size_bytes: int = 64*1024*1024):
+def save_blob(analytiq_client, bucket: str, key: str, blob: bytes, metadata: dict, chunk_size_bytes: int = 8*1024*1024):
     """
     Save the file
     
@@ -65,7 +65,7 @@ def save_blob(analytiq_client, bucket: str, key: str, blob: bytes, metadata: dic
         metadata : dict
             blob metadata
         chunk_size_bytes : int
-            chunk size in bytes
+            chunk size in bytes (default: 1MB)
     """
     # Get the db
     mongo = analytiq_client.mongodb
@@ -75,11 +75,15 @@ def save_blob(analytiq_client, bucket: str, key: str, blob: bytes, metadata: dic
     # Delete the old blob
     delete_blob(analytiq_client, bucket, key)
 
-    # Create a new GridFS bucket to ensure clean state
-    fs_bucket = gridfs.GridFSBucket(db, bucket_name=bucket)
+    # Create a new GridFS bucket with smaller chunk size
+    fs_bucket = gridfs.GridFSBucket(
+        db, 
+        bucket_name=bucket,
+        chunk_size_bytes=chunk_size_bytes  # Use smaller chunks
+    )
     
-    ad.log.debug(f"Uploading blob {bucket}/{key} to mongodb.")
-    fs_bucket.upload_from_stream(filename=key, source=blob, chunk_size_bytes=chunk_size_bytes, metadata=metadata)
+    ad.log.debug(f"Uploading blob {bucket}/{key} to mongodb with chunk size {chunk_size_bytes/1024/1024:.2f}MB")
+    fs_bucket.upload_from_stream(filename=key, source=blob, metadata=metadata)
 
 def delete_blob(analytiq_client, bucket:str, key:str):
     """
@@ -171,7 +175,7 @@ async def get_blob_async(analytiq_client, bucket: str, key: str) -> dict:
 
     return blob_dict
 
-async def save_blob_async(analytiq_client, bucket: str, key: str, blob: bytes, metadata: dict, chunk_size_bytes: int = 64*1024*1024):
+async def save_blob_async(analytiq_client, bucket: str, key: str, blob: bytes, metadata: dict, chunk_size_bytes: int = 8*1024*1024):
     """
     Save the file asynchronously
     
@@ -187,7 +191,7 @@ async def save_blob_async(analytiq_client, bucket: str, key: str, blob: bytes, m
         metadata : dict
             blob metadata
         chunk_size_bytes : int
-            chunk size in bytes
+            chunk size in bytes (default: 1MB)
     """
     # Get the db
     mongo = analytiq_client.mongodb_async
@@ -197,11 +201,15 @@ async def save_blob_async(analytiq_client, bucket: str, key: str, blob: bytes, m
     # Delete the old blob
     await delete_blob_async(analytiq_client, bucket, key)
 
-    # Create a new GridFS bucket to ensure clean state
-    fs_bucket = gridfs.GridFSBucket(db, bucket_name=bucket)
+    # Create a new GridFS bucket with smaller chunk size
+    fs_bucket = gridfs.GridFSBucket(
+        db, 
+        bucket_name=bucket,
+        chunk_size_bytes=chunk_size_bytes  # Use smaller chunks
+    )
     
-    ad.log.debug(f"Uploading blob {bucket}/{key} to mongodb.")
-    await fs_bucket.upload_from_stream(filename=key, source=blob, chunk_size_bytes=chunk_size_bytes, metadata=metadata)
+    ad.log.debug(f"Uploading blob {bucket}/{key} to mongodb with chunk size {chunk_size_bytes/1024/1024:.2f}MB")
+    await fs_bucket.upload_from_stream(filename=key, source=blob, metadata=metadata)
 
 async def delete_blob_async(analytiq_client, bucket:str, key:str):
     """

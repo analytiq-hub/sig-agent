@@ -43,9 +43,11 @@ def save_ocr_list(analytiq_client, document_id:str, ocr_list:list, metadata:dict
     key = f"{document_id}_list"
     # Pickle the dictionary
     ocr_bytes = pickle.dumps(ocr_list)
+    size_mb = len(ocr_bytes) / 1024 / 1024
+    ad.log.info(f"Saving OCR list for {document_id} with metadata: {metadata} size: {size_mb:.2f}MB")
     ad.mongodb.save_blob(analytiq_client, bucket=OCR_BUCKET, key=key, blob=ocr_bytes, metadata=metadata)
     
-    ad.log.debug(f"OCR list for {document_id} has been saved.")
+    ad.log.info(f"OCR list for {document_id} has been saved.")
 
 def delete_ocr_list(analytiq_client, document_id:str):
     """
@@ -173,8 +175,10 @@ def save_ocr_text_from_list(analytiq_client, document_id:str, ocr_list:list, met
     for page_num, page_text in page_text_map.items():
         page_idx = int(page_num) - 1
         save_ocr_text(analytiq_client, document_id, page_text, page_idx, metadata)
+        ad.log.info(f"OCR text for {document_id} page {page_idx} has been saved.")
 
     text = "\n".join(page_text_map.values())
+    ad.log.info(f"Saving OCR text for {document_id} with metadata: {metadata} length: {len(text)}")
     save_ocr_text(analytiq_client, document_id, text, metadata=metadata)
 
     ad.log.info(f"OCR text for {document_id} has been saved.")
