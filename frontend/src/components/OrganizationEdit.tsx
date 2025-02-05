@@ -294,7 +294,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
 
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-6">
-      <div className="flex flex-col h-[calc(100vh-200px)]">
+      <div className="flex flex-col h-[calc(100vh-240px)]">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">Edit Organization</h2>
           <div className="flex gap-4">
@@ -319,8 +319,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
           </div>
         </div>
         
-        <form id="organization-form" onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-
+        <form id="organization-form" onSubmit={handleSubmit} className="flex flex-col flex-1">
           {/* Organization Name Section */}
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
             <div className="space-y-4">
@@ -360,8 +359,8 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
             </div>
           </div>
 
-          {/* Members Section */}
-          <div className="flex-1 min-h-0 bg-gray-50 p-4 rounded-lg">
+          {/* Members Section - adjust the height calculation */}
+          <div className="flex-1 bg-gray-50 p-4 rounded-lg flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">Members</h3>
               
@@ -378,7 +377,6 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
               </button>
             </div>
 
-            {/* Search current members */}
             <div className="mb-4">
               <input
                 type="text"
@@ -389,8 +387,8 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
               />
             </div>
 
-            {/* Members Table */}
-            <div className="h-[calc(100%-130px)] bg-white rounded-lg">
+            {/* Update the DataGrid container height */}
+            <div className="flex-1 bg-white rounded-lg">
               <DataGrid
                 rows={getGridRows()}
                 columns={columns}
@@ -404,6 +402,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
                 disableColumnMenu
                 density="standard"
                 sx={{
+                  height: '100%',
                   '& .MuiDataGrid-row': {
                     height: '60px'
                   },
@@ -414,9 +413,6 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
                     height: '60px',
                     alignItems: 'center',
                     padding: '0 16px'
-                  },
-                  '& .MuiDataGrid-root': {
-                    height: '100%'
                   }
                 }}
               />
