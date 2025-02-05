@@ -34,8 +34,6 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [isTagEditorOpen, setIsTagEditorOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTagFilters, setSelectedTagFilters] = useState<Tag[]>([]);
-  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -300,18 +298,21 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
             </li>
           )}
           renderTags={(tagValue, getTagProps) =>
-            tagValue.map((tag, index) => (
-              <div
-                key={tag.id}
-                {...getTagProps({ index })}
-                className={`px-2 py-0.5 m-0.5 rounded text-sm ${
-                  isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
-                }`}
-                style={{ backgroundColor: tag.color }}
-              >
-                {tag.name}
-              </div>
-            ))
+            tagValue.map((tag, index) => {
+              const { key, ...otherProps } = getTagProps({ index });
+              return (
+                <div
+                  key={key}
+                  {...otherProps}
+                  className={`px-2 py-0.5 m-0.5 rounded text-sm ${
+                    isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                  }`}
+                  style={{ backgroundColor: tag.color }}
+                >
+                  {tag.name}
+                </div>
+              );
+            })
           }
           sx={{ 
             minWidth: 300,

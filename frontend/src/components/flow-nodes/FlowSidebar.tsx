@@ -97,27 +97,6 @@ const FlowSidebar: React.FC<FlowSidebarProps> = ({ organizationId, refreshTrigge
     }
   };
 
-  const renderTags = (tags: Tag[]) => {
-    return (
-      <div className="flex flex-wrap gap-1 mt-1">
-        {tags.map((tag) => (
-          <span
-            key={tag.id}
-            className={`
-              inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium
-              ${tag.color ? 
-                `bg-${tag.color}-100 text-${tag.color}-800` : 
-                'bg-gray-100 text-gray-800'
-              }
-            `}
-          >
-            {tag.name}
-          </span>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <div className="w-64 bg-white border-r border-gray-200 p-4">
       <h3 className="text-sm font-semibold text-gray-900 mb-4">Flow Elements</h3>
