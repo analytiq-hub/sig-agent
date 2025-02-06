@@ -1,11 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { ChevronDownIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { getLLMResultApi, listPromptsApi, runLLMApi } from '@/utils/api';
 import type { Prompt } from '@/types/index';
+import { useOCR, OCRProvider } from '@/contexts/OCRContext';
+import type { OCRBlock } from '@/types/index';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
-const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: string }) => {
+interface Props {
+  organizationId: string;
+  id: string;
+  onHighlight?: (blocks: OCRBlock[]) => void;
+  onClearHighlight?: () => void;
+}
+
+const PDFLeftSidebarContent = ({ organizationId, id, onHighlight, onClearHighlight }: Props) => {
+  const { loadOCRBlocks, findBlocksForText } = useOCR();
   const [llmResults, setLlmResults] = useState<Record<string, Record<string, JsonValue>>>({});
   const [matchingPrompts, setMatchingPrompts] = useState<Prompt[]>([]);
   const [runningPrompts, setRunningPrompts] = useState<Set<string>>(new Set());
@@ -50,6 +60,11 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
       fetchData();
     }
   }, [id, organizationId]);
+
+  useEffect(() => {
+    // Load OCR blocks in the background
+    loadOCRBlocks(organizationId, id);
+  }, [id, organizationId, loadOCRBlocks]);
 
   const handlePromptChange = async (promptId: string) => {
     if (expandedPrompt === promptId) {
@@ -125,6 +140,16 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
     }
   };
 
+  const handleMouseEnter = useCallback((text: string) => {
+    const blocks = findBlocksForText(text);
+    console.log('PDFLeftSidebar - Found blocks:', blocks);
+    onHighlight?.(blocks);
+  }, [findBlocksForText, onHighlight]);
+
+  const handleMouseLeave = useCallback(() => {
+    onClearHighlight?.();
+  }, [onClearHighlight]);
+
   const renderPromptResults = (promptId: string) => {
     const results = llmResults[promptId] || {};
     
@@ -171,7 +196,12 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
     return (
       <div className="bg-white pt-1">
         {Object.entries(results).map(([key, value]) => (
-          <div key={key} className="px-4 pb-3">
+          <div 
+            key={key} 
+            className="px-4 pb-3"
+            onMouseEnter={() => handleMouseEnter(String(value))}
+            onMouseLeave={handleMouseLeave}
+          >
             <span className="text-[0.7rem] text-black/70 mb-1 inline-block underline decoration-black/30 decoration-1 underline-offset-2">
               {key}
             </span>
@@ -270,6 +300,15 @@ const PDFLeftSidebar = ({ organizationId, id }: { organizationId: string, id: st
         ))}
       </div>
     </div>
+  );
+};
+
+// Wrap the component with OCRProvider
+const PDFLeftSidebar = (props: Props) => {
+  return (
+    <OCRProvider>
+      <PDFLeftSidebarContent {...props} />
+    </OCRProvider>
   );
 };
 

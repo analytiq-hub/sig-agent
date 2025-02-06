@@ -20,6 +20,7 @@ interface PageProps {
 const PDFViewerPage = ({ params }: PageProps) => {
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showPdfPanel, setShowPdfPanel] = useState(true);
+  const [highlightedBlocks, setHighlightedBlocks] = useState<OCRBlock[]>([]);
   
   useEffect(() => {
     window.pdfViewerControls = {
@@ -36,6 +37,10 @@ const PDFViewerPage = ({ params }: PageProps) => {
       delete window.pdfViewerControls;
     };
   }, [showLeftPanel, showPdfPanel]);
+
+  useEffect(() => {
+    console.log('Page - highlightedBlocks changed:', highlightedBlocks);
+  }, [highlightedBlocks]);
 
   const getPanelSizes = () => {
     if (!showLeftPanel) {
@@ -64,7 +69,12 @@ const PDFViewerPage = ({ params }: PageProps) => {
             <>
               <Panel defaultSize={panelSizes.left}>
                 <Box sx={{ height: '100%', overflow: 'auto' }}>
-                  <PDFLeftSidebar organizationId={params.organizationId} id={pdfId} />
+                  <PDFLeftSidebar 
+                    organizationId={params.organizationId} 
+                    id={pdfId}
+                    onHighlight={setHighlightedBlocks}
+                    onClearHighlight={() => setHighlightedBlocks([])}
+                  />
                 </Box>
               </Panel>
               <PanelResizeHandle style={{ width: '4px', background: '#e0e0e0', cursor: 'col-resize' }} />
@@ -74,7 +84,11 @@ const PDFViewerPage = ({ params }: PageProps) => {
           {showPdfPanel && (
             <Panel defaultSize={panelSizes.main}>
               <Box sx={{ height: '100%', overflow: 'hidden' }}>
-                <PDFViewer organizationId={params.organizationId} id={pdfId} />
+                <PDFViewer 
+                  organizationId={params.organizationId} 
+                  id={pdfId}
+                  highlightedBlocks={highlightedBlocks}
+                />
               </Box>
             </Panel>
           )}

@@ -25,6 +25,8 @@ import { saveAs } from 'file-saver';
 import { PanelGroup, Panel } from 'react-resizable-panels';
 import CheckIcon from '@mui/icons-material/Check';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
+import { OCRProvider } from '@/contexts/OCRContext';
+import type { OCRBlock } from '@/types/index';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -75,7 +77,14 @@ interface PDFMetadata {
   PDFFormatVersion?: string;
 }
 
-const PDFViewer = ({ organizationId, id }: { organizationId: string, id: string }) => {
+// Update the props interface
+interface PDFViewerProps {
+  organizationId: string;
+  id: string;
+  highlightedBlocks?: OCRBlock[];  // Make this optional
+}
+
+const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProps) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [error, setError] = useState<string | null>(null);
@@ -373,6 +382,35 @@ const PDFViewer = ({ organizationId, id }: { organizationId: string, id: string 
     fetchOcrText();
   }, [id, pageNumber, showOcr, organizationId]);
 
+  const renderHighlights = useCallback((page: number) => {
+    console.log('PDFViewer - Rendering highlights for page:', page, 'blocks:', highlightedBlocks);
+    if (!highlightedBlocks.length) return null;
+
+    return highlightedBlocks.map((block, index) => {
+      if (block.Page !== page) return null;
+
+      const { Geometry } = block;
+      const { Width, Height, Left, Top } = Geometry;
+      console.log('PDFViewer - Rendering highlight:', { page, Width, Height, Left, Top });
+
+      return (
+        <div
+          key={index}
+          style={{
+            position: 'absolute',
+            left: `${Left * 100}%`,
+            top: `${Top * 100}%`,
+            width: `${Width * 100}%`,
+            height: `${Height * 100}%`,
+            backgroundColor: 'rgba(255, 255, 0, 0.3)',
+            pointerEvents: 'none',
+            zIndex: 1,
+          }}
+        />
+      );
+    });
+  }, [highlightedBlocks]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <Toolbar 
@@ -523,72 +561,75 @@ const PDFViewer = ({ organizationId, id }: { organizationId: string, id: string 
         </Menu>
       </Toolbar>
       
-      <PanelGroup direction="horizontal" style={{ flexGrow: 1 }}>
-        <Panel defaultSize={showOcr ? 50 : 100}>
-          <div ref={containerRef} style={{ height: '100%', overflowY: 'auto', padding: '16px' }}>
-            {loading ? (
-              <div>Loading PDF...</div>
-            ) : error ? (
-              <Typography color="error" align="center">
-                {error}
-              </Typography>
-            ) : file ? (
-              <Document
-                file={file}
-                onLoadSuccess={handleLoadSuccess}
-                onLoadError={handleLoadError}
-              >
-                {Array.from(new Array(numPages), (el, index) => (
-                  <div 
-                    key={`page_container_${index + 1}`}
-                    ref={el => { pageRefs.current[index] = el; }}
-                  >
-                    <Page 
-                      key={`page_${index + 1}`} 
-                      pageNumber={index + 1} 
-                      width={pdfDimensions.width * scale}
-                      height={pdfDimensions.height * scale}
-                      rotate={rotation}
-                    />
-                    {index < numPages! - 1 && <hr style={{ border: '2px solid black' }} />}
-                  </div>
-                ))}
-              </Document>
-            ) : (
-              <Typography color="error" align="center">
-                No PDF file available.
-              </Typography>
-            )}
-          </div>
-        </Panel>
-        
-        {showOcr && (
-          <Panel defaultSize={50}>
-            <Box sx={{ height: '100%', overflow: 'auto', p: 2, borderLeft: 1, borderColor: 'divider' }}>
-              <Typography variant="h6" gutterBottom>
-                OCR Text - Page {pageNumber}
-              </Typography>
-              {ocrLoading ? (
-                <CircularProgress size={24} />
-              ) : ocrError ? (
-                <Typography color="error">{ocrError}</Typography>
-              ) : (
-                <Typography
-                  variant="body2"
-                  component="pre"
-                  sx={{
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                    fontFamily: 'monospace'
-                  }}
+      <OCRProvider>
+        <PanelGroup direction="horizontal" style={{ flexGrow: 1 }}>
+          <Panel defaultSize={70}>
+            <div ref={containerRef} style={{ height: '100%', overflowY: 'auto', padding: '16px' }}>
+              {loading ? (
+                <div>Loading PDF...</div>
+              ) : error ? (
+                <Typography color="error" align="center">{error}</Typography>
+              ) : file ? (
+                <Document
+                  file={file}
+                  onLoadSuccess={handleLoadSuccess}
+                  onLoadError={handleLoadError}
                 >
-                  {ocrText}
+                  {Array.from(new Array(numPages), (el, index) => (
+                    <div 
+                      key={`page_container_${index + 1}`}
+                      ref={el => { pageRefs.current[index] = el; }}
+                      style={{ position: 'relative' }}
+                    >
+                      <Page 
+                        key={`page_${index + 1}`} 
+                        pageNumber={index + 1} 
+                        width={pdfDimensions.width * scale}
+                        height={pdfDimensions.height * scale}
+                        rotate={rotation}
+                      >
+                        {renderHighlights(index + 1)}
+                      </Page>
+                      {index < numPages! - 1 && <hr style={{ border: '2px solid black' }} />}
+                    </div>
+                  ))}
+                </Document>
+              ) : (
+                <Typography color="error" align="center">
+                  No PDF file available.
                 </Typography>
               )}
-            </Box>
+            </div>
           </Panel>
-        )}
-      </PanelGroup>
+
+          {showOcr && (
+            <Panel defaultSize={30}>
+              <Box sx={{ height: '100%', overflow: 'auto', p: 2, borderLeft: 1, borderColor: 'divider' }}>
+                <Typography variant="h6" gutterBottom>
+                  OCR Text - Page {pageNumber}
+                </Typography>
+                {ocrLoading ? (
+                  <CircularProgress size={24} />
+                ) : ocrError ? (
+                  <Typography color="error">{ocrError}</Typography>
+                ) : (
+                  <Typography
+                    variant="body2"
+                    component="pre"
+                    sx={{
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      fontFamily: 'monospace'
+                    }}
+                  >
+                    {ocrText}
+                  </Typography>
+                )}
+              </Box>
+            </Panel>
+          )}
+        </PanelGroup>
+      </OCRProvider>
 
       <Dialog 
         open={showProperties} 
