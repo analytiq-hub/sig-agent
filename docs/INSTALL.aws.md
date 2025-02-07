@@ -16,27 +16,51 @@ Here are instructions on how to set up an AWS Lightsail instance and deploy the 
   * In my case, I create a file `/etc/nginx/sites-available/doc-router.conf` as follows:
   ```
   server {
-    listen 80;
-    server_name doc-router.analytiqhub.com;
+  server_name app.docrouter.ai;
+  client_max_body_size 100M;
 
-    # API requests                                                              
-    location /fastapi/ { # Note the trailing slash
-        proxy_pass http://localhost:8000/; # The port of the FastAPI backend
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
+  # API requests                                                                
+  location /fastapi/ { # Note the trailing slash                                
+      proxy_pass http://localhost:8000/; # The port of the FastAPI backend      
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection 'upgrade';
+      proxy_set_header Host $host;
+      proxy_cache_bypass $http_upgrade;
+  }
 
-    location / {
-        proxy_pass http://localhost:3000; # The port of the doc-router site
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
+  location / {
+      proxy_pass http://localhost:3000; # The port of the doc-router site       
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection 'upgrade';
+      proxy_set_header Host $host;
+      proxy_cache_bypass $http_upgrade;
+  }
+
+    listen 443 ssl; # managed by Certbot                                        
+    ssl_certificate /etc/letsencrypt/live/doc-router.analytiqhub.com/fullchain.\
+pem; # managed by Certbot                                                       
+    ssl_certificate_key /etc/letsencrypt/live/doc-router.analytiqhub.com/privke\
+y.pem; # managed by Certbot                                                     
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot       
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot         
+
+
+
+}
+
+server {                                                   
+    if ($host = app.docrouter.ai) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot                                                      
+
+
+  listen 80;
+  server_name doc-router.analytiqhub.com app.docrouter.ai;
+  return 404; # managed by Certbot                                            
+}
+
   ```
   * I linked the file to the `sites-enabled` directory, and enabled the service:
     ```bash
