@@ -164,7 +164,7 @@
                 <div class="space-y-6 max-w-3xl mx-auto">
                     <!-- Clinical Trial Lab Services Use Case -->
                     <div class="border border-gray-200 rounded-lg">
-                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-t-lg" 
+                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg" 
                                 onclick="toggleUseCase('clinical-trial')">
                             <div class="flex justify-between items-center">
                                 <h3 class="text-lg font-medium text-white">Clinical Trial Invoice Processing</h3>
@@ -213,7 +213,7 @@
 
                     <!-- Shipping Container Manifest Use Case -->
                     <div class="border border-gray-200 rounded-lg">
-                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-t-lg" 
+                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg" 
                                 onclick="toggleUseCase('shipping-manifest')">
                             <div class="flex justify-between items-center">
                                 <h3 class="text-lg font-medium text-white">Shipping Container Manifest Processing</h3>
@@ -256,7 +256,7 @@
 
                     <!-- Company Reports Use Case -->
                     <div class="border border-gray-200 rounded-lg">
-                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-t-lg" 
+                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg" 
                                 onclick="toggleUseCase('company-reports')">
                             <div class="flex justify-between items-center">
                                 <h3 class="text-lg font-medium text-white">Company Quarterly & Annual Reports Processing</h3>
@@ -305,7 +305,7 @@
                 <img src="assets/doc-router-arch.png" alt="Example Deployment" class="w-full max-w-md mx-auto">
                 <div class="max-w-3xl mx-auto mt-8">
                     <div class="border border-gray-200 rounded-lg">
-                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-t-lg" 
+                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg" 
                                 onclick="toggleUseCase('product-overview')">
                             <div class="flex justify-between items-center">
                                 <h3 class="text-lg font-medium text-white">Deployment and Integration Options</h3>
@@ -535,9 +535,19 @@ cd ../frontend; npm install; cd ..
         function toggleUseCase(id) {
             const content = document.getElementById(`${id}-content`);
             const arrow = document.getElementById(`${id}-arrow`);
+            const button = arrow.closest('button');
             
             content.classList.toggle('hidden');
             arrow.classList.toggle('rotate-180');
+            
+            // Toggle rounded bottom corners on button
+            if (content.classList.contains('hidden')) {
+                button.classList.remove('rounded-t-lg');
+                button.classList.add('rounded-lg');
+            } else {
+                button.classList.remove('rounded-lg');
+                button.classList.add('rounded-t-lg');
+            }
         }
     </script>
 </body>
