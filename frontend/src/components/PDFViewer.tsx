@@ -383,14 +383,14 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
   }, [id, pageNumber, showOcr, organizationId]);
 
   const renderHighlights = useCallback((page: number) => {
-    console.log('PDFViewer - Rendering highlights for page:', page, 'blocks:', highlightedBlocks);
+    console.log('PDFViewer - Rendering highlights for page:', page, ', blocks:', highlightedBlocks, ', length:', highlightedBlocks.length);
     if (!highlightedBlocks.length) return null;
 
     return highlightedBlocks.map((block, index) => {
       if (block.Page !== page) return null;
 
       const { Geometry } = block;
-      const { Width, Height, Left, Top } = Geometry;
+      const { Width, Height, Left, Top } = Geometry.BoundingBox;
       console.log('PDFViewer - Rendering highlight:', { page, Width, Height, Left, Top });
 
       return (
