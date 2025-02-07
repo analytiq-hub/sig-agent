@@ -164,11 +164,11 @@
                 <div class="space-y-6 max-w-3xl mx-auto">
                     <!-- Clinical Trial Lab Services Use Case -->
                     <div class="border border-gray-200 rounded-lg">
-                        <button class="w-full text-left px-6 py-4 focus:outline-none" 
+                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-t-lg" 
                                 onclick="toggleUseCase('clinical-trial')">
                             <div class="flex justify-between items-center">
-                                <h3 class="text-lg font-medium text-gray-900">Clinical Trial Invoice Processing</h3>
-                                <svg class="w-5 h-5 transform transition-transform duration-200" 
+                                <h3 class="text-lg font-medium text-white">Clinical Trial Invoice Processing</h3>
+                                <svg class="w-5 h-5 transform transition-transform duration-200 text-white" 
                                      id="clinical-trial-arrow"
                                      fill="none" 
                                      viewBox="0 0 24 24" 
@@ -180,7 +180,7 @@
                                 </svg>
                             </div>
                         </button>
-                        <div class="hidden px-6 pb-4" id="clinical-trial-content">
+                        <div class="hidden px-6 pb-4 mt-4" id="clinical-trial-content">
                             <div class="prose prose-blue max-w-none">
                                 <p class="text-gray-600 mb-4">
                                     A lab service provider sends an invoice for services rendered during a clinical trial, 
@@ -213,11 +213,11 @@
 
                     <!-- Shipping Container Manifest Use Case -->
                     <div class="border border-gray-200 rounded-lg">
-                        <button class="w-full text-left px-6 py-4 focus:outline-none" 
+                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-t-lg" 
                                 onclick="toggleUseCase('shipping-manifest')">
                             <div class="flex justify-between items-center">
-                                <h3 class="text-lg font-medium text-gray-900">Shipping Container Manifest Processing</h3>
-                                <svg class="w-5 h-5 transform transition-transform duration-200" 
+                                <h3 class="text-lg font-medium text-white">Shipping Container Manifest Processing</h3>
+                                <svg class="w-5 h-5 transform transition-transform duration-200 text-white" 
                                      id="shipping-manifest-arrow"
                                      fill="none" 
                                      viewBox="0 0 24 24" 
@@ -229,7 +229,7 @@
                                 </svg>
                             </div>
                         </button>
-                        <div class="hidden px-6 pb-4" id="shipping-manifest-content">
+                        <div class="hidden px-6 pb-4 mt-4" id="shipping-manifest-content">
                             <div class="prose prose-blue max-w-none">
                                 <p class="text-gray-600 mb-4">
                                     Shipping container manifests are critical documents that list all items loaded into a container. 
@@ -256,11 +256,11 @@
 
                     <!-- Company Reports Use Case -->
                     <div class="border border-gray-200 rounded-lg">
-                        <button class="w-full text-left px-6 py-4 focus:outline-none" 
+                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-t-lg" 
                                 onclick="toggleUseCase('company-reports')">
                             <div class="flex justify-between items-center">
-                                <h3 class="text-lg font-medium text-gray-900">Company Quarterly & Annual Reports Processing</h3>
-                                <svg class="w-5 h-5 transform transition-transform duration-200" 
+                                <h3 class="text-lg font-medium text-white">Company Quarterly & Annual Reports Processing</h3>
+                                <svg class="w-5 h-5 transform transition-transform duration-200 text-white" 
                                      id="company-reports-arrow"
                                      fill="none" 
                                      viewBox="0 0 24 24" 
@@ -272,7 +272,7 @@
                                 </svg>
                             </div>
                         </button>
-                        <div class="hidden px-6 pb-4" id="company-reports-content">
+                        <div class="hidden px-6 pb-4 mt-4" id="company-reports-content">
                             <div class="prose prose-blue max-w-none">
                                 <p class="text-gray-600 mb-4">
                                     Financial analysts and investors need to process large volumes of quarterly (10-Q) and annual (10-K) reports. 
@@ -303,49 +303,50 @@
             <section id="architecture" class="bg-white rounded-lg shadow-lg p-8 mb-12">
                 <h2 class="text-2xl font-semibold text-gray-900 mb-4">Example Deployment</h2>
                 <img src="assets/doc-router-arch.png" alt="Example Deployment" class="w-full max-w-md mx-auto">
-                <!-- Add new expandable container -->
-                <div class="border border-gray-200 rounded-lg mt-6">
-                    <button class="w-full text-left px-6 py-4 focus:outline-none" 
-                            onclick="toggleUseCase('product-overview')">
-                        <div class="flex justify-between items-center">
-                            <h3 class="text-lg font-medium text-gray-900">Deployment and Integration Options</h3>
-                            <svg class="w-5 h-5 transform transition-transform duration-200" 
-                                 id="product-overview-arrow"
-                                 fill="none" 
-                                 viewBox="0 0 24 24" 
-                                 stroke="currentColor">
-                                <path stroke-linecap="round" 
-                                      stroke-linejoin="round" 
-                                      stroke-width="2" 
-                                      d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-                    </button>
-                    <div class="hidden px-6 pb-4" id="product-overview-content">
-                        <div class="prose prose-blue max-w-none">
-                            <p class="text-gray-600 mb-4">
-                                The Smart Document Router supports multiple industry verticals and integrates with a wide range of ERP systems, eliminating manual processes through AI-powered document preprocessing.
-                            </p>
-                            
-                            <h4 class="text-gray-900 font-medium mt-4 mb-2">System Configuration</h4>
-                            <ul class="list-disc list-inside text-gray-600 mb-4">
-                                <li>User-configured schemas</li>
-                                <li>Customizable AI prompts</li>
-                                <li>Documents with a given tag are processed by prompts configured for the same tag</li>
-                                <li>Rest APIs are available for all functions</li>
-                            </ul>
-                            
-                            <h4 class="text-gray-900 font-medium mt-4 mb-2">Deployment Options</h4>
-                            <ul class="list-disc list-inside text-gray-600 mb-4">
-                                <li>Self-hosted on your infrastructure</li>
-                                <li>SaaS and cloud-based deployment</li>
-                            </ul>
-                            
-                            <h4 class="text-gray-900 font-medium mt-4 mb-2">Implementation Services</h4>
-                            <ul class="list-disc list-inside text-gray-600">
-                                <li>DIY customization and integration</li>
-                                <li>Full-service development and integration through our services company <a href="https://analytiqhub.com" class="text-blue-600 hover:text-blue-800">Analytiq Hub</a></li>
-                            </ul>
+                <div class="max-w-3xl mx-auto mt-8">
+                    <div class="border border-gray-200 rounded-lg">
+                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-t-lg" 
+                                onclick="toggleUseCase('product-overview')">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-medium text-white">Deployment and Integration Options</h3>
+                                <svg class="w-5 h-5 transform transition-transform duration-200 text-white" 
+                                     id="product-overview-arrow"
+                                     fill="none" 
+                                     viewBox="0 0 24 24" 
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" 
+                                          stroke-linejoin="round" 
+                                          stroke-width="2" 
+                                          d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </button>
+                        <div class="hidden px-6 pb-4 mt-4" id="product-overview-content">
+                            <div class="prose prose-blue max-w-none">
+                                <p class="text-gray-600 mb-4">
+                                    The Smart Document Router supports multiple industry verticals and integrates with a wide range of ERP systems, eliminating manual processes through AI-powered document preprocessing.
+                                </p>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">System Configuration</h4>
+                                <ul class="list-disc list-inside text-gray-600 mb-4">
+                                    <li>User-configured schemas</li>
+                                    <li>Customizable AI prompts</li>
+                                    <li>Documents with a given tag are processed by prompts configured for the same tag</li>
+                                    <li>Rest APIs are available for all functions</li>
+                                </ul>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Deployment Options</h4>
+                                <ul class="list-disc list-inside text-gray-600 mb-4">
+                                    <li>Self-hosted on your infrastructure</li>
+                                    <li>SaaS and cloud-based deployment</li>
+                                </ul>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Implementation Services</h4>
+                                <ul class="list-disc list-inside text-gray-600">
+                                    <li>DIY customization and integration</li>
+                                    <li>Full-service development and integration through our services company <a href="https://analytiqhub.com" class="text-blue-600 hover:text-blue-800">Analytiq Hub</a></li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
