@@ -71,12 +71,22 @@ export function OCRProvider({ children }: { children: React.ReactNode }) {
   const findBlocksForText = useCallback((searchText: string): OCRBlock[] => {
     if (!ocrBlocks) return [];
 
-    // Find blocks that contain the exact text
-    return ocrBlocks.filter(block => 
-      block.BlockType === 'WORD' && 
-      block.Text && 
-      block.Text.toLowerCase() === searchText.toLowerCase()
-    );
+    // If searchText has no spaces, search for individual words
+    if (!searchText.includes(' ')) {
+      return ocrBlocks.filter(block => 
+        block.BlockType === 'WORD' && 
+        block.Text && 
+        block.Text.toLowerCase() === searchText.toLowerCase()
+      );
+    }
+
+    // For phrases, search in LINE blocks
+    return ocrBlocks.filter(block => {
+      if (block.BlockType !== 'LINE' || !block.Text) return false;
+      
+      // Check if the line contains the exact phrase
+      return block.Text.toLowerCase().includes(searchText.toLowerCase());
+    });
   }, [ocrBlocks]);
 
   return (
