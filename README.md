@@ -26,5 +26,6 @@ Tech stack:
 [Smart Document Router Slides](https://docs.google.com/presentation/d/10NPy_kRrVfhWHY-No1GAEeNSAr0C-DCpZL2whSzZH9c/edit#slide=id.g302dd857fb2_0_30)
 
 # Docs
-* [Local development environment](./docs/README.local_devel.md)
-* [Docker setup](./docs/README.docker.md)
+* [Local development environment](./docs/INSTALL.local_devel.md)
+* [Docker setup](./docs/INSTALL.docker.md)
+* [AWS setup](./docs/INSTALL.aws.md)
