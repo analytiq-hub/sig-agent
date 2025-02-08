@@ -1,6 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { ChevronDownIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { getLLMResultApi, listPromptsApi, runLLMApi } from '@/utils/api';
+import { 
+  ChevronDownIcon, 
+  ArrowPathIcon,
+  MagnifyingGlassIcon,
+  PencilIcon,
+  CheckIcon,
+  XMarkIcon
+} from '@heroicons/react/24/outline';
+import { getLLMResultApi, listPromptsApi, runLLMApi, updateLLMResultApi } from '@/utils/api';
 import type { Prompt } from '@/types/index';
 import { useOCR, OCRProvider } from '@/contexts/OCRContext';
 import type { OCRBlock } from '@/types/index';
@@ -14,6 +21,12 @@ interface Props {
   onClearHighlight?: () => void;
 }
 
+interface EditingState {
+  promptId: string;
+  key: string;
+  value: string;
+}
+
 const PDFLeftSidebarContent = ({ organizationId, id, onHighlight, onClearHighlight }: Props) => {
   const { loadOCRBlocks, findBlocksForText } = useOCR();
   const [llmResults, setLlmResults] = useState<Record<string, Record<string, JsonValue>>>({});
@@ -22,6 +35,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight, onClearHighlig
   const [expandedPrompt, setExpandedPrompt] = useState<string>('default');
   const [loadingPrompts, setLoadingPrompts] = useState<Set<string>>(new Set());
   const [failedPrompts, setFailedPrompts] = useState<Set<string>>(new Set());
+  const [editing, setEditing] = useState<EditingState | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -140,73 +154,112 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight, onClearHighlig
     }
   };
 
-  const handleMouseEnter = useCallback((text: string) => {
+  const handleFind = (text: string) => {
     const blocks = findBlocksForText(text);
-    onHighlight?.(blocks);
-  }, [findBlocksForText, onHighlight]);
+    if (blocks.length > 0) {
+      onHighlight?.(blocks);
+      // You might want to add a callback to scroll to the page containing these blocks
+    }
+  };
 
-  const handleMouseLeave = useCallback(() => {
-    onClearHighlight?.();
-  }, [onClearHighlight]);
+  const handleEdit = (promptId: string, key: string, value: string) => {
+    setEditing({ promptId, key, value });
+  };
+
+  const handleSave = async () => {
+    if (!editing) return;
+
+    try {
+      const updatedResult = {
+        ...llmResults[editing.promptId],
+        [editing.key]: editing.value
+      };
+
+      await updateLLMResultApi({
+        organizationId,
+        documentId: id,
+        promptId: editing.promptId,
+        result: updatedResult
+      });
+
+      setLlmResults(prev => ({
+        ...prev,
+        [editing.promptId]: updatedResult
+      }));
+      setEditing(null);
+    } catch (error) {
+      console.error('Error updating extraction:', error);
+    }
+  };
+
+  const renderValue = (promptId: string, key: string, value: string) => {
+    const isEditing = editing?.promptId === promptId && editing?.key === key;
+
+    if (isEditing) {
+      return (
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={editing.value}
+            onChange={(e) => setEditing({ ...editing, value: e.target.value })}
+            className="flex-1 px-2 py-1 text-sm border rounded"
+            autoFocus
+          />
+          <button
+            onClick={handleSave}
+            className="p-1 text-green-600 hover:bg-green-50 rounded"
+          >
+            <CheckIcon className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setEditing(null)}
+            className="p-1 text-red-600 hover:bg-red-50 rounded"
+          >
+            <XMarkIcon className="w-4 h-4" />
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-2">
+        <span className="flex-1">{value}</span>
+        <button
+          onClick={() => handleFind(value)}
+          className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+          title="Find in document"
+        >
+          <MagnifyingGlassIcon className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => handleEdit(promptId, key, value)}
+          className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+          title="Edit extraction"
+        >
+          <PencilIcon className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  };
 
   const renderPromptResults = (promptId: string) => {
-    const results = llmResults[promptId] || {};
-    
-    if (loadingPrompts.has(promptId)) {
-      return (
-        <div className="bg-white p-4 flex flex-col items-center justify-center gap-2 text-center">
-          <span className="text-sm text-gray-600">Loading...</span>
-          <div className="w-4 h-4 border-2 border-gray-400/60 border-t-transparent rounded-full animate-spin" />
-        </div>
-      );
+    const results = llmResults[promptId];
+    if (!results) {
+      if (loadingPrompts.has(promptId)) {
+        return <div className="p-4 text-sm text-gray-500">Loading...</div>;
+      }
+      if (failedPrompts.has(promptId)) {
+        return <div className="p-4 text-sm text-red-500">Failed to load results</div>;
+      }
+      return <div className="p-4 text-sm text-gray-500">No results available</div>;
     }
 
-    // If no results exist and the prompt has failed
-    if (Object.keys(results).length === 0 && failedPrompts.has(promptId)) {
-      return (
-        <div className="bg-white p-4 flex flex-col items-center justify-center gap-2 text-center">
-          <span className="text-sm text-gray-600">
-            No extractions available for this prompt
-          </span>
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRunPrompt(promptId);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors cursor-pointer"
-          >
-            {runningPrompts.has(promptId) ? (
-              <>
-                <div className="w-4 h-4 border-2 border-gray-400/60 border-t-transparent rounded-full animate-spin" />
-                Running analysis...
-              </>
-            ) : (
-              <>
-                <ArrowPathIcon className="w-4 h-4" />
-                Run extraction
-              </>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    // Regular results display
     return (
-      <div className="bg-white pt-1">
+      <div className="p-4 space-y-3">
         {Object.entries(results).map(([key, value]) => (
-          <div 
-            key={key} 
-            className="px-4 pb-3"
-            onMouseEnter={() => handleMouseEnter(String(value))}
-            onMouseLeave={handleMouseLeave}
-          >
-            <span className="text-[0.7rem] text-black/70 mb-1 inline-block underline decoration-black/30 decoration-1 underline-offset-2">
-              {key}
-            </span>
-            <div className="text-[0.875rem] text-gray-900 font-medium whitespace-pre-wrap break-words pl-1">
-              {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
-            </div>
+          <div key={key} className="text-sm">
+            <div className="font-medium text-gray-700 mb-1">{key}</div>
+            {renderValue(promptId, key, value as string)}
           </div>
         ))}
       </div>
