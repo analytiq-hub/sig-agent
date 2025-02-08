@@ -414,7 +414,20 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
                 top: `${(Top * 100) - PADDING_PERCENT}%`,
                 width: `${(Width * 100) + (PADDING_PERCENT * 2)}%`,
                 height: `${(Height * 100) + (PADDING_PERCENT * 2)}%`,
-                backgroundColor: 'rgba(255, 255, 0, 0.3)',
+                backgroundColor: 'rgba(255, 165, 0, 0.4)',
+                clipPath: `polygon(
+                  /* Left edge - slightly jagged */
+                  0% 35%, 2% 30%, 0% 25%, 3% 20%,
+                  /* Top edge - gentle wave */
+                  3% 20%, 20% 15%, 40% 18%, 60% 15%, 80% 17%, 97% 20%,
+                  /* Right edge - slightly jagged */
+                  97% 20%, 100% 25%, 98% 30%, 100% 35%,
+                  /* Bottom edge - gentle wave, moved even lower */
+                  100% 85%, 80% 90%, 60% 87%, 40% 90%, 20% 88%, 3% 85%,
+                  /* Close back to start */
+                  0% 85%, 2% 80%, 0% 75%, 2% 70%, 0% 65%, 2% 45%, 0% 35%
+                )`,
+                filter: 'blur(2px)',
                 pointerEvents: 'none',
                 zIndex: 1,
               }}
