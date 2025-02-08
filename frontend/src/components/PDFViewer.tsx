@@ -414,7 +414,12 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
                 top: `${(Top * 100) - PADDING_PERCENT}%`,
                 width: `${(Width * 100) + (PADDING_PERCENT * 2)}%`,
                 height: `${(Height * 100) + (PADDING_PERCENT * 2)}%`,
-                backgroundColor: 'rgba(255, 165, 0, 0.4)',
+                //backgroundColor: 'rgba(255, 140, 50, 0.4)', // Orange
+                //backgroundColor: 'rgba(255, 127, 80, 0.4)', // Coral orange
+                backgroundColor: 'rgba(251, 192, 45, 0.4)',  // Soft amber
+                //backgroundColor: 'rgba(0, 188, 212, 0.35)',  // Teal accent
+                //backgroundColor: 'rgba(156, 39, 176, 0.25)',  // Royal purple
+                //backgroundColor: 'rgba(255, 64, 129, 0.3)',  // Deep rose
                 clipPath: `polygon(
                   /* Left edge - slightly jagged */
                   0% 35%, 2% 30%, 0% 25%, 3% 20%,
