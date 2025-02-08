@@ -31,4 +31,4 @@ Tech stack:
   * [Docker setup](./docs/INSTALL.docker.md)
   * [AWS setup](./docs/INSTALL.aws.md)
 * Development
-  * [Database migrations](./docs/MIGRATIONS.md)
+  * [Database migrations](./backend/analytiq_data/migrations/MIGRATIONS.md)
