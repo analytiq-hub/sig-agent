@@ -74,6 +74,14 @@ async def setup_llm_models(db):
     except Exception as e:
         ad.log.error(f"Failed to initialize LLM models: {e}")
 
+async def setup_database(analytiq_client):
+    """Set up database and run migrations"""
+    try:
+        await ad.migrations.run_migrations(analytiq_client)
+    except Exception as e:
+        ad.log.error(f"Database migration failed: {e}")
+        raise
+
 async def setup_admin(analytiq_client):
     """
     Create admin user during application startup if it doesn't exist
@@ -87,7 +95,10 @@ async def setup_admin(analytiq_client):
     
     if not admin_email or not admin_password:
         return
-        
+
+    # Run migrations
+    await setup_database(analytiq_client)
+
     try:
         db = analytiq_client.mongodb_async[env]
         

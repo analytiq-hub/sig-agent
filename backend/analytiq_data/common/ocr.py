@@ -6,48 +6,31 @@ import analytiq_data as ad
 OCR_BUCKET = "ocr"
 
 def get_ocr_json(analytiq_client, document_id: str) -> list:
-    """
-    Get the OCR blocks as a list
-    
-    Args:
-        analytiq_client: AnalytiqClient
-            The analytiq client
-        document_id : str
-            document id
-
-    Returns:
-        list
-            OCR list
-    """
-    key = f"{document_id}_list"
+    """Get OCR blocks supporting both old and new key formats"""
+    # Try new format first
+    key = f"{document_id}_json"
     ocr_blob = ad.mongodb.get_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
+    
+    # Fall back to old format if not found
+    if ocr_blob is None:
+        key = f"{document_id}_list"
+        ocr_blob = ad.mongodb.get_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
+        
     if ocr_blob is None:
         return None
+        
     return pickle.loads(ocr_blob["blob"])
    
 
 def save_ocr_json(analytiq_client, document_id:str, ocr_json:list, metadata:dict=None):
-    """
-    Save the OCR JSON
-    
-    Args:
-        analytiq_client: AnalytiqClient
-            The analytiq client
-        document_id : str
-            document id
-        ocr_json : list
-            OCR list
-        metadata : dict
-            OCR metadata
-    """
-    key = f"{document_id}_list"
-    # Pickle the dictionary
+    """Save OCR JSON using new format"""
+    key = f"{document_id}_json"
     ocr_bytes = pickle.dumps(ocr_json)
     size_mb = len(ocr_bytes) / 1024 / 1024
-    ad.log.info(f"Saving OCR list for {document_id} with metadata: {metadata} size: {size_mb:.2f}MB")
+    ad.log.info(f"Saving OCR json for {document_id} with metadata: {metadata} size: {size_mb:.2f}MB")
     ad.mongodb.save_blob(analytiq_client, bucket=OCR_BUCKET, key=key, blob=ocr_bytes, metadata=metadata)
     
-    ad.log.info(f"OCR list for {document_id} has been saved.")
+    ad.log.info(f"OCR JSON for {document_id} has been saved.")
 
 def delete_ocr_json(analytiq_client, document_id:str):
     """
@@ -59,10 +42,10 @@ def delete_ocr_json(analytiq_client, document_id:str):
         document_id : str
             document id
     """
-    key = f"{document_id}_list"
+    key = f"{document_id}_json"
     ad.mongodb.delete_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
 
-    ad.log.debug(f"OCR list for {document_id} has been deleted.")
+    ad.log.debug(f"OCR JSON for {document_id} has been deleted.")
 
 def get_ocr_text(analytiq_client, document_id:str, page_idx:int=None) -> str:
     """

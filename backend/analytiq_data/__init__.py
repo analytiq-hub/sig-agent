@@ -4,6 +4,7 @@ from . import aws
 from . import crypto
 from . import llm
 from . import log
+from . import migrations
 from . import mongodb
 from . import msg_handlers
 from . import queue
