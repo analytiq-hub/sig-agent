@@ -27,8 +27,8 @@ Tech stack:
 
 # Docs
 * Installation
-  * [Local development setup](./docs/INSTALL.local_devel.md)
-  * [Docker setup](./docs/INSTALL.docker.md)
-  * [AWS setup](./docs/INSTALL.aws.md)
+  * [Local Development Setup](./docs/INSTALL.local_devel.md)
+  * [Docker Setup](./docs/INSTALL.docker.md)
+  * [AWS Setup](./docs/INSTALL.aws.md)
 * Development
-  * [Database migrations](./backend/analytiq_data/migrations/MIGRATIONS.md)
+  * [Database Migrations Guide](./backend/analytiq_data/migrations/MIGRATIONS.md)
