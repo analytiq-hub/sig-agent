@@ -257,18 +257,20 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
   // New useEffect to handle auto-zoom
   useEffect(() => {
     if (pdfDimensions.width && pdfDimensions.height && containerRef.current) {
+      // Get the container dimensions
       const containerWidth = containerRef.current.clientWidth;
       const containerHeight = containerRef.current.clientHeight;
 
+      // Calculate scale ratios for width and height
       const widthScale = containerWidth / pdfDimensions.width;
       const heightScale = containerHeight / pdfDimensions.height;
 
       // Use the smaller scale to ensure the entire page fits
-      // Increase the scaling factor to make the initial display larger
-      const optimalScale = Math.min(widthScale, heightScale) * 0.95; // Increased from 0.9 to 0.95
+      // Multiply by 0.95 to add a small margin around the page
+      const optimalScale = Math.min(widthScale, heightScale) * 0.95;
 
-      // Add a minimum scale to ensure the PDF isn't too small
-      const adjustedScale = Math.max(optimalScale, 1.0); // Ensure scale is at least 1.0
+      // Ensure the scale never goes below 100%
+      const adjustedScale = Math.max(optimalScale, 1.0);
 
       setScale(adjustedScale);
     }
@@ -383,33 +385,44 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
   }, [id, pageNumber, showOcr, organizationId]);
 
   const renderHighlights = useCallback((page: number) => {
-    console.log('PDFViewer - Rendering highlights for page:', page, ', blocks:', highlightedBlocks, ', length:', highlightedBlocks.length);
     if (!highlightedBlocks.length) return null;
 
-    return highlightedBlocks.map((block, index) => {
-      if (block.Page !== page) return null;
+    return (
+      <div style={{ 
+        position: 'absolute',
+        width: pdfDimensions.width * scale,
+        height: pdfDimensions.height * scale,
+        top: 0,
+        left: 0
+      }}>
+        {highlightedBlocks.map((block, index) => {
+          if (block.Page !== page) return null;
 
-      const { Geometry } = block;
-      const { Width, Height, Left, Top } = Geometry.BoundingBox;
-      console.log('PDFViewer - Rendering highlight:', { page, Width, Height, Left, Top });
-
-      return (
-        <div
-          key={index}
-          style={{
-            position: 'absolute',
-            left: `${Left * 100}%`,
-            top: `${Top * 100}%`,
-            width: `${Width * 100}%`,
-            height: `${Height * 100}%`,
-            backgroundColor: 'rgba(255, 255, 0, 0.3)',
-            pointerEvents: 'none',
-            zIndex: 1,
-          }}
-        />
-      );
-    });
-  }, [highlightedBlocks]);
+          const { Geometry } = block;
+          const { Width, Height, Left, Top } = Geometry.BoundingBox;
+          console.log('PDFViewer - Rendering highlight:', { page, Width, Height, Left, Top });
+          console.log('PDFViewer - scale:', scale);
+          console.log('PDFViewer - rotation:', rotation);
+          
+          return (
+            <div
+              key={index}
+              style={{
+                position: 'absolute',
+                left: `${Left * 100}%`,
+                top: `${Top * 100}%`,
+                width: `${Width * 100}%`,
+                height: `${Height * 100}%`,
+                backgroundColor: 'rgba(255, 255, 0, 0.3)',
+                pointerEvents: 'none',
+                zIndex: 1,
+              }}
+            />
+          );
+        })}
+      </div>
+    );
+  }, [highlightedBlocks, scale, rotation, pdfDimensions]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
