@@ -1,4 +1,4 @@
-# Local development environment
+# Local Development Setup
 
 ## Linux
 * MongoDB setup

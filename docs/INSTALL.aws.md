@@ -1,4 +1,4 @@
-# AWS setup
+# AWS Setup
 
 Here are instructions on how to set up an AWS Lightsail instance and deploy the application.
 

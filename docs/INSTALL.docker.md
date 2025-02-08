@@ -1,4 +1,4 @@
-# Docker setup
+# Docker Setup
 
 ## Linux
 
