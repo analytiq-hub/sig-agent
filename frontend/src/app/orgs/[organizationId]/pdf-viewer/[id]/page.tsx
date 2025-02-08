@@ -5,6 +5,7 @@ import { Box } from '@mui/material';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useState, useEffect } from 'react';
 import PDFLeftSidebar from '@/components/PDFLeftSidebar';
+import type { OCRBlock } from '@/types/index';
 
 const PDFViewer = dynamic(() => import('@/components/PDFViewer'), {
   ssr: false,

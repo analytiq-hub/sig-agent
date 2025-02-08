@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { getOCRBlocksApi } from '@/utils/api';
 
 // Define and export the OCR block types
@@ -40,8 +40,8 @@ export function OCRProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Use a simple in-memory cache
-  const blockCache = new Map<string, OCRBlock[]>();
+  // Move blockCache to useMemo
+  const blockCache = useMemo(() => new Map<string, OCRBlock[]>(), []);
 
   const loadOCRBlocks = useCallback(async (organizationId: string, documentId: string) => {
     const cacheKey = `${organizationId}-${documentId}`;
@@ -66,7 +66,7 @@ export function OCRProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [blockCache]);
 
   const findBlocksForText = useCallback((searchText: string): OCRBlock[] => {
     if (!ocrBlocks) return [];
