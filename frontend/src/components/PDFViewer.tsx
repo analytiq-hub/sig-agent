@@ -387,6 +387,9 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
   const renderHighlights = useCallback((page: number) => {
     if (!highlightedBlocks.length) return null;
 
+    // Define padding as a percentage of the container
+    const PADDING_PERCENT = 1.0; // 1.0% padding
+
     return (
       <div style={{ 
         position: 'absolute',
@@ -407,10 +410,10 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
               key={index}
               style={{
                 position: 'absolute',
-                left: `${Left * 100}%`,
-                top: `${Top * 100}%`,
-                width: `${Width * 100}%`,
-                height: `${Height * 100}%`,
+                left: `${(Left * 100) - PADDING_PERCENT}%`,
+                top: `${(Top * 100) - PADDING_PERCENT}%`,
+                width: `${(Width * 100) + (PADDING_PERCENT * 2)}%`,
+                height: `${(Height * 100) + (PADDING_PERCENT * 2)}%`,
                 backgroundColor: 'rgba(255, 255, 0, 0.3)',
                 pointerEvents: 'none',
                 zIndex: 1,
