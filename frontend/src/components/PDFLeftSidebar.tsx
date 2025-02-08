@@ -142,7 +142,6 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight, onClearHighlig
 
   const handleMouseEnter = useCallback((text: string) => {
     const blocks = findBlocksForText(text);
-    console.log('PDFLeftSidebar - Found blocks:', blocks);
     onHighlight?.(blocks);
   }, [findBlocksForText, onHighlight]);
 
