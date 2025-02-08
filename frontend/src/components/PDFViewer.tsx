@@ -390,19 +390,17 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
     return (
       <div style={{ 
         position: 'absolute',
-        width: pdfDimensions.width * scale,
-        height: pdfDimensions.height * scale,
+        width: '100%',
+        height: '100%',
         top: 0,
-        left: 0
+        left: 0,
+        pointerEvents: 'none'
       }}>
         {highlightedBlocks.map((block, index) => {
           if (block.Page !== page) return null;
 
           const { Geometry } = block;
           const { Width, Height, Left, Top } = Geometry.BoundingBox;
-          console.log('PDFViewer - Rendering highlight:', { page, Width, Height, Left, Top });
-          console.log('PDFViewer - scale:', scale);
-          console.log('PDFViewer - rotation:', rotation);
           
           return (
             <div
@@ -422,7 +420,7 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
         })}
       </div>
     );
-  }, [highlightedBlocks, scale, rotation, pdfDimensions]);
+  }, [highlightedBlocks]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -592,14 +590,21 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
                     <div 
                       key={`page_container_${index + 1}`}
                       ref={el => { pageRefs.current[index] = el; }}
-                      style={{ position: 'relative' }}
+                      style={{ 
+                        position: 'relative',
+                        width: pdfDimensions.width * scale,
+                        height: pdfDimensions.height * scale,
+                        transform: `rotate(${rotation}deg)`,
+                        transformOrigin: 'center center',
+                        margin: 'auto'
+                      }}
                     >
                       <Page 
                         key={`page_${index + 1}`} 
                         pageNumber={index + 1} 
                         width={pdfDimensions.width * scale}
                         height={pdfDimensions.height * scale}
-                        rotate={rotation}
+                        rotate={0}
                       >
                         {renderHighlights(index + 1)}
                       </Page>
