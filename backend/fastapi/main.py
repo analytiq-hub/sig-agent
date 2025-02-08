@@ -568,11 +568,11 @@ async def download_ocr_blocks(
         raise HTTPException(status_code=404, detail="Document not found")
     
     # Get the OCR JSON data from mongodb
-    ocr_list = ad.common.get_ocr_list(analytiq_client, document_id)
-    if ocr_list is None:
+    ocr_json = ad.common.get_ocr_json(analytiq_client, document_id)
+    if ocr_json is None:
         raise HTTPException(status_code=404, detail="OCR data not found")
     
-    return JSONResponse(content=ocr_list)
+    return JSONResponse(content=ocr_json)
 
 @app.get("/orgs/{organization_id}/ocr/download/text/{document_id}", response_model=str, tags=["ocr"])
 async def download_ocr_text(

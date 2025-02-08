@@ -31,14 +31,14 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
         if aws_client.textract is None:
             raise Exception(f"AWS textract client not created. Skipping OCR.")
 
-        ocr_list = None
+        ocr_json = None
         if not force:
             # Check if the OCR text already exists
-            ocr_list = ad.common.get_ocr_list(analytiq_client, document_id)
-            if ocr_list is not None:
+            ocr_json = ad.common.get_ocr_json(analytiq_client, document_id)
+            if ocr_json is not None:
                 ad.log.info(f"OCR list for {document_id} already exists. Skipping OCR.")        
         
-        if ocr_list is None:
+        if ocr_json is None:
             # Get the file
             mongo_file_name = f"{document_id}.pdf"
             file = ad.common.get_file(analytiq_client, mongo_file_name)
@@ -48,15 +48,15 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
                 return
 
             # Run OCR
-            ocr_list = await ad.aws.textract.run_textract(analytiq_client, file["blob"])
+            ocr_json = await ad.aws.textract.run_textract(analytiq_client, file["blob"])
             ad.log.info(f"OCR completed for {document_id}")
 
             # Save the OCR dictionary
-            ad.common.save_ocr_list(analytiq_client, document_id, ocr_list)
+            ad.common.save_ocr_json(analytiq_client, document_id, ocr_json)
             ad.log.info(f"OCR list for {document_id} has been saved.")
         
         # Extract the text
-        ad.common.save_ocr_text_from_list(analytiq_client, document_id, ocr_list, force=force)
+        ad.common.save_ocr_text_from_list(analytiq_client, document_id, ocr_json, force=force)
         ad.log.info(f"OCR text for {document_id} has been saved.")
         # Update state to OCR completed
         await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_COMPLETED)

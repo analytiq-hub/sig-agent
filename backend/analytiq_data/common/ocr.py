@@ -5,7 +5,7 @@ import analytiq_data as ad
 
 OCR_BUCKET = "ocr"
 
-def get_ocr_list(analytiq_client, document_id: str) -> list:
+def get_ocr_json(analytiq_client, document_id: str) -> list:
     """
     Get the OCR blocks as a list
     
@@ -26,7 +26,7 @@ def get_ocr_list(analytiq_client, document_id: str) -> list:
     return pickle.loads(ocr_blob["blob"])
    
 
-def save_ocr_list(analytiq_client, document_id:str, ocr_list:list, metadata:dict=None):
+def save_ocr_json(analytiq_client, document_id:str, ocr_json:list, metadata:dict=None):
     """
     Save the OCR JSON
     
@@ -35,21 +35,21 @@ def save_ocr_list(analytiq_client, document_id:str, ocr_list:list, metadata:dict
             The analytiq client
         document_id : str
             document id
-        ocr_list : list
+        ocr_json : list
             OCR list
         metadata : dict
             OCR metadata
     """
     key = f"{document_id}_list"
     # Pickle the dictionary
-    ocr_bytes = pickle.dumps(ocr_list)
+    ocr_bytes = pickle.dumps(ocr_json)
     size_mb = len(ocr_bytes) / 1024 / 1024
     ad.log.info(f"Saving OCR list for {document_id} with metadata: {metadata} size: {size_mb:.2f}MB")
     ad.mongodb.save_blob(analytiq_client, bucket=OCR_BUCKET, key=key, blob=ocr_bytes, metadata=metadata)
     
     ad.log.info(f"OCR list for {document_id} has been saved.")
 
-def delete_ocr_list(analytiq_client, document_id:str):
+def delete_ocr_json(analytiq_client, document_id:str):
     """
     Delete the OCR JSON
 
@@ -136,7 +136,7 @@ def delete_ocr_text(analytiq_client, document_id:str, page_idx:int=None):
 
     ad.log.debug(f"OCR text for {document_id} page {page_idx} has been deleted.")
 
-def save_ocr_text_from_list(analytiq_client, document_id:str, ocr_list:list, metadata:dict=None, force:bool=False):
+def save_ocr_text_from_list(analytiq_client, document_id:str, ocr_json:list, metadata:dict=None, force:bool=False):
     """
     Save the OCR text from the OCR list
     
@@ -145,14 +145,14 @@ def save_ocr_text_from_list(analytiq_client, document_id:str, ocr_list:list, met
             The analytiq client
         document_id : str
             document id
-        ocr_list : list
+        ocr_json : list
             OCR list
         metadata : dict
             OCR metadata
         force : bool
             Whether to force the processing
     """
-    block_map = ad.aws.textract.get_block_map(ocr_list)
+    block_map = ad.aws.textract.get_block_map(ocr_json)
     page_text_map = ad.aws.textract.get_page_text_map(block_map)
 
     if not force:
