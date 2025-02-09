@@ -245,6 +245,21 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     );
   };
 
+  const isKeyValuePairs = (result: any): boolean => {
+    if (typeof result !== 'object' || result === null) return false;
+    return Object.values(result).every(value => typeof value === 'string');
+  };
+
+  const renderUnstructuredJson = (json: any) => {
+    return (
+      <div className="p-4">
+        <pre className="text-sm whitespace-pre-wrap break-words text-gray-700 bg-gray-50 rounded p-2">
+          {JSON.stringify(json, null, 2)}
+        </pre>
+      </div>
+    );
+  };
+
   const renderPromptResults = (promptId: string) => {
     const result = llmResults[promptId];
     if (!result) {
@@ -257,16 +272,22 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       return <div className="p-4 text-sm text-gray-500">No results available</div>;
     }
 
-    return (
-      <div className="p-4 space-y-3">
-        {Object.entries(result.updated_llm_result).map(([key, value]) => (
-          <div key={key} className="text-sm">
-            <div className="font-medium text-gray-700 mb-1">{key}</div>
-            {renderValue(promptId, key, value as string)}
-          </div>
-        ))}
-      </div>
-    );
+    // Check if the result is a simple key-value structure with string values
+    if (isKeyValuePairs(result.updated_llm_result)) {
+      return (
+        <div className="p-4 space-y-3">
+          {Object.entries(result.updated_llm_result).map(([key, value]) => (
+            <div key={key} className="text-sm">
+              <div className="font-medium text-gray-700 mb-1">{key}</div>
+              {renderValue(promptId, key, value as string)}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // If not key-value pairs, render as unstructured JSON
+    return renderUnstructuredJson(result.updated_llm_result);
   };
 
   return (
