@@ -25,6 +25,9 @@ interface EditingState {
   value: string;
 }
 
+// Add at the top level, before the component
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
 const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   const { loadOCRBlocks, findBlocksForText } = useOCR();
   const [llmResults, setLlmResults] = useState<Record<string, GetLLMResultResponse>>({});
@@ -245,12 +248,12 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     );
   };
 
-  const isKeyValuePairs = (result: any): boolean => {
+  const isKeyValuePairs = (result: Record<string, unknown>): result is Record<string, string> => {
     if (typeof result !== 'object' || result === null) return false;
     return Object.values(result).every(value => typeof value === 'string');
   };
 
-  const renderUnstructuredJson = (json: any) => {
+  const renderUnstructuredJson = (json: JsonValue) => {
     return (
       <div className="p-4">
         <pre className="text-sm whitespace-pre-wrap break-words text-gray-700 bg-gray-50 rounded p-2">
