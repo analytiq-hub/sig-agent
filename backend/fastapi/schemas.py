@@ -104,6 +104,15 @@ class LLMResult(BaseModel):
     prompt_id: str
     document_id: str
     llm_result: dict
+    updated_llm_result: dict
+    is_edited: bool
+    is_verified: bool
+    created_at: datetime
+    updated_at: datetime
+
+class UpdateLLMResultRequest(BaseModel):
+    updated_llm_result: dict
+    is_verified: bool = False
 
 # Schema management models
 FieldType = Literal["str", "int", "float", "bool", "datetime"]

@@ -83,6 +83,7 @@ import {
   DeleteFlowParams,
 } from '@/types/index';
 import { toast } from 'react-hot-toast';
+import { JsonValue } from 'type-fest';
 
 // These APIs execute from the frontend
 const NEXT_PUBLIC_FASTAPI_FRONTEND_URL = process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL || "http://localhost:8000";
@@ -295,6 +296,39 @@ export const getLLMResultApi = async (params: GetLLMResultParams) => {
       }
     }
   );
+  return response.data;
+};
+
+export const updateLLMResultApi = async ({
+  organizationId,
+  documentId,
+  promptId,
+  result,
+  isVerified = false
+}: {
+  organizationId: string;
+  documentId: string;
+  promptId: string;
+  result: Record<string, JsonValue>;
+  isVerified?: boolean;
+}) => {
+  const response = await api.put(
+    `/orgs/${organizationId}/llm/result/${documentId}`,
+    {
+      updated_llm_result: result,
+      is_verified: isVerified
+    },
+    {
+      params: {
+        prompt_id: promptId
+      }
+    }
+  );
+
+  if (response.status !== 200) {
+    throw new Error(`Failed to update LLM result for document ${documentId} and prompt ${promptId}: ${response.data}`);
+  }
+
   return response.data;
 };
 

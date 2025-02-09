@@ -39,7 +39,9 @@ from schemas import (
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
     GetOCRMetadataResponse,
-    LLMRunResponse, LLMResult,
+    LLMRunResponse,
+    LLMResult,
+    UpdateLLMResultRequest,
     Schema, SchemaConfig, ListSchemasResponse,
     Prompt, PromptConfig, ListPromptsResponse,
     TagConfig, Tag, ListTagsResponse,
@@ -689,14 +691,54 @@ async def get_llm_result(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    result = await ad.llm.get_llm_result(analytiq_client, document_id, prompt_id)
-    if not result:
+    llm_result = await ad.llm.get_llm_result(analytiq_client, document_id, prompt_id)
+    if not llm_result:
         raise HTTPException(
             status_code=404,
             detail=f"LLM result not found for document_id: {document_id} and prompt_id: {prompt_id}"
         )
     
-    return result
+    return llm_result
+
+@app.put("/orgs/{organization_id}/llm/result/{document_id}", response_model=LLMResult, tags=["llm"])
+async def update_llm_result(
+    organization_id: str,
+    document_id: str,
+    prompt_id: str = Query(..., description="The prompt ID to update"),
+    update: UpdateLLMResultRequest = Body(..., description="The update request"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update LLM results with user edits and verification status.
+    """
+    analytiq_client = ad.common.get_analytiq_client()
+    
+    # Verify document exists and user has access
+    document = await ad.common.get_doc(analytiq_client, document_id, organization_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    try:
+        await ad.llm.update_llm_result(
+            analytiq_client,
+            document_id=document_id,
+            prompt_id=prompt_id,
+            updated_llm_result=update.updated_llm_result,
+            is_verified=update.is_verified
+        )
+        
+        return await ad.llm.get_llm_result(analytiq_client, document_id, prompt_id)
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating LLM result: {str(e)}"
+        )
 
 @app.delete("/orgs/{organization_id}/llm/result/{document_id}", tags=["llm"])
 async def delete_llm_result(
@@ -1961,9 +2003,9 @@ async def list_organizations(
     - Otherwise returns all organizations (admin only)
     - user_id and organization_id are mutually exclusive
     """
-    ad.log.info(f"list_organizations(): current_user: {current_user}")
+    ad.log.debug(f"list_organizations(): current_user: {current_user}")
     db = ad.common.get_async_db()
-    ad.log.info(f"list_organizations(): db: {db}")
+    ad.log.debug(f"list_organizations(): db: {db}")
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_system_admin = db_user and db_user.get("role") == "admin"
 

@@ -36,6 +36,11 @@ export interface GetLLMResultResponse {
   prompt_id: string;
   document_id: string;
   llm_result: Record<string, JsonValue>;
+  updated_llm_result: Record<string, JsonValue>;
+  is_edited: boolean;
+  is_verified: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface DeleteLLMResultParams {

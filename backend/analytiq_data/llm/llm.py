@@ -2,7 +2,7 @@ import asyncio
 import analytiq_data as ad
 from litellm.main import acompletion  # Changed import path
 import json
-
+from datetime import datetime, UTC
 
 async def run_llm(analytiq_client, 
                   document_id: str,
@@ -115,6 +115,19 @@ async def get_llm_result(analytiq_client,
     if result:
         # Remove MongoDB's _id field
         result.pop('_id', None)
+
+        # Update missing fields with default values
+        if "updated_llm_result" not in result:
+            result["updated_llm_result"] = result["llm_result"].copy()
+        if "created_at" not in result:
+            result["created_at"] = datetime.now(UTC)
+        if "updated_at" not in result:
+            result["updated_at"] = datetime.now(UTC)
+        if "is_edited" not in result:
+            result["is_edited"] = False
+        if "is_verified" not in result:
+            result["is_verified"] = False
+
         return result
     return None
 
@@ -137,10 +150,17 @@ async def save_llm_result(analytiq_client,
     queue_collection_name = f"llm.runs"
     queue_collection = db[queue_collection_name]
 
+    current_time_utc = datetime.now(UTC)
+
     element = {
         "prompt_id": prompt_id,
         "document_id": document_id,
-        "llm_result": llm_result
+        "llm_result": llm_result,
+        "updated_llm_result": llm_result.copy(),
+        "is_edited": False,
+        "is_verified": False,
+        "created_at": current_time_utc,
+        "updated_at": current_time_utc
     }
 
     # Save the result, return the ID
@@ -192,3 +212,75 @@ async def run_llm_for_prompt_ids(analytiq_client, document_id: str, prompt_ids: 
     results = await asyncio.gather(*tasks)
 
     ad.log.info(f"LLM run completed for {document_id} with {n_prompts} prompts: {results}")
+
+async def update_llm_result(analytiq_client,
+                            document_id: str,
+                            prompt_id: str,
+                            updated_llm_result: dict,
+                            is_verified: bool = False) -> str:
+    """
+    Update an existing LLM result with edits and verification status.
+    
+    Args:
+        analytiq_client: The AnalytiqClient instance
+        document_id: The document ID
+        prompt_id: The prompt ID
+        updated_llm_result: The updated LLM result
+        is_verified: Whether this result has been verified
+    
+    Returns:
+        str: The ID of the updated document
+        
+    Raises:
+        ValueError: If no existing result found or if result signatures don't match
+    """
+    db_name = analytiq_client.env
+    db = analytiq_client.mongodb_async[db_name]
+    collection = db["llm.runs"]
+    
+    # Get the latest result
+    existing = await collection.find_one(
+        {
+            "document_id": document_id,
+            "prompt_id": prompt_id
+        },
+        sort=[("_id", -1)]
+    )
+    
+    if not existing:
+        raise ValueError(f"No existing LLM result found for document_id: {document_id}, prompt_id: {prompt_id}")
+    
+    # Validate that the updated result has the same structure as the original
+    existing_keys = set(existing["llm_result"].keys())
+    updated_keys = set(updated_llm_result.keys())
+    
+    if existing_keys != updated_keys:
+        raise ValueError(
+            f"Updated result signature does not match original. "
+            f"Original keys: {sorted(existing_keys)}, "
+            f"Updated keys: {sorted(updated_keys)}"
+        )
+
+    current_time_utc = datetime.now(UTC)
+    created_at = existing.get("created_at", current_time_utc)
+    updated_at = current_time_utc
+    
+    # Update the document
+    update_data = {
+        "llm_result": existing["llm_result"],
+        "updated_llm_result": updated_llm_result,
+        "is_edited": True,
+        "is_verified": is_verified,
+        "created_at": created_at,
+        "updated_at": updated_at
+    }
+    
+    result = await collection.update_one(
+        {"_id": existing["_id"]},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise ValueError("Failed to update LLM result")
+        
+    return str(existing["_id"])
