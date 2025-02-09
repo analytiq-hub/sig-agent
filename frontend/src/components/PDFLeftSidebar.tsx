@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   ChevronDownIcon, 
   ArrowPathIcon,
@@ -10,9 +10,7 @@ import {
 import { getLLMResultApi, listPromptsApi, runLLMApi, updateLLMResultApi } from '@/utils/api';
 import type { Prompt } from '@/types/index';
 import { useOCR, OCRProvider } from '@/contexts/OCRContext';
-import type { OCRBlock } from '@/types/index';
-
-type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+import type { OCRBlock, GetLLMResultResponse } from '@/types/index';
 
 interface Props {
   organizationId: string;
@@ -29,7 +27,7 @@ interface EditingState {
 
 const PDFLeftSidebarContent = ({ organizationId, id, onHighlight, onClearHighlight }: Props) => {
   const { loadOCRBlocks, findBlocksForText } = useOCR();
-  const [llmResults, setLlmResults] = useState<Record<string, Record<string, JsonValue>>>({});
+  const [llmResults, setLlmResults] = useState<Record<string, GetLLMResultResponse>>({});
   const [matchingPrompts, setMatchingPrompts] = useState<Prompt[]>([]);
   const [runningPrompts, setRunningPrompts] = useState<Set<string>>(new Set());
   const [expandedPrompt, setExpandedPrompt] = useState<string>('default');
@@ -53,27 +51,29 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight, onClearHighlig
           });
           setLlmResults(prev => ({
             ...prev,
-            default: defaultResults.llm_result
+            'default': defaultResults
           }));
-        } catch (error) {
-          console.error('Error fetching LLM results:', error);
-          setFailedPrompts(prev => new Set(prev).add('default'));
-        } finally {
           setLoadingPrompts(prev => {
-            const newSet = new Set(prev);
-            newSet.delete('default');
-            return newSet;
+            const next = new Set(prev);
+            next.delete('default');
+            return next;
+          });
+        } catch (error) {
+          console.error('Error fetching default results:', error);
+          setFailedPrompts(prev => new Set(prev).add('default'));
+          setLoadingPrompts(prev => {
+            const next = new Set(prev);
+            next.delete('default');
+            return next;
           });
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching prompts:', error);
       }
     };
-
-    if (id) {
-      fetchData();
-    }
-  }, [id, organizationId]);
+    
+    fetchData();
+  }, [organizationId, id]);
 
   useEffect(() => {
     // Load OCR blocks in the background
@@ -98,7 +98,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight, onClearHighlig
         });
         setLlmResults(prev => ({
           ...prev,
-          [promptId]: results.llm_result
+          [promptId]: results
         }));
         setFailedPrompts(prev => {
           const newSet = new Set(prev);
@@ -120,36 +120,31 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight, onClearHighlig
 
   const handleRunPrompt = async (promptId: string) => {
     setRunningPrompts(prev => new Set(prev).add(promptId));
-    setFailedPrompts(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(promptId);
-      return newSet;
-    });
-    
     try {
       await runLLMApi({
         organizationId: organizationId,
-        documentId: id, 
+        documentId: id,
         promptId: promptId,
-        force: true,
+        force: true
       });
-      const results = await getLLMResultApi({
+      
+      const result = await getLLMResultApi({
         organizationId: organizationId,
-        documentId: id, 
-        promptId: promptId,
+        documentId: id,
+        promptId: promptId
       });
+      
       setLlmResults(prev => ({
         ...prev,
-        [promptId]: results.llm_result
+        [promptId]: result
       }));
     } catch (error) {
       console.error('Error running prompt:', error);
-      setFailedPrompts(prev => new Set(prev).add(promptId));
     } finally {
       setRunningPrompts(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(promptId);
-        return newSet;
+        const next = new Set(prev);
+        next.delete(promptId);
+        return next;
       });
     }
   };
@@ -170,32 +165,38 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight, onClearHighlig
     if (!editing) return;
 
     try {
+      const currentResult = llmResults[editing.promptId];
+      if (!currentResult) return;
+
       const updatedResult = {
-        ...llmResults[editing.promptId],
+        ...currentResult.updated_llm_result,
         [editing.key]: editing.value
       };
 
-      await updateLLMResultApi({
+      const result = await updateLLMResultApi({
         organizationId,
         documentId: id,
         promptId: editing.promptId,
-        result: updatedResult
+        result: updatedResult,
+        isVerified: false
       });
 
       setLlmResults(prev => ({
         ...prev,
-        [editing.promptId]: updatedResult
+        [editing.promptId]: result
       }));
       setEditing(null);
     } catch (error) {
-      console.error('Error updating extraction:', error);
+      console.error('Error saving edit:', error);
     }
   };
 
-  const renderValue = (promptId: string, key: string, value: string) => {
-    const isEditing = editing?.promptId === promptId && editing?.key === key;
+  const handleCancel = () => {
+    setEditing(null);
+  };
 
-    if (isEditing) {
+  const renderValue = (promptId: string, key: string, value: string) => {
+    if (editing && editing.promptId === promptId && editing.key === key) {
       return (
         <div className="flex items-center gap-2">
           <input
@@ -207,13 +208,15 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight, onClearHighlig
           />
           <button
             onClick={handleSave}
-            className="p-1 text-green-600 hover:bg-green-50 rounded"
+            className="p-1 text-green-600 hover:bg-gray-100 rounded"
+            title="Save changes"
           >
             <CheckIcon className="w-4 h-4" />
           </button>
           <button
-            onClick={() => setEditing(null)}
-            className="p-1 text-red-600 hover:bg-red-50 rounded"
+            onClick={handleCancel}
+            className="p-1 text-red-600 hover:bg-gray-100 rounded"
+            title="Cancel"
           >
             <XMarkIcon className="w-4 h-4" />
           </button>
@@ -243,8 +246,8 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight, onClearHighlig
   };
 
   const renderPromptResults = (promptId: string) => {
-    const results = llmResults[promptId];
-    if (!results) {
+    const result = llmResults[promptId];
+    if (!result) {
       if (loadingPrompts.has(promptId)) {
         return <div className="p-4 text-sm text-gray-500">Loading...</div>;
       }
@@ -256,7 +259,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight, onClearHighlig
 
     return (
       <div className="p-4 space-y-3">
-        {Object.entries(results).map(([key, value]) => (
+        {Object.entries(result.updated_llm_result).map(([key, value]) => (
           <div key={key} className="text-sm">
             <div className="font-medium text-gray-700 mb-1">{key}</div>
             {renderValue(promptId, key, value as string)}
