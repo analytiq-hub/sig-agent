@@ -25,7 +25,7 @@ interface EditingState {
   value: string;
 }
 
-const PDFLeftSidebarContent = ({ organizationId, id, onHighlight, onClearHighlight }: Props) => {
+const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   const { loadOCRBlocks, findBlocksForText } = useOCR();
   const [llmResults, setLlmResults] = useState<Record<string, GetLLMResultResponse>>({});
   const [matchingPrompts, setMatchingPrompts] = useState<Prompt[]>([]);
