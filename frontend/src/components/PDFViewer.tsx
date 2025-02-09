@@ -190,6 +190,7 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
     try {
       const metadata = await pdf.getMetadata();
       const info = metadata.info as PDFMetadata;
+      const page = await pdf.getPage(1);
 
       const properties: Record<string, string> = {
         'File name': fileName,
@@ -204,6 +205,7 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
         'Producer': info.Producer || 'N/A',
         'Version': info.PDFFormatVersion || 'N/A',
         'Number of Pages': pdf.numPages.toString(),
+        'Original Rotation': `${page.rotate}°`,
       };
 
       console.log('Extracted properties:', properties);
@@ -214,16 +216,23 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
     }
   }, [fileName, fileSize]);
 
+  const [originalRotation, setOriginalRotation] = useState(0);
+
   const handleLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
     setPageNumber(1);
     pageRefs.current = new Array(numPages).fill(null);
     
     pdfjs.getDocument(file!).promise.then((pdf) => {
-      extractDocumentProperties(pdf);  // Extract properties here
+      extractDocumentProperties(pdf);
+      
+      // Get the first page and check its rotation
       pdf.getPage(1).then((page) => {
         const viewport = page.getViewport({ scale: 1 });
         setPdfDimensions({ width: viewport.width, height: viewport.height });
+        
+        // Store the original rotation
+        setOriginalRotation(page.rotate || 0);
       });
     });
   };
@@ -397,7 +406,7 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
         height: '100%',
         top: 0,
         left: 0,
-        pointerEvents: 'none'
+        pointerEvents: 'none',
       }}>
         {highlightedBlocks.map((block, index) => {
           if (block.Page !== page) return null;
@@ -625,7 +634,7 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
                         pageNumber={index + 1} 
                         width={pdfDimensions.width * scale}
                         height={pdfDimensions.height * scale}
-                        rotate={0}
+                        rotate={originalRotation}
                       >
                         {renderHighlights(index + 1)}
                       </Page>
