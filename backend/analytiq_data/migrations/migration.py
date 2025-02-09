@@ -109,8 +109,73 @@ class OcrKeyMigration(Migration):
             ad.log.error(f"Migration revert failed: {e}")
             return False
 
+class LlmResultFieldsMigration(Migration):
+    def __init__(self):
+        super().__init__(2, "Add new fields to LLM results")
+        
+    async def up(self, db) -> bool:
+        """Add updated_llm_result, is_edited, is_verified, created_at, updated_at fields"""
+        try:
+            current_time = datetime.now(UTC)
+            
+            # Find all documents in llm.runs collection
+            cursor = db["llm.runs"].find({})
+            async for doc in cursor:
+                update_fields = {}
+                
+                # Add updated_llm_result if missing
+                if "updated_llm_result" not in doc:
+                    update_fields["updated_llm_result"] = doc["llm_result"]
+                
+                # Add timestamps if missing
+                if "created_at" not in doc:
+                    update_fields["created_at"] = current_time
+                if "updated_at" not in doc:
+                    update_fields["updated_at"] = current_time
+                    
+                # Add status flags if missing
+                if "is_edited" not in doc:
+                    update_fields["is_edited"] = False
+                if "is_verified" not in doc:
+                    update_fields["is_verified"] = False
+                
+                # Only update if there are missing fields
+                if update_fields:
+                    await db["llm.runs"].update_one(
+                        {"_id": doc["_id"]},
+                        {"$set": update_fields}
+                    )
+            
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"LLM results migration failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """Remove added fields"""
+        try:
+            await db["llm.runs"].update_many(
+                {},
+                {
+                    "$unset": {
+                        "updated_llm_result": "",
+                        "is_edited": "",
+                        "is_verified": "",
+                        "created_at": "",
+                        "updated_at": ""
+                    }
+                }
+            )
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"LLM results migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
+    LlmResultFieldsMigration(),
     # Add more migrations here
 ] 

@@ -103,7 +103,6 @@ async def get_llm_result(analytiq_client,
     collection = db["llm.runs"]
     
     # Sort by _id in descending order to get the latest document
-    # MongoDB's ObjectId contains a timestamp, so sorting by _id gives us chronological order
     result = await collection.find_one(
         {
             "document_id": document_id,
@@ -115,20 +114,8 @@ async def get_llm_result(analytiq_client,
     if result:
         # Remove MongoDB's _id field
         result.pop('_id', None)
-
-        # Update missing fields with default values
-        if "updated_llm_result" not in result:
-            result["updated_llm_result"] = result["llm_result"].copy()
-        if "created_at" not in result:
-            result["created_at"] = datetime.now(UTC)
-        if "updated_at" not in result:
-            result["updated_at"] = datetime.now(UTC)
-        if "is_edited" not in result:
-            result["is_edited"] = False
-        if "is_verified" not in result:
-            result["is_verified"] = False
-
         return result
+        
     return None
 
 async def save_llm_result(analytiq_client, 
