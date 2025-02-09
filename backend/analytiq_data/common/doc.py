@@ -96,6 +96,12 @@ async def delete_doc(analytiq_client, document_id: str, organization_id: str):
     })
     ad.log.debug(f"Document {document_id} has been deleted.")
 
+    # Delete all LLM results for the document
+    ad.llm.delete_llm_result(analytiq_client, document_id=document_id)
+
+    # Delete all OCR results for the document
+    ad.common.delete_ocr_all(analytiq_client, document_id=document_id)
+
 async def list_docs(analytiq_client, organization_id: str, skip: int = 0, limit: int = 10) -> tuple[list, int]:
     """
     List documents with pagination within an organization

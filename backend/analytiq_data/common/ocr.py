@@ -119,6 +119,22 @@ def delete_ocr_text(analytiq_client, document_id:str, page_idx:int=None):
 
     ad.log.debug(f"OCR text for {document_id} page {page_idx} has been deleted.")
 
+def delete_ocr_all(analytiq_client, document_id:str):
+    """
+    Delete the OCR
+
+    Args:
+        analytiq_client: AnalytiqClient
+            The analytiq client
+        document_id : str
+            document id
+    """
+    n_pages = get_ocr_n_pages(analytiq_client, document_id)
+    for page_idx in range(n_pages):
+        delete_ocr_text(analytiq_client, document_id, page_idx)
+    delete_ocr_text(analytiq_client, document_id)
+    delete_ocr_json(analytiq_client, document_id)
+
 def save_ocr_text_from_list(analytiq_client, document_id:str, ocr_json:list, metadata:dict=None, force:bool=False):
     """
     Save the OCR text from the OCR list
