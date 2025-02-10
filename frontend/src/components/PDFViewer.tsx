@@ -453,40 +453,84 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
     );
   }, [highlightInfo]);
 
-  // Add this new function to find the next page with highlights
-  const findNextHighlightedPage = useCallback((currentPage: number): number | null => {
+  // Add this near the other state declarations
+  const [lastSearch, setLastSearch] = useState<{
+    promptId: string;
+    key?: string;
+    value: string;
+    lastPage?: number;
+  } | null>(null);
+
+  // Update the useEffect for highlightInfo changes
+  useEffect(() => {
+    if (highlightInfo?.blocks.length) {
+      // Check if this is the same search as before
+      const isSameSearch = !!(lastSearch && 
+        lastSearch.promptId === highlightInfo.promptId && 
+        lastSearch.key === highlightInfo.key && 
+        lastSearch.value === highlightInfo.value);
+
+      const nextPage = findNextHighlightedPage(pageNumber, isSameSearch);
+      if (nextPage && nextPage !== pageNumber) {
+        scrollToPage(nextPage);
+        // Update lastSearch with the new page
+        setLastSearch({
+          promptId: highlightInfo.promptId,
+          key: highlightInfo.key,
+          value: highlightInfo.value,
+          lastPage: nextPage
+        });
+      } else if (!isSameSearch) {
+        // If it's a new search, save it
+        setLastSearch({
+          promptId: highlightInfo.promptId,
+          key: highlightInfo.key,
+          value: highlightInfo.value,
+          lastPage: nextPage || pageNumber
+        });
+      }
+    } else {
+      // Clear lastSearch when there are no highlights
+      setLastSearch(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightInfo]);
+
+  // Modify findNextHighlightedPage to handle repeated searches
+  const findNextHighlightedPage = useCallback((currentPage: number, isSameSearch: boolean = false): number | null => {
     if (!highlightInfo?.blocks.length) return null;
 
-    // First, check if current page has highlights
-    const hasCurrentPageHighlights = highlightInfo.blocks.some(block => block.Page === currentPage);
-    if (hasCurrentPageHighlights) return currentPage;
+    // For a repeated search, start looking from the next page
+    const startPage = isSameSearch ? currentPage + 1 : currentPage;
 
-    // Look for next page with highlights
+    // First look for highlights after the start page
     const nextHighlightedPage = highlightInfo.blocks
-      .filter(block => block.Page > currentPage)
+      .filter(block => block.Page > startPage)
       .sort((a, b) => a.Page - b.Page)[0]?.Page;
 
     if (nextHighlightedPage) return nextHighlightedPage;
-  
-    // If no next page found, get the first page with highlights
-    const firstHighlightedPage = highlightInfo.blocks
-      .sort((a, b) => a.Page - b.Page)[0]?.Page;
 
-    return firstHighlightedPage || null;
-  }, [highlightInfo]);
+    // If no next page found and this is a repeated search,
+    // wrap around to the first page with highlights
+    if (isSameSearch) {
+      const firstHighlightedPage = highlightInfo.blocks
+        .sort((a, b) => a.Page - b.Page)[0]?.Page;
 
-  // Replace the existing effect with this one
-  useEffect(() => {
-    // Only scroll to highlighted page when highlights change
-    if (highlightInfo?.blocks.length) {
-      const nextPage = findNextHighlightedPage(pageNumber);
-      if (nextPage && nextPage !== pageNumber) {
-        scrollToPage(nextPage);
+      // Only return first page if it's different from current page
+      if (firstHighlightedPage && firstHighlightedPage !== currentPage) {
+        return firstHighlightedPage;
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [highlightInfo]); // Only depend on highlightInfo changes
-  
+
+    // For first search, check current page
+    const hasCurrentPageHighlights = highlightInfo.blocks
+      .some(block => block.Page === currentPage);
+    if (hasCurrentPageHighlights) return currentPage;
+
+    // If no highlights found on current page (first search),
+    // return the next page with highlights
+    return nextHighlightedPage || null;
+  }, [highlightInfo]);
 
   useEffect(() => {
     scrollToPage(pageNumber);
