@@ -392,8 +392,8 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
     fetchOcrText();
   }, [id, pageNumber, showOcr, organizationId]);
 
+  // This is called once for each page
   const renderHighlights = useCallback((page: number) => {
-    console.log('PDFViewer - highlightInfo:', highlightInfo);
     if (!highlightInfo?.blocks.length) return null;
 
     // Define padding as a percentage of the container
