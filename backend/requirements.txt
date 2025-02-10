@@ -14,7 +14,7 @@ httpx==0.27.2 # 0.28.0 not supported by litellm
 idna==3.10
 jose==1.0.0
 legacy-cgi==2.6.2; python_version >= "3.13"
-litellm==1.60.0
+litellm==1.60.8
 motor==3.6.0
 passlib==1.7.4
 pyasn1==0.6.1

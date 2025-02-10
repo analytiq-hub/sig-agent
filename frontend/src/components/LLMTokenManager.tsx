@@ -33,7 +33,7 @@ const LLMTokenManager: React.FC = () => {
 
     try {
       await createLLMTokenApi({
-        llm_vendor: editingProvider as 'OpenAI' | 'Anthropic' | 'Groq',
+        llm_vendor: editingProvider as 'OpenAI' | 'Anthropic' | 'Gemini' | 'Groq',
         token: editTokenValue,
       });
       setEditModalOpen(false);
@@ -82,7 +82,7 @@ const LLMTokenManager: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {['OpenAI', 'Anthropic', 'Groq'].map((provider) => {
+            {['OpenAI', 'Anthropic', 'Gemini', 'Groq'].map((provider) => {
               const token = llmTokens.find(t => t.llm_vendor === provider);
               return (
                 <tr 

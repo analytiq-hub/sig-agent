@@ -198,7 +198,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     setEditing(null);
   };
 
-  const renderValue = (promptId: string, key: string, value: string) => {
+  const renderValue = (promptId: string, key: string, value: string | number | null) => {
     if (editing && editing.promptId === promptId && editing.key === key) {
       return (
         <div className="flex items-center gap-2">
@@ -229,16 +229,16 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
 
     return (
       <div className="flex items-center gap-2">
-        <span className="flex-1">{value}</span>
+        <span className="flex-1">{value?.toString() ?? ''}</span>
         <button
-          onClick={() => handleFind(promptId, key, value)}
+          onClick={() => handleFind(promptId, key, value?.toString() ?? '')}
           className="p-1 text-gray-600 hover:bg-gray-100 rounded"
           title="Find in document"
         >
           <MagnifyingGlassIcon className="w-4 h-4" />
         </button>
         <button
-          onClick={() => handleEdit(promptId, key, value)}
+          onClick={() => handleEdit(promptId, key, value?.toString() ?? '')}
           className="p-1 text-gray-600 hover:bg-gray-100 rounded"
           title="Edit extraction"
         >
@@ -248,9 +248,13 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     );
   };
 
-  const isKeyValuePairs = (result: Record<string, unknown>): result is Record<string, string> => {
+  const isKeyValuePairs = (result: Record<string, unknown>): result is Record<string, string | number | null> => {
     if (typeof result !== 'object' || result === null) return false;
-    return Object.values(result).every(value => typeof value === 'string');
+    return Object.values(result).every(value => 
+      typeof value === 'string' || 
+      typeof value === 'number' || 
+      value === null
+    );
   };
 
   const renderUnstructuredJson = (json: JsonValue) => {
@@ -282,7 +286,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
           {Object.entries(result.updated_llm_result).map(([key, value]) => (
             <div key={key} className="text-sm">
               <div className="font-medium text-gray-700 mb-1">{key}</div>
-              {renderValue(promptId, key, value as string)}
+              {renderValue(promptId, key, value as string | number | null)}
             </div>
           ))}
         </div>

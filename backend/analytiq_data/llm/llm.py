@@ -44,6 +44,8 @@ async def run_llm(analytiq_client,
     provider = "OpenAI"  # Default
     if llm_model.startswith("claude"):
         provider = "Anthropic"
+    elif llm_model.startswith("gemini"):
+        provider = "Gemini"
     elif llm_model.startswith("groq"):
         provider = "Groq"
         
@@ -74,7 +76,7 @@ async def run_llm(analytiq_client,
         ],
         api_key=api_key,
         temperature=0.1,
-        response_format={"type": "json_object"} if provider in ["OpenAI", "Anthropic", "Groq"] else None
+        response_format={"type": "json_object"} if provider in ["OpenAI", "Anthropic", "Gemini", "Groq"] else None
     )
 
     resp_dict = json.loads(response.choices[0].message.content)

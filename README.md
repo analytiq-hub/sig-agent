@@ -13,7 +13,7 @@ Tech stack:
 * MongoDB
 * Pydantic
 * LiteLLM
-* OpenAI, Anthropic, Groq/DeepSeek...
+* OpenAI, Anthropic, Gemini, Groq/DeepSeek...
 
 # User Experience
 ![Smart Document Router](./docs/assets/files.png)

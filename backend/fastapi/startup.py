@@ -10,12 +10,7 @@ sys.path.append(f"{cwd}/..")
 import analytiq_data as ad
 
 async def setup_llm_models(db):
-    """Set up default LLM models if they don't exist"""
-    # Check if collection exists and has any documents
-    count = await db.llm_models.count_documents({})
-    if count > 0:
-        return
-
+    """Set up default LLM models by upserting based on model name"""
     # Default LLM models
     default_models = [
         {
@@ -51,12 +46,28 @@ async def setup_llm_models(db):
             "cost_per_1m_output_tokens": 4.4
         },
         {
-            "name": "claude-3.5",
+            "name": "anthropic/claude-3.5",
             "provider": "anthropic",
             "description": "Latest Claude model optimized for reliability and safety",
             "max_tokens": 200000,
             "cost_per_1m_input_tokens": 3,
             "cost_per_1m_output_tokens": 15
+        },
+        # {
+        #     "name": "gemini/gemini-2.0-pro",
+        #     "provider": "google",
+        #     "description": "Gemini 2.0 Pro",
+        #     "max_tokens": 200000,
+        #     "cost_per_1m_input_tokens": 0.1, # For now, model is free
+        #     "cost_per_1m_output_tokens": 0.4 # For now, model is free
+        # },
+        {
+            "name": "gemini/gemini-2.0-flash",
+            "provider": "google",
+            "description": "Gemini 2.0 Flash",
+            "max_tokens": 1000000,
+            "cost_per_1m_input_tokens": 0.1,
+            "cost_per_1m_output_tokens": 0.4
         },
         {
             "name": "groq/deepseek-r1-distill-llama-70b",
@@ -69,10 +80,21 @@ async def setup_llm_models(db):
     ]
 
     try:
-        await db.llm_models.insert_many(default_models)
-        ad.log.info("Default LLM models initialized")
+        # Upsert each model individually using the name as the unique identifier
+        for model in default_models:
+            await db.llm_models.update_one(
+                {"name": model["name"]},  # filter by name
+                {"$set": model},  # update/insert the entire model document
+                upsert=True  # create if doesn't exist, update if exists
+            )
+        ad.log.info("LLM models upserted successfully")
     except Exception as e:
-        ad.log.error(f"Failed to initialize LLM models: {e}")
+        ad.log.error(f"Failed to upsert LLM models: {e}")
+
+    # Remove any models that are not in the default_models list
+    await db.llm_models.delete_many({
+        "name": {"$nin": [model["name"] for model in default_models]}
+    })
 
 async def setup_database(analytiq_client):
     """Set up database and run migrations"""
@@ -196,6 +218,11 @@ async def setup_api_creds(analytiq_client):
         anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
         if anthropic_key != "":
             llm_credentials.append(("Anthropic", anthropic_key))
+
+        # Gemini
+        gemini_key = os.getenv("GEMINI_API_KEY", "")
+        if gemini_key != "":
+            llm_credentials.append(("Gemini", gemini_key))
             
         # Groq
         groq_key = os.getenv("GROQ_API_KEY", "")
