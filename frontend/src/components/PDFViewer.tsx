@@ -159,9 +159,11 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
 
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const scrollToPage = useCallback((pageNum: number) => {
+  const scrollToPage = useCallback((pageNum: number, behavior: ScrollBehavior = 'smooth') => {
     if (pageRefs.current[pageNum - 1]) {
-      pageRefs.current[pageNum - 1]?.scrollIntoView({ behavior: 'smooth' });
+      pageRefs.current[pageNum - 1]?.scrollIntoView({ behavior });
+      setPageNumber(pageNum);
+      setInputPageNumber(pageNum.toString());
     }
   }, []);
 
@@ -451,6 +453,38 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
       </div>
     );
   }, [highlightedBlocks]);
+
+  // Add this new function to find the next page with highlights
+  const findNextHighlightedPage = useCallback((currentPage: number): number | null => {
+    if (!highlightedBlocks.length) return null;
+
+    // First, check if current page has highlights
+    const hasCurrentPageHighlights = highlightedBlocks.some(block => block.Page === currentPage);
+    if (hasCurrentPageHighlights) return currentPage;
+
+    // Look for next page with highlights
+    const nextHighlightedPage = highlightedBlocks
+      .filter(block => block.Page > currentPage)
+      .sort((a, b) => a.Page - b.Page)[0]?.Page;
+
+    if (nextHighlightedPage) return nextHighlightedPage;
+
+    // If no next page found, get the first page with highlights
+    const firstHighlightedPage = highlightedBlocks
+      .sort((a, b) => a.Page - b.Page)[0]?.Page;
+
+    return firstHighlightedPage || null;
+  }, [highlightedBlocks]);
+
+  // Add this effect to handle automatic scrolling when highlights change
+  useEffect(() => {
+    if (highlightedBlocks.length > 0) {
+      const nextPage = findNextHighlightedPage(pageNumber);
+      if (nextPage && nextPage !== pageNumber) {
+        scrollToPage(nextPage);
+      }
+    }
+  }, [highlightedBlocks, pageNumber, findNextHighlightedPage, scrollToPage]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
