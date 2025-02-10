@@ -167,10 +167,6 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
     }
   }, []);
 
-  useEffect(() => {
-    scrollToPage(pageNumber);
-  }, [pageNumber, scrollToPage]);
-
   const [showProperties, setShowProperties] = useState(false);
   const [documentProperties, setDocumentProperties] = useState<Record<string, string> | null>(null);
   const [fileName, setFileName] = useState<string>('');
@@ -476,15 +472,22 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
     return firstHighlightedPage || null;
   }, [highlightedBlocks]);
 
-  // Add this effect to handle automatic scrolling when highlights change
+  // Replace the existing effect with this one
   useEffect(() => {
+    // Only scroll to highlighted page when highlights change
     if (highlightedBlocks.length > 0) {
       const nextPage = findNextHighlightedPage(pageNumber);
       if (nextPage && nextPage !== pageNumber) {
         scrollToPage(nextPage);
       }
     }
-  }, [highlightedBlocks, pageNumber, findNextHighlightedPage, scrollToPage]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightedBlocks]); // Only depend on highlightedBlocks changes
+
+  // Keep the separate effect for manual page navigation
+  useEffect(() => {
+    scrollToPage(pageNumber);
+  }, [pageNumber, scrollToPage]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
