@@ -25,10 +25,17 @@ export interface OCRBlock {
   Page: number;
 }
 
+export interface HighlightInfo {
+  blocks: OCRBlock[];
+  promptId: string;
+  key?: string;
+  value: string;
+}
+
 interface OCRContextType {
   ocrBlocks: OCRBlock[] | null;
   loadOCRBlocks: (organizationId: string, documentId: string) => Promise<void>;
-  findBlocksForText: (text: string) => OCRBlock[];
+  findBlocksWithContext: (text: string, promptId: string, key?: string) => HighlightInfo;
   isLoading: boolean;
   error: string | null;
 }
@@ -68,32 +75,39 @@ export function OCRProvider({ children }: { children: React.ReactNode }) {
     }
   }, [blockCache]);
 
-  const findBlocksForText = useCallback((searchText: string): OCRBlock[] => {
-    if (!ocrBlocks) return [];
+  const findBlocksWithContext = useCallback((searchText: string, promptId: string, key?: string): HighlightInfo => {
+    if (!ocrBlocks) return { blocks: [], promptId, key, value: searchText };
 
+    let foundBlocks: OCRBlock[];
+    
     // If searchText has no spaces, search for individual words
     if (!searchText.includes(' ')) {
-      return ocrBlocks.filter(block => 
+      foundBlocks = ocrBlocks.filter(block => 
         block.BlockType === 'WORD' && 
         block.Text && 
         block.Text.toLowerCase() === searchText.toLowerCase()
       );
+    } else {
+      // For phrases, search in LINE blocks
+      foundBlocks = ocrBlocks.filter(block => {
+        if (block.BlockType !== 'LINE' || !block.Text) return false;
+        return block.Text.toLowerCase().includes(searchText.toLowerCase());
+      });
     }
 
-    // For phrases, search in LINE blocks
-    return ocrBlocks.filter(block => {
-      if (block.BlockType !== 'LINE' || !block.Text) return false;
-      
-      // Check if the line contains the exact phrase
-      return block.Text.toLowerCase().includes(searchText.toLowerCase());
-    });
+    return {
+      blocks: foundBlocks,
+      promptId,
+      key,
+      value: searchText
+    };
   }, [ocrBlocks]);
 
   return (
     <OCRContext.Provider value={{ 
       ocrBlocks, 
       loadOCRBlocks, 
-      findBlocksForText,
+      findBlocksWithContext,
       isLoading,
       error 
     }}>

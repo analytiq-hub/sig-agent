@@ -26,7 +26,7 @@ import { PanelGroup, Panel } from 'react-resizable-panels';
 import CheckIcon from '@mui/icons-material/Check';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import { OCRProvider } from '@/contexts/OCRContext';
-import type { OCRBlock } from '@/types/index';
+import type { OCRBlock, HighlightInfo } from '@/types/index';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -81,10 +81,10 @@ interface PDFMetadata {
 interface PDFViewerProps {
   organizationId: string;
   id: string;
-  highlightedBlocks?: OCRBlock[];  // Make this optional
+  highlightInfo?: HighlightInfo;
 }
 
-const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProps) => {
+const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [error, setError] = useState<string | null>(null);
@@ -160,6 +160,7 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const scrollToPage = useCallback((pageNum: number, behavior: ScrollBehavior = 'smooth') => {
+    
     if (pageRefs.current[pageNum - 1]) {
       pageRefs.current[pageNum - 1]?.scrollIntoView({ behavior });
       setPageNumber(pageNum);
@@ -392,7 +393,8 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
   }, [id, pageNumber, showOcr, organizationId]);
 
   const renderHighlights = useCallback((page: number) => {
-    if (!highlightedBlocks.length) return null;
+    console.log('PDFViewer - highlightInfo:', highlightInfo);
+    if (!highlightInfo?.blocks.length) return null;
 
     // Define padding as a percentage of the container
     const PADDING_PERCENT = 1.0; // 1.0% padding
@@ -406,7 +408,7 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
         left: 0,
         pointerEvents: 'none',
       }}>
-        {highlightedBlocks.map((block, index) => {
+        {highlightInfo?.blocks.map((block: OCRBlock, index: number) => {
           if (block.Page !== page) return null;
 
           const { Geometry } = block;
@@ -443,48 +445,49 @@ const PDFViewer = ({ organizationId, id, highlightedBlocks = [] }: PDFViewerProp
                 pointerEvents: 'none',
                 zIndex: 1,
               }}
+              title={`${highlightInfo.key}: ${highlightInfo.value}`}
             />
           );
         })}
       </div>
     );
-  }, [highlightedBlocks]);
+  }, [highlightInfo]);
 
   // Add this new function to find the next page with highlights
   const findNextHighlightedPage = useCallback((currentPage: number): number | null => {
-    if (!highlightedBlocks.length) return null;
+    if (!highlightInfo?.blocks.length) return null;
 
     // First, check if current page has highlights
-    const hasCurrentPageHighlights = highlightedBlocks.some(block => block.Page === currentPage);
+    const hasCurrentPageHighlights = highlightInfo.blocks.some(block => block.Page === currentPage);
     if (hasCurrentPageHighlights) return currentPage;
 
     // Look for next page with highlights
-    const nextHighlightedPage = highlightedBlocks
+    const nextHighlightedPage = highlightInfo.blocks
       .filter(block => block.Page > currentPage)
       .sort((a, b) => a.Page - b.Page)[0]?.Page;
 
     if (nextHighlightedPage) return nextHighlightedPage;
-
+  
     // If no next page found, get the first page with highlights
-    const firstHighlightedPage = highlightedBlocks
+    const firstHighlightedPage = highlightInfo.blocks
       .sort((a, b) => a.Page - b.Page)[0]?.Page;
 
     return firstHighlightedPage || null;
-  }, [highlightedBlocks]);
+  }, [highlightInfo]);
 
   // Replace the existing effect with this one
   useEffect(() => {
     // Only scroll to highlighted page when highlights change
-    if (highlightedBlocks.length > 0) {
+    if (highlightInfo?.blocks.length) {
       const nextPage = findNextHighlightedPage(pageNumber);
       if (nextPage && nextPage !== pageNumber) {
         scrollToPage(nextPage);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [highlightedBlocks]); // Only depend on highlightedBlocks changes
+  }, [highlightInfo]); // Only depend on highlightInfo changes
+  
 
-  // Keep the separate effect for manual page navigation
   useEffect(() => {
     scrollToPage(pageNumber);
   }, [pageNumber, scrollToPage]);

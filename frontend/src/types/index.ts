@@ -12,4 +12,4 @@ export * from './schemas';
 export * from './tags';
 export * from './users';
 export * from './tokens';
-export type { OCRBlock, OCRGeometry } from '@/contexts/OCRContext';
+export type { OCRBlock, OCRGeometry, HighlightInfo } from '@/contexts/OCRContext';

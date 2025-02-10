@@ -5,7 +5,7 @@ import { Box } from '@mui/material';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useState, useEffect } from 'react';
 import PDFLeftSidebar from '@/components/PDFLeftSidebar';
-import type { OCRBlock } from '@/types/index';
+import type { HighlightInfo } from '@/types/index';
 
 const PDFViewer = dynamic(() => import('@/components/PDFViewer'), {
   ssr: false,
@@ -21,7 +21,7 @@ interface PageProps {
 const PDFViewerPage = ({ params }: PageProps) => {
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showPdfPanel, setShowPdfPanel] = useState(true);
-  const [highlightedBlocks, setHighlightedBlocks] = useState<OCRBlock[]>([]);
+  const [highlightInfo, setHighlightInfo] = useState<HighlightInfo | undefined>();
   
   useEffect(() => {
     window.pdfViewerControls = {
@@ -40,8 +40,8 @@ const PDFViewerPage = ({ params }: PageProps) => {
   }, [showLeftPanel, showPdfPanel]);
 
   useEffect(() => {
-    console.log('Page - highlightedBlocks changed:', highlightedBlocks);
-  }, [highlightedBlocks]);
+    console.log('Page - highlightedBlocks changed:', highlightInfo);
+  }, [highlightInfo]);
 
   const getPanelSizes = () => {
     if (!showLeftPanel) {
@@ -73,8 +73,8 @@ const PDFViewerPage = ({ params }: PageProps) => {
                   <PDFLeftSidebar 
                     organizationId={params.organizationId} 
                     id={pdfId}
-                    onHighlight={setHighlightedBlocks}
-                    onClearHighlight={() => setHighlightedBlocks([])}
+                    onHighlight={setHighlightInfo}
+                    onClearHighlight={() => setHighlightInfo(undefined)}
                   />
                 </Box>
               </Panel>
@@ -88,7 +88,7 @@ const PDFViewerPage = ({ params }: PageProps) => {
                 <PDFViewer 
                   organizationId={params.organizationId} 
                   id={pdfId}
-                  highlightedBlocks={highlightedBlocks}
+                  highlightInfo={highlightInfo}
                 />
               </Box>
             </Panel>

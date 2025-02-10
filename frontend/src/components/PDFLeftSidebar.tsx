@@ -10,12 +10,13 @@ import {
 import { getLLMResultApi, listPromptsApi, runLLMApi, updateLLMResultApi } from '@/utils/api';
 import type { Prompt } from '@/types/index';
 import { useOCR, OCRProvider } from '@/contexts/OCRContext';
-import type { OCRBlock, GetLLMResultResponse } from '@/types/index';
+import type { GetLLMResultResponse } from '@/types/index';
+import type { HighlightInfo } from '@/contexts/OCRContext';
 
 interface Props {
   organizationId: string;
   id: string;
-  onHighlight?: (blocks: OCRBlock[]) => void;
+  onHighlight: (highlight: HighlightInfo) => void;
   onClearHighlight?: () => void;
 }
 
@@ -29,7 +30,7 @@ interface EditingState {
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
-  const { loadOCRBlocks, findBlocksForText } = useOCR();
+  const { loadOCRBlocks, findBlocksWithContext } = useOCR();
   const [llmResults, setLlmResults] = useState<Record<string, GetLLMResultResponse>>({});
   const [matchingPrompts, setMatchingPrompts] = useState<Prompt[]>([]);
   const [runningPrompts, setRunningPrompts] = useState<Set<string>>(new Set());
@@ -152,11 +153,10 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     }
   };
 
-  const handleFind = (text: string) => {
-    const blocks = findBlocksForText(text);
-    if (blocks.length > 0) {
-      onHighlight?.(blocks);
-      // You might want to add a callback to scroll to the page containing these blocks
+  const handleFind = (promptId: string, key: string, value: string) => {
+    const highlightInfo = findBlocksWithContext(value, promptId, key);
+    if (highlightInfo.blocks.length > 0) {
+      onHighlight(highlightInfo);
     }
   };
 
@@ -231,7 +231,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       <div className="flex items-center gap-2">
         <span className="flex-1">{value}</span>
         <button
-          onClick={() => handleFind(value)}
+          onClick={() => handleFind(promptId, key, value)}
           className="p-1 text-gray-600 hover:bg-gray-100 rounded"
           title="Find in document"
         >
