@@ -470,6 +470,8 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
         lastSearch.key === highlightInfo.key && 
         lastSearch.value === highlightInfo.value);
 
+      console.log('isSameSearch', isSameSearch);
+
       const nextPage = findNextHighlightedPage(pageNumber, isSameSearch);
       if (nextPage && nextPage !== pageNumber) {
         scrollToPage(nextPage);
@@ -500,36 +502,37 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
   const findNextHighlightedPage = useCallback((currentPage: number, isSameSearch: boolean = false): number | null => {
     if (!highlightInfo?.blocks.length) return null;
 
+    //console.log('findNextHighlightedPage', currentPage, isSameSearch, highlightInfo.key, highlightInfo.value);
+
     // For a repeated search, start looking from the next page
     const startPage = isSameSearch ? currentPage + 1 : currentPage;
 
+    // // Log all pages with highlights
+    // for (const block of highlightInfo.blocks) {
+    //   console.log('block', block.Page);
+    // }
+
     // First look for highlights after the start page
     const nextHighlightedPage = highlightInfo.blocks
-      .filter(block => block.Page > startPage)
+      .filter(block => block.Page >= startPage)
       .sort((a, b) => a.Page - b.Page)[0]?.Page;
 
-    if (nextHighlightedPage) return nextHighlightedPage;
-
-    // If no next page found and this is a repeated search,
-    // wrap around to the first page with highlights
-    if (isSameSearch) {
-      const firstHighlightedPage = highlightInfo.blocks
-        .sort((a, b) => a.Page - b.Page)[0]?.Page;
-
-      // Only return first page if it's different from current page
-      if (firstHighlightedPage && firstHighlightedPage !== currentPage) {
-        return firstHighlightedPage;
-      }
+    if (nextHighlightedPage) {
+      console.log('nextHighlightedPage', nextHighlightedPage);
+      return nextHighlightedPage;
     }
 
-    // For first search, check current page
-    const hasCurrentPageHighlights = highlightInfo.blocks
-      .some(block => block.Page === currentPage);
-    if (hasCurrentPageHighlights) return currentPage;
+    // Look for highlights from the first page
+    const firstHighlightedPage = highlightInfo.blocks
+      .sort((a, b) => a.Page - b.Page)[0]?.Page;
 
-    // If no highlights found on current page (first search),
-    // return the next page with highlights
-    return nextHighlightedPage || null;
+    // Only return first page if it's different from current page
+    if (firstHighlightedPage) {
+      console.log('firstHighlightedPage', firstHighlightedPage);
+      return firstHighlightedPage;
+    }
+
+    return null;
   }, [highlightInfo]);
 
   useEffect(() => {
