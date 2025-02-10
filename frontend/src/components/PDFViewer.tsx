@@ -442,10 +442,10 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
                   0% 85%, 2% 80%, 0% 75%, 2% 70%, 0% 65%, 2% 45%, 0% 35%
                 )`,
                 filter: 'blur(2px)',
-                pointerEvents: 'none',
+                pointerEvents: 'auto',
+                cursor: 'help',
                 zIndex: 1,
               }}
-              title={`${highlightInfo.key}: ${highlightInfo.value}`}
             />
           );
         })}
