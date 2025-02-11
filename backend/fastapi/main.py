@@ -153,6 +153,15 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
         user = await db.users.find_one({"_id": ObjectId(userId)})
         if not user:
             raise HTTPException(status_code=401, detail="User not found in database")
+
+        # TO DO: Validate that the user is a member of the organization
+        # if org_id:
+        #     org_member = await db.org_members.find_one({
+        #         "user_id": userId,
+        #         "organization_id": org_id
+        #     })
+        #     if not org_member:
+        #         raise HTTPException(status_code=401, detail="User not a member of organization")
             
         return User(
             user_id=userId,
@@ -394,12 +403,6 @@ async def update_document(
     
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
-    
-    if document["uploaded_by"] != current_user.user_name:
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to modify this document"
-        )
     
     # Validate all tag IDs
     if update.tag_ids:
