@@ -4,6 +4,8 @@ from litellm.main import acompletion  # Changed import path
 from litellm.utils import supports_response_schema
 import json
 from datetime import datetime, UTC
+from pydantic import BaseModel, create_model
+from typing import Optional
 
 async def run_llm(analytiq_client, 
                   document_id: str,
@@ -72,8 +74,50 @@ async def run_llm(analytiq_client,
     response_format = None
     if provider in ["OpenAI", "Anthropic", "Gemini", "Groq"]:
         response_format = {"type": "json_object"}
-    
-    # Remove asyncio.to_thread since acompletion is already async
+
+        # Most but not all models support response_format
+        # See https://platform.openai.com/docs/guides/structured-outputs?format=without-parse
+        if supports_response_schema(model=llm_model) and prompt_id != "default":
+            # Get the prompt schema, if any
+            schema = await ad.common.get_prompt_schema(analytiq_client, prompt_id)
+            ad.log.info(f"Prompt schema: {schema}")
+
+            response_format = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "document_extraction",
+                    "schema": {
+                        "type": "object",
+                        "properties": {},
+                        "required": [],
+                        "additionalProperties": False
+                    },
+                    "strict": True
+                }
+            }
+
+            # Build properties from schema
+            for field in schema:
+                field_name = field["name"]
+                field_type = field["type"]
+                
+                # Convert Python/Pydantic types to JSON schema types
+                json_type = "string"  # default
+                if field_type == "int":
+                    json_type = "integer"
+                elif field_type == "float":
+                    json_type = "number"
+                elif field_type == "bool":
+                    json_type = "boolean"
+                elif field_type == "list":
+                    json_type = "array"
+                    
+                response_format["json_schema"]["schema"]["properties"][field_name] = {
+                    "type": json_type,
+                    "description": field["name"].replace("_", " ")
+                }
+                response_format["json_schema"]["schema"]["required"].append(field_name)
+
     response = await acompletion(
         model=llm_model,
         messages=[
