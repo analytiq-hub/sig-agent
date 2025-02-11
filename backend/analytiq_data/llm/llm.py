@@ -1,6 +1,7 @@
 import asyncio
 import analytiq_data as ad
 from litellm.main import acompletion  # Changed import path
+from litellm.utils import supports_response_schema
 import json
 from datetime import datetime, UTC
 
@@ -67,6 +68,10 @@ async def run_llm(analytiq_client,
         "Always respond with valid JSON only, no other text. "
         "Format your entire response as a JSON object."
     )
+
+    response_format = None
+    if provider in ["OpenAI", "Anthropic", "Gemini", "Groq"]:
+        response_format = {"type": "json_object"}
     
     # Remove asyncio.to_thread since acompletion is already async
     response = await acompletion(
@@ -77,7 +82,7 @@ async def run_llm(analytiq_client,
         ],
         api_key=api_key,
         temperature=0.1,
-        response_format={"type": "json_object"} if provider in ["OpenAI", "Anthropic", "Gemini", "Groq"] else None
+        response_format=response_format
     )
 
     resp_dict = json.loads(response.choices[0].message.content)
