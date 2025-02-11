@@ -43,6 +43,7 @@ async def run_llm(analytiq_client,
     # Get the appropriate API key based on the model prefix
     provider = "OpenAI"  # Default
     if llm_model.startswith("claude"):
+        llm_model = "claude-3-5-sonnet-20240620"
         provider = "Anthropic"
     elif llm_model.startswith("gemini"):
         provider = "Gemini"
