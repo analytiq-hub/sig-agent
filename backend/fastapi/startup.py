@@ -46,7 +46,7 @@ async def setup_llm_models(db):
             "cost_per_1m_output_tokens": 4.4
         },
         {
-            "name": "anthropic/claude-3-5-sonnet",
+            "name": "claude-3-5-sonnet-20240620",
             "provider": "anthropic",
             "description": "Latest Claude Sonnet model optimized for reliability and safety",
             "max_tokens": 200000,
