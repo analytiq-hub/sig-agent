@@ -104,9 +104,9 @@ async def get_prompt_content(analytiq_client, prompt_id: str) -> str:
         raise ValueError(f"Prompt {prompt_id} not found")
     return elem["content"]
 
-async def get_prompt_schema(analytiq_client, prompt_id: str) -> dict:
+async def get_prompt_response_format(analytiq_client, prompt_id: str) -> dict:
     """
-    Get a prompt schema by its ID
+    Get a prompt response format by its ID
     
     Returns:
         dict: The schema in JSON Schema format
@@ -125,7 +125,7 @@ async def get_prompt_schema(analytiq_client, prompt_id: str) -> dict:
     elem = await collection.find_one({"name": schema_name, "version": schema_version})
     if elem is None:
         raise ValueError(f"Prompt {prompt_id}: Schema {schema_name} version {schema_version} not found")
-    return elem["json_schema"]
+    return elem["response_format"]
 
 async def get_prompt_tag_ids(analytiq_client, prompt_id: str) -> list[str]:
     """

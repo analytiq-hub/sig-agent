@@ -10,6 +10,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors';
 import { isColorLight } from '@/utils/colors';
 import dynamic from 'next/dynamic';
+import { ResponseFormat } from '@/types/schemas';
 
 // Dynamically import MonacoEditor with no SSR
 const MonacoEditor = dynamic(() => import('./MonacoEditor'), {
@@ -349,12 +350,12 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   };
 
   // Add this helper function at the top of the file
-  const jsonSchemaToFields = (schema: JsonSchema) => {
+  const jsonSchemaToFields = (responseFormat: ResponseFormat) => {
     const fields = [];
-    const properties = schema.json_schema.schema.properties;
+    const properties = responseFormat.json_schema.schema.properties;
     
     for (const [name, prop] of Object.entries(properties)) {
-      let type = prop.type === 'string' && prop.format === 'date-time' ? 'datetime' :
+      const type = prop.type === 'string' && prop.format === 'date-time' ? 'datetime' :
                  prop.type === 'string' ? 'str' :
                  prop.type === 'integer' ? 'int' :
                  prop.type === 'number' ? 'float' :
@@ -481,7 +482,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                   Schema: {selectedSchemaDetails.name} (v{selectedSchemaDetails.version})
                 </h3>
                 <div className="space-y-1">
-                  {jsonSchemaToFields(selectedSchemaDetails.json_schema).map((field, index) => (
+                  {jsonSchemaToFields(selectedSchemaDetails.response_format).map((field, index) => (
                     <div key={index} className="text-sm text-gray-600">
                       • {field.name}: <span className="text-gray-500">{field.type}</span>
                     </div>

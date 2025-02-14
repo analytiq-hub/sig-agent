@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createSchemaApi, listSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
-import { SchemaField, Schema, SchemaConfig, JsonSchema, JsonSchemaProperty } from '@/types/index';
+import { SchemaField, Schema, SchemaConfig, ResponseFormat, JsonSchemaProperty } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
@@ -11,7 +11,7 @@ import colors from 'tailwindcss/colors'
 import Editor from "@monaco-editor/react";
 
 interface SchemaPreviewProps {
-  schema: JsonSchema;
+  schema: ResponseFormat;
 }
 
 const SchemaPreview: React.FC<SchemaPreviewProps> = ({ schema }) => (
@@ -43,7 +43,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
   const [currentSchema, setCurrentSchema] = useState<SchemaConfig>({
     name: '',
-    json_schema: {
+    response_format: {
       type: 'json_schema',
       json_schema: {
         name: 'document_extraction',
@@ -127,7 +127,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     setFields(newFields);
     setCurrentSchema(prev => ({
       ...prev,
-      json_schema: fieldsToJsonSchema(newFields)
+      response_format: fieldsToJsonSchema(newFields)
     }));
   };
 
@@ -136,7 +136,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     setFields(newFields);
     setCurrentSchema(prev => ({
       ...prev,
-      json_schema: fieldsToJsonSchema(newFields)
+      response_format: fieldsToJsonSchema(newFields)
     }));
   };
 
@@ -147,7 +147,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     setFields(newFields);
     setCurrentSchema(prev => ({
       ...prev,
-      json_schema: fieldsToJsonSchema(newFields)
+      response_format: fieldsToJsonSchema(newFields)
     }));
   };
 
@@ -179,7 +179,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     setFields([{ name: '', type: 'str' }]);
     setCurrentSchema({
       name: '',
-      json_schema: {
+      response_format: {
         type: 'json_schema',
         json_schema: {
           name: 'document_extraction',
@@ -223,7 +223,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       align: 'left',
       renderCell: (params) => {
         // Convert JSON Schema to fields for display
-        const fields = jsonSchemaToFields(params.row.json_schema);
+        const fields = jsonSchemaToFields(params.row.response_format);
         return (
           <div className="flex flex-col justify-center w-full h-full">
             {fields.map((field, index) => (
@@ -261,9 +261,9 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
               setCurrentSchemaId(params.row.id);
               setCurrentSchema({
                 name: params.row.name,
-                json_schema: params.row.json_schema
+                response_format: params.row.response_format
               });
-              setFields(jsonSchemaToFields(params.row.json_schema));
+              setFields(jsonSchemaToFields(params.row.response_format));
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             disabled={isLoading}
@@ -284,8 +284,8 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   ];
 
   // Add this helper to convert UI fields to JSON Schema
-  const fieldsToJsonSchema = (fields: SchemaField[]): JsonSchema => {
-    const jsonSchema = {
+  const fieldsToJsonSchema = (fields: SchemaField[]): ResponseFormat => {
+    const responseFormat = {
       type: 'json_schema' as const,
       json_schema: {
         name: 'document_extraction',
@@ -325,21 +325,21 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           jsonType = 'string';
       }
 
-      jsonSchema.json_schema.schema.properties[fieldName] = {
+      responseFormat.json_schema.schema.properties[fieldName] = {
         type: jsonType,
         format,
         description: fieldName.replace(/_/g, ' ')
       };
-      jsonSchema.json_schema.schema.required.push(fieldName);
+      responseFormat.json_schema.schema.required.push(fieldName);
     });
 
-    return jsonSchema;
+    return responseFormat;
   };
 
   // Add this helper to convert JSON Schema to UI fields
-  const jsonSchemaToFields = (schema: JsonSchema): SchemaField[] => {
+  const jsonSchemaToFields = (responseFormat: ResponseFormat): SchemaField[] => {
     const fields: SchemaField[] = [];
-    const properties = schema.json_schema.schema.properties;
+    const properties = responseFormat.json_schema.schema.properties;
 
     Object.entries(properties).forEach(([name, prop]) => {
       let fieldType: SchemaField['type'];
@@ -442,7 +442,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             </div>
 
             {/* JSON Schema Preview - Right Column */}
-            <SchemaPreview schema={currentSchema.json_schema} />
+            <SchemaPreview schema={currentSchema.response_format} />
           </div>
 
           {/* Save Button */}
@@ -512,7 +512,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
               setPageSize(model.pageSize);
             }}
             getRowHeight={({ model }) => {
-              const fields = jsonSchemaToFields(model.json_schema);
+              const fields = jsonSchemaToFields(model.response_format);
               const numFields = fields.length;
               return Math.max(52, 24 * numFields + 16);
             }}

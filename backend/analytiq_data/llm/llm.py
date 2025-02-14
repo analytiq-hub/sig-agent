@@ -73,30 +73,20 @@ async def run_llm(analytiq_client,
 
     response_format = None
     if provider in ["OpenAI", "Anthropic", "Gemini", "Groq"]:
-        response_format = {"type": "json_object"}
+        # Initialize response_format
+        response_format = None
 
         # Most but not all models support response_format
         # See https://platform.openai.com/docs/guides/structured-outputs?format=without-parse
         if supports_response_schema(model=llm_model) and prompt_id != "default":
-            # Get the prompt schema, if any
-            schema = await ad.common.get_prompt_schema(analytiq_client, prompt_id)
-
-            ad.log.info(f"Schema: {schema}")
-
-            if schema and "json_schema" in schema:
-                # Use the schema directly but ensure correct format for OpenAI
-                response_format = {
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": "document_extraction",
-                        "schema": schema["json_schema"]["schema"]
-                    }
-                }
-                ad.log.info(f"Response format: {response_format}")
-                if not response_format["json_schema"]["schema"]:
-                    ad.log.warning(f"Schema found for prompt {prompt_id} but invalid schema structure")
-            else:
-                ad.log.warning(f"No valid schema found for prompt {prompt_id}")
+            # Get the prompt response format, if any
+            response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_id)
+            ad.log.info(f"Response format: {response_format}")
+        
+        if response_format is None:
+            ad.log.info(f"No response format found for prompt {prompt_id}")
+            # Use a default response format
+            response_format = {"type": "json_object"}
 
     response = await acompletion(
         model=llm_model,

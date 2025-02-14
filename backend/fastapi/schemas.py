@@ -129,7 +129,7 @@ class JsonSchemaProperty(BaseModel):
     items: ForwardRef('JsonSchemaProperty') | None = None
     properties: Dict[str, ForwardRef('JsonSchemaProperty')] | None = None
 
-class JsonSchema(BaseModel):
+class ResponseFormat(BaseModel):
     type: Literal['json_schema']
     json_schema: dict = Field(..., example={
         "name": "document_extraction",
@@ -172,7 +172,7 @@ class JsonSchema(BaseModel):
 
 class SchemaConfig(BaseModel):
     name: str
-    json_schema: JsonSchema
+    response_format: ResponseFormat
 
 class Schema(SchemaConfig):
     id: str

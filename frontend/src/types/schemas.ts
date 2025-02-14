@@ -6,7 +6,7 @@ export interface JsonSchemaProperty {
   properties?: Record<string, JsonSchemaProperty>;  // For object types
 }
 
-export interface JsonSchema {
+export interface ResponseFormat {
   type: 'json_schema';
   json_schema: {
     name: string;
@@ -23,7 +23,7 @@ export interface JsonSchema {
 export interface Schema {
   id: string;
   name: string;
-  json_schema: JsonSchema;
+  response_format: ResponseFormat;
   version: number;
   created_at: string;
   created_by: string;
@@ -36,7 +36,7 @@ export interface SchemaField {
 
 export interface SchemaConfig {
   name: string;
-  json_schema: JsonSchema;
+  response_format: ResponseFormat;
 }
 
 export interface CreateSchemaParams extends SchemaConfig {
