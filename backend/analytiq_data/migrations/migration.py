@@ -2,9 +2,10 @@ from datetime import datetime, UTC
 import analytiq_data as ad
 
 class Migration:
-    def __init__(self, version: int, description: str):
-        self.version = version
+    def __init__(self, description: str):
         self.description = description
+        # Version will be set when migrations are loaded
+        self.version = None
         
     async def up(self, db) -> bool:
         """Execute the migration"""
@@ -77,7 +78,7 @@ async def run_migrations(analytiq_client, target_version: int = None) -> None:
 # Example migration for OCR key renaming
 class OcrKeyMigration(Migration):
     def __init__(self):
-        super().__init__(1, "Rename OCR keys from _list to _json")
+        super().__init__(description="Rename OCR keys from _list to _json")
         
     async def up(self, db) -> bool:
         try:
@@ -111,7 +112,7 @@ class OcrKeyMigration(Migration):
 
 class LlmResultFieldsMigration(Migration):
     def __init__(self):
-        super().__init__(2, "Add new fields to LLM results")
+        super().__init__(description="Add new fields to LLM results")
         
     async def up(self, db) -> bool:
         """Add updated_llm_result, is_edited, is_verified, created_at, updated_at fields"""
@@ -176,7 +177,7 @@ class LlmResultFieldsMigration(Migration):
 # Add this new migration class
 class SchemaJsonSchemaMigration(Migration):
     def __init__(self):
-        super().__init__(3, "Convert schemas to JsonSchema format")
+        super().__init__(description="Convert schemas to JsonSchema format")
         
     def convert_to_json_schema(self, fields):
         """Convert old field format to JsonSchema format"""
@@ -297,10 +298,7 @@ class SchemaJsonSchemaMigration(Migration):
 
 class RenameJsonSchemaToResponseFormat(Migration):
     def __init__(self):
-        super().__init__(
-            version=4,  # Increment from last version
-            description="Rename json_schema field to response_format in schemas collection"
-        )
+        super().__init__(description="Rename json_schema field to response_format in schemas collection")
 
     async def up(self, db) -> bool:
         try:
@@ -349,4 +347,8 @@ MIGRATIONS = [
     SchemaJsonSchemaMigration(),
     RenameJsonSchemaToResponseFormat(),
     # Add more migrations here
-] 
+]
+
+# Set versions based on position in list
+for i, migration in enumerate(MIGRATIONS, start=1):
+    migration.version = i 

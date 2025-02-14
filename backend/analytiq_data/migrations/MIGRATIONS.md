@@ -13,6 +13,13 @@ The migration system allows you to make changes to the database schema in a vers
 - Individual migration classes in `migration.py`
 - Migration version tracking in MongoDB's `migrations` collection
 
+## Current Migrations
+
+1. `OcrKeyMigration`: Renames OCR keys from `_list` to `_json`
+2. `LlmResultFieldsMigration`: Adds new fields to LLM results (updated_llm_result, is_edited, is_verified, created_at, updated_at)
+3. `SchemaJsonSchemaMigration`: Converts schemas from old field format to JsonSchema format
+4. `RenameJsonSchemaToResponseFormat`: Renames json_schema field to response_format in schemas collection
+
 ## Migration Process
 
 ### 1. Create a New Migration
@@ -22,39 +29,33 @@ Create a new class in `backend/analytiq_data/migrations/migration.py` that inher
 ```python
 class YourMigrationName(Migration):
     def __init__(self):
-        super().__init__(
-            version=2, # Increment from the last migration version
-            description="Brief description of what this migration does"
-        )
+        super().__init__(description="Brief description of what this migration does")
+
     async def up(self, db) -> bool:
         try:
-
-        # Implement your migration logic here
-        # Return True if successful
-        return True
-    
-    except Exception as e:
-        ad.log.error(f"Migration failed: {e}")
-        return False
+            # Implement your migration logic here
+            return True
+        except Exception as e:
+            ad.log.error(f"Migration failed: {e}")
+            return False
     
     async def down(self, db) -> bool:
         try:
-        # Implement your rollback logic here
-        # Return True if successful
-        return True
-    except Exception as e:
-        ad.log.error(f"Migration revert failed: {e}")
-        return False
+            # Implement your rollback logic here
+            return True
+        except Exception as e:
+            ad.log.error(f"Migration revert failed: {e}")
+            return False
 ```
 
 ### 2. Register the Migration
 
-Add your migration to the `MIGRATIONS` list in `backend/analytiq_data/migrations/migration.py`:
+Add your migration to the `MIGRATIONS` list in `backend/analytiq_data/migrations/migration.py`. The version number will be automatically assigned based on the position in the list:
 
 ```python
 MIGRATIONS = [
-    YourMigrationName(),
-    # Add other migrations here
+    ExistingMigration(),
+    YourMigrationName(),  # Will get the next version number automatically
 ]
 ```
 
@@ -157,10 +158,6 @@ If a migration fails:
    await ad.migrations.run_migrations(analytiq_client, target_version=previous_version)
    ```
 4. Try the migration again after fixing the issues
-
-## Current Migrations
-
-1. `OcrKeyMigration` (version 1): Renames OCR keys from `_list` to `_json`
 
 ## Database Backup Tool
 
