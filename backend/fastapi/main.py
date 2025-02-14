@@ -1210,10 +1210,6 @@ async def update_prompt(
     if not existing_prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
     
-    # Check if user has permission to update
-    if existing_prompt["created_by"] != current_user.user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to update this prompt")
-    
     # Only verify schema if one is specified
     if prompt.schema_name and prompt.schema_version:
         schema = await db.schemas.find_one({
