@@ -22,7 +22,7 @@ async def setup_llm_models(db):
             "cost_per_1m_output_tokens": 0.6
         },
         {
-            "name": "gpt-4-turbo",
+            "name": "gpt-4o-2024-08-06",
             "provider": "openai",
             "description": "Latest version of GPT-4 with improved performance",
             "max_tokens": 128000,
