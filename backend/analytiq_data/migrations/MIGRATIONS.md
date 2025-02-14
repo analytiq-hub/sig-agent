@@ -161,3 +161,60 @@ If a migration fails:
 ## Current Migrations
 
 1. `OcrKeyMigration` (version 1): Renames OCR keys from `_list` to `_json`
+
+## Database Backup Tool
+
+The project includes a standalone backup script (`backup_db.py`) that allows you to copy databases between MongoDB instances.
+
+### Usage
+
+The backup script can be run in two modes:
+
+1. Backup to different database on the same MongoDB instance:
+```bash
+python backup_db.py --src-uri "mongodb://localhost:27017" --src "source_db" --dest "backup_db"
+```
+
+2. Backup between different MongoDB instances:
+```bash
+python backup_db.py --src-uri "mongodb://source-server:27017" --dest-uri "mongodb://backup-server:27017" --src "source_db" --dest "backup_db"
+```
+
+### Arguments
+
+- `--src-uri`: (Required) Source MongoDB connection URI
+- `--dest-uri`: (Optional) Destination MongoDB connection URI. If not specified, uses the source URI
+- `--src`: (Required) Source database name
+- `--dest`: (Required) Destination database name
+
+### Features
+
+- Copies all collections and their documents
+- Supports backup between different MongoDB instances
+- Progress tracking for each collection
+- Proper connection handling and cleanup
+- Prevents accidental overwrite of source database
+- Detailed error reporting
+
+### Best Practices
+
+1. Always test the backup process with a small dataset first
+2. Ensure sufficient disk space on the destination server
+3. Run during low-traffic periods for large databases
+4. Verify the backup by checking document counts and sampling data
+5. Consider using MongoDB's native tools (mongodump/mongorestore) for very large databases
+
+### Example Output
+
+```
+Starting backup from 'source_db' to 'backup_db'
+Source URI: mongodb://localhost:27017
+Destination URI: mongodb://localhost:27017
+Found 5 collections to backup
+Backing up collection: users
+✓ Copied 1000 documents
+Backing up collection: documents
+✓ Copied 500 documents
+...
+Backup completed successfully!
+```
