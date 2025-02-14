@@ -173,9 +173,132 @@ class LlmResultFieldsMigration(Migration):
             ad.log.error(f"LLM results migration revert failed: {e}")
             return False
 
+# Add this new migration class
+class SchemaJsonSchemaMigration(Migration):
+    def __init__(self):
+        super().__init__(3, "Convert schemas to JsonSchema format")
+        
+    def convert_to_json_schema(self, fields):
+        """Convert old field format to JsonSchema format"""
+        json_schema = {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": False
+        }
+        
+        for field in fields:
+            field_name = field["name"]
+            field_type = field["type"]
+            
+            # Convert Python/Pydantic types to JSON Schema types
+            if field_type == "str":
+                json_type = "string"
+            elif field_type == "int":
+                json_type = "integer"
+            elif field_type == "float":
+                json_type = "number"
+            elif field_type == "bool":
+                json_type = "boolean"
+            elif field_type == "datetime":
+                json_type = "string"
+                json_schema["properties"][field_name] = {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": field_name.replace("_", " ")
+                }
+                json_schema["required"].append(field_name)
+                continue
+            else:
+                json_type = "string"
+            
+            json_schema["properties"][field_name] = {
+                "type": json_type,
+                "description": field_name.replace("_", " ")
+            }
+            json_schema["required"].append(field_name)
+        
+        return {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "document_extraction",
+                "schema": json_schema,
+                "strict": True
+            }
+        }
+        
+    async def up(self, db) -> bool:
+        """Convert existing schemas to JsonSchema format"""
+        try:
+            cursor = db.schemas.find({})
+            async for schema in cursor:
+                # Convert fields to JsonSchema
+                json_schema = self.convert_to_json_schema(schema["fields"])
+                
+                # Update the document
+                await db.schemas.update_one(
+                    {"_id": schema["_id"]},
+                    {
+                        "$set": {
+                            "json_schema": json_schema,
+                            "schema_format": "json_schema"
+                        },
+                        "$unset": {"fields": ""}
+                    }
+                )
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"Schema migration failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """Convert JsonSchema back to old format"""
+        try:
+            cursor = db.schemas.find({"schema_format": "json_schema"})
+            async for schema in cursor:
+                json_schema = schema.get("json_schema", {})
+                properties = json_schema.get("json_schema", {}).get("schema", {}).get("properties", {})
+                
+                fields = []
+                for field_name, field_def in properties.items():
+                    field_type = field_def["type"]
+                    if field_type == "string" and field_def.get("format") == "date-time":
+                        field_type = "datetime"
+                    elif field_type == "string":
+                        field_type = "str"
+                    elif field_type == "integer":
+                        field_type = "int"
+                    elif field_type == "number":
+                        field_type = "float"
+                    elif field_type == "boolean":
+                        field_type = "bool"
+                    
+                    fields.append({
+                        "name": field_name,
+                        "type": field_type
+                    })
+                
+                await db.schemas.update_one(
+                    {"_id": schema["_id"]},
+                    {
+                        "$set": {"fields": fields},
+                        "$unset": {
+                            "json_schema": "",
+                            "schema_format": ""
+                        }
+                    }
+                )
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"Schema migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
     LlmResultFieldsMigration(),
+    SchemaJsonSchemaMigration(),
     # Add more migrations here
 ] 

@@ -1,3 +1,34 @@
+export interface JsonSchemaProperty {
+  type: 'string' | 'integer' | 'number' | 'boolean' | 'array' | 'object';
+  format?: 'date-time';
+  description?: string;
+  items?: JsonSchemaProperty;  // For array types
+  properties?: Record<string, JsonSchemaProperty>;  // For object types
+}
+
+export interface JsonSchema {
+  type: 'json_schema';
+  json_schema: {
+    name: string;
+    schema: {
+      type: 'object';
+      properties: Record<string, JsonSchemaProperty>;
+      required: string[];
+      additionalProperties: boolean;
+    };
+    strict: boolean;
+  };
+}
+
+export interface Schema {
+  id: string;
+  name: string;
+  json_schema: JsonSchema;
+  version: number;
+  created_at: string;
+  created_by: string;
+}
+
 export interface SchemaField {
   name: string;
   type: 'str' | 'int' | 'float' | 'bool' | 'datetime';
@@ -5,14 +36,7 @@ export interface SchemaField {
 
 export interface SchemaConfig {
   name: string;
-  fields: SchemaField[];
-}
-
-export interface Schema extends SchemaConfig {
-  id: string;
-  version: number;
-  created_at: string;
-  created_by: string;
+  json_schema: JsonSchema;
 }
 
 export interface CreateSchemaParams extends SchemaConfig {

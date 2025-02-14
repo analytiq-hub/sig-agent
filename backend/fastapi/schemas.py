@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, constr
 from datetime import datetime
-from typing import List, Literal, Optional, Any, Dict
+from typing import List, Literal, Optional, Any, Dict, Union, ForwardRef
 from enum import Enum
+from pydantic import validator
 
 # Pydantic models
 class User(BaseModel):
@@ -121,9 +122,57 @@ class SchemaField(BaseModel):
     name: str
     type: FieldType
 
+class JsonSchemaProperty(BaseModel):
+    type: Literal['string', 'integer', 'number', 'boolean', 'array', 'object']
+    format: str | None = None
+    description: str | None = None
+    items: ForwardRef('JsonSchemaProperty') | None = None
+    properties: Dict[str, ForwardRef('JsonSchemaProperty')] | None = None
+
+class JsonSchema(BaseModel):
+    type: Literal['json_schema']
+    json_schema: dict = Field(..., example={
+        "name": "document_extraction",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "invoice_date": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "invoice date"
+                }
+            },
+            "required": ["invoice_date"],
+            "additionalProperties": False
+        },
+        "strict": True
+    })
+
+    @validator('json_schema')
+    def validate_json_schema(cls, v):
+        # Validate schema follows OpenAI format
+        required_keys = {'name', 'schema', 'strict'}
+        if not all(key in v for key in required_keys):
+            raise ValueError(f"JSON schema must contain all required keys: {required_keys}")
+        
+        schema = v['schema']
+        if schema.get('type') != 'object':
+            raise ValueError("Schema root must be of type 'object'")
+            
+        if 'properties' not in schema:
+            raise ValueError("Schema must contain 'properties'")
+            
+        if 'required' not in schema:
+            raise ValueError("Schema must contain 'required' field")
+            
+        if 'additionalProperties' not in schema:
+            raise ValueError("Schema must specify 'additionalProperties'")
+            
+        return v
+
 class SchemaConfig(BaseModel):
     name: str
-    fields: List[SchemaField]
+    json_schema: JsonSchema
 
 class Schema(SchemaConfig):
     id: str

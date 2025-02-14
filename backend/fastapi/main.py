@@ -795,34 +795,24 @@ async def create_schema(
     # Check if schema with this name already exists (case-insensitive)
     existing_schema = await db.schemas.find_one({
         "name": {"$regex": f"^{schema.name}$", "$options": "i"},
-        "organization_id": organization_id  # Scope to organization
+        "organization_id": organization_id
     })
     
-    # If schema exists, treat this as an update operation
-    if existing_schema:
-        # Get the next version
-        new_version = await get_next_schema_version(schema.name)
-        
-        # Create new version of the schema
-        schema_dict = {
-            "name": existing_schema["name"],  # Use existing name to preserve case
-            "fields": [field.model_dump() for field in schema.fields],
-            "version": new_version,
-            "created_at": datetime.utcnow(),
-            "created_by": current_user.user_id,
-            "organization_id": organization_id  # Add organization_id
-        }
-    else:
-        # This is a new schema
-        new_version = await get_next_schema_version(schema.name)
-        schema_dict = {
-            "name": schema.name,
-            "fields": [field.model_dump() for field in schema.fields],
-            "version": new_version,
-            "created_at": datetime.utcnow(),
-            "created_by": current_user.user_id,
-            "organization_id": organization_id  # Add organization_id
-        }
+    # Get the next version
+    new_version = await get_next_schema_version(
+        existing_schema["name"] if existing_schema else schema.name
+    )
+    
+    # Create schema document
+    schema_dict = {
+        "name": existing_schema["name"] if existing_schema else schema.name,
+        "json_schema": schema.json_schema.dict(),
+        "version": new_version,
+        "created_at": datetime.utcnow(),
+        "created_by": current_user.user_id,
+        "organization_id": organization_id,
+        "schema_format": "json_schema"
+    }
     
     # Insert into MongoDB
     result = await db.schemas.insert_one(schema_dict)
@@ -843,7 +833,10 @@ async def list_schemas(
     # Build the base pipeline with organization filter
     pipeline = [
         {
-            "$match": {"organization_id": organization_id}
+            "$match": {
+                "organization_id": organization_id,
+                "schema_format": "json_schema"  # Only get new format schemas
+            }
         },
         {
             "$sort": {"_id": -1}
@@ -897,7 +890,8 @@ async def get_schema(
     db = ad.common.get_async_db()
     schema = await db.schemas.find_one({
         "_id": ObjectId(schema_id),
-        "organization_id": organization_id  # Add organization check
+        "organization_id": organization_id,
+        "schema_format": "json_schema"
     })
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -916,7 +910,8 @@ async def update_schema(
     # Get the existing schema with organization check
     existing_schema = await db.schemas.find_one({
         "_id": ObjectId(schema_id),
-        "organization_id": organization_id
+        "organization_id": organization_id,
+        "schema_format": "json_schema"
     })
     if not existing_schema:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -925,25 +920,18 @@ async def update_schema(
     if existing_schema["created_by"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to update this schema")
     
-    # Validate field names
-    is_valid, error_msg = validate_schema_fields(schema.fields)
-    if not is_valid:
-        raise HTTPException(
-            status_code=400,
-            detail=error_msg
-        )
-    
     # Atomically get the next version number
     new_version = await get_next_schema_version(existing_schema["name"])
     
     # Create new version of the schema
     new_schema = {
         "name": schema.name,
-        "fields": [field.model_dump() for field in schema.fields],
+        "json_schema": schema.json_schema.dict(),
         "version": new_version,
         "created_at": datetime.utcnow(),
         "created_by": current_user.user_id,
-        "organization_id": organization_id  # Add organization_id
+        "organization_id": organization_id,
+        "schema_format": "json_schema"
     }
     
     # Insert new version
@@ -960,15 +948,19 @@ async def delete_schema(
     current_user: User = Depends(get_current_user)
 ):
     """Delete a schema"""
-    # Get the schema to find its name
     db = ad.common.get_async_db()
+    
+    # Get the schema first to check permissions
     schema = await db.schemas.find_one({
         "_id": ObjectId(schema_id),
-        "organization_id": organization_id  # Add organization check
+        "organization_id": organization_id,
+        "schema_format": "json_schema"
     })
+    
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
-    
+        
+    # Check if user has permission to delete
     if schema["created_by"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this schema")
     
@@ -1000,6 +992,7 @@ async def delete_schema(
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Schema not found")
+        
     return {"message": "Schema deleted successfully"}
 
 # Add this validation function

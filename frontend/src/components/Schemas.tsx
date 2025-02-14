@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createSchemaApi, listSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
-import { SchemaField, Schema, SchemaConfig } from '@/types/index';
+import { SchemaField, Schema, SchemaConfig, JsonSchema, JsonSchemaProperty } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
@@ -10,71 +10,52 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors'
 import Editor from "@monaco-editor/react";
 
-const convertToJsonSchema = (fields: SchemaField[]) => {
-  const jsonSchema = {
-    type: "object",
-    properties: {} as Record<string, any>,
-    required: [] as string[],
-    additionalProperties: false
-  };
+interface SchemaPreviewProps {
+  schema: JsonSchema;
+}
 
-  fields.forEach(field => {
-    const fieldName = field.name;
-    let jsonType: string;
+const SchemaPreview: React.FC<SchemaPreviewProps> = ({ schema }) => (
+  <div className="space-y-2">
+    <h3 className="text-lg font-semibold mb-2">JSON Schema</h3>
+    <div className="h-[300px] border rounded">
+      <Editor
+        height="100%"
+        defaultLanguage="json"
+        value={JSON.stringify(schema, null, 2)}
+        options={{
+          readOnly: true,
+          minimap: { enabled: false },
+          scrollBeyondLastLine: false,
+          wordWrap: "on",
+          wrappingIndent: "indent",
+          lineNumbers: "off",
+          folding: true,
+          renderValidationDecorations: "off"
+        }}
+        theme="vs-light"
+      />
+    </div>
+  </div>
+);
 
-    // Convert Pydantic/Python types to JSON Schema types
-    switch (field.type) {
-      case 'str':
-        jsonType = 'string';
-        break;
-      case 'int':
-        jsonType = 'integer';
-        break;
-      case 'float':
-        jsonType = 'number';
-        break;
-      case 'bool':
-        jsonType = 'boolean';
-        break;
-      case 'datetime':
-        jsonType = 'string';
-        // Add format for datetime
-        jsonSchema.properties[fieldName] = {
-          type: jsonType,
-          format: 'date-time',
-          description: fieldName.replace(/_/g, ' ')
-        };
-        break;
-      default:
-        jsonType = 'string';
-    }
-
-    if (field.type !== 'datetime') {
-      jsonSchema.properties[fieldName] = {
-        type: jsonType,
-        description: fieldName.replace(/_/g, ' ')
-      };
-    }
-
-    jsonSchema.required.push(fieldName);
-  });
-
-  return {
-    type: "json_schema",
-    json_schema: {
-      name: "document_extraction",
-      schema: jsonSchema,
-      strict: true
-    }
-  };
-};
-
-const Schemas = ({ organizationId }: { organizationId: string }) => {
+const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
   const [currentSchema, setCurrentSchema] = useState<SchemaConfig>({
     name: '',
-    fields: [{ name: '', type: 'str' }]
+    json_schema: {
+      type: 'json_schema',
+      json_schema: {
+        name: 'document_extraction',
+        schema: {
+          type: 'object',
+          properties: {},
+          required: [],
+          additionalProperties: false
+        },
+        strict: true
+      }
+    }
   });
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -82,6 +63,7 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
+  const [fields, setFields] = useState<SchemaField[]>([{ name: '', type: 'str' }]);
 
   const saveSchema = async (schema: SchemaConfig) => {
     try {
@@ -141,22 +123,32 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
   }, [loadSchemas]);
 
   const addField = () => {
-    setCurrentSchema({
-      ...currentSchema,
-      fields: [...currentSchema.fields, { name: '', type: 'str' }]
-    });
+    const newFields = [...fields, { name: '', type: 'str' as const }];
+    setFields(newFields);
+    setCurrentSchema(prev => ({
+      ...prev,
+      json_schema: fieldsToJsonSchema(newFields)
+    }));
   };
 
   const removeField = (index: number) => {
-    const newFields = currentSchema.fields.filter((_, i) => i !== index);
-    setCurrentSchema({ ...currentSchema, fields: newFields });
+    const newFields = fields.filter((_, i) => i !== index);
+    setFields(newFields);
+    setCurrentSchema(prev => ({
+      ...prev,
+      json_schema: fieldsToJsonSchema(newFields)
+    }));
   };
 
   const updateField = (index: number, field: Partial<SchemaField>) => {
-    const newFields = currentSchema.fields.map((f, i) => 
-      i === index ? { ...f, ...field } : f
+    const newFields = fields.map((f, i) => 
+      i === index ? { ...f, ...field } as SchemaField : f
     );
-    setCurrentSchema({ ...currentSchema, fields: newFields });
+    setFields(newFields);
+    setCurrentSchema(prev => ({
+      ...prev,
+      json_schema: fieldsToJsonSchema(newFields)
+    }));
   };
 
   const validateFields = (fields: SchemaField[]): string | null => {
@@ -172,19 +164,35 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentSchema.name || currentSchema.fields.some(f => !f.name)) {
+    if (!currentSchema.name || fields.some(f => !f.name)) {
       setMessage('Please fill in all fields');
       return;
     }
 
-    const fieldError = validateFields(currentSchema.fields);
+    const fieldError = validateFields(fields);
     if (fieldError) {
       setMessage(`Error: ${fieldError}`);
       return;
     }
 
     saveSchema(currentSchema);
-    setCurrentSchema({ name: '', fields: [{ name: '', type: 'str' }] });
+    setFields([{ name: '', type: 'str' }]);
+    setCurrentSchema({
+      name: '',
+      json_schema: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'document_extraction',
+          schema: {
+            type: 'object',
+            properties: {},
+            required: [],
+            additionalProperties: false
+          },
+          strict: true
+        }
+      }
+    });
     setCurrentSchemaId(null);
   };
 
@@ -213,15 +221,19 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
       flex: 2,
       headerAlign: 'left',
       align: 'left',
-      renderCell: (params) => (
-        <div className="flex flex-col justify-center w-full h-full">
-          {params.row.fields.map((field: SchemaField, index: number) => (
-            <div key={index} className="text-sm text-gray-600 leading-6">
-              {`${field.name}: ${field.type}`}
-            </div>
-          ))}
-        </div>
-      ),
+      renderCell: (params) => {
+        // Convert JSON Schema to fields for display
+        const fields = jsonSchemaToFields(params.row.json_schema);
+        return (
+          <div className="flex flex-col justify-center w-full h-full">
+            {fields.map((field, index) => (
+              <div key={index} className="text-sm text-gray-600 leading-6">
+                {`${field.name}: ${field.type}`}
+              </div>
+            ))}
+          </div>
+        );
+      },
     },
     {
       field: 'version',
@@ -249,8 +261,9 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
               setCurrentSchemaId(params.row.id);
               setCurrentSchema({
                 name: params.row.name,
-                fields: params.row.fields
+                json_schema: params.row.json_schema
               });
+              setFields(jsonSchemaToFields(params.row.json_schema));
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             disabled={isLoading}
@@ -270,16 +283,100 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
     },
   ];
 
-  // Add this to compute the JSON schema
-  const jsonSchema = useMemo(() => {
-    return convertToJsonSchema(currentSchema.fields);
-  }, [currentSchema.fields]);
+  // Add this helper to convert UI fields to JSON Schema
+  const fieldsToJsonSchema = (fields: SchemaField[]): JsonSchema => {
+    const jsonSchema = {
+      type: 'json_schema' as const,
+      json_schema: {
+        name: 'document_extraction',
+        schema: {
+          type: 'object' as const,
+          properties: {} as Record<string, JsonSchemaProperty>,
+          required: [] as string[],
+          additionalProperties: false
+        },
+        strict: true
+      }
+    };
+
+    fields.forEach(field => {
+      const fieldName = field.name;
+      let jsonType: JsonSchemaProperty['type'];
+      let format: 'date-time' | undefined;
+
+      switch (field.type) {
+        case 'str':
+          jsonType = 'string';
+          break;
+        case 'int':
+          jsonType = 'integer';
+          break;
+        case 'float':
+          jsonType = 'number';
+          break;
+        case 'bool':
+          jsonType = 'boolean';
+          break;
+        case 'datetime':
+          jsonType = 'string';
+          format = 'date-time';
+          break;
+        default:
+          jsonType = 'string';
+      }
+
+      jsonSchema.json_schema.schema.properties[fieldName] = {
+        type: jsonType,
+        format,
+        description: fieldName.replace(/_/g, ' ')
+      };
+      jsonSchema.json_schema.schema.required.push(fieldName);
+    });
+
+    return jsonSchema;
+  };
+
+  // Add this helper to convert JSON Schema to UI fields
+  const jsonSchemaToFields = (schema: JsonSchema): SchemaField[] => {
+    const fields: SchemaField[] = [];
+    const properties = schema.json_schema.schema.properties;
+
+    Object.entries(properties).forEach(([name, prop]) => {
+      let fieldType: SchemaField['type'];
+
+      if (prop.type === 'string' && prop.format === 'date-time') {
+        fieldType = 'datetime';
+      } else {
+        switch (prop.type) {
+          case 'string':
+            fieldType = 'str';
+            break;
+          case 'integer':
+            fieldType = 'int';
+            break;
+          case 'number':
+            fieldType = 'float';
+            break;
+          case 'boolean':
+            fieldType = 'bool';
+            break;
+          default:
+            fieldType = 'str';
+        }
+      }
+
+      fields.push({ name, type: fieldType });
+    });
+
+    return fields;
+  };
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
-      {/* Schema Creation Form */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-bold mb-4">Create Schema</h2>
+        <h2 className="text-xl font-bold mb-4">
+          {currentSchemaId ? 'Edit Schema' : 'Create Schema'}
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Schema Name Input */}
           <div className="mb-4">
@@ -299,7 +396,7 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
             <div className="space-y-2">
               <h3 className="text-lg font-semibold mb-2">Fields Editor</h3>
               <div className="space-y-2 max-h-[300px] overflow-y-auto p-2 border rounded">
-                {currentSchema.fields.map((field, index) => (
+                {fields.map((field, index) => (
                   <div key={index} className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="text"
@@ -345,27 +442,7 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
             </div>
 
             {/* JSON Schema Preview - Right Column */}
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold mb-2">JSON Schema</h3>
-              <div className="h-[300px] border rounded">
-                <Editor
-                  height="100%"
-                  defaultLanguage="json"
-                  value={JSON.stringify(jsonSchema, null, 2)}
-                  options={{
-                    readOnly: true,
-                    minimap: { enabled: false },
-                    scrollBeyondLastLine: false,
-                    wordWrap: "on",
-                    wrappingIndent: "indent",
-                    lineNumbers: "off",
-                    folding: true,
-                    renderValidationDecorations: "off"
-                  }}
-                  theme="vs-light"
-                />
-              </div>
-            </div>
+            <SchemaPreview schema={currentSchema.json_schema} />
           </div>
 
           {/* Save Button */}
@@ -375,7 +452,7 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
               disabled={isLoading}
             >
-              Save Schema
+              {currentSchemaId ? 'Update Schema' : 'Save Schema'}
             </button>
           </div>
         </form>
@@ -435,7 +512,8 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
               setPageSize(model.pageSize);
             }}
             getRowHeight={({ model }) => {
-              const numFields = model.fields.length;
+              const fields = jsonSchemaToFields(model.json_schema);
+              const numFields = fields.length;
               return Math.max(52, 24 * numFields + 16);
             }}
             sx={{

@@ -348,6 +348,23 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     }
   };
 
+  // Add this helper function at the top of the file
+  const jsonSchemaToFields = (schema: JsonSchema) => {
+    const fields = [];
+    const properties = schema.json_schema.schema.properties;
+    
+    for (const [name, prop] of Object.entries(properties)) {
+      let type = prop.type === 'string' && prop.format === 'date-time' ? 'datetime' :
+                 prop.type === 'string' ? 'str' :
+                 prop.type === 'integer' ? 'int' :
+                 prop.type === 'number' ? 'float' :
+                 prop.type === 'boolean' ? 'bool' : 'str';
+                 
+      fields.push({ name, type });
+    }
+    return fields;
+  };
+
   return (
     <div className="p-4 max-w-4xl mx-auto">
       {/* Prompt Creation Form */}
@@ -464,7 +481,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                   Schema: {selectedSchemaDetails.name} (v{selectedSchemaDetails.version})
                 </h3>
                 <div className="space-y-1">
-                  {selectedSchemaDetails.fields.map((field, index) => (
+                  {jsonSchemaToFields(selectedSchemaDetails.json_schema).map((field, index) => (
                     <div key={index} className="text-sm text-gray-600">
                       • {field.name}: <span className="text-gray-500">{field.type}</span>
                     </div>
