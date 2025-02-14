@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createSchemaApi, listSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
 import { SchemaField, Schema, SchemaConfig } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
@@ -8,7 +8,66 @@ import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors'
+import Editor from "@monaco-editor/react";
 
+const convertToJsonSchema = (fields: SchemaField[]) => {
+  const jsonSchema = {
+    type: "object",
+    properties: {} as Record<string, any>,
+    required: [] as string[],
+    additionalProperties: false
+  };
+
+  fields.forEach(field => {
+    const fieldName = field.name;
+    let jsonType: string;
+
+    // Convert Pydantic/Python types to JSON Schema types
+    switch (field.type) {
+      case 'str':
+        jsonType = 'string';
+        break;
+      case 'int':
+        jsonType = 'integer';
+        break;
+      case 'float':
+        jsonType = 'number';
+        break;
+      case 'bool':
+        jsonType = 'boolean';
+        break;
+      case 'datetime':
+        jsonType = 'string';
+        // Add format for datetime
+        jsonSchema.properties[fieldName] = {
+          type: jsonType,
+          format: 'date-time',
+          description: fieldName.replace(/_/g, ' ')
+        };
+        break;
+      default:
+        jsonType = 'string';
+    }
+
+    if (field.type !== 'datetime') {
+      jsonSchema.properties[fieldName] = {
+        type: jsonType,
+        description: fieldName.replace(/_/g, ' ')
+      };
+    }
+
+    jsonSchema.required.push(fieldName);
+  });
+
+  return {
+    type: "json_schema",
+    json_schema: {
+      name: "document_extraction",
+      schema: jsonSchema,
+      strict: true
+    }
+  };
+};
 
 const Schemas = ({ organizationId }: { organizationId: string }) => {
   const [schemas, setSchemas] = useState<Schema[]>([]);
@@ -211,6 +270,11 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
     },
   ];
 
+  // Add this to compute the JSON schema
+  const jsonSchema = useMemo(() => {
+    return convertToJsonSchema(currentSchema.fields);
+  }, [currentSchema.fields]);
+
   return (
     <div className="p-4 max-w-4xl mx-auto">
       {/* Schema Creation Form */}
@@ -228,40 +292,66 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
             />
           </div>
 
-          {/* Fields */}
-          <div className="space-y-3">
-            {currentSchema.fields.map((field, index) => (
-              <div key={index} className="flex gap-2">
-                <input
-                  type="text"
-                  className="flex-1 p-2 border rounded"
-                  value={field.name}
-                  onChange={e => updateField(index, { name: e.target.value })}
-                  placeholder="field_name"
-                  disabled={isLoading}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Fields Editor */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold">Fields Editor</h3>
+              {currentSchema.fields.map((field, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="text"
+                    className="flex-1 p-2 border rounded"
+                    value={field.name}
+                    onChange={e => updateField(index, { name: e.target.value })}
+                    placeholder="field_name"
+                    disabled={isLoading}
+                  />
+                  <select
+                    className="p-2 border rounded"
+                    value={field.type}
+                    onChange={e => updateField(index, { type: e.target.value as SchemaField['type'] })}
+                    disabled={isLoading}
+                  >
+                    <option value="str">String</option>
+                    <option value="int">Integer</option>
+                    <option value="float">Float</option>
+                    <option value="bool">Boolean</option>
+                    <option value="datetime">DateTime</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => removeField(index)}
+                    className="px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50"
+                    disabled={isLoading}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* JSON Schema Preview */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold">JSON Schema</h3>
+              <div className="h-[400px] border rounded">
+                <Editor
+                  height="100%"
+                  defaultLanguage="json"
+                  value={JSON.stringify(jsonSchema, null, 2)}
+                  options={{
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    wordWrap: "on",
+                    wrappingIndent: "indent",
+                    lineNumbers: "off",
+                    folding: true,
+                    renderValidationDecorations: "off"
+                  }}
+                  theme="vs-light"
                 />
-                <select
-                  className="p-2 border rounded"
-                  value={field.type}
-                  onChange={e => updateField(index, { type: e.target.value as SchemaField['type'] })}
-                  disabled={isLoading}
-                >
-                  <option value="str">String</option>
-                  <option value="int">Integer</option>
-                  <option value="float">Float</option>
-                  <option value="bool">Boolean</option>
-                  <option value="datetime">DateTime</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={() => removeField(index)}
-                  className="px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50"
-                  disabled={isLoading}
-                >
-                  Remove
-                </button>
               </div>
-            ))}
+            </div>
           </div>
 
           {/* Buttons */}
