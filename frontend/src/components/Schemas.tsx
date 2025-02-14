@@ -281,7 +281,8 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
       <div className="bg-white p-6 rounded-lg shadow mb-6">
         <h2 className="text-xl font-bold mb-4">Create Schema</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          {/* Schema Name Input */}
+          <div className="mb-4">
             <input
               type="text"
               className="w-full p-2 border rounded"
@@ -292,48 +293,61 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Fields Editor */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold">Fields Editor</h3>
-              {currentSchema.fields.map((field, index) => (
-                <div key={index} className="flex gap-2">
-                  <input
-                    type="text"
-                    className="flex-1 p-2 border rounded"
-                    value={field.name}
-                    onChange={e => updateField(index, { name: e.target.value })}
-                    placeholder="field_name"
-                    disabled={isLoading}
-                  />
-                  <select
-                    className="p-2 border rounded"
-                    value={field.type}
-                    onChange={e => updateField(index, { type: e.target.value as SchemaField['type'] })}
-                    disabled={isLoading}
-                  >
-                    <option value="str">String</option>
-                    <option value="int">Integer</option>
-                    <option value="float">Float</option>
-                    <option value="bool">Boolean</option>
-                    <option value="datetime">DateTime</option>
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => removeField(index)}
-                    className="px-3 py-2 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50"
-                    disabled={isLoading}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
+          {/* Grid Container */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Fields Editor - Left Column */}
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold mb-2">Fields Editor</h3>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto p-2 border rounded">
+                {currentSchema.fields.map((field, index) => (
+                  <div key={index} className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      className="flex-1 p-1.5 border rounded text-sm"
+                      value={field.name}
+                      onChange={e => updateField(index, { name: e.target.value })}
+                      placeholder="field_name"
+                      disabled={isLoading}
+                    />
+                    <div className="flex gap-2">
+                      <select
+                        className="p-1.5 border rounded text-sm min-w-[100px]"
+                        value={field.type}
+                        onChange={e => updateField(index, { type: e.target.value as SchemaField['type'] })}
+                        disabled={isLoading}
+                      >
+                        <option value="str">String</option>
+                        <option value="int">Integer</option>
+                        <option value="float">Float</option>
+                        <option value="bool">Boolean</option>
+                        <option value="datetime">DateTime</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => removeField(index)}
+                        className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 text-sm"
+                        disabled={isLoading}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={addField}
+                className="w-full p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 disabled:opacity-50 text-sm"
+                disabled={isLoading}
+              >
+                Add Field
+              </button>
             </div>
 
-            {/* JSON Schema Preview */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold">JSON Schema</h3>
-              <div className="h-[400px] border rounded">
+            {/* JSON Schema Preview - Right Column */}
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold mb-2">JSON Schema</h3>
+              <div className="h-[300px] border rounded">
                 <Editor
                   height="100%"
                   defaultLanguage="json"
@@ -354,16 +368,8 @@ const Schemas = ({ organizationId }: { organizationId: string }) => {
             </div>
           </div>
 
-          {/* Buttons */}
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={addField}
-              className="px-4 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 disabled:opacity-50"
-              disabled={isLoading}
-            >
-              Add Field
-            </button>
+          {/* Save Button */}
+          <div className="flex justify-end pt-4">
             <button
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
