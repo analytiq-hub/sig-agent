@@ -15,7 +15,10 @@ function AuthButton() {
   };
 
   const handleLogout = () => {
-    signOut();
+    signOut({
+      redirect: true,
+      callbackUrl: '/auth/signin'
+    });
   };
 
   if (session) {
@@ -40,5 +43,4 @@ function AuthButton() {
     );
   }
 }
-
 export default AuthButton;

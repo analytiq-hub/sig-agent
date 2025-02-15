@@ -22,7 +22,7 @@ This guide explains how to set up Next-Auth with Google and GitHub OAuth provide
 
 ## GitHub OAuth Setup
 
-1. Go to GitHub Settings > Developer settings > OAuth Apps
+1. Go to GitHub Settings > Your Organization > Developer settings > OAuth Apps
 2. Click "New OAuth App"
 3. Fill in the application details:
    - Application name: Your app name
