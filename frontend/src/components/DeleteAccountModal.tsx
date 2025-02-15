@@ -24,7 +24,7 @@ export default function DeleteAccountModal({ open, onClose }: DeleteAccountModal
                 throw new Error(data.error || 'Failed to delete account');
             }
 
-            await signOut({ callbackUrl: '/' });
+            await signOut({ callbackUrl: '/auth/signin' });
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to delete account');
             setLoading(false);

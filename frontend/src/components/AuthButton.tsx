@@ -16,7 +16,6 @@ function AuthButton() {
 
   const handleLogout = () => {
     signOut({
-      redirect: true,
       callbackUrl: '/auth/signin'
     });
   };

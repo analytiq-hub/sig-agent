@@ -18,7 +18,9 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = () => {
-    signOut();
+    signOut({
+      callbackUrl: '/auth/signin'
+    });
     setIsOpen(false);
   };
 
