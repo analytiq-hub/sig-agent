@@ -11,7 +11,7 @@ import { JWT } from "next-auth/jwt";
 import { AppSession } from '@/types/AppSession';
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
-import { createDefaultOrganization, getFirstOrganization } from '@/utils/organization';
+import { createDefaultOrganization } from '@/utils/organization';
 
 interface CustomUser extends DefaultUser {
     emailVerified?: Date | null;
@@ -205,23 +205,9 @@ export const authOptions: NextAuthOptions = {
             
             return appSession;
         },
-        async redirect({ url, baseUrl }) {
-            // If the URL is a sign-in or callback URL, handle the redirect
-            if (url.startsWith(baseUrl)) {
-                if (url.includes('/api/auth/signin') || url.includes('/api/auth/callback')) {
-                    try {
-                        const db = mongoClient.db();
-                        const firstOrg = await getFirstOrganization(db, user.id);
-                        if (firstOrg) {
-                            return `/orgs/${firstOrg._id}/dashboard`;
-                        }
-                    } catch (error) {
-                        console.error('Error getting first organization:', error);
-                    }
-                }
-            }
-            // Default fallback
-            return url;
+        async redirect({ baseUrl }) {
+            // Default to homepage for safety
+            return baseUrl;
         },
     },
     pages: {
