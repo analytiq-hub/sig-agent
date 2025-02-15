@@ -3,12 +3,19 @@
 import { signOut, useSession, signIn } from "next-auth/react";
 import { Typography, Button, Box } from '@mui/material';
 import { ExitToApp as LogoutIcon } from '@mui/icons-material';
+import { useRouter } from 'next/navigation';
 
 function AuthButton() {
   const { data: session } = useSession();
+  const router = useRouter();
+
+  const handleLogin = () => {
+    // Directly navigate to our custom signin page instead of using signIn()
+    router.push('/auth/signin');
+  };
 
   const handleLogout = () => {
-    signOut(); // Use next-auth signOut function
+    signOut();
   };
 
   if (session) {
@@ -25,7 +32,7 @@ function AuthButton() {
   } else {
     return (
       <div 
-        onClick={() => signIn()}
+        onClick={handleLogin}
         className="text-white hover:bg-blue-500 dark:hover:bg-blue-700 px-4 py-2 rounded-md cursor-pointer"
       >
         Sign in
