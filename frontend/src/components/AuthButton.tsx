@@ -1,6 +1,6 @@
 "use client"
 
-import { signOut, useSession, signIn } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { Typography, Button, Box } from '@mui/material';
 import { ExitToApp as LogoutIcon } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
