@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { getOrganizationsApi } from '@/utils/api';
+import { getSession } from 'next-auth/react';
+import { AppSession } from '@/types/AppSession';
 import { toast } from 'react-hot-toast';
 
 export default function DashboardRedirect() {
@@ -14,7 +16,14 @@ export default function DashboardRedirect() {
     const redirectToDashboard = async () => {
       if (status === 'authenticated') {
         try {
-          const { organizations } = await getOrganizationsApi();
+          const session = await getSession() as AppSession | null;
+          if (!session?.user?.id) {
+            console.warn('No user ID found in session');
+            return;
+          }
+
+          const response = await getOrganizationsApi({ userId: session.user.id });
+          const { organizations } = response;
           
           if (organizations && organizations.length > 0) {
             router.push(`/orgs/${organizations[0].id}/dashboard`);
