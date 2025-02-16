@@ -2532,6 +2532,70 @@ async def delete_user(
             detail="Failed to delete user and related data"
         )
 
+@app.post("/account/email/verification/register/{user_id}", tags=["account/email"])
+async def send_registration_verification_email(user_id: str):
+    """Send verification email for newly registered users (no auth required)"""
+    analytiq_client = ad.common.get_analytiq_client()
+    db = ad.common.get_async_db(analytiq_client)
+
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if user.get("emailVerified"):
+        raise HTTPException(status_code=400, detail="Email already verified")
+
+    # Generate verification token
+    token = secrets.token_urlsafe(32)
+    expires = (datetime.now(UTC) + timedelta(hours=24)).replace(tzinfo=UTC)
+    
+    # Store verification token
+    await db.email_verifications.update_one(
+        {"user_id": user_id},
+        {
+            "$set": {
+                "token": token,
+                "expires": expires,
+                "email": user["email"]
+            }
+        },
+        upsert=True
+    )
+        
+    verification_url = f"{NEXTAUTH_URL}/auth/verify-email?token={token}"
+    
+    html_content = get_verification_email_content(
+        verification_url=verification_url,
+        site_url=NEXTAUTH_URL,
+        user_name=user.get("name")
+    )
+
+    try:
+        aws_client = ad.aws.get_aws_client(analytiq_client)
+        ses_client = aws_client.session.client("ses", region_name=aws_client.region_name)
+
+        response = ses_client.send_email(
+            Source=SES_FROM_EMAIL,
+            Destination={
+                'ToAddresses': [user["email"]]
+            },
+            Message={
+                'Subject': {
+                    'Data': get_email_subject("verification")
+                },
+                'Body': {
+                    'Html': {
+                        'Data': html_content
+                    }
+                }
+            }
+        )
+        return {"message": "Verification email sent"}
+    except Exception as e:
+        ad.log.error(f"Failed to send email: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+
+
 @app.post("/account/email/verification/send/{user_id}", tags=["account/email"])
 async def send_verification_email(
     user_id: str,
@@ -3052,68 +3116,6 @@ async def delete_account_token(
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
 
-@app.post("/account/email/verification/register/{user_id}", tags=["account/email"])
-async def send_registration_verification_email(user_id: str):
-    """Send verification email for newly registered users (no auth required)"""
-    analytiq_client = ad.common.get_analytiq_client()
-    db = ad.common.get_async_db(analytiq_client)
-
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-        
-    if user.get("emailVerified"):
-        raise HTTPException(status_code=400, detail="Email already verified")
-
-    # Generate verification token
-    token = secrets.token_urlsafe(32)
-    expires = (datetime.now(UTC) + timedelta(hours=24)).replace(tzinfo=UTC)
-    
-    # Store verification token
-    await db.email_verifications.update_one(
-        {"user_id": user_id},
-        {
-            "$set": {
-                "token": token,
-                "expires": expires,
-                "email": user["email"]
-            }
-        },
-        upsert=True
-    )
-        
-    verification_url = f"{NEXTAUTH_URL}/auth/verify-email?token={token}"
-    
-    html_content = get_verification_email_content(
-        verification_url=verification_url,
-        site_url=NEXTAUTH_URL,
-        user_name=user.get("name")
-    )
-
-    try:
-        aws_client = ad.aws.get_aws_client(analytiq_client)
-        ses_client = aws_client.session.client("ses", region_name=aws_client.region_name)
-
-        response = ses_client.send_email(
-            Source=SES_FROM_EMAIL,
-            Destination={
-                'ToAddresses': [user["email"]]
-            },
-            Message={
-                'Subject': {
-                    'Data': get_email_subject("verification")
-                },
-                'Body': {
-                    'Html': {
-                        'Data': html_content
-                    }
-                }
-            }
-        )
-        return {"message": "Verification email sent"}
-    except Exception as e:
-        ad.log.error(f"Failed to send email: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
