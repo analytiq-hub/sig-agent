@@ -634,6 +634,11 @@ export const verifyEmailApi = async (token: string) => {
   return response.data;
 };
 
+export const sendRegistrationVerificationEmailApi = async (userId: string) => {
+  const response = await api.post(`/account/email/verification/register/${userId}`);
+  return response.data;
+};
+
 // Invitation APIs
 export const createInvitationApi = async (invitation: CreateInvitationRequest): Promise<InvitationResponse> => {
   const response = await api.post<InvitationResponse>('/account/email/invitations', invitation);

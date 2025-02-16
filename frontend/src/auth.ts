@@ -47,6 +47,11 @@ export const authOptions: NextAuthOptions = {
                         throw new Error("No user found with this email");
                     }
 
+                    // Check email verification status
+                    if (!user.emailVerified) {
+                        throw new Error("Please verify your email before logging in");
+                    }
+
                     const isValid = await compare(credentials.password, user.password);
                     
                     if (!isValid) {
@@ -61,7 +66,7 @@ export const authOptions: NextAuthOptions = {
                     };
                 } catch (error) {
                     console.error("Auth error:", error);
-                    return null;
+                    throw error;
                 }
             }
         }),

@@ -14,6 +14,7 @@ export default function SigninPage() {
     name: ''
   });
   const router = useRouter();
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -58,20 +59,12 @@ export default function SigninPage() {
         body: JSON.stringify({ email, password, name }),
       });
 
-      const responseText = await response.text();
-      console.log('Server response:', responseText);
+      const data = await response.json();
       
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error(`Failed to parse response: ${responseText} ${e}`);
-        setError('Server returned invalid response');
-        return;
-      }
-
       if (response.ok) {
-        await handleLogin(email, password);
+        setError(null);
+        setSuccessMessage(data.message || 'Registration successful. Please check your email to verify your account.');
+        setIsLoginMode(true);
       } else {
         throw new Error(data.error || 'Registration failed');
       }
@@ -94,6 +87,12 @@ export default function SigninPage() {
       {error && (
         <div className="text-red-500 mb-4">
           {error}
+        </div>
+      )}
+      
+      {successMessage && (
+        <div className="text-green-500 mb-4">
+          {successMessage}
         </div>
       )}
       
