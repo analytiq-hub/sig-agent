@@ -2656,6 +2656,7 @@ async def create_invitation(
     current_user: User = Depends(get_admin_user)
 ):
     """Create a new invitation (admin only)"""
+    ad.log.info(f"Got invitation request: {invitation}")
     analytiq_client = ad.common.get_analytiq_client()
     db = ad.common.get_async_db(analytiq_client)
 

@@ -145,9 +145,6 @@ api.interceptors.response.use(
             toast.error('Your session has expired. Please login again.', {
               id: 'session-expired', // This ensures only one toast is shown
             });
-            setTimeout(() => {
-              window.location.href = '/auth/signin';
-            }, 2000);
             return Promise.reject(new Error('Session expired'));
           });
       }
@@ -165,9 +162,6 @@ api.interceptors.response.use(
           toast.error('Your session has expired. Please login again.', {
             id: 'session-expired',
           });
-          setTimeout(() => {
-            window.location.href = '/auth/signin';
-          }, 2000);
           return Promise.reject(new Error('Session expired'));
         }
       } catch (refreshError) {
@@ -175,9 +169,6 @@ api.interceptors.response.use(
         toast.error('Your session has expired. Please login again.', {
           id: 'session-expired',
         });
-        setTimeout(() => {
-          window.location.href = '/auth/signin';
-        }, 2000);
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
