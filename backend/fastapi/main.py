@@ -806,12 +806,11 @@ async def create_schema(
     # Create schema document
     schema_dict = {
         "name": existing_schema["name"] if existing_schema else schema.name,
-        "json_schema": schema.json_schema.dict(),
+        "response_format": schema.response_format.dict(),
         "version": new_version,
         "created_at": datetime.utcnow(),
         "created_by": current_user.user_id,
         "organization_id": organization_id,
-        "schema_format": "json_schema"
     }
     
     # Insert into MongoDB
@@ -835,7 +834,6 @@ async def list_schemas(
         {
             "$match": {
                 "organization_id": organization_id,
-                "schema_format": "json_schema"  # Only get new format schemas
             }
         },
         {
@@ -891,7 +889,6 @@ async def get_schema(
     schema = await db.schemas.find_one({
         "_id": ObjectId(schema_id),
         "organization_id": organization_id,
-        "schema_format": "json_schema"
     })
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -906,12 +903,13 @@ async def update_schema(
     current_user: User = Depends(get_current_user)
 ):
     """Update a schema"""
+    ad.log.info(f"update_schema() start: organization_id: {organization_id}, schema_id: {schema_id}, schema: {schema}")
+    
     db = ad.common.get_async_db()
     # Get the existing schema with organization check
     existing_schema = await db.schemas.find_one({
         "_id": ObjectId(schema_id),
         "organization_id": organization_id,
-        "schema_format": "json_schema"
     })
     if not existing_schema:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -926,12 +924,11 @@ async def update_schema(
     # Create new version of the schema
     new_schema = {
         "name": schema.name,
-        "json_schema": schema.json_schema.dict(),
+        "response_format": schema.response_format.dict(),
         "version": new_version,
         "created_at": datetime.utcnow(),
         "created_by": current_user.user_id,
         "organization_id": organization_id,
-        "schema_format": "json_schema"
     }
     
     # Insert new version
@@ -954,7 +951,6 @@ async def delete_schema(
     schema = await db.schemas.find_one({
         "_id": ObjectId(schema_id),
         "organization_id": organization_id,
-        "schema_format": "json_schema"
     })
     
     if not schema:
