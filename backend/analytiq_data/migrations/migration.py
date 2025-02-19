@@ -340,12 +340,42 @@ class RenameJsonSchemaToResponseFormat(Migration):
             ad.log.error(f"Migration revert failed: {e}")
             return False
 
+class RemoveSchemaFormatField(Migration):
+    def __init__(self):
+        super().__init__(description="Remove redundant schema_format field from schemas collection")
+
+    async def up(self, db) -> bool:
+        try:
+            result = await db.schemas.update_many(
+                {"schema_format": {"$exists": True}},
+                {"$unset": {"schema_format": ""}}
+            )
+            ad.log.info(f"Removed schema_format field from {result.modified_count} schemas")
+            return True
+        except Exception as e:
+            ad.log.error(f"Migration failed: {e}")
+            return False
+
+    async def down(self, db) -> bool:
+        try:
+            # Restore schema_format field to 'json_schema' for all documents
+            result = await db.schemas.update_many(
+                {},
+                {"$set": {"schema_format": "json_schema"}}
+            )
+            ad.log.info(f"Restored schema_format field to {result.modified_count} schemas")
+            return True
+        except Exception as e:
+            ad.log.error(f"Migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
     LlmResultFieldsMigration(),
     SchemaJsonSchemaMigration(),
     RenameJsonSchemaToResponseFormat(),
+    RemoveSchemaFormatField(),
     # Add more migrations here
 ]
 
