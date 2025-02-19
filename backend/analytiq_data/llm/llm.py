@@ -6,6 +6,7 @@ import json
 from datetime import datetime, UTC
 from pydantic import BaseModel, create_model
 from typing import Optional, Dict, Any
+from collections import OrderedDict
 
 async def run_llm(analytiq_client, 
                   document_id: str,
@@ -100,6 +101,34 @@ async def run_llm(analytiq_client,
     )
 
     resp_dict = json.loads(response.choices[0].message.content)
+
+    # If this is not the default prompt, reorder the response to match schema
+    if prompt_id != "default":
+        # Get the prompt response format
+        response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_id)
+        if response_format and response_format.get("type") == "json_schema":
+            schema = response_format["json_schema"]["schema"]
+            # Get ordered properties from schema
+            ordered_properties = list(schema.get("properties", {}).keys())
+            
+            #ad.log.info(f"Ordered properties: {ordered_properties}")
+
+            # Create new ordered dictionary based on schema property order
+            ordered_resp = OrderedDict()
+            for key in ordered_properties:
+                if key in resp_dict:
+                    ordered_resp[key] = resp_dict[key]
+
+            #ad.log.info(f"Ordered response: {ordered_resp}")
+            
+            # Add any remaining keys that might not be in schema
+            for key in resp_dict:
+                if key not in ordered_resp:
+                    ordered_resp[key] = resp_dict[key]
+                    
+            resp_dict = dict(ordered_resp)  # Convert back to regular dict
+
+            #ad.log.info(f"Reordered response: {resp_dict}")
 
     # Save the new result
     await save_llm_result(analytiq_client, document_id, prompt_id, resp_dict)
