@@ -190,12 +190,12 @@ api.interceptors.response.use(
 // Document APIs
 export const uploadDocumentsApi = async (params: UploadDocumentsParams): Promise<UploadDocumentsResponse> => {
   const { organizationId, documents } = params;
-  const response = await api.post<UploadDocumentsResponse>(`/orgs/${organizationId}/documents`, { documents: documents });
+  const response = await api.post<UploadDocumentsResponse>(`/v0/orgs/${organizationId}/documents`, { documents: documents });
   return response.data;
 };
 
 export const listDocumentsApi = async (params?: ListDocumentsParams) => {
-  const response = await api.get(`/orgs/${params?.organizationId}/documents`, { 
+  const response = await api.get(`/v0/orgs/${params?.organizationId}/documents`, { 
     params: {
       skip: params?.skip || 0,
       limit: params?.limit || 10,
@@ -207,7 +207,7 @@ export const listDocumentsApi = async (params?: ListDocumentsParams) => {
 
 export const getDocumentApi = async (params: GetDocumentParams): Promise<GetDocumentResponse> => {
   const { organizationId, documentId } = params;
-  const response = await api.get(`/orgs/${organizationId}/documents/${documentId}`);
+  const response = await api.get(`/v0/orgs/${organizationId}/documents/${documentId}`);
   const data = response.data;
   
   // Convert base64 content back to ArrayBuffer
@@ -226,46 +226,46 @@ export const getDocumentApi = async (params: GetDocumentParams): Promise<GetDocu
 
 export const updateDocumentApi = async (params: UpdateDocumentParams) => {
   const { organizationId, documentId, tagIds } = params;
-  const response = await api.put(`/orgs/${organizationId}/documents/${documentId}`, { tag_ids: tagIds });
+  const response = await api.put(`/v0/orgs/${organizationId}/documents/${documentId}`, { tag_ids: tagIds });
   return response.data;
 };
 
 export const deleteDocumentApi = async (params: DeleteDocumentParams) => {
   const { organizationId, documentId } = params;
-  const response = await api.delete(`/orgs/${organizationId}/documents/${documentId}`);
+  const response = await api.delete(`/v0/orgs/${organizationId}/documents/${documentId}`);
   return response.data;
 };
 
 // OCR APIs
 export const getOCRBlocksApi = async (params: GetOCRBlocksParams) => {
   const { organizationId, documentId } = params;
-  const response = await api.get(`/orgs/${organizationId}/ocr/download/blocks/${documentId}`);
+  const response = await api.get(`/v0/orgs/${organizationId}/ocr/download/blocks/${documentId}`);
   return response.data;
 };
 
 export const getOCRTextApi = async (params: GetOCRTextParams) => {
   const { organizationId, documentId, pageNum } = params;
-  const url = `/orgs/${organizationId}/ocr/download/text/${documentId}${pageNum ? `?page_num=${pageNum}` : ''}`;
+  const url = `/v0/orgs/${organizationId}/ocr/download/text/${documentId}${pageNum ? `?page_num=${pageNum}` : ''}`;
   const response = await api.get(url);
   return response.data;
 };
 
 export const getOCRMetadataApi = async (params: GetOCRMetadataParams) => {
   const { organizationId, documentId } = params;
-  const response = await api.get<GetOCRMetadataResponse>(`/orgs/${organizationId}/ocr/download/metadata/${documentId}`);
+  const response = await api.get<GetOCRMetadataResponse>(`/v0/orgs/${organizationId}/ocr/download/metadata/${documentId}`);
   return response.data;
 };
 
 // LLM APIs
 export const listLLMModelsApi = async (): Promise<ListLLMModelsResponse> => {
-  const response = await api.get<ListLLMModelsResponse>('/account/llm_models');
+  const response = await api.get<ListLLMModelsResponse>('/v0/account/llm_models');
   return response.data;
 };
 
 export const runLLMApi = async (params: RunLLMParams) => {
   const { organizationId, documentId, promptId, force } = params;
   const response = await api.post<RunLLMResponse>(
-    `/orgs/${organizationId}/llm/run/${documentId}`,
+    `/v0/orgs/${organizationId}/llm/run/${documentId}`,
     {},
     {
       params: {
@@ -280,7 +280,7 @@ export const runLLMApi = async (params: RunLLMParams) => {
 export const getLLMResultApi = async (params: GetLLMResultParams) => {
   const { organizationId, documentId, promptId } = params;
   const response = await api.get<GetLLMResultResponse>(
-    `/orgs/${organizationId}/llm/result/${documentId}`,
+    `/v0/orgs/${organizationId}/llm/result/${documentId}`,
     {
       params: {
         prompt_id: promptId
@@ -304,7 +304,7 @@ export const updateLLMResultApi = async ({
   isVerified?: boolean;
 }) => {
   const response = await api.put(
-    `/orgs/${organizationId}/llm/result/${documentId}`,
+    `/v0/orgs/${organizationId}/llm/result/${documentId}`,
     {
       updated_llm_result: result,
       is_verified: isVerified
@@ -326,7 +326,7 @@ export const updateLLMResultApi = async ({
 export const deleteLLMResultApi = async (params: DeleteLLMResultParams) => {
   const { organizationId, documentId, promptId } = params;
   const response = await api.delete(
-    `/orgs/${organizationId}/llm/result/${documentId}`,
+    `/v0/orgs/${organizationId}/llm/result/${documentId}`,
     {
       params: {
         prompt_id: promptId
@@ -339,13 +339,13 @@ export const deleteLLMResultApi = async (params: DeleteLLMResultParams) => {
 // Schema APIs
 export const createSchemaApi = async (schema: CreateSchemaParams) => {
   const { organizationId, ...schemaConfig } = schema;
-  const response = await api.post<Schema>(`/orgs/${organizationId}/schemas`, schemaConfig);
+  const response = await api.post<Schema>(`/v0/orgs/${organizationId}/schemas`, schemaConfig);
   return response.data;
 };
 
 export const listSchemasApi = async (params: ListSchemasParams): Promise<ListSchemasResponse> => {
   const { organizationId, ...rest } = params;
-  const response = await api.get<ListSchemasResponse>(`/orgs/${organizationId}/schemas`, {
+  const response = await api.get<ListSchemasResponse>(`/v0/orgs/${organizationId}/schemas`, {
     params: {
       skip: rest?.skip || 0,
       limit: rest?.limit || 10
@@ -356,32 +356,32 @@ export const listSchemasApi = async (params: ListSchemasParams): Promise<ListSch
 
 export const getSchemaApi = async (params: GetSchemaParams): Promise<Schema> => {
   const { organizationId, schemaId } = params;
-  const response = await api.get<Schema>(`/orgs/${organizationId}/schemas/${schemaId}`);
+  const response = await api.get<Schema>(`/v0/orgs/${organizationId}/schemas/${schemaId}`);
   return response.data;
 };
 
 export const updateSchemaApi = async (params: UpdateSchemaParams): Promise<Schema> => {
   const { organizationId, schemaId, schema } = params;
-  const response = await api.put<Schema>(`/orgs/${organizationId}/schemas/${schemaId}`, schema);
+  const response = await api.put<Schema>(`/v0/orgs/${organizationId}/schemas/${schemaId}`, schema);
   return response.data;
 };
 
 export const deleteSchemaApi = async (params: DeleteSchemaParams) => {
   const { organizationId, schemaId } = params;
-  const response = await api.delete(`/orgs/${organizationId}/schemas/${schemaId}`);
+  const response = await api.delete(`/v0/orgs/${organizationId}/schemas/${schemaId}`);
   return response.data;
 };
 
 // Prompt APIs
 export const createPromptApi = async (params: CreatePromptParams): Promise<Prompt> => {
   const { organizationId, prompt } = params;
-  const response = await api.post<Prompt>(`/orgs/${organizationId}/prompts`, prompt);
+  const response = await api.post<Prompt>(`/v0/orgs/${organizationId}/prompts`, prompt);
   return response.data;
 };
 
 export const listPromptsApi = async (params: ListPromptsParams): Promise<ListPromptsResponse> => {
   const { organizationId, ...rest } = params;
-  const response = await api.get<ListPromptsResponse>(`/orgs/${organizationId}/prompts`, {
+  const response = await api.get<ListPromptsResponse>(`/v0/orgs/${organizationId}/prompts`, {
     params: {
       skip: rest?.skip || 0,
       limit: rest?.limit || 10,
@@ -394,62 +394,62 @@ export const listPromptsApi = async (params: ListPromptsParams): Promise<ListPro
 
 export const getPromptApi = async (params: GetPromptParams): Promise<Prompt> => {
   const { organizationId, promptId } = params;
-  const response = await api.get<Prompt>(`/orgs/${organizationId}/prompts/${promptId}`);
+  const response = await api.get<Prompt>(`/v0/orgs/${organizationId}/prompts/${promptId}`);
   return response.data;
 };
 
 export const updatePromptApi = async (params: UpdatePromptParams): Promise<Prompt> => {
   const { organizationId, promptId, prompt } = params;
-  const response = await api.put<Prompt>(`/orgs/${organizationId}/prompts/${promptId}`, prompt);
+  const response = await api.put<Prompt>(`/v0/orgs/${organizationId}/prompts/${promptId}`, prompt);
   return response.data;
 };
 
 export const deletePromptApi = async (params: DeletePromptParams): Promise<void> => {
   const { organizationId, promptId } = params;
-  const response = await api.delete(`/orgs/${organizationId}/prompts/${promptId}`);
+  const response = await api.delete(`/v0/orgs/${organizationId}/prompts/${promptId}`);
   return response.data;
 };
 
 // Tag APIs
 export const createTagApi = async (params: CreateTagParams): Promise<Tag> => {
     const { organizationId, tag } = params;
-    const response = await api.post<Tag>(`/orgs/${organizationId}/tags`, tag);
+    const response = await api.post<Tag>(`/v0/orgs/${organizationId}/tags`, tag);
     return response.data;
 };
 
 export const listTagsApi = async (params: ListTagsParams): Promise<ListTagsResponse> => {
     const { organizationId } = params;
-    const response = await api.get<ListTagsResponse>(`/orgs/${organizationId}/tags`);
+    const response = await api.get<ListTagsResponse>(`/v0/orgs/${organizationId}/tags`);
     return response.data;
 };
 
 export const updateTagApi = async (params: UpdateTagParams): Promise<Tag> => {
     const { organizationId, tagId, tag } = params;
-    const response = await api.put<Tag>(`/orgs/${organizationId}/tags/${tagId}`, tag);
+    const response = await api.put<Tag>(`/v0/orgs/${organizationId}/tags/${tagId}`, tag);
     return response.data;
 };
 
 export const deleteTagApi = async (params: DeleteTagParams): Promise<void> => {
   const { organizationId, tagId } = params;
-  await api.delete(`/orgs/${organizationId}/tags/${tagId}`);
+  await api.delete(`/v0/orgs/${organizationId}/tags/${tagId}`);
 };
 
 // Flow APIs
 export const createFlowApi = async (params: CreateFlowParams): Promise<Flow> => {
   const { organizationId, flow } = params;
-  const response = await api.post(`/orgs/${organizationId}/flows`, flow);
+  const response = await api.post(`/v0/orgs/${organizationId}/flows`, flow);
   return response.data;
 };
 
 export const updateFlowApi = async (params: UpdateFlowParams): Promise<Flow> => {
   const { organizationId, flowId, flow } = params;
-  const response = await api.put<Flow>(`/orgs/${organizationId}/flows/${flowId}`, flow);
+  const response = await api.put<Flow>(`/v0/orgs/${organizationId}/flows/${flowId}`, flow);
   return response.data;
 };
 
 export const listFlowsApi = async (params: ListFlowsParams): Promise<ListFlowsResponse> => {
   const { organizationId, ...rest } = params;
-  const response = await api.get(`/orgs/${organizationId}/flows`, {
+  const response = await api.get(`/v0/orgs/${organizationId}/flows`, {
     params: {
       skip: rest?.skip || 0,
       limit: rest?.limit || 10
@@ -460,68 +460,68 @@ export const listFlowsApi = async (params: ListFlowsParams): Promise<ListFlowsRe
 
 export const getFlowApi = async (params: GetFlowParams): Promise<Flow> => {
   const { organizationId, flowId } = params;
-  const response = await api.get<Flow>(`/orgs/${organizationId}/flows/${flowId}`);
+  const response = await api.get<Flow>(`/v0/orgs/${organizationId}/flows/${flowId}`);
   return response.data;
 };
 
 export const deleteFlowApi = async (params: DeleteFlowParams): Promise<void> => {
   const { organizationId, flowId } = params;
-  await api.delete(`/orgs/${organizationId}/flows/${flowId}`);
+  await api.delete(`/v0/orgs/${organizationId}/flows/${flowId}`);
 };
 
 // Token APIs
 export const createTokenApi = async (token: CreateTokenRequest, organizationId?: string) => {
   const endpoint = organizationId 
-    ? `/orgs/${organizationId}/access_tokens`
-    : '/account/access_tokens';
+    ? `/v0/orgs/${organizationId}/access_tokens`
+    : '/v0/account/access_tokens';
   const response = await api.post(endpoint, token);
   return response.data;
 };
 
 export const getTokensApi = async (organizationId?: string) => {
   const endpoint = organizationId
-    ? `/orgs/${organizationId}/access_tokens`
-    : '/account/access_tokens';
+    ? `/v0/orgs/${organizationId}/access_tokens`
+    : '/v0/account/access_tokens';
   const response = await api.get(endpoint);
   return response.data;
 };
 
 export const deleteTokenApi = async (tokenId: string, organizationId?: string) => {
   const endpoint = organizationId
-    ? `/orgs/${organizationId}/access_tokens/${tokenId}`
-    : `/account/access_tokens/${tokenId}`;
+    ? `/v0/orgs/${organizationId}/access_tokens/${tokenId}`
+    : `/v0/account/access_tokens/${tokenId}`;
   const response = await api.delete(endpoint);
   return response.data;
 };
 
 export const createLLMTokenApi = async (tokenRequest: CreateLLMTokenRequest) => {
-  const response = await api.post('/account/llm_tokens', tokenRequest);
+  const response = await api.post('/v0/account/llm_tokens', tokenRequest);
   return response.data;
 };
 
 export const getLLMTokensApi = async () => {
-  const response = await api.get('/account/llm_tokens');
+  const response = await api.get('/v0/account/llm_tokens');
   return response.data;
 };
 
 export const deleteLLMTokenApi = async (tokenId: string) => {
-  const response = await api.delete(`/account/llm_tokens/${tokenId}`);
+  const response = await api.delete(`/v0/account/llm_tokens/${tokenId}`);
   return response.data;
 };
 
 // AWS APIs
 export const createAWSCredentialsApi = async (credentials: Omit<AWSCredentials, 'created_at'>) => {
-  const response = await api.post('/account/aws_credentials', credentials);
+  const response = await api.post('/v0/account/aws_credentials', credentials);
   return response.data;
 };
 
 export const getAWSCredentialsApi = async () => {
-  const response = await api.get('/account/aws_credentials');
+  const response = await api.get('/v0/account/aws_credentials');
   return response.data;
 };
 
 export const deleteAWSCredentialsApi = async () => {
-  const response = await api.delete('/account/aws_credentials');
+  const response = await api.delete('/v0/account/aws_credentials');
   return response.data;
 };
 
@@ -535,13 +535,13 @@ export const getOrganizationsApi = async (params?: {
   if (params?.organizationId) queryParams.append('organization_id', params.organizationId);
   
   const response = await api.get<ListOrganizationsResponse>(
-    `/account/organizations?${queryParams.toString()}`
+    `/v0/account/organizations?${queryParams.toString()}`
   );
   return response.data;
 };
 
 export const createOrganizationApi = async (organization: CreateOrganizationRequest): Promise<Organization> => {
-  const response = await api.post('/account/organizations', organization);
+  const response = await api.post('/v0/account/organizations', organization);
   const data = response.data;
   return {
     id: data._id || data.id,
@@ -562,12 +562,12 @@ export const updateOrganizationApi = async (
   organizationId: string, 
   update: UpdateOrganizationRequest
 ): Promise<Organization> => {
-  const response = await api.put(`/account/organizations/${organizationId}`, update);
+  const response = await api.put(`/v0/account/organizations/${organizationId}`, update);
   return response.data;
 };
 
 export const deleteOrganizationApi = async (organizationId: string) => {
-  const response = await api.delete(`/account/organizations/${organizationId}`);
+  const response = await api.delete(`/v0/account/organizations/${organizationId}`);
   return response.data;
 };
 
@@ -581,18 +581,18 @@ export const getUsersApi = async (params?: ListUsersParams): Promise<ListUsersRe
   if (params?.user_id) queryParams.append('user_id', params.user_id);
 
   const response = await api.get<ListUsersResponse>(
-    `/account/users?${queryParams.toString()}`
+    `/v0/account/users?${queryParams.toString()}`
   );
   return response.data;
 };
 
 export const createUserApi = async (user: UserCreate): Promise<UserResponse> => {
-  const response = await api.post('/account/users', user);
+  const response = await api.post('/v0/account/users', user);
   return response.data;
 };
 
 export const deleteUserApi = async (userId: string): Promise<void> => {
-  await api.delete(`/account/users/${userId}`);
+  await api.delete(`/v0/account/users/${userId}`);
 };
 
 export const getUserApi = async (userId: string): Promise<UserResponse> => {
@@ -601,7 +601,7 @@ export const getUserApi = async (userId: string): Promise<UserResponse> => {
 };
 
 export const updateUserApi = async (userId: string, update: UserUpdate): Promise<UserResponse> => {
-  const response = await api.put<UserResponse>(`/account/users/${userId}`, update);
+  const response = await api.put<UserResponse>(`/v0/account/users/${userId}`, update);
   return response.data;
 };
 
@@ -625,23 +625,23 @@ export function getApiErrorMsg(error: unknown): string {
 }
 
 export const sendVerificationEmailApi = async (userId: string) => {
-  const response = await api.post(`/account/email/verification/send/${userId}`);
+  const response = await api.post(`/v0/account/email/verification/send/${userId}`);
   return response.data;
 };
 
 export const verifyEmailApi = async (token: string) => {
-  const response = await api.post(`/account/email/verification/${token}`);
+  const response = await api.post(`/v0/account/email/verification/${token}`);
   return response.data;
 };
 
 export const sendRegistrationVerificationEmailApi = async (userId: string) => {
-  const response = await api.post(`/account/email/verification/register/${userId}`);
+  const response = await api.post(`/v0/account/email/verification/register/${userId}`);
   return response.data;
 };
 
 // Invitation APIs
 export const createInvitationApi = async (invitation: CreateInvitationRequest): Promise<InvitationResponse> => {
-  const response = await api.post<InvitationResponse>('/account/email/invitations', invitation);
+  const response = await api.post<InvitationResponse>('/v0/account/email/invitations', invitation);
   return response.data;
 };
 
@@ -651,17 +651,17 @@ export const getInvitationsApi = async (params?: ListInvitationsParams): Promise
   if (params?.limit) queryParams.append('limit', params.limit.toString());
 
   const response = await api.get<ListInvitationsResponse>(
-    `/account/email/invitations?${queryParams.toString()}`
+    `/v0/account/email/invitations?${queryParams.toString()}`
   );
   return response.data;
 };
 
 export const acceptInvitationApi = async (token: string, data: AcceptInvitationRequest): Promise<{ message: string }> => {
-  const response = await api.post(`/account/email/invitations/${token}/accept`, data);
+  const response = await api.post(`/v0/account/email/invitations/${token}/accept`, data);
   return response.data;
 };
 
 export const getInvitationApi = async (token: string): Promise<InvitationResponse> => {
-  const response = await api.get<InvitationResponse>(`/account/email/invitations/${token}`);
+  const response = await api.get<InvitationResponse>(`/v0/account/email/invitations/${token}`);
   return response.data;
 };
