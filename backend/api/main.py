@@ -1,40 +1,46 @@
 # main.py
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, status, Body, Security, Response, BackgroundTasks, Request
-from fastapi.encoders import jsonable_encoder  # Add this import
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-from bson import ObjectId
+# Standard library imports
 from datetime import datetime, timedelta, UTC
-from jose import JWTError, jwt
-from typing import Optional, List
 import os
 import sys
 import json
-from dotenv import load_dotenv
 import secrets
 import base64
-import io
 import re
 import uuid
 import logging
 import hmac
 import hashlib
-from bcrypt import hashpw, gensalt
 import asyncio
-from pydantic import BaseModel
-from email_utils import get_verification_email_content, get_email_subject, get_invitation_email_content
+from typing import Optional, List
 
-import startup
-import organizations
-from schemas import (
-    User,
-    AccessToken, ListAccessTokensResponse, CreateAccessTokenRequest,
-    ListDocumentsResponse,
-    DocumentMetadata,
-    DocumentUpload, DocumentsUpload, DocumentUpdate,
+# Set up the path first, before other imports
+cwd = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(f"{cwd}/..")
+
+# Third-party imports
+from fastapi import (
+    FastAPI, File, UploadFile, HTTPException, Query, 
+    Depends, status, Body, Security, Response, 
+    BackgroundTasks, Request
+)
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorClient
+from bson import ObjectId
+from jose import JWTError, jwt
+from bcrypt import hashpw, gensalt
+from dotenv import load_dotenv
+
+# Local imports
+from api import email_utils, startup, organizations, users, limits
+from api.schemas import (
+    User, AccessToken, ListAccessTokensResponse,
+    CreateAccessTokenRequest, ListDocumentsResponse,
+    DocumentMetadata, DocumentUpload, DocumentsUpload,
+    DocumentUpdate,
     LLMModel, ListLLMModelsResponse,
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
@@ -66,8 +72,6 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(f"{cwd}/..")
 
 import analytiq_data as ad
-import users
-import limits
 
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
@@ -2560,7 +2564,7 @@ async def send_registration_verification_email(user_id: str):
         
     verification_url = f"{NEXTAUTH_URL}/auth/verify-email?token={token}"
     
-    html_content = get_verification_email_content(
+    html_content = email_utils.get_verification_email_content(
         verification_url=verification_url,
         site_url=NEXTAUTH_URL,
         user_name=user.get("name")
@@ -2577,7 +2581,7 @@ async def send_registration_verification_email(user_id: str):
             },
             Message={
                 'Subject': {
-                    'Data': get_email_subject("verification")
+                    'Data': email_utils.get_email_subject("verification")
                 },
                 'Body': {
                     'Html': {
@@ -2630,7 +2634,7 @@ async def send_verification_email(
     verification_url = f"{NEXTAUTH_URL}/auth/verify-email?token={token}"
     
     # Get email content from template
-    html_content = get_verification_email_content(
+    html_content = email_utils.get_verification_email_content(
         verification_url=verification_url,
         site_url=NEXTAUTH_URL,
         user_name=user.get("name")
@@ -2652,7 +2656,7 @@ async def send_verification_email(
             },
             Message={
                 'Subject': {
-                    'Data': get_email_subject("verification")
+                    'Data': email_utils.get_email_subject("verification")
                 },
                 'Body': {
                     'Html': {
@@ -2794,7 +2798,7 @@ async def create_invitation(
     
     # Send invitation email
     invitation_url = f"{NEXTAUTH_URL}/auth/accept-invitation?token={token}"
-    html_content = get_invitation_email_content(
+    html_content = email_utils.get_invitation_email_content(
         invitation_url=invitation_url,
         site_url=NEXTAUTH_URL,
         expires=expires,
@@ -2810,7 +2814,7 @@ async def create_invitation(
             Destination={'ToAddresses': [invitation.email]},
             Message={
                 'Subject': {
-                    'Data': get_email_subject("invitation")
+                    'Data': email_utils.get_email_subject("invitation")
                 },
                 'Body': {
                     'Html': {

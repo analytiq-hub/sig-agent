@@ -2,10 +2,16 @@ from datetime import datetime, UTC
 from bson import ObjectId
 from typing import List
 import logging
+import os
+import sys
 
 from fastapi import HTTPException
-import users
-from schemas import OrganizationUpdate
+
+# Set up the path first, before other imports
+cwd = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(f"{cwd}/..")
+
+from api.schemas import OrganizationUpdate
 
 def validate_organization_type_upgrade(current_type: str, new_type: str) -> bool:
     """
