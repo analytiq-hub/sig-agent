@@ -161,7 +161,7 @@ export const authOptions: NextAuthOptions = {
                 // Only get new FastAPI token on initial sign-in
                 try {
                     const apiUrl = process.env.FASTAPI_BACKEND_URL || 'http://127.0.0.1:8000';
-                    const response = await axios.post(`${apiUrl}/account/auth/token`, {
+                    const response = await axios.post(`${apiUrl}/v0/account/auth/token`, {
                         id: user.id,
                         name: user.name,
                         email: user.email
