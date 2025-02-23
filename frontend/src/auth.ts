@@ -217,11 +217,6 @@ export const authOptions: NextAuthOptions = {
     },
     pages: {
         signIn: '/auth/signin',
-        // You can also customize other auth pages if needed:
-        // signOut: '/auth/signout',
-        // error: '/auth/error',
-        // verifyRequest: '/auth/verify-request',
-        // newUser: '/auth/new-user'
     },
 };
 
