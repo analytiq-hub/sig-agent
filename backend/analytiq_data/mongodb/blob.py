@@ -3,6 +3,7 @@ from datetime import datetime, UTC
 import os
 import time
 import asyncio
+from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 
 import analytiq_data as ad
 
@@ -202,7 +203,7 @@ async def save_blob_async(analytiq_client, bucket: str, key: str, blob: bytes, m
     await delete_blob_async(analytiq_client, bucket, key)
 
     # Create a new GridFS bucket with smaller chunk size
-    fs_bucket = gridfs.GridFSBucket(
+    fs_bucket = AsyncIOMotorGridFSBucket(
         db, 
         bucket_name=bucket,
         chunk_size_bytes=chunk_size_bytes  # Use smaller chunks
@@ -227,7 +228,7 @@ async def delete_blob_async(analytiq_client, bucket:str, key:str):
     mongo = analytiq_client.mongodb_async
     db_name = analytiq_client.env
     db = mongo[db_name]
-    fs_bucket = gridfs.GridFSBucket(db, bucket_name=bucket)
+    fs_bucket = AsyncIOMotorGridFSBucket(db, bucket_name=bucket)
 
     # Remove the old blob with retry logic
     max_retries = 3
@@ -235,19 +236,23 @@ async def delete_blob_async(analytiq_client, bucket:str, key:str):
     
     for attempt in range(max_retries):
         try:
-            old_blob = await fs_bucket.find({"filename": key})
-            old_blobs = await old_blob.to_list(length=None)
-            if old_blobs:
-                for blob_item in old_blobs:
-                    await fs_bucket.delete(blob_item._id)
+            # First, find the file document to get the _id
+            files_collection = db[f"{bucket}.files"]
+            file_docs = await files_collection.find({"filename": key}).to_list(length=None)
+            
+            if file_docs:
+                for file_doc in file_docs:
+                    # Delete using the _id from the file document
+                    ad.log.debug(f"Deleting blob {bucket}/{key} with _id {file_doc['_id']}")
+                    await fs_bucket.delete(file_doc["_id"])
                 
                 ad.log.debug(f"Blob {bucket}/{key} has been deleted.")
                 
                 # Verify deletion is complete
                 verification_attempts = 3
                 for _ in range(verification_attempts):
-                    check_blob = await (await fs_bucket.find({"filename": key})).to_list(length=None)
-                    if not check_blob:
+                    check_docs = await files_collection.find({"filename": key}).to_list(length=None)
+                    if not check_docs:
                         break
                     await asyncio.sleep(retry_delay)
                 else:
