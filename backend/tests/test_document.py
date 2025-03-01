@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 import base64
 import os
 import sys
+import random
 from datetime import datetime, UTC
 import motor.motor_asyncio
 from unittest.mock import patch
@@ -36,11 +37,35 @@ TEST_USER = User(
 TEST_ORG_ID = "test_org_123"
 
 @pytest.fixture
-def test_pdf():
-    """Create a small test PDF file"""
+def small_pdf():
+    """Create a minimal test PDF file"""
     pdf_content = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
     return {
-        "name": "test.pdf",
+        "name": "small_test.pdf",
+        "content": f"data:application/pdf;base64,{base64.b64encode(pdf_content).decode()}"
+    }
+
+@pytest.fixture
+def large_pdf():
+    """Create a 32MB test PDF file"""
+    # Create a valid PDF header
+    pdf_header = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n"
+    
+    # Generate content to reach 32MB
+    size_kb = 32 * 1024  # 32MB
+    random_content_size = (size_kb * 1024) - len(pdf_header) - 7  # 7 bytes for EOF
+    random_content = bytes([0x41 for _ in range(random_content_size)])  # Use 'A' character (0x41) for predictable content
+    
+    # Add PDF EOF marker
+    pdf_eof = b"\n%%EOF\n"
+    
+    # Combine to create a valid PDF of the specified size
+    pdf_content = pdf_header + random_content + pdf_eof
+    
+    ad.log.info(f"Created large test PDF of size {len(pdf_content)} bytes")
+    
+    return {
+        "name": "large_test.pdf",
         "content": f"data:application/pdf;base64,{base64.b64encode(pdf_content).decode()}"
     }
 
@@ -70,9 +95,13 @@ def get_auth_headers():
     }
 
 @pytest.mark.asyncio
-async def test_upload_document(test_db, test_pdf):
-    """Test document upload endpoint"""
-    ad.log.info(f"test_upload_document() start")
+@pytest.mark.parametrize("pdf_fixture", ["small_pdf", "large_pdf"])
+async def test_upload_document(test_db, pdf_fixture, request):
+    """Test document upload endpoint with different PDF sizes"""
+    # Get the actual PDF fixture using the fixture name
+    test_pdf = request.getfixturevalue(pdf_fixture)
+    
+    ad.log.info(f"test_upload_document() start with {test_pdf['name']}")
     
     # Prepare test data
     upload_data = {
@@ -107,13 +136,13 @@ async def test_upload_document(test_db, test_pdf):
 
         # Check upload response
         assert upload_response.status_code == 200
-        upload_data = upload_response.json()
-        assert "uploaded_documents" in upload_data
-        assert len(upload_data["uploaded_documents"]) == 1
-        assert upload_data["uploaded_documents"][0]["document_name"] == "test.pdf"
+        upload_result = upload_response.json()
+        assert "uploaded_documents" in upload_result
+        assert len(upload_result["uploaded_documents"]) == 1
+        assert upload_result["uploaded_documents"][0]["document_name"] == test_pdf["name"]
         
         # Get the document ID from the upload response
-        document_id = upload_data["uploaded_documents"][0]["document_id"]
+        document_id = upload_result["uploaded_documents"][0]["document_id"]
         
         # Step 2: List documents to verify it appears in the list
         list_response = client.get(
@@ -129,7 +158,7 @@ async def test_upload_document(test_db, test_pdf):
         # Find our document in the list
         uploaded_doc = next((doc for doc in list_data["documents"] if doc["id"] == document_id), None)
         assert uploaded_doc is not None
-        assert uploaded_doc["document_name"] == "test.pdf"
+        assert uploaded_doc["document_name"] == test_pdf["name"]
         assert uploaded_doc["state"] == ad.common.doc.DOCUMENT_STATE_UPLOADED
         
         # Step 3: Get the specific document to verify its content
@@ -142,7 +171,7 @@ async def test_upload_document(test_db, test_pdf):
         doc_data = get_response.json()
         assert "metadata" in doc_data
         assert doc_data["metadata"]["id"] == document_id
-        assert doc_data["metadata"]["document_name"] == "test.pdf"
+        assert doc_data["metadata"]["document_name"] == test_pdf["name"]
         assert doc_data["metadata"]["state"] == ad.common.doc.DOCUMENT_STATE_UPLOADED
         assert "content" in doc_data  # Verify the PDF content is returned
         
@@ -170,7 +199,7 @@ async def test_upload_document(test_db, test_pdf):
     finally:
         app.dependency_overrides.clear()
 
-    ad.log.info(f"test_upload_document() end")
+    ad.log.info(f"test_upload_document() end with {test_pdf['name']}")
 
 @pytest.mark.asyncio
 async def test_document_lifecycle(test_db, test_pdf):
