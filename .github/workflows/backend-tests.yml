@@ -21,12 +21,7 @@ jobs:
         image: mongo:6.0
         ports:
           - 27017:27017
-        # Use simpler health check that doesn't require mongosh
-        options: >-
-          --health-cmd "echo 'db.runCommand({ping:1})' | mongo --quiet"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        # No health check - we'll verify connection in a step
 
     steps:
     - uses: actions/checkout@v3
@@ -42,16 +37,16 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-asyncio pytest-cov
+        pip install pytest pytest-asyncio pytest-cov pymongo
     
-    - name: Install MongoDB tools
+    - name: Verify MongoDB connection
       run: |
-        # Install MongoDB client tools (includes mongo shell)
-        sudo apt-get update
-        sudo apt-get install -y mongodb-clients
-        
-        # Verify MongoDB connection using mongo shell (not mongosh)
-        echo 'db.runCommand({ping:1})' | mongo --quiet
+        # Use Python to verify MongoDB connection instead of shell tools
+        python -c "
+        import pymongo
+        client = pymongo.MongoClient('mongodb://localhost:27017/')
+        print('MongoDB connection successful:', client.server_info())
+        "
     
     - name: Run tests
       working-directory: ./backend
