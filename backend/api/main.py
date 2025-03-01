@@ -94,27 +94,6 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 UPLOAD_DIR = "data"
 
-# Configure logging at the beginning of your main.py file
-def setup_logging():
-    # Configure root logger
-    logging.basicConfig(
-        level=logging.DEBUG,  # Set to DEBUG level
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
-    
-    # Configure specific loggers if needed
-    logging.getLogger("uvicorn").setLevel(logging.INFO)
-    logging.getLogger("analytiq-data").setLevel(logging.DEBUG)
-    
-    # You can also silence noisy libraries
-    logging.getLogger("motor").setLevel(logging.WARNING)
-
-# Call this function early in your application startup
-setup_logging()
-
 app = FastAPI(
     root_path=FASTAPI_ROOT_PATH,
 )

@@ -72,6 +72,7 @@ async def save_doc(analytiq_client, document: dict) -> str:
     )
     
     ad.log.debug(f"Document {document['_id']} has been saved.")
+
     return str(document["_id"])
 
 async def delete_doc(analytiq_client, document_id: str, organization_id: str):

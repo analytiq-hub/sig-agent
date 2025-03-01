@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, constr
+from pydantic import BaseModel, Field, constr, ConfigDict
 from datetime import datetime
 from typing import List, Literal, Optional, Any, Dict, Union, ForwardRef
 from enum import Enum
@@ -47,8 +47,7 @@ class DocumentResponse(BaseModel):
     metadata: DocumentMetadata
     content: str  # Changed from bytes to str since we're using base64 encoded string
 
-    class Config:
-        arbitrary_types_allowed = True  # This allows bytes type in Pydantic
+    model_config = ConfigDict(arbitrary_types_allowed=True)  # Updated from class Config
 
 class ListDocumentsResponse(BaseModel):
     documents: List[DocumentMetadata]
