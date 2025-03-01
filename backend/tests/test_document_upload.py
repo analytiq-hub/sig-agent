@@ -5,8 +5,6 @@ import base64
 import os
 import sys
 from datetime import datetime, UTC
-import mongomock
-import mongomock_motor
 import motor.motor_asyncio
 from unittest.mock import patch
 from fastapi import Security
@@ -33,6 +31,10 @@ TEST_USER = User(
 
 TEST_ORG_ID = "test_org_123"
 
+# Test database configuration
+TEST_DB_NAME = "test_db"
+MONGODB_URI = os.getenv("TEST_MONGODB_URI", "mongodb://localhost:27017")
+
 @pytest.fixture
 def test_pdf():
     """Create a small test PDF file"""
@@ -43,30 +45,34 @@ def test_pdf():
     }
 
 @pytest_asyncio.fixture
-async def mock_db():
-    """Create a mock MongoDB client"""
-    mock_client = mongomock_motor.AsyncMongoMockClient()
-    db = mock_client.test
+async def test_db():
+    """Create a test MongoDB client with a real database"""
+    client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
+    db = client[TEST_DB_NAME]
     
-    # Create required collections
-    collections = ["docs", "files.files", "files.chunks", "tags"]
+    # Clear the database before each test
+    collections = await db.list_collection_names()
     for collection in collections:
-        await db.create_collection(collection)
-
-    # Return the database as a coroutine
-    return db
+        await db.drop_collection(collection)
+    
+    yield db
+    
+    # Clean up after test
+    collections = await db.list_collection_names()
+    for collection in collections:
+        await db.drop_collection(collection)
 
 @pytest.fixture
-def mock_analytiq_client(mock_db):
-    """Mock the AnalytiqClient"""
-    class MockAnalytiqClient:
-        def __init__(self, db):
-            self.env = "test"
+def test_analytiq_client(test_db):
+    """Create a test AnalytiqClient that uses the test database"""
+    class TestAnalytiqClient:
+        def __init__(self):
+            self.env = TEST_DB_NAME
             self.name = "test"
-            self.mongodb_async = db
+            self.mongodb_async = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
             self.mongodb = None
 
-    return MockAnalytiqClient(mock_db)
+    return TestAnalytiqClient()
 
 def get_auth_headers():
     """Get authentication headers for test requests"""
@@ -76,24 +82,20 @@ def get_auth_headers():
     }
 
 @pytest.mark.asyncio
-async def test_db_connection(mock_db):
-    """Test database connection"""
-    assert mock_db is not None
-
-    ad.log.info(f"test_db_connection() start")
-
-    # List all collections in the database
-    collections = await mock_db.list_collection_names()
-    ad.log.info(f"Collections in the database: {collections}")
-    ad.log.info(f"test_db_connection() end")
-
-@pytest.mark.asyncio
-async def test_upload_document(mock_db, mock_analytiq_client, test_pdf):
+async def test_upload_document(test_db, test_analytiq_client, test_pdf):
     """Test document upload endpoint"""
-
     ad.log.info(f"test_upload_document() start")
     
-    # No need to await mock_db, it's already resolved
+    # Patch the get_analytiq_client function to ensure our test client is used
+    original_get_analytiq_client = ad.common.get_analytiq_client
+    
+    def patched_get_analytiq_client():
+        ad.log.info("Using patched get_analytiq_client")
+        return test_analytiq_client
+    
+    # Apply the patch
+    ad.common.get_analytiq_client = patched_get_analytiq_client
+    
     # Prepare test data
     upload_data = {
         "documents": [
@@ -115,8 +117,8 @@ async def test_upload_document(mock_db, mock_analytiq_client, test_pdf):
     app.dependency_overrides = {
         security: lambda: mock_credentials,
         get_current_user: lambda: TEST_USER,
-        ad.common.get_async_db: mock_db,
-        ad.common.get_analytiq_client: lambda: mock_analytiq_client
+        ad.common.get_async_db: lambda: test_db,
+        ad.common.get_analytiq_client: patched_get_analytiq_client
     }
     
     try:
@@ -135,15 +137,15 @@ async def test_upload_document(mock_db, mock_analytiq_client, test_pdf):
         assert data["uploaded_documents"][0]["document_name"] == "test.pdf"
 
         # List all collections in the database
-        collections = await mock_db.list_collection_names()
+        collections = await test_db.list_collection_names()
         ad.log.info(f"Collections in the database: {collections}")
 
         # List all documents in the docs collection
-        docs = await mock_db["docs"].find().to_list(length=None)
+        docs = await test_db["docs"].find().to_list(length=None)
         ad.log.info(f"Documents in the docs collection: {docs}")
 
-        # Verify document was saved in mock database
-        doc = await mock_db["docs"].find_one({  # Use mock_db directly
+        # Verify document was saved in test database
+        doc = await test_db["docs"].find_one({
             "organization_id": TEST_ORG_ID,
             "user_file_name": "test.pdf"
         })
@@ -151,7 +153,7 @@ async def test_upload_document(mock_db, mock_analytiq_client, test_pdf):
         assert doc["state"] == ad.common.doc.DOCUMENT_STATE_UPLOADED
 
         # Verify file was saved
-        file = await mock_db["files.files"].find_one({  # Use mock_db directly
+        file = await test_db["files.files"].find_one({
             "filename": doc["mongo_file_name"]
         })
         ad.log.info(f"File in the files.files collection: {file}")
@@ -159,5 +161,7 @@ async def test_upload_document(mock_db, mock_analytiq_client, test_pdf):
 
     finally:
         app.dependency_overrides.clear()
+        # Restore the original function
+        ad.common.get_analytiq_client = original_get_analytiq_client
 
     ad.log.info(f"test_upload_document() end")
