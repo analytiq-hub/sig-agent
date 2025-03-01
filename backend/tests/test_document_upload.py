@@ -58,9 +58,9 @@ async def test_db():
     yield db
     
     # Clean up after test
-    collections = await db.list_collection_names()
-    for collection in collections:
-        await db.drop_collection(collection)
+    # collections = await db.list_collection_names()
+    # for collection in collections:
+    #     await db.drop_collection(collection)
 
 @pytest.fixture
 def test_analytiq_client(test_db):
