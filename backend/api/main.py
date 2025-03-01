@@ -14,6 +14,7 @@ import hmac
 import hashlib
 import asyncio
 from typing import Optional, List
+from contextlib import asynccontextmanager
 
 # Set up the path first, before other imports
 cwd = os.path.dirname(os.path.abspath(__file__))
@@ -94,8 +95,22 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 UPLOAD_DIR = "data"
 
+@asynccontextmanager
+async def lifespan(app):
+    # Startup code (previously in @app.on_event("startup"))
+    analytiq_client = ad.common.get_analytiq_client()
+    await startup.setup_admin(analytiq_client)
+    await startup.setup_api_creds(analytiq_client)
+    
+    yield  # This is where the app runs
+    
+    # Shutdown code (if any) would go here
+    # For example: await some_client.close()
+
+# Create the FastAPI app with the lifespan
 app = FastAPI(
     root_path=FASTAPI_ROOT_PATH,
+    lifespan=lifespan
 )
 security = HTTPBearer()
 
@@ -218,13 +233,6 @@ async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(se
             detail="Admin access required"
         )
     return user
-
-# Add to startup
-@app.on_event("startup")
-async def startup_event():
-    analytiq_client = ad.common.get_analytiq_client()
-    await startup.setup_admin(analytiq_client)
-    await startup.setup_api_creds(analytiq_client)
 
 # Organization-level access tokens
 @app.post("/v0/orgs/{organization_id}/access_tokens", response_model=AccessToken, tags=["access_tokens"])
@@ -367,7 +375,7 @@ async def upload_document(
             "user_file_name": document.name,
             "mongo_file_name": mongo_file_name,
             "document_id": document_id,
-            "upload_date": datetime.utcnow(),
+            "upload_date": datetime.now(UTC),
             "uploaded_by": current_user.user_name,
             "state": ad.common.doc.DOCUMENT_STATE_UPLOADED,
             "tag_ids": document.tag_ids,
@@ -812,7 +820,7 @@ async def create_schema(
         "name": existing_schema["name"] if existing_schema else schema.name,
         "response_format": schema.response_format.dict(),
         "version": new_version,
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
         "organization_id": organization_id,
     }
@@ -930,7 +938,7 @@ async def update_schema(
         "name": schema.name,
         "response_format": schema.response_format.dict(),
         "version": new_version,
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
         "organization_id": organization_id,
     }
@@ -1079,7 +1087,7 @@ async def create_prompt(
         "schema_name": prompt.schema_name or "",
         "schema_version": prompt.schema_version or 0,
         "version": new_version,
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
         "tag_ids": prompt.tag_ids,
         "model": prompt.model,  # Add model field
@@ -1256,7 +1264,7 @@ async def update_prompt(
         "schema_name": prompt.schema_name or "",
         "schema_version": prompt.schema_version or 0,
         "version": new_version,
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
         "tag_ids": prompt.tag_ids,
         "model": prompt.model,  # Add model field
@@ -1491,7 +1499,7 @@ async def create_flow(
             "edges": jsonable_encoder(flow.edges),
             "tag_ids": flow.tag_ids,
             "version": 1,
-            "created_at": datetime.utcnow(),
+            "created_at": datetime.now(UTC),
             "created_by": current_user.user_name,
             "organization_id": organization_id  # Add organization_id
         }
@@ -1659,7 +1667,7 @@ async def update_flow(
             "edges": jsonable_encoder(flow.edges),
             "tag_ids": flow.tag_ids,
             "version": existing_flow.get("version", 1) + 1,
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(UTC)
         }
         
         # Update the flow
@@ -2405,8 +2413,8 @@ async def create_user(
             "role": "admin"
         }],
         "type": "individual",
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC)
     })
     
     return UserResponse(**user_doc)
@@ -3031,8 +3039,8 @@ async def accept_invitation(
                     "role": "admin"  # User is admin of their individual org
                 }],
                 "type": "individual",
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC)
             })
         
         # Mark invitation as accepted

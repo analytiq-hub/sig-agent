@@ -1,8 +1,7 @@
-from pydantic import BaseModel, Field, constr, ConfigDict
+from pydantic import BaseModel, Field, constr, ConfigDict, field_validator
 from datetime import datetime
 from typing import List, Literal, Optional, Any, Dict, Union, ForwardRef
 from enum import Enum
-from pydantic import validator
 
 # Pydantic models
 class User(BaseModel):
@@ -47,7 +46,7 @@ class DocumentResponse(BaseModel):
     metadata: DocumentMetadata
     content: str  # Changed from bytes to str since we're using base64 encoded string
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)  # Updated from class Config
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 class ListDocumentsResponse(BaseModel):
     documents: List[DocumentMetadata]
@@ -130,24 +129,29 @@ class JsonSchemaProperty(BaseModel):
 
 class ResponseFormat(BaseModel):
     type: Literal['json_schema']
-    json_schema: dict = Field(..., example={
-        "name": "document_extraction",
-        "schema": {
-            "type": "object",
-            "properties": {
-                "invoice_date": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "invoice date"
-                }
-            },
-            "required": ["invoice_date"],
-            "additionalProperties": False
-        },
-        "strict": True
-    })
+    json_schema: dict = Field(
+        ..., 
+        json_schema_extra={
+            "example": {
+                "name": "document_extraction",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "invoice_date": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "invoice date"
+                        }
+                    },
+                    "required": ["invoice_date"],
+                    "additionalProperties": False
+                },
+                "strict": True
+            }
+        }
+    )
 
-    @validator('json_schema')
+    @field_validator('json_schema')
     def validate_json_schema(cls, v):
         # Validate schema follows OpenAI format
         required_keys = {'name', 'schema', 'strict'}
