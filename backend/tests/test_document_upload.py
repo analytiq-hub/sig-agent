@@ -98,42 +98,69 @@ async def test_upload_document(test_db, test_pdf):
     }
     
     try:
-        # Make request to upload endpoint
-        response = client.post(
+        # Step 1: Upload the document
+        upload_response = client.post(
             f"/v0/orgs/{TEST_ORG_ID}/documents",
             json=upload_data,
             headers=get_auth_headers()
         )
 
-        # Check response
-        assert response.status_code == 200
-        data = response.json()
-        assert "uploaded_documents" in data
-        assert len(data["uploaded_documents"]) == 1
-        assert data["uploaded_documents"][0]["document_name"] == "test.pdf"
-
-        # List all collections in the database
-        collections = await test_db.list_collection_names()
-        ad.log.info(f"Collections in the database: {collections}")
-
-        # List all documents in the docs collection
-        docs = await test_db["docs"].find().to_list(length=None)
-        ad.log.info(f"Documents in the docs collection: {docs}")
-
-        # Verify document was saved in test database
-        doc = await test_db["docs"].find_one({
-            "organization_id": TEST_ORG_ID,
-            "user_file_name": "test.pdf"
-        })
-        assert doc is not None
-        assert doc["state"] == ad.common.doc.DOCUMENT_STATE_UPLOADED
-
-        # Verify file was saved
-        file = await test_db["files.files"].find_one({
-            "filename": doc["mongo_file_name"]
-        })
-        ad.log.info(f"File in the files.files collection: {file}")
-        assert file is not None
+        # Check upload response
+        assert upload_response.status_code == 200
+        upload_data = upload_response.json()
+        assert "uploaded_documents" in upload_data
+        assert len(upload_data["uploaded_documents"]) == 1
+        assert upload_data["uploaded_documents"][0]["document_name"] == "test.pdf"
+        
+        # Get the document ID from the upload response
+        document_id = upload_data["uploaded_documents"][0]["document_id"]
+        
+        # Step 2: List documents to verify it appears in the list
+        list_response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents",
+            headers=get_auth_headers()
+        )
+        
+        assert list_response.status_code == 200
+        list_data = list_response.json()
+        assert "documents" in list_data
+        assert len(list_data["documents"]) > 0
+        
+        # Find our document in the list
+        uploaded_doc = next((doc for doc in list_data["documents"] if doc["id"] == document_id), None)
+        assert uploaded_doc is not None
+        assert uploaded_doc["document_name"] == "test.pdf"
+        assert uploaded_doc["state"] == ad.common.doc.DOCUMENT_STATE_UPLOADED
+        
+        # Step 3: Get the specific document to verify its content
+        get_response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
+            headers=get_auth_headers()
+        )
+        
+        assert get_response.status_code == 200
+        doc_data = get_response.json()
+        assert "metadata" in doc_data
+        assert doc_data["metadata"]["id"] == document_id
+        assert doc_data["metadata"]["document_name"] == "test.pdf"
+        assert doc_data["metadata"]["state"] == ad.common.doc.DOCUMENT_STATE_UPLOADED
+        assert "content" in doc_data  # Verify the PDF content is returned
+        
+        # Optional: For completeness, test document deletion
+        delete_response = client.delete(
+            f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
+            headers=get_auth_headers()
+        )
+        
+        assert delete_response.status_code == 200
+        
+        # Verify document is gone
+        get_deleted_response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
+            headers=get_auth_headers()
+        )
+        
+        assert get_deleted_response.status_code == 404
 
     finally:
         app.dependency_overrides.clear()
