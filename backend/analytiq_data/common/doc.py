@@ -97,7 +97,7 @@ async def delete_doc(analytiq_client, document_id: str, organization_id: str):
     })
 
     # Delete all LLM results for the document
-    ad.llm.delete_llm_result(analytiq_client, document_id=document_id)
+    await ad.llm.delete_llm_result(analytiq_client, document_id=document_id)
 
     # Delete all OCR results for the document
     ad.common.delete_ocr_all(analytiq_client, document_id=document_id)
