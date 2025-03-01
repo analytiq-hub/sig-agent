@@ -80,13 +80,18 @@ async def test_db_connection(mock_db):
     """Test database connection"""
     assert mock_db is not None
 
+    ad.log.info(f"test_db_connection() start")
+
     # List all collections in the database
     collections = await mock_db.list_collection_names()
-    print(collections)
+    ad.log.info(f"Collections in the database: {collections}")
+    ad.log.info(f"test_db_connection() end")
 
 @pytest.mark.asyncio
 async def test_upload_document(mock_db, mock_analytiq_client, test_pdf):
     """Test document upload endpoint"""
+
+    ad.log.info(f"test_upload_document() start")
     
     # No need to await mock_db, it's already resolved
     # Prepare test data
@@ -131,11 +136,11 @@ async def test_upload_document(mock_db, mock_analytiq_client, test_pdf):
 
         # List all collections in the database
         collections = await mock_db.list_collection_names()
-        print(f"Collections in the database: {collections}")
+        ad.log.info(f"Collections in the database: {collections}")
 
         # List all documents in the docs collection
         docs = await mock_db["docs"].find().to_list(length=None)
-        print(f"Documents in the docs collection: {docs}")
+        ad.log.info(f"Documents in the docs collection: {docs}")
 
         # Verify document was saved in mock database
         doc = await mock_db["docs"].find_one({  # Use mock_db directly
@@ -149,7 +154,10 @@ async def test_upload_document(mock_db, mock_analytiq_client, test_pdf):
         file = await mock_db["files.files"].find_one({  # Use mock_db directly
             "filename": doc["mongo_file_name"]
         })
+        ad.log.info(f"File in the files.files collection: {file}")
         assert file is not None
 
     finally:
         app.dependency_overrides.clear()
+
+    ad.log.info(f"test_upload_document() end")
