@@ -10,11 +10,15 @@ from unittest.mock import patch
 from fastapi import Security
 from fastapi.security import HTTPAuthorizationCredentials
 
+# Set test environment variables before importing the application
+os.environ["ENV"] = "pytest"
+os.environ["MONGODB_URI"] = "mongodb://localhost:27017"
+
 # Set up the path first, before other imports
 cwd = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(f"{cwd}/..")
 
-# Import the FastAPI app and dependencies
+# Now import the FastAPI app and dependencies
 from api.main import app, security, get_current_user
 from api.schemas import User
 import analytiq_data as ad
@@ -31,10 +35,6 @@ TEST_USER = User(
 
 TEST_ORG_ID = "test_org_123"
 
-# Test database configuration
-TEST_DB_NAME = "test_db"
-MONGODB_URI = os.getenv("TEST_MONGODB_URI", "mongodb://localhost:27017")
-
 @pytest.fixture
 def test_pdf():
     """Create a small test PDF file"""
@@ -46,9 +46,9 @@ def test_pdf():
 
 @pytest_asyncio.fixture
 async def test_db():
-    """Create a test MongoDB client with a real database"""
-    client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
-    db = client[TEST_DB_NAME]
+    """Set up and tear down the test database"""
+    client = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URI"])
+    db = client[os.environ["ENV"]]
     
     # Clear the database before each test
     collections = await db.list_collection_names()
@@ -58,21 +58,9 @@ async def test_db():
     yield db
     
     # Clean up after test
-    # collections = await db.list_collection_names()
-    # for collection in collections:
-    #     await db.drop_collection(collection)
-
-@pytest.fixture
-def test_analytiq_client(test_db):
-    """Create a test AnalytiqClient that uses the test database"""
-    class TestAnalytiqClient:
-        def __init__(self):
-            self.env = TEST_DB_NAME
-            self.name = "test"
-            self.mongodb_async = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
-            self.mongodb = None
-
-    return TestAnalytiqClient()
+    collections = await db.list_collection_names()
+    for collection in collections:
+        await db.drop_collection(collection)
 
 def get_auth_headers():
     """Get authentication headers for test requests"""
@@ -82,19 +70,9 @@ def get_auth_headers():
     }
 
 @pytest.mark.asyncio
-async def test_upload_document(test_db, test_analytiq_client, test_pdf):
+async def test_upload_document(test_db, test_pdf):
     """Test document upload endpoint"""
     ad.log.info(f"test_upload_document() start")
-    
-    # Patch the get_analytiq_client function to ensure our test client is used
-    original_get_analytiq_client = ad.common.get_analytiq_client
-    
-    def patched_get_analytiq_client():
-        ad.log.info("Using patched get_analytiq_client")
-        return test_analytiq_client
-    
-    # Apply the patch
-    ad.common.get_analytiq_client = patched_get_analytiq_client
     
     # Prepare test data
     upload_data = {
@@ -113,12 +91,10 @@ async def test_upload_document(test_db, test_analytiq_client, test_pdf):
         credentials="test_token"
     )
 
-    # Override dependencies
+    # Override only authentication dependencies
     app.dependency_overrides = {
         security: lambda: mock_credentials,
-        get_current_user: lambda: TEST_USER,
-        ad.common.get_async_db: lambda: test_db,
-        ad.common.get_analytiq_client: patched_get_analytiq_client
+        get_current_user: lambda: TEST_USER
     }
     
     try:
@@ -161,7 +137,5 @@ async def test_upload_document(test_db, test_analytiq_client, test_pdf):
 
     finally:
         app.dependency_overrides.clear()
-        # Restore the original function
-        ad.common.get_analytiq_client = original_get_analytiq_client
 
     ad.log.info(f"test_upload_document() end")
