@@ -202,9 +202,12 @@ async def test_upload_document(test_db, pdf_fixture, request):
     ad.log.info(f"test_upload_document() end with {test_pdf['name']}")
 
 @pytest.mark.asyncio
-async def test_document_lifecycle(test_db, test_pdf):
+async def test_document_lifecycle(test_db, small_pdf):
     """Test the complete document lifecycle including tags"""
     ad.log.info(f"test_document_lifecycle() start")
+    
+    # Use small_pdf instead of test_pdf
+    test_pdf = small_pdf
     
     # Create proper credentials object
     mock_credentials = HTTPAuthorizationCredentials(
