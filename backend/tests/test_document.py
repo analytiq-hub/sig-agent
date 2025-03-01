@@ -146,6 +146,11 @@ async def test_upload_document(test_db, test_pdf):
         assert doc_data["metadata"]["state"] == ad.common.doc.DOCUMENT_STATE_UPLOADED
         assert "content" in doc_data  # Verify the PDF content is returned
         
+        # Verify the content matches what we uploaded
+        original_content = base64.b64decode(test_pdf["content"].split(',')[1])
+        retrieved_content = base64.b64decode(doc_data["content"])
+        assert original_content == retrieved_content, "Retrieved document content doesn't match the uploaded content"
+        
         # Optional: For completeness, test document deletion
         delete_response = client.delete(
             f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
