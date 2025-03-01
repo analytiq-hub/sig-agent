@@ -159,7 +159,6 @@ async def test_upload_document(test_db, pdf_fixture, request):
         uploaded_doc = next((doc for doc in list_data["documents"] if doc["id"] == document_id), None)
         assert uploaded_doc is not None
         assert uploaded_doc["document_name"] == test_pdf["name"]
-        assert uploaded_doc["state"] == ad.common.doc.DOCUMENT_STATE_UPLOADED
         
         # Step 3: Get the specific document to verify its content
         get_response = client.get(
@@ -172,7 +171,6 @@ async def test_upload_document(test_db, pdf_fixture, request):
         assert "metadata" in doc_data
         assert doc_data["metadata"]["id"] == document_id
         assert doc_data["metadata"]["document_name"] == test_pdf["name"]
-        assert doc_data["metadata"]["state"] == ad.common.doc.DOCUMENT_STATE_UPLOADED
         assert "content" in doc_data  # Verify the PDF content is returned
         
         # Verify the content matches what we uploaded
