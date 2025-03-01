@@ -1,10 +1,13 @@
 # [Smart Document Router](https://docrouter.ai)
 
+[![Backend Tests](https://github.com/analytiq-hub/doc-router/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/analytiq-hub/doc-router/actions/workflows/backend-tests.yml)
+[![Coverage](https://raw.githubusercontent.com/analytiq-hub/doc-router/main/docs/assets/coverage.svg)](https://github.com/analytiq-hub/doc-router/actions/workflows/backend-tests.yml)
+
 The [Smart Document Router](https://docrouter.ai) is an open source Document Understanding and Data Extraction tool. It is like [LLamaCloud](https://docs.llamaindex.ai), but for Enterprises using ERP systems.
 * It ingests unstructured docs from faxes, email, and ERPs.
 * It selects streams of docs that can be processed autonomously with LLMs and NLP - reducing the need for time-consuming, expensive manual workflows.
 
-The Document Router is designed to work with a human-in-the-loop and can processes financial data correctly ‘on the nose’. (We are not doing RAG!)
+The Document Router is designed to work with a human-in-the-loop and can processes financial data correctly 'on the nose'. (We are not doing RAG!)
 
 Tech stack:
 * NextJS, NextAuth, MaterialUI, TailwindCSS
