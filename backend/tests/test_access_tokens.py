@@ -1,5 +1,6 @@
 import pytest
 from bson import ObjectId
+import os
 
 # Import shared test utilities
 from .test_utils import (
@@ -7,6 +8,9 @@ from .test_utils import (
     test_db, get_auth_headers, mock_auth
 )
 import analytiq_data as ad
+
+# Check that ENV is set to pytest
+assert os.environ["ENV"] == "pytest"
 
 @pytest.mark.asyncio
 async def test_access_tokens(test_db, mock_auth):

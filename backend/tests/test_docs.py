@@ -1,6 +1,5 @@
 import pytest
 import pytest_asyncio
-from fastapi.testclient import TestClient
 import base64
 import os
 import sys
@@ -21,6 +20,9 @@ from .test_utils import (
     test_db, get_auth_headers, mock_auth
 )
 import analytiq_data as ad
+
+# Check that ENV is set to pytest
+assert os.environ["ENV"] == "pytest"
 
 @pytest.fixture
 def small_pdf():
@@ -54,37 +56,6 @@ def large_pdf():
         "name": "large_test.pdf",
         "content": f"data:application/pdf;base64,{base64.b64encode(pdf_content).decode()}"
     }
-
-@pytest_asyncio.fixture
-async def test_db():
-    """Set up and tear down the test database"""
-    client = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URI"])
-    db = client[os.environ["ENV"]]
-    
-    # Clear the database before each test
-    collections = await db.list_collection_names()
-    for collection in collections:
-        await db.drop_collection(collection)
-    
-    # Create a test organization in the database
-    await db.organizations.insert_one({
-        "_id": ObjectId(TEST_ORG_ID),
-        "name": "Test Organization",
-        "members": [{
-            "user_id": TEST_USER.user_id,
-            "role": "admin"
-        }],
-        "type": "team",
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC)
-    })
-    
-    yield db
-    
-    # Clean up after test
-    collections = await db.list_collection_names()
-    for collection in collections:
-        await db.drop_collection(collection)
 
 def get_auth_headers():
     """Get authentication headers for test requests"""

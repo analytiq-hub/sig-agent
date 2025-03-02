@@ -13,11 +13,6 @@ from fastapi.testclient import TestClient
 from fastapi.security import HTTPAuthorizationCredentials
 from bson import ObjectId
 
-# Set test environment variables
-os.environ["ENV"] = "pytest"
-os.environ["MONGODB_URI"] = "mongodb://localhost:27017"
-os.environ["FASTAPI_SECRET"] = "test_secret_key_for_tests"
-
 # Set up the path first, before other imports
 cwd = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(f"{cwd}/..")
@@ -26,6 +21,15 @@ sys.path.append(f"{cwd}/..")
 from api.main import app, security, get_current_user
 from api.schemas import User
 import analytiq_data as ad
+
+def setup_env():
+    """Set up the environment variables for the tests"""
+    os.environ["ENV"] = "pytest"
+    os.environ["MONGODB_URI"] = "mongodb://localhost:27017"
+    os.environ["FASTAPI_SECRET"] = "test_secret_key_for_tests"
+
+# Set test environment variables
+setup_env()
 
 # Create a test client
 client = TestClient(app)
@@ -45,6 +49,10 @@ async def test_db():
     """Set up and tear down the test database"""
     client = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URI"])
     db = client[os.environ["ENV"]]
+    
+    # Verify we're using the test database
+    if os.environ["ENV"] != "pytest":
+        raise ValueError(f"Test is not using the test database! ENV={os.environ['ENV']}")
     
     # Clear the database before each test
     collections = await db.list_collection_names()
@@ -66,10 +74,14 @@ async def test_db():
     
     yield db
     
-    # Clean up after test
-    collections = await db.list_collection_names()
-    for collection in collections:
-        await db.drop_collection(collection)
+    # Clean up after test - ONLY if we're using the test database
+    if os.environ["ENV"] == "pytest":
+        collections = await db.list_collection_names()
+        for collection in collections:
+            await db.drop_collection(collection)
+    else:
+        # This should never happen, but just in case
+        raise ValueError(f"Attempted to clean up non-test database! ENV={os.environ['ENV']}")
 
 def get_auth_headers():
     """Get authentication headers for test requests"""
