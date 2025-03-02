@@ -38,6 +38,11 @@ TEST_USER = User(
 # Use a valid ObjectId format (24-character hex string)
 TEST_ORG_ID = "6579a94b1f1d8f5a8e9c0123"
 
+# Import shared test utilities
+from .test_utils import (
+    test_db, get_auth_headers, mock_auth
+)
+
 @pytest.fixture
 def small_pdf():
     """Create a minimal test PDF file"""
@@ -111,7 +116,7 @@ def get_auth_headers():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("pdf_fixture", ["small_pdf", "large_pdf"])
-async def test_upload_document(test_db, pdf_fixture, request):
+async def test_upload_document(test_db, pdf_fixture, request, mock_auth):
     """Test document upload endpoint with different PDF sizes"""
     # Get the actual PDF fixture using the fixture name
     test_pdf = request.getfixturevalue(pdf_fixture)
@@ -129,18 +134,6 @@ async def test_upload_document(test_db, pdf_fixture, request):
         ]
     }
 
-    # Create proper credentials object
-    mock_credentials = HTTPAuthorizationCredentials(
-        scheme="Bearer",
-        credentials="test_token"
-    )
-
-    # Override only authentication dependencies
-    app.dependency_overrides = {
-        security: lambda: mock_credentials,
-        get_current_user: lambda: TEST_USER
-    }
-    
     try:
         # Step 1: Upload the document
         upload_response = client.post(
@@ -215,24 +208,12 @@ async def test_upload_document(test_db, pdf_fixture, request):
     ad.log.info(f"test_upload_document() end with {test_pdf['name']}")
 
 @pytest.mark.asyncio
-async def test_document_lifecycle(test_db, small_pdf):
+async def test_document_lifecycle(test_db, small_pdf, mock_auth):
     """Test the complete document lifecycle including tags"""
     ad.log.info(f"test_document_lifecycle() start")
     
     # Use small_pdf instead of test_pdf
     test_pdf = small_pdf
-    
-    # Create proper credentials object
-    mock_credentials = HTTPAuthorizationCredentials(
-        scheme="Bearer",
-        credentials="test_token"
-    )
-
-    # Override only authentication dependencies
-    app.dependency_overrides = {
-        security: lambda: mock_credentials,
-        get_current_user: lambda: TEST_USER
-    }
     
     try:
         # Step 1: Create a tag
@@ -365,6 +346,6 @@ async def test_document_lifecycle(test_db, small_pdf):
         assert get_deleted_response.status_code == 404
 
     finally:
-        app.dependency_overrides.clear()
+        pass  # mock_auth fixture handles cleanup
 
     ad.log.info(f"test_document_lifecycle() end")
