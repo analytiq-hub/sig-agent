@@ -12,36 +12,15 @@ from fastapi import Security
 from fastapi.security import HTTPAuthorizationCredentials
 from bson import ObjectId
 
-# Set test environment variables before importing the application
-os.environ["ENV"] = "pytest"
-os.environ["MONGODB_URI"] = "mongodb://localhost:27017"
-
-# Set up the path first, before other imports
-cwd = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(f"{cwd}/..")
-
-# Now import the FastAPI app and dependencies
-from api.main import app, security, get_current_user
-from api.schemas import User
-import analytiq_data as ad
-
-# Create a test client
-client = TestClient(app)
-
-# Test data
-TEST_USER = User(
-    user_id="test123",
-    user_name="test@example.com",
-    token_type="jwt"
-)
-
-# Use a valid ObjectId format (24-character hex string)
-TEST_ORG_ID = "6579a94b1f1d8f5a8e9c0123"
+import pytest
+from bson import ObjectId
 
 # Import shared test utilities
 from .test_utils import (
+    client, TEST_USER, TEST_ORG_ID, 
     test_db, get_auth_headers, mock_auth
 )
+import analytiq_data as ad
 
 @pytest.fixture
 def small_pdf():
@@ -203,7 +182,7 @@ async def test_upload_document(test_db, pdf_fixture, request, mock_auth):
         assert get_deleted_response.status_code == 404
 
     finally:
-        app.dependency_overrides.clear()
+        pass  # mock_auth fixture handles cleanup
 
     ad.log.info(f"test_upload_document() end with {test_pdf['name']}")
 
