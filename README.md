@@ -10,7 +10,6 @@ The Document Router is designed to work with a human-in-the-loop and can process
 
 Tech stack:
 * NextJS, NextAuth, MaterialUI, TailwindCSS
-  * Future:
 * FastAPI
 * MongoDB
 * Pydantic
