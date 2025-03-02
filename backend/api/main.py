@@ -818,7 +818,7 @@ async def create_schema(
     # Create schema document
     schema_dict = {
         "name": existing_schema["name"] if existing_schema else schema.name,
-        "response_format": schema.response_format.dict(),
+        "response_format": schema.response_format.model_dump(),
         "version": new_version,
         "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
@@ -936,7 +936,7 @@ async def update_schema(
     # Create new version of the schema
     new_schema = {
         "name": schema.name,
-        "response_format": schema.response_format.dict(),
+        "response_format": schema.response_format.model_dump(),
         "version": new_version,
         "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
