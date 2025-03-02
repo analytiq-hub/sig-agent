@@ -1,7 +1,6 @@
 # [Smart Document Router](https://docrouter.ai)
 
 [![Backend Tests](https://github.com/analytiq-hub/doc-router/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/analytiq-hub/doc-router/actions/workflows/backend-tests.yml)
-[![Coverage](https://raw.githubusercontent.com/analytiq-hub/doc-router/main/docs/assets/coverage.svg)](https://github.com/analytiq-hub/doc-router/actions/workflows/backend-tests.yml)
 
 The [Smart Document Router](https://docrouter.ai) is an open source Document Understanding and Data Extraction tool. It is like [LLamaCloud](https://docs.llamaindex.ai), but for Enterprises using ERP systems.
 * It ingests unstructured docs from faxes, email, and ERPs.
