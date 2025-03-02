@@ -10,6 +10,7 @@ import motor.motor_asyncio
 from unittest.mock import patch
 from fastapi import Security
 from fastapi.security import HTTPAuthorizationCredentials
+from bson import ObjectId
 
 # Set test environment variables before importing the application
 os.environ["ENV"] = "pytest"
@@ -34,7 +35,8 @@ TEST_USER = User(
     token_type="jwt"
 )
 
-TEST_ORG_ID = "test_org_123"
+# Use a valid ObjectId format (24-character hex string)
+TEST_ORG_ID = "6579a94b1f1d8f5a8e9c0123"
 
 @pytest.fixture
 def small_pdf():
@@ -79,6 +81,19 @@ async def test_db():
     collections = await db.list_collection_names()
     for collection in collections:
         await db.drop_collection(collection)
+    
+    # Create a test organization in the database
+    await db.organizations.insert_one({
+        "_id": ObjectId(TEST_ORG_ID),
+        "name": "Test Organization",
+        "members": [{
+            "user_id": TEST_USER.user_id,
+            "role": "admin"
+        }],
+        "type": "team",
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC)
+    })
     
     yield db
     
