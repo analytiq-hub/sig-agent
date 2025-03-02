@@ -33,6 +33,92 @@
             opacity: 1;
             pointer-events: auto;
         }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.8);
+        }
+        
+        .modal-content {
+            position: relative;
+            margin: 5% auto;
+            width: 90%;
+            max-width: 800px;
+        }
+        
+        .close {
+            position: absolute;
+            right: -30px;
+            top: -30px;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 101;
+        }
+        
+        /* Video container for the modal */
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+        }
+        
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0.5rem;
+        }
+        
+        /* Compact video thumbnail */
+        .video-thumbnail {
+            display: flex;
+            align-items: center;
+            background-color: #EBF5FF;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-bottom: 1rem;
+        }
+        
+        .video-thumbnail:hover {
+            background-color: #DBEAFE;
+        }
+        
+        .thumbnail-img {
+            width: 120px;
+            height: 68px;
+            border-radius: 0.25rem;
+            object-fit: cover;
+            margin-right: 1rem;
+            position: relative;
+        }
+        
+        .play-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(37, 99, 235, 0.8);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -112,16 +198,39 @@
                 <p class="text-gray-600 mb-6">
                     The <a href="https://github.com/analytiq-hub/doc-router" class="text-blue-600 hover:text-blue-800">Smart Document Router</a> processes documents from multiple sources and enriches them with AI for seamless ERP integration.
                 </p>
-                <div class="bg-gray-50 rounded-lg p-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-3">Key Features</h3>
-                    <ul class="list-disc list-inside text-gray-600 space-y-2">
-                        <li>Ingests unstructured docs from faxes, email, and ERPs</li>
-                        <li>Autonomous processing with LLMs and NLP</li>
-                        <li>Human-in-the-loop design for financial accuracy</li>
-                        <li>Direct ERP integration capabilities</li>
-                        <li>REST APIs for all functions</li>
-                        <li>Open source (<a href="https://github.com/analytiq-hub/doc-router" class="text-blue-600 hover:text-blue-800">github</a>)</li>
-                    </ul>
+                
+                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                    <!-- Video Thumbnail - Left Column -->
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-3">Get Started</h3>
+                        <div class="video-thumbnail" onclick="openVideoModal()" style="margin-bottom: 0;">
+                            <div style="position: relative;">
+                                <img src="https://img.youtube.com/vi/rvnPIYo1jmM/mqdefault.jpg" alt="Get Started Video" class="thumbnail-img">
+                                <div class="play-icon">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-medium text-gray-900">Watch Video</h3>
+                                <p class="text-sm text-gray-600">Quick overview</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Key Features - Right Column -->
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-3">Key Features</h3>
+                        <ul class="list-disc list-inside text-gray-600 space-y-2">
+                            <li>Ingests unstructured docs from faxes, email, and ERPs</li>
+                            <li>Autonomous processing with LLMs and NLP</li>
+                            <li>Human-in-the-loop design for financial accuracy</li>
+                            <li>Direct ERP integration capabilities</li>
+                            <li>REST APIs for all functions</li>
+                            <li>Open source (<a href="https://github.com/analytiq-hub/doc-router" class="text-blue-600 hover:text-blue-800">github</a>)</li>
+                        </ul>
+                    </div>
                 </div>
             </section>
 
@@ -448,6 +557,21 @@ cd ../frontend; npm install; cd ..
         </footer>
     </div>
 
+    <div id="videoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeVideoModal()">&times;</span>
+            <div class="video-container">
+                <iframe id="videoFrame"
+                    title="YouTube video player" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                    referrerpolicy="strict-origin-when-cross-origin" 
+                    allowfullscreen>
+                </iframe>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Function to get the active section based on scroll position
         function getActiveSection() {
@@ -549,6 +673,41 @@ cd ../frontend; npm install; cd ..
                 button.classList.add('rounded-t-lg');
             }
         }
+
+        function openVideoModal() {
+            const modal = document.getElementById('videoModal');
+            const videoFrame = document.getElementById('videoFrame');
+            videoFrame.src = "https://www.youtube.com/embed/rvnPIYo1jmM?si=TRKxv_tsKiIjNXxF&autoplay=1";
+            modal.style.display = "block";
+            
+            // Prevent scrolling when modal is open
+            document.body.style.overflow = "hidden";
+        }
+        
+        function closeVideoModal() {
+            const modal = document.getElementById('videoModal');
+            const videoFrame = document.getElementById('videoFrame');
+            videoFrame.src = "";
+            modal.style.display = "none";
+            
+            // Re-enable scrolling
+            document.body.style.overflow = "auto";
+        }
+        
+        // Close modal when clicking outside of it
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('videoModal');
+            if (event.target == modal) {
+                closeVideoModal();
+            }
+        });
+        
+        // Close modal with Escape key
+        window.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeVideoModal();
+            }
+        });
     </script>
 </body>
 </html> 
