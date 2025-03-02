@@ -220,101 +220,101 @@ async def test_json_schema_lifecycle(test_db, mock_auth):
     
     ad.log.info(f"test_json_schema_lifecycle() end")
 
-# @pytest.mark.asyncio
-# async def test_schema_validation(test_db, mock_auth):
-#     """Test schema validation functionality"""
-#     ad.log.info(f"test_schema_validation() start")
+@pytest.mark.asyncio
+async def test_schema_validation(test_db, mock_auth):
+    """Test schema validation functionality"""
+    ad.log.info(f"test_schema_validation() start")
     
-#     try:
-#         # Step 1: Create a simple JSON schema for validation testing
-#         schema_data = {
-#             "name": "Simple Test Schema",
-#             "response_format": {
-#                 "type": "json_schema",
-#                 "json_schema": {
-#                     "name": "validation_test",
-#                     "schema": {
-#                         "type": "object",
-#                         "additionalProperties": False,
-#                         "properties": {
-#                             "name": {
-#                                 "type": "string",
-#                                 "minLength": 3
-#                             },
-#                             "age": {
-#                                 "type": "integer",
-#                                 "minimum": 18
-#                             },
-#                             "email": {
-#                                 "type": "string",
-#                                 "format": "email"
-#                             }
-#                         },
-#                         "required": ["name", "age", "email"]
-#                     },
-#                     "strict": True
-#                 }
-#             }
-#         }
+    try:
+        # Step 1: Create a simple JSON schema for validation testing
+        schema_data = {
+            "name": "Simple Test Schema",
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "validation_test",
+                    "schema": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "minLength": 3
+                            },
+                            "age": {
+                                "type": "integer",
+                                "minimum": 18
+                            },
+                            "email": {
+                                "type": "string",
+                                "format": "email"
+                            }
+                        },
+                        "required": ["name", "age", "email"]
+                    },
+                    "strict": True
+                }
+            }
+        }
         
-#         create_response = client.post(
-#             f"/v0/orgs/{TEST_ORG_ID}/schemas",
-#             json=schema_data,
-#             headers=get_auth_headers()
-#         )
+        create_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas",
+            json=schema_data,
+            headers=get_auth_headers()
+        )
         
-#         assert create_response.status_code == 200
-#         schema_result = create_response.json()
-#         schema_id = schema_result["id"]
+        assert create_response.status_code == 200
+        schema_result = create_response.json()
+        schema_id = schema_result["id"]
         
-#         # Step 2: Test validation with valid data
-#         valid_data = {
-#             "data": {
-#                 "name": "John Doe",
-#                 "age": 25,
-#                 "email": "john.doe@example.com"
-#             }
-#         }
+        # Step 2: Test validation with valid data
+        valid_data = {
+            "data": {
+                "name": "John Doe",
+                "age": 25,
+                "email": "john.doe@example.com"
+            }
+        }
         
-#         valid_validation_response = client.post(
-#             f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}/validate",
-#             json=valid_data,
-#             headers=get_auth_headers()
-#         )
+        valid_validation_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}/validate",
+            json=valid_data,
+            headers=get_auth_headers()
+        )
         
-#         assert valid_validation_response.status_code == 200
-#         valid_result = valid_validation_response.json()
-#         assert valid_result["valid"] is True
-#         assert "errors" not in valid_result or len(valid_result["errors"]) == 0
+        assert valid_validation_response.status_code == 200
+        valid_result = valid_validation_response.json()
+        assert valid_result["valid"] is True
+        assert "errors" not in valid_result or len(valid_result["errors"]) == 0
         
-#         # Step 3: Test validation with invalid data
-#         invalid_data = {
-#             "data": {
-#                 "name": "Jo",  # Too short
-#                 "age": 16,     # Below minimum
-#                 "email": "not-an-email"  # Invalid email format
-#             }
-#         }
+        # Step 3: Test validation with invalid data
+        invalid_data = {
+            "data": {
+                "name": "Jo",  # Too short
+                "age": 16,     # Below minimum
+                "email": "not-an-email"  # Invalid email format
+            }
+        }
         
-#         invalid_validation_response = client.post(
-#             f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}/validate",
-#             json=invalid_data,
-#             headers=get_auth_headers()
-#         )
+        invalid_validation_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}/validate",
+            json=invalid_data,
+            headers=get_auth_headers()
+        )
         
-#         assert invalid_validation_response.status_code == 200
-#         invalid_result = invalid_validation_response.json()
-#         assert invalid_result["valid"] is False
-#         assert "errors" in invalid_result
-#         assert len(invalid_result["errors"]) > 0
+        assert invalid_validation_response.status_code == 200
+        invalid_result = invalid_validation_response.json()
+        assert invalid_result["valid"] is False
+        assert "errors" in invalid_result
+        assert len(invalid_result["errors"]) > 0
         
-#         # Clean up
-#         client.delete(
-#             f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}",
-#             headers=get_auth_headers()
-#         )
+        # Clean up
+        client.delete(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}",
+            headers=get_auth_headers()
+        )
         
-#     finally:
-#         pass  # mock_auth fixture handles cleanup
+    finally:
+        pass  # mock_auth fixture handles cleanup
     
-#     ad.log.info(f"test_schema_validation() end") 
+    ad.log.info(f"test_schema_validation() end") 

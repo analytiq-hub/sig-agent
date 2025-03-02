@@ -34,6 +34,7 @@ from bson import ObjectId
 from jose import JWTError, jwt
 from bcrypt import hashpw, gensalt
 from dotenv import load_dotenv
+from jsonschema import validate, ValidationError, Draft7Validator
 
 # Local imports
 from api import email_utils, startup, organizations, users, limits
@@ -1002,6 +1003,64 @@ async def delete_schema(
         raise HTTPException(status_code=404, detail="Schema not found")
         
     return {"message": "Schema deleted successfully"}
+
+@app.post("/v0/orgs/{organization_id}/schemas/{schema_id}/validate", tags=["schemas"])
+async def validate_against_schema(
+    organization_id: str,
+    schema_id: str,
+    data: dict = Body(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Validate data against a schema"""
+    ad.log.info(f"validate_against_schema() start: organization_id: {organization_id}, schema_id: {schema_id}")
+    
+    db = ad.common.get_async_db()
+    
+    # Get the schema
+    schema_doc = await db.schemas.find_one({
+        "_id": ObjectId(schema_id),
+        "organization_id": organization_id
+    })
+    
+    if not schema_doc:
+        raise HTTPException(status_code=404, detail="Schema not found")
+    
+    # Extract the JSON schema from the schema document
+    try:
+        json_schema = schema_doc["response_format"]["json_schema"]["schema"]
+        
+        # Get the data to validate
+        if "data" not in data:
+            raise HTTPException(status_code=400, detail="Request must include 'data' field")
+        
+        instance_data = data["data"]
+        
+        # Validate the data against the schema
+        validator = Draft7Validator(json_schema)
+        errors = list(validator.iter_errors(instance_data))
+        
+        if not errors:
+            return {"valid": True}
+        
+        # Format validation errors
+        formatted_errors = []
+        for error in errors:
+            formatted_errors.append({
+                "path": ".".join(str(p) for p in error.path) if error.path else "",
+                "message": error.message
+            })
+        
+        return {
+            "valid": False,
+            "errors": formatted_errors
+        }
+    
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid schema format: {str(e)}")
+    except Exception as e:
+        ad.log.error(f"Error validating data: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error validating data: {str(e)}")
+
 
 # Add this validation function
 def validate_schema_fields(fields: list) -> tuple[bool, str]:
@@ -3123,7 +3182,6 @@ async def delete_account_token(
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
-
 
 if __name__ == "__main__":
     import uvicorn
