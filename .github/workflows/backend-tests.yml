@@ -5,10 +5,12 @@ on:
     branches: [ main, master, develop ]
     paths:
       - 'backend/**'
+      - '.github/**'
   pull_request:
     branches: [ main, master, develop ]
     paths:
       - 'backend/**'
+      - '.github/**'
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
