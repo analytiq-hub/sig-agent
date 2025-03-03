@@ -49,6 +49,22 @@ const TourGuide = () => {
       page: `/orgs/${currentOrganization?.id}/models?tab=prompts`
     },
     {
+        id: 'prompt-schema',
+        title: 'Assign Schema',
+        content: 'Assign a schema to your prompt.',
+        selector: '[data-tour="prompts-schema-select"]',
+        position: 'top',
+        page: `/orgs/${currentOrganization?.id}/models?tab=prompts`
+    },
+    {
+        id: 'prompt-model',
+        title: 'Assign Model',
+        content: 'Assign a model to your prompt.',
+        selector: '[data-tour="prompts-model-select"]',
+        position: 'top',
+        page: `/orgs/${currentOrganization?.id}/models?tab=prompts`
+    },
+    {
         id: 'upload',
         title: 'Upload Docs',
         content: 'Click here to upload your documents for processing.',
@@ -59,7 +75,7 @@ const TourGuide = () => {
     {
       id: 'documents',
       title: 'Documents',
-      content: 'View and manage your uploaded documents.',
+      content: 'Click on a document to view the extracted data.',
       selector: '[data-tour="documents-tab"]',
       position: 'bottom',
       page: `/orgs/${currentOrganization?.id}/list?tab=documents`
@@ -67,7 +83,7 @@ const TourGuide = () => {
     {
       id: 'tags',
       title: 'Configure Tags',
-      content: 'Set up tags to organize and categorize documents and prompts.',
+      content: 'With tags, you can determine which prompts are used for which documents.',
       selector: '[data-tour="tags-tab"]',
       position: 'bottom',
       page: `/orgs/${currentOrganization?.id}/list?tab=tags`
@@ -229,19 +245,13 @@ const TourGuide = () => {
   const startTour = () => {
     // Reset the tour flag using the same key pattern
     if (session?.user?.email) {
-      localStorage.removeItem(`hasSeenTour-${session.user.email}`);
+      const email = session.user.email;
+      localStorage.removeItem(`hasSeenTour-${email}`);
     } else {
       localStorage.removeItem('hasSeenTour');
     }
     
-    // If the startTourGuide function is available, use it directly
-    if (typeof window !== 'undefined' && window.startTourGuide) {
-      window.startTourGuide();
-    } else {
-      // Otherwise reload the page to trigger the tour
-      window.location.reload();
-    }
-    
+    setCurrentStep(0); // Reset to first step
     setShowTour(true);
   };
 

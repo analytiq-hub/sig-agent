@@ -397,7 +397,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           <div className="flex gap-4">
             <div className="w-1/2 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700" data-tour="prompts-schema-select">
                   Schema (Optional)
                 </label>
                 <select
@@ -416,7 +416,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700" data-tour="prompts-model-select">
                   Model
                 </label>
                 <select
