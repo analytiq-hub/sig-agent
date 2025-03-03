@@ -213,7 +213,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
               className="border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer hover:bg-gray-50 transition-colors"
             >
               <input {...getInputProps()} accept="application/pdf" />
-              <CloudUploadIcon sx={{ fontSize: 48, mb: 2, color: '#4B5563' }} />
+              <CloudUploadIcon sx={{ fontSize: 48, mb: 2, color: '#4B5563' }} data-tour="upload-files" />
               {isDragActive ? (
                 <Typography>Drop PDF files here ...</Typography>
               ) : (
@@ -400,7 +400,6 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
                 onClick={handleUpload}
                 disabled={uploading}
                 startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <CloudUploadIcon />}
-                data-tour="upload-button"
               >
                 {uploading ? 'Uploading...' : 'Upload Files'}
               </Button>

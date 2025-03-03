@@ -67,9 +67,9 @@ const TourGuide = () => {
     {
         id: 'upload',
         title: 'Upload Docs',
-        content: 'Click here to upload your documents for processing.',
-        selector: '[data-tour="upload-button"]',
-        position: 'right',
+        content: 'Upload your documents for processing.',
+        selector: '[data-tour="upload-files"]',
+        position: 'top',
         page: `/orgs/${currentOrganization?.id}/upload`
     },
     {
