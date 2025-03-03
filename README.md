@@ -8,7 +8,7 @@ The [Smart Document Router](https://docrouter.ai) is an open source Document Und
 
 The Document Router is designed to work with a human-in-the-loop and can processes financial data correctly 'on the nose'. (We are not doing RAG!)
 
-Tech stack:
+# Tech stack
 * NextJS, NextAuth, MaterialUI, TailwindCSS
 * FastAPI
 * MongoDB
