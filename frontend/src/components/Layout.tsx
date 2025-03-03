@@ -20,6 +20,7 @@ import {
 } from '@mui/icons-material';
 import { SvgIconProps } from '@mui/material';
 import { useRole } from '@/utils/useRole';
+import TourGuide from '@/components/TourGuide';
 
 // First, let's fix the type errors
 interface PDFViewerControlsType {
@@ -41,6 +42,7 @@ interface MenuItem {
   icon: React.ComponentType<SvgIconProps>;
   href: string;
   tooltip: string;
+  dataTour?: string;
 }
 
 interface LayoutProps {
@@ -57,15 +59,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isPDFViewer = pathname.includes('/pdf-viewer/');
   const [forceUpdate, setForceUpdate] = useState(0);
   const [pdfControls, setPdfControls] = useState<PDFViewerControlsType | null>(null);
+  const [showDebugControls] = useState(process.env.NODE_ENV === 'development');
 
   const fileMenuItems = [
     { text: 'Dashboard', icon: ChartPieIcon, tooltip: 'Dashboard', href: `/orgs/${currentOrganization?.id}/dashboard` },
-    { text: 'Upload', icon: ArrowUpTrayIcon, tooltip: 'Upload', href: `/orgs/${currentOrganization?.id}/upload` },
-    { text: 'Documents', icon: ListBulletIcon, tooltip: 'Documents', href: `/orgs/${currentOrganization?.id}/list` },
+    { text: 'Upload', icon: ArrowUpTrayIcon, tooltip: 'Upload', href: `/orgs/${currentOrganization?.id}/upload`},
+    { text: 'Documents', icon: ListBulletIcon, tooltip: 'Documents', href: `/orgs/${currentOrganization?.id}/list`},
   ];
 
   const modelMenuItems = [
-    { text: 'Models', icon: CubeIcon, tooltip: 'Models', href: `/orgs/${currentOrganization?.id}/models` },
+    { text: 'Models', icon: CubeIcon, tooltip: 'Models', href: `/orgs/${currentOrganization?.id}/models`},
   ];
 
   const flowMenuItems = [
@@ -230,6 +233,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {children}
         </main>
       </div>
+      
+      {/* Add the TourGuide component with a key to force remount */}
+      {status === 'authenticated' && (
+        <TourGuide key={`tour-${session?.user?.email}`} />
+      )}
+
+      {showDebugControls && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <button 
+            onClick={() => {
+              localStorage.removeItem('hasSeenTour');
+              window.location.reload();
+            }}
+            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+          >
+            Reset Tour
+          </button>
+        </div>
+      )}
     </div>
   );
 };

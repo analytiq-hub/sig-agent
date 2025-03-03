@@ -24,6 +24,7 @@ export default function ModelsPage({ params }: { params: { organizationId: strin
                 ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
+            data-tour="schemas-tab"
           >
             Schemas
           </button>
@@ -34,6 +35,7 @@ export default function ModelsPage({ params }: { params: { organizationId: strin
                 ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
+            data-tour="prompts-tab"
           >
             Prompts
           </button>
