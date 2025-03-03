@@ -12,6 +12,7 @@ import {
 import { Tag } from '@/types/index';
 import { DocumentWithContent } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
+import InfoTooltip from '@/components/InfoTooltip';
 
 interface DocumentUploadProps {
   organizationId: string;
@@ -99,14 +100,34 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
 
   return (
     <Box sx={{ textAlign: 'center' }}>
-      <div className="mb-4">
-        <Typography variant="subtitle1" className="mb-2 font-medium">Supported File Types:</Typography>
-        <div className="flex justify-center gap-2">
-          <div className="flex items-center bg-gray-100 rounded-full px-3 py-1">
-            <PictureAsPdfIcon className="text-red-600 mr-1" fontSize="small" />
-            <span className="text-sm">PDF</span>
-          </div>
-          {/* Add more file type chips here as needed */}
+      <div className="flex items-center justify-center gap-2 mb-6">
+        <h2 className="text-xl font-bold">Upload Documents</h2>
+        <InfoTooltip 
+          title="Document Upload"
+          content={
+            <>
+              <p className="mb-2">
+                Upload documents to be processed by AI models. Documents will be analyzed based on the tags you select.
+              </p>
+              <p className="mb-2">
+                Currently supported file formats:
+              </p>
+              <ul className="list-disc list-inside space-y-1 mb-2">
+                <li><strong>PDF files</strong> (.pdf) - Text and images will be extracted</li>
+              </ul>
+              <p className="mb-2">
+                <strong>Note:</strong> Select appropriate tags for your documents to ensure they're processed by the right prompts.
+              </p>
+            </>
+          }
+        />
+      </div>
+      
+      <div className="flex justify-center gap-2 mb-4">
+        <p>Supported formats:</p>
+        <div className="flex items-center bg-gray-100 rounded-full px-3 py-1">
+          <PictureAsPdfIcon className="text-red-600 mr-1" fontSize="small" />
+          <span className="text-sm">PDF</span>
         </div>
       </div>
       
