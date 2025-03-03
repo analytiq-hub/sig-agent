@@ -26,14 +26,6 @@ const TourGuide = () => {
   // Define the tour steps with useMemo
   const tourSteps = useMemo<TourStep[]>(() => [
     {
-      id: 'upload',
-      title: 'Upload Files',
-      content: 'Click here to upload your documents for processing.',
-      selector: '[data-tour="upload"]',
-      position: 'right',
-      page: `/orgs/${currentOrganization?.id}/upload`
-    },
-    {
       id: 'schemas',
       title: 'Create Schemas',
       content: 'Define document schemas to extract structured data from your documents.',
@@ -48,6 +40,14 @@ const TourGuide = () => {
       selector: '[data-tour="prompts-tab"]',
       position: 'bottom',
       page: `/orgs/${currentOrganization?.id}/models?tab=prompts`
+    },
+    {
+        id: 'upload',
+        title: 'Upload Docs',
+        content: 'Click here to upload your documents for processing.',
+        selector: '[data-tour="upload-button"]',
+        position: 'right',
+        page: `/orgs/${currentOrganization?.id}/upload`
     },
     {
       id: 'documents',

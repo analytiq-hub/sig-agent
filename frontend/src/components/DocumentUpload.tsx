@@ -176,6 +176,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
         onClick={handleUpload}
         disabled={files.length === 0 || uploading}
         startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <CloudUploadIcon />}
+        data-tour="upload-button"
       >
         {uploading ? 'Uploading...' : 'Upload'}
       </Button>
