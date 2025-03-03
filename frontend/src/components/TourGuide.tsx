@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -127,7 +127,32 @@ const TourGuide = () => {
     }
   }, [showTour, currentStep, tourSteps, router]);
 
-  // Position the tooltip based on the target element
+  // Memoize the functions with useCallback
+  const endTour = useCallback(() => {
+    setShowTour(false);
+    if (session?.user?.email) {
+      const tourKey = `hasSeenTour-${session.user.email}`;
+      localStorage.setItem(tourKey, 'true');
+    } else {
+      localStorage.setItem('hasSeenTour', 'true'); // Fallback
+    }
+  }, [session]);
+
+  // Add this function to manually start the tour
+  const startTour = useCallback(() => {
+    // Reset the tour flag using the same key pattern
+    if (session?.user?.email) {
+      const email = session.user.email;
+      localStorage.removeItem(`hasSeenTour-${email}`);
+    } else {
+      localStorage.removeItem('hasSeenTour');
+    }
+    
+    setCurrentStep(0); // Reset to first step
+    setShowTour(true);
+  }, [session]);
+
+  // Now the useEffect hooks can safely reference these functions
   useEffect(() => {
     if (showTour && currentStep < tourSteps.length) {
       // Reset tooltip ready state when step changes
@@ -215,7 +240,7 @@ const TourGuide = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [showTour, currentStep, tourSteps]);
+  }, [showTour, currentStep, tourSteps, endTour]);
 
   const nextStep = () => {
     if (currentStep < tourSteps.length - 1) {
@@ -231,30 +256,6 @@ const TourGuide = () => {
     }
   };
 
-  const endTour = () => {
-    setShowTour(false);
-    if (session?.user?.email) {
-      const tourKey = `hasSeenTour-${session.user.email}`;
-      localStorage.setItem(tourKey, 'true');
-    } else {
-      localStorage.setItem('hasSeenTour', 'true'); // Fallback
-    }
-  };
-
-  // Add this function to manually start the tour
-  const startTour = () => {
-    // Reset the tour flag using the same key pattern
-    if (session?.user?.email) {
-      const email = session.user.email;
-      localStorage.removeItem(`hasSeenTour-${email}`);
-    } else {
-      localStorage.removeItem('hasSeenTour');
-    }
-    
-    setCurrentStep(0); // Reset to first step
-    setShowTour(true);
-  };
-
   // Then update the useEffect
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -265,7 +266,7 @@ const TourGuide = () => {
         delete window.startTourGuide;
       }
     };
-  }, []);
+  }, [startTour]);
 
   if (!showTour) return null;
 
@@ -373,12 +374,16 @@ const TourGuide = () => {
             )}
           </div>
           <div>
-            <button 
-              onClick={endTour}
-              className="bg-white text-blue-600 px-3 py-1 rounded text-sm mr-2 hover:bg-blue-50"
+            <a 
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                endTour();
+              }}
+              className="text-white text-sm underline mr-4 hover:text-blue-100"
             >
-              Skip
-            </button>
+              Skip Tour
+            </a>
             <button 
               onClick={nextStep}
               className="bg-white text-blue-600 px-3 py-1 rounded text-sm hover:bg-blue-50"
