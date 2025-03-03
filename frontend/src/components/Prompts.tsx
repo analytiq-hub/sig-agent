@@ -11,6 +11,7 @@ import colors from 'tailwindcss/colors';
 import { isColorLight } from '@/utils/colors';
 import dynamic from 'next/dynamic';
 import { ResponseFormat } from '@/types/schemas';
+import InfoTooltip from '@/components/InfoTooltip';
 
 // Dynamically import MonacoEditor with no SSR
 const MonacoEditor = dynamic(() => import('./MonacoEditor'), {
@@ -370,9 +371,30 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     <div className="p-4 max-w-4xl mx-auto">
       {/* Prompt Creation Form */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-bold mb-4">
-          {currentPromptId ? 'Edit Prompt' : 'Create Prompt'}
-        </h2>
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-xl font-bold">
+            {currentPromptId ? 'Edit Prompt' : 'Create Prompt'}
+          </h2>
+          <InfoTooltip 
+            title="Configuring Prompts"
+            content={
+              <>
+                <p className="mb-2">
+                  Prompts are instructions that guide AI models to perform specific tasks. An effective prompt should be clear, specific, and provide necessary context.
+                </p>
+                <p className="mb-2">
+                  <strong>Schema Integration:</strong> Link a schema to ensure structured output in a consistent format.
+                </p>
+                <p className="mb-2">
+                  <strong>Model Selection:</strong> Choose the appropriate model based on task complexity and performance requirements.
+                </p>
+                <p>
+                  <strong>Tags:</strong> Use tags to organize and categorize your prompts for easier management.
+                </p>
+              </>
+            }
+          />
+        </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <input

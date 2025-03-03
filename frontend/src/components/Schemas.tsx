@@ -9,6 +9,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors'
 import Editor from "@monaco-editor/react";
+import InfoTooltip from '@/components/InfoTooltip';
 
 interface SchemaPreviewProps {
   schema: ResponseFormat;
@@ -374,9 +375,29 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-bold mb-4">
-          {currentSchemaId ? 'Edit Schema' : 'Create Schema'}
-        </h2>
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-xl font-bold">
+            {currentSchemaId ? 'Edit Schema' : 'Create Schema'}
+          </h2>
+          <InfoTooltip 
+            title="About Schemas"
+            content={
+              <>
+                <p className="mb-2">
+                  Schemas define the structure of data extracted by AI models. They ensure consistent output format by specifying field names and data types.
+                </p>
+                <ul className="list-disc list-inside space-y-1 mb-2">
+                  <li>Use descriptive field names in snake_case</li>
+                  <li>Choose appropriate data types for each field</li>
+                  <li>All fields defined in a schema are required by default</li>
+                </ul>
+                <p>
+                  When linked to a prompt, schemas enforce structured output, making data extraction more reliable and consistent.
+                </p>
+              </>
+            }
+          />
+        </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Schema Name Input */}
           <div className="mb-4">
