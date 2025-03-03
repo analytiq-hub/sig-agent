@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useCallback, useState, useEffect } from 'react';
-import { useDropzone, DropzoneOptions } from 'react-dropzone';
-import { Button, Typography, Box, CircularProgress, IconButton } from '@mui/material';
+import { useDropzone } from 'react-dropzone';
+import { Button, Typography, CircularProgress, IconButton } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -31,7 +31,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
   useEffect(() => {
     const fetchTags = async () => {
       try {
-        const response = await listTagsApi({ organizationId: organizationId });
+        const response = await listTagsApi({ organizationId });
         setAvailableTags(response.tags);
       } catch (error) {
         console.error('Error fetching tags:', error);
@@ -55,22 +55,18 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
       })
     );
 
-    Promise.all(readFiles).then(setFiles);
+    Promise.all(readFiles).then(newFiles => {
+      setFiles(prevFiles => [...prevFiles, ...newFiles]);
+    });
   }, [selectedTags]); // Add selectedTags as dependency
 
-  const dropzoneOptions: DropzoneOptions = {
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'application/pdf': ['.pdf']
     },
-    multiple: true,
-    // Add these properties to satisfy the DropzoneOptions type
-    onDragEnter: () => {},
-    onDragOver: () => {},
-    onDragLeave: () => {},
-  };
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone(dropzoneOptions);
+    multiple: true
+  });
 
   const handleUpload = async () => {
     if (files.length === 0) return;
@@ -86,7 +82,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
 
     try {
       const response = await uploadDocumentsApi({
-        organizationId: organizationId, 
+        organizationId, 
         documents: filesWithTags
       });
       
@@ -112,23 +108,23 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
     }
   };
 
-  const handleNextStep = () => {
+  const handleNextStep = useCallback(() => {
     setActiveStep((prev) => Math.min(prev + 1, 2));
     // Clear upload status when moving between steps
     if (uploadStatus) {
       setUploadStatus(null);
     }
-  };
+  }, [uploadStatus]);
 
-  const handlePrevStep = () => {
+  const handlePrevStep = useCallback(() => {
     setActiveStep((prev) => Math.max(prev - 1, 0));
     // Clear upload status when moving between steps
     if (uploadStatus) {
       setUploadStatus(null);
     }
-  };
+  }, [uploadStatus]);
 
-  const handleDeleteFile = (fileName: string) => {
+  const handleDeleteFile = useCallback((fileName: string) => {
     setFiles(prevFiles => prevFiles.filter(file => file.name !== fileName));
     
     // If no files left, go back to step 1
@@ -139,7 +135,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
         setUploadStatus(null);
       }
     }
-  };
+  }, [files.length, uploadStatus]);
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -159,7 +155,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
                 <li><strong>PDF files</strong> (.pdf) - Text and images will be extracted</li>
               </ul>
               <p className="mb-2">
-                <strong>Note:</strong> Select appropriate tags for your documents to ensure they're processed by the right prompts.
+                <strong>Note:</strong> Select appropriate tags for your documents to ensure they&apos;re processed by the right prompts.
               </p>
             </>
           }
@@ -205,7 +201,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
         {/* Step 1: Select Files */}
         {activeStep === 0 && (
           <div>
-            <h3 className="text-lg font-medium mb-4">Select PDF Files</h3>
+            <h3 className="text-lg font-medium mb-4">Select Files</h3>
             
             <div className="flex items-center mb-3">
               <span className="mr-2">Supported formats:</span>
@@ -286,7 +282,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
             
             <div className="mb-4">
               <p className="text-gray-600 mb-2">
-                Select appropriate tags for your documents to ensure they're processed by the right prompts.
+                Select appropriate tags for your documents to ensure they&apos;re processed by the right prompts.
                 <span className="italic ml-1">This step is optional.</span>
               </p>
               
@@ -294,12 +290,13 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
                 {availableTags.map(tag => (
                   <button
                     key={tag.id}
+                    type="button"
                     onClick={() => {
                       setSelectedTags(prev => 
                         prev.includes(tag.id)
                           ? prev.filter(id => id !== tag.id)
                           : [...prev, tag.id]
-                      )
+                      );
                     }}
                     className={`group transition-all ${
                       selectedTags.includes(tag.id)
@@ -372,20 +369,23 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
               <div>
                 <h4 className="font-medium mb-2">Selected Tags:</h4>
                 <div className="flex flex-wrap gap-1">
-                  {availableTags
-                    .filter(tag => selectedTags.includes(tag.id))
-                    .map(tag => (
-                      <div
-                        key={tag.id}
-                        className={`px-2 py-1 rounded text-xs ${
-                          isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
-                        }`}
-                        style={{ backgroundColor: tag.color }}
-                      >
-                        {tag.name}
-                      </div>
-                    ))
-                  }
+                  {selectedTags.length > 0 ? (
+                    availableTags
+                      .filter(tag => selectedTags.includes(tag.id))
+                      .map(tag => (
+                        <div
+                          key={tag.id}
+                          className={`px-2 py-1 rounded text-xs ${
+                            isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                          }`}
+                          style={{ backgroundColor: tag.color }}
+                        >
+                          {tag.name}
+                        </div>
+                      ))
+                  ) : (
+                    <span className="text-gray-500 text-sm italic">No tags selected</span>
+                  )}
                 </div>
               </div>
             </div>
