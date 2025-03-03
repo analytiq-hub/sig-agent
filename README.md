@@ -16,6 +16,8 @@ The Document Router is designed to work with a human-in-the-loop and can process
 * LiteLLM
 * OpenAI, Anthropic, Gemini, Groq/DeepSeek...
 
+[PyData Boston DocRouter Slides](https://docs.google.com/presentation/d/14nAjSmZA1WGViqSk5IZuzggSuJZQPYrwTGsPjO6FPfU) (Feb '24) have more details about tech stack, and how Cursor AI was used to build the DocRouter.
+
 # User Experience
 ![Smart Document Router](./docs/assets/files.png)
 ![Smart Document Router](./docs/assets/extractions.png)
