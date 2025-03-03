@@ -79,8 +79,10 @@ const TourGuide = () => {
     console.log("TourGuide: Session state changed", { session, hasSession: !!session });
     
     if (session) {
-      const hasSeenTour = localStorage.getItem('hasSeenTour');
-      console.log("TourGuide: Checking localStorage", { hasSeenTour });
+      // Use a more specific key that includes the user's email to ensure it's per-user
+      const tourKey = `hasSeenTour-${session.user?.email}`;
+      const hasSeenTour = localStorage.getItem(tourKey);
+      console.log("TourGuide: Checking localStorage", { tourKey, hasSeenTour });
       
       if (!hasSeenTour) {
         console.log("TourGuide: User hasn't seen tour, scheduling tour start");
@@ -215,12 +217,31 @@ const TourGuide = () => {
 
   const endTour = () => {
     setShowTour(false);
-    localStorage.setItem('hasSeenTour', 'true');
+    if (session?.user?.email) {
+      const tourKey = `hasSeenTour-${session.user.email}`;
+      localStorage.setItem(tourKey, 'true');
+    } else {
+      localStorage.setItem('hasSeenTour', 'true'); // Fallback
+    }
   };
 
   // Add this function to manually start the tour
   const startTour = () => {
-    setCurrentStep(0);
+    // Reset the tour flag using the same key pattern
+    if (session?.user?.email) {
+      localStorage.removeItem(`hasSeenTour-${session.user.email}`);
+    } else {
+      localStorage.removeItem('hasSeenTour');
+    }
+    
+    // If the startTourGuide function is available, use it directly
+    if (typeof window !== 'undefined' && window.startTourGuide) {
+      window.startTourGuide();
+    } else {
+      // Otherwise reload the page to trigger the tour
+      window.location.reload();
+    }
+    
     setShowTour(true);
   };
 
