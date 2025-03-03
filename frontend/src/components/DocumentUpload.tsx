@@ -2,9 +2,10 @@
 
 import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone, DropzoneOptions } from 'react-dropzone';
-import { Button, Typography, Box, CircularProgress } from '@mui/material';
+import { Button, Typography, Box, CircularProgress, IconButton } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { 
   uploadDocumentsApi,
   listTagsApi
@@ -24,6 +25,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [activeStep, setActiveStep] = useState(0);
 
   // Fetch available tags on component mount
   useEffect(() => {
@@ -87,9 +89,21 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
         organizationId: organizationId, 
         documents: filesWithTags
       });
-      setUploadStatus(`Successfully uploaded ${response.uploaded_documents.length} file(s)`);
+      
+      // Create a more detailed success message
+      const fileNames = files.map(file => file.name).join(", ");
+      const tagNames = selectedTags.length > 0 
+        ? availableTags
+            .filter(tag => selectedTags.includes(tag.id))
+            .map(tag => tag.name)
+            .join(", ")
+        : "no tags";
+      
+      setUploadStatus(`Successfully uploaded ${response.uploaded_documents.length} file(s): ${fileNames} with ${tagNames}`);
+      
       setFiles([]);
       setSelectedTags([]); // Reset selected tags after successful upload
+      setActiveStep(0); // Reset to first step
     } catch (error) {
       console.error('Error uploading files:', error);
       setUploadStatus('Error uploading files. Please try again.');
@@ -98,9 +112,38 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
     }
   };
 
+  const handleNextStep = () => {
+    setActiveStep((prev) => Math.min(prev + 1, 2));
+    // Clear upload status when moving between steps
+    if (uploadStatus) {
+      setUploadStatus(null);
+    }
+  };
+
+  const handlePrevStep = () => {
+    setActiveStep((prev) => Math.max(prev - 1, 0));
+    // Clear upload status when moving between steps
+    if (uploadStatus) {
+      setUploadStatus(null);
+    }
+  };
+
+  const handleDeleteFile = (fileName: string) => {
+    setFiles(prevFiles => prevFiles.filter(file => file.name !== fileName));
+    
+    // If no files left, go back to step 1
+    if (files.length === 1) {
+      setActiveStep(0);
+      // Clear upload status when returning to step 1
+      if (uploadStatus) {
+        setUploadStatus(null);
+      }
+    }
+  };
+
   return (
-    <Box sx={{ textAlign: 'center' }}>
-      <div className="flex items-center justify-center gap-2 mb-6">
+    <div className="max-w-3xl mx-auto">
+      <div className="flex items-center gap-2 mb-4">
         <h2 className="text-xl font-bold">Upload Documents</h2>
         <InfoTooltip 
           title="Document Upload"
@@ -123,103 +166,258 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
         />
       </div>
       
-      <div className="flex justify-center gap-2 mb-4">
-        <p>Supported formats:</p>
-        <div className="flex items-center bg-gray-100 rounded-full px-3 py-1">
-          <PictureAsPdfIcon className="text-red-600 mr-1" fontSize="small" />
-          <span className="text-sm">PDF</span>
+      {/* Progress Indicator */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          <div 
+            className={`flex flex-col items-center ${activeStep >= 0 ? 'text-blue-600' : 'text-gray-400'}`}
+            onClick={() => setActiveStep(0)}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${activeStep >= 0 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+              1
+            </div>
+            <span className="text-sm">Select Files</span>
+          </div>
+          <div className={`flex-1 h-1 mx-2 ${activeStep >= 1 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+          <div 
+            className={`flex flex-col items-center ${activeStep >= 1 ? 'text-blue-600' : 'text-gray-400'}`}
+            onClick={() => files.length > 0 && setActiveStep(1)}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${activeStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+              2
+            </div>
+            <span className="text-sm">Select Tags (Optional)</span>
+          </div>
+          <div className={`flex-1 h-1 mx-2 ${activeStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+          <div 
+            className={`flex flex-col items-center ${activeStep >= 2 ? 'text-blue-600' : 'text-gray-400'}`}
+            onClick={() => files.length > 0 && setActiveStep(2)}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${activeStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+              3
+            </div>
+            <span className="text-sm">Upload</span>
+          </div>
         </div>
       </div>
       
-      <Box sx={{ mt: 3, mb: 3 }}>
-        <div className="flex items-center gap-4">
-          <Typography variant="subtitle1" sx={{ whiteSpace: 'nowrap' }}>
-            Select tags for documents:
-          </Typography>
-          <div className="flex flex-wrap gap-2">
-            {availableTags.map(tag => (
-              <button
-                key={tag.id}
-                onClick={() => {
-                  setSelectedTags(prev => 
-                    prev.includes(tag.id)
-                      ? prev.filter(id => id !== tag.id)
-                      : [...prev, tag.id]
-                  )
-                }}
-                className={`group transition-all ${
-                  selectedTags.includes(tag.id)
-                    ? 'ring-2 ring-blue-500 ring-offset-2'
-                    : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
-                }`}
-              >
-                <div className="flex items-center h-full w-full">
-                  <div 
-                    className={`px-2 py-1 leading-none rounded shadow-sm flex items-center gap-2 text-sm ${
-                      isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
-                    }`}
-                    style={{ backgroundColor: tag.color }}
-                  >
-                    {tag.name}
-                    {selectedTags.includes(tag.id) && (
-                      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
+      <div className="bg-white rounded-lg shadow p-6">
+        {/* Step 1: Select Files */}
+        {activeStep === 0 && (
+          <div>
+            <h3 className="text-lg font-medium mb-4">Select PDF Files</h3>
+            
+            <div className="flex items-center mb-3">
+              <span className="mr-2">Supported formats:</span>
+              <div className="flex items-center bg-gray-100 rounded-full px-3 py-1">
+                <PictureAsPdfIcon className="text-red-600 mr-1" fontSize="small" />
+                <span className="text-sm">PDF</span>
+              </div>
+            </div>
+            
+            <div
+              {...getRootProps()}
+              className="border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+            >
+              <input {...getInputProps()} accept="application/pdf" />
+              <CloudUploadIcon sx={{ fontSize: 48, mb: 2, color: '#4B5563' }} />
+              {isDragActive ? (
+                <Typography>Drop PDF files here ...</Typography>
+              ) : (
+                <Typography>Drag PDF files here, or click to select files</Typography>
+              )}
+            </div>
+            
+            {files.length > 0 && (
+              <div className="mt-4">
+                <Typography variant="subtitle1" className="text-left mb-2">Selected files:</Typography>
+                <div className="max-h-40 overflow-y-auto border rounded-md">
+                  {files.map((file) => (
+                    <div key={file.name} className="text-left py-1 px-2 odd:bg-gray-50 flex justify-between items-center">
+                      <span>{file.name}</span>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleDeleteFile(file.name)}
+                        className="text-red-500 hover:bg-red-50"
+                      >
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    </div>
+                  ))}
                 </div>
-              </button>
-            ))}
+              </div>
+            )}
+            
+            <div className="mt-6 flex justify-end">
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleNextStep}
+                disabled={files.length === 0}
+              >
+                Continue
+              </Button>
+            </div>
           </div>
-        </div>
-      </Box>
-      <Box
-        {...getRootProps()}
-        sx={{
-          border: '2px dashed #cccccc',
-          borderRadius: 2,
-          p: 3,
-          mb: 2,
-          cursor: 'pointer',
-          '&:hover': {
-            backgroundColor: '#f0f0f0'
-          }
-        }}
-      >
-        <input {...getInputProps()} accept="application/pdf" />
-        <CloudUploadIcon sx={{ fontSize: 48, mb: 2 }} />
-        {isDragActive ? (
-          <Typography>Drop multiple PDF files here ...</Typography>
-        ) : (
-          <Typography>Drag multiple PDF files here, or click to select files</Typography>
         )}
-      </Box>
-      {files.length > 0 && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="subtitle1">Selected files:</Typography>
-          {files.map((file) => (
-            <Typography key={file.name}>{file.name}</Typography>
-          ))}
-        </Box>
-      )}
-
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleUpload}
-        disabled={files.length === 0 || uploading}
-        startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <CloudUploadIcon />}
-        data-tour="upload-button"
-      >
-        {uploading ? 'Uploading...' : 'Upload'}
-      </Button>
+        
+        {/* Step 2: Select Tags */}
+        {activeStep === 1 && (
+          <div>
+            <h3 className="text-lg font-medium mb-4">Select Tags (Optional)</h3>
+            
+            <div className="mb-4 bg-gray-50 p-3 rounded-lg">
+              <h4 className="font-medium mb-2">Selected Files:</h4>
+              <div className="max-h-40 overflow-y-auto">
+                {files.map((file) => (
+                  <div key={file.name} className="text-left py-1 px-2 odd:bg-gray-50 flex justify-between items-center">
+                    <span>{file.name}</span>
+                    <IconButton 
+                      size="small" 
+                      onClick={() => handleDeleteFile(file.name)}
+                      className="text-red-500 hover:bg-red-50"
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-gray-600 mb-2">
+                Select appropriate tags for your documents to ensure they're processed by the right prompts.
+                <span className="italic ml-1">This step is optional.</span>
+              </p>
+              
+              <div className="flex flex-wrap gap-2 mb-4">
+                {availableTags.map(tag => (
+                  <button
+                    key={tag.id}
+                    onClick={() => {
+                      setSelectedTags(prev => 
+                        prev.includes(tag.id)
+                          ? prev.filter(id => id !== tag.id)
+                          : [...prev, tag.id]
+                      )
+                    }}
+                    className={`group transition-all ${
+                      selectedTags.includes(tag.id)
+                        ? 'ring-2 ring-blue-500 ring-offset-2'
+                        : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
+                    }`}
+                  >
+                    <div className="flex items-center h-full w-full">
+                      <div 
+                        className={`px-2 py-1 leading-none rounded shadow-sm flex items-center gap-2 text-sm ${
+                          isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                        }`}
+                        style={{ backgroundColor: tag.color }}
+                      >
+                        {tag.name}
+                        {selectedTags.includes(tag.id) && (
+                          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-between">
+              <Button
+                variant="outlined"
+                onClick={handlePrevStep}
+              >
+                Back
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleNextStep}
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        )}
+        
+        {/* Step 3: Upload */}
+        {activeStep === 2 && (
+          <div>
+            <h3 className="text-lg font-medium mb-4">Upload Files</h3>
+            
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <div className="mb-4">
+                <h4 className="font-medium mb-2">Selected Files:</h4>
+                <div className="text-sm text-gray-600">
+                  {files.map((file) => (
+                    <div key={file.name} className="mb-1 flex justify-between items-center">
+                      <span>{file.name}</span>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleDeleteFile(file.name)}
+                        className="text-red-500 hover:bg-red-50"
+                      >
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-medium mb-2">Selected Tags:</h4>
+                <div className="flex flex-wrap gap-1">
+                  {availableTags
+                    .filter(tag => selectedTags.includes(tag.id))
+                    .map(tag => (
+                      <div
+                        key={tag.id}
+                        className={`px-2 py-1 rounded text-xs ${
+                          isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                        }`}
+                        style={{ backgroundColor: tag.color }}
+                      >
+                        {tag.name}
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-between">
+              <Button
+                variant="outlined"
+                onClick={handlePrevStep}
+              >
+                Back
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleUpload}
+                disabled={uploading}
+                startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <CloudUploadIcon />}
+                data-tour="upload-button"
+              >
+                {uploading ? 'Uploading...' : 'Upload Files'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
       
       {uploadStatus && (
-        <Typography sx={{ mt: 2 }} color={uploadStatus.includes('Error') ? 'error' : 'success'}>
+        <div className={`mt-4 p-4 rounded-lg ${uploadStatus.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
           {uploadStatus}
-        </Typography>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 
