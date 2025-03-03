@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createTagApi, listTagsApi, deleteTagApi, getApiErrorMsg, updateTagApi } from '@/utils/api';
 import { Tag, TagConfig } from '@/types/index';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -9,10 +9,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors';
-import { useCallback } from 'react';
+import InfoTooltip from '@/components/InfoTooltip';
 import { isColorLight } from '@/utils/colors';
 
-const Tags = ({ organizationId }: { organizationId: string }) => {
+const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [tags, setTags] = useState<Tag[]>([]);
   const [currentTag, setCurrentTag] = useState<{id?: string; name: string; color: string; description: string}>({
     name: '',
@@ -93,10 +93,6 @@ const Tags = ({ organizationId }: { organizationId: string }) => {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadTags();
-  }, [loadTags]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,11 +180,27 @@ const Tags = ({ organizationId }: { organizationId: string }) => {
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
-      {/* Tag Creation Form */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-bold mb-4">
-          {currentTag.id ? 'Edit Tag' : 'Create Tag'}
-        </h2>
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-xl font-bold">
+            {currentTag.id ? 'Edit Tag' : 'Create Tag'}
+          </h2>
+          <InfoTooltip 
+            title="About Tags"
+            content={
+              <>
+                <p className="mb-2">
+                  Tags can be assigned to documents and prompts.
+                </p>
+                <ul className="list-disc list-inside space-y-1 mb-2">
+                  <li>Create tags for different types of documents, or different types of data you want to extract.</li>
+                  <li>Assign tags to prompts to control which documents they process.</li>
+                  <li>Assign tags when uploading documents.</li>
+                </ul>
+              </>
+            }
+          />
+        </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex gap-4">
             <div className="flex-1">
