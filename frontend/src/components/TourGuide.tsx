@@ -14,6 +14,13 @@ interface TourStep {
   page?: string;
 }
 
+// Add this interface at the top of your file
+declare global {
+  interface Window {
+    startTourGuide?: () => void;
+  }
+}
+
 const TourGuide = () => {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [showTour, setShowTour] = useState<boolean>(false);
@@ -217,14 +224,14 @@ const TourGuide = () => {
     setShowTour(true);
   };
 
-  // Expose the startTour function to the window object for testing
+  // Then update the useEffect
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      (window as any).startTourGuide = startTour;
+      window.startTourGuide = startTour;
     }
     return () => {
       if (typeof window !== 'undefined') {
-        delete (window as any).startTourGuide;
+        delete window.startTourGuide;
       }
     };
   }, []);

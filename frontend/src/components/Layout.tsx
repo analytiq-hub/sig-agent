@@ -59,7 +59,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isPDFViewer = pathname.includes('/pdf-viewer/');
   const [forceUpdate, setForceUpdate] = useState(0);
   const [pdfControls, setPdfControls] = useState<PDFViewerControlsType | null>(null);
-  const [showDebugControls] = useState(process.env.NODE_ENV === 'development');
 
   const fileMenuItems = [
     { text: 'Dashboard', icon: ChartPieIcon, tooltip: 'Dashboard', href: `/orgs/${currentOrganization?.id}/dashboard` },
@@ -237,20 +236,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Add the TourGuide component with a key to force remount */}
       {status === 'authenticated' && (
         <TourGuide key={`tour-${session?.user?.email}`} />
-      )}
-
-      {showDebugControls && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <button 
-            onClick={() => {
-              localStorage.removeItem('hasSeenTour');
-              window.location.reload();
-            }}
-            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
-          >
-            Reset Tour
-          </button>
-        </div>
       )}
     </div>
   );

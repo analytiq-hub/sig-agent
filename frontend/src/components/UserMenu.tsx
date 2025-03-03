@@ -1,10 +1,17 @@
 'use client'
 
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, ExitToApp as SignoutIcon } from '@mui/icons-material';
+import { Settings as SettingsIcon, ExitToApp as SignoutIcon, Help as HelpIcon } from '@mui/icons-material';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
+
+// Add this interface at the top of your file
+declare global {
+  interface Window {
+    startTourGuide?: () => void;
+  }
+}
 
 interface UserMenuProps {
   user: {
@@ -21,6 +28,21 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
     signOut({
       callbackUrl: '/auth/signin'
     });
+    setIsOpen(false);
+  };
+
+  const startTour = () => {
+    // Reset the tour flag
+    localStorage.removeItem('hasSeenTour');
+    
+    // If the startTourGuide function is available, use it directly
+    if (typeof window !== 'undefined' && window.startTourGuide) {
+      window.startTourGuide();
+    } else {
+      // Otherwise reload the page to trigger the tour
+      window.location.reload();
+    }
+    
     setIsOpen(false);
   };
 
@@ -87,6 +109,15 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
               <SettingsIcon className="h-4 w-4 mr-2" />
               Settings
             </Link>
+
+            {/* Tour Guide Option */}
+            <button
+              onClick={startTour}
+              className="flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <HelpIcon className="h-4 w-4 mr-2" />
+              Start Tour Guide
+            </button>
 
             <div className="border-t border-gray-200 dark:border-gray-700" />
 
