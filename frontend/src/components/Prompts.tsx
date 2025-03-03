@@ -383,13 +383,13 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                   Prompts are instructions that guide AI models to perform specific tasks. An effective prompt should be clear, specific, and provide necessary context.
                 </p>
                 <p className="mb-2">
-                  <strong>Schema Integration:</strong> Link a schema to ensure structured output in a consistent format.
+                  <strong>Schema:</strong> Link a schema to ensure structured output in a consistent format.
                 </p>
                 <p className="mb-2">
-                  <strong>Model Selection:</strong> Choose the appropriate model based on task complexity and performance requirements.
+                  <strong>Model:</strong> Choose the appropriate model based on task complexity and performance requirements.
                 </p>
                 <p>
-                  <strong>Tags:</strong> Use tags to organize and categorize your prompts for easier management.
+                  <strong>Tags:</strong> Only files with the selected tags will be processed by this prompt.
                 </p>
               </>
             }

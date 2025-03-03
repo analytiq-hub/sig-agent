@@ -384,15 +384,15 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             content={
               <>
                 <p className="mb-2">
-                  Schemas define the structure of data extracted by AI models. They ensure consistent output format by specifying field names and data types.
+                  When linked to a prompt, schemas enforce structured output.
                 </p>
                 <ul className="list-disc list-inside space-y-1 mb-2">
-                  <li>Use descriptive field names in snake_case</li>
+                  <li>Use descriptive field names</li>
                   <li>Choose appropriate data types for each field</li>
                   <li>All fields defined in a schema are required by default</li>
                 </ul>
                 <p>
-                  When linked to a prompt, schemas enforce structured output, making data extraction more reliable and consistent.
+                  <strong>Limitations:</strong> While full JSON Schema is supported on the back end, the UI does not support field descriptions, or lists of objects.
                 </p>
               </>
             }
