@@ -4,6 +4,7 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone, DropzoneOptions } from 'react-dropzone';
 import { Button, Typography, Box, CircularProgress } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { 
   uploadDocumentsApi,
   listTagsApi
@@ -98,6 +99,17 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
 
   return (
     <Box sx={{ textAlign: 'center' }}>
+      <div className="mb-4">
+        <Typography variant="subtitle1" className="mb-2 font-medium">Supported File Types:</Typography>
+        <div className="flex justify-center gap-2">
+          <div className="flex items-center bg-gray-100 rounded-full px-3 py-1">
+            <PictureAsPdfIcon className="text-red-600 mr-1" fontSize="small" />
+            <span className="text-sm">PDF</span>
+          </div>
+          {/* Add more file type chips here as needed */}
+        </div>
+      </div>
+      
       <Box sx={{ mt: 3, mb: 3 }}>
         <div className="flex items-center gap-4">
           <Typography variant="subtitle1" sx={{ whiteSpace: 'nowrap' }}>
