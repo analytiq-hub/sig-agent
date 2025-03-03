@@ -146,16 +146,13 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
           content={
             <>
               <p className="mb-2">
-                Upload documents to be processed by AI models. Documents will be analyzed based on the tags you select.
-              </p>
-              <p className="mb-2">
-                Currently supported file formats:
+                Upload documents to be processed by AI prompts. Supported file formats:
               </p>
               <ul className="list-disc list-inside space-y-1 mb-2">
-                <li><strong>PDF files</strong> (.pdf) - Text and images will be extracted</li>
+                <li><strong>PDF files</strong> (.pdf)</li>
               </ul>
               <p className="mb-2">
-                <strong>Note:</strong> Select appropriate tags for your documents to ensure they&apos;re processed by the right prompts.
+                <strong>Note:</strong> Select appropriate tags for your documents to control which prompts are run.
               </p>
             </>
           }
