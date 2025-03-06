@@ -44,6 +44,8 @@
             height: 100%;
             overflow: auto;
             background-color: rgba(0,0,0,0.8);
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
         }
         
         .modal-content {
@@ -51,6 +53,12 @@
             margin: 5% auto;
             width: 90%;
             max-width: 800px;
+            animation: modalFadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .close {
@@ -62,6 +70,18 @@
             font-weight: bold;
             cursor: pointer;
             z-index: 101;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        
+        .close:hover {
+            background-color: rgba(255,0,0,0.7);
         }
         
         /* Video container for the modal */
@@ -70,6 +90,8 @@
             padding-bottom: 56.25%; /* 16:9 aspect ratio */
             height: 0;
             overflow: hidden;
+            background-color: #000;
+            border-radius: 0.5rem;
         }
         
         .video-container iframe {
@@ -79,6 +101,7 @@
             width: 100%;
             height: 100%;
             border-radius: 0.5rem;
+            border: none;
         }
         
         /* Compact video thumbnail */
@@ -91,6 +114,8 @@
             cursor: pointer;
             transition: background-color 0.2s;
             margin-bottom: 1rem;
+            position: relative;
+            overflow: hidden;
         }
         
         .video-thumbnail:hover {
@@ -118,6 +143,12 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+        
+        .video-thumbnail:hover .play-icon {
+            background-color: rgba(37, 99, 235, 1);
+            transform: translate(-50%, -50%) scale(1.1);
         }
     </style>
 </head>
@@ -215,6 +246,14 @@
                             <div>
                                 <h3 class="text-base font-medium text-gray-900">Watch Video</h3>
                                 <p class="text-sm text-gray-600">Get started with DocRouter.AI</p>
+                                <!-- Hidden fallback link that will be used if JavaScript fails -->
+                                <noscript>
+                                    <div class="mt-2">
+                                        <a href="https://www.youtube.com/watch?v=CDH4oan2Nc8" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">
+                                            Open video on YouTube
+                                        </a>
+                                    </div>
+                                </noscript>
                             </div>
                         </div>
                     </div>
@@ -677,21 +716,35 @@ cd ../frontend; npm install; cd ..
         function openVideoModal() {
             const modal = document.getElementById('videoModal');
             const videoFrame = document.getElementById('videoFrame');
-            videoFrame.src = "https://www.youtube.com/embed/CDH4oan2Nc8?si=cAJ9DuR7PndZY8GO&autoplay=1";
-            modal.style.display = "block";
             
-            // Prevent scrolling when modal is open
-            document.body.style.overflow = "hidden";
+            // Set the source right before showing the modal
+            try {
+                videoFrame.src = "https://www.youtube.com/embed/CDH4oan2Nc8?si=cAJ9DuR7PndZY8GO&autoplay=1";
+                modal.style.display = "block";
+                
+                // Prevent scrolling when modal is open
+                document.body.style.overflow = "hidden";
+            } catch (error) {
+                console.error("Error opening video modal:", error);
+                // Fallback - open YouTube directly if modal fails
+                window.open("https://www.youtube.com/watch?v=CDH4oan2Nc8", "_blank");
+            }
         }
         
         function closeVideoModal() {
-            const modal = document.getElementById('videoModal');
-            const videoFrame = document.getElementById('videoFrame');
-            videoFrame.src = "";
-            modal.style.display = "none";
-            
-            // Re-enable scrolling
-            document.body.style.overflow = "auto";
+            try {
+                const modal = document.getElementById('videoModal');
+                const videoFrame = document.getElementById('videoFrame');
+                
+                // Clear the iframe source to stop video playback
+                videoFrame.src = "";
+                modal.style.display = "none";
+                
+                // Re-enable scrolling
+                document.body.style.overflow = "auto";
+            } catch (error) {
+                console.error("Error closing video modal:", error);
+            }
         }
         
         // Close modal when clicking outside of it
@@ -706,6 +759,17 @@ cd ../frontend; npm install; cd ..
         window.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 closeVideoModal();
+            }
+        });
+
+        // Add event listener to the video thumbnail when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            const videoThumbnail = document.querySelector('.video-thumbnail');
+            if (videoThumbnail) {
+                videoThumbnail.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openVideoModal();
+                });
             }
         });
     </script>
