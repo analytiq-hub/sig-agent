@@ -4,15 +4,23 @@ import logging
 from typing import Optional
 from datetime import datetime
 import re
+import os
+import sys
+
+# Set up the path first, before other imports
+cwd = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(f"{cwd}/..")
+
+import analytiq_data as ad
 
 SITE_NAME = "Smart Document Router"
 
 async def send_email(
+    analytiq_client,
     to_email: str,
+    from_email: str,
     subject: str,
     content: str,
-    from_email: str,
-    region_name: str = "us-east-1"
 ) -> bool:
     """
     Send an email using AWS SES
@@ -32,7 +40,9 @@ async def send_email(
     """
     try:
         # Create SES client
-        ses_client = boto3.client('ses', region_name=region_name)
+        aws_client = ad.aws.get_aws_client(analytiq_client)
+        ses_client = aws_client.session.client("ses", region_name=aws_client.region_name)
+
         
         # Create email message
         message = {

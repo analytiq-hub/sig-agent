@@ -69,10 +69,6 @@ from api.schemas import (
     ListFlowsResponse, FlowMetadata
 )
 
-# Set up the path
-cwd = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(f"{cwd}/..")
-
 import analytiq_data as ad
 
 # Set up the environment variables. This reads the .env file.
@@ -2636,31 +2632,17 @@ async def send_registration_verification_email(user_id: str):
         site_url=NEXTAUTH_URL,
         user_name=user.get("name")
     )
-
-    try:
-        aws_client = ad.aws.get_aws_client(analytiq_client)
-        ses_client = aws_client.session.client("ses", region_name=aws_client.region_name)
-
-        response = ses_client.send_email(
-            Source=SES_FROM_EMAIL,
-            Destination={
-                'ToAddresses': [user["email"]]
-            },
-            Message={
-                'Subject': {
-                    'Data': email_utils.get_email_subject("verification")
-                },
-                'Body': {
-                    'Html': {
-                        'Data': html_content
-                    }
-                }
-            }
-        )
-        return {"message": "Verification email sent"}
-    except Exception as e:
-        ad.log.error(f"Failed to send email: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+        
+    # Use the send_email utility function instead of direct SES client call
+    await email_utils.send_email(
+        analytiq_client,
+        to_email=user["email"],
+        from_email=SES_FROM_EMAIL,
+        subject=email_utils.get_email_subject("verification"),
+        content=html_content,
+    )
+    
+    return {"message": "Registration email sent"}
 
 
 @app.post("/v0/account/email/verification/send/{user_id}", tags=["account/email"])
@@ -2668,7 +2650,7 @@ async def send_verification_email(
     user_id: str,
     current_user: User = Depends(get_admin_user)
 ):
-    """Send verification email to user (admin only)"""
+    """Send verification email (admin only)"""
     analytiq_client = ad.common.get_analytiq_client()
     db = ad.common.get_async_db(analytiq_client)
 
@@ -2697,7 +2679,6 @@ async def send_verification_email(
         upsert=True
     )
         
-    # Update verification URL to use new path
     verification_url = f"{NEXTAUTH_URL}/auth/verify-email?token={token}"
     
     # Get email content from template
@@ -2706,36 +2687,17 @@ async def send_verification_email(
         site_url=NEXTAUTH_URL,
         user_name=user.get("name")
     )
+        
+    # Use the send_email utility function instead of direct SES client call
+    await email_utils.send_email(
+        analytiq_client,
+        to_email=user["email"],
+        from_email=SES_FROM_EMAIL,
+        subject=email_utils.get_email_subject("verification"),
+        content=html_content,
+    )
 
-    # Send email using SES
-    try:
-        aws_client = ad.aws.get_aws_client(analytiq_client)
-        ses_client = aws_client.session.client("ses", region_name=aws_client.region_name)
-
-        ad.log.debug(f"SES_FROM_EMAIL: {SES_FROM_EMAIL}")
-        ad.log.debug(f"ToAddresses: {user['email']}")
-        ad.log.debug(f"Verification URL: {verification_url}")
-
-        response = ses_client.send_email(
-            Source=SES_FROM_EMAIL,
-            Destination={
-                'ToAddresses': [user["email"]]
-            },
-            Message={
-                'Subject': {
-                    'Data': email_utils.get_email_subject("verification")
-                },
-                'Body': {
-                    'Html': {
-                        'Data': html_content
-                    }
-                }
-            }
-        )
-        return {"message": "Verification email sent"}
-    except Exception as e:
-        ad.log.error(f"Failed to send email: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+    return {"message": "Verification email sent"}
 
 @app.post("/v0/account/email/verification/{token}", tags=["account/email"])
 async def verify_email(token: str, background_tasks: BackgroundTasks):
