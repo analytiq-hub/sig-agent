@@ -161,23 +161,63 @@ async def test_invitation_lifecycle(test_db, mock_auth, mock_send_email):
         
         invitation_id = invitation_result["id"]
         
-        # Step 2: Test invitation acceptance (this will be a partial test)
-        # In a real scenario, we would need to extract the token from the database
-        # For now, we'll just test that the endpoint exists and returns an appropriate error for an invalid token
+        # Extract the invitation token from the email content
+        if mock_send_email.call_args:
+            # Try to get content from kwargs first
+            if 'content' in mock_send_email.call_args.kwargs:
+                email_content = mock_send_email.call_args.kwargs['content']
+            else:
+                assert False, f"Could not extract email content from mock call: {mock_send_email.call_args}"
+        else:
+            assert False, f"Mock was called but call_args is None"
         
+        # Extract the token from the invitation URL
+        invitation_url_pattern = r'href="[^"]*?token=([^"&\s]*)"'
+        token_match = re.search(invitation_url_pattern, email_content)
+        
+        if token_match:
+            invitation_token = token_match.group(1)
+            ad.log.info(f"Extracted invitation token: {invitation_token}")
+        else:
+            assert False, f"Could not extract invitation token from email content"
+        
+        # Step 2: Test invitation acceptance with the real token
         accept_data = {
             "name": "Invited User",
             "password": "invitedUserPassword123"
         }
         
-        # This should fail with 404 or 400 since we're using the ID as token which isn't valid
         accept_response = client.post(
-            f"/v0/account/email/invitations/{invitation_id}/accept",
+            f"/v0/account/email/invitations/{invitation_token}/accept",
             json=accept_data,
             headers=get_auth_headers()
         )
         
-        assert accept_response.status_code in [400, 404]
+        # This should succeed with 200 since we're using a valid token
+        assert accept_response.status_code == 200
+        
+        # Verify that a new user was created with the invitation data
+        user_response = client.get(
+            "/v0/account/users",
+            params={"skip": 0, "limit": 100},
+            headers=get_auth_headers()
+        )
+        
+        assert user_response.status_code == 200
+        users = user_response.json()["users"]
+        
+        # Find the newly created user
+        invited_user = next((user for user in users if user["email"] == "invited@example.com"), None)
+        assert invited_user is not None
+        assert invited_user["name"] == "Invited User"
+        assert invited_user["emailVerified"] == True  # Email should be pre-verified for invited users
+        
+        # Clean up - delete the created user
+        if invited_user:
+            client.delete(
+                f"/v0/account/users/{invited_user['id']}",
+                headers=get_auth_headers()
+            )
         
     finally:
         # Clean up - we'll use the database directly to ensure cleanup
