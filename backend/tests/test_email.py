@@ -89,17 +89,16 @@ async def test_email_verification(test_db, mock_auth, mock_send_email):
             
         # Only proceed with token extraction if we have email content
         verification_token = None
-        if email_content:
-            # Extract the token from the verification URL
-            # Update the pattern to match the frontend URL with query parameter
-            verification_url_pattern = r'href="[^"]*?token=([^"&\s]*)"'
-            token_match = re.search(verification_url_pattern, email_content)
-            
-            if token_match:
-                verification_token = token_match.group(1)
-                ad.log.info(f"Extracted verification token: {verification_token}")
-            else:
-                assert False, f"Could not extract verification token from email content"
+        # Extract the token from the verification URL
+        # Update the pattern to match the frontend URL with query parameter
+        verification_url_pattern = r'href="[^"]*?token=([^"&\s]*)"'
+        token_match = re.search(verification_url_pattern, email_content)
+        
+        if token_match:
+            verification_token = token_match.group(1)
+            ad.log.info(f"Extracted verification token: {verification_token}")
+        else:
+            assert False, f"Could not extract verification token from email content"
         
         # Step 4: Verify email with the extracted token
         verify_response = client.post(
