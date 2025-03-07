@@ -2835,22 +2835,13 @@ async def create_invitation(
     )
     
     try:
-        aws_client = ad.aws.get_aws_client(analytiq_client)
-        ses_client = aws_client.session.client("ses", region_name=aws_client.region_name)
-        
-        response = ses_client.send_email(
-            Source=SES_FROM_EMAIL,
-            Destination={'ToAddresses': [invitation.email]},
-            Message={
-                'Subject': {
-                    'Data': email_utils.get_email_subject("invitation")
-                },
-                'Body': {
-                    'Html': {
-                        'Data': html_content
-                    }
-                }
-            }
+        # Send invitation email using the email_utils.send_email() utility function
+        await email_utils.send_email(
+            analytiq_client,
+            to_email=invitation.email,
+            from_email=SES_FROM_EMAIL,
+            subject=email_utils.get_email_subject("invitation"),
+            content=html_content,
         )
         return InvitationResponse(**invitation_doc)
     except Exception as e:
