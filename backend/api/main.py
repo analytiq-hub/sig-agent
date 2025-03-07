@@ -2875,7 +2875,6 @@ async def list_invitations(
                 expires=inv["expires"],
                 created_by=inv["created_by"],
                 created_at=inv["created_at"],
-                role=inv["role"],
                 organization_id=inv.get("organization_id"),
                 organization_role=inv.get("organization_role")
             )

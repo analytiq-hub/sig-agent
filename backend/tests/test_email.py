@@ -139,7 +139,8 @@ async def test_invitation_lifecycle(test_db, mock_auth, mock_send_email):
         # Step 1: Create an invitation using the API
         invitation_data = {
             "email": "invited@example.com",
-            "organization_id": TEST_ORG_ID
+            "organization_id": TEST_ORG_ID,
+            "role": "user"  # Add role field to fix the KeyError
         }
         
         create_response = client.post(
@@ -161,6 +162,22 @@ async def test_invitation_lifecycle(test_db, mock_auth, mock_send_email):
         
         invitation_id = invitation_result["id"]
         
+        # Step 2: Test listing invitations
+        list_response = client.get(
+            "/v0/account/email/invitations",
+            headers=get_auth_headers()
+        )
+        
+        assert list_response.status_code == 200
+        invitations = list_response.json()["invitations"]
+        assert len(invitations) > 0
+        
+        # Find our invitation in the list
+        found_invitation = next((inv for inv in invitations if inv["id"] == invitation_id), None)
+        assert found_invitation is not None
+        assert found_invitation["email"] == "invited@example.com"
+        assert found_invitation["status"] == "pending"
+        
         # Extract the invitation token from the email content
         if mock_send_email.call_args:
             # Try to get content from kwargs first
@@ -181,7 +198,19 @@ async def test_invitation_lifecycle(test_db, mock_auth, mock_send_email):
         else:
             assert False, f"Could not extract invitation token from email content"
         
-        # Step 2: Test invitation acceptance with the real token
+        # Step 3: Test getting invitation by token
+        get_invitation_response = client.get(
+            f"/v0/account/email/invitations/{invitation_token}",
+            headers=get_auth_headers()
+        )
+        
+        assert get_invitation_response.status_code == 200
+        invitation_by_token = get_invitation_response.json()
+        assert invitation_by_token["email"] == "invited@example.com"
+        assert invitation_by_token["status"] == "pending"
+        assert invitation_by_token["organization_id"] == TEST_ORG_ID
+        
+        # Step 4: Test invitation acceptance with the real token
         accept_data = {
             "name": "Invited User",
             "password": "invitedUserPassword123"
@@ -211,6 +240,17 @@ async def test_invitation_lifecycle(test_db, mock_auth, mock_send_email):
         assert invited_user is not None
         assert invited_user["name"] == "Invited User"
         assert invited_user["emailVerified"] == True  # Email should be pre-verified for invited users
+        
+        # Verify that the invitation status is now "accepted"
+        get_invitation_after_accept = client.get(
+            f"/v0/account/email/invitations/{invitation_token}",
+            headers=get_auth_headers()
+        )
+        
+        # The invitation might be deleted after acceptance or marked as accepted
+        if get_invitation_after_accept.status_code == 200:
+            invitation_after_accept = get_invitation_after_accept.json()
+            assert invitation_after_accept["status"] == "accepted"
         
         # Clean up - delete the created user
         if invited_user:
