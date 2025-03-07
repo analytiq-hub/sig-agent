@@ -18,7 +18,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(f"{cwd}/..")
 
 # Now import the FastAPI app and dependencies
-from api.main import app, security, get_current_user
+from api.main import app, security, get_current_user, get_admin_user
 from api.schemas import User
 import analytiq_data as ad
 
@@ -34,9 +34,12 @@ setup_env()
 # Create a test client
 client = TestClient(app)
 
+# Use a valid ObjectId format for user_id (24-character hex string)
+TEST_USER_ID = "6579a94b1f1d8f5a8e9c0124"
+
 # Common test data
 TEST_USER = User(
-    user_id="test123",
+    user_id=TEST_USER_ID,
     user_name="test@example.com",
     token_type="jwt"
 )
@@ -59,12 +62,23 @@ async def test_db():
     for collection in collections:
         await db.drop_collection(collection)
     
+    # Create a test user in the database
+    await db.users.insert_one({
+        "_id": ObjectId(TEST_USER_ID),
+        "email": "test@example.com",
+        "name": "Test User",
+        "role": "admin",
+        "emailVerified": True,
+        "hasPassword": True,
+        "createdAt": datetime.now(UTC)
+    })
+    
     # Create a test organization in the database
     await db.organizations.insert_one({
         "_id": ObjectId(TEST_ORG_ID),
         "name": "Test Organization",
         "members": [{
-            "user_id": TEST_USER.user_id,
+            "user_id": TEST_USER_ID,
             "role": "admin"
         }],
         "type": "team",
@@ -102,7 +116,8 @@ def mock_auth():
     # Override authentication dependencies
     app.dependency_overrides = {
         security: lambda: mock_credentials,
-        get_current_user: lambda: TEST_USER
+        get_current_user: lambda: TEST_USER,
+        get_admin_user: lambda: TEST_USER  # Also mock the admin user dependency
     }
     
     yield
