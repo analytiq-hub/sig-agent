@@ -58,12 +58,67 @@ async def test_email_verification(test_db, mock_auth, mock_send_email):
         # Verify that send_email was called for registration verification
         assert mock_send_email.called
         
+        # Extract the registration verification token from the email content
+        if mock_send_email.call_args:
+            # Try to get content from kwargs first
+            if 'content' in mock_send_email.call_args.kwargs:
+                reg_email_content = mock_send_email.call_args.kwargs['content']
+            else:
+                assert False, f"Could not extract email content from mock call: {mock_send_email.call_args}"
+        else:
+            assert False, f"Mock was called but call_args is None"
+        
+        # Extract the token from the verification URL
+        verification_url_pattern = r'href="[^"]*?token=([^"&\s]*)"'
+        reg_token_match = re.search(verification_url_pattern, reg_email_content)
+        
+        if reg_token_match:
+            reg_verification_token = reg_token_match.group(1)
+            ad.log.info(f"Extracted registration verification token: {reg_verification_token}")
+            
+            # Verify email with the extracted registration token
+            reg_verify_response = client.post(
+                f"/v0/account/email/verification/{reg_verification_token}",
+                headers=get_auth_headers()
+            )
+            
+            # This should succeed with 200 since we're using a valid token
+            assert reg_verify_response.status_code == 200
+            
+            # Verify that the user's email is now verified
+            user_check_response = client.get(
+                f"/v0/account/users?user_id={user_id}",
+                headers=get_auth_headers()
+            )
+            assert user_check_response.status_code == 200
+            user_check_data = user_check_response.json()["users"][0]
+            assert user_check_data["emailVerified"] == True
+        else:
+            assert False, f"Could not extract verification token from registration email content"
+        
         # Reset all mocks
         mock_send_email.reset_mock()
         
-        # Step 3: Send verification email
+        # Step 3: Create a second user for testing the regular verification flow
+        # Since the first user is already verified, we need a new unverified user
+        second_user_data = {
+            "email": "verify2@example.com",
+            "name": "Verification Test 2",
+            "password": "securePassword123"
+        }
+        
+        second_create_response = client.post(
+            "/v0/account/users",
+            json=second_user_data,
+            headers=get_auth_headers()
+        )
+        
+        assert second_create_response.status_code == 200
+        second_user_id = second_create_response.json()["id"]
+        
+        # Send verification email to the second user
         verification_response = client.post(
-            f"/v0/account/email/verification/send/{user_id}",
+            f"/v0/account/email/verification/send/{second_user_id}",
             headers=get_auth_headers()
         )
         
@@ -72,12 +127,6 @@ async def test_email_verification(test_db, mock_auth, mock_send_email):
         assert mock_send_email.called
         
         # Extract the verification token from the email content
-        # The token is part of the verification URL in the email content
-        # Inspect the mock call arguments structure
-        #ad.log.info(f"Mock call args: {mock_send_email.call_args}")
-        
-        # Access the content parameter correctly
-        # The structure is typically (args, kwargs) where args is a tuple and kwargs is a dict
         if mock_send_email.call_args:
             # Try to get content from kwargs first
             if 'content' in mock_send_email.call_args.kwargs:
@@ -87,10 +136,7 @@ async def test_email_verification(test_db, mock_auth, mock_send_email):
         else:
             assert False, f"Mock was called but call_args is None"
             
-        # Only proceed with token extraction if we have email content
-        verification_token = None
         # Extract the token from the verification URL
-        # Update the pattern to match the frontend URL with query parameter
         verification_url_pattern = r'href="[^"]*?token=([^"&\s]*)"'
         token_match = re.search(verification_url_pattern, email_content)
         
@@ -111,16 +157,21 @@ async def test_email_verification(test_db, mock_auth, mock_send_email):
         
         # Verify that the user's email is now verified
         user_response = client.get(
-            f"/v0/account/users?user_id={user_id}",
+            f"/v0/account/users?user_id={second_user_id}",
             headers=get_auth_headers()
         )
         assert user_response.status_code == 200
         user_data = user_response.json()["users"][0]
         assert user_data["emailVerified"] == True
         
-        # Clean up
+        # Clean up both users
         client.delete(
             f"/v0/account/users/{user_id}",
+            headers=get_auth_headers()
+        )
+        
+        client.delete(
+            f"/v0/account/users/{second_user_id}",
             headers=get_auth_headers()
         )
         
