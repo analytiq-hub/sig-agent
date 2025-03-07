@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock, ANY
 from bson import ObjectId
 import os
 from datetime import datetime, UTC
+import re
 
 # Import shared test utilities
 from .test_utils import (
@@ -70,17 +71,53 @@ async def test_email_verification(test_db, mock_auth, mock_send_email):
         # Verify that send_email was called for email verification
         assert mock_send_email.called
         
-        # Step 4: Verify email with token (this will be a mock test since we don't have a real token)
-        # In a real scenario, we would need to extract the token from the database
-        # For now, we'll just test that the endpoint exists and returns an appropriate error for an invalid token
+        # Extract the verification token from the email content
+        # The token is part of the verification URL in the email content
+        # Inspect the mock call arguments structure
+        #ad.log.info(f"Mock call args: {mock_send_email.call_args}")
         
+        # Access the content parameter correctly
+        # The structure is typically (args, kwargs) where args is a tuple and kwargs is a dict
+        if mock_send_email.call_args:
+            # Try to get content from kwargs first
+            if 'content' in mock_send_email.call_args.kwargs:
+                email_content = mock_send_email.call_args.kwargs['content']
+            else:
+                assert False, f"Could not extract email content from mock call: {mock_send_email.call_args}"
+        else:
+            assert False, f"Mock was called but call_args is None"
+            
+        # Only proceed with token extraction if we have email content
+        verification_token = None
+        if email_content:
+            # Extract the token from the verification URL
+            # Update the pattern to match the frontend URL with query parameter
+            verification_url_pattern = r'href="[^"]*?token=([^"&\s]*)"'
+            token_match = re.search(verification_url_pattern, email_content)
+            
+            if token_match:
+                verification_token = token_match.group(1)
+                ad.log.info(f"Extracted verification token: {verification_token}")
+            else:
+                assert False, f"Could not extract verification token from email content"
+        
+        # Step 4: Verify email with the extracted token
         verify_response = client.post(
-            "/v0/account/email/verification/invalid_token_for_testing",
+            f"/v0/account/email/verification/{verification_token}",
             headers=get_auth_headers()
         )
         
-        # This should fail with 404 or 400 since the token is invalid
-        assert verify_response.status_code in [400, 404]
+        # This should succeed with 200 since we're using a valid token
+        assert verify_response.status_code == 200
+        
+        # Verify that the user's email is now verified
+        user_response = client.get(
+            f"/v0/account/users?user_id={user_id}",
+            headers=get_auth_headers()
+        )
+        assert user_response.status_code == 200
+        user_data = user_response.json()["users"][0]
+        assert user_data["emailVerified"] == True
         
         # Clean up
         client.delete(
