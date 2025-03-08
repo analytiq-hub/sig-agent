@@ -465,14 +465,14 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                               <div
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
-                                className="mb-4 border rounded p-3 bg-gray-50"
+                                className="mb-2 border rounded p-3 bg-gray-50"
                               >
-                                <div className="flex flex-col sm:flex-row gap-2 mb-2">
+                                <div className="flex items-center gap-2 mb-2">
                                   <div 
                                     {...provided.dragHandleProps}
-                                    className="flex items-center text-gray-400 cursor-grab"
+                                    className="flex items-center text-gray-400 cursor-grab p-1"
                                   >
-                                    <DragIndicatorIcon />
+                                    <DragIndicatorIcon fontSize="small" />
                                   </div>
                                   <input
                                     type="text"
@@ -482,31 +482,30 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                                     placeholder="field_name"
                                     disabled={isLoading}
                                   />
-                                  <div className="flex gap-2">
-                                    <select
-                                      className="p-1.5 border rounded text-sm min-w-[100px]"
-                                      value={field.type}
-                                      onChange={e => updateField(index, { type: e.target.value as SchemaField['type'] })}
-                                      disabled={isLoading}
-                                    >
-                                      <option value="str">String</option>
-                                      <option value="int">Integer</option>
-                                      <option value="float">Float</option>
-                                      <option value="bool">Boolean</option>
-                                      <option value="datetime">DateTime</option>
-                                    </select>
-                                    <button
-                                      type="button"
-                                      onClick={() => removeField(index)}
-                                      className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 text-sm"
-                                      disabled={isLoading}
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
+                                  <select
+                                    className="p-1.5 border rounded text-sm w-24"
+                                    value={field.type}
+                                    onChange={e => updateField(index, { type: e.target.value as SchemaField['type'] })}
+                                    disabled={isLoading}
+                                  >
+                                    <option value="str">String</option>
+                                    <option value="int">Integer</option>
+                                    <option value="float">Float</option>
+                                    <option value="bool">Boolean</option>
+                                    <option value="datetime">Date</option>
+                                  </select>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeField(index)}
+                                    className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 text-sm h-8 w-8 flex items-center justify-center"
+                                    disabled={isLoading}
+                                    aria-label="Remove field"
+                                  >
+                                    ✕
+                                  </button>
                                 </div>
                                 <textarea
-                                  className="w-full p-1.5 border rounded text-sm min-h-[60px] resize-y"
+                                  className="w-full p-1.5 border rounded text-sm min-h-[30px] resize-y"
                                   value={field.description || ''}
                                   onChange={e => updateField(index, { description: e.target.value })}
                                   placeholder="Description of this field"
