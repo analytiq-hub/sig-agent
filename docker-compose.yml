@@ -1,3 +1,16 @@
+# Docker Compose configuration for Doc Router
+# 
+# Usage with different profiles:
+#   - Default (no mongodb): docker compose up
+#   - Local (with mongodb): docker compose --profile local up
+#
+# To use different environment settings per profile:
+#   - For local: docker compose --profile local --env-file .env.local up
+#   - For production: docker compose --env-file .env.production up
+#
+# Example .env.local might contain development-specific settings
+# Example .env.production would contain production-specific settings
+
 services:
   frontend:
     image: analytiqhub/doc-router-frontend:latest
@@ -33,9 +46,6 @@ services:
           memory: 1G
         reservations:
           memory: 512M
-    profiles:
-      - default
-      - local
 
   backend:
     image: analytiqhub/doc-router-backend:latest
@@ -71,9 +81,6 @@ services:
           memory: 1G
         reservations:
           memory: 512M
-    profiles:
-      - default
-      - local
 
   worker:
     image: analytiqhub/doc-router-backend:latest
@@ -89,15 +96,14 @@ services:
       - FASTAPI_SECRET=${FASTAPI_SECRET:-default_fastapi_secret_for_development}
     command: sh -c "cd /app/backend/worker && python3 worker.py"
     restart: unless-stopped
+    networks:
+      - doc-router-network
     deploy:
       resources:
         limits:
           memory: 1G
         reservations:
           memory: 512M
-    profiles:
-      - default
-      - local
 
   mongodb:
     image: mongo:latest
