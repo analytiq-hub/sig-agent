@@ -90,11 +90,30 @@ ad.log.info(f"SES_FROM_EMAIL: {SES_FROM_EMAIL}")
 FASTAPI_SECRET = os.getenv("FASTAPI_SECRET")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# Define MongoDB connection check function to be used in lifespan
+async def check_mongodb_connection(uri):
+    try:
+        # Create a MongoDB client
+        mongo_client = AsyncIOMotorClient(uri)
+        
+        # The ismaster command is cheap and does not require auth
+        await mongo_client.admin.command('ismaster')
+        ad.log.info(f"MongoDB connection successful at {uri}")
+        return True
+    except Exception as e:
+        ad.log.error(f"Failed to connect to MongoDB at {uri}: {e}")
+        return False
+
 UPLOAD_DIR = "data"
 
 @asynccontextmanager
 async def lifespan(app):
     # Startup code (previously in @app.on_event("startup"))
+    
+    # Check MongoDB connectivity first
+    await check_mongodb_connection(MONGODB_URI)
+    
     analytiq_client = ad.common.get_analytiq_client()
     await startup.setup_admin(analytiq_client)
     await startup.setup_api_creds(analytiq_client)
