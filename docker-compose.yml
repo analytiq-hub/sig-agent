@@ -1,16 +1,12 @@
 # Docker Compose configuration for Doc Router
 # 
 # Usage with different profiles:
-#   - Default (no mongodb): docker compose up
-#   - Local (with mongodb): docker compose --profile local up
+#   - Default (external mongodb): docker compose up
+#   - Local mongodb: docker compose --profile local up
 #
 # To use different environment settings per profile:
+#   - For default: docker compose up                    # Uses .env
 #   - For local: docker compose --profile local --env-file .env.local up
-#   - For production: docker compose --env-file .env.production up
-#
-# Example .env.local might contain development-specific settings
-# Example .env.production would contain production-specific settings
-
 services:
   frontend:
     image: analytiqhub/doc-router-frontend:latest
@@ -112,8 +108,8 @@ services:
     networks:
       - doc-router-network
     volumes:
-      - mongodb_data:/data/db
-    profiles: ["local"]
+      - doc-router-mongodb:/data/db
+    profiles: ["local"] # Enable in default and local profiles, but not in external
     deploy:
       resources:
         limits:
@@ -126,4 +122,4 @@ networks:
     driver: bridge
 
 volumes:
-  mongodb_data:
+  doc-router-mongodb:
