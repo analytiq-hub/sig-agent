@@ -2451,8 +2451,9 @@ async def create_user(
         "name": user.name,
         "password": hashed_password.decode(),
         "role": "user",  # Always set default role as user
-        "emailVerified": False,
-        "createdAt": datetime.now(UTC)
+        "emailVerified": True,
+        "createdAt": datetime.now(UTC),
+        "hasSeenTour": False
     }
     
     result = await db.users.insert_one(user_doc)
@@ -2500,6 +2501,8 @@ async def update_user(
             update_data["name"] = user.name
         if user.password is not None:
             update_data["password"] = hashpw(user.password.encode(), gensalt(12)).decode()
+        if user.hasSeenTour is not None:
+            update_data["hasSeenTour"] = user.hasSeenTour
     else:
         # Admin can update all fields
         update_data = {

@@ -10,6 +10,7 @@ export interface UserUpdate {
   role?: string;
   emailVerified?: boolean;
   password?: string;
+  hasSeenTour?: boolean;
 }
 
 export interface UserResponse {
@@ -20,6 +21,7 @@ export interface UserResponse {
   emailVerified: boolean | null;
   createdAt: string;
   hasPassword: boolean;
+  hasSeenTour: boolean;
 }
 
 export interface ListUsersParams {

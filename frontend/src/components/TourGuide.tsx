@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { setHasSeenTour, hasSeenTour } from '@/utils/tourGuide';
 
 interface TourStep {
   id: string;
@@ -94,24 +95,33 @@ const TourGuide = () => {
   useEffect(() => {
     console.log("TourGuide: Session state changed", { session, hasSession: !!session });
     
-    if (session) {
-      // Use a more specific key that includes the user's email to ensure it's per-user
-      const tourKey = `hasSeenTour-${session.user?.email}`;
-      const hasSeenTour = localStorage.getItem(tourKey);
-      console.log("TourGuide: Checking localStorage", { tourKey, hasSeenTour });
-      
-      if (!hasSeenTour) {
-        console.log("TourGuide: User hasn't seen tour, scheduling tour start");
-        // Delay the start of the tour to ensure the UI is fully loaded
-        const timer = setTimeout(() => {
-          console.log("TourGuide: Starting tour now");
-          setShowTour(true);
-        }, 1000);
-        return () => clearTimeout(timer);
-      } else {
-        console.log("TourGuide: User has already seen tour");
+    let timeoutId: NodeJS.Timeout;
+    
+    const checkTourStatus = async () => {
+      if (session) {
+        // Use a more specific key that includes the user's email to ensure it's per-user
+        const tour = await hasSeenTour();
+        console.log("TourGuide: Checking if user has seen tour", { hasSeenTour: tour });
+        
+        if (!tour) {
+          console.log("TourGuide: User hasn't seen tour, scheduling tour start");
+          // Delay the start of the tour to ensure the UI is fully loaded
+          timeoutId = setTimeout(() => {
+            console.log("TourGuide: Starting tour now");
+            setShowTour(true);
+          }, 1000);
+        } else {
+          console.log("TourGuide: User has already seen tour");
+        }
       }
-    }
+    };
+    
+    checkTourStatus();
+    
+    // Cleanup function
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [session]);
 
   // Handle navigation between pages during the tour
@@ -127,30 +137,23 @@ const TourGuide = () => {
     }
   }, [showTour, currentStep, tourSteps, router]);
 
+  // Add this function to manually start the tour
+  const startTour = useCallback(() => {
+    setCurrentStep(0); // Reset to first step
+    setShowTour(true);
+    setHasSeenTour(false);
+  }, []);
+
   // Memoize the functions with useCallback
   const endTour = useCallback(() => {
     setShowTour(false);
-    if (session?.user?.email) {
-      const tourKey = `hasSeenTour-${session.user.email}`;
-      localStorage.setItem(tourKey, 'true');
-    } else {
-      localStorage.setItem('hasSeenTour', 'true'); // Fallback
-    }
-  }, [session]);
+  }, []);
 
-  // Add this function to manually start the tour
-  const startTour = useCallback(() => {
-    // Reset the tour flag using the same key pattern
-    if (session?.user?.email) {
-      const email = session.user.email;
-      localStorage.removeItem(`hasSeenTour-${email}`);
-    } else {
-      localStorage.removeItem('hasSeenTour');
-    }
-    
-    setCurrentStep(0); // Reset to first step
-    setShowTour(true);
-  }, [session]);
+  // Memoize the functions with useCallback
+  const skipTour = useCallback(() => {
+    setShowTour(false);
+    setHasSeenTour(true);
+  }, []);
 
   // Now the useEffect hooks can safely reference these functions
   useEffect(() => {
@@ -225,7 +228,7 @@ const TourGuide = () => {
               
               setTooltipPosition({ top, left });
             } else {
-              // Skip to the next step if the element still doesn't exist
+              // Go to the next step if the element still doesn't exist
               if (currentStep < tourSteps.length - 1) {
                 setCurrentStep(currentStep + 1);
               } else {
@@ -240,7 +243,7 @@ const TourGuide = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [showTour, currentStep, tourSteps, endTour]);
+  }, [showTour, currentStep, tourSteps, endTour, skipTour]);
 
   const nextStep = () => {
     if (currentStep < tourSteps.length - 1) {
@@ -378,7 +381,7 @@ const TourGuide = () => {
               href="#"
               onClick={(e) => {
                 e.preventDefault();
-                endTour();
+                skipTour();
               }}
               className="text-white text-sm underline mr-4 hover:text-blue-100"
             >

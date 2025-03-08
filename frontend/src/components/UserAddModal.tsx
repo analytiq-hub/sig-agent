@@ -14,7 +14,7 @@ const UserAddModal: React.FC<AddUserModalProps> = ({ open, onClose, onAdd }) => 
   const [formData, setFormData] = useState({
     email: '',
     name: '',
-    password: ''
+    password: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
