@@ -2,11 +2,27 @@
 import { MongoClient } from "mongodb"
  
 const env = process.env.ENV || "dev"
-
 console.log(`ENV: ${env}`)
 
 const mongodbUri = process.env.MONGODB_URI || "mongodb://localhost:27017"
-const uri = `${mongodbUri}/${env}`
+
+
+// Parse the URI to handle authentication and database name correctly
+const uri = mongodbUri.includes('?') 
+  ? mongodbUri.replace('?', `/${env}?`) // Insert database name before query params
+  : `${mongodbUri}/${env}`
+  
+//
+// Result should be, for example:
+// mongodb//user:pass@host:port/env
+// or
+// mongodb//user:pass@host:port/env?authSource=admin
+//
+// The docker mongo user/pass requires authSource, but only for nextjs.
+//
+console.log(`MONGODB_URI: ${mongodbUri}`)
+console.log(`uri: ${uri}`)
+
 const options = {}
  
 let mongoClient: MongoClient

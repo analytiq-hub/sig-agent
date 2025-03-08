@@ -12,7 +12,7 @@ services:
     environment:
       # Runtime environment
       - ENV=${ENV:-dev}
-      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_URI=mongodb://admin:admin@mongodb:27017?authSource=admin
       - FASTAPI_BACKEND_URL=${FASTAPI_BACKEND_URL:-http://localhost:8000}
       - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-default_secret_for_development}
@@ -43,7 +43,7 @@ services:
     environment:
       # Runtime environment
       - ENV=${ENV:-dev}
-      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_URI=mongodb://admin:admin@mongodb:27017
       - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
       - FASTAPI_ROOT_PATH=${FASTAPI_ROOT_PATH:-/fastapi}
       - FASTAPI_SECRET=${FASTAPI_SECRET:-default_fastapi_secret_for_development}
@@ -79,7 +79,7 @@ services:
       # Runtime environment
       - ENV=${ENV:-dev}
       - N_WORKERS=${N_WORKERS:-1}
-      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_URI=mongodb://admin:admin@mongodb:27017
       - FASTAPI_SECRET=${FASTAPI_SECRET:-default_fastapi_secret_for_development}
     command: sh -c "cd /app/backend/worker && python3 worker.py"
     restart: unless-stopped
@@ -94,6 +94,9 @@ services:
 
   mongodb:
     image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
     ports:
       - "27018:27017" # external_port:internal_port
     networks:
