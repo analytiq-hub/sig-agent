@@ -32,101 +32,24 @@ async def test_email_verification(test_db, mock_auth, mock_send_email):
     ad.log.info(f"test_email_verification() start")
     
     try:
-        # Step 1: Create a user for testing
-        user_data = {
+        # Create an invitation for a new user
+        invitation_data = {
             "email": "verify@example.com",
-            "name": "Verification Test",
-            "password": "securePassword123"
+            "organization_id": TEST_ORG_ID,
+            "role": "user"
         }
         
-        create_response = client.post(
-            "/v0/account/users",
-            json=user_data,
+        create_invitation_response = client.post(
+            "/v0/account/email/invitations",
+            json=invitation_data,
             headers=get_auth_headers()
         )
         
-        assert create_response.status_code == 200
-        user_id = create_response.json()["id"]
-        
-        # Step 2: Send registration verification email
-        reg_verification_response = client.post(
-            f"/v0/account/email/verification/register/{user_id}",
-            headers=get_auth_headers()
-        )
-        
-        assert reg_verification_response.status_code == 200
-        # Verify that send_email was called for registration verification
+        assert create_invitation_response.status_code == 200
+        # Verify that send_email was called for the invitation
         assert mock_send_email.called
         
-        # Extract the registration verification token from the email content
-        if mock_send_email.call_args:
-            # Try to get content from kwargs first
-            if 'content' in mock_send_email.call_args.kwargs:
-                reg_email_content = mock_send_email.call_args.kwargs['content']
-            else:
-                assert False, f"Could not extract email content from mock call: {mock_send_email.call_args}"
-        else:
-            assert False, f"Mock was called but call_args is None"
-        
-        # Extract the token from the verification URL
-        verification_url_pattern = r'href="[^"]*?token=([^"&\s]*)"'
-        reg_token_match = re.search(verification_url_pattern, reg_email_content)
-        
-        if reg_token_match:
-            reg_verification_token = reg_token_match.group(1)
-            ad.log.info(f"Extracted registration verification token: {reg_verification_token}")
-            
-            # Verify email with the extracted registration token
-            reg_verify_response = client.post(
-                f"/v0/account/email/verification/{reg_verification_token}",
-                headers=get_auth_headers()
-            )
-            
-            # This should succeed with 200 since we're using a valid token
-            assert reg_verify_response.status_code == 200
-            
-            # Verify that the user's email is now verified
-            user_check_response = client.get(
-                f"/v0/account/users?user_id={user_id}",
-                headers=get_auth_headers()
-            )
-            assert user_check_response.status_code == 200
-            user_check_data = user_check_response.json()["users"][0]
-            assert user_check_data["emailVerified"] == True
-        else:
-            assert False, f"Could not extract verification token from registration email content"
-        
-        # Reset all mocks
-        mock_send_email.reset_mock()
-        
-        # Step 3: Create a second user for testing the regular verification flow
-        # Since the first user is already verified, we need a new unverified user
-        second_user_data = {
-            "email": "verify2@example.com",
-            "name": "Verification Test 2",
-            "password": "securePassword123"
-        }
-        
-        second_create_response = client.post(
-            "/v0/account/users",
-            json=second_user_data,
-            headers=get_auth_headers()
-        )
-        
-        assert second_create_response.status_code == 200
-        second_user_id = second_create_response.json()["id"]
-        
-        # Send verification email to the second user
-        verification_response = client.post(
-            f"/v0/account/email/verification/send/{second_user_id}",
-            headers=get_auth_headers()
-        )
-        
-        assert verification_response.status_code == 200
-        # Verify that send_email was called for email verification
-        assert mock_send_email.called
-        
-        # Extract the verification token from the email content
+        # Extract the invitation token from the email content
         if mock_send_email.call_args:
             # Try to get content from kwargs first
             if 'content' in mock_send_email.call_args.kwargs:
@@ -135,45 +58,49 @@ async def test_email_verification(test_db, mock_auth, mock_send_email):
                 assert False, f"Could not extract email content from mock call: {mock_send_email.call_args}"
         else:
             assert False, f"Mock was called but call_args is None"
-            
-        # Extract the token from the verification URL
-        verification_url_pattern = r'href="[^"]*?token=([^"&\s]*)"'
-        token_match = re.search(verification_url_pattern, email_content)
+        
+        # Extract the token from the invitation URL
+        invitation_url_pattern = r'href="[^"]*?token=([^"&\s]*)"'
+        token_match = re.search(invitation_url_pattern, email_content)
         
         if token_match:
-            verification_token = token_match.group(1)
-            ad.log.info(f"Extracted verification token: {verification_token}")
+            invitation_token = token_match.group(1)
+            ad.log.info(f"Extracted invitation token: {invitation_token}")
+            
+            # Accept the invitation to create a new user
+            accept_data = {
+                "name": "Verification Test",
+                "password": "securePassword123"
+            }
+            
+            accept_response = client.post(
+                f"/v0/account/email/invitations/{invitation_token}/accept",
+                json=accept_data
+            )
+            
+            assert accept_response.status_code == 200
+            
+            # Find the newly created user
+            user = await test_db.users.find_one({"email": "verify@example.com"})
+            assert user is not None
+            user_id = str(user["_id"])
+            
+            # Verify that the user's email is already verified (since they were invited)
+            user_check_response = client.get(
+                f"/v0/account/users?user_id={user_id}",
+                headers=get_auth_headers()
+            )
+            assert user_check_response.status_code == 200
+            user_check_data = user_check_response.json()["users"][0]
+            assert user_check_data["emailVerified"] == True
+            
+            # Clean up the user
+            client.delete(
+                f"/v0/account/users/{user_id}",
+                headers=get_auth_headers()
+            )
         else:
-            assert False, f"Could not extract verification token from email content"
-        
-        # Step 4: Verify email with the extracted token
-        verify_response = client.post(
-            f"/v0/account/email/verification/{verification_token}",
-            headers=get_auth_headers()
-        )
-        
-        # This should succeed with 200 since we're using a valid token
-        assert verify_response.status_code == 200
-        
-        # Verify that the user's email is now verified
-        user_response = client.get(
-            f"/v0/account/users?user_id={second_user_id}",
-            headers=get_auth_headers()
-        )
-        assert user_response.status_code == 200
-        user_data = user_response.json()["users"][0]
-        assert user_data["emailVerified"] == True
-        
-        # Clean up both users
-        client.delete(
-            f"/v0/account/users/{user_id}",
-            headers=get_auth_headers()
-        )
-        
-        client.delete(
-            f"/v0/account/users/{second_user_id}",
-            headers=get_auth_headers()
-        )
+            assert False, f"Could not extract invitation token from email content"
         
     finally:
         pass  # mock_auth fixture handles cleanup
