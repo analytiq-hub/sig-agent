@@ -110,6 +110,8 @@ services:
     volumes:
       - doc-router-mongodb:/data/db
     profiles: ["local"] # Enable in default and local profiles, but not in external
+    command: mongod --quiet --logpath /dev/null
+    restart: always
     deploy:
       resources:
         limits:
