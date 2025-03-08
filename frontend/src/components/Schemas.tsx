@@ -482,7 +482,6 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                                     <option value="int">Integer</option>
                                     <option value="float">Float</option>
                                     <option value="bool">Boolean</option>
-                                    <option value="datetime">Date</option>
                                   </select>
                                   <button
                                     type="button"
