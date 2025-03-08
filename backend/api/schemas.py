@@ -113,13 +113,6 @@ class UpdateLLMResultRequest(BaseModel):
     updated_llm_result: dict
     is_verified: bool = False
 
-# Schema management models
-FieldType = Literal["str", "int", "float", "bool", "datetime"]
-
-class SchemaField(BaseModel):
-    name: str
-    type: FieldType
-
 class JsonSchemaProperty(BaseModel):
     type: Literal['string', 'integer', 'number', 'boolean', 'array', 'object']
     format: str | None = None
