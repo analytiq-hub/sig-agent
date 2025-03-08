@@ -7,9 +7,11 @@ import { TextField, InputAdornment, IconButton } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import colors from 'tailwindcss/colors'
 import Editor from "@monaco-editor/react";
 import InfoTooltip from '@/components/InfoTooltip';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 interface SchemaPreviewProps {
   schema: ResponseFormat;
@@ -376,6 +378,34 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     return fields;
   };
 
+  // Handle drag end event
+  const handleDragEnd = (result: DropResult) => {
+    // Dropped outside the list
+    if (!result.destination) {
+      return;
+    }
+
+    const reorderedFields = reorderFields(
+      fields,
+      result.source.index,
+      result.destination.index
+    );
+
+    setFields(reorderedFields);
+    setCurrentSchema(prev => ({
+      ...prev,
+      response_format: fieldsToJsonSchema(reorderedFields)
+    }));
+  };
+
+  // Helper function to reorder fields
+  const reorderFields = (list: SchemaField[], startIndex: number, endIndex: number): SchemaField[] => {
+    const result = Array.from(list);
+    const [removed] = result.splice(startIndex, 1);
+    result.splice(endIndex, 0, removed);
+    return result;
+  };
+
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <div className="bg-white p-6 rounded-lg shadow mb-6">
@@ -421,55 +451,82 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             <div className="space-y-2">
               <h3 className="text-lg font-semibold mb-2">Fields Editor</h3>
               <div className="space-y-2 max-h-[300px] overflow-y-auto p-2 border rounded">
-                {fields.map((field, index) => (
-                  <div key={index} className="mb-4 border rounded p-3 bg-gray-50">
-                    <div className="flex flex-col sm:flex-row gap-2 mb-2">
-                      <input
-                        type="text"
-                        className="flex-1 p-1.5 border rounded text-sm"
-                        value={field.name}
-                        onChange={e => updateField(index, { name: e.target.value })}
-                        placeholder="field_name"
-                        disabled={isLoading}
-                      />
-                      <div className="flex gap-2">
-                        <select
-                          className="p-1.5 border rounded text-sm min-w-[100px]"
-                          value={field.type}
-                          onChange={e => updateField(index, { type: e.target.value as SchemaField['type'] })}
-                          disabled={isLoading}
-                        >
-                          <option value="str">String</option>
-                          <option value="int">Integer</option>
-                          <option value="float">Float</option>
-                          <option value="bool">Boolean</option>
-                          <option value="datetime">DateTime</option>
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => removeField(index)}
-                          className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 text-sm"
-                          disabled={isLoading}
-                        >
-                          ✕
-                        </button>
+                <DragDropContext onDragEnd={handleDragEnd}>
+                  <Droppable droppableId="fields">
+                    {(provided) => (
+                      <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className="space-y-2"
+                      >
+                        {fields.map((field, index) => (
+                          <Draggable key={index} draggableId={`field-${index}`} index={index}>
+                            {(provided) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className="mb-4 border rounded p-3 bg-gray-50"
+                              >
+                                <div className="flex flex-col sm:flex-row gap-2 mb-2">
+                                  <div 
+                                    {...provided.dragHandleProps}
+                                    className="flex items-center text-gray-400 cursor-grab"
+                                  >
+                                    <DragIndicatorIcon />
+                                  </div>
+                                  <input
+                                    type="text"
+                                    className="flex-1 p-1.5 border rounded text-sm"
+                                    value={field.name}
+                                    onChange={e => updateField(index, { name: e.target.value })}
+                                    placeholder="field_name"
+                                    disabled={isLoading}
+                                  />
+                                  <div className="flex gap-2">
+                                    <select
+                                      className="p-1.5 border rounded text-sm min-w-[100px]"
+                                      value={field.type}
+                                      onChange={e => updateField(index, { type: e.target.value as SchemaField['type'] })}
+                                      disabled={isLoading}
+                                    >
+                                      <option value="str">String</option>
+                                      <option value="int">Integer</option>
+                                      <option value="float">Float</option>
+                                      <option value="bool">Boolean</option>
+                                      <option value="datetime">DateTime</option>
+                                    </select>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeField(index)}
+                                      className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 text-sm"
+                                      disabled={isLoading}
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                </div>
+                                <textarea
+                                  className="w-full p-1.5 border rounded text-sm min-h-[60px] resize-y"
+                                  value={field.description || ''}
+                                  onChange={e => updateField(index, { description: e.target.value })}
+                                  placeholder="Description of this field"
+                                  disabled={isLoading}
+                                  onKeyDown={e => {
+                                    // Allow Shift+Enter for new lines, but prevent form submission
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                      e.preventDefault();
+                                    }
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
                       </div>
-                    </div>
-                    <textarea
-                      className="w-full p-1.5 border rounded text-sm min-h-[60px] resize-y"
-                      value={field.description || ''}
-                      onChange={e => updateField(index, { description: e.target.value })}
-                      placeholder="Description of this field"
-                      disabled={isLoading}
-                      onKeyDown={e => {
-                        // Allow Shift+Enter for new lines, but prevent form submission
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                        }
-                      }}
-                    />
-                  </div>
-                ))}
+                    )}
+                  </Droppable>
+                </DragDropContext>
               </div>
               <button
                 type="button"
