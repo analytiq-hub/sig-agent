@@ -329,7 +329,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       responseFormat.json_schema.schema.properties[fieldName] = {
         type: jsonType,
         format,
-        description: fieldName.replace(/_/g, ' ')
+        description: field.description || fieldName.replace(/_/g, ' ')
       };
       responseFormat.json_schema.schema.required.push(fieldName);
     });
@@ -366,7 +366,11 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         }
       }
 
-      fields.push({ name, type: fieldType });
+      fields.push({ 
+        name, 
+        type: fieldType,
+        description: prop.description 
+      });
     });
 
     return fields;
@@ -418,37 +422,52 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
               <h3 className="text-lg font-semibold mb-2">Fields Editor</h3>
               <div className="space-y-2 max-h-[300px] overflow-y-auto p-2 border rounded">
                 {fields.map((field, index) => (
-                  <div key={index} className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      className="flex-1 p-1.5 border rounded text-sm"
-                      value={field.name}
-                      onChange={e => updateField(index, { name: e.target.value })}
-                      placeholder="field_name"
-                      disabled={isLoading}
-                    />
-                    <div className="flex gap-2">
-                      <select
-                        className="p-1.5 border rounded text-sm min-w-[100px]"
-                        value={field.type}
-                        onChange={e => updateField(index, { type: e.target.value as SchemaField['type'] })}
+                  <div key={index} className="mb-4 border rounded p-3 bg-gray-50">
+                    <div className="flex flex-col sm:flex-row gap-2 mb-2">
+                      <input
+                        type="text"
+                        className="flex-1 p-1.5 border rounded text-sm"
+                        value={field.name}
+                        onChange={e => updateField(index, { name: e.target.value })}
+                        placeholder="field_name"
                         disabled={isLoading}
-                      >
-                        <option value="str">String</option>
-                        <option value="int">Integer</option>
-                        <option value="float">Float</option>
-                        <option value="bool">Boolean</option>
-                        <option value="datetime">DateTime</option>
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => removeField(index)}
-                        className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 text-sm"
-                        disabled={isLoading}
-                      >
-                        ✕
-                      </button>
+                      />
+                      <div className="flex gap-2">
+                        <select
+                          className="p-1.5 border rounded text-sm min-w-[100px]"
+                          value={field.type}
+                          onChange={e => updateField(index, { type: e.target.value as SchemaField['type'] })}
+                          disabled={isLoading}
+                        >
+                          <option value="str">String</option>
+                          <option value="int">Integer</option>
+                          <option value="float">Float</option>
+                          <option value="bool">Boolean</option>
+                          <option value="datetime">DateTime</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => removeField(index)}
+                          className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 text-sm"
+                          disabled={isLoading}
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
+                    <textarea
+                      className="w-full p-1.5 border rounded text-sm min-h-[60px] resize-y"
+                      value={field.description || ''}
+                      onChange={e => updateField(index, { description: e.target.value })}
+                      placeholder="Description of this field"
+                      disabled={isLoading}
+                      onKeyDown={e => {
+                        // Allow Shift+Enter for new lines, but prevent form submission
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                        }
+                      }}
+                    />
                   </div>
                 ))}
               </div>

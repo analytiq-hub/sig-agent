@@ -32,6 +32,7 @@ export interface Schema {
 export interface SchemaField {
   name: string;
   type: 'str' | 'int' | 'float' | 'bool' | 'datetime';
+  description?: string;
 }
 
 export interface SchemaConfig {
