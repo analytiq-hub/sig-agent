@@ -157,7 +157,8 @@ async def setup_admin(analytiq_client):
                 "role": "admin"
             }],
             "created_at": datetime.now(UTC),
-            "updated_at": datetime.now(UTC)
+            "updated_at": datetime.now(UTC),
+            "hasSeenTour": False
         })
         
         ad.log.info(f"Created default admin user: {admin_email}")
