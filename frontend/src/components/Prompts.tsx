@@ -356,8 +356,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     const properties = responseFormat.json_schema.schema.properties;
     
     for (const [name, prop] of Object.entries(properties)) {
-      const type = prop.type === 'string' && prop.format === 'date-time' ? 'datetime' :
-                 prop.type === 'string' ? 'str' :
+      const type = prop.type === 'string' ? 'str' :
                  prop.type === 'integer' ? 'int' :
                  prop.type === 'number' ? 'float' :
                  prop.type === 'boolean' ? 'bool' : 'str';

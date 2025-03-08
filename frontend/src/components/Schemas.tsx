@@ -305,7 +305,6 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     fields.forEach(field => {
       const fieldName = field.name;
       let jsonType: JsonSchemaProperty['type'];
-      let format: 'date-time' | undefined;
 
       switch (field.type) {
         case 'str':
@@ -320,17 +319,12 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         case 'bool':
           jsonType = 'boolean';
           break;
-        case 'datetime':
-          jsonType = 'string';
-          format = 'date-time';
-          break;
         default:
           jsonType = 'string';
       }
 
       responseFormat.json_schema.schema.properties[fieldName] = {
         type: jsonType,
-        format,
         description: field.description || fieldName.replace(/_/g, ' ')
       };
       responseFormat.json_schema.schema.required.push(fieldName);
@@ -347,25 +341,21 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     Object.entries(properties).forEach(([name, prop]) => {
       let fieldType: SchemaField['type'];
 
-      if (prop.type === 'string' && prop.format === 'date-time') {
-        fieldType = 'datetime';
-      } else {
-        switch (prop.type) {
-          case 'string':
-            fieldType = 'str';
-            break;
-          case 'integer':
-            fieldType = 'int';
-            break;
-          case 'number':
-            fieldType = 'float';
-            break;
-          case 'boolean':
-            fieldType = 'bool';
-            break;
-          default:
-            fieldType = 'str';
-        }
+      switch (prop.type) {
+        case 'string':
+          fieldType = 'str';
+          break;
+        case 'integer':
+          fieldType = 'int';
+          break;
+        case 'number':
+          fieldType = 'float';
+          break;
+        case 'boolean':
+          fieldType = 'bool';
+          break;
+        default:
+          fieldType = 'str';
       }
 
       fields.push({ 

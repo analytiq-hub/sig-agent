@@ -201,15 +201,6 @@ class SchemaJsonSchemaMigration(Migration):
                 json_type = "number"
             elif field_type == "bool":
                 json_type = "boolean"
-            elif field_type == "datetime":
-                json_type = "string"
-                json_schema["properties"][field_name] = {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": field_name.replace("_", " ")
-                }
-                json_schema["required"].append(field_name)
-                continue
             else:
                 json_type = "string"
             
@@ -264,9 +255,7 @@ class SchemaJsonSchemaMigration(Migration):
                 fields = []
                 for field_name, field_def in properties.items():
                     field_type = field_def["type"]
-                    if field_type == "string" and field_def.get("format") == "date-time":
-                        field_type = "datetime"
-                    elif field_type == "string":
+                    if field_type == "string":
                         field_type = "str"
                     elif field_type == "integer":
                         field_type = "int"

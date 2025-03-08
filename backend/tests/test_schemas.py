@@ -33,11 +33,6 @@ async def test_json_schema_lifecycle(test_db, mock_auth):
                                 "type": "string",
                                 "description": "The invoice identifier"
                             },
-                            "date": {
-                                "type": "string",
-                                "format": "date-time",
-                                "description": "Invoice date"
-                            },
                             "total_amount": {
                                 "type": "number",
                                 "description": "Total invoice amount"
@@ -127,7 +122,6 @@ async def test_json_schema_lifecycle(test_db, mock_auth):
                             },
                             "date": {
                                 "type": "string",
-                                "format": "date-time",
                                 "description": "Invoice date"
                             },
                             "total_amount": {

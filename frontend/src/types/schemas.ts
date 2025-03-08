@@ -1,6 +1,5 @@
 export interface JsonSchemaProperty {
   type: 'string' | 'integer' | 'number' | 'boolean' | 'array' | 'object';
-  format?: 'date-time';
   description?: string;
   items?: JsonSchemaProperty;  // For array types
   properties?: Record<string, JsonSchemaProperty>;  // For object types

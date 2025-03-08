@@ -132,7 +132,6 @@ class ResponseFormat(BaseModel):
                     "properties": {
                         "invoice_date": {
                             "type": "string",
-                            "format": "date-time",
                             "description": "invoice date"
                         }
                     },
