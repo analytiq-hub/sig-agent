@@ -268,7 +268,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
 
       return (
         <div className="flex items-center gap-2">
-          <span className="flex-1">
+          <span className="flex-1 font-medium text-gray-900">
             {isEmpty ? '' : stringValue}
           </span>
           <button
@@ -305,7 +305,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
             const fullKey = parentKey ? `${parentKey}.${key}` : key;
             return (
               <div key={fullKey} className="text-sm">
-                <div className="font-medium text-gray-700 mb-1">{key}</div>
+                <div className="text-xs text-gray-500 mb-1">{key}</div>
                 {renderNestedValue(promptId, fullKey, val, level + 1, onFind, onEdit, editing, handleSave, handleCancel)}
               </div>
             );
@@ -326,8 +326,8 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
           <div className="text-sm">
             {value.map((item, index) => (
               <div key={index} className="flex items-center gap-2 mb-1">
-                <span className="text-gray-500 w-8">[{index}]</span>
-                <span>{item?.toString() ?? ''}</span>
+                <span className="text-gray-500 w-8 text-xs">[{index}]</span>
+                <span className="font-medium text-gray-900">{item?.toString() ?? ''}</span>
               </div>
             ))}
           </div>
