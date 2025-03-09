@@ -26,7 +26,7 @@ interface EditingState {
   value: string;
 }
 
-// Add at the top level, before the component
+// Update the type definition to handle nested structures
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
@@ -171,10 +171,24 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       const currentResult = llmResults[editing.promptId];
       if (!currentResult) return;
 
-      const updatedResult = {
-        ...currentResult.updated_llm_result,
-        [editing.key]: editing.value
-      };
+      // Create a deep copy of the current result
+      const updatedResult = JSON.parse(JSON.stringify(currentResult.updated_llm_result));
+      
+      // Handle nested paths (e.g., "address.street")
+      const pathParts = editing.key.split('.');
+      let current = updatedResult;
+      
+      // Navigate to the nested object that contains the property to update
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        current = current[pathParts[i]];
+        if (!current) break;
+      }
+      
+      // Update the value if we found the containing object
+      if (current) {
+        const lastKey = pathParts[pathParts.length - 1];
+        current[lastKey] = editing.value;
+      }
 
       const result = await updateLLMResultApi({
         organizationId,
@@ -198,71 +212,140 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     setEditing(null);
   };
 
-  const renderValue = (promptId: string, key: string, value: string | number | null) => {
-    if (editing && editing.promptId === promptId && editing.key === key) {
+  // Replace the isKeyValuePairs function with a more flexible approach
+  const isEditableValue = (value: unknown): boolean => {
+    return typeof value === 'string' || 
+           typeof value === 'number' || 
+           value === null ||
+           typeof value === 'boolean';
+  };
+
+  // Update the renderNestedValue function to not display type for empty values
+  const renderNestedValue = (
+    promptId: string, 
+    parentKey: string, 
+    value: JsonValue, 
+    level: number = 0,
+    onFind: (promptId: string, key: string, value: string) => void,
+    onEdit: (promptId: string, key: string, value: string) => void,
+    editing: EditingState | null,
+    handleSave: () => void,
+    handleCancel: () => void
+  ) => {
+    // If the value is editable (string, number, boolean, null), render it with edit controls
+    if (isEditableValue(value)) {
+      const stringValue = value?.toString() ?? '';
+      const isEmpty = stringValue === '' || stringValue === 'null' || value === null;
+      const fullKey = parentKey;
+      
+      if (editing && editing.promptId === promptId && editing.key === fullKey) {
+        return (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={editing.value}
+              onChange={(e) => setEditing({ ...editing, value: e.target.value })}
+              className="flex-1 px-2 py-1 text-sm border rounded"
+              autoFocus
+            />
+            <button
+              onClick={handleSave}
+              className="p-1 text-green-600 hover:bg-gray-100 rounded"
+              title="Save changes"
+            >
+              <CheckIcon className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleCancel}
+              className="p-1 text-red-600 hover:bg-gray-100 rounded"
+              title="Cancel"
+            >
+              <XMarkIcon className="w-4 h-4" />
+            </button>
+          </div>
+        );
+      }
+
       return (
         <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={editing.value}
-            onChange={(e) => setEditing({ ...editing, value: e.target.value })}
-            className="flex-1 px-2 py-1 text-sm border rounded"
-            autoFocus
-          />
+          <span className="flex-1">
+            {isEmpty ? '' : stringValue}
+          </span>
           <button
-            onClick={handleSave}
-            className="p-1 text-green-600 hover:bg-gray-100 rounded"
-            title="Save changes"
+            onClick={() => onFind(promptId, fullKey, stringValue)}
+            className={`p-1 text-gray-600 hover:bg-gray-100 rounded ${isEmpty ? 'opacity-50' : ''}`}
+            title="Find in document"
+            disabled={isEmpty}
           >
-            <CheckIcon className="w-4 h-4" />
+            <MagnifyingGlassIcon className="w-4 h-4" />
           </button>
           <button
-            onClick={handleCancel}
-            className="p-1 text-red-600 hover:bg-gray-100 rounded"
-            title="Cancel"
+            onClick={() => onEdit(promptId, fullKey, stringValue)}
+            className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+            title="Edit extraction"
           >
-            <XMarkIcon className="w-4 h-4" />
+            <PencilIcon className="w-4 h-4" />
           </button>
         </div>
       );
     }
-
+    
+    // If it's an object, render each property recursively
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      // If the object is empty, render an empty state
+      if (Object.keys(value).length === 0) {
+        return (
+          <div className="text-sm text-gray-500 italic">Empty object</div>
+        );
+      }
+      
+      return (
+        <div className={`space-y-2 ${level > 0 ? 'ml-4 pl-2 border-l border-gray-200' : ''}`}>
+          {Object.entries(value).map(([key, val]) => {
+            const fullKey = parentKey ? `${parentKey}.${key}` : key;
+            return (
+              <div key={fullKey} className="text-sm">
+                <div className="font-medium text-gray-700 mb-1">{key}</div>
+                {renderNestedValue(promptId, fullKey, val, level + 1, onFind, onEdit, editing, handleSave, handleCancel)}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    
+    // If it's an array, check if it's empty
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        return <div className="text-sm text-gray-500 italic">Empty array</div>;
+      }
+      
+      // For arrays with simple primitive values, display them in a more readable format
+      if (value.every(item => isEditableValue(item))) {
+        return (
+          <div className="text-sm">
+            {value.map((item, index) => (
+              <div key={index} className="flex items-center gap-2 mb-1">
+                <span className="text-gray-500 w-8">[{index}]</span>
+                <span>{item?.toString() ?? ''}</span>
+              </div>
+            ))}
+          </div>
+        );
+      }
+      
+      // For complex arrays, still use JSON
+      return (
+        <div className="text-sm whitespace-pre-wrap break-words text-gray-700 bg-gray-50 rounded p-2">
+          {JSON.stringify(value, null, 2)}
+        </div>
+      );
+    }
+    
+    // Fallback for any other type
     return (
-      <div className="flex items-center gap-2">
-        <span className="flex-1">{value?.toString() ?? ''}</span>
-        <button
-          onClick={() => handleFind(promptId, key, value?.toString() ?? '')}
-          className="p-1 text-gray-600 hover:bg-gray-100 rounded"
-          title="Find in document"
-        >
-          <MagnifyingGlassIcon className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => handleEdit(promptId, key, value?.toString() ?? '')}
-          className="p-1 text-gray-600 hover:bg-gray-100 rounded"
-          title="Edit extraction"
-        >
-          <PencilIcon className="w-4 h-4" />
-        </button>
-      </div>
-    );
-  };
-
-  const isKeyValuePairs = (result: Record<string, unknown>): result is Record<string, string | number | null> => {
-    if (typeof result !== 'object' || result === null) return false;
-    return Object.values(result).every(value => 
-      typeof value === 'string' || 
-      typeof value === 'number' || 
-      value === null
-    );
-  };
-
-  const renderUnstructuredJson = (json: JsonValue) => {
-    return (
-      <div className="p-4">
-        <pre className="text-sm whitespace-pre-wrap break-words text-gray-700 bg-gray-50 rounded p-2">
-          {JSON.stringify(json, null, 2)}
-        </pre>
+      <div className="text-sm whitespace-pre-wrap break-words text-gray-700 bg-gray-50 rounded p-2">
+        {JSON.stringify(value, null, 2)}
       </div>
     );
   };
@@ -279,22 +362,21 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       return <div className="p-4 text-sm text-gray-500">No results available</div>;
     }
 
-    // Check if the result is a simple key-value structure with string values
-    if (isKeyValuePairs(result.updated_llm_result)) {
-      return (
-        <div className="p-4 space-y-3">
-          {Object.entries(result.updated_llm_result).map(([key, value]) => (
-            <div key={key} className="text-sm">
-              <div className="font-medium text-gray-700 mb-1">{key}</div>
-              {renderValue(promptId, key, value as string | number | null)}
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    // If not key-value pairs, render as unstructured JSON
-    return renderUnstructuredJson(result.updated_llm_result);
+    return (
+      <div className="p-4 space-y-3">
+        {renderNestedValue(
+          promptId, 
+          '', 
+          result.updated_llm_result, 
+          0, 
+          handleFind, 
+          handleEdit, 
+          editing, 
+          handleSave, 
+          handleCancel
+        )}
+      </div>
+    );
   };
 
   return (
