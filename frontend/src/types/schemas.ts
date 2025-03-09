@@ -30,9 +30,11 @@ export interface Schema {
 
 export interface SchemaField {
   name: string;
-  type: 'str' | 'int' | 'float' | 'bool' | 'datetime' | 'object';
+  type: 'str' | 'int' | 'float' | 'bool' | 'datetime' | 'object' | 'array';
   description?: string;
   nestedFields?: SchemaField[]; // For object types
+  arrayItemType?: 'str' | 'int' | 'float' | 'bool' | 'object'; // For array types
+  arrayObjectFields?: SchemaField[]; // For array of objects
 }
 
 export interface SchemaConfig {

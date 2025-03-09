@@ -276,6 +276,36 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     }));
   };
 
+  // Add this function to handle array item type changes
+  const handleArrayItemTypeChange = (index: number, itemType: SchemaField['type']) => {
+    const newFields = [...fields];
+    newFields[index] = {
+      ...newFields[index],
+      arrayItemType: itemType,
+      // Initialize nested fields for array of objects
+      arrayObjectFields: itemType === 'object' ? [{ name: '', type: 'str' }] : undefined
+    };
+    setFields(newFields);
+    setCurrentSchema(prev => ({
+      ...prev,
+      response_format: fieldsToJsonSchema(newFields)
+    }));
+  };
+
+  // Add this function to handle array object fields changes
+  const handleArrayObjectFieldsChange = (parentIndex: number, objectFields: SchemaField[]) => {
+    const updatedFields = [...fields];
+    updatedFields[parentIndex] = {
+      ...updatedFields[parentIndex],
+      arrayObjectFields: objectFields
+    };
+    setFields(updatedFields);
+    setCurrentSchema(prev => ({
+      ...prev,
+      response_format: fieldsToJsonSchema(updatedFields)
+    }));
+  };
+
   const validateFields = (fields: SchemaField[]): string | null => {
     const fieldNames = fields.map(f => f.name.toLowerCase());
     const duplicates = fieldNames.filter((name, index) => fieldNames.indexOf(name) !== index);
@@ -408,7 +438,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     },
   ];
 
-  // Update fieldsToJsonSchema to handle nested objects
+  // Update fieldsToJsonSchema to handle arrays
   const fieldsToJsonSchema = (fields: SchemaField[]): ResponseFormat => {
     const responseFormat = {
       type: 'json_schema' as const,
@@ -440,6 +470,12 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         case 'bool':
           property = { type: 'boolean' };
           break;
+        case 'array':
+          property = {
+            type: 'array',
+            items: field.arrayItemType ? processArrayItemType(field) : { type: 'string' }
+          };
+          break;
         case 'object':
           property = {
             type: 'object',
@@ -468,6 +504,40 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       return property;
     };
 
+    // Helper function to process array item types
+    const processArrayItemType = (field: SchemaField): JsonSchemaProperty => {
+      if (!field.arrayItemType) return { type: 'string' };
+
+      switch (field.arrayItemType) {
+        case 'str':
+          return { type: 'string' };
+        case 'int':
+          return { type: 'integer' };
+        case 'float':
+          return { type: 'number' };
+        case 'bool':
+          return { type: 'boolean' };
+        case 'object':
+          const objectProperty: JsonSchemaProperty = {
+            type: 'object',
+            properties: {}
+          };
+          
+          // Process array object fields
+          if (field.arrayObjectFields && field.arrayObjectFields.length > 0) {
+            field.arrayObjectFields.forEach(objField => {
+              if (objField.name && objectProperty.properties) {
+                objectProperty.properties[objField.name] = processField(objField);
+              }
+            });
+          }
+          
+          return objectProperty;
+        default:
+          return { type: 'string' };
+      }
+    };
+
     fields.forEach(field => {
       if (field.name) {
         responseFormat.json_schema.schema.properties[field.name] = processField(field);
@@ -478,7 +548,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     return responseFormat;
   };
 
-  // Update jsonSchemaToFields to handle nested objects
+  // Update jsonSchemaToFields to handle arrays
   const jsonSchemaToFields = (responseFormat: ResponseFormat): SchemaField[] => {
     const fields: SchemaField[] = [];
     const properties = responseFormat.json_schema.schema.properties;
@@ -486,6 +556,8 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     const processProperty = (name: string, prop: JsonSchemaProperty): SchemaField => {
       let fieldType: SchemaField['type'];
       let nestedFields: SchemaField[] | undefined;
+      let arrayItemType: SchemaField['type'] | undefined;
+      let arrayObjectFields: SchemaField[] | undefined;
 
       switch (prop.type) {
         case 'string':
@@ -499,6 +571,36 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           break;
         case 'boolean':
           fieldType = 'bool';
+          break;
+        case 'array':
+          fieldType = 'array';
+          if (prop.items) {
+            const itemType = prop.items.type;
+            switch (itemType) {
+              case 'string':
+                arrayItemType = 'str';
+                break;
+              case 'integer':
+                arrayItemType = 'int';
+                break;
+              case 'number':
+                arrayItemType = 'float';
+                break;
+              case 'boolean':
+                arrayItemType = 'bool';
+                break;
+              case 'object':
+                arrayItemType = 'object';
+                if (prop.items.properties) {
+                  arrayObjectFields = Object.entries(prop.items.properties).map(
+                    ([objName, objProp]) => processProperty(objName, objProp)
+                  );
+                }
+                break;
+              default:
+                arrayItemType = 'str';
+            }
+          }
           break;
         case 'object':
           fieldType = 'object';
@@ -516,7 +618,9 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         name, 
         type: fieldType,
         description: prop.description,
-        nestedFields
+        nestedFields,
+        arrayItemType,
+        arrayObjectFields
       };
     };
 
@@ -642,6 +746,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                                     <option value="float">Float</option>
                                     <option value="bool">Boolean</option>
                                     <option value="object">Object</option>
+                                    <option value="array">Array</option>
                                   </select>
                                   <button
                                     type="button"
@@ -693,6 +798,39 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                                       onChange={(nestedFields) => handleNestedFieldsChange(index, nestedFields)}
                                       isLoading={isLoading}
                                     />
+                                  </div>
+                                )}
+
+                                {/* Add array type configuration */}
+                                {field.type === 'array' && (
+                                  <div className="mt-2 pl-4 border-l-2 border-green-200">
+                                    <div className="text-sm font-medium text-green-600 mb-2">Array Item Type</div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <select
+                                        className="p-1.5 border rounded text-sm"
+                                        value={field.arrayItemType || 'str'}
+                                        onChange={e => handleArrayItemTypeChange(index, e.target.value as SchemaField['type'])}
+                                        disabled={isLoading}
+                                      >
+                                        <option value="str">String</option>
+                                        <option value="int">Integer</option>
+                                        <option value="float">Float</option>
+                                        <option value="bool">Boolean</option>
+                                        <option value="object">Object</option>
+                                      </select>
+                                    </div>
+                                    
+                                    {/* For array of objects, show object field editor */}
+                                    {field.arrayItemType === 'object' && (
+                                      <div className="mt-2">
+                                        <div className="text-sm font-medium text-blue-600 mb-2">Array Object Fields</div>
+                                        <NestedFieldsEditor 
+                                          fields={field.arrayObjectFields || [{ name: '', type: 'str' }]}
+                                          onChange={(objectFields) => handleArrayObjectFieldsChange(index, objectFields)}
+                                          isLoading={isLoading}
+                                        />
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
