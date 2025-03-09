@@ -193,18 +193,79 @@ export function OCRProvider({ children }: { children: React.ReactNode }) {
           if (proximityMatches.length > 0) {
             foundInProximity = true;
             for (const match of proximityMatches) {
-              foundBlocks = [...foundBlocks, ...match.blocks];
+              // Instead of adding all blocks, identify the specific words that match
+              const matchedSubstring = findMatchedSubstring(match.text, searchLower);
+              if (matchedSubstring) {
+                const relevantWords = identifyRelevantWords(match.blocks, match.text, matchedSubstring);
+                foundBlocks = [...foundBlocks, ...relevantWords];
+              } else {
+                foundBlocks = [...foundBlocks, ...match.blocks]; // Fallback to all blocks if can't pinpoint
+              }
             }
           }
         }
         
-        // If no proximity matches, fall back to line matches
+        // If no proximity matches, fall back to line matches with word-level precision
         if (!foundInProximity) {
           for (const pageNum in pageIndices) {
             const lineMatches = pageIndices[pageNum].lines.filter(line => 
               line.text.includes(searchLower)
             );
-            foundBlocks = [...foundBlocks, ...lineMatches.map(match => match.block)];
+            
+            for (const lineMatch of lineMatches) {
+              // Find the specific words in the line that contribute to the match
+              const wordsInLine = pageIndices[pageNum].words.filter(word => {
+                const wordBlock = word.block;
+                const lineBlock = lineMatch.block;
+                
+                // Check if word is contained within this line's bounding box
+                return wordBlock.Page === lineBlock.Page &&
+                       wordBlock.Geometry.BoundingBox.Left >= lineBlock.Geometry.BoundingBox.Left - 0.01 &&
+                       wordBlock.Geometry.BoundingBox.Top >= lineBlock.Geometry.BoundingBox.Top - 0.01 &&
+                       wordBlock.Geometry.BoundingBox.Left + wordBlock.Geometry.BoundingBox.Width <= 
+                         lineBlock.Geometry.BoundingBox.Left + lineBlock.Geometry.BoundingBox.Width + 0.01 &&
+                       wordBlock.Geometry.BoundingBox.Top + wordBlock.Geometry.BoundingBox.Height <= 
+                         lineBlock.Geometry.BoundingBox.Top + lineBlock.Geometry.BoundingBox.Height + 0.01;
+              });
+              
+              // For single words, find exact matches within the line
+              if (!searchLower.includes(' ')) {
+                const exactWordMatches = wordsInLine.filter(word => 
+                  word.text === searchLower || 
+                  word.text.startsWith(searchLower + ',') || 
+                  word.text.startsWith(searchLower + '.') ||
+                  word.text.includes(searchLower)
+                );
+                
+                if (exactWordMatches.length > 0) {
+                  foundBlocks = [...foundBlocks, ...exactWordMatches.map(w => w.block)];
+                } else {
+                  // If no exact word matches, fall back to using the line
+                  foundBlocks.push(lineMatch.block);
+                }
+              } 
+              // For multi-word searches, try to identify the sequence of words
+              else {
+                // Create a combined text from words in the line
+                const lineWordsText = wordsInLine.map(w => w.text).join(' ');
+                
+                if (lineWordsText.includes(searchLower)) {
+                  // Try to identify the specific sequence of words that match
+                  const searchWords = searchLower.split(' ');
+                  const matchedWords = identifyMatchingWordSequence(wordsInLine, searchWords);
+                  
+                  if (matchedWords.length > 0) {
+                    foundBlocks = [...foundBlocks, ...matchedWords.map(w => w.block)];
+                  } else {
+                    // Fallback to using the line
+                    foundBlocks.push(lineMatch.block);
+                  }
+                } else {
+                  // If cannot match the sequence, use the line
+                  foundBlocks.push(lineMatch.block);
+                }
+              }
+            }
           }
         }
       }
@@ -257,4 +318,86 @@ export function useOCR(): OCRContextType {
     throw new Error('useOCR must be used within an OCRProvider');
   }
   return context;
+}
+
+// Helper functions to identify specific matches
+
+// Find the start and end indices of the matched substring within the text
+function findMatchedSubstring(text: string, search: string): { start: number, end: number } | null {
+  const index = text.indexOf(search);
+  if (index === -1) return null;
+  return { start: index, end: index + search.length };
+}
+
+// Identify which word blocks contribute to the matched substring
+function identifyRelevantWords(blocks: OCRBlock[], fullText: string, match: { start: number, end: number }): OCRBlock[] {
+  // This is a simplified implementation - in a real scenario, you'd need to track
+  // character offsets to precisely map text positions to blocks
+  
+  // As a simple approach, if search is a single word, find blocks that match it
+  const searchText = fullText.substring(match.start, match.end);
+  const words = searchText.split(' ');
+  
+  if (words.length === 1) {
+    // For single word search, find exact matches
+    return blocks.filter(block => 
+      block.Text?.toLowerCase() === searchText || 
+      block.Text?.toLowerCase().startsWith(searchText + ',') ||
+      block.Text?.toLowerCase().startsWith(searchText + '.')
+    );
+  } else {
+    // For multi-word search, try to find the sequence of words
+    return identifyMatchingWordSequence(
+      blocks.map(block => ({ text: block.Text?.toLowerCase() || '', block })),
+      words
+    ).map(match => match.block);
+  }
+}
+
+// Identify a sequence of word blocks that match the search words
+function identifyMatchingWordSequence(
+  wordEntries: { text: string, block: OCRBlock }[], 
+  searchWords: string[]
+): { text: string, block: OCRBlock }[] {
+  const result: { text: string, block: OCRBlock }[] = [];
+  
+  // Sort words by position (left to right)
+  const sortedWords = [...wordEntries].sort((a, b) => {
+    return a.block.Geometry.BoundingBox.Left - b.block.Geometry.BoundingBox.Left;
+  });
+  
+  // Try to find consecutive words that match the search sequence
+  let matchStartIdx = -1;
+  
+  for (let i = 0; i <= sortedWords.length - searchWords.length; i++) {
+    let allMatch = true;
+    
+    for (let j = 0; j < searchWords.length; j++) {
+      const wordText = sortedWords[i + j].text;
+      const searchWord = searchWords[j];
+      
+      // Check if word matches, including with trailing punctuation
+      if (!wordText.startsWith(searchWord) && 
+          wordText !== searchWord && 
+          !wordText.startsWith(searchWord + ',') && 
+          !wordText.startsWith(searchWord + '.')) {
+        allMatch = false;
+        break;
+      }
+    }
+    
+    if (allMatch) {
+      matchStartIdx = i;
+      break;
+    }
+  }
+  
+  // If we found a matching sequence, collect those blocks
+  if (matchStartIdx >= 0) {
+    for (let i = 0; i < searchWords.length; i++) {
+      result.push(sortedWords[matchStartIdx + i]);
+    }
+  }
+  
+  return result;
 } 
