@@ -490,7 +490,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                                     disabled={isLoading}
                                     aria-label="Remove field"
                                   >
-                                    ✕
+                                    <span className="inline-block leading-none translate-y-[1px]">✕</span>
                                   </button>
                                   <button
                                     type="button"
@@ -503,11 +503,11 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                                         response_format: fieldsToJsonSchema(newFields)
                                       }));
                                     }}
-                                    className="p-1 bg-green-50 text-green-600 rounded hover:bg-green-100 disabled:opacity-50 text-sm h-8 w-8 flex items-center justify-center"
+                                    className="p-1 bg-green-50 text-green-600 rounded hover:bg-green-100 disabled:opacity-50 text-xl h-8 w-8 flex items-center justify-center"
                                     disabled={isLoading}
                                     aria-label="Add field after this one"
                                   >
-                                    +
+                                    <span className="inline-block leading-none">+</span>
                                   </button>
                                 </div>
                                 <textarea
