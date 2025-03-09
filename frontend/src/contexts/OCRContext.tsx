@@ -78,23 +78,158 @@ export function OCRProvider({ children }: { children: React.ReactNode }) {
   const findBlocksWithContext = useCallback((searchText: string, promptId: string, key?: string): HighlightInfo => {
     if (!ocrBlocks) return { blocks: [], promptId, key, value: searchText };
 
-    let foundBlocks: OCRBlock[];
+    // 1. Pre-process the search text for better matching
+    const searchLower = searchText.toLowerCase().trim();
     
-    // If searchText has no spaces, search for individual words
-    if (!searchText.includes(' ')) {
-      foundBlocks = ocrBlocks.filter(block => 
-        block.BlockType === 'WORD' && 
-        block.Text && 
-        block.Text.toLowerCase() === searchText.toLowerCase()
-      );
-    } else {
-      // For phrases, search in LINE blocks
-      foundBlocks = ocrBlocks.filter(block => {
-        if (block.BlockType !== 'LINE' || !block.Text) return false;
-        return block.Text.toLowerCase().includes(searchText.toLowerCase());
-      });
+    // 2. Build page-level text indices for more natural searching
+    const pageIndices: Record<number, {
+      lines: { text: string; block: OCRBlock }[];
+      words: { text: string; block: OCRBlock }[];
+      proximityGroups: { text: string; blocks: OCRBlock[] }[];
+    }> = {};
+    
+    // Organize blocks by page
+    for (const block of ocrBlocks) {
+      if (!block.Text) continue;
+      
+      const page = block.Page;
+      if (!pageIndices[page]) {
+        pageIndices[page] = { 
+          lines: [], 
+          words: [],
+          proximityGroups: []
+        };
+      }
+      
+      if (block.BlockType === 'LINE') {
+        pageIndices[page].lines.push({ text: block.Text.toLowerCase(), block });
+      } else if (block.BlockType === 'WORD') {
+        pageIndices[page].words.push({ text: block.Text.toLowerCase(), block });
+      }
     }
-
+    
+    // 3. Build proximity groups (words that are close to each other)
+    for (const pageNum in pageIndices) {
+      const page = pageIndices[pageNum];
+      
+      // Simple implementation: group words in the same line
+      // You could enhance this with more sophisticated spatial grouping
+      for (const line of page.lines) {
+        const lineWords = page.words.filter(word => {
+          const wordBlock = word.block;
+          const lineBlock = line.block;
+          
+          // Check if word is contained within line's bounding box (with some margin)
+          return wordBlock.Page === lineBlock.Page &&
+                 wordBlock.Geometry.BoundingBox.Left >= lineBlock.Geometry.BoundingBox.Left - 0.01 &&
+                 wordBlock.Geometry.BoundingBox.Top >= lineBlock.Geometry.BoundingBox.Top - 0.01 &&
+                 wordBlock.Geometry.BoundingBox.Left + wordBlock.Geometry.BoundingBox.Width <= 
+                   lineBlock.Geometry.BoundingBox.Left + lineBlock.Geometry.BoundingBox.Width + 0.01 &&
+                 wordBlock.Geometry.BoundingBox.Top + wordBlock.Geometry.BoundingBox.Height <= 
+                   lineBlock.Geometry.BoundingBox.Top + lineBlock.Geometry.BoundingBox.Height + 0.01;
+        });
+        
+        if (lineWords.length > 0) {
+          page.proximityGroups.push({
+            text: lineWords.map(w => w.text).join(' '),
+            blocks: lineWords.map(w => w.block)
+          });
+        }
+      }
+    }
+    
+    // 4. PDF.js-like search function
+    let foundBlocks: OCRBlock[] = [];
+    
+    // Search logic inspired by PDF.js
+    const searchForText = () => {
+      // For exact word matches (especially short terms)
+      if (searchLower.length < 4 && !searchLower.includes(' ') && !/[+#*@$&%]/.test(searchLower)) {
+        // Find exact word matches for short terms without special chars
+        for (const pageNum in pageIndices) {
+          const exactMatches = pageIndices[pageNum].words.filter(word => 
+            word.text === searchLower || 
+            word.text.startsWith(searchLower + ',') || 
+            word.text.startsWith(searchLower + '.') ||
+            word.text.startsWith(searchLower + ';') ||
+            word.text.startsWith(searchLower + ':')
+          );
+          foundBlocks = [...foundBlocks, ...exactMatches.map(match => match.block)];
+        }
+      }
+      
+      // For terms with special characters (like C++, C#)
+      else if (/[+#*@$&%]/.test(searchLower)) {
+        // Special handling for programming languages and terms with special chars
+        for (const pageNum in pageIndices) {
+          // Check both individual words and proximity groups
+          const wordMatches = pageIndices[pageNum].words.filter(word => 
+            word.text.includes(searchLower) || 
+            word.text.startsWith(searchLower.replace(/[+#]/g, '')) // Also match C for C++
+          );
+          
+          const lineMatches = pageIndices[pageNum].lines.filter(line =>
+            line.text.includes(searchLower)
+          );
+          
+          foundBlocks = [
+            ...foundBlocks, 
+            ...wordMatches.map(match => match.block),
+            ...lineMatches.map(match => match.block)
+          ];
+        }
+      }
+      
+      // For phrases and longer terms
+      else {
+        // First try proximity groups (for better phrase matching)
+        let foundInProximity = false;
+        
+        for (const pageNum in pageIndices) {
+          const proximityMatches = pageIndices[pageNum].proximityGroups.filter(group => 
+            group.text.includes(searchLower)
+          );
+          
+          if (proximityMatches.length > 0) {
+            foundInProximity = true;
+            for (const match of proximityMatches) {
+              foundBlocks = [...foundBlocks, ...match.blocks];
+            }
+          }
+        }
+        
+        // If no proximity matches, fall back to line matches
+        if (!foundInProximity) {
+          for (const pageNum in pageIndices) {
+            const lineMatches = pageIndices[pageNum].lines.filter(line => 
+              line.text.includes(searchLower)
+            );
+            foundBlocks = [...foundBlocks, ...lineMatches.map(match => match.block)];
+          }
+        }
+      }
+    };
+    
+    searchForText();
+    
+    // If no results, try fuzzy matching for programming terms
+    if (foundBlocks.length === 0 && /^(c\+\+|javascript|typescript|python|java|c#|\.net|ruby|go|rust|php)$/i.test(searchLower)) {
+      // Try more lenient matching for common programming languages
+      for (const pageNum in pageIndices) {
+        // Remove special chars and try again
+        const normalizedSearch = searchLower.replace(/[+#.]/g, '');
+        
+        const wordMatches = pageIndices[pageNum].words.filter(word => 
+          word.text.startsWith(normalizedSearch) || 
+          (searchLower === 'c++' && word.text === 'c') ||
+          (searchLower === 'javascript' && word.text.includes('js'))
+        );
+        
+        foundBlocks = [...foundBlocks, ...wordMatches.map(match => match.block)];
+      }
+    }
+    
+    // 5. Return results in HighlightInfo format
     return {
       blocks: foundBlocks,
       promptId,
