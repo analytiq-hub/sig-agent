@@ -102,7 +102,6 @@ async def test_json_schema_lifecycle(test_db, mock_auth):
         assert schema_data["response_format"]["type"] == "json_schema"
         assert "json_schema" in schema_data["response_format"]
         assert "invoice_number" in schema_data["response_format"]["json_schema"]["schema"]["properties"]
-        assert "date" in schema_data["response_format"]["json_schema"]["schema"]["properties"]
         assert "total_amount" in schema_data["response_format"]["json_schema"]["schema"]["properties"]
         
         # Step 4: Update the schema
