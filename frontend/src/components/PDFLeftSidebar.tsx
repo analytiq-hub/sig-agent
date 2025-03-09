@@ -38,6 +38,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   const [loadingPrompts, setLoadingPrompts] = useState<Set<string>>(new Set());
   const [failedPrompts, setFailedPrompts] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<EditingState | null>(null);
+  const [editMode, setEditMode] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -170,6 +171,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   };
 
   const handleEdit = (promptId: string, key: string, value: string) => {
+    if (!editMode) return; // Only allow editing when edit mode is enabled
     setEditing({ promptId, key, value });
   };
 
@@ -290,7 +292,8 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     onEdit: (promptId: string, key: string, value: string) => void,
     editing: EditingState | null,
     handleSave: () => void,
-    handleCancel: () => void
+    handleCancel: () => void,
+    editMode: boolean = false
   ) => {
     // If the value is editable (string, number, boolean, null), render it with edit controls
     if (isEditableValue(value)) {
@@ -325,27 +328,30 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
           </div>
         );
       }
-
+      
       return (
-        <div className="flex items-center gap-2">
-          <span className="flex-1 font-medium text-gray-900">
-            {isEmpty ? '' : stringValue}
-          </span>
-          <button
-            onClick={() => onFind(promptId, fullKey, stringValue)}
-            className={`p-1 text-gray-600 hover:bg-gray-100 rounded ${isEmpty ? 'opacity-50' : ''}`}
-            title="Find in document"
-            disabled={isEmpty}
-          >
-            <MagnifyingGlassIcon className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onEdit(promptId, fullKey, stringValue)}
-            className="p-1 text-gray-600 hover:bg-gray-100 rounded"
-            title="Edit extraction"
-          >
-            <PencilIcon className="w-4 h-4" />
-          </button>
+        <div className="flex items-center justify-between gap-2">
+          <div className={`flex-1 ${isEmpty ? 'text-gray-400 italic' : ''}`}>
+            {isEmpty ? 'null' : stringValue}
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => onFind(promptId, fullKey, stringValue)}
+              className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+              title="Find in document"
+            >
+              <MagnifyingGlassIcon className="w-4 h-4" />
+            </button>
+            {editMode && (
+              <button
+                onClick={() => onEdit(promptId, fullKey, stringValue)}
+                className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                title="Edit value"
+              >
+                <PencilIcon className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       );
     }
@@ -366,7 +372,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
             return (
               <div key={fullKey} className="text-sm">
                 <div className="text-xs text-gray-500 mb-1">{key}</div>
-                {renderNestedValue(promptId, fullKey, val, level + 1, onFind, onEdit, editing, handleSave, handleCancel)}
+                {renderNestedValue(promptId, fullKey, val, level + 1, onFind, onEdit, editing, handleSave, handleCancel, editMode)}
               </div>
             );
           })}
@@ -380,13 +386,15 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         return (
           <div className="text-sm text-gray-500 italic flex justify-between items-center">
             <span>Empty array</span>
-            <button
-              onClick={() => handleArrayItemAdd(promptId, parentKey, [])}
-              className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100"
-              title="Add item"
-            >
-              Add Item
-            </button>
+            {editMode && (
+              <button
+                onClick={() => handleArrayItemAdd(promptId, parentKey, [])}
+                className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100"
+                title="Add item"
+              >
+                Add Item
+              </button>
+            )}
           </div>
         );
       }
@@ -449,33 +457,39 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
                   >
                     <MagnifyingGlassIcon className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => onEdit(promptId, arrayItemKey, stringValue)}
-                    className="p-1 text-gray-600 hover:bg-gray-100 rounded"
-                    title="Edit item"
-                  >
-                    <PencilIcon className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleArrayItemDelete(promptId, arrayItemKey, index)}
-                    className="p-1 text-red-600 hover:bg-gray-100 rounded"
-                    title="Delete item"
-                  >
-                    <XMarkIcon className="w-4 h-4" />
-                  </button>
+                  {editMode && (
+                    <>
+                      <button
+                        onClick={() => onEdit(promptId, arrayItemKey, stringValue)}
+                        className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                        title="Edit item"
+                      >
+                        <PencilIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleArrayItemDelete(promptId, arrayItemKey, index)}
+                        className="p-1 text-red-600 hover:bg-gray-100 rounded"
+                        title="Delete item"
+                      >
+                        <XMarkIcon className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               );
             })}
             
-            <div className="mt-2">
-              <button
-                onClick={() => handleArrayItemAdd(promptId, parentKey, value)}
-                className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 w-full"
-                title="Add item"
-              >
-                Add Item
-              </button>
-            </div>
+            {editMode && (
+              <div className="mt-2">
+                <button
+                  onClick={() => handleArrayItemAdd(promptId, parentKey, value)}
+                  className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 w-full"
+                  title="Add item"
+                >
+                  Add Item
+                </button>
+              </div>
+            )}
           </div>
         );
       }
@@ -491,13 +505,15 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
               <div key={index} className="border rounded p-2 bg-gray-50">
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-medium text-sm text-gray-700">Item {index}</span>
-                  <button
-                    onClick={() => handleArrayItemDelete(promptId, arrayItemKey, index)}
-                    className="p-1 text-red-600 hover:bg-gray-100 rounded"
-                    title="Delete item"
-                  >
-                    <XMarkIcon className="w-4 h-4" />
-                  </button>
+                  {editMode && (
+                    <button
+                      onClick={() => handleArrayItemDelete(promptId, arrayItemKey, index)}
+                      className="p-1 text-red-600 hover:bg-gray-100 rounded"
+                      title="Delete item"
+                    >
+                      <XMarkIcon className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
                 
                 {typeof item === 'object' && item !== null ? (
@@ -511,7 +527,8 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
                       onEdit,
                       editing,
                       handleSave,
-                      handleCancel
+                      handleCancel,
+                      editMode
                     )}
                   </div>
                 ) : (
@@ -521,15 +538,17 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
             );
           })}
           
-          <div className="mt-2">
-            <button
-              onClick={() => handleArrayObjectAdd(promptId, parentKey, value)}
-              className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 w-full"
-              title="Add item"
-            >
-              Add Item
-            </button>
-          </div>
+          {editMode && (
+            <div className="mt-2">
+              <button
+                onClick={() => handleArrayObjectAdd(promptId, parentKey, value)}
+                className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 w-full"
+                title="Add item"
+              >
+                Add Item
+              </button>
+            </div>
+          )}
         </div>
       );
     }
@@ -565,7 +584,8 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
           handleEdit, 
           editing, 
           handleSave, 
-          handleCancel
+          handleCancel,
+          editMode
         )}
       </div>
     );
@@ -573,6 +593,9 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
 
   // Add these new handler functions to the component
   const handleArrayItemDelete = async (promptId: string, arrayKey: string, index: number) => {
+    // Only allow array item deletion when edit mode is enabled
+    if (!editMode) return;
+    
     try {
       const result = llmResults[promptId];
       if (!result) return;
@@ -619,6 +642,9 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   };
 
   const handleArrayItemAdd = async (promptId: string, arrayKey: string, currentArray: JsonValue[]) => {
+    // Only allow array item addition when edit mode is enabled
+    if (!editMode) return;
+    
     try {
       const result = llmResults[promptId];
       if (!result) return;
@@ -679,6 +705,9 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   };
 
   const handleArrayObjectAdd = async (promptId: string, arrayKey: string, currentArray: JsonValue[]) => {
+    // Only allow array object addition when edit mode is enabled
+    if (!editMode) return;
+    
     try {
       const result = llmResults[promptId];
       if (!result) return;
@@ -751,8 +780,22 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
 
   return (
     <div className="w-full h-full flex flex-col border-r border-black/10">
-      <div className="h-12 min-h-[48px] flex items-center px-4 bg-gray-100 text-black font-bold border-b border-black/10">
-        Available Prompts
+      <div className="h-12 min-h-[48px] flex items-center justify-between px-4 bg-gray-100 text-black font-bold border-b border-black/10">
+        <span>Available Prompts</span>
+        <div className="flex items-center gap-2">
+          {editMode && (
+            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-md">
+              Edit Mode
+            </span>
+          )}
+          <button
+            onClick={() => setEditMode(prev => !prev)}
+            className={`p-1 rounded-full hover:bg-black/5 transition-colors cursor-pointer ${editMode ? 'bg-blue-100' : ''}`}
+            title={editMode ? "Disable editing mode" : "Enable editing mode"}
+          >
+            <PencilIcon className={`w-4 h-4 ${editMode ? 'text-blue-600' : 'text-gray-600'}`} />
+          </button>
+        </div>
       </div>
       
       <div className="overflow-auto flex-grow">
