@@ -41,6 +41,107 @@ const SchemaPreview: React.FC<SchemaPreviewProps> = ({ schema }) => (
   </div>
 );
 
+interface NestedFieldsEditorProps {
+  fields: SchemaField[];
+  onChange: (fields: SchemaField[]) => void;
+  isLoading: boolean;
+}
+
+const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChange, isLoading }) => {
+  const addNestedField = () => {
+    onChange([...fields, { name: '', type: 'str' }]);
+  };
+
+  const removeNestedField = (index: number) => {
+    const newFields = fields.filter((_, i) => i !== index);
+    onChange(newFields);
+  };
+
+  const updateNestedField = (index: number, field: Partial<SchemaField>) => {
+    const newFields = fields.map((f, i) => 
+      i === index ? { ...f, ...field } as SchemaField : f
+    );
+    onChange(newFields);
+  };
+
+  const handleNestedFieldsChange = (parentIndex: number, nestedFields: SchemaField[]) => {
+    const updatedFields = [...fields];
+    updatedFields[parentIndex] = {
+      ...updatedFields[parentIndex],
+      nestedFields
+    };
+    onChange(updatedFields);
+  };
+
+  return (
+    <div className="space-y-2">
+      {fields.map((field, index) => (
+        <div key={index} className="border rounded p-2 bg-white">
+          <div className="flex items-center gap-2 mb-2">
+            <input
+              type="text"
+              className="flex-1 p-1.5 border rounded text-sm"
+              value={field.name}
+              onChange={e => updateNestedField(index, { name: e.target.value })}
+              placeholder="field_name"
+              disabled={isLoading}
+            />
+            <select
+              className="p-1.5 border rounded text-sm w-24"
+              value={field.type}
+              onChange={e => updateNestedField(index, { type: e.target.value as SchemaField['type'] })}
+              disabled={isLoading}
+            >
+              <option value="str">String</option>
+              <option value="int">Integer</option>
+              <option value="float">Float</option>
+              <option value="bool">Boolean</option>
+              <option value="object">Object</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => removeNestedField(index)}
+              className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 text-sm h-8 w-8 flex items-center justify-center"
+              disabled={isLoading}
+            >
+              <span className="inline-block leading-none translate-y-[1px]">✕</span>
+            </button>
+          </div>
+          
+          <textarea
+            className="w-full p-1.5 border rounded text-sm min-h-[30px] resize-y"
+            value={field.description || ''}
+            onChange={e => updateNestedField(index, { description: e.target.value })}
+            placeholder="Description of this field"
+            disabled={isLoading}
+          />
+          
+          {/* Recursive rendering for nested objects */}
+          {field.type === 'object' && (
+            <div className="mt-2 pl-4 border-l-2 border-blue-200">
+              <div className="text-sm font-medium text-blue-600 mb-2">Nested Fields</div>
+              <NestedFieldsEditor 
+                fields={field.nestedFields || [{ name: '', type: 'str' }]}
+                onChange={(nestedFields) => handleNestedFieldsChange(index, nestedFields)}
+                isLoading={isLoading}
+              />
+            </div>
+          )}
+        </div>
+      ))}
+      
+      <button
+        type="button"
+        onClick={addNestedField}
+        className="w-full p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 disabled:opacity-50 text-sm"
+        disabled={isLoading}
+      >
+        Add Nested Field
+      </button>
+    </div>
+  );
+};
+
 const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
@@ -151,6 +252,20 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     setCurrentSchema(prev => ({
       ...prev,
       response_format: fieldsToJsonSchema(newFields)
+    }));
+  };
+
+  // Add this function to handle nested object fields
+  const handleNestedFieldsChange = (parentIndex: number, nestedFields: SchemaField[]) => {
+    const updatedFields = [...fields];
+    updatedFields[parentIndex] = {
+      ...updatedFields[parentIndex],
+      nestedFields
+    };
+    setFields(updatedFields);
+    setCurrentSchema(prev => ({
+      ...prev,
+      response_format: fieldsToJsonSchema(updatedFields)
     }));
   };
 
@@ -286,7 +401,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     },
   ];
 
-  // Add this helper to convert UI fields to JSON Schema
+  // Update fieldsToJsonSchema to handle nested objects
   const fieldsToJsonSchema = (fields: SchemaField[]): ResponseFormat => {
     const responseFormat = {
       type: 'json_schema' as const,
@@ -302,44 +417,68 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       }
     };
 
-    fields.forEach(field => {
-      const fieldName = field.name;
-      let jsonType: JsonSchemaProperty['type'];
+    const processField = (field: SchemaField): JsonSchemaProperty => {
+      let property: JsonSchemaProperty;
 
       switch (field.type) {
         case 'str':
-          jsonType = 'string';
+          property = { type: 'string' };
           break;
         case 'int':
-          jsonType = 'integer';
+          property = { type: 'integer' };
           break;
         case 'float':
-          jsonType = 'number';
+          property = { type: 'number' };
           break;
         case 'bool':
-          jsonType = 'boolean';
+          property = { type: 'boolean' };
+          break;
+        case 'object':
+          property = {
+            type: 'object',
+            properties: {},
+          };
+          
+          // Process nested fields if they exist
+          if (field.nestedFields && field.nestedFields.length > 0) {
+            field.nestedFields.forEach(nestedField => {
+              if (property.type === 'object' && property.properties && nestedField.name) {
+                property.properties[nestedField.name] = processField(nestedField);
+              }
+            });
+          }
           break;
         default:
-          jsonType = 'string';
+          property = { type: 'string' };
       }
 
-      responseFormat.json_schema.schema.properties[fieldName] = {
-        type: jsonType,
-        description: field.description || fieldName.replace(/_/g, ' ')
-      };
-      responseFormat.json_schema.schema.required.push(fieldName);
+      if (field.description) {
+        property.description = field.description;
+      } else {
+        property.description = field.name.replace(/_/g, ' ');
+      }
+
+      return property;
+    };
+
+    fields.forEach(field => {
+      if (field.name) {
+        responseFormat.json_schema.schema.properties[field.name] = processField(field);
+        responseFormat.json_schema.schema.required.push(field.name);
+      }
     });
 
     return responseFormat;
   };
 
-  // Add this helper to convert JSON Schema to UI fields
+  // Update jsonSchemaToFields to handle nested objects
   const jsonSchemaToFields = (responseFormat: ResponseFormat): SchemaField[] => {
     const fields: SchemaField[] = [];
     const properties = responseFormat.json_schema.schema.properties;
 
-    Object.entries(properties).forEach(([name, prop]) => {
+    const processProperty = (name: string, prop: JsonSchemaProperty): SchemaField => {
       let fieldType: SchemaField['type'];
+      let nestedFields: SchemaField[] | undefined;
 
       switch (prop.type) {
         case 'string':
@@ -354,15 +493,28 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         case 'boolean':
           fieldType = 'bool';
           break;
+        case 'object':
+          fieldType = 'object';
+          if (prop.properties) {
+            nestedFields = Object.entries(prop.properties).map(
+              ([nestedName, nestedProp]) => processProperty(nestedName, nestedProp)
+            );
+          }
+          break;
         default:
           fieldType = 'str';
       }
 
-      fields.push({ 
+      return { 
         name, 
         type: fieldType,
-        description: prop.description 
-      });
+        description: prop.description,
+        nestedFields
+      };
+    };
+
+    Object.entries(properties).forEach(([name, prop]) => {
+      fields.push(processProperty(name, prop));
     });
 
     return fields;
@@ -482,6 +634,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                                     <option value="int">Integer</option>
                                     <option value="float">Float</option>
                                     <option value="bool">Boolean</option>
+                                    <option value="object">Object</option>
                                   </select>
                                   <button
                                     type="button"
@@ -523,6 +676,18 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                                     }
                                   }}
                                 />
+                                
+                                {/* Nested fields for object type */}
+                                {field.type === 'object' && (
+                                  <div className="mt-2 pl-4 border-l-2 border-blue-200">
+                                    <div className="text-sm font-medium text-blue-600 mb-2">Nested Fields</div>
+                                    <NestedFieldsEditor 
+                                      fields={field.nestedFields || [{ name: '', type: 'str' }]}
+                                      onChange={(nestedFields) => handleNestedFieldsChange(index, nestedFields)}
+                                      isLoading={isLoading}
+                                    />
+                                  </div>
+                                )}
                               </div>
                             )}
                           </Draggable>
