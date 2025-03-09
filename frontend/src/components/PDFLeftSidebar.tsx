@@ -154,9 +154,18 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   };
 
   const handleFind = (promptId: string, key: string, value: string) => {
-    const highlightInfo = findBlocksWithContext(value, promptId, key);
+    // Make sure value is not empty or null
+    if (!value || value === 'null') return;
+    
+    // Clean up the value if needed
+    const searchValue = value.trim();
+    if (searchValue === '') return;
+    
+    const highlightInfo = findBlocksWithContext(searchValue, promptId, key);
     if (highlightInfo.blocks.length > 0) {
       onHighlight(highlightInfo);
+    } else {
+      console.log('No matches found for:', searchValue);
     }
   };
 
@@ -427,9 +436,16 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
                   <span className="text-gray-500 text-xs w-6">[{index}]</span>
                   <span className="flex-1 font-medium text-gray-900">{stringValue}</span>
                   <button
-                    onClick={() => onFind(promptId, arrayItemKey, stringValue)}
+                    onClick={() => {
+                      // Ensure the value is properly formatted for search
+                      const searchableValue = stringValue.trim();
+                      if (searchableValue !== '') {
+                        onFind(promptId, arrayItemKey, searchableValue);
+                      }
+                    }}
                     className="p-1 text-gray-600 hover:bg-gray-100 rounded"
                     title="Find in document"
+                    disabled={!stringValue || stringValue === 'null'}
                   >
                     <MagnifyingGlassIcon className="w-4 h-4" />
                   </button>
