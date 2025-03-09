@@ -77,9 +77,37 @@ export function OCRProvider({ children }: { children: React.ReactNode }) {
 
   const findBlocksWithContext = useCallback((searchText: string, promptId: string, key?: string): HighlightInfo => {
     if (!ocrBlocks) return { blocks: [], promptId, key, value: searchText };
-
+    
+    // DEBUG: Log the search request
+    console.log(`Searching for: "${searchText}"`);
+    
     // 1. Pre-process the search text for better matching
     const searchLower = searchText.toLowerCase().trim();
+    
+    // DEBUG: For long phrases, log all the text content to verify it exists
+    if (searchLower.split(' ').length > 10) {
+      console.log("Long phrase search detected, checking if content exists in OCR data:");
+      
+      // Log a sample of line blocks to see what's in the OCR data
+      const lineTexts = ocrBlocks
+        .filter(block => block.BlockType === 'LINE' && block.Text)
+        .map(block => block.Text?.toLowerCase());
+      
+      console.log("Sample of available lines:", lineTexts.slice(0, 20));
+      
+      // Check if any line contains parts of the search
+      const searchWords = searchLower.split(' ');
+      const firstTwoWords = searchWords.slice(0, 2).join(' ');
+      
+      const linesWithPartialMatch = lineTexts.filter(line => 
+        line && (
+          line.includes(firstTwoWords) || 
+          searchWords.some(word => word.length > 4 && line.includes(word))
+        )
+      );
+      
+      console.log("Lines with partial matches:", linesWithPartialMatch);
+    }
     
     // 2. Build page-level text indices for more natural searching
     const pageIndices: Record<number, {
@@ -317,6 +345,11 @@ export function OCRProvider({ children }: { children: React.ReactNode }) {
                               foundBlocks.push(lineMatch.block);
                             }
                           }
+                          
+                          // At the beginning of findBlocksWithContext function, add debug log
+                          console.log(`Long search verification - Words to verify: `, wordsToVerify);
+                          console.log(`Found ${wordsFound}/${wordsToVerify.length} verification words`);
+                          console.log(`Text after first two words: "${textAfterFirstTwo}"`);
                         } else {
                           // First two words match but verification words don't follow
                           // Don't add anything to foundBlocks
@@ -340,20 +373,43 @@ export function OCRProvider({ children }: { children: React.ReactNode }) {
     
     searchForText();
     
-    // If no results, try fuzzy matching for programming terms
-    if (foundBlocks.length === 0 && /^(c\+\+|javascript|typescript|python|java|c#|\.net|ruby|go|rust|php)$/i.test(searchLower)) {
-      // Try more lenient matching for common programming languages
-      for (const pageNum in pageIndices) {
-        // Remove special chars and try again
-        const normalizedSearch = searchLower.replace(/[+#.]/g, '');
+
+    
+    // Special fallback for long phrases with no results
+    if (foundBlocks.length === 0 && searchLower.split(' ').length > 3) {
+      // Simple approach: if it's a long phrase and no single line contains it,
+      // find all lines that contain any significant parts of the phrase
+      
+      // Get all lines
+      const allLines = Object.values(pageIndices)
+        .flatMap(page => page.lines);
+      
+      // Split search into chunks of 3-4 words each
+      const searchWords = searchLower.split(' ');
+      const chunks = [];
+      
+      for (let i = 0; i < searchWords.length; i += 3) {
+        chunks.push(searchWords.slice(i, i + 3).join(' '));
+      }
+      
+      // Find lines that contain any of these chunks
+      const matchedLines: { text: string, block: OCRBlock }[] = [];
+      
+      for (const chunk of chunks) {
+        if (chunk.length < 4) continue; // Skip very short chunks
         
-        const wordMatches = pageIndices[pageNum].words.filter(word => 
-          word.text.startsWith(normalizedSearch) || 
-          (searchLower === 'c++' && word.text === 'c') ||
-          (searchLower === 'javascript' && word.text.includes('js'))
-        );
-        
-        foundBlocks = [...foundBlocks, ...wordMatches.map(match => match.block)];
+        for (const line of allLines) {
+          if (line.text.includes(chunk) && !matchedLines.some(m => m.text === line.text)) {
+            matchedLines.push({ text: line.text, block: line.block });
+          }
+        }
+      }
+      
+      // If we found matching lines, use them
+      if (matchedLines.length > 0) {
+        console.log("Found lines containing parts of the search:", 
+          matchedLines.map(line => line.text));
+        foundBlocks = matchedLines.map(line => line.block);
       }
     }
     
