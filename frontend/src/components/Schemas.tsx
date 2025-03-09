@@ -397,7 +397,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   };
 
   return (
-    <div className="p-4 w-full">
+    <div className="p-4 mx-auto">
       <div className="bg-white p-6 rounded-lg shadow mb-6">
         <div className="flex items-center gap-2 mb-4">
           <h2 className="text-xl font-bold">
@@ -491,6 +491,23 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                                     aria-label="Remove field"
                                   >
                                     ✕
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newFields = [...fields];
+                                      newFields.splice(index + 1, 0, { name: '', type: 'str' });
+                                      setFields(newFields);
+                                      setCurrentSchema(prev => ({
+                                        ...prev,
+                                        response_format: fieldsToJsonSchema(newFields)
+                                      }));
+                                    }}
+                                    className="p-1 bg-green-50 text-green-600 rounded hover:bg-green-100 disabled:opacity-50 text-sm h-8 w-8 flex items-center justify-center"
+                                    disabled={isLoading}
+                                    aria-label="Add field after this one"
+                                  >
+                                    +
                                   </button>
                                 </div>
                                 <textarea
