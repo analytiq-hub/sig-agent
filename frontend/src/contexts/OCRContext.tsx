@@ -144,7 +144,7 @@ export function OCRProvider({ children }: { children: React.ReactNode }) {
     // Search logic inspired by PDF.js
     const searchForText = () => {
       // For exact word matches (especially short terms)
-      if (searchLower.length < 4 && !searchLower.includes(' ') && !/[+#*@$&%]/.test(searchLower)) {
+      if (searchLower.length < 4 && !searchLower.includes(' ')) {
         // Find exact word matches for short terms without special chars
         for (const pageNum in pageIndices) {
           const exactMatches = pageIndices[pageNum].words.filter(word => 
