@@ -460,7 +460,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                                 <div className="flex items-center gap-2 mb-2">
                                   <div 
                                     {...provided.dragHandleProps}
-                                    className="flex items-center text-gray-400 cursor-grab p-1"
+                                    className="flex items-center text-gray-400 cursor-grab"
                                   >
                                     <DragIndicatorIcon fontSize="small" />
                                   </div>
@@ -493,19 +493,22 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                                     ✕
                                   </button>
                                 </div>
-                                <textarea
-                                  className="w-full p-1.5 border rounded text-sm min-h-[30px] resize-y"
-                                  value={field.description || ''}
-                                  onChange={e => updateField(index, { description: e.target.value })}
-                                  placeholder="Description of this field"
-                                  disabled={isLoading}
-                                  onKeyDown={e => {
-                                    // Allow Shift+Enter for new lines, but prevent form submission
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                      e.preventDefault();
-                                    }
-                                  }}
-                                />
+                                <div className="flex">
+                                  <div className="w-7"></div> {/* Spacer to align with drag handle */}
+                                  <textarea
+                                    className="flex-1 p-1.5 border rounded text-sm min-h-[30px] resize-y"
+                                    value={field.description || ''}
+                                    onChange={e => updateField(index, { description: e.target.value })}
+                                    placeholder="Description of this field"
+                                    disabled={isLoading}
+                                    onKeyDown={e => {
+                                      // Allow Shift+Enter for new lines, but prevent form submission
+                                      if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                      }
+                                    }}
+                                  />
+                                </div>
                               </div>
                             )}
                           </Draggable>
