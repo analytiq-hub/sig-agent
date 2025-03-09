@@ -257,12 +257,79 @@ export function OCRProvider({ children }: { children: React.ReactNode }) {
                   if (matchedWords.length > 0) {
                     foundBlocks = [...foundBlocks, ...matchedWords.map(w => w.block)];
                   } else {
-                    // Fallback to using the line
-                    foundBlocks.push(lineMatch.block);
+                    // New fallback strategy for multi-word searches (3+ words)
+                    // If search has 3+ words, try matching first two words and verify rest follows
+                    if (searchWords.length > 2) {
+                      const firstTwoWords = searchWords.slice(0, 2).join(' ');
+                      
+                      // Only check the first few words for very long searches (more forgiving)
+                      const maxVerificationWords = 2; // Verify only up to 2 words after the first two
+                      const wordsToVerify = searchWords.length > (2 + maxVerificationWords) 
+                        ? searchWords.slice(2, 2 + maxVerificationWords) 
+                        : searchWords.slice(2);
+                      
+                      const remainingWords = wordsToVerify.join(' ');
+                      
+                      if (lineWordsText.includes(firstTwoWords)) {
+                        // Find where the first two words match
+                        const firstTwoIndex = lineWordsText.indexOf(firstTwoWords);
+                        const textAfterFirstTwo = lineWordsText.substring(firstTwoIndex + firstTwoWords.length);
+                        
+                        // Check if the remaining words follow in the text (allowing for some variation)
+                        // For long paragraphs, we only verify a subset of the search
+                        if (textAfterFirstTwo.includes(remainingWords) || 
+                            areWordsSequentiallyPresent(textAfterFirstTwo, remainingWords)) {
+                          
+                          // Consider this a valid match - try to identify words
+                          // Use all search words for highlighting, not just the verified ones
+                          const partialMatchedWords = identifyPartialWordSequence(
+                            wordsInLine, 
+                            searchWords, // Use all search words for highlighting
+                            firstTwoIndex
+                          );
+                          
+                          if (partialMatchedWords.length > 0) {
+                            foundBlocks = [...foundBlocks, ...partialMatchedWords.map(w => w.block)];
+                          } else {
+                            // If we found a conceptual match but couldn't identify specific words,
+                            // fall back to line
+                            foundBlocks.push(lineMatch.block);
+                          }
+                        } else if (searchWords.length > 6) {
+                          // For very long searches (more than 6 words), be even more lenient
+                          // Just require that 50% of the verification words are present somewhere
+                          const wordsFound = wordsToVerify.filter(word => 
+                            textAfterFirstTwo.includes(word)
+                          ).length;
+                          
+                          // If at least half of the verification words are found, consider it a match
+                          if (wordsFound >= Math.ceil(wordsToVerify.length / 2)) {
+                            // Try to identify the words for highlighting
+                            const partialMatchedWords = identifyPartialWordSequence(
+                              wordsInLine,
+                              searchWords,
+                              firstTwoIndex
+                            );
+                            
+                            if (partialMatchedWords.length > 0) {
+                              foundBlocks = [...foundBlocks, ...partialMatchedWords.map(w => w.block)];
+                            } else {
+                              foundBlocks.push(lineMatch.block);
+                            }
+                          }
+                        } else {
+                          // First two words match but verification words don't follow
+                          // Don't add anything to foundBlocks
+                        }
+                      } else {
+                        // If even first two words don't match, use line as fallback
+                        foundBlocks.push(lineMatch.block);
+                      }
+                    } else {
+                      // Not a 3+ word search, fall back to line
+                      foundBlocks.push(lineMatch.block);
+                    }
                   }
-                } else {
-                  // If cannot match the sequence, use the line
-                  foundBlocks.push(lineMatch.block);
                 }
               }
             }
@@ -396,6 +463,103 @@ function identifyMatchingWordSequence(
   if (matchStartIdx >= 0) {
     for (let i = 0; i < searchWords.length; i++) {
       result.push(sortedWords[matchStartIdx + i]);
+    }
+  }
+  
+  return result;
+}
+
+// Check if words from search appear sequentially (not necessarily consecutive) in text
+function areWordsSequentiallyPresent(text: string, searchText: string): boolean {
+  const searchWords = searchText.split(' ');
+  let remainingText = text;
+  
+  for (const word of searchWords) {
+    const index = remainingText.indexOf(word);
+    if (index === -1) return false;
+    // Move remaining text forward to ensure sequential matching
+    remainingText = remainingText.substring(index + word.length);
+  }
+  
+  return true;
+}
+
+// Identify a sequence of words when we've found a partial match
+function identifyPartialWordSequence(
+  wordEntries: { text: string, block: OCRBlock }[],
+  searchWords: string[],
+  firstMatchIndex: number
+): { text: string, block: OCRBlock }[] {
+  // Sort words by position (left to right)
+  const sortedWords = [...wordEntries].sort((a, b) => {
+    return a.block.Geometry.BoundingBox.Left - b.block.Geometry.BoundingBox.Left;
+  });
+  
+  // Find the word index that contains the start of the match
+  let currentTextPos = 0;
+  let startWordIdx = -1;
+  
+  for (let i = 0; i < sortedWords.length; i++) {
+    const wordLength = sortedWords[i].text.length;
+    if (currentTextPos <= firstMatchIndex && 
+        firstMatchIndex < currentTextPos + wordLength + 1) { // +1 for space
+      startWordIdx = i;
+      break;
+    }
+    currentTextPos += wordLength + 1; // +1 for the space between words
+  }
+  
+  if (startWordIdx === -1) return [];
+  
+  // Now try to match all search words from this position
+  const result: { text: string, block: OCRBlock }[] = [];
+  let allMatched = true;
+  
+  for (let i = 0; i < searchWords.length; i++) {
+    if (startWordIdx + i >= sortedWords.length) {
+      allMatched = false;
+      break;
+    }
+    
+    const wordText = sortedWords[startWordIdx + i].text;
+    const searchWord = searchWords[i];
+    
+    // Check for match with tolerance for punctuation
+    if (!wordText.startsWith(searchWord) && 
+        wordText !== searchWord && 
+        !wordText.startsWith(searchWord + ',') && 
+        !wordText.startsWith(searchWord + '.')) {
+      allMatched = false;
+      break;
+    }
+    
+    result.push(sortedWords[startWordIdx + i]);
+  }
+  
+  // If we couldn't match all words consecutively, try a more flexible approach
+  if (!allMatched) {
+    result.length = 0; // Clear result
+    let currentWordIdx = startWordIdx;
+    
+    for (const searchWord of searchWords) {
+      // Look for this word from current position onward
+      let found = false;
+      
+      for (let i = currentWordIdx; i < sortedWords.length; i++) {
+        const wordText = sortedWords[i].text;
+        
+        if (wordText.startsWith(searchWord) || 
+            wordText === searchWord || 
+            wordText.startsWith(searchWord + ',') || 
+            wordText.startsWith(searchWord + '.')) {
+          result.push(sortedWords[i]);
+          currentWordIdx = i + 1; // Move past this word
+          found = true;
+          break;
+        }
+      }
+      
+      if (!found) return []; // If any word is missing, return empty
     }
   }
   
