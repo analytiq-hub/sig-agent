@@ -279,11 +279,15 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   // Add this function to handle array item type changes
   const handleArrayItemTypeChange = (index: number, itemType: SchemaField['type']) => {
     const newFields = [...fields];
+    // Only assign valid types to arrayItemType
+    const validArrayItemType = (itemType === 'str' || itemType === 'int' || 
+                               itemType === 'float' || itemType === 'bool' || 
+                               itemType === 'object') ? itemType : 'str';
     newFields[index] = {
       ...newFields[index],
-      arrayItemType: itemType,
+      arrayItemType: validArrayItemType,
       // Initialize nested fields for array of objects
-      arrayObjectFields: itemType === 'object' ? [{ name: '', type: 'str' }] : undefined
+      arrayObjectFields: validArrayItemType === 'object' ? [{ name: '', type: 'str' }] : undefined
     };
     setFields(newFields);
     setCurrentSchema(prev => ({
@@ -556,7 +560,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     const processProperty = (name: string, prop: JsonSchemaProperty): SchemaField => {
       let fieldType: SchemaField['type'];
       let nestedFields: SchemaField[] | undefined;
-      let arrayItemType: SchemaField['type'] | undefined;
+      let arrayItemType: 'str' | 'int' | 'float' | 'bool' | 'object' | undefined;
       let arrayObjectFields: SchemaField[] | undefined;
 
       switch (prop.type) {
