@@ -389,6 +389,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         return (
           <div className="space-y-2">
             {value.map((item, index) => {
+              // Ensure array path is constructed properly for searching
               const arrayItemKey = `${parentKey}[${index}]`;
               const stringValue = item?.toString() ?? '';
               
@@ -463,10 +464,11 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         );
       }
       
-      // For arrays of objects, render a more structured editor
+      // For arrays of objects, render a more structured editor with proper paths
       return (
         <div className="space-y-3">
           {value.map((item, index) => {
+            // Ensure array path is constructed properly
             const arrayItemKey = `${parentKey}[${index}]`;
             
             return (
