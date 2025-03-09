@@ -174,20 +174,52 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       // Create a deep copy of the current result
       const updatedResult = JSON.parse(JSON.stringify(currentResult.updated_llm_result));
       
-      // Handle nested paths (e.g., "address.street")
-      const pathParts = editing.key.split('.');
-      let current = updatedResult;
+      // Check if we're dealing with an array item
+      const isArrayItem = editing.key.includes('[') && editing.key.includes(']');
       
-      // Navigate to the nested object that contains the property to update
-      for (let i = 0; i < pathParts.length - 1; i++) {
-        current = current[pathParts[i]];
-        if (!current) break;
-      }
-      
-      // Update the value if we found the containing object
-      if (current) {
-        const lastKey = pathParts[pathParts.length - 1];
-        current[lastKey] = editing.value;
+      if (isArrayItem) {
+        // Parse the array path, e.g., "items[2]" => { path: "items", index: 2 }
+        const matches = editing.key.match(/(.*)\[(\d+)\]$/);
+        if (matches && matches.length === 3) {
+          const arrayPath = matches[1];
+          const index = parseInt(matches[2], 10);
+          
+          // Navigate to the array
+          let current = updatedResult;
+          const pathParts = arrayPath.split('.');
+          
+          // Navigate to the containing array
+          for (let i = 0; i < pathParts.length; i++) {
+            const part = pathParts[i];
+            if (current[part] !== undefined) {
+              current = current[part];
+            } else {
+              console.error('Array path not found:', arrayPath);
+              return;
+            }
+          }
+          
+          // Update the array item if found
+          if (Array.isArray(current) && index >= 0 && index < current.length) {
+            current[index] = editing.value;
+          }
+        }
+      } else {
+        // Handle normal path (non-array) - existing logic
+        const pathParts = editing.key.split('.');
+        let current = updatedResult;
+        
+        // Navigate to the nested object that contains the property to update
+        for (let i = 0; i < pathParts.length - 1; i++) {
+          current = current[pathParts[i]];
+          if (!current) break;
+        }
+        
+        // Update the value if we found the containing object
+        if (current) {
+          const lastKey = pathParts[pathParts.length - 1];
+          current[lastKey] = editing.value;
+        }
       }
 
       const result = await updateLLMResultApi({
@@ -220,7 +252,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
            typeof value === 'boolean';
   };
 
-  // Update the renderNestedValue function to not display type for empty values
+  // Update the renderNestedValue function to handle arrays with editing capabilities
   const renderNestedValue = (
     promptId: string, 
     parentKey: string, 
@@ -314,30 +346,153 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       );
     }
     
-    // If it's an array, check if it's empty
+    // If it's an array, render with editing capabilities
     if (Array.isArray(value)) {
       if (value.length === 0) {
-        return <div className="text-sm text-gray-500 italic">Empty array</div>;
-      }
-      
-      // For arrays with simple primitive values, display them in a more readable format
-      if (value.every(item => isEditableValue(item))) {
         return (
-          <div className="text-sm">
-            {value.map((item, index) => (
-              <div key={index} className="flex items-center gap-2 mb-1">
-                <span className="text-gray-500 w-8 text-xs">[{index}]</span>
-                <span className="font-medium text-gray-900">{item?.toString() ?? ''}</span>
-              </div>
-            ))}
+          <div className="text-sm text-gray-500 italic flex justify-between items-center">
+            <span>Empty array</span>
+            <button
+              onClick={() => handleArrayItemAdd(promptId, parentKey, [])}
+              className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100"
+              title="Add item"
+            >
+              Add Item
+            </button>
           </div>
         );
       }
       
-      // For complex arrays, still use JSON
+      // For arrays with primitive values, display with edit controls
+      const isPrimitiveArray = value.every(item => isEditableValue(item));
+      
+      if (isPrimitiveArray) {
+        return (
+          <div className="space-y-2">
+            {value.map((item, index) => {
+              const arrayItemKey = `${parentKey}[${index}]`;
+              const stringValue = item?.toString() ?? '';
+              
+              if (editing && editing.promptId === promptId && editing.key === arrayItemKey) {
+                return (
+                  <div key={index} className="flex items-center gap-2 pl-2 border-l-2 border-gray-200">
+                    <span className="text-gray-500 text-xs w-6">[{index}]</span>
+                    <input
+                      type="text"
+                      value={editing.value}
+                      onChange={(e) => setEditing({ ...editing, value: e.target.value })}
+                      className="flex-1 px-2 py-1 text-sm border rounded"
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleSave}
+                      className="p-1 text-green-600 hover:bg-gray-100 rounded"
+                      title="Save changes"
+                    >
+                      <CheckIcon className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      className="p-1 text-red-600 hover:bg-gray-100 rounded"
+                      title="Cancel"
+                    >
+                      <XMarkIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                );
+              }
+              
+              return (
+                <div key={index} className="flex items-center gap-2 pl-2 border-l-2 border-gray-200">
+                  <span className="text-gray-500 text-xs w-6">[{index}]</span>
+                  <span className="flex-1 font-medium text-gray-900">{stringValue}</span>
+                  <button
+                    onClick={() => onFind(promptId, arrayItemKey, stringValue)}
+                    className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                    title="Find in document"
+                  >
+                    <MagnifyingGlassIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onEdit(promptId, arrayItemKey, stringValue)}
+                    className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                    title="Edit item"
+                  >
+                    <PencilIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleArrayItemDelete(promptId, parentKey, index, value)}
+                    className="p-1 text-red-600 hover:bg-gray-100 rounded"
+                    title="Delete item"
+                  >
+                    <XMarkIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              );
+            })}
+            
+            <div className="mt-2">
+              <button
+                onClick={() => handleArrayItemAdd(promptId, parentKey, value)}
+                className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 w-full"
+                title="Add item"
+              >
+                Add Item
+              </button>
+            </div>
+          </div>
+        );
+      }
+      
+      // For arrays of objects, render a more structured editor
       return (
-        <div className="text-sm whitespace-pre-wrap break-words text-gray-700 bg-gray-50 rounded p-2">
-          {JSON.stringify(value, null, 2)}
+        <div className="space-y-3">
+          {value.map((item, index) => {
+            const arrayItemKey = `${parentKey}[${index}]`;
+            
+            return (
+              <div key={index} className="border rounded p-2 bg-gray-50">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium text-sm text-gray-700">Item {index}</span>
+                  <button
+                    onClick={() => handleArrayItemDelete(promptId, parentKey, index, value)}
+                    className="p-1 text-red-600 hover:bg-gray-100 rounded"
+                    title="Delete item"
+                  >
+                    <XMarkIcon className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                {typeof item === 'object' && item !== null ? (
+                  <div className="pl-3 border-l-2 border-gray-300">
+                    {renderNestedValue(
+                      promptId,
+                      arrayItemKey,
+                      item,
+                      level + 1,
+                      onFind,
+                      onEdit,
+                      editing,
+                      handleSave,
+                      handleCancel
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-sm font-medium text-gray-900">{item?.toString() ?? ''}</div>
+                )}
+              </div>
+            );
+          })}
+          
+          <div className="mt-2">
+            <button
+              onClick={() => handleArrayObjectAdd(promptId, parentKey, value)}
+              className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 w-full"
+              title="Add item"
+            >
+              Add Item
+            </button>
+          </div>
         </div>
       );
     }
@@ -377,6 +532,184 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         )}
       </div>
     );
+  };
+
+  // Add these new handler functions to the component
+  const handleArrayItemDelete = async (promptId: string, arrayKey: string, index: number, currentArray: JsonValue[]) => {
+    try {
+      const result = llmResults[promptId];
+      if (!result) return;
+
+      // Create a deep copy of the current result
+      const updatedResult = JSON.parse(JSON.stringify(result.updated_llm_result));
+      
+      // Find the array to modify
+      const pathParts = arrayKey.split('.');
+      let current = updatedResult;
+      
+      // Navigate to the containing object
+      for (let i = 0; i < pathParts.length; i++) {
+        const part = pathParts[i];
+        if (current[part] !== undefined) {
+          current = current[part];
+        } else {
+          console.error('Path not found:', arrayKey);
+          return;
+        }
+      }
+      
+      // Remove the specified index if it's an array
+      if (Array.isArray(current)) {
+        current.splice(index, 1);
+        
+        // Update the result with API
+        const apiResult = await updateLLMResultApi({
+          organizationId,
+          documentId: id,
+          promptId: promptId,
+          result: updatedResult,
+          isVerified: false
+        });
+
+        setLlmResults(prev => ({
+          ...prev,
+          [promptId]: apiResult
+        }));
+      }
+    } catch (error) {
+      console.error('Error deleting array item:', error);
+    }
+  };
+
+  const handleArrayItemAdd = async (promptId: string, arrayKey: string, currentArray: JsonValue[]) => {
+    try {
+      const result = llmResults[promptId];
+      if (!result) return;
+
+      // Create a deep copy of the current result
+      const updatedResult = JSON.parse(JSON.stringify(result.updated_llm_result));
+      
+      // Determine default value based on existing array items
+      let defaultValue: JsonValue = "";
+      if (currentArray.length > 0) {
+        const firstItem = currentArray[0];
+        if (typeof firstItem === 'string') defaultValue = "";
+        else if (typeof firstItem === 'number') defaultValue = 0;
+        else if (typeof firstItem === 'boolean') defaultValue = false;
+        else if (firstItem === null) defaultValue = null;
+      }
+      
+      // Find the array to modify
+      const pathParts = arrayKey.split('.');
+      let current = updatedResult;
+      let parent = updatedResult;
+      let lastKey = arrayKey;
+      
+      // Navigate to the containing object
+      for (let i = 0; i < pathParts.length; i++) {
+        const part = pathParts[i];
+        parent = current;
+        lastKey = part;
+        if (current[part] !== undefined) {
+          current = current[part];
+        } else {
+          console.error('Path not found:', arrayKey);
+          return;
+        }
+      }
+      
+      // Add the new item to the array
+      if (Array.isArray(parent[lastKey])) {
+        parent[lastKey].push(defaultValue);
+        
+        // Update the result with API
+        const apiResult = await updateLLMResultApi({
+          organizationId,
+          documentId: id,
+          promptId: promptId,
+          result: updatedResult,
+          isVerified: false
+        });
+
+        setLlmResults(prev => ({
+          ...prev,
+          [promptId]: apiResult
+        }));
+      }
+    } catch (error) {
+      console.error('Error adding array item:', error);
+    }
+  };
+
+  const handleArrayObjectAdd = async (promptId: string, arrayKey: string, currentArray: JsonValue[]) => {
+    try {
+      const result = llmResults[promptId];
+      if (!result) return;
+
+      // Create a deep copy of the current result
+      const updatedResult = JSON.parse(JSON.stringify(result.updated_llm_result));
+      
+      // Determine default object structure based on existing array items
+      let defaultValue: JsonValue = {};
+      if (currentArray.length > 0) {
+        const firstItem = currentArray[0];
+        if (typeof firstItem === 'object' && firstItem !== null) {
+          // Create an empty object with the same keys
+          defaultValue = Object.fromEntries(
+            Object.keys(firstItem).map(key => {
+              // Set default values based on the type of each field
+              const val = (firstItem as any)[key];
+              if (typeof val === 'string') return [key, ""];
+              if (typeof val === 'number') return [key, 0];
+              if (typeof val === 'boolean') return [key, false];
+              if (val === null) return [key, null];
+              if (Array.isArray(val)) return [key, []];
+              return [key, {}];
+            })
+          );
+        }
+      }
+      
+      // Find the array to modify
+      const pathParts = arrayKey.split('.');
+      let current = updatedResult;
+      let parent = updatedResult;
+      let lastKey = arrayKey;
+      
+      // Navigate to the containing object
+      for (let i = 0; i < pathParts.length; i++) {
+        const part = pathParts[i];
+        parent = current;
+        lastKey = part;
+        if (current[part] !== undefined) {
+          current = current[part];
+        } else {
+          console.error('Path not found:', arrayKey);
+          return;
+        }
+      }
+      
+      // Add the new object to the array
+      if (Array.isArray(parent[lastKey])) {
+        parent[lastKey].push(defaultValue);
+        
+        // Update the result with API
+        const apiResult = await updateLLMResultApi({
+          organizationId,
+          documentId: id,
+          promptId: promptId,
+          result: updatedResult,
+          isVerified: false
+        });
+
+        setLlmResults(prev => ({
+          ...prev,
+          [promptId]: apiResult
+        }));
+      }
+    } catch (error) {
+      console.error('Error adding array object:', error);
+    }
   };
 
   return (
