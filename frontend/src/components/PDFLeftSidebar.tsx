@@ -174,33 +174,52 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       // Create a deep copy of the current result
       const updatedResult = JSON.parse(JSON.stringify(currentResult.updated_llm_result));
       
-      // Check if we're dealing with an array item
-      const isArrayItem = editing.key.includes('[') && editing.key.includes(']');
+      // Check if we're dealing with an array item - matches patterns like "items[2]" or "items[2].name"
+      const arrayItemRegex = /(.*?)\[(\d+)\](\..*)?$/;
+      const matches = editing.key.match(arrayItemRegex);
       
-      if (isArrayItem) {
-        // Parse the array path, e.g., "items[2]" => { path: "items", index: 2 }
-        const matches = editing.key.match(/(.*)\[(\d+)\]$/);
-        if (matches && matches.length === 3) {
-          const arrayPath = matches[1];
-          const index = parseInt(matches[2], 10);
-          
-          // Navigate to the array
-          let current = updatedResult;
-          const pathParts = arrayPath.split('.');
-          
-          // Navigate to the containing array
-          for (let i = 0; i < pathParts.length; i++) {
-            const part = pathParts[i];
-            if (current[part] !== undefined) {
-              current = current[part];
-            } else {
-              console.error('Array path not found:', arrayPath);
-              return;
-            }
+      if (matches) {
+        // Extract array path, index, and any nested path that follows
+        const arrayPath = matches[1];      // e.g., "items" 
+        const index = parseInt(matches[2], 10); // e.g., 2
+        const nestedPath = matches[3] ? matches[3].substring(1) : null; // e.g., "name" (without the leading dot)
+        
+        // Navigate to the array
+        let current = updatedResult;
+        const pathParts = arrayPath.split('.');
+        
+        // Navigate to the containing array
+        for (const part of pathParts) {
+          if (current[part] !== undefined) {
+            current = current[part];
+          } else {
+            console.error('Array path not found:', arrayPath);
+            return;
           }
-          
-          // Update the array item if found
-          if (Array.isArray(current) && index >= 0 && index < current.length) {
+        }
+        
+        // Make sure we found the array and the index is valid
+        if (Array.isArray(current) && index >= 0 && index < current.length) {
+          if (nestedPath) {
+            // We need to update a property inside an object in the array
+            const nestedPathParts = nestedPath.split('.');
+            const arrayItem = current[index];
+            
+            // Navigate to the nested object that contains the property to update
+            let currentNested = arrayItem;
+            for (let i = 0; i < nestedPathParts.length - 1; i++) {
+              const part = nestedPathParts[i];
+              if (!currentNested[part]) {
+                currentNested[part] = {};
+              }
+              currentNested = currentNested[part];
+            }
+            
+            // Update the nested property
+            const lastKey = nestedPathParts[nestedPathParts.length - 1];
+            currentNested[lastKey] = editing.value;
+          } else {
+            // Update the array item directly (it's a primitive value)
             current[index] = editing.value;
           }
         }
@@ -421,7 +440,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
                     <PencilIcon className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleArrayItemDelete(promptId, parentKey, index, value)}
+                    onClick={() => handleArrayItemDelete(promptId, arrayItemKey, index)}
                     className="p-1 text-red-600 hover:bg-gray-100 rounded"
                     title="Delete item"
                   >
@@ -455,7 +474,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-medium text-sm text-gray-700">Item {index}</span>
                   <button
-                    onClick={() => handleArrayItemDelete(promptId, parentKey, index, value)}
+                    onClick={() => handleArrayItemDelete(promptId, arrayItemKey, index)}
                     className="p-1 text-red-600 hover:bg-gray-100 rounded"
                     title="Delete item"
                   >
@@ -535,7 +554,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   };
 
   // Add these new handler functions to the component
-  const handleArrayItemDelete = async (promptId: string, arrayKey: string, index: number, currentArray: JsonValue[]) => {
+  const handleArrayItemDelete = async (promptId: string, arrayKey: string, index: number) => {
     try {
       const result = llmResults[promptId];
       if (!result) return;
@@ -658,7 +677,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
           defaultValue = Object.fromEntries(
             Object.keys(firstItem).map(key => {
               // Set default values based on the type of each field
-              const val = (firstItem as any)[key];
+              const val = (firstItem as Record<string, JsonValue>)[key];
               if (typeof val === 'string') return [key, ""];
               if (typeof val === 'number') return [key, 0];
               if (typeof val === 'boolean') return [key, false];
