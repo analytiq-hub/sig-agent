@@ -682,9 +682,6 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                   <li>Choose appropriate data types for each field</li>
                   <li>All fields defined in a schema are required by default</li>
                 </ul>
-                <p>
-                  <strong>Limitations:</strong> While full JSON Schema is supported on the back end, the UI does not support field descriptions, or lists of objects.
-                </p>
               </>
             }
           />
