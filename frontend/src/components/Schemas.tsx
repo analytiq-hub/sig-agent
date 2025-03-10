@@ -12,6 +12,8 @@ import colors from 'tailwindcss/colors'
 import Editor from "@monaco-editor/react";
 import InfoTooltip from '@/components/InfoTooltip';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 interface SchemaPreviewProps {
   schema: ResponseFormat;
@@ -164,8 +166,11 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
                 className="flex items-center text-sm font-medium text-blue-600 mb-2 cursor-pointer"
                 onClick={() => toggleExpansion(index)}
               >
-                <span className="mr-1 inline-block w-4 text-center">
-                  {expandedFields[index] ? '▼' : '►'}
+                <span className="mr-1 inline-flex items-center justify-center w-4">
+                  {expandedFields[index] ? 
+                    <ExpandMoreIcon fontSize="small" /> : 
+                    <ChevronRightIcon fontSize="small" />
+                  }
                 </span>
                 <span>Nested Fields</span>
               </div>
@@ -868,8 +873,11 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                                       className="flex items-center text-sm font-medium text-blue-600 mb-2 cursor-pointer"
                                       onClick={() => toggleNestedFieldExpansion(index)}
                                     >
-                                      <span className="mr-1 inline-block w-4 text-center">
-                                        {expandedNestedFields[index] ? '▼' : '►'}
+                                      <span className="mr-1 inline-flex items-center justify-center w-4">
+                                        {expandedNestedFields[index] ? 
+                                          <ExpandMoreIcon fontSize="small" /> : 
+                                          <ChevronRightIcon fontSize="small" />
+                                        }
                                       </span>
                                       <span>Nested Fields</span>
                                     </div>
@@ -891,8 +899,11 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                                       className="flex items-center text-sm font-medium text-green-600 mb-2 cursor-pointer"
                                       onClick={() => toggleArrayFieldExpansion(index)}
                                     >
-                                      <span className="mr-1 inline-block w-4 text-center">
-                                        {expandedArrayFields[index] ? '▼' : '►'}
+                                      <span className="mr-1 inline-flex items-center justify-center w-4">
+                                        {expandedArrayFields[index] ? 
+                                          <ExpandMoreIcon fontSize="small" /> : 
+                                          <ChevronRightIcon fontSize="small" />
+                                        }
                                       </span>
                                       <span>Array Item Type</span>
                                     </div>
