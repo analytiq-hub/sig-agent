@@ -76,6 +76,14 @@ async def setup_llm_models(db):
             "max_tokens": 128000,
             "cost_per_1m_input_tokens": 0.59,
             "cost_per_1m_output_tokens": 0.79
+        },
+        {
+            "name": "mistral/mistral-large-latest",
+            "provider": "mistral",
+            "description": "Mistral Large",
+            "max_tokens": 131000,
+            "cost_per_1m_input_tokens": 2.0,
+            "cost_per_1m_output_tokens": 6.0
         }
     ]
 
@@ -229,6 +237,11 @@ async def setup_api_creds(analytiq_client):
         groq_key = os.getenv("GROQ_API_KEY", "")
         if groq_key != "":
             llm_credentials.append(("Groq", groq_key))
+
+        # Mistral
+        mistral_key = os.getenv("MISTRAL_API_KEY", "")
+        if mistral_key != "":
+            llm_credentials.append(("Mistral", mistral_key))
             
         # Store LLM credentials
         for vendor, api_key in llm_credentials:

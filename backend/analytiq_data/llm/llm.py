@@ -53,6 +53,8 @@ async def run_llm(analytiq_client,
         provider = "Gemini"
     elif llm_model.startswith("groq"):
         provider = "Groq"
+    elif llm_model.startswith("mistral"):
+        provider = "Mistral"
         
     api_key = await ad.llm.get_llm_key(analytiq_client, provider)
     ocr_text = ad.common.get_ocr_text(analytiq_client, document_id)

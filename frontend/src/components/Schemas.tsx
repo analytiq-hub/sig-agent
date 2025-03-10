@@ -560,6 +560,8 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           property = {
             type: 'object',
             properties: {},
+            additionalProperties: false,
+            required: []
           };
           
           // Process nested fields if they exist
@@ -567,6 +569,10 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             field.nestedFields.forEach(nestedField => {
               if (property.type === 'object' && property.properties && nestedField.name) {
                 property.properties[nestedField.name] = processField(nestedField);
+                // Add all fields as required by default
+                if (property.required) {
+                  property.required.push(nestedField.name);
+                }
               }
             });
           }
@@ -600,7 +606,9 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         case 'object':
           const objectProperty: JsonSchemaProperty = {
             type: 'object',
-            properties: {}
+            properties: {},
+            additionalProperties: false,
+            required: []
           };
           
           // Process array object fields
@@ -608,6 +616,10 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             field.arrayObjectFields.forEach(objField => {
               if (objField.name && objectProperty.properties) {
                 objectProperty.properties[objField.name] = processField(objField);
+                // Add all fields as required by default
+                if (objectProperty.required) {
+                  objectProperty.required.push(objField.name);
+                }
               }
             });
           }

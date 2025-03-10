@@ -4,7 +4,7 @@ async def get_llm_key(analytiq_client, llm_vendor: str = "OpenAI") -> str:
     """
     Get the LLM key
     """
-    if llm_vendor not in ["OpenAI", "Anthropic", "Gemini", "Groq", "Cerebras"]:
+    if llm_vendor not in ["OpenAI", "Anthropic", "Gemini", "Groq", "Cerebras", "Mistral"]:
         raise ValueError(f"Invalid LLM vendor: {llm_vendor}")
 
     # Get the MongoDB client

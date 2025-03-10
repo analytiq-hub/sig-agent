@@ -3,6 +3,8 @@ export interface JsonSchemaProperty {
   description?: string;
   items?: JsonSchemaProperty;  // For array types
   properties?: Record<string, JsonSchemaProperty>;  // For object types
+  additionalProperties?: boolean;  // Add this for object types
+  required?: string[];  // Add this for object types to specify required properties
 }
 
 export interface ResponseFormat {
