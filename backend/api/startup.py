@@ -78,9 +78,9 @@ async def setup_llm_models(db):
             "cost_per_1m_output_tokens": 0.79
         },
         {
-            "name": "mistral/mistral-large-latest",
+            "name": "mistral/open-mixtral-8x22b",
             "provider": "mistral",
-            "description": "Mistral Large",
+            "description": "Open Mixtral 8x22B",
             "max_tokens": 131000,
             "cost_per_1m_input_tokens": 2.0,
             "cost_per_1m_output_tokens": 6.0

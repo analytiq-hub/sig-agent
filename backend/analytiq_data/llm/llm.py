@@ -58,6 +58,8 @@ async def run_llm(analytiq_client,
         
     api_key = await ad.llm.get_llm_key(analytiq_client, provider)
     ocr_text = ad.common.get_ocr_text(analytiq_client, document_id)
+
+    ad.log.info(f"LLM model: {llm_model}, provider: {provider}, api_key: {api_key}")
     
     prompt1 = await ad.common.get_prompt_content(analytiq_client, prompt_id)
     
@@ -75,7 +77,7 @@ async def run_llm(analytiq_client,
     )
 
     response_format = None
-    if provider in ["OpenAI", "Anthropic", "Gemini", "Groq"]:
+    if provider in ["OpenAI", "Anthropic", "Gemini", "Groq", "Mistral"]:
         # Initialize response_format
         response_format = None
 
