@@ -13,6 +13,9 @@ import dynamic from 'next/dynamic';
 import { ResponseFormat } from '@/types/schemas';
 import InfoTooltip from '@/components/InfoTooltip';
 
+// Define default model constant
+const DEFAULT_LLM_MODEL = 'gemini-2.0-flash';
+
 // Dynamically import MonacoEditor with no SSR
 const MonacoEditor = dynamic(() => import('./MonacoEditor'), {
   ssr: false,
@@ -183,7 +186,21 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const loadLLMModels = useCallback(async () => {
     try {
       const response = await listLLMModelsApi();
-      setLLMModels(response.models);
+      
+      // Sort models: Gemini models first (alphabetically), then other models alphabetically
+      const sortedModels = [...response.models].sort((a, b) => {
+        const aIsGemini = a.name.toLowerCase().includes(DEFAULT_LLM_MODEL);
+        const bIsGemini = b.name.toLowerCase().includes(DEFAULT_LLM_MODEL);
+        
+        // If one is Gemini and the other isn't, prioritize Gemini
+        if (aIsGemini && !bIsGemini) return -1;
+        if (!aIsGemini && bIsGemini) return 1;
+        
+        // If both are Gemini or both are non-Gemini, sort alphabetically
+        return a.name.localeCompare(b.name);
+      });
+      
+      setLLMModels(sortedModels);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading LLM models';
       setMessage('Error: ' + errorMsg);
@@ -260,7 +277,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       align: 'left',
       renderCell: (params) => (
         <div className="text-gray-600 flex items-center h-full">
-          {params.row.model || 'gpt-4o-mini'}
+          {params.row.model || DEFAULT_LLM_MODEL}
         </div>
       ),
     },
@@ -441,7 +458,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                   Model
                 </label>
                 <select
-                  value={currentPrompt.model || 'gpt-4o-mini'}
+                  value={currentPrompt.model || DEFAULT_LLM_MODEL}
                   onChange={(e) => setCurrentPrompt(prev => ({ ...prev, model: e.target.value }))}
                   disabled={isLoading}
                   className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
