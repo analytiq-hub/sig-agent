@@ -48,13 +48,29 @@ interface NestedFieldsEditorProps {
 }
 
 const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChange, isLoading }) => {
+  const [expandedFields, setExpandedFields] = useState<Record<number, boolean>>({});
+  
+  const toggleExpansion = (index: number) => {
+    setExpandedFields(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+  
   const addNestedField = (afterIndex?: number) => {
     const newFields = [...fields];
-    if (afterIndex !== undefined) {
-      newFields.splice(afterIndex + 1, 0, { name: '', type: 'str' });
-    } else {
-      newFields.push({ name: '', type: 'str' });
+    const newIndex = afterIndex !== undefined ? afterIndex + 1 : fields.length;
+    
+    newFields.splice(newIndex, 0, { name: '', type: 'str' });
+    
+    // Automatically expand if it's an object type
+    if (afterIndex !== undefined && fields[afterIndex].type === 'object') {
+      setExpandedFields(prev => ({
+        ...prev,
+        [newIndex]: true
+      }));
     }
+    
     onChange(newFields);
   };
 
@@ -67,6 +83,15 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
     const newFields = fields.map((f, i) => 
       i === index ? { ...f, ...field } as SchemaField : f
     );
+    
+    // If changing to object type, automatically expand
+    if (field.type === 'object' && newFields[index].type === 'object') {
+      setExpandedFields(prev => ({
+        ...prev,
+        [index]: true
+      }));
+    }
+    
     onChange(newFields);
   };
 
@@ -135,12 +160,23 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
           {/* Recursive rendering for nested objects */}
           {field.type === 'object' && (
             <div className="mt-2 pl-4 border-l-2 border-blue-200">
-              <div className="text-sm font-medium text-blue-600 mb-2">Nested Fields</div>
-              <NestedFieldsEditor 
-                fields={field.nestedFields || [{ name: '', type: 'str' }]}
-                onChange={(nestedFields) => handleNestedFieldsChange(index, nestedFields)}
-                isLoading={isLoading}
-              />
+              <div 
+                className="flex items-center text-sm font-medium text-blue-600 mb-2 cursor-pointer"
+                onClick={() => toggleExpansion(index)}
+              >
+                <span className="mr-1 inline-block w-4 text-center">
+                  {expandedFields[index] ? '▼' : '►'}
+                </span>
+                <span>Nested Fields</span>
+              </div>
+              
+              {expandedFields[index] && (
+                <NestedFieldsEditor 
+                  fields={field.nestedFields || [{ name: '', type: 'str' }]}
+                  onChange={(nestedFields) => handleNestedFieldsChange(index, nestedFields)}
+                  isLoading={isLoading}
+                />
+              )}
             </div>
           )}
         </div>
@@ -175,6 +211,8 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
   const [fields, setFields] = useState<SchemaField[]>([{ name: '', type: 'str' }]);
+  const [expandedNestedFields, setExpandedNestedFields] = useState<Record<number, boolean>>({});
+  const [expandedArrayFields, setExpandedArrayFields] = useState<Record<number, boolean>>({});
 
   const saveSchema = async (schema: SchemaConfig) => {
     try {
@@ -255,10 +293,43 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     const newFields = fields.map((f, i) => 
       i === index ? { ...f, ...field } as SchemaField : f
     );
+    
+    // If changing to object type, automatically expand
+    if (field.type === 'object' && newFields[index].type === 'object') {
+      setExpandedNestedFields(prev => ({
+        ...prev,
+        [index]: true
+      }));
+    }
+    
+    // If changing to array type, automatically expand
+    if (field.type === 'array' && newFields[index].type === 'array') {
+      setExpandedArrayFields(prev => ({
+        ...prev,
+        [index]: true
+      }));
+    }
+    
     setFields(newFields);
     setCurrentSchema(prev => ({
       ...prev,
       response_format: fieldsToJsonSchema(newFields)
+    }));
+  };
+
+  // Toggle expansion state for nested fields
+  const toggleNestedFieldExpansion = (index: number) => {
+    setExpandedNestedFields(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
+  // Toggle expansion state for array fields
+  const toggleArrayFieldExpansion = (index: number) => {
+    setExpandedArrayFields(prev => ({
+      ...prev,
+      [index]: !prev[index]
     }));
   };
 
@@ -793,44 +864,68 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
                                 {/* Nested fields for object type */}
                                 {field.type === 'object' && (
                                   <div className="mt-2 pl-4 border-l-2 border-blue-200">
-                                    <div className="text-sm font-medium text-blue-600 mb-2">Nested Fields</div>
-                                    <NestedFieldsEditor 
-                                      fields={field.nestedFields || [{ name: '', type: 'str' }]}
-                                      onChange={(nestedFields) => handleNestedFieldsChange(index, nestedFields)}
-                                      isLoading={isLoading}
-                                    />
+                                    <div 
+                                      className="flex items-center text-sm font-medium text-blue-600 mb-2 cursor-pointer"
+                                      onClick={() => toggleNestedFieldExpansion(index)}
+                                    >
+                                      <span className="mr-1 inline-block w-4 text-center">
+                                        {expandedNestedFields[index] ? '▼' : '►'}
+                                      </span>
+                                      <span>Nested Fields</span>
+                                    </div>
+                                    
+                                    {expandedNestedFields[index] && (
+                                      <NestedFieldsEditor 
+                                        fields={field.nestedFields || [{ name: '', type: 'str' }]}
+                                        onChange={(nestedFields) => handleNestedFieldsChange(index, nestedFields)}
+                                        isLoading={isLoading}
+                                      />
+                                    )}
                                   </div>
                                 )}
 
-                                {/* Add array type configuration */}
+                                {/* Array type configuration */}
                                 {field.type === 'array' && (
                                   <div className="mt-2 pl-4 border-l-2 border-green-200">
-                                    <div className="text-sm font-medium text-green-600 mb-2">Array Item Type</div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <select
-                                        className="p-1.5 border rounded text-sm"
-                                        value={field.arrayItemType || 'str'}
-                                        onChange={e => handleArrayItemTypeChange(index, e.target.value as SchemaField['type'])}
-                                        disabled={isLoading}
-                                      >
-                                        <option value="str">String</option>
-                                        <option value="int">Integer</option>
-                                        <option value="float">Float</option>
-                                        <option value="bool">Boolean</option>
-                                        <option value="object">Object</option>
-                                      </select>
+                                    <div 
+                                      className="flex items-center text-sm font-medium text-green-600 mb-2 cursor-pointer"
+                                      onClick={() => toggleArrayFieldExpansion(index)}
+                                    >
+                                      <span className="mr-1 inline-block w-4 text-center">
+                                        {expandedArrayFields[index] ? '▼' : '►'}
+                                      </span>
+                                      <span>Array Item Type</span>
                                     </div>
                                     
-                                    {/* For array of objects, show object field editor */}
-                                    {field.arrayItemType === 'object' && (
-                                      <div className="mt-2">
-                                        <div className="text-sm font-medium text-blue-600 mb-2">Array Object Fields</div>
-                                        <NestedFieldsEditor 
-                                          fields={field.arrayObjectFields || [{ name: '', type: 'str' }]}
-                                          onChange={(objectFields) => handleArrayObjectFieldsChange(index, objectFields)}
-                                          isLoading={isLoading}
-                                        />
-                                      </div>
+                                    {expandedArrayFields[index] && (
+                                      <>
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <select
+                                            className="p-1.5 border rounded text-sm"
+                                            value={field.arrayItemType || 'str'}
+                                            onChange={e => handleArrayItemTypeChange(index, e.target.value as SchemaField['type'])}
+                                            disabled={isLoading}
+                                          >
+                                            <option value="str">String</option>
+                                            <option value="int">Integer</option>
+                                            <option value="float">Float</option>
+                                            <option value="bool">Boolean</option>
+                                            <option value="object">Object</option>
+                                          </select>
+                                        </div>
+                                        
+                                        {/* For array of objects, show object field editor */}
+                                        {field.arrayItemType === 'object' && (
+                                          <div className="mt-2">
+                                            <div className="text-sm font-medium text-blue-600 mb-2">Array Object Fields</div>
+                                            <NestedFieldsEditor 
+                                              fields={field.arrayObjectFields || [{ name: '', type: 'str' }]}
+                                              onChange={(objectFields) => handleArrayObjectFieldsChange(index, objectFields)}
+                                              isLoading={isLoading}
+                                            />
+                                          </div>
+                                        )}
+                                      </>
                                     )}
                                   </div>
                                 )}
