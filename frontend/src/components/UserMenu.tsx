@@ -107,7 +107,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
               onClick={() => setIsOpen(false)}
             >
               <SettingsIcon className="h-4 w-4 mr-2" />
-              Settings
+              <span className="pt-[3px]">Settings</span>
             </Link>
 
             {/* Tour Guide Option */}
@@ -116,17 +116,17 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
               className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
             >
               <HelpIcon className="h-4 w-4 mr-2" />
-              Start Tour Guide
+              <span className="pt-[3px]">Start Tour Guide</span>
             </button>
 
-            {/* Settings Link */}
+            {/* About Link */}
             <Link
               href="/"
               className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               onClick={() => setIsOpen(false)}
             >
               <InfoIcon className="h-4 w-4 mr-2" />
-              About
+              <span className="pt-[3px]">About</span>
             </Link>
 
             <div className="border-t border-gray-200" />
@@ -137,7 +137,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
               className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
             >
               <SignoutIcon className="h-4 w-4 mr-2" />
-              Sign out
+              <span className="pt-[3px]">Sign out</span>
             </button>
           </div>
         </>
