@@ -93,7 +93,7 @@ const TourGuide = () => {
 
   // Check if this is the user's first login
   useEffect(() => {
-    console.log("TourGuide: Session state changed", { session, hasSession: !!session });
+    //console.log("TourGuide: Session state changed", { session, hasSession: !!session });
     
     let timeoutId: NodeJS.Timeout;
     
@@ -101,17 +101,17 @@ const TourGuide = () => {
       if (session) {
         // Use a more specific key that includes the user's email to ensure it's per-user
         const tour = await hasSeenTour();
-        console.log("TourGuide: Checking if user has seen tour", { hasSeenTour: tour });
+        //console.log("TourGuide: Checking if user has seen tour", { hasSeenTour: tour });
         
         if (!tour) {
-          console.log("TourGuide: User hasn't seen tour, scheduling tour start");
+          //console.log("TourGuide: User hasn't seen tour, scheduling tour start");
           // Delay the start of the tour to ensure the UI is fully loaded
           timeoutId = setTimeout(() => {
-            console.log("TourGuide: Starting tour now");
+            //console.log("TourGuide: Starting tour now");
             setShowTour(true);
           }, 1000);
         } else {
-          console.log("TourGuide: User has already seen tour");
+          //console.log("TourGuide: User has already seen tour");
         }
       }
     };
@@ -131,7 +131,7 @@ const TourGuide = () => {
       
       // If the step has a page property, navigate to that page
       if (step.page) {
-        console.log(`TourGuide: Navigating to ${step.page} for step ${currentStep}`);
+        //console.log(`TourGuide: Navigating to ${step.page} for step ${currentStep}`);
         router.push(step.page);
       }
     }
@@ -162,14 +162,14 @@ const TourGuide = () => {
       setTooltipReady(false);
       
       const step = tourSteps[currentStep];
-      console.log(`TourGuide: Looking for element with selector: ${step.selector}`);
+      //console.log(`TourGuide: Looking for element with selector: ${step.selector}`);
       
       // Add a longer delay to allow the page to load after navigation
       const timer = setTimeout(() => {
         const element = document.querySelector(step.selector);
         
         if (element) {
-          console.log(`TourGuide: Found element for step ${currentStep}`, element);
+          //console.log(`TourGuide: Found element for step ${currentStep}`, element);
           const rect = element.getBoundingClientRect();
           let top = 0;
           let left = 0;
@@ -197,7 +197,7 @@ const TourGuide = () => {
           // Mark tooltip as ready to show after positioning
           setTooltipReady(true);
         } else {
-          console.warn(`TourGuide: Element not found for step ${currentStep} with selector ${step.selector}`);
+          //console.warn(`TourGuide: Element not found for step ${currentStep} with selector ${step.selector}`);
           // Try again with a longer delay if element not found
           const retryTimer = setTimeout(() => {
             const retryElement = document.querySelector(step.selector);
