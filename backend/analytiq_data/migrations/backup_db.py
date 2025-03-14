@@ -34,6 +34,8 @@ def backup_database(src_uri: str, dest_uri: str, source_db_name: str, target_db_
             # Get a fresh reference after dropping
             target_db = dest_client[target_db_name]
         
+        print(f"List of collections in source database: '{source_db_name}'")
+        
         # Get list of all collections in source database
         collections = source_db.list_collection_names()
         
