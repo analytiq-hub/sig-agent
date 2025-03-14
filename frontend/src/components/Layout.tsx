@@ -133,7 +133,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             flex items-center
             h-10 w-full
             rounded-md
-            ${isSelected ? 'bg-blue-100' : 'hover:bg-blue-100'} dark:hover:bg-gray-800
+            ${isSelected ? 'bg-blue-100' : 'hover:bg-blue-100'}
             transition-colors duration-200
             px-3
           `}
@@ -145,7 +145,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Icon className="h-6 w-6 shrink-0" />
           </div>
           {open && (
-            <span className={`ml-3 pr-3 text-sm font-medium whitespace-nowrap ${isSelected ? 'text-blue-600' : 'text-gray-700 dark:text-gray-200'}`}>
+            <span className={`ml-3 pr-3 text-sm font-medium whitespace-nowrap ${isSelected ? 'text-blue-600' : 'text-gray-700'}`}>
               {item.text}
             </span>
           )}
@@ -157,12 +157,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="flex h-screen flex-col">
       {/* Header */}
-      <header className="bg-blue-600 dark:bg-blue-800 border-b border-blue-700 dark:border-blue-900">
+      <header className="bg-blue-600 border-b border-blue-700">
         <div className="flex h-16 items-center justify-between px-3">
           <div className="flex items-center">
             <button
               onClick={() => setOpen(!open)}
-              className="p-2 rounded-md hover:bg-blue-500 dark:hover:bg-blue-700"
+              className="p-2 rounded-md hover:bg-blue-500"
             >
               <Bars3Icon className="h-6 w-6 text-white" />
             </button>
@@ -195,7 +195,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             flex-shrink-0 
             transition-all duration-300 ease-in-out 
             bg-blue-50
-            border-r border-gray-200 dark:border-gray-800
+            border-r border-gray-200
             ${open ? 'w-50' : 'w-16'}
           `}
         >
@@ -205,11 +205,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <div className="py-1">
                   {fileMenuItems.map(renderMenuItem)}
                 </div>
-                <hr className="border-gray-200 dark:border-gray-800" />
+                <hr className="border-gray-200" />
                 <div className="py-1">
                   {modelMenuItems.map(renderMenuItem)}
                 </div>
-                <hr className="border-gray-200 dark:border-gray-800" />
+                <hr className="border-gray-200" />
                 <div className="py-1">
                   {flowMenuItems.map(renderMenuItem)}
                 </div>
@@ -218,7 +218,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* Only show debug menu for admin users */}
             {role === 'admin' && (
               <>
-                <hr className="border-gray-200 dark:border-gray-800" />
+                <hr className="border-gray-200" />
                 <div className="py-1">
                   {systemMenuItems.map(renderMenuItem)}
                 </div>

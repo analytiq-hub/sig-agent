@@ -96,15 +96,15 @@ export default function AccessTokenManager() {
         {tokens.map((token) => (
           <div
             key={token.id}
-            className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow"
+            className="flex items-center justify-between p-4 bg-white rounded-lg shadow"
           >
             <div>
               <h3 className="font-medium">{token.name}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-500">
                 Created: {new Date(token.created_at).toLocaleDateString()}
               </p>
               {token.token && (
-                <p className="mt-1 text-sm font-mono bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                <p className="mt-1 text-sm font-mono bg-gray-100 p-2 rounded">
                   {token.token}
                 </p>
               )}
