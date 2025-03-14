@@ -4,7 +4,7 @@ import sys
 import argparse
 from pymongo import MongoClient
 
-def backup_database(src_uri: str, dest_uri: str, source_db_name: str, target_db_name: str) -> None:
+def backup_database(src_uri: str, dest_uri: str, source_db_name: str, target_db_name: str, force: bool = False) -> None:
     """
     Backup MongoDB database to another database.
     
@@ -13,6 +13,7 @@ def backup_database(src_uri: str, dest_uri: str, source_db_name: str, target_db_
         dest_uri: Destination MongoDB connection URI
         source_db_name: Name of the source database
         target_db_name: Name of the target database to create
+        force: If True, drop the target database before backup
     """
     src_client = None
     dest_client = None
@@ -25,6 +26,13 @@ def backup_database(src_uri: str, dest_uri: str, source_db_name: str, target_db_
         # Get source and target database references
         source_db = src_client[source_db_name]
         target_db = dest_client[target_db_name]
+        
+        # Drop target database if force is enabled
+        if force:
+            print(f"Force option enabled. Dropping target database '{target_db_name}'")
+            dest_client.drop_database(target_db_name)
+            # Get a fresh reference after dropping
+            target_db = dest_client[target_db_name]
         
         # Get list of all collections in source database
         collections = source_db.list_collection_names()
@@ -65,6 +73,7 @@ def main():
     parser.add_argument('--dest-uri', help='Destination MongoDB connection URI (defaults to source URI if not specified)')
     parser.add_argument('--src', required=True, help='Source database name')
     parser.add_argument('--dest', required=True, help='Destination database name')
+    parser.add_argument('-f', '--force', action='store_true', help='Force drop the target database before backup')
     
     args = parser.parse_args()
     
@@ -75,7 +84,7 @@ def main():
     # Use source URI as destination URI if not specified
     dest_uri = args.dest_uri or args.src_uri
     
-    backup_database(args.src_uri, dest_uri, args.src, args.dest)
+    backup_database(args.src_uri, dest_uri, args.src, args.dest, args.force)
 
 if __name__ == "__main__":
     main() 
