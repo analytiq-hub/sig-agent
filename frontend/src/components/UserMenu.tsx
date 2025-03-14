@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, ExitToApp as SignoutIcon, Help as HelpIcon } from '@mui/icons-material';
+import { Settings as SettingsIcon, ExitToApp as SignoutIcon, Help as HelpIcon, Info as InfoIcon } from '@mui/icons-material';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -118,6 +118,16 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
               <HelpIcon className="h-4 w-4 mr-2" />
               Start Tour Guide
             </button>
+
+            {/* Settings Link */}
+            <Link
+              href="/"
+              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              onClick={() => setIsOpen(false)}
+            >
+              <InfoIcon className="h-4 w-4 mr-2" />
+              About
+            </Link>
 
             <div className="border-t border-gray-200" />
 
