@@ -1,67 +1,25 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { createTagApi, listTagsApi, deleteTagApi, getApiErrorMsg, updateTagApi } from '@/utils/api';
-import { Tag, TagConfig } from '@/types/index';
+import { listTagsApi, deleteTagApi, getApiErrorMsg } from '@/utils/api';
+import { Tag } from '@/types/index';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors';
-import InfoTooltip from '@/components/InfoTooltip';
 import { isColorLight } from '@/utils/colors';
+import { useTagContext } from '@/contexts/TagContext';
+import { useRouter } from 'next/navigation';
 
 const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
+  const router = useRouter();
+  const { setEditingTag } = useTagContext();
   const [tags, setTags] = useState<Tag[]>([]);
-  const [currentTag, setCurrentTag] = useState<{id?: string; name: string; color: string; description: string}>({
-    name: '',
-    color: colors.blue[500], // default blue color
-    description: ''
-  });
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-
-  const saveTag = async (tag: TagConfig) => {
-    try {
-      setIsLoading(true);
-      let savedTag: Tag;
-      
-      if (currentTag.id) {
-        // Update existing tag
-        savedTag = await updateTagApi({
-          organizationId: organizationId,
-          tagId: currentTag.id,
-          tag: {
-            name: tag.name,
-            color: tag.color,
-            description: tag.description
-          }
-        });
-        // Update existing tag in the list
-        setTags(tags.map(t => t.id === currentTag.id ? savedTag : t));
-        setMessage('Tag updated successfully');
-      } else {
-        // Create new tag
-        savedTag = await createTagApi({
-          organizationId: organizationId,
-          tag: tag
-        });
-        // Add new tag to the beginning of the list
-        setTags([savedTag, ...tags]);
-        setMessage('Tag created successfully');
-      }
-      
-      // Reset form only after successful save
-      setCurrentTag({ name: '', color: colors.blue[500], description: '' });
-    } catch (error) {
-      const errorMsg = getApiErrorMsg(error) || 'Error saving tag';
-      setMessage('Error: ' + errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const loadTags = useCallback(async () => {
     try {
@@ -94,14 +52,13 @@ const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentTag.name) {
-      setMessage('Please fill in the tag name');
-      return;
-    }
-
-    saveTag(currentTag);
+  // Update the edit handler
+  const handleEdit = (tag: Tag) => {
+    // Store the tag in context
+    setEditingTag(tag);
+    
+    // Navigate to the create-tag tab
+    router.push(`/orgs/${organizationId}/tags?tab=tag-create`);
   };
 
   // Filter tags based on search term
@@ -152,15 +109,7 @@ const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       renderCell: (params) => (
         <div className="flex gap-2">
           <IconButton
-            onClick={() => {
-              setCurrentTag({
-                id: params.row.id,
-                name: params.row.name,
-                color: params.row.color || '#3B82F6',
-                description: params.row.description || ''
-              });
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+            onClick={() => handleEdit(params.row)}
             disabled={isLoading}
             className="text-blue-600 hover:bg-blue-50"
           >
@@ -180,95 +129,6 @@ const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
-      <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-xl font-bold">
-            {currentTag.id ? 'Edit Tag' : 'Create Tag'}
-          </h2>
-          <InfoTooltip 
-            title="About Tags"
-            content={
-              <>
-                <p className="mb-2">
-                  Tags can be assigned to documents and prompts.
-                </p>
-                <ul className="list-disc list-inside space-y-1 mb-2">
-                  <li>Create tags for different types of documents, or different types of data you want to extract.</li>
-                  <li>Assign tags to prompts to control which documents they process.</li>
-                  <li>Assign tags when uploading documents.</li>
-                </ul>
-              </>
-            }
-          />
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <input
-                type="text"
-                className="w-full p-2 border rounded disabled:bg-gray-100"
-                value={currentTag.name}
-                onChange={e => setCurrentTag({ ...currentTag, name: e.target.value })}
-                placeholder="Tag Name"
-                disabled={isLoading}
-              />
-            </div>
-            <div className="w-32">
-              <input
-                type="color"
-                className="w-full h-10 p-1 border rounded cursor-pointer"
-                value={currentTag.color}
-                onChange={e => setCurrentTag({ ...currentTag, color: e.target.value })}
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <div>
-            <input
-              type="text"
-              className="w-full p-2 border rounded"
-              value={currentTag.description}
-              onChange={e => setCurrentTag({ ...currentTag, description: e.target.value })}
-              placeholder="Description (optional)"
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="flex gap-4">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-              disabled={isLoading}
-              data-tour="tags"
-            >
-              {currentTag.id ? 'Update Tag' : 'Save Tag'}
-            </button>
-            {currentTag.id && (
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentTag({ name: '', color: colors.blue[500], description: '' });
-                  setMessage('');
-                }}
-                className="px-4 py-2 bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
-              >
-                Cancel Edit
-              </button>
-            )}
-          </div>
-        </form>
-
-        {/* Message */}
-        {message && (
-          <div className={`mt-4 p-3 rounded ${
-            message.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
-          }`}>
-            {message}
-          </div>
-        )}
-      </div>
-
       {/* Tags List */}
       <div className="bg-white p-6 rounded-lg shadow">
         <h2 className="text-xl font-bold mb-4">Tags</h2>
@@ -290,6 +150,15 @@ const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             }}
           />
         </div>
+
+        {/* Message */}
+        {message && (
+          <div className={`mb-4 p-3 rounded ${
+            message.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
+          }`}>
+            {message}
+          </div>
+        )}
 
         {/* Data Grid */}
         <div style={{ height: 400, width: '100%' }}>
