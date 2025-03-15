@@ -11,13 +11,15 @@ import OrganizationSwitcher from './OrganizationSwitcher';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { 
   Menu as Bars3Icon,
-  PieChart as ChartPieIcon,
-  FileUpload as ArrowUpTrayIcon,
+  //PieChart as ChartPieIcon,
+  //FileUpload as ArrowUpTrayIcon,
   FormatListBulleted as ListBulletIcon,
-  Apps as CubeIcon,
-  ViewQuilt as Square3Stack3DIcon,
+  // Apps as CubeIcon,
+  // ViewQuilt as Square3Stack3DIcon,
   Science as BeakerIcon,
   LocalOffer as LocalOfferIcon,
+  DataObject as SchemaIcon,
+  Chat as PromptIcon
 } from '@mui/icons-material';
 import { SvgIconProps } from '@mui/material';
 import { useRole } from '@/utils/useRole';
@@ -54,7 +56,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { currentOrganization } = useOrganization();
   const [open, setOpen] = useState(true);
   const { data: session, status } = useSession();
-  const { role } = useRole();
+  //const { role } = useRole();
   const router = useRouter();
   const pathname = usePathname();
   const isPDFViewer = pathname.includes('/pdf-viewer/');
@@ -66,19 +68,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   //  { text: 'Upload', icon: ArrowUpTrayIcon, tooltip: 'Upload', href: `/orgs/${currentOrganization?.id}/upload`},
     { text: 'Documents', icon: ListBulletIcon, tooltip: 'Documents', href: `/orgs/${currentOrganization?.id}/docs`},
     { text: 'Tags', icon: LocalOfferIcon, tooltip: 'Tags', href: `/orgs/${currentOrganization?.id}/tags`},  
+    { text: 'Schemas', icon: SchemaIcon, tooltip: 'Schemas', href: `/orgs/${currentOrganization?.id}/schemas`},
+    { text: 'Prompts', icon: PromptIcon, tooltip: 'Prompts', href: `/orgs/${currentOrganization?.id}/prompts`},
   ];
 
-  const modelMenuItems = [
-    { text: 'Models', icon: CubeIcon, tooltip: 'Models', href: `/orgs/${currentOrganization?.id}/models`},
-  ];
+  // const modelMenuItems = [
+  //   //{ text: 'Models', icon: CubeIcon, tooltip: 'Models', href: `/orgs/${currentOrganization?.id}/models`},
+  // ];
 
-  const flowMenuItems = [
-    { text: 'Flows', icon: Square3Stack3DIcon, tooltip: 'Flows', href: `/orgs/${currentOrganization?.id}/flows` },
-  ];
+  // const flowMenuItems = [
+  //   { text: 'Flows', icon: Square3Stack3DIcon, tooltip: 'Flows', href: `/orgs/${currentOrganization?.id}/flows` },
+  // ];
 
-  const systemMenuItems = [
-    { text: 'System', icon: BeakerIcon, tooltip: 'System Page', href: '/system' },
-  ];
+  // const systemMenuItems = [
+  //   { text: 'System', icon: BeakerIcon, tooltip: 'System Page', href: '/system' },
+  // ];
 
   useEffect(() => {
     const handleResize = () => {
@@ -207,14 +211,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <div className="py-1">
                   {fileMenuItems.map(renderMenuItem)}
                 </div>
-                <hr className="border-gray-200" />
+                {/* <hr className="border-gray-200" />
                 <div className="py-1">
                   {modelMenuItems.map(renderMenuItem)}
-                </div>
+                </div> */}
               </>
             )}
             {/* Only show these menus for admin users */}
-            {role === 'admin' && (
+            {/* {role === 'admin' && (
               <>
                 <hr className="border-gray-200" />
                 <div className="py-1">
@@ -225,7 +229,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   {systemMenuItems.map(renderMenuItem)}
                 </div>
               </>
-            )}
+            )} */}
           </nav>
         </aside>
 
