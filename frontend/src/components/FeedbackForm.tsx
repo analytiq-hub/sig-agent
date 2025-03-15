@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { Feedback as FeedbackIcon } from '@mui/icons-material';
+import { Feedback as FeedbackIcon, AdminPanelSettings as AdminIcon } from '@mui/icons-material';
+import Link from 'next/link';
 
 interface FeedbackFormProps {
   onClose?: () => void;
@@ -15,6 +16,9 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, isModal = false })
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  
+  // Check if the user is an admin
+  const isAdmin = session?.user?.role === 'admin';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,9 +70,22 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, isModal = false })
 
   return (
     <div className={`bg-white rounded-lg shadow-md ${isModal ? 'p-6' : 'p-8 max-w-2xl mx-auto my-8'}`}>
-      <div className="flex items-center mb-6">
-        <FeedbackIcon className="text-blue-500 mr-2" />
-        <h2 className="text-2xl font-semibold text-gray-800">Product Feedback</h2>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <FeedbackIcon className="text-blue-500 mr-2" />
+          <h2 className="text-2xl font-semibold text-gray-800">Product Feedback</h2>
+        </div>
+        
+        {/* Admin link - only visible to admins */}
+        {isAdmin && (
+          <Link 
+            href="/admin/feedback" 
+            className="flex items-center text-blue-600 hover:text-blue-800 transition-colors"
+          >
+            <AdminIcon className="mr-1" />
+            <span>View All Feedback</span>
+          </Link>
+        )}
       </div>
       
       <p className="text-gray-600 mb-6">
