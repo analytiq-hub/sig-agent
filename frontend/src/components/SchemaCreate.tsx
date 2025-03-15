@@ -2,18 +2,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createSchemaApi, listSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
 import { SchemaField, Schema, SchemaConfig, ResponseFormat, JsonSchemaProperty } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { TextField, InputAdornment, IconButton } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
+
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
-import colors from 'tailwindcss/colors'
 import Editor from "@monaco-editor/react";
 import InfoTooltip from '@/components/InfoTooltip';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { useSchemaContext } from '@/contexts/SchemaContext';
 
 interface SchemaPreviewProps {
   schema: ResponseFormat;
@@ -191,6 +189,8 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
 };
 
 const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) => {
+  const { editingSchema, setEditingSchema } = useSchemaContext();
+  
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
   const [currentSchema, setCurrentSchema] = useState<SchemaConfig>({
@@ -219,6 +219,21 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [expandedNestedFields, setExpandedNestedFields] = useState<Record<number, boolean>>({});
   const [expandedArrayFields, setExpandedArrayFields] = useState<Record<number, boolean>>({});
 
+  // Load editing schema if available
+  useEffect(() => {
+    if (editingSchema) {
+      setCurrentSchemaId(editingSchema.id);
+      setCurrentSchema({
+        name: editingSchema.name,
+        response_format: editingSchema.response_format
+      });
+      setFields(jsonSchemaToFields(editingSchema.response_format));
+      
+      // Clear the editing schema after loading
+      setEditingSchema(null);
+    }
+  }, [editingSchema, setEditingSchema]);
+
   const saveSchema = async (schema: SchemaConfig) => {
     try {
       setIsLoading(true);
@@ -231,6 +246,8 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
       setPage(0);
       await loadSchemas();
+      
+      setMessage('Schema saved successfully');
       
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving schema';
@@ -996,70 +1013,6 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
             {message}
           </div>
         )}
-      </div>
-
-      {/* Schemas List */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-bold mb-4">Schemas</h2>
-        
-        {/* Search Box */}
-        <div className="mb-4">
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Search schemas..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </div>
-
-        {/* Data Grid */}
-        <div style={{ height: 400, width: '100%' }}>
-          <DataGrid
-            rows={filteredSchemas}
-            columns={columns}
-            initialState={{
-              pagination: {
-                paginationModel: { pageSize: 5 }
-              },
-              sorting: {
-                sortModel: [{ field: 'id', sort: 'desc' }]
-              }
-            }}
-            pageSizeOptions={[5, 10, 20]}
-            disableRowSelectionOnClick
-            loading={isLoading}
-            paginationMode="server"
-            rowCount={total}
-            onPaginationModelChange={(model) => {
-              setPage(model.page);
-              setPageSize(model.pageSize);
-            }}
-            getRowHeight={({ model }) => {
-              const fields = jsonSchemaToFields(model.response_format);
-              const numFields = fields.length;
-              return Math.max(52, 24 * numFields + 16);
-            }}
-            sx={{
-              '& .MuiDataGrid-cell': {
-                padding: 'px',
-              },
-              '& .MuiDataGrid-row:nth-of-type(odd)': {
-                backgroundColor: colors.gray[100],  // Using Tailwind colors
-              },
-              '& .MuiDataGrid-row:hover': {
-                backgroundColor: `${colors.gray[200]} !important`,  // Using Tailwind colors
-              },
-            }}
-          />
-        </div>
       </div>
     </div>
   );

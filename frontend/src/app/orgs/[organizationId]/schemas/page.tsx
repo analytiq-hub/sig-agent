@@ -2,7 +2,7 @@
 
 import Schemas from '@/components/Schemas';
 import SchemaCreate from '@/components/SchemaCreate';
-
+import { SchemaProvider } from '@/contexts/SchemaContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function SchemasPage({ params }: { params: { organizationId: string } }) {
@@ -15,42 +15,44 @@ export default function SchemasPage({ params }: { params: { organizationId: stri
   };
 
   return (
-    <div className="p-4">
-      <div className="border-b border-gray-200 mb-6">
-        <div className="flex gap-8">
-          <button
-            onClick={() => handleTabChange('schemas')}
-            className={`pb-4 px-1 relative font-semibold text-base ${
-              tab === 'schemas'
-                ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            data-tour="documents-tab"
-          >
-            Schemas
-          </button>
-          <button
-            onClick={() => handleTabChange('schema-create')}
-            className={`pb-4 px-1 relative font-semibold text-base ${
-              tab === 'schema-create'
-                ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            data-tour="upload-tab"
-          >
-            Create Schema
-          </button>
+    <SchemaProvider>
+      <div className="p-4">
+        <div className="border-b border-gray-200 mb-6">
+          <div className="flex gap-8">
+            <button
+              onClick={() => handleTabChange('schemas')}
+              className={`pb-4 px-1 relative font-semibold text-base ${
+                tab === 'schemas'
+                  ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              data-tour="documents-tab"
+            >
+              Schemas
+            </button>
+            <button
+              onClick={() => handleTabChange('schema-create')}
+              className={`pb-4 px-1 relative font-semibold text-base ${
+                tab === 'schema-create'
+                  ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              data-tour="upload-tab"
+            >
+              Create Schema
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="max-w-6xl mx-auto">
-        <div role="tabpanel" hidden={tab !== 'schemas'}>
-          {tab === 'schemas' && <Schemas organizationId={params.organizationId} />}
-        </div>
-        <div role="tabpanel" hidden={tab !== 'schema-create'}>
-          {tab === 'schema-create' && <SchemaCreate organizationId={params.organizationId} />}
+        <div className="max-w-6xl mx-auto">
+          <div role="tabpanel" hidden={tab !== 'schemas'}>
+            {tab === 'schemas' && <Schemas organizationId={params.organizationId} />}
+          </div>
+          <div role="tabpanel" hidden={tab !== 'schema-create'}>
+            {tab === 'schema-create' && <SchemaCreate organizationId={params.organizationId} />}
+          </div>
         </div>
       </div>
-    </div>
+    </SchemaProvider>
   );
 }

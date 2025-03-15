@@ -14,6 +14,8 @@ import InfoTooltip from '@/components/InfoTooltip';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { useSchemaContext } from '@/contexts/SchemaContext';
+import { useRouter } from 'next/navigation';
 
 interface SchemaPreviewProps {
   schema: ResponseFormat;
@@ -191,6 +193,8 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
 };
 
 const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
+  const router = useRouter();
+  const { setEditingSchema } = useSchemaContext();
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
   const [currentSchema, setCurrentSchema] = useState<SchemaConfig>({
@@ -436,6 +440,15 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     schema.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Update the edit handler
+  const handleEdit = (schema: Schema) => {
+    // Store the schema in context
+    setEditingSchema(schema);
+    
+    // Navigate to the create-schema tab
+    router.push(`/orgs/${organizationId}/schemas?tab=schema-create`);
+  };
+
   // Define columns for the data grid
   const columns: GridColDef[] = [
     {
@@ -492,15 +505,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       renderCell: (params) => (
         <div className="flex gap-2 items-center h-full">
           <IconButton
-            onClick={() => {
-              setCurrentSchemaId(params.row.id);
-              setCurrentSchema({
-                name: params.row.name,
-                response_format: params.row.response_format
-              });
-              setFields(jsonSchemaToFields(params.row.response_format));
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+            onClick={() => handleEdit(params.row)}
             disabled={isLoading}
             className="text-blue-600 hover:bg-blue-50"
           >
