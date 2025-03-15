@@ -26,7 +26,7 @@ export default function DashboardRedirect() {
           const { organizations } = response;
           
           if (organizations && organizations.length > 0) {
-            router.push(`/orgs/${organizations[0].id}/dashboard`);
+            router.push(`/orgs/${organizations[0].id}/docs`);
           } else {
             toast.error('No organizations found');
             router.push('/settings/organizations');
