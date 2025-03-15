@@ -60,7 +60,7 @@ const FeedbackAdmin: React.FC = () => {
     if (currentPage !== 1) {
       setCurrentPage(1);
     }
-  }, [feedback, searchEmail]);
+  }, [feedback, searchEmail, currentPage]);
 
   const fetchFeedback = async () => {
     setIsLoading(true);
