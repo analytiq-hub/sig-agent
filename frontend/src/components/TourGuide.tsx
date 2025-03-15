@@ -39,7 +39,7 @@ const TourGuide = () => {
       content: 'Define document schemas to extract structured data from your documents.',
       selector: '[data-tour="schemas"]',
       position: 'bottom',
-      page: `/orgs/${currentOrganization?.id}/schemas`
+      page: `/orgs/${currentOrganization?.id}/schemas?tab=schema-create`
     },
     {
       id: 'prompts',
@@ -47,7 +47,7 @@ const TourGuide = () => {
       content: 'Create and manage prompts to guide AI in processing your documents.',
       selector: '[data-tour="prompts"]',
       position: 'bottom',
-      page: `/orgs/${currentOrganization?.id}/prompts`
+      page: `/orgs/${currentOrganization?.id}/prompts?tab=prompt-create`
     },
     {
         id: 'prompt-schema',
@@ -55,7 +55,7 @@ const TourGuide = () => {
         content: 'Assign a schema to your prompt.',
         selector: '[data-tour="prompts-schema-select"]',
         position: 'top',
-        page: `/orgs/${currentOrganization?.id}/prompts`
+        page: `/orgs/${currentOrganization?.id}/prompts?tab=prompt-create`
     },
     {
         id: 'prompt-model',
@@ -63,7 +63,7 @@ const TourGuide = () => {
         content: 'Assign a model to your prompt.',
         selector: '[data-tour="prompts-model-select"]',
         position: 'top',
-        page: `/orgs/${currentOrganization?.id}/prompts`
+        page: `/orgs/${currentOrganization?.id}/prompts?tab=prompt-create`
     },
     {
         id: 'upload',
@@ -87,7 +87,7 @@ const TourGuide = () => {
       content: 'With tags, you can determine which prompts are used for which documents.',
       selector: '[data-tour="tags"]',
       position: 'bottom',
-      page: `/orgs/${currentOrganization?.id}/tags`
+      page: `/orgs/${currentOrganization?.id}/tags?tab=tag-create`
     }
   ], [currentOrganization?.id]);
 
