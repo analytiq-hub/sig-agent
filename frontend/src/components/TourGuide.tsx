@@ -37,17 +37,17 @@ const TourGuide = () => {
       id: 'schemas',
       title: 'Create Schemas',
       content: 'Define document schemas to extract structured data from your documents.',
-      selector: '[data-tour="schemas-tab"]',
+      selector: '[data-tour="schemas"]',
       position: 'bottom',
-      page: `/orgs/${currentOrganization?.id}/models?tab=schemas`
+      page: `/orgs/${currentOrganization?.id}/schemas`
     },
     {
       id: 'prompts',
       title: 'Create Prompts',
       content: 'Create and manage prompts to guide AI in processing your documents.',
-      selector: '[data-tour="prompts-tab"]',
+      selector: '[data-tour="prompts"]',
       position: 'bottom',
-      page: `/orgs/${currentOrganization?.id}/models?tab=prompts`
+      page: `/orgs/${currentOrganization?.id}/prompts`
     },
     {
         id: 'prompt-schema',
@@ -55,7 +55,7 @@ const TourGuide = () => {
         content: 'Assign a schema to your prompt.',
         selector: '[data-tour="prompts-schema-select"]',
         position: 'top',
-        page: `/orgs/${currentOrganization?.id}/models?tab=prompts`
+        page: `/orgs/${currentOrganization?.id}/prompts`
     },
     {
         id: 'prompt-model',
@@ -63,7 +63,7 @@ const TourGuide = () => {
         content: 'Assign a model to your prompt.',
         selector: '[data-tour="prompts-model-select"]',
         position: 'top',
-        page: `/orgs/${currentOrganization?.id}/models?tab=prompts`
+        page: `/orgs/${currentOrganization?.id}/prompts`
     },
     {
         id: 'upload',
@@ -71,7 +71,7 @@ const TourGuide = () => {
         content: 'Upload your documents for processing.',
         selector: '[data-tour="upload-files"]',
         position: 'top',
-        page: `/orgs/${currentOrganization?.id}/upload`
+        page: `/orgs/${currentOrganization?.id}/docs?tab=upload`
     },
     {
       id: 'documents',

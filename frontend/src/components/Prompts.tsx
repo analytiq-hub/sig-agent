@@ -388,7 +388,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       {/* Prompt Creation Form */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-xl font-bold">
+          <h2 className="text-xl font-bold" data-tour="prompts">
             {currentPromptId ? 'Edit Prompt' : 'Create Prompt'}
           </h2>
           <InfoTooltip 

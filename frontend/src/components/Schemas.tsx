@@ -755,7 +755,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     <div className="p-4 mx-auto">
       <div className="bg-white p-6 rounded-lg shadow mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-xl font-bold">
+          <h2 className="text-xl font-bold" data-tour="schemas">
             {currentSchemaId ? 'Edit Schema' : 'Create Schema'}
           </h2>
           <InfoTooltip 
