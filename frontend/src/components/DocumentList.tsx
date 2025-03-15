@@ -27,13 +27,20 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [skipRows, setSkipRows] = useState<number>(0);
   const [countRows, setCountRows] = useState<number>(0);
   const [totalRows, setTotalRows] = useState<number>(0);
-  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+  const [paginationModel, setPaginationModel] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const isSmallScreen = window.innerWidth < 768;
+      return { page: 0, pageSize: isSmallScreen ? 5 : 25 };
+    }
+    return { page: 0, pageSize: 25 };
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [tags, setTags] = useState<Tag[]>([]);
   const [editingDocument, setEditingDocument] = useState<DocumentMetadata | null>(null);
   const [isTagEditorOpen, setIsTagEditorOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTagFilters, setSelectedTagFilters] = useState<Tag[]>([]);
+  const [containerHeight, setContainerHeight] = useState('calc(100vh - 250px)');
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -255,8 +262,33 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     setEditingDocument(null);
   };
 
+  useEffect(() => {
+    const updateHeight = () => {
+      const headerHeight = 64;
+      const searchBarHeight = 80;
+      const footerHeight = 40;
+      const padding = 66;
+      
+      const availableHeight = window.innerHeight - (headerHeight + searchBarHeight + footerHeight + padding);
+      setContainerHeight(`${Math.max(400, availableHeight)}px`);
+    };
+
+    updateHeight();
+    
+    window.addEventListener('resize', updateHeight);
+    
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
+
   return (
-    <Box sx={{ height: 400, width: '100%' }}>
+    <Box sx={{ height: containerHeight, width: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800">
+        <p className="text-sm">
+          Welcome! Upload your documents to begin transforming unstructured data into structured insights. 
+          If no documents are visible, <Link href={`/orgs/${organizationId}/docs?tab=upload`} className="text-blue-600 font-medium hover:underline">click here</Link> or use the tab above to upload and start extracting key data fields effortlessly.
+        </p>
+      </div>
+      
       <div className="flex gap-4 mb-4">
         <TextField
           fullWidth
