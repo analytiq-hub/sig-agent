@@ -1,6 +1,8 @@
 'use client'
 
 import Prompts from '@/components/Prompts';
+import PromptCreate from '@/components/PromptCreate';
+import { PromptProvider } from '@/contexts/PromptContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function PromptsPage({ params }: { params: { organizationId: string } }) {
@@ -13,28 +15,44 @@ export default function PromptsPage({ params }: { params: { organizationId: stri
   };
 
   return (
-    <div className="p-4">
-      <div className="border-b border-gray-200 mb-6">
-        <div className="flex gap-8">
-          <button
-            onClick={() => handleTabChange('prompts')}
-            className={`pb-4 px-1 relative font-semibold text-base ${
-              tab === 'prompts'
-                ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            data-tour="documents-tab"
-          >
-            Prompts
-          </button>
+    <PromptProvider>
+      <div className="p-4">
+        <div className="border-b border-gray-200 mb-6">
+          <div className="flex gap-8">
+            <button
+              onClick={() => handleTabChange('prompts')}
+              className={`pb-4 px-1 relative font-semibold text-base ${
+                tab === 'prompts'
+                  ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              data-tour="prompts-tab"
+            >
+              Prompts
+            </button>
+            <button
+              onClick={() => handleTabChange('prompt-create')}
+              className={`pb-4 px-1 relative font-semibold text-base ${
+                tab === 'prompt-create'
+                  ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              data-tour="create-prompt-tab"
+            >
+              Create Prompt
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="max-w-6xl mx-auto">
-        <div role="tabpanel" hidden={tab !== 'prompts'}>
-          {tab === 'prompts' && <Prompts organizationId={params.organizationId} />}
+        <div className="max-w-6xl mx-auto">
+          <div role="tabpanel" hidden={tab !== 'prompts'}>
+            {tab === 'prompts' && <Prompts organizationId={params.organizationId} />}
+          </div>
+          <div role="tabpanel" hidden={tab !== 'prompt-create'}>
+            {tab === 'prompt-create' && <PromptCreate organizationId={params.organizationId} />}
+          </div>
         </div>
       </div>
-    </div>
+    </PromptProvider>
   );
 }
