@@ -79,15 +79,15 @@ const TourGuide = () => {
       content: 'Click on a document to view the extracted data.',
       selector: '[data-tour="documents-tab"]',
       position: 'bottom',
-      page: `/orgs/${currentOrganization?.id}/list?tab=documents`
+      page: `/orgs/${currentOrganization?.id}/docs?tab=documents`
     },
     {
       id: 'tags',
       title: 'Configure Tags',
       content: 'With tags, you can determine which prompts are used for which documents.',
-      selector: '[data-tour="tags-tab"]',
+      selector: '[data-tour="tags"]',
       position: 'bottom',
-      page: `/orgs/${currentOrganization?.id}/list?tab=tags`
+      page: `/orgs/${currentOrganization?.id}/tags`
     }
   ], [currentOrganization?.id]);
 

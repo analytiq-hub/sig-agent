@@ -10,7 +10,7 @@ export default function DocumentsPage({ params }: { params: { organizationId: st
   const tab = searchParams.get('tab') || 'documents';
 
   const handleTabChange = (newValue: string) => {
-    router.push(`/orgs/${params.organizationId}/list?tab=${newValue}`);
+    router.push(`/orgs/${params.organizationId}/docs?tab=${newValue}`);
   };
 
   return (
@@ -35,7 +35,6 @@ export default function DocumentsPage({ params }: { params: { organizationId: st
                 ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
-            data-tour="tags-tab"
           >
             Tags
           </button>

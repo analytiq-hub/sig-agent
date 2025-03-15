@@ -17,6 +17,7 @@ import {
   Apps as CubeIcon,
   ViewQuilt as Square3Stack3DIcon,
   Science as BeakerIcon,
+  LocalOffer as LocalOfferIcon,
 } from '@mui/icons-material';
 import { SvgIconProps } from '@mui/material';
 import { useRole } from '@/utils/useRole';
@@ -63,7 +64,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const fileMenuItems = [
     { text: 'Dashboard', icon: ChartPieIcon, tooltip: 'Dashboard', href: `/orgs/${currentOrganization?.id}/dashboard` },
     { text: 'Upload', icon: ArrowUpTrayIcon, tooltip: 'Upload', href: `/orgs/${currentOrganization?.id}/upload`},
-    { text: 'Documents', icon: ListBulletIcon, tooltip: 'Documents', href: `/orgs/${currentOrganization?.id}/list`},
+    { text: 'Documents', icon: ListBulletIcon, tooltip: 'Documents', href: `/orgs/${currentOrganization?.id}/docs`},
+    { text: 'Tags', icon: LocalOfferIcon, tooltip: 'Tags', href: `/orgs/${currentOrganization?.id}/tags`},  
   ];
 
   const modelMenuItems = [
