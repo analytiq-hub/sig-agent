@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { createSchemaApi, listSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
-import { SchemaField, Schema, SchemaConfig, ResponseFormat, JsonSchemaProperty } from '@/types/index';
+import { createSchemaApi, updateSchemaApi } from '@/utils/api';
+import { SchemaField, SchemaConfig, ResponseFormat, JsonSchemaProperty } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import Editor from "@monaco-editor/react";
 import InfoTooltip from '@/components/InfoTooltip';
@@ -191,7 +189,6 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
 const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const { editingSchema, setEditingSchema } = useSchemaContext();
   
-  const [schemas, setSchemas] = useState<Schema[]>([]);
   const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
   const [currentSchema, setCurrentSchema] = useState<SchemaConfig>({
     name: '',
@@ -211,13 +208,92 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
   });
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(5);
-  const [total, setTotal] = useState(0);
   const [fields, setFields] = useState<SchemaField[]>([{ name: '', type: 'str' }]);
   const [expandedNestedFields, setExpandedNestedFields] = useState<Record<number, boolean>>({});
   const [expandedArrayFields, setExpandedArrayFields] = useState<Record<number, boolean>>({});
+
+  // Define jsonSchemaToFields with useCallback
+  const jsonSchemaToFields = useCallback((responseFormat: ResponseFormat): SchemaField[] => {
+    const fields: SchemaField[] = [];
+    const properties = responseFormat.json_schema.schema.properties;
+
+    const processProperty = (name: string, prop: JsonSchemaProperty): SchemaField => {
+      let fieldType: SchemaField['type'];
+      let nestedFields: SchemaField[] | undefined;
+      let arrayItemType: 'str' | 'int' | 'float' | 'bool' | 'object' | undefined;
+      let arrayObjectFields: SchemaField[] | undefined;
+
+      switch (prop.type) {
+        case 'string':
+          fieldType = 'str';
+          break;
+        case 'integer':
+          fieldType = 'int';
+          break;
+        case 'number':
+          fieldType = 'float';
+          break;
+        case 'boolean':
+          fieldType = 'bool';
+          break;
+        case 'array':
+          fieldType = 'array';
+          if (prop.items) {
+            const itemType = prop.items.type;
+            switch (itemType) {
+              case 'string':
+                arrayItemType = 'str';
+                break;
+              case 'integer':
+                arrayItemType = 'int';
+                break;
+              case 'number':
+                arrayItemType = 'float';
+                break;
+              case 'boolean':
+                arrayItemType = 'bool';
+                break;
+              case 'object':
+                arrayItemType = 'object';
+                if (prop.items.properties) {
+                  arrayObjectFields = Object.entries(prop.items.properties).map(
+                    ([objName, objProp]) => processProperty(objName, objProp)
+                  );
+                }
+                break;
+              default:
+                arrayItemType = 'str';
+            }
+          }
+          break;
+        case 'object':
+          fieldType = 'object';
+          if (prop.properties) {
+            nestedFields = Object.entries(prop.properties).map(
+              ([nestedName, nestedProp]) => processProperty(nestedName, nestedProp)
+            );
+          }
+          break;
+        default:
+          fieldType = 'str';
+      }
+
+      return { 
+        name, 
+        type: fieldType,
+        description: prop.description,
+        nestedFields,
+        arrayItemType,
+        arrayObjectFields
+      };
+    };
+
+    Object.entries(properties).forEach(([name, prop]) => {
+      fields.push(processProperty(name, prop));
+    });
+
+    return fields;
+  }, []);
 
   // Load editing schema if available
   useEffect(() => {
@@ -232,7 +308,7 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
       // Clear the editing schema after loading
       setEditingSchema(null);
     }
-  }, [editingSchema, setEditingSchema]);
+  }, [editingSchema, setEditingSchema, jsonSchemaToFields]);
 
   const saveSchema = async (schema: SchemaConfig) => {
     try {
@@ -244,9 +320,6 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
         await createSchemaApi({organizationId: organizationId, ...schema });
       }
 
-      setPage(0);
-      await loadSchemas();
-      
       setMessage('Schema saved successfully');
       
     } catch (error) {
@@ -256,42 +329,6 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
       setIsLoading(false);
     }
   };
-
-  const loadSchemas = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await listSchemasApi({
-        organizationId: organizationId,
-        skip: page * pageSize,
-        limit: pageSize
-      });
-      setSchemas(response.schemas);
-      setTotal(response.total_count);
-    } catch (error) {
-      const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
-      setMessage('Error: ' + errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [page, pageSize, organizationId]);
-
-  const handleDelete = async (schemaId: string) => {
-    try {
-      setIsLoading(true);
-      await deleteSchemaApi({organizationId: organizationId, schemaId});
-      setSchemas(schemas.filter(schema => schema.id !== schemaId));
-      setMessage('Schema deleted successfully');
-    } catch (error) {
-      const errorMsg = getApiErrorMsg(error) || 'Error deleting schema';
-      setMessage('Error: ' + errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadSchemas();
-  }, [loadSchemas]);
 
   const addField = () => {
     const newFields = [...fields, { name: '', type: 'str' as const }];
@@ -448,93 +485,6 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
     setCurrentSchemaId(null);
   };
 
-  // Add filtered schemas
-  const filteredSchemas = schemas.filter(schema =>
-    schema.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Define columns for the data grid
-  const columns: GridColDef[] = [
-    {
-      field: 'name',
-      headerName: 'Schema Name',
-      flex: 1,
-      headerAlign: 'left',
-      align: 'left',
-      renderCell: (params) => (
-        <div className="text-blue-600">
-          {params.row.name}
-        </div>
-      ),
-    },
-    {
-      field: 'fields',
-      headerName: 'Fields',
-      flex: 2,
-      headerAlign: 'left',
-      align: 'left',
-      renderCell: (params) => {
-        // Convert JSON Schema to fields for display
-        const fields = jsonSchemaToFields(params.row.response_format);
-        return (
-          <div className="flex flex-col justify-center w-full h-full">
-            {fields.map((field, index) => (
-              <div key={index} className="text-sm text-gray-600 leading-6">
-                {`${field.name}: ${field.type}`}
-              </div>
-            ))}
-          </div>
-        );
-      },
-    },
-    {
-      field: 'version',
-      headerName: 'Version',
-      width: 100,
-      headerAlign: 'left',
-      align: 'left',
-      renderCell: (params) => (
-        <div className="text-gray-600">
-          v{params.row.version}
-        </div>
-      ),
-    },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 120,
-      headerAlign: 'left',
-      align: 'left',
-      sortable: false,
-      renderCell: (params) => (
-        <div className="flex gap-2 items-center h-full">
-          <IconButton
-            onClick={() => {
-              setCurrentSchemaId(params.row.id);
-              setCurrentSchema({
-                name: params.row.name,
-                response_format: params.row.response_format
-              });
-              setFields(jsonSchemaToFields(params.row.response_format));
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            disabled={isLoading}
-            className="text-blue-600 hover:bg-blue-50"
-          >
-            <EditOutlinedIcon />
-          </IconButton>
-          <IconButton
-            onClick={() => handleDelete(params.row.id)}
-            disabled={isLoading}
-            className="text-red-600 hover:bg-red-50"
-          >
-            <DeleteOutlineIcon />
-          </IconButton>
-        </div>
-      ),
-    },
-  ];
-
   // Update fieldsToJsonSchema to handle arrays
   const fieldsToJsonSchema = (fields: SchemaField[]): ResponseFormat => {
     const responseFormat = {
@@ -655,89 +605,6 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
     });
 
     return responseFormat;
-  };
-
-  // Update jsonSchemaToFields to handle arrays
-  const jsonSchemaToFields = (responseFormat: ResponseFormat): SchemaField[] => {
-    const fields: SchemaField[] = [];
-    const properties = responseFormat.json_schema.schema.properties;
-
-    const processProperty = (name: string, prop: JsonSchemaProperty): SchemaField => {
-      let fieldType: SchemaField['type'];
-      let nestedFields: SchemaField[] | undefined;
-      let arrayItemType: 'str' | 'int' | 'float' | 'bool' | 'object' | undefined;
-      let arrayObjectFields: SchemaField[] | undefined;
-
-      switch (prop.type) {
-        case 'string':
-          fieldType = 'str';
-          break;
-        case 'integer':
-          fieldType = 'int';
-          break;
-        case 'number':
-          fieldType = 'float';
-          break;
-        case 'boolean':
-          fieldType = 'bool';
-          break;
-        case 'array':
-          fieldType = 'array';
-          if (prop.items) {
-            const itemType = prop.items.type;
-            switch (itemType) {
-              case 'string':
-                arrayItemType = 'str';
-                break;
-              case 'integer':
-                arrayItemType = 'int';
-                break;
-              case 'number':
-                arrayItemType = 'float';
-                break;
-              case 'boolean':
-                arrayItemType = 'bool';
-                break;
-              case 'object':
-                arrayItemType = 'object';
-                if (prop.items.properties) {
-                  arrayObjectFields = Object.entries(prop.items.properties).map(
-                    ([objName, objProp]) => processProperty(objName, objProp)
-                  );
-                }
-                break;
-              default:
-                arrayItemType = 'str';
-            }
-          }
-          break;
-        case 'object':
-          fieldType = 'object';
-          if (prop.properties) {
-            nestedFields = Object.entries(prop.properties).map(
-              ([nestedName, nestedProp]) => processProperty(nestedName, nestedProp)
-            );
-          }
-          break;
-        default:
-          fieldType = 'str';
-      }
-
-      return { 
-        name, 
-        type: fieldType,
-        description: prop.description,
-        nestedFields,
-        arrayItemType,
-        arrayObjectFields
-      };
-    };
-
-    Object.entries(properties).forEach(([name, prop]) => {
-      fields.push(processProperty(name, prop));
-    });
-
-    return fields;
   };
 
   // Handle drag end event

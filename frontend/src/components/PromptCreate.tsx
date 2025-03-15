@@ -37,6 +37,37 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [llmModels, setLLMModels] = useState<LLMModel[]>([]);
 
+  const handleSchemaSelect = useCallback(async (schemaName: string) => {
+    setSelectedSchema(schemaName);
+    
+    // Update currentPrompt with the new schema name (or undefined if no schema selected)
+    setCurrentPrompt(prev => ({
+      ...prev,
+      schema_name: schemaName || undefined,
+      schema_version: undefined  // Reset version until we load schema details
+    }));
+
+    if (schemaName) {
+      const schemaId = schemas.find(s => s.name === schemaName)?.id;
+      if (schemaId) {
+        try {
+          const schema = await getSchemaApi({ organizationId: organizationId, schemaId });
+          setSelectedSchemaDetails(schema);
+          // Update currentPrompt with the schema version
+          setCurrentPrompt(prev => ({
+            ...prev,
+            schema_version: schema.version
+          }));
+        } catch (error) {
+          console.error('Error fetching schema details:', error);
+          setMessage('Error: Unable to fetch schema details');
+        }
+      }
+    } else {
+      setSelectedSchemaDetails(null);
+    }
+  }, [schemas, organizationId, setMessage, setSelectedSchema, setSelectedSchemaDetails, setCurrentPrompt]);
+
   // Load editing prompt if available
   useEffect(() => {
     if (editingPrompt) {
@@ -62,7 +93,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
       // Clear the editing prompt after loading
       setEditingPrompt(null);
     }
-  }, [editingPrompt, setEditingPrompt]);
+  }, [editingPrompt, setEditingPrompt, handleSchemaSelect]);
 
   const savePrompt = async () => {
     try {
@@ -114,37 +145,6 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
       setMessage('Error: ' + errorMsg);
     }
   }, [organizationId]);
-
-  const handleSchemaSelect = async (schemaName: string) => {
-    setSelectedSchema(schemaName);
-    
-    // Update currentPrompt with the new schema name (or undefined if no schema selected)
-    setCurrentPrompt(prev => ({
-      ...prev,
-      schema_name: schemaName || undefined,
-      schema_version: undefined  // Reset version until we load schema details
-    }));
-
-    if (schemaName) {
-      const schemaId = schemas.find(s => s.name === schemaName)?.id;
-      if (schemaId) {
-        try {
-          const schema = await getSchemaApi({ organizationId: organizationId, schemaId });
-          setSelectedSchemaDetails(schema);
-          // Update currentPrompt with the schema version
-          setCurrentPrompt(prev => ({
-            ...prev,
-            schema_version: schema.version
-          }));
-        } catch (error) {
-          console.error('Error fetching schema details:', error);
-          setMessage('Error: Unable to fetch schema details');
-        }
-      }
-    } else {
-      setSelectedSchemaDetails(null);
-    }
-  };
 
   const loadTags = useCallback(async () => {
     try {
