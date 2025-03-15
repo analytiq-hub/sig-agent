@@ -81,7 +81,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // ];
 
   const systemMenuItems = [
-    { text: 'About', icon: AboutIcon, tooltip: 'About Page', href: '/dashboard' },
+    { text: 'About', icon: AboutIcon, tooltip: 'About Page', href: '/' },
   ];
 
   useEffect(() => {
@@ -151,7 +151,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Icon className="h-6 w-6 shrink-0" />
           </div>
           {open && (
-            <span className={`ml-3 pr-3 text-sm font-medium whitespace-nowrap ${isSelected ? 'text-blue-600' : 'text-gray-700'}`}>
+            <span className={`ml-3 pr-3 pt-1 text-sm font-medium whitespace-nowrap ${isSelected ? 'text-blue-600' : 'text-gray-700'}`}>
               {item.text}
             </span>
           )}
