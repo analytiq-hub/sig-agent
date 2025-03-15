@@ -16,13 +16,13 @@ import {
   FormatListBulleted as ListBulletIcon,
   // Apps as CubeIcon,
   // ViewQuilt as Square3Stack3DIcon,
-  Science as BeakerIcon,
+  //Science as BeakerIcon,
   LocalOffer as LocalOfferIcon,
   DataObject as SchemaIcon,
-  Chat as PromptIcon
+  Chat as PromptIcon,
+  InfoOutlined as AboutIcon
 } from '@mui/icons-material';
 import { SvgIconProps } from '@mui/material';
-import { useRole } from '@/utils/useRole';
 import TourGuide from '@/components/TourGuide';
 
 // First, let's fix the type errors
@@ -80,9 +80,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   //   { text: 'Flows', icon: Square3Stack3DIcon, tooltip: 'Flows', href: `/orgs/${currentOrganization?.id}/flows` },
   // ];
 
-  // const systemMenuItems = [
-  //   { text: 'System', icon: BeakerIcon, tooltip: 'System Page', href: '/system' },
-  // ];
+  const systemMenuItems = [
+    { text: 'About', icon: AboutIcon, tooltip: 'About Page', href: '/dashboard' },
+  ];
 
   useEffect(() => {
     const handleResize = () => {
@@ -217,19 +217,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div> */}
               </>
             )}
-            {/* Only show these menus for admin users */}
-            {/* {role === 'admin' && (
-              <>
-                <hr className="border-gray-200" />
-                <div className="py-1">
-                  {flowMenuItems.map(renderMenuItem)}
-                </div>
-                <hr className="border-gray-200" />
-                <div className="py-1">
-                  {systemMenuItems.map(renderMenuItem)}
-                </div>
-              </>
-            )} */}
+            <>
+              <hr className="border-gray-200" />
+              <div className="py-1">
+                {systemMenuItems.map(renderMenuItem)}
+              </div>
+            </>
           </nav>
         </aside>
 
