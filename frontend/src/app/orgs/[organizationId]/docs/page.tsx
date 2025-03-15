@@ -37,7 +37,7 @@ export default function DocumentsPage({ params }: { params: { organizationId: st
             }`}
             data-tour="upload-tab"
           >
-            Upload
+            Upload Documents
           </button>
         </div>
       </div>
