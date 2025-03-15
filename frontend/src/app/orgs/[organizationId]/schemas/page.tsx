@@ -1,8 +1,8 @@
 'use client'
 
 import Schemas from '@/components/Schemas';
+import SchemaCreate from '@/components/SchemaCreate';
 
-import DocumentUpload from '@/components/DocumentUpload';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function SchemasPage({ params }: { params: { organizationId: string } }) {
@@ -30,9 +30,9 @@ export default function SchemasPage({ params }: { params: { organizationId: stri
             Schemas
           </button>
           <button
-            onClick={() => handleTabChange('create-schema')}
+            onClick={() => handleTabChange('schema-create')}
             className={`pb-4 px-1 relative font-semibold text-base ${
-              tab === 'create-schema'
+              tab === 'schema-create'
                 ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
@@ -47,8 +47,8 @@ export default function SchemasPage({ params }: { params: { organizationId: stri
         <div role="tabpanel" hidden={tab !== 'schemas'}>
           {tab === 'schemas' && <Schemas organizationId={params.organizationId} />}
         </div>
-        <div role="tabpanel" hidden={tab !== 'create-schema'}>
-          {tab === 'create-schema' && <DocumentUpload organizationId={params.organizationId} />}
+        <div role="tabpanel" hidden={tab !== 'schema-create'}>
+          {tab === 'schema-create' && <SchemaCreate organizationId={params.organizationId} />}
         </div>
       </div>
     </div>
