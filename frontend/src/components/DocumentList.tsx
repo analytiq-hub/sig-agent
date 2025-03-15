@@ -27,13 +27,20 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [skipRows, setSkipRows] = useState<number>(0);
   const [countRows, setCountRows] = useState<number>(0);
   const [totalRows, setTotalRows] = useState<number>(0);
-  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+  const [paginationModel, setPaginationModel] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const isSmallScreen = window.innerWidth < 768;
+      return { page: 0, pageSize: isSmallScreen ? 5 : 25 };
+    }
+    return { page: 0, pageSize: 25 };
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [tags, setTags] = useState<Tag[]>([]);
   const [editingDocument, setEditingDocument] = useState<DocumentMetadata | null>(null);
   const [isTagEditorOpen, setIsTagEditorOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTagFilters, setSelectedTagFilters] = useState<Tag[]>([]);
+  const [containerHeight, setContainerHeight] = useState('calc(100vh - 250px)');
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -255,8 +262,26 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     setEditingDocument(null);
   };
 
+  useEffect(() => {
+    const updateHeight = () => {
+      const headerHeight = 64;
+      const searchBarHeight = 80;
+      const footerHeight = 40;
+      const padding = 66;
+      
+      const availableHeight = window.innerHeight - (headerHeight + searchBarHeight + footerHeight + padding);
+      setContainerHeight(`${Math.max(400, availableHeight)}px`);
+    };
+
+    updateHeight();
+    
+    window.addEventListener('resize', updateHeight);
+    
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
+
   return (
-    <Box sx={{ height: 400, width: '100%' }}>
+    <Box sx={{ height: containerHeight, width: '100%', display: 'flex', flexDirection: 'column' }}>
       <div className="flex gap-4 mb-4">
         <TextField
           fullWidth
@@ -336,7 +361,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         onPaginationModelChange={(newModel) => {
           setPaginationModel(newModel);
         }}
-        pageSizeOptions={[5, 10, 25]}
+        pageSizeOptions={[5, 25, 50, 100]}
         rowCount={totalRows}
         paginationMode="server"
         disableRowSelectionOnClick
@@ -348,6 +373,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
           '& .MuiDataGrid-row:hover': {
             backgroundColor: 'rgba(0, 0, 0, 0.1)',
           },
+          flex: 1,
         }}
       />
       <div>
