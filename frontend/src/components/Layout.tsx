@@ -209,15 +209,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <div className="py-1">
                   {modelMenuItems.map(renderMenuItem)}
                 </div>
+              </>
+            )}
+            {/* Only show these menus for admin users */}
+            {role === 'admin' && (
+              <>
                 <hr className="border-gray-200" />
                 <div className="py-1">
                   {flowMenuItems.map(renderMenuItem)}
                 </div>
-              </>
-            )}
-            {/* Only show debug menu for admin users */}
-            {role === 'admin' && (
-              <>
                 <hr className="border-gray-200" />
                 <div className="py-1">
                   {systemMenuItems.map(renderMenuItem)}
