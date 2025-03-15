@@ -1,7 +1,7 @@
 import React from 'react';
 import FeedbackForm from '@/components/FeedbackForm';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/auth';
 import { redirect } from 'next/navigation';
 
 export const metadata = {

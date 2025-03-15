@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/auth';
 import { redirect } from 'next/navigation';
 import FeedbackAdmin from '@/components/FeedbackAdmin';
 
@@ -24,7 +24,7 @@ export default async function AdminFeedbackPage() {
   // Redirect non-admin users
   if (!session || !isAdmin) {
     console.log('Redirecting non-admin user');
-    //redirect('/');
+    redirect('/');
   }
   
   return (
