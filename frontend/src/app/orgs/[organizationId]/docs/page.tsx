@@ -1,7 +1,6 @@
 'use client'
 
 import DocumentList from '@/components/DocumentList';
-import Tags from '@/components/Tags';
 import DocumentUpload from '@/components/DocumentUpload';
 import { useSearchParams, useRouter } from 'next/navigation';
 
@@ -29,16 +28,6 @@ export default function DocumentsPage({ params }: { params: { organizationId: st
           >
             Documents
           </button>
-          {/* <button
-            onClick={() => handleTabChange('tags')}
-            className={`pb-4 px-1 relative font-semibold text-base ${
-              tab === 'tags'
-                ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Tags
-          </button> */}
           <button
             onClick={() => handleTabChange('upload')}
             className={`pb-4 px-1 relative font-semibold text-base ${
@@ -57,9 +46,6 @@ export default function DocumentsPage({ params }: { params: { organizationId: st
         <div role="tabpanel" hidden={tab !== 'documents'}>
           {tab === 'documents' && <DocumentList organizationId={params.organizationId} />}
         </div>
-        {/* <div role="tabpanel" hidden={tab !== 'tags'}>
-          {tab === 'tags' && <Tags organizationId={params.organizationId} />}
-        </div> */}
         <div role="tabpanel" hidden={tab !== 'upload'}>
           {tab === 'upload' && <DocumentUpload organizationId={params.organizationId} />}
         </div>
