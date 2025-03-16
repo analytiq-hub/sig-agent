@@ -200,26 +200,27 @@ async def customer_portal(request: Request):
     return {"url": session.url}
 ```
 ## Usage Flow
-New User Registration:
-User creates account and gets assigned to free tier
-Backend creates Stripe customer without payment method
-MongoDB records user with Stripe customer ID
-Free Tier Usage:
-User processes documents
-Backend counts pages and stores in MongoDB
-Usage displayed on dashboard with remaining free limit
-Approaching Limit:
-User receives notification when nearing free tier limit
-Dashboard displays upgrade prompt
-Payment Setup:
-User clicks "Upgrade" and enters payment details
-Stripe setup intent created and payment method attached
-Metered subscription created with Stripe
-Paid Usage:
-Backend continues counting pages
-Usage reported to Stripe via usage records
-Stripe generates invoices based on usage
-Billing Management:
-User can access Stripe Customer Portal for billing history
-Portal allows payment method updates and invoice downloads
+### New User Registration:
+* User creates account and gets assigned to free tier
+* Backend creates Stripe customer without payment method
+* MongoDB records user with Stripe customer ID
+### Free Tier Usage:
+* User processes documents
+* Backend counts pages and stores in MongoDB
+* Usage displayed on dashboard with remaining free limit
+### Approaching Limit:
+* User receives notification when nearing free tier limit
+* Dashboard displays upgrade prompt
+### Payment Setup:
+* User clicks "Upgrade" and enters payment details
+* Stripe setup intent created and payment method attached
+* Metered subscription created with Stripe
+### Paid Usage:
+* Backend continues counting pages
+* Usage reported to Stripe via usage records
+* Stripe generates invoices based on usage
+### Billing Management:
+* User can access Stripe Customer Portal for billing history
+* Portal allows payment method updates and invoice downloads
+
 This design provides a complete solution for implementing Stripe metered billing with MongoDB integration, while meeting all the specified requirements for DocRouter.
