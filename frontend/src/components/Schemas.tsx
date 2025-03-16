@@ -7,6 +7,7 @@ import { TextField, InputAdornment, IconButton } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DownloadIcon from '@mui/icons-material/Download';
 import colors from 'tailwindcss/colors';
 import { useSchemaContext } from '@/contexts/SchemaContext';
 import { useRouter } from 'next/navigation';
@@ -66,6 +67,36 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     
     // Navigate to the create-schema tab
     router.push(`/orgs/${organizationId}/schemas?tab=schema-create`);
+  };
+
+  // Add a function to handle schema download
+  const handleDownload = (schema: Schema) => {
+    try {
+      // Create a JSON blob from the schema
+      const schemaJson = JSON.stringify(schema.response_format.json_schema, null, 2);
+      const blob = new Blob([schemaJson], { type: 'application/json' });
+      
+      // Create a URL for the blob
+      const url = URL.createObjectURL(blob);
+      
+      // Create a temporary anchor element to trigger the download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${schema.name.replace(/\s+/g, '_')}_schema.json`;
+      
+      // Append to the document, click, and remove
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    } catch (error) {
+      console.error('Error downloading schema:', error);
+      setMessage('Error: Failed to download schema');
+    }
   };
 
   // Add filtered schemas
@@ -167,7 +198,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 160,
       headerAlign: 'left',
       align: 'left',
       sortable: false,
@@ -177,13 +208,23 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             onClick={() => handleEdit(params.row)}
             disabled={isLoading}
             className="text-blue-600 hover:bg-blue-50"
+            title="Edit schema"
           >
             <EditOutlinedIcon />
+          </IconButton>
+          <IconButton
+            onClick={() => handleDownload(params.row)}
+            disabled={isLoading}
+            className="text-green-600 hover:bg-green-50"
+            title="Download schema"
+          >
+            <DownloadIcon />
           </IconButton>
           <IconButton
             onClick={() => handleDelete(params.row.id)}
             disabled={isLoading}
             className="text-red-600 hover:bg-red-50"
+            title="Delete schema"
           >
             <DeleteOutlineIcon />
           </IconButton>
