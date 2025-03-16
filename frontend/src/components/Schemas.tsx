@@ -10,6 +10,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import colors from 'tailwindcss/colors';
 import { useSchemaContext } from '@/contexts/SchemaContext';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
@@ -194,6 +195,12 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   return (
     <div className="p-4 mx-auto">
       <div className="bg-white p-6 rounded-lg shadow">
+      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800">
+          <p className="text-sm">
+            Schemas define the structure for extracting key data fields from your documents. Below is a list of your existing schemas. 
+            If none are available, <Link href={`/orgs/${organizationId}/schemas?tab=schema-create`} className="text-blue-600 font-medium hover:underline">click here</Link> or use the tab above to create a new schema.
+          </p>
+        </div>
         <h2 className="text-xl font-bold mb-4">Schemas</h2>
         
         {/* Search Box */}
