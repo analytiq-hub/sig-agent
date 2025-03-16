@@ -2,21 +2,24 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { Box, IconButton, TextField, InputAdornment, Autocomplete } from '@mui/material';
+import { Box, IconButton, TextField, InputAdornment, Autocomplete, Menu, MenuItem } from '@mui/material';
 import { isAxiosError } from 'axios';
 import { 
   listDocumentsApi, 
   deleteDocumentApi, 
   listTagsApi,
-  updateDocumentApi
+  updateDocumentApi,
+  getDocumentApi
 } from '@/utils/api';
 import { Tag } from '@/types/index';
 import { DocumentMetadata } from '@/types/index';
 import Link from 'next/link';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DownloadIcon from '@mui/icons-material/Download';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { isColorLight } from '@/utils/colors';
 import colors from 'tailwindcss/colors';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { DocumentUpdate } from './DocumentUpdate';
 import SearchIcon from '@mui/icons-material/Search';
 
@@ -41,6 +44,10 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTagFilters, setSelectedTagFilters] = useState<Tag[]>([]);
   const [containerHeight, setContainerHeight] = useState('calc(100vh - 250px)');
+  
+  // Add state for menu
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedDocument, setSelectedDocument] = useState<DocumentMetadata | null>(null);
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -112,6 +119,17 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const startRange = skipRows + 1;
   const endRange = Math.min(startRange + countRows - 1, totalRows);
 
+  // Menu handlers
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, document: DocumentMetadata) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedDocument(document);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedDocument(null);
+  };
+
   const handleDeleteFile = async (fileId: string) => {
     try {
       await deleteDocumentApi(
@@ -122,9 +140,50 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       );
       // Refresh the file list after deletion
       fetchFiles();
+      handleMenuClose();
     } catch (error) {
       console.error('Error deleting file:', error);
       // Optionally, you can add error handling here (e.g., showing an error message)
+    }
+  };
+
+  const handleEditTags = (document: DocumentMetadata) => {
+    setEditingDocument(document);
+    setIsTagEditorOpen(true);
+    handleMenuClose();
+  };
+
+  const handleDownloadFile = async (doc: DocumentMetadata) => {
+    try {
+      const response = await getDocumentApi({
+        organizationId: organizationId,
+        documentId: doc.id
+      });
+      
+      // Create a blob from the array buffer
+      const blob = new Blob([response.content], { type: 'application/pdf' });
+      
+      // Create a URL for the blob
+      const url = URL.createObjectURL(blob);
+      
+      // Create a temporary anchor element to trigger the download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.document_name;
+      
+      // Append to the document, click, and remove
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      handleMenuClose();
+    } catch (error) {
+      console.error('Error downloading file:', error);
     }
   };
 
@@ -233,24 +292,14 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 100,
       renderCell: (params) => (
         <div className="flex gap-2">
           <IconButton
-            onClick={() => {
-              setEditingDocument(params.row);
-              setIsTagEditorOpen(true);
-            }}
-            className="text-blue-600 hover:bg-blue-50"
+            onClick={(e) => handleMenuOpen(e, params.row)}
+            className="text-gray-600 hover:bg-gray-50"
           >
-            <EditOutlinedIcon />
-          </IconButton>
-          <IconButton
-            aria-label="delete"
-            onClick={() => handleDeleteFile(params.row.id)}
-            className="text-red-600 hover:bg-red-50"
-          >
-            <DeleteIcon />
+            <MoreVertIcon />
           </IconButton>
         </div>
       ),
@@ -390,6 +439,41 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
             'No documents found'
         }
       </div>
+      
+      {/* Actions Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem 
+          onClick={() => {
+            if (selectedDocument) handleEditTags(selectedDocument);
+          }}
+          className="flex items-center gap-2"
+        >
+          <EditOutlinedIcon fontSize="small" className="text-blue-600" />
+          <span>Edit Tags</span>
+        </MenuItem>
+        <MenuItem 
+          onClick={() => {
+            if (selectedDocument) handleDownloadFile(selectedDocument);
+          }}
+          className="flex items-center gap-2"
+        >
+          <DownloadIcon fontSize="small" className="text-green-600" />
+          <span>Download</span>
+        </MenuItem>
+        <MenuItem 
+          onClick={() => {
+            if (selectedDocument) handleDeleteFile(selectedDocument.id);
+          }}
+          className="flex items-center gap-2"
+        >
+          <DeleteIcon fontSize="small" className="text-red-600" />
+          <span>Delete</span>
+        </MenuItem>
+      </Menu>
       
       {editingDocument && (
         <DocumentUpdate
