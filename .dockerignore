@@ -1,10 +1,10 @@
+/docs
 **/node_modules
 **/.next
 **/__pycache__
 **/.git
 **/.env
 **/venv
-**/docs
 **/tests
 **/*.test.*
 **/*.spec.*
