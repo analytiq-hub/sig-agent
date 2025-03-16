@@ -144,7 +144,7 @@ const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800">
           <p className="text-sm">
-            Tags organize documents and determine which prompts are run on them. Apply tags to documents and prompts to control extraction workflows.
+            Tags determine which prompts are run on which documents.
             If no tags are available, <Link href={`/orgs/${organizationId}/tags?tab=tag-create`} className="text-blue-600 font-medium hover:underline">click here</Link> or use the tab above to create a new tag.
           </p>
         </div>
