@@ -178,12 +178,6 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     }
   };
 
-  // Helper function to extract potential template variables
-  const extractPlaceholders = (content: string): string[] => {
-    const matches = content.match(/\{\{([^}]+)\}\}/g) || [];
-    return [...new Set(matches.map(match => match.slice(2, -2).trim()))];
-  };
-
   // Add filtered prompts
   const filteredPrompts = prompts.filter(prompt =>
     prompt.name.toLowerCase().includes(searchTerm.toLowerCase())
