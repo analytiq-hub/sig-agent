@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { listPromptsApi, deletePromptApi, listTagsApi } from '@/utils/api';
+import { listPromptsApi, deletePromptApi, listTagsApi, getSchemaApi, listSchemasApi } from '@/utils/api';
 import { Prompt, Tag } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -8,6 +8,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import DownloadIcon from '@mui/icons-material/Download';
 import colors from 'tailwindcss/colors';
 import { isColorLight } from '@/utils/colors';
 import { usePromptContext } from '@/contexts/PromptContext';
@@ -99,6 +100,88 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Add download handler
+  const handleDownload = async (prompt: Prompt) => {
+    try {
+      setIsLoading(true);
+
+      // Get the schema name and version
+      const schemaName = prompt.schema_name;
+      const schemaVersion = prompt.schema_version;
+
+      // Fetch the schema
+      const schemasResponse = await listSchemasApi({
+        organizationId: organizationId
+      });
+      const matchingSchema = schemasResponse.schemas.find(
+        schema => schema.name === schemaName && schema.version === schemaVersion
+      );
+      
+      if (!matchingSchema) {
+        console.warn('Could not find matching schema:', schemaName, schemaVersion);
+        setMessage('Warning: Could not find the referenced schema for download');
+        return;
+      }
+      // Fetch the full schema details
+      const schema = await getSchemaApi({
+        organizationId: organizationId,
+        schemaId: matchingSchema.id
+      });   
+      
+      // Create export format with template support
+      const promptExport = {
+        name: prompt.name,
+        model: prompt.model || DEFAULT_LLM_MODEL,
+        tags: prompt.tag_ids?.map(id => {
+          const tag = availableTags.find(t => t.id === id);
+          return tag ? tag.name : null;
+        }) || [],
+        content: prompt.content,
+        schema: {
+          name: schema.name,
+          response_format: schema.response_format
+        },
+      };
+      
+      // Convert to JSON string with pretty formatting
+      const promptJson = JSON.stringify(promptExport, null, 2);
+      
+      // Create a blob from the JSON string
+      const blob = new Blob([promptJson], { type: 'application/json' });
+      
+      // Create a URL for the blob
+      const url = URL.createObjectURL(blob);
+      
+      // Create a temporary anchor element to trigger the download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${prompt.name.replace(/\s+/g, '_')}_v${prompt.version}.json`;
+      
+      // Append to the document, click, and remove
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      handleMenuClose();
+    } catch (error) {
+      console.error('Error downloading prompt:', error);
+      setMessage('Error: Failed to download prompt');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper function to extract potential template variables
+  const extractPlaceholders = (content: string): string[] => {
+    const matches = content.match(/\{\{([^}]+)\}\}/g) || [];
+    return [...new Set(matches.map(match => match.slice(2, -2).trim()))];
   };
 
   // Add filtered prompts
@@ -294,6 +377,15 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           >
             <EditOutlinedIcon fontSize="small" className="text-blue-600" />
             <span>Edit</span>
+          </MenuItem>
+          <MenuItem 
+            onClick={() => {
+              if (selectedPrompt) handleDownload(selectedPrompt);
+            }}
+            className="flex items-center gap-2"
+          >
+            <DownloadIcon fontSize="small" className="text-green-600" />
+            <span>Download</span>
           </MenuItem>
           <MenuItem 
             onClick={() => {
