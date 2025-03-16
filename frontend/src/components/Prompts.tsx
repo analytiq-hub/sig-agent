@@ -3,10 +3,11 @@ import { listPromptsApi, deletePromptApi, listTagsApi } from '@/utils/api';
 import { Prompt, Tag } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { TextField, InputAdornment, IconButton } from '@mui/material';
+import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import colors from 'tailwindcss/colors';
 import { isColorLight } from '@/utils/colors';
 import { usePromptContext } from '@/contexts/PromptContext';
@@ -27,6 +28,10 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
+  
+  // Add state for menu
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
 
   const loadPrompts = useCallback(async () => {
     try {
@@ -46,19 +51,6 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     }
   }, [page, pageSize, organizationId]);
 
-  const handleDelete = async (promptId: string) => {
-    try {
-      setIsLoading(true);
-      await deletePromptApi({organizationId: organizationId, promptId: promptId});
-      setPrompts(prompts.filter(prompt => prompt.id !== promptId));
-    } catch (error) {
-      const errorMsg = getApiErrorMsg(error) || 'Error deleting prompt';
-      setMessage('Error: ' + errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const loadTags = useCallback(async () => {
     try {
       const response = await listTagsApi({ organizationId: organizationId });
@@ -74,6 +66,17 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     loadTags();
   }, [loadPrompts, loadTags]);
 
+  // Menu handlers
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, prompt: Prompt) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedPrompt(prompt);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedPrompt(null);
+  };
+
   // Update the edit handler
   const handleEdit = (prompt: Prompt) => {
     // Store the prompt in context
@@ -81,6 +84,21 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     
     // Navigate to the create-prompt tab
     router.push(`/orgs/${organizationId}/prompts?tab=prompt-create`);
+    handleMenuClose();
+  };
+
+  const handleDelete = async (promptId: string) => {
+    try {
+      setIsLoading(true);
+      await deletePromptApi({organizationId: organizationId, promptId: promptId});
+      setPrompts(prompts.filter(prompt => prompt.id !== promptId));
+      handleMenuClose();
+    } catch (error) {
+      const errorMsg = getApiErrorMsg(error) || 'Error deleting prompt';
+      setMessage('Error: ' + errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Add filtered prompts
@@ -170,25 +188,17 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 100,
       headerAlign: 'left',
       align: 'left',
       sortable: false,
       renderCell: (params) => (
         <div className="flex gap-2 items-center h-full">
           <IconButton
-            onClick={() => handleEdit(params.row)}
-            disabled={isLoading}
-            className="text-blue-600 hover:bg-blue-50"
+            onClick={(e) => handleMenuOpen(e, params.row)}
+            className="text-gray-600 hover:bg-gray-50"
           >
-            <EditOutlinedIcon />
-          </IconButton>
-          <IconButton
-            onClick={() => handleDelete(params.row.id)}
-            disabled={isLoading}
-            className="text-red-600 hover:bg-red-50"
-          >
-            <DeleteOutlineIcon />
+            <MoreVertIcon />
           </IconButton>
         </div>
       ),
@@ -269,6 +279,32 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             }}
           />
         </div>
+        
+        {/* Actions Menu */}
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+        >
+          <MenuItem 
+            onClick={() => {
+              if (selectedPrompt) handleEdit(selectedPrompt);
+            }}
+            className="flex items-center gap-2"
+          >
+            <EditOutlinedIcon fontSize="small" className="text-blue-600" />
+            <span>Edit</span>
+          </MenuItem>
+          <MenuItem 
+            onClick={() => {
+              if (selectedPrompt) handleDelete(selectedPrompt.id);
+            }}
+            className="flex items-center gap-2"
+          >
+            <DeleteOutlineIcon fontSize="small" className="text-red-600" />
+            <span>Delete</span>
+          </MenuItem>
+        </Menu>
       </div>
     </div>
   );
