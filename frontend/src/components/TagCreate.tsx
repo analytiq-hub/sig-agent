@@ -101,25 +101,49 @@ const TagCreate: React.FC<{ organizationId: string }> = ({ organizationId }) => 
           />
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <input
-                type="text"
-                className="w-full p-2 border rounded disabled:bg-gray-100"
-                value={currentTag.name}
-                onChange={e => setCurrentTag({ ...currentTag, name: e.target.value })}
-                placeholder="Tag Name"
-                disabled={isLoading}
-              />
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-1 min-w-[300px] gap-2">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  className="w-full p-2 border rounded disabled:bg-gray-100"
+                  value={currentTag.name}
+                  onChange={e => setCurrentTag({ ...currentTag, name: e.target.value })}
+                  placeholder="Tag Name"
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="w-20">
+                <input
+                  type="color"
+                  className="w-full h-10 p-1 border rounded cursor-pointer"
+                  value={currentTag.color}
+                  onChange={e => setCurrentTag({ ...currentTag, color: e.target.value })}
+                  disabled={isLoading}
+                />
+              </div>
             </div>
-            <div className="w-32">
-              <input
-                type="color"
-                className="w-full h-10 p-1 border rounded cursor-pointer"
-                value={currentTag.color}
-                onChange={e => setCurrentTag({ ...currentTag, color: e.target.value })}
+            <div className="flex gap-2 ml-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentTag({ name: '', color: colors.blue[500], description: '' });
+                  setMessage('');
+                  setEditingTag(null);
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
                 disabled={isLoading}
-              />
+              >
+                Clear
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                disabled={isLoading}
+                data-tour="tags"
+              >
+                {currentTag.id ? 'Update Tag' : 'Save Tag'}
+              </button>
             </div>
           </div>
 
@@ -132,29 +156,6 @@ const TagCreate: React.FC<{ organizationId: string }> = ({ organizationId }) => 
               placeholder="Description (optional)"
               disabled={isLoading}
             />
-          </div>
-
-          <div className="flex gap-4">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-              disabled={isLoading}
-              data-tour="tags"
-            >
-              {currentTag.id ? 'Update Tag' : 'Save Tag'}
-            </button>
-            {currentTag.id && (
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentTag({ name: '', color: colors.blue[500], description: '' });
-                  setMessage('');
-                }}
-                className="px-4 py-2 bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
-              >
-                Cancel Edit
-              </button>
-            )}
           </div>
         </form>
 
