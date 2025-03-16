@@ -3,10 +3,11 @@ import { listSchemasApi, deleteSchemaApi } from '@/utils/api';
 import { SchemaField, Schema, ResponseFormat, JsonSchemaProperty } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { TextField, InputAdornment, IconButton } from '@mui/material';
+import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import DownloadIcon from '@mui/icons-material/Download';
 import colors from 'tailwindcss/colors';
 import { useSchemaContext } from '@/contexts/SchemaContext';
@@ -23,6 +24,8 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedSchema, setSelectedSchema] = useState<Schema | null>(null);
 
   const loadSchemas = useCallback(async () => {
     try {
@@ -97,6 +100,16 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       console.error('Error downloading schema:', error);
       setMessage('Error: Failed to download schema');
     }
+  };
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, schema: Schema) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedSchema(schema);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedSchema(null);
   };
 
   // Add filtered schemas
@@ -198,35 +211,18 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 160,
-      headerAlign: 'left',
-      align: 'left',
+      width: 100,
+      headerAlign: 'center',
+      align: 'center',
       sortable: false,
       renderCell: (params) => (
-        <div className="flex gap-2 items-center h-full">
+        <div>
           <IconButton
-            onClick={() => handleEdit(params.row)}
+            onClick={(e) => handleMenuOpen(e, params.row)}
             disabled={isLoading}
-            className="text-blue-600 hover:bg-blue-50"
-            title="Edit schema"
+            className="text-gray-600 hover:bg-gray-50"
           >
-            <EditOutlinedIcon />
-          </IconButton>
-          <IconButton
-            onClick={() => handleDownload(params.row)}
-            disabled={isLoading}
-            className="text-green-600 hover:bg-green-50"
-            title="Download schema"
-          >
-            <DownloadIcon />
-          </IconButton>
-          <IconButton
-            onClick={() => handleDelete(params.row.id)}
-            disabled={isLoading}
-            className="text-red-600 hover:bg-red-50"
-            title="Delete schema"
-          >
-            <DeleteOutlineIcon />
+            <MoreVertIcon />
           </IconButton>
         </div>
       ),
@@ -312,6 +308,44 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           />
         </div>
       </div>
+      
+      {/* Actions Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem 
+          onClick={() => {
+            if (selectedSchema) handleEdit(selectedSchema);
+            handleMenuClose();
+          }}
+          className="flex items-center gap-2"
+        >
+          <EditOutlinedIcon fontSize="small" className="text-blue-600" />
+          <span>Edit</span>
+        </MenuItem>
+        <MenuItem 
+          onClick={() => {
+            if (selectedSchema) handleDownload(selectedSchema);
+            handleMenuClose();
+          }}
+          className="flex items-center gap-2"
+        >
+          <DownloadIcon fontSize="small" className="text-green-600" />
+          <span>Download</span>
+        </MenuItem>
+        <MenuItem 
+          onClick={() => {
+            if (selectedSchema) handleDelete(selectedSchema.id);
+            handleMenuClose();
+          }}
+          className="flex items-center gap-2"
+        >
+          <DeleteOutlineIcon fontSize="small" className="text-red-600" />
+          <span>Delete</span>
+        </MenuItem>
+      </Menu>
     </div>
   );
 };
