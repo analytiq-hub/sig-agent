@@ -10,38 +10,38 @@ This document outlines the integration of Stripe's metered billing system with D
 
 ## Functional Requirements
 ### Metered Billing
--Implement per-page metering for all LLM-processed document pages
--Count pages processed across both frontend and backend operations
--Apply different rates for different types of operations if needed
+* Implement per-page metering for all LLM-processed document pages
+* Count pages processed across both frontend and backend operations
+* Apply different rates for different types of operations if needed
 ### User Tiers
-- __Free Tier__: Limited number of pages per month (e.g., 50 pages)
-- __Paid Tier__: Unlimited pages at a metered rate (e.g., $0.01 per page)
+* __Free Tier__: Limited number of pages per month (e.g., 50 pages)
+* __Paid Tier__: Unlimited pages at a metered rate (e.g., $0.01 per page)
 ### Payment Processing
--Collect and securely store payment details through Stripe
--Process automatic payments based on usage
--Provide receipts and invoices for all transactions
+* Collect and securely store payment details through Stripe
+* Process automatic payments based on usage
+* Provide receipts and invoices for all transactions
 ### Usage Monitoring
--Track and display current usage to users
--Send notifications when approaching free tier limits
--Provide usage forecasting based on current patterns
+* Track and display current usage to users
+* Send notifications when approaching free tier limits
+* Provide usage forecasting based on current patterns
 
 # Technical Requirements
 ## Stripe Integration
--Implement Stripe Customer portal
--Configure Stripe metered billing products
--Set up webhook handlers for Stripe events
+* Implement Stripe Customer portal
+* Configure Stripe metered billing products
+* Set up webhook handlers for Stripe events
 ## MongoDB Integration
--Store user Stripe customer IDs in MongoDB
--Cache and track usage metrics in MongoDB
--Maintain billing and subscription status in user records
+* Store user Stripe customer IDs in MongoDB
+* Cache and track usage metrics in MongoDB
+* Maintain billing and subscription status in user records
 ## FastAPI Implementation
--Create endpoints for Stripe operations
--Implement page counting middleware for all LLM operations
--Handle usage limit enforcement
+* Create endpoints for Stripe operations
+* Implement page counting middleware for all LLM operations
+* Handle usage limit enforcement
 ## Security
--Secure handling of Stripe API keys
--PCI compliance for payment processing
--Protection of user payment and billing data
+* Secure handling of Stripe API keys
+* PCI compliance for payment processing
+* Protection of user payment and billing data
 
 # System Design Document
 ## Architecture Overview
