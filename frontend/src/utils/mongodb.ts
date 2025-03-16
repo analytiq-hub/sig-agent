@@ -2,7 +2,7 @@
 import { MongoClient } from "mongodb"
  
 const env = process.env.ENV || "dev"
-console.log(`ENV: ${env}`)
+// console.log(`ENV: ${env}`)
 
 const mongodbUri = process.env.MONGODB_URI || "mongodb://localhost:27017"
 
@@ -20,8 +20,8 @@ const uri = mongodbUri.includes('?')
 //
 // The docker mongo user/pass requires authSource, but only for nextjs.
 //
-console.log(`MONGODB_URI: ${mongodbUri}`)
-console.log(`uri: ${uri}`)
+// console.log(`MONGODB_URI: ${mongodbUri}`)
+// console.log(`uri: ${uri}`)
 
 const options = {}
  
