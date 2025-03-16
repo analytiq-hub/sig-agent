@@ -251,15 +251,51 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
           />
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <input
-              type="text"
-              className="w-full p-2 border rounded"
-              value={currentPrompt.name}
-              onChange={e => setCurrentPrompt({ ...currentPrompt, name: e.target.value })}
-              placeholder="Prompt Name"
-              disabled={isLoading}
-            />
+          {/* Prompt Name Input and Action Buttons in a flex container */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex-1 md:w-1/2 md:max-w-[calc(50%-1rem)]">
+              <input
+                type="text"
+                className="w-full p-2 border rounded"
+                value={currentPrompt.name}
+                onChange={e => setCurrentPrompt({ ...currentPrompt, name: e.target.value })}
+                placeholder="Prompt Name"
+                disabled={isLoading}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  // Clear the form
+                  setCurrentPromptId(null);
+                  setCurrentPrompt({
+                    name: '',
+                    content: '',
+                    schema_name: undefined,
+                    schema_version: undefined,
+                    tag_ids: [],
+                    model: undefined
+                  });
+                  setSelectedSchema('');
+                  setSelectedSchemaDetails(null);
+                  setSelectedTagIds([]);
+                  setMessage('');
+                  setEditingPrompt(null);
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
+                disabled={isLoading}
+              >
+                Clear
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                disabled={isLoading}
+              >
+                {currentPromptId ? 'Update Prompt' : 'Save Prompt'}
+              </button>
+            </div>
           </div>
 
           <div className="border rounded-lg overflow-hidden bg-white">
@@ -367,17 +403,6 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Submit Button */}
-          <div>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-              disabled={isLoading}
-            >
-              Save Prompt
-            </button>
           </div>
         </form>
 

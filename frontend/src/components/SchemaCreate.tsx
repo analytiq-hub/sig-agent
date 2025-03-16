@@ -659,16 +659,57 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
           />
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Schema Name Input */}
-          <div className="mb-4">
-            <input
-              type="text"
-              className="w-full p-2 border rounded"
-              value={currentSchema.name}
-              onChange={e => setCurrentSchema({ ...currentSchema, name: e.target.value })}
-              placeholder="Schema Name"
-              disabled={isLoading}
-            />
+          {/* Schema Name Input and Action Buttons in a flex container */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex-1 md:w-1/2 md:max-w-[calc(50%-1rem)]">
+              <input
+                type="text"
+                className="w-full p-2 border rounded"
+                value={currentSchema.name}
+                onChange={e => setCurrentSchema({ ...currentSchema, name: e.target.value })}
+                placeholder="Schema Name"
+                disabled={isLoading}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  // Clear the form
+                  setCurrentSchemaId(null);
+                  setFields([{ name: '', type: 'str' }]);
+                  setCurrentSchema({
+                    name: '',
+                    response_format: {
+                      type: 'json_schema',
+                      json_schema: {
+                        name: 'document_extraction',
+                        schema: {
+                          type: 'object',
+                          properties: {},
+                          required: [],
+                          additionalProperties: false
+                        },
+                        strict: true
+                      }
+                    }
+                  });
+                  setMessage('');
+                  setEditingSchema(null);
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
+                disabled={isLoading}
+              >
+                Clear
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                disabled={isLoading}
+              >
+                {currentSchemaId ? 'Update Schema' : 'Save Schema'}
+              </button>
+            </div>
           </div>
 
           {/* Grid Container */}
@@ -858,17 +899,6 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
             {/* JSON Schema Preview - Right Column */}
             <SchemaPreview schema={currentSchema.response_format} />
-          </div>
-
-          {/* Save Button */}
-          <div className="flex justify-end pt-4">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-              disabled={isLoading}
-            >
-              {currentSchemaId ? 'Update Schema' : 'Save Schema'}
-            </button>
           </div>
         </form>
 
