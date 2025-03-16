@@ -4,10 +4,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { listTagsApi, deleteTagApi, getApiErrorMsg } from '@/utils/api';
 import { Tag } from '@/types/index';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { TextField, InputAdornment, IconButton } from '@mui/material';
+import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import colors from 'tailwindcss/colors';
 import { isColorLight } from '@/utils/colors';
 import { useTagContext } from '@/contexts/TagContext';
@@ -21,6 +22,10 @@ const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Add state for menu
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
 
   const loadTags = useCallback(async () => {
     try {
@@ -39,12 +44,24 @@ const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     loadTags();
   }, [loadTags]);
 
+  // Menu handlers
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, tag: Tag) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedTag(tag);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedTag(null);
+  };
+
   const handleDelete = async (tagId: string) => {
     try {
       setIsLoading(true);
       await deleteTagApi({ organizationId: organizationId, tagId: tagId });
       setTags(tags.filter(tag => tag.id !== tagId));
       setMessage('Tag deleted successfully');
+      handleMenuClose();
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error deleting tag';
       setMessage('Error: ' + errorMsg);
@@ -60,6 +77,7 @@ const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     
     // Navigate to the create-tag tab
     router.push(`/orgs/${organizationId}/tags?tab=tag-create`);
+    handleMenuClose();
   };
 
   // Filter tags based on search term
@@ -105,23 +123,15 @@ const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 100,
       sortable: false,
       renderCell: (params) => (
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center h-full">
           <IconButton
-            onClick={() => handleEdit(params.row)}
-            disabled={isLoading}
-            className="text-blue-600 hover:bg-blue-50"
+            onClick={(e) => handleMenuOpen(e, params.row)}
+            className="text-gray-600 hover:bg-gray-50"
           >
-            <EditOutlinedIcon />
-          </IconButton>
-          <IconButton
-            onClick={() => handleDelete(params.row.id)}
-            disabled={isLoading}
-            className="text-red-600 hover:bg-red-50"
-          >
-            <DeleteOutlineIcon />
+            <MoreVertIcon />
           </IconButton>
         </div>
       ),
@@ -197,6 +207,32 @@ const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             }}
           />
         </div>
+        
+        {/* Actions Menu */}
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+        >
+          <MenuItem 
+            onClick={() => {
+              if (selectedTag) handleEdit(selectedTag);
+            }}
+            className="flex items-center gap-2"
+          >
+            <EditOutlinedIcon fontSize="small" className="text-blue-600" />
+            <span>Edit</span>
+          </MenuItem>
+          <MenuItem 
+            onClick={() => {
+              if (selectedTag) handleDelete(selectedTag.id);
+            }}
+            className="flex items-center gap-2"
+          >
+            <DeleteOutlineIcon fontSize="small" className="text-red-600" />
+            <span>Delete</span>
+          </MenuItem>
+        </Menu>
       </div>
     </div>
   );
