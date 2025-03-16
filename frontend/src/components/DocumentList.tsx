@@ -485,7 +485,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
           onSave={handleUpdateTags}
         />
       )}
-      <div data-tour="tags">
+      <div>
         {/* Tags content */}
       </div>
     </Box>

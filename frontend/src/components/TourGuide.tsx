@@ -37,23 +37,23 @@ const TourGuide = () => {
       id: 'schemas',
       title: 'Create Schemas',
       content: 'Define document schemas to extract structured data from your documents.',
-      selector: '[data-tour="schemas"]',
-      position: 'bottom',
+      selector: '[data-tour="schema-create"]',
+      position: 'right',
       page: `/orgs/${currentOrganization?.id}/schemas?tab=schema-create`
     },
     {
       id: 'prompts',
       title: 'Create Prompts',
       content: 'Create and manage prompts to guide AI in processing your documents.',
-      selector: '[data-tour="prompts"]',
-      position: 'bottom',
+      selector: '[data-tour="prompt-create"]',
+      position: 'right',
       page: `/orgs/${currentOrganization?.id}/prompts?tab=prompt-create`
     },
     {
         id: 'prompt-schema',
         title: 'Assign Schema',
         content: 'Assign a schema to your prompt.',
-        selector: '[data-tour="prompts-schema-select"]',
+        selector: '[data-tour="prompt-schema-select"]',
         position: 'top',
         page: `/orgs/${currentOrganization?.id}/prompts?tab=prompt-create`
     },
@@ -61,7 +61,7 @@ const TourGuide = () => {
         id: 'prompt-model',
         title: 'Assign Model',
         content: 'Assign a model to your prompt.',
-        selector: '[data-tour="prompts-model-select"]',
+        selector: '[data-tour="prompt-model-select"]',
         position: 'top',
         page: `/orgs/${currentOrganization?.id}/prompts?tab=prompt-create`
     },
@@ -69,15 +69,15 @@ const TourGuide = () => {
         id: 'upload',
         title: 'Upload Docs',
         content: 'Upload your documents for processing.',
-        selector: '[data-tour="upload-files"]',
-        position: 'top',
+        selector: '[data-tour="upload-documents"]',
+        position: 'right',
         page: `/orgs/${currentOrganization?.id}/docs?tab=upload`
     },
     {
       id: 'documents',
       title: 'Documents',
       content: 'Click on a document to view the extracted data.',
-      selector: '[data-tour="documents-tab"]',
+      selector: '[data-tour="documents"]',
       position: 'bottom',
       page: `/orgs/${currentOrganization?.id}/docs?tab=documents`
     },
@@ -85,8 +85,8 @@ const TourGuide = () => {
       id: 'tags',
       title: 'Configure Tags',
       content: 'With tags, you can determine which prompts are used for which documents.',
-      selector: '[data-tour="tags"]',
-      position: 'bottom',
+      selector: '[data-tour="tag-create"]',
+      position: 'right',
       page: `/orgs/${currentOrganization?.id}/tags?tab=tag-create`
     }
   ], [currentOrganization?.id]);

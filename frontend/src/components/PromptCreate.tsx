@@ -227,7 +227,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
       {/* Prompt Creation Form */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-xl font-bold" data-tour="prompts">
+          <h2 className="text-xl font-bold">
             {currentPromptId ? 'Edit Prompt' : 'Create Prompt'}
           </h2>
           <InfoTooltip 
@@ -310,7 +310,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
           <div className="flex gap-4">
             <div className="w-1/2 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700" data-tour="prompts-schema-select">
+                <label className="block text-sm font-medium text-gray-700" data-tour="prompt-schema-select">
                   Schema (Optional)
                 </label>
                 <select
@@ -329,7 +329,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700" data-tour="prompts-model-select">
+                <label className="block text-sm font-medium text-gray-700" data-tour="prompt-model-select">
                   Model
                 </label>
                 <select
