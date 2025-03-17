@@ -78,14 +78,6 @@ async def get_or_create_stripe_customer(user_id: str, email: str, name: Optional
     
     if customer_doc:
         return customer_doc
-    
-    ret = stripe.Customer.create(
-        name="Jenny Rosen",
-        email="a@b.com",
-        metadata={"user_id": user_id}
-    )
-
-    ad.log.info(f"Stripe customer created: {ret}")
 
     # Create new customer in Stripe
     stripe_customer = stripe.Customer.create(

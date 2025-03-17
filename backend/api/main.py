@@ -68,13 +68,13 @@ from api.schemas import (
     Flow,
     ListFlowsResponse, FlowMetadata
 )
-from api.stripe import router as stripe_router
-from api.stripe import (
+from api.stripe_api import router as stripe_router
+from api.stripe_api import (
     get_or_create_stripe_customer,
-    update_stripe_customer
+    update_stripe_customer,
+    delete_stripe_customer
 )
 import analytiq_data as ad
-from stripe import delete_stripe_customer
 
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
