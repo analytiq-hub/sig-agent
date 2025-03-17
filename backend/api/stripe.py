@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 import stripe
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from bson import ObjectId
-import json
 
 import analytiq_data as ad
 
@@ -66,6 +65,10 @@ async def get_db() -> AsyncIOMotorDatabase:
 async def get_or_create_stripe_customer(user_id: str, email: str, name: Optional[str] = None) -> Dict[str, Any]:
     """Create or retrieve a Stripe customer for the given user"""
 
+    if not os.getenv("STRIPE_SECRET_KEY"):
+        # No-op if Stripe is not configured
+        return None
+
     ad.log.info(f"Getting or creating Stripe customer for user_id: {user_id}")
     ad.log.info(f"Email: {email}")
     ad.log.info(f"Name: {name}")
@@ -76,6 +79,14 @@ async def get_or_create_stripe_customer(user_id: str, email: str, name: Optional
     if customer_doc:
         return customer_doc
     
+    ret = stripe.Customer.create(
+        name="Jenny Rosen",
+        email="a@b.com",
+        metadata={"user_id": user_id}
+    )
+
+    ad.log.info(f"Stripe customer created: {ret}")
+
     # Create new customer in Stripe
     stripe_customer = stripe.Customer.create(
         email=email,
@@ -193,6 +204,124 @@ async def check_usage_limits(user_id: str) -> Dict[str, Any]:
         "remaining": FREE_TIER_LIMIT - customer["current_month_usage"] if customer["usage_tier"] == "free" else "unlimited",
         "needs_upgrade": False
     }
+
+async def update_stripe_customer(user_id: str, email: Optional[str] = None, first_name: Optional[str] = None, last_name: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Update a Stripe customer for the given user with new information
+    
+    Args:
+        user_id: The user ID to update the Stripe customer for
+        email: Optional new email address
+        first_name: Optional new first name
+        last_name: Optional new last name
+        
+    Returns:
+        The updated customer document or None if not found
+    """
+
+    if not os.getenv("STRIPE_SECRET_KEY"):
+        # No-op if Stripe is not configured
+        return None
+
+    ad.log.info(f"Updating Stripe customer for user_id: {user_id}")
+    
+    try:
+        # Check if customer exists in our DB
+        stripe_customer = await stripe_customers.find_one({"user_id": user_id})
+        if not stripe_customer:
+            ad.log.warning(f"No Stripe customer found for user_id: {user_id}")
+            return None
+            
+        # Only update if we have data to update
+        if not any([email, first_name, last_name]):
+            return stripe_customer
+            
+        # Create name if we have both parts
+        name = None
+        if first_name and last_name:
+            name = f"{first_name} {last_name}"
+        elif first_name or last_name:
+            existing_name = stripe_customer.get("name", "").split(" ", 1)
+            if first_name:
+                last = existing_name[1] if len(existing_name) > 1 else ""
+                name = f"{first_name} {last}".strip()
+            else:
+                first = existing_name[0] if existing_name else ""
+                name = f"{first} {last_name}".strip()
+        
+        # Update customer in Stripe
+        stripe.Customer.modify(
+            stripe_customer["stripe_customer_id"],
+            email=email,
+            name=name,
+            metadata={"updated_at": datetime.utcnow().isoformat()}
+        )
+        
+        # Update our local record
+        update_data = {"updated_at": datetime.utcnow()}
+        if email:
+            update_data["email"] = email
+        if name:
+            update_data["name"] = name
+            
+        await stripe_customers.update_one(
+            {"user_id": user_id},
+            {"$set": update_data}
+        )
+        
+        # Return the updated customer
+        return await stripe_customers.find_one({"user_id": user_id})
+        
+    except Exception as e:
+        ad.log.error(f"Error updating Stripe customer: {e}")
+        # Return the original customer info even if update failed
+        return stripe_customer
+
+async def delete_stripe_customer(user_id: str) -> Dict[str, Any]:
+    """
+    Mark a Stripe customer as deleted without actually removing them from Stripe
+    
+    Args:
+        user_id: The user ID of the Stripe customer to mark as deleted
+        
+    Returns:
+        Dictionary with status information about the operation
+    """
+    if not os.getenv("STRIPE_SECRET_KEY"):
+        # No-op if Stripe is not configured
+        return {"success": False, "reason": "Stripe not configured"}
+
+    ad.log.info(f"Marking Stripe customer as deleted for user_id: {user_id}")
+    
+    try:
+        # Find Stripe customer
+        stripe_customer = await stripe_customers.find_one({"user_id": user_id})
+        if not stripe_customer:
+            ad.log.warning(f"No Stripe customer found for user_id: {user_id}")
+            return {"success": False, "reason": "Customer not found"}
+            
+        # In Stripe, we typically don't delete customers but mark them as deleted
+        # or disassociate them from your application
+        stripe.Customer.modify(
+            stripe_customer["stripe_customer_id"],
+            metadata={"deleted": "true", "deleted_at": datetime.utcnow().isoformat()}
+        )
+        
+        # Update our database record
+        await stripe_customers.update_one(
+            {"user_id": user_id},
+            {"$set": {"deleted": True, "deleted_at": datetime.utcnow()}}
+        )
+        
+        return {
+            "success": True, 
+            "customer_id": stripe_customer["stripe_customer_id"],
+            "deleted_at": datetime.utcnow()
+        }
+        
+    except Exception as e:
+        ad.log.error(f"Error handling Stripe customer deletion: {e}")
+        return {"success": False, "error": str(e)}
 
 # API Endpoints
 @router.post("/create-customer")
@@ -329,84 +458,52 @@ async def webhook_received(
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """Handle Stripe webhook events"""
+
     ad.log.info(f"Received Stripe webhook event")
-    
-    # Get the payload and signature header
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
     
-    # Initialize event to None
-    event = None
-    
-    # First try to parse the payload
     try:
-        event = json.loads(payload)
-    except json.JSONDecodeError as e:
-        ad.log.error(f"Webhook error while parsing basic request: {str(e)}")
-        raise HTTPException(status_code=400, detail="Invalid payload")
-    
-    # If we have a webhook secret, verify the signature
-    if stripe_webhook_secret:
-        try:
-            # Use the Stripe SDK to verify the webhook signature
-            event = stripe.Webhook.construct_event(
-                payload, sig_header, stripe_webhook_secret
-            )
-        except ValueError as e:
-            ad.log.error(f"Webhook error: {str(e)}")
-            raise HTTPException(status_code=400, detail="Invalid payload")
-        except stripe.error.SignatureVerificationError as e:
-            ad.log.error(f"Webhook signature verification failed: {str(e)}")
-            raise HTTPException(status_code=400, detail="Invalid signature")
-    
-    # At this point, we have a verified event - store it in database
-    if event:
-        event_doc = {
-            "stripe_event_id": event["id"],
-            "type": event["type"],
-            "data": event["data"],
-            "created": datetime.fromtimestamp(event["created"]),
-            "processed": False,
-            "created_at": datetime.utcnow()
-        }
-        await stripe_events.insert_one(event_doc)
-
-        ad.log.info(f"Event: {event}")
-        
-        # Process different event types
-        if event["type"] == "customer.subscription.created" or event["type"] == "customer.subscription.updated":
-            subscription = event["data"]["object"]
-            #background_tasks.add_task(handle_subscription_updated, subscription)
-        elif event["type"] == "customer.subscription.deleted":
-            subscription = event["data"]["object"]
-            #background_tasks.add_task(handle_subscription_deleted, subscription)
-        elif event["type"] == "invoice.paid":
-            invoice = event["data"]["object"]
-            #background_tasks.add_task(handle_invoice_paid, invoice)
-        elif event["type"] == "invoice.payment_failed":
-            invoice = event["data"]["object"]
-            #background_tasks.add_task(handle_invoice_payment_failed, invoice)
-        # Add handling for payment_intent.succeeded as shown in the example
-        elif event["type"] == "payment_intent.succeeded":
-            payment_intent = event["data"]["object"]
-            ad.log.info(f"Payment for {payment_intent['amount']} succeeded")
-            # Handle payment intent success if needed
-            # You could add a background task here if needed
-        elif event["type"] == "payment_method.attached":
-            payment_method = event["data"]["object"]
-            ad.log.info(f"Payment method {payment_method['id']} attached")
-            # Handle payment method attachment if needed
-            
-        # Mark event as processed
-        await stripe_events.update_one(
-            {"stripe_event_id": event["id"]},
-            {"$set": {"processed": True, "processed_at": datetime.utcnow()}}
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, stripe_webhook_secret
         )
-        
-        return {"status": "success"}
-    else:
-        # This should not happen if validation is working correctly
-        raise HTTPException(status_code=400, detail="Could not process webhook")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError as e:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+    
+    # Store event in database for audit
+    event_doc = {
+        "stripe_event_id": event["id"],
+        "type": event["type"],
+        "data": event["data"],
+        "created": datetime.fromtimestamp(event["created"]),
+        "processed": False,
+        "created_at": datetime.utcnow()
+    }
+    await stripe_events.insert_one(event_doc)
+    
+    # Process different event types
+    if event["type"] == "customer.subscription.created" or event["type"] == "customer.subscription.updated":
+        subscription = event["data"]["object"]
+        background_tasks.add_task(handle_subscription_updated, subscription)
+    elif event["type"] == "customer.subscription.deleted":
+        subscription = event["data"]["object"]
+        background_tasks.add_task(handle_subscription_deleted, subscription)
+    elif event["type"] == "invoice.paid":
+        invoice = event["data"]["object"]
+        background_tasks.add_task(handle_invoice_paid, invoice)
+    elif event["type"] == "invoice.payment_failed":
+        invoice = event["data"]["object"]
+        background_tasks.add_task(handle_invoice_payment_failed, invoice)
+    
+    # Mark event as processed
+    await stripe_events.update_one(
+        {"stripe_event_id": event["id"]},
+        {"$set": {"processed": True, "processed_at": datetime.utcnow()}}
+    )
+    
+    return {"status": "success"}
 
 @router.post("/record-usage")
 async def api_record_usage(

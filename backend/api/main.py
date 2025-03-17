@@ -69,8 +69,12 @@ from api.schemas import (
     ListFlowsResponse, FlowMetadata
 )
 from api.stripe import router as stripe_router
-
+from api.stripe import (
+    get_or_create_stripe_customer,
+    update_stripe_customer
+)
 import analytiq_data as ad
+from stripe import delete_stripe_customer
 
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
@@ -2493,6 +2497,13 @@ async def create_user(
         "updated_at": datetime.now(UTC)
     })
     
+    # Create corresponding Stripe customer
+    await get_or_create_stripe_customer(
+        user_id=str(user_doc["_id"]),
+        email=user.email,
+        name=user.name
+    )
+    
     return UserResponse(**user_doc)
 
 @app.put("/v0/account/users/{user_id}", response_model=UserResponse, tags=["account/users"])
@@ -2562,6 +2573,16 @@ async def update_user(
             detail="User not found"
         )
     
+    # Update Stripe customer if email or name changed
+    if (user.email or user.first_name or user.last_name):
+        # Update Stripe customer with the user's updated information
+        await update_stripe_customer(
+            user_id=user_id,
+            email=user.email, 
+            first_name=user.first_name,
+            last_name=user.last_name
+        )
+    
     return UserResponse(
         id=str(result["_id"]),
         email=result["email"],
@@ -2607,6 +2628,9 @@ async def delete_user(
                 status_code=400,
                 detail="Cannot delete the last admin user"
             )
+    
+    # Handle Stripe customer before deleting user
+    await delete_stripe_customer(user_id)
     
     try:
         await users.delete_user(db, user_id)
@@ -3082,6 +3106,13 @@ async def accept_invitation(
             {"_id": invitation["_id"]},
             {"$set": {"status": "accepted"}}
         )
+        
+        # Create corresponding Stripe customer
+        await get_or_create_stripe_customer(
+            user_id=user_id,
+            email=invitation["email"],
+            name=data.name
+        )  
         
         return {"message": "Account created successfully"}
     except Exception as e:
