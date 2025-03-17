@@ -224,3 +224,8 @@ async def customer_portal(request: Request):
 * Portal allows payment method updates and invoice downloads
 
 This design provides a complete solution for implementing Stripe metered billing with MongoDB integration, while meeting all the specified requirements for DocRouter.
+
+## Local development
+
+* Source the venv to be able to execute the `stripe` CLI command
+* `stripe listen --forward-to localhost:8000/v0/account/stripe/webhook` to forward the webhook to the local application

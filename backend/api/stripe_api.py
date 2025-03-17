@@ -65,7 +65,8 @@ async def get_db() -> AsyncIOMotorDatabase:
 async def get_or_create_stripe_customer(user_id: str, email: str, name: Optional[str] = None) -> Dict[str, Any]:
     """Create or retrieve a Stripe customer for the given user"""
 
-    if not os.getenv("STRIPE_SECRET_KEY"):
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+    if not stripe.api_key:
         # No-op if Stripe is not configured
         return None
 
@@ -105,6 +106,11 @@ async def get_or_create_stripe_customer(user_id: str, email: str, name: Optional
 
 async def record_usage(user_id: str, pages_processed: int, operation: str, source: str = "backend") -> Dict[str, Any]:
     """Record usage for a user and report to Stripe if on paid tier"""
+
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+    if not stripe.api_key:
+        # No-op if Stripe is not configured
+        return None
 
     ad.log.info(f"Recording usage for user_id: {user_id}")
     ad.log.info(f"Pages processed: {pages_processed}")
@@ -176,6 +182,11 @@ async def record_usage(user_id: str, pages_processed: int, operation: str, sourc
 async def check_usage_limits(user_id: str) -> Dict[str, Any]:
     """Check if user has hit usage limits and needs to upgrade"""
 
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+    if not stripe.api_key:
+        # No-op if Stripe is not configured
+        return None
+
     ad.log.info(f"Checking usage limits for user_id: {user_id}")
 
     customer = await stripe_customers.find_one({"user_id": user_id})
@@ -211,7 +222,8 @@ async def update_stripe_customer(user_id: str, email: Optional[str] = None, firs
         The updated customer document or None if not found
     """
 
-    if not os.getenv("STRIPE_SECRET_KEY"):
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+    if not stripe.api_key:
         # No-op if Stripe is not configured
         return None
 
@@ -279,9 +291,11 @@ async def delete_stripe_customer(user_id: str) -> Dict[str, Any]:
     Returns:
         Dictionary with status information about the operation
     """
-    if not os.getenv("STRIPE_SECRET_KEY"):
+
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+    if not stripe.api_key:
         # No-op if Stripe is not configured
-        return {"success": False, "reason": "Stripe not configured"}
+        return None
 
     ad.log.info(f"Marking Stripe customer as deleted for user_id: {user_id}")
     
