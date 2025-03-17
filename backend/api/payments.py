@@ -12,28 +12,26 @@ import analytiq_data as ad
 # Initialize FastAPI router
 router = APIRouter(prefix="/v0/account/stripe", tags=["stripe"])
 
-# Initialize Stripe with API key
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+stripe_webhook_secret = None
 
 # MongoDB configuration
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-ENV = os.getenv("ENV", "dev")
+MONGO_URI = None
+ENV = None
 
 # Initialize MongoDB client
-client = AsyncIOMotorClient(MONGO_URI)
-db = client[ENV]
+client = None
+db = None
 
 # Define Stripe-specific collections with prefix
-stripe_customers = db["stripe.customers"]
-stripe_subscriptions = db["stripe.subscriptions"]
-stripe_usage = db["stripe.usage"]
-stripe_events = db["stripe.events"]
+stripe_customers = None
+stripe_subscriptions = None
+stripe_usage = None
+stripe_events = None
 
 # Stripe configuration constants
 FREE_TIER_LIMIT = 50  # Number of free pages
-DEFAULT_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "")  # Metered price ID from Stripe dashboard
-NEXTAUTH_URL = os.getenv("NEXTAUTH_URL", "http://localhost:3000")
+DEFAULT_PRICE_ID = None  # Metered price ID from Stripe dashboard
+NEXTAUTH_URL = None
 
 # Pydantic models for request/response validation
 class CustomerCreate(BaseModel):
@@ -57,6 +55,29 @@ class UsageRecord(BaseModel):
 class PortalSessionCreate(BaseModel):
     customer_id: str
 
+def init_payments():
+    global MONGO_URI, ENV
+    global DEFAULT_PRICE_ID
+    global NEXTAUTH_URL
+    global client, db
+    global stripe_customers, stripe_subscriptions, stripe_usage, stripe_events
+    global stripe_webhook_secret
+
+    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+    ENV = os.getenv("ENV", "dev")
+    DEFAULT_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "")  # Metered price ID from Stripe dashboard
+    NEXTAUTH_URL = os.getenv("NEXTAUTH_URL", "http://localhost:3000")
+
+    client = AsyncIOMotorClient(MONGO_URI)
+    db = client[ENV]
+    stripe_customers = db["stripe.customers"]
+    stripe_subscriptions = db["stripe.subscriptions"]
+    stripe_usage = db["stripe.usage"]
+    stripe_events = db["stripe.events"]
+
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+    stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+
 # Dependency to get database
 async def get_db() -> AsyncIOMotorDatabase:
     return db
@@ -65,7 +86,6 @@ async def get_db() -> AsyncIOMotorDatabase:
 async def get_or_create_payments_customer(user_id: str, email: str, name: Optional[str] = None) -> Dict[str, Any]:
     """Create or retrieve a Stripe customer for the given user"""
 
-    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     if not stripe.api_key:
         # No-op if Stripe is not configured
         return None
@@ -107,7 +127,6 @@ async def get_or_create_payments_customer(user_id: str, email: str, name: Option
 async def record_usage(user_id: str, pages_processed: int, operation: str, source: str = "backend") -> Dict[str, Any]:
     """Record usage for a user and report to Stripe if on paid tier"""
 
-    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     if not stripe.api_key:
         # No-op if Stripe is not configured
         return None
@@ -182,7 +201,6 @@ async def record_usage(user_id: str, pages_processed: int, operation: str, sourc
 async def check_usage_limits(user_id: str) -> Dict[str, Any]:
     """Check if user has hit usage limits and needs to upgrade"""
 
-    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     if not stripe.api_key:
         # No-op if Stripe is not configured
         return None
@@ -221,7 +239,6 @@ async def update_payments_customer(user_id: str, email: Optional[str] = None, na
         The updated customer document or None if not found
     """
 
-    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     if not stripe.api_key:
         # No-op if Stripe is not configured
         return None
@@ -278,7 +295,6 @@ async def delete_payments_customer(user_id: str) -> Dict[str, Any]:
         Dictionary with status information about the operation
     """
 
-    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     if not stripe.api_key:
         # No-op if Stripe is not configured
         return None

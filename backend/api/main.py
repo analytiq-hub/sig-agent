@@ -70,6 +70,7 @@ from api.schemas import (
 )
 from api.payments import router as payments_router
 from api.payments import (
+    init_payments,
     get_or_create_payments_customer,
     update_payments_customer,
     delete_payments_customer
@@ -78,6 +79,8 @@ import analytiq_data as ad
 
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
+# Set up payments
+init_payments()
 
 # Environment variables
 ENV = os.getenv("ENV", "dev")
