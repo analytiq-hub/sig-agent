@@ -62,7 +62,7 @@ async def get_db() -> AsyncIOMotorDatabase:
     return db
 
 # Helper functions
-async def get_or_create_stripe_customer(user_id: str, email: str, name: Optional[str] = None) -> Dict[str, Any]:
+async def get_or_create_payments_customer(user_id: str, email: str, name: Optional[str] = None) -> Dict[str, Any]:
     """Create or retrieve a Stripe customer for the given user"""
 
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -208,7 +208,7 @@ async def check_usage_limits(user_id: str) -> Dict[str, Any]:
         "needs_upgrade": False
     }
 
-async def update_stripe_customer(user_id: str, email: Optional[str] = None, name: Optional[str] = None) -> Dict[str, Any]:
+async def update_payments_customer(user_id: str, email: Optional[str] = None, name: Optional[str] = None) -> Dict[str, Any]:
     """
     Update a Stripe customer for the given user with new information
     
@@ -267,7 +267,7 @@ async def update_stripe_customer(user_id: str, email: Optional[str] = None, name
         # Return the original customer info even if update failed
         return stripe_customer
 
-async def delete_stripe_customer(user_id: str) -> Dict[str, Any]:
+async def delete_payments_customer(user_id: str) -> Dict[str, Any]:
     """
     Mark a Stripe customer as deleted without actually removing them from Stripe
     

@@ -68,11 +68,11 @@ from api.schemas import (
     Flow,
     ListFlowsResponse, FlowMetadata
 )
-from api.stripe_api import router as stripe_router
-from api.stripe_api import (
-    get_or_create_stripe_customer,
-    update_stripe_customer,
-    delete_stripe_customer
+from api.payments import router as payments_router
+from api.payments import (
+    get_or_create_payments_customer,
+    update_payments_customer,
+    delete_payments_customer
 )
 import analytiq_data as ad
 
@@ -2497,8 +2497,8 @@ async def create_user(
         "updated_at": datetime.now(UTC)
     })
     
-    # Create corresponding Stripe customer
-    await get_or_create_stripe_customer(
+    # Create corresponding payments customer
+    await get_or_create_payments_customer(
         user_id=str(user_doc["_id"]),
         email=user.email,
         name=user.name
@@ -2573,10 +2573,9 @@ async def update_user(
             detail="User not found"
         )
     
-    # Update Stripe customer if email or name changed
-    if (user.email or user.first_name or user.last_name):
-        # Update Stripe customer with the user's updated information
-        await update_stripe_customer(
+    # Update payments customer if email or name changed
+    if (user.email or user.name):
+        await update_payments_customer(
             user_id=user_id,
             email=user.email, 
             name=user.name,
@@ -2628,8 +2627,8 @@ async def delete_user(
                 detail="Cannot delete the last admin user"
             )
     
-    # Handle Stripe customer before deleting user
-    await delete_stripe_customer(user_id)
+    # Handle payments customer before deleting user
+    await delete_payments_customer(user_id)
     
     try:
         await users.delete_user(db, user_id)
@@ -3106,8 +3105,8 @@ async def accept_invitation(
             {"$set": {"status": "accepted"}}
         )
         
-        # Create corresponding Stripe customer
-        await get_or_create_stripe_customer(
+        # Create corresponding payments customer
+        await get_or_create_payments_customer(
             user_id=user_id,
             email=invitation["email"],
             name=data.name
@@ -3188,9 +3187,9 @@ async def delete_account_token(
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
 
-# Include Stripe router only if STRIPE_SECRET_KEY is set
+# Include payments router only if STRIPE_SECRET_KEY is set
 if os.getenv("STRIPE_SECRET_KEY"):
-    app.include_router(stripe_router)
+    app.include_router(payments_router)
 
 if __name__ == "__main__":
     import uvicorn
