@@ -68,6 +68,7 @@ from api.schemas import (
     Flow,
     ListFlowsResponse, FlowMetadata
 )
+from api.stripe import router as stripe_router
 
 import analytiq_data as ad
 
@@ -3156,6 +3157,10 @@ async def delete_account_token(
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
+
+# Include Stripe router only if STRIPE_SECRET_KEY is set
+if os.getenv("STRIPE_SECRET_KEY"):
+    app.include_router(stripe_router)
 
 if __name__ == "__main__":
     import uvicorn
