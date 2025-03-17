@@ -208,15 +208,14 @@ async def check_usage_limits(user_id: str) -> Dict[str, Any]:
         "needs_upgrade": False
     }
 
-async def update_stripe_customer(user_id: str, email: Optional[str] = None, first_name: Optional[str] = None, last_name: Optional[str] = None) -> Dict[str, Any]:
+async def update_stripe_customer(user_id: str, email: Optional[str] = None, name: Optional[str] = None) -> Dict[str, Any]:
     """
     Update a Stripe customer for the given user with new information
     
     Args:
         user_id: The user ID to update the Stripe customer for
         email: Optional new email address
-        first_name: Optional new first name
-        last_name: Optional new last name
+        name: Optional new name
         
     Returns:
         The updated customer document or None if not found
@@ -237,22 +236,9 @@ async def update_stripe_customer(user_id: str, email: Optional[str] = None, firs
             return None
             
         # Only update if we have data to update
-        if not any([email, first_name, last_name]):
+        if not any([email, name]):
             return stripe_customer
             
-        # Create name if we have both parts
-        name = None
-        if first_name and last_name:
-            name = f"{first_name} {last_name}"
-        elif first_name or last_name:
-            existing_name = stripe_customer.get("name", "").split(" ", 1)
-            if first_name:
-                last = existing_name[1] if len(existing_name) > 1 else ""
-                name = f"{first_name} {last}".strip()
-            else:
-                first = existing_name[0] if existing_name else ""
-                name = f"{first} {last_name}".strip()
-        
         # Update customer in Stripe
         stripe.Customer.modify(
             stripe_customer["stripe_customer_id"],
@@ -468,6 +454,8 @@ async def webhook_received(
     ad.log.info(f"Received Stripe webhook event")
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
+
+    stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
     
     try:
         event = stripe.Webhook.construct_event(

@@ -2579,8 +2579,7 @@ async def update_user(
         await update_stripe_customer(
             user_id=user_id,
             email=user.email, 
-            first_name=user.first_name,
-            last_name=user.last_name
+            name=user.name,
         )
     
     return UserResponse(
