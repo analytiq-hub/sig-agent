@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request, Body, BackgroundTasks
 from pydantic import BaseModel, Field
@@ -55,7 +55,7 @@ class UsageRecord(BaseModel):
 class PortalSessionCreate(BaseModel):
     customer_id: str
 
-def init_payments():
+async def init_payments():
     global MONGO_URI, ENV
     global DEFAULT_PRICE_ID
     global NEXTAUTH_URL
@@ -77,6 +77,67 @@ def init_payments():
 
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+    ad.log.info("Stripe initialized")
+
+    await sync_customers()
+    ad.log.info("Stripe customers synced")
+
+async def sync_customers() -> Tuple[int, int, List[str]]:
+    """
+    Synchronize all users in the database with Stripe by creating customer records
+    
+    Returns:
+        Tuple containing (total_users, successful_syncs, error_messages)
+    """
+    if not stripe.api_key:
+        # No-op if Stripe is not configured
+        ad.log.warning("Stripe API key not configured - sync_customers aborted")
+        return 0, 0, ["Stripe API key not configured"]
+
+    ad.log.info("Starting sync of all users with Stripe")
+    
+    try:
+        # Get all users from the database
+        users = await db["users"].find().to_list(length=None)
+        total_users = len(users)
+        successful = 0
+        errors = []
+        
+        for user in users:
+            try:
+                # Extract required fields
+                user_id = str(user.get("_id"))
+                email = user.get("email")
+                name = user.get("name")
+                
+                if not email:
+                    errors.append(f"User {user_id} has no email address")
+                    continue
+                
+                # Create or get customer
+                customer = await get_or_create_payments_customer(
+                    user_id=user_id,
+                    email=email,
+                    name=name
+                )
+                
+                if customer:
+                    successful += 1
+                else:
+                    errors.append(f"Failed to create/get customer for {user_id}")
+            
+            except Exception as e:
+                error_msg = f"Error syncing user {user.get('_id', 'unknown')}: {str(e)}"
+                ad.log.error(error_msg)
+                errors.append(error_msg)
+        
+        ad.log.info(f"Completed sync: {successful}/{total_users} users synchronized with Stripe")
+        return total_users, successful, errors
+    
+    except Exception as e:
+        ad.log.error(f"Error during customer sync: {e}")
+        return 0, 0, [f"Global error: {str(e)}"]
 
 # Dependency to get database
 async def get_db() -> AsyncIOMotorDatabase:

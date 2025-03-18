@@ -79,8 +79,6 @@ import analytiq_data as ad
 
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
-# Set up payments
-init_payments()
 
 # Environment variables
 ENV = os.getenv("ENV", "dev")
@@ -125,6 +123,9 @@ async def lifespan(app):
     analytiq_client = ad.common.get_analytiq_client()
     await startup.setup_admin(analytiq_client)
     await startup.setup_api_creds(analytiq_client)
+    
+    # Initialize payments
+    await init_payments()
     
     yield  # This is where the app runs
     
