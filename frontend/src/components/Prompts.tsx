@@ -286,7 +286,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     <div className="p-4 w-full">
       {/* Prompts List */}
       <div className="bg-white p-6 rounded-lg shadow">
-        <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800">
+        <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800 hidden md:block">
           <p className="text-sm">
             Prompts define extraction instructions for your documents. They can be linked to schemas to ensure structured output format. 
             If none are available, <Link href={`/orgs/${organizationId}/prompts?tab=prompt-create`} className="text-blue-600 font-medium hover:underline">click here</Link> or use the tab above to create a new prompt.

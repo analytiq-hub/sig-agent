@@ -331,7 +331,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   return (
     <Box sx={{ height: containerHeight, width: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800">
+      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800 hidden md:block">
         <p className="text-sm">
           Welcome! Upload your documents to begin transforming unstructured data into structured insights. 
           If no documents are visible, <Link href={`/orgs/${organizationId}/docs?tab=upload`} className="text-blue-600 font-medium hover:underline">click here</Link> or use the tab above to upload and start extracting key data fields effortlessly.
