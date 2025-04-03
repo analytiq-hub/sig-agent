@@ -80,7 +80,7 @@ const TagCreate: React.FC<{ organizationId: string }> = ({ organizationId }) => 
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-4 hidden md:block">
           <h2 className="text-xl font-bold">
             {currentTag.id ? 'Edit Tag' : 'Create Tag'}
           </h2>

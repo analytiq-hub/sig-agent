@@ -139,7 +139,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-4 hidden md:block">
         <h2 className="text-xl font-bold">Upload Documents</h2>
         <InfoTooltip 
           title="Document Upload"
