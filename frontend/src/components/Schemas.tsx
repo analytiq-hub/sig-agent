@@ -238,7 +238,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             If none are available, <Link href={`/orgs/${organizationId}/schemas?tab=schema-create`} className="text-blue-600 font-medium hover:underline">click here</Link> or use the tab above to create a new schema.
           </p>
         </div>
-        <h2 className="text-xl font-bold mb-4">Schemas</h2>
+        <h2 className="text-xl font-bold mb-4 hidden md:block">Schemas</h2>
         
         {/* Search Box */}
         <div className="mb-4">
