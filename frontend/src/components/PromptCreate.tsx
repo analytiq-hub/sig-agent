@@ -226,7 +226,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
     <div className="p-4 w-full">
       {/* Prompt Creation Form */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <div className="flex items-center gap-2 mb-4 hidden md:block">
+        <div className="hidden md:flex items-center gap-2 mb-4">
           <h2 className="text-xl font-bold">
             {currentPromptId ? 'Edit Prompt' : 'Create Prompt'}
           </h2>

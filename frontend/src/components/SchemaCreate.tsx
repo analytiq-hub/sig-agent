@@ -638,7 +638,7 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
   return (
     <div className="p-4 mx-auto">
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <div className="flex items-center gap-2 mb-4 hidden md:block">
+        <div className="hidden md:flex items-center gap-2 mb-4">
           <h2 className="text-xl font-bold">
             {currentSchemaId ? 'Edit Schema' : 'Create Schema'}
           </h2>
