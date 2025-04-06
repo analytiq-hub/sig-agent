@@ -392,28 +392,6 @@ async def delete_payments_customer(user_id: str) -> Dict[str, Any]:
         ad.log.error(f"Error handling Stripe customer deletion: {e}")
         return {"success": False, "error": str(e)}
 
-# API Endpoints
-@router.post("/create-customer")
-async def create_customer(
-    customer_data: CustomerCreate,
-    db: AsyncIOMotorDatabase = Depends(get_db)
-):
-    """Create a new Stripe customer"""
-
-    ad.log.info(f"Creating Stripe customer for user_id: {customer_data.user_id}")
-    ad.log.info(f"Email: {customer_data.email}")
-    ad.log.info(f"Name: {customer_data.name}")
-
-    try:
-        customer = await get_or_create_stripe_customer(
-            customer_data.user_id,
-            customer_data.email,
-            customer_data.name
-        )
-        return {"success": True, "customer_id": customer["stripe_customer_id"]}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @router.post("/setup-intent")
 async def create_setup_intent(
     data: SetupIntentCreate,
