@@ -2578,10 +2578,9 @@ async def update_user(
         )
     
     # Update payments customer if email or name changed
-    if (user.email or user.name):
+    if (user.name):
         await update_payments_customer(
             user_id=user_id,
-            email=user.email, 
             name=user.name,
         )
     
