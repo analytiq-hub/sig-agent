@@ -56,7 +56,8 @@ export interface GetDocumentResponse {
 export interface UpdateDocumentParams {
   organizationId: string;
   documentId: string;
-  tagIds: string[];
+  documentName?: string;
+  tagIds?: string[];
 }
 
 export interface DeleteDocumentParams {

@@ -456,6 +456,19 @@ async def update_document(
                 status_code=400,
                 detail=f"Invalid tag IDs: {list(invalid_tags)}"
             )
+    
+    # Prepare update dictionary
+    update_dict = {}
+    if update.tag_ids:
+        update_dict["tag_ids"] = update.tag_ids
+    
+    # Add document_name to update if provided
+    if update.document_name is not None:
+        update_dict["user_file_name"] = update.document_name
+    
+    # Only proceed if there's something to update
+    if not update_dict:
+        return {"message": "No updates provided"}
 
     # Update the document
     updated_doc = await db.docs.find_one_and_update(
@@ -463,7 +476,7 @@ async def update_document(
             "_id": ObjectId(document_id),
             "organization_id": organization_id
         },
-        {"$set": {"tag_ids": update.tag_ids}},
+        {"$set": update_dict},
         return_document=True
     )
 
@@ -473,7 +486,7 @@ async def update_document(
             detail="Document not found"
         )
 
-    return {"message": "Document tags updated successfully"}
+    return {"message": "Document updated successfully"}
 
 
 @app.get("/v0/orgs/{organization_id}/documents", response_model=ListDocumentsResponse, tags=["documents"])

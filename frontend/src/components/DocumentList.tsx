@@ -16,12 +16,15 @@ import { DocumentMetadata } from '@/types/index';
 import Link from 'next/link';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
 import DownloadIcon from '@mui/icons-material/Download';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { isColorLight } from '@/utils/colors';
 import colors from 'tailwindcss/colors';
 import { DocumentUpdate } from './DocumentUpdate';
+import { DocumentRename } from './DocumentRename';
 import SearchIcon from '@mui/icons-material/Search';
+import { toast } from 'react-hot-toast';
 
 type File = DocumentMetadata;  // Use type alias instead of interface
 
@@ -41,6 +44,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [tags, setTags] = useState<Tag[]>([]);
   const [editingDocument, setEditingDocument] = useState<DocumentMetadata | null>(null);
   const [isTagEditorOpen, setIsTagEditorOpen] = useState(false);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTagFilters, setSelectedTagFilters] = useState<Tag[]>([]);
   const [containerHeight, setContainerHeight] = useState('calc(100vh - 250px)');
@@ -141,15 +145,22 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       // Refresh the file list after deletion
       fetchFiles();
       handleMenuClose();
+      toast.success('Document deleted successfully');
     } catch (error) {
       console.error('Error deleting file:', error);
-      // Optionally, you can add error handling here (e.g., showing an error message)
+      toast.error('Failed to delete document');
     }
   };
 
   const handleEditTags = (document: DocumentMetadata) => {
     setEditingDocument(document);
     setIsTagEditorOpen(true);
+    handleMenuClose();
+  };
+
+  const handleRenameDocument = (document: DocumentMetadata) => {
+    setEditingDocument(document);
+    setIsRenameModalOpen(true);
     handleMenuClose();
   };
 
@@ -184,6 +195,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       handleMenuClose();
     } catch (error) {
       console.error('Error downloading file:', error);
+      toast.error('Failed to download document');
     }
   };
 
@@ -209,13 +221,30 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       // Refresh the document list to show updated tags
       await fetchFiles();
       console.log('Document list refreshed');
+      toast.success('Tags updated successfully');
     } catch (error) {
       console.error('Error updating document tags:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', error.message);
-      }
-      // Log the full error object
-      console.error('Full error:', JSON.stringify(error, null, 2));
+      toast.error('Failed to update tags');
+    }
+  };
+
+  const handleRenameSubmit = async (newName: string) => {
+    if (!editingDocument) return;
+    
+    try {
+      await updateDocumentApi({
+        organizationId: organizationId,
+        documentId: editingDocument.id,
+        documentName: newName
+      });
+      
+      // Refresh the document list to show the updated name
+      await fetchFiles();
+      toast.success('Document renamed successfully');
+    } catch (error) {
+      console.error('Error renaming document:', error);
+      toast.error('Failed to rename document');
+      throw error; // Rethrow to handle in the component
     }
   };
 
@@ -308,6 +337,11 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   const handleCloseTagEditor = () => {
     setIsTagEditorOpen(false);
+    setEditingDocument(null);
+  };
+
+  const handleCloseRenameModal = () => {
+    setIsRenameModalOpen(false);
     setEditingDocument(null);
   };
 
@@ -448,6 +482,15 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       >
         <MenuItem 
           onClick={() => {
+            if (selectedDocument) handleRenameDocument(selectedDocument);
+          }}
+          className="flex items-center gap-2"
+        >
+          <DriveFileRenameOutlineIcon fontSize="small" className="text-purple-600" />
+          <span>Rename</span>
+        </MenuItem>
+        <MenuItem 
+          onClick={() => {
             if (selectedDocument) handleEditTags(selectedDocument);
           }}
           className="flex items-center gap-2"
@@ -475,6 +518,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         </MenuItem>
       </Menu>
       
+      {/* Tag Editor Modal */}
       {editingDocument && (
         <DocumentUpdate
           isOpen={isTagEditorOpen}
@@ -485,9 +529,16 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
           onSave={handleUpdateTags}
         />
       )}
-      <div>
-        {/* Tags content */}
-      </div>
+      
+      {/* Rename Modal */}
+      {editingDocument && (
+        <DocumentRename
+          isOpen={isRenameModalOpen}
+          onClose={handleCloseRenameModal}
+          documentName={editingDocument.document_name}
+          onSave={handleRenameSubmit}
+        />
+      )}
     </Box>
   );
 };

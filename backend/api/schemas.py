@@ -56,6 +56,10 @@ class ListDocumentsResponse(BaseModel):
 # Add this new model after the DocumentMetadata class
 class DocumentUpdate(BaseModel):
     """Schema for updating document metadata"""
+    document_name: Optional[str] = Field(
+        default=None,
+        description="New name for the document"
+    )
     tag_ids: List[str] = Field(
         default=[],
         description="List of tag IDs associated with the document"
