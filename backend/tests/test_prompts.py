@@ -486,3 +486,80 @@ async def test_prompt_version_deletion(test_db, mock_auth):
         pass  # mock_auth fixture handles cleanup
     
     ad.log.info(f"test_prompt_version_deletion() end") 
+
+@pytest.mark.asyncio
+async def test_prompt_latest_version_listing(test_db, mock_auth):
+    """Test that when listing prompts, only the latest versions are shown"""
+    ad.log.info(f"test_prompt_latest_version_listing() start")
+    
+    try:
+        # Set up test models first
+        await setup_test_models(test_db)
+        
+        # Step 1: Create a prompt
+        original_prompt_data = {
+            "name": "Version Test Prompt",
+            "content": "This is the original content",
+            "model": "gpt-4o-mini",
+            "tag_ids": []
+        }
+        
+        create_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/prompts",
+            json=original_prompt_data,
+            headers=get_auth_headers()
+        )
+        
+        assert create_response.status_code == 200
+        original_prompt = create_response.json()
+        original_id = original_prompt["id"]
+        original_prompt_id = original_prompt["prompt_id"]
+        
+        # Step 2: Update the prompt with a new name
+        renamed_prompt_data = {
+            "name": "Renamed Version Test Prompt",
+            "content": "This is the original content",
+            "model": "gpt-4o-mini",
+            "tag_ids": []
+        }
+        
+        update_response = client.put(
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_id}",
+            json=renamed_prompt_data,
+            headers=get_auth_headers()
+        )
+        
+        assert update_response.status_code == 200
+        renamed_prompt = update_response.json()
+        renamed_id = renamed_prompt["id"]
+        
+        # Step 3: List prompts and verify only the renamed version is returned
+        list_response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/prompts",
+            headers=get_auth_headers()
+        )
+        
+        assert list_response.status_code == 200
+        list_data = list_response.json()
+        assert "prompts" in list_data
+        
+        # Find prompts with our prompt_id
+        matching_prompts = [p for p in list_data["prompts"] if p["prompt_id"] == original_prompt_id]
+        
+        # Verify we only have one result for our prompt_id
+        assert len(matching_prompts) == 1, "Should only return latest version in listing"
+        
+        # Verify the one returned is the renamed version
+        assert matching_prompts[0]["name"] == "Renamed Version Test Prompt"
+        assert matching_prompts[0]["id"] == renamed_id  # Should be the newer ID
+        
+        # Step 4: Clean up
+        client.delete(
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_id}",
+            headers=get_auth_headers()
+        )
+        
+    finally:
+        pass  # mock_auth fixture handles cleanup
+    
+    ad.log.info(f"test_prompt_latest_version_listing() end") 

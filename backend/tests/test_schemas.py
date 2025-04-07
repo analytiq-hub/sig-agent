@@ -447,4 +447,108 @@ async def test_schema_version_deletion(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_schema_version_deletion() end") 
+    ad.log.info(f"test_schema_version_deletion() end")
+
+@pytest.mark.asyncio
+async def test_schema_latest_version_listing(test_db, mock_auth):
+    """Test that when listing schemas, only the latest versions are shown"""
+    ad.log.info(f"test_schema_latest_version_listing() start")
+    
+    try:
+        # Step 1: Create a schema
+        original_schema_data = {
+            "name": "Version Test Schema",
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "version_test_schema",
+                    "schema": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "field1": {
+                                "type": "string",
+                                "description": "First field"
+                            }
+                        },
+                        "required": ["field1"]
+                    },
+                    "strict": True
+                }
+            }
+        }
+        
+        create_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas",
+            json=original_schema_data,
+            headers=get_auth_headers()
+        )
+        
+        assert create_response.status_code == 200
+        original_schema = create_response.json()
+        original_id = original_schema["id"]
+        original_schema_id = original_schema["schema_id"]
+        
+        # Step 2: Update the schema with a new name
+        renamed_schema_data = {
+            "name": "Renamed Version Test Schema",
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "version_test_schema",
+                    "schema": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "field1": {
+                                "type": "string",
+                                "description": "First field"
+                            }
+                        },
+                        "required": ["field1"]
+                    },
+                    "strict": True
+                }
+            }
+        }
+        
+        update_response = client.put(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_id}",
+            json=renamed_schema_data,
+            headers=get_auth_headers()
+        )
+        
+        assert update_response.status_code == 200
+        renamed_schema = update_response.json()
+        renamed_id = renamed_schema["id"]
+        
+        # Step 3: List schemas and verify only the renamed version is returned
+        list_response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas",
+            headers=get_auth_headers()
+        )
+        
+        assert list_response.status_code == 200
+        list_data = list_response.json()
+        assert "schemas" in list_data
+        
+        # Find schemas with our schema_id
+        matching_schemas = [s for s in list_data["schemas"] if s["schema_id"] == original_schema_id]
+        
+        # Verify we only have one result for our schema_id
+        assert len(matching_schemas) == 1, "Should only return latest version in listing"
+        
+        # Verify the one returned is the renamed version
+        assert matching_schemas[0]["name"] == "Renamed Version Test Schema"
+        assert matching_schemas[0]["id"] == renamed_id  # Should be the newer ID
+        
+        # Step 4: Clean up
+        client.delete(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_id}",
+            headers=get_auth_headers()
+        )
+        
+    finally:
+        pass  # mock_auth fixture handles cleanup
+    
+    ad.log.info(f"test_schema_latest_version_listing() end")
