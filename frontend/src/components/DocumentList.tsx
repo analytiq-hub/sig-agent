@@ -25,6 +25,7 @@ import { DocumentUpdate } from './DocumentUpdate';
 import { DocumentRename } from './DocumentRename';
 import SearchIcon from '@mui/icons-material/Search';
 import { toast } from 'react-hot-toast';
+import DocumentRenameModal from './DocumentRename';
 
 type File = DocumentMetadata;  // Use type alias instead of interface
 
@@ -244,7 +245,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     } catch (error) {
       console.error('Error renaming document:', error);
       toast.error('Failed to rename document');
-      throw error; // Rethrow to handle in the component
+      throw error; // Rethrow to handle in the modal
     }
   };
 
@@ -532,11 +533,11 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       
       {/* Rename Modal */}
       {editingDocument && (
-        <DocumentRename
+        <DocumentRenameModal
           isOpen={isRenameModalOpen}
           onClose={handleCloseRenameModal}
           documentName={editingDocument.document_name}
-          onSave={handleRenameSubmit}
+          onSubmit={handleRenameSubmit}
         />
       )}
     </Box>
