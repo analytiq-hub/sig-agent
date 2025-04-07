@@ -821,11 +821,11 @@ async def delete_llm_result(
     return {"status": "success", "message": "LLM result deleted"}
 
 # Add this helper function near the top of the file with other functions
-async def get_next_schema_version(schema_name: str) -> int:
+async def get_next_schema_version(schema_id: str) -> int:
     """Atomically get the next version number for a schema"""
     db = ad.common.get_async_db()
     result = await db.schema_versions.find_one_and_update(
-        {"_id": schema_name},
+        {"_id": schema_id},
         {"$inc": {"version": 1}},
         upsert=True,
         return_document=True
@@ -847,15 +847,20 @@ async def create_schema(
         "name": {"$regex": f"^{schema.name}$", "$options": "i"},
         "organization_id": organization_id
     })
+
+    # Create or use existing schema_id
+    if existing_schema and "schema_id" in existing_schema:
+        schema_id = existing_schema["schema_id"]
+    else:
+        schema_id = schema.name.lower().replace(" ", "_")
     
     # Get the next version
-    new_version = await get_next_schema_version(
-        existing_schema["name"] if existing_schema else schema.name
-    )
+    new_version = await get_next_schema_version(schema_id)
     
     # Create schema document
     schema_dict = {
         "name": existing_schema["name"] if existing_schema else schema.name,
+        "schema_id": schema_id,
         "response_format": schema.response_format.model_dump(),
         "version": new_version,
         "created_at": datetime.now(UTC),
@@ -968,12 +973,13 @@ async def update_schema(
     if existing_schema["created_by"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to update this schema")
     
-    # Atomically get the next version number
-    new_version = await get_next_schema_version(existing_schema["name"])
+    # Atomically get the next version number using the stable schema_id
+    new_version = await get_next_schema_version(existing_schema["schema_id"])
     
     # Create new version of the schema
     new_schema = {
         "name": schema.name,
+        "schema_id": existing_schema["schema_id"],  # Preserve stable identifier
         "response_format": schema.response_format.model_dump(),
         "version": new_version,
         "created_at": datetime.now(UTC),
@@ -1010,10 +1016,10 @@ async def delete_schema(
     if schema["created_by"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this schema")
     
-    # Check for dependent prompts within the same organization
+    # Check for dependent prompts by schema_id instead of schema_name
     dependent_prompts = await db.prompts.find({
-        "schema_name": schema["name"],
-        "organization_id": organization_id  # Add organization check
+        "schema_id": schema["schema_id"],
+        "organization_id": organization_id
     }).to_list(None)
     
     if dependent_prompts:
@@ -1029,12 +1035,12 @@ async def delete_schema(
     
     # If no dependent prompts, proceed with deletion
     result = await db.schemas.delete_many({
-        "name": schema["name"],
-        "organization_id": organization_id  # Add organization check
+        "schema_id": schema["schema_id"],
+        "organization_id": organization_id
     })
     
     # Also delete the version counter
-    await db.schema_versions.delete_one({"_id": schema["name"]})
+    await db.schema_versions.delete_one({"_id": schema["schema_id"]})
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -1110,11 +1116,11 @@ def validate_schema_fields(fields: list) -> tuple[bool, str]:
     return True, ""
 
 # Add this helper function near get_next_schema_version
-async def get_next_prompt_version(prompt_name: str) -> int:
+async def get_next_prompt_version(prompt_id: str) -> int:
     """Atomically get the next version number for a prompt"""
     db = ad.common.get_async_db()
     result = await db.prompt_versions.find_one_and_update(
-        {"_id": prompt_name},
+        {"_id": prompt_id},
         {"$inc": {"version": 1}},
         upsert=True,
         return_document=True
@@ -1129,18 +1135,19 @@ async def create_prompt(
     current_user: User = Depends(get_current_user)
 ):
     """Create a prompt"""
-    # First verify schema if one is specified
     db = ad.common.get_async_db()
-    if prompt.schema_name and prompt.schema_version:
+    
+    # Verify schema if specified
+    if prompt.schema_id and prompt.schema_version:
         schema = await db.schemas.find_one({
-            "name": prompt.schema_name,
+            "schema_id": prompt.schema_id,
             "version": prompt.schema_version,
-            "organization_id": organization_id  # Verify schema belongs to org
+            "organization_id": organization_id
         })
         if not schema:
             raise HTTPException(
                 status_code=404,
-                detail=f"Schema {prompt.schema_name} version {prompt.schema_version} not found"
+                detail=f"Schema with ID {prompt.schema_id} version {prompt.schema_version} not found"
             )
 
     # Validate model exists
@@ -1166,27 +1173,29 @@ async def create_prompt(
                 status_code=400,
                 detail=f"Invalid tag IDs: {list(invalid_tags)}"
             )
+        # Only set schema_id if schema exists and was verified above
+        if prompt.schema_id and 'schema' in locals():
+            prompt.schema_id = schema["schema_id"]
 
-    # Check if prompt with this name already exists (case-insensitive)
-    existing_prompt = await db.prompts.find_one({
-        "name": {"$regex": f"^{prompt.name}$", "$options": "i"},
-        "organization_id": organization_id  # Scope to organization
-    })
+    # Create a stable identifier for the prompt. TODO: This should be a UUID
+    prompt_id = prompt.name.lower().replace(" ", "_")
     
-    # Get the next version
-    new_version = await get_next_prompt_version(prompt.name)
+    # Get the next version - modify to use prompt_id instead of name
+    new_version = await get_next_prompt_version(prompt_id)
     
     # Create prompt document
     prompt_dict = {
-        "name": existing_prompt["name"] if existing_prompt else prompt.name,
+        "name": prompt.name,
+        "prompt_id": prompt_id,  # Add stable identifier
         "content": prompt.content,
+        "schema_id": prompt.schema_id,
         "schema_name": prompt.schema_name or "",
         "schema_version": prompt.schema_version or 0,
         "version": new_version,
         "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
         "tag_ids": prompt.tag_ids,
-        "model": prompt.model,  # Add model field
+        "model": prompt.model,
         "organization_id": organization_id
     }
     
@@ -1350,20 +1359,35 @@ async def update_prompt(
                 detail=f"Invalid tag IDs: {list(invalid_tags)}"
             )
     
-    # Get the next version number
-    new_version = await get_next_prompt_version(existing_prompt["name"])
+    # Handle schema references (similar to create_prompt)
+    if prompt.schema_id and prompt.schema_version:
+        schema = await db.schemas.find_one({
+            "schema_id": prompt.schema_id,
+            "version": prompt.schema_version
+        })
+        if not schema:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Schema with ID {prompt.schema_id} version {prompt.schema_version} not found"
+            )
+        prompt.schema_name = schema["name"]
+    
+    # Get the next version number using the stable prompt_id
+    new_version = await get_next_prompt_version(existing_prompt["prompt_id"])
     
     # Create new version of the prompt
     new_prompt = {
         "name": prompt.name,
+        "prompt_id": existing_prompt["prompt_id"],  # Preserve stable identifier
         "content": prompt.content,
+        "schema_id": prompt.schema_id,
         "schema_name": prompt.schema_name or "",
         "schema_version": prompt.schema_version or 0,
         "version": new_version,
         "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
         "tag_ids": prompt.tag_ids,
-        "model": prompt.model,  # Add model field
+        "model": prompt.model,
         "organization_id": organization_id
     }
     

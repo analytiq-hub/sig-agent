@@ -174,7 +174,8 @@ class SchemaConfig(BaseModel):
     response_format: ResponseFormat
 
 class Schema(SchemaConfig):
-    id: str
+    id: str           # MongoDB's _id
+    schema_id: str    # Stable identifier
     version: int
     created_at: datetime
     created_by: str
@@ -188,13 +189,15 @@ class ListSchemasResponse(BaseModel):
 class PromptConfig(BaseModel):
     name: str
     content: str
-    schema_name: Optional[str] = None
+    schema_id: Optional[str] = None
     schema_version: Optional[int] = None
+    schema_name: Optional[str] = None  # Keep for backward compatibility
     tag_ids: List[str] = []
-    model: str = "gpt-4o-mini"  # Default to gpt-4o-mini
+    model: str = "gpt-4o-mini"
 
 class Prompt(PromptConfig):
-    id: str
+    id: str           # MongoDB's _id
+    prompt_id: str    # Stable identifier
     version: int
     created_at: datetime
     created_by: str

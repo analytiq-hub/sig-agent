@@ -6,14 +6,16 @@ export interface PromptField {
 export interface PromptConfig {
   name: string;
   content: string;
-  schema_name?: string;
+  schema_id?: string;
   schema_version?: number;
+  schema_name?: string;
   tag_ids?: string[];
   model?: string;
 }
 
 export interface Prompt extends PromptConfig {
   id: string;
+  prompt_id: string;
   version: number;
   created_at: string;
   created_by: string;

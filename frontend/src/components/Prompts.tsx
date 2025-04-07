@@ -107,28 +107,29 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     try {
       setIsLoading(true);
 
-      // Get the schema name and version
-      const schemaName = prompt.schema_name;
-      const schemaVersion = prompt.schema_version;
-
-      // Fetch the schema
-      const schemasResponse = await listSchemasApi({
-        organizationId: organizationId
-      });
-      const matchingSchema = schemasResponse.schemas.find(
-        schema => schema.name === schemaName && schema.version === schemaVersion
-      );
-      
-      if (!matchingSchema) {
-        console.warn('Could not find matching schema:', schemaName, schemaVersion);
-        setMessage('Warning: Could not find the referenced schema for download');
-        return;
+      // Fetch the schema using schema_id instead of name+version
+      if (prompt.schema_id && prompt.schema_version) {
+        // Find schema with matching schema_id and version
+        const schemasResponse = await listSchemasApi({
+          organizationId: organizationId
+        });
+        
+        const matchingSchema = schemasResponse.schemas.find(
+          schema => schema.schema_id === prompt.schema_id && schema.version === prompt.schema_version
+        );
+        
+        if (!matchingSchema) {
+          console.warn('Could not find matching schema:', prompt.schema_id, prompt.schema_version);
+          setMessage('Warning: Could not find the referenced schema for download');
+          return;
+        }
+        
+        // Fetch the full schema details
+        const schema = await getSchemaApi({
+          organizationId: organizationId,
+          schemaId: matchingSchema.id
+        });
       }
-      // Fetch the full schema details
-      const schema = await getSchemaApi({
-        organizationId: organizationId,
-        schemaId: matchingSchema.id
-      });   
       
       // Create export format with template support
       const promptExport = {

@@ -37,31 +37,37 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [llmModels, setLLMModels] = useState<LLMModel[]>([]);
 
-  const handleSchemaSelect = useCallback(async (schemaName: string) => {
-    setSelectedSchema(schemaName);
+  const handleSchemaSelect = useCallback(async (schemaId: string) => {
+    setSelectedSchema(schemaId);
     
-    // Update currentPrompt with the new schema name (or undefined if no schema selected)
+    // Update currentPrompt with schema_id
     setCurrentPrompt(prev => ({
       ...prev,
-      schema_name: schemaName || undefined,
+      schema_id: schemaId || undefined,
       schema_version: undefined  // Reset version until we load schema details
     }));
 
-    if (schemaName) {
-      const schemaId = schemas.find(s => s.name === schemaName)?.id;
-      if (schemaId) {
-        try {
-          const schema = await getSchemaApi({ organizationId: organizationId, schemaId });
+    if (schemaId) {
+      try {
+        // Find schema with matching schema_id
+        const schemaDoc = schemas.find(s => s.schema_id === schemaId);
+        if (schemaDoc) {
+          const schema = await getSchemaApi({ 
+            organizationId: organizationId, 
+            schemaId: schemaDoc.id 
+          });
           setSelectedSchemaDetails(schema);
-          // Update currentPrompt with the schema version
+          // Update currentPrompt with the schema_id and version
           setCurrentPrompt(prev => ({
             ...prev,
-            schema_version: schema.version
+            schema_id: schema.schema_id,
+            schema_version: schema.version,
+            schema_name: schema.name // Keep schema_name for backward compatibility
           }));
-        } catch (error) {
-          console.error('Error fetching schema details:', error);
-          setMessage('Error: Unable to fetch schema details');
         }
+      } catch (error) {
+        console.error('Error fetching schema details:', error);
+        setMessage('Error: Unable to fetch schema details');
       }
     } else {
       setSelectedSchemaDetails(null);
@@ -317,11 +323,11 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
                   value={selectedSchema}
                   onChange={(e) => handleSchemaSelect(e.target.value)}
                   disabled={isLoading}
-                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
                 >
                   <option value="">None</option>
                   {schemas.map((schema) => (
-                    <option key={schema.id} value={schema.name}>
+                    <option key={schema.id} value={schema.schema_id}>
                       {schema.name}
                     </option>
                   ))}
