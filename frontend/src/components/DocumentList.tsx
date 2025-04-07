@@ -487,7 +487,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
           }}
           className="flex items-center gap-2"
         >
-          <DriveFileRenameOutlineIcon fontSize="small" className="text-purple-600" />
+          <DriveFileRenameOutlineIcon fontSize="small" className="text-indigo-800" />
           <span>Rename</span>
         </MenuItem>
         <MenuItem 
