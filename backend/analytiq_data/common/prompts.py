@@ -117,14 +117,14 @@ async def get_prompt_response_format(analytiq_client, prompt_id: str) -> dict:
     elem = await collection.find_one({"_id": ObjectId(prompt_id)})
     if elem is None:
         raise ValueError(f"Prompt {prompt_id} not found")
-    schema_name = elem["schema_name"]
+    schema_id = elem["schema_id"]
     schema_version = elem["schema_version"]
 
     # Get the schema from the name and version
     collection = db["schemas"]
-    elem = await collection.find_one({"name": schema_name, "version": schema_version})
+    elem = await collection.find_one({"schema_id": schema_id, "version": schema_version})
     if elem is None:
-        raise ValueError(f"Prompt {prompt_id}: Schema {schema_name} version {schema_version} not found")
+        raise ValueError(f"Prompt {prompt_id}: Schema {schema_id} version {schema_version} not found")
     return elem["response_format"]
 
 async def get_prompt_tag_ids(analytiq_client, prompt_id: str) -> list[str]:

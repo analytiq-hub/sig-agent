@@ -358,6 +358,268 @@ class RemoveSchemaFormatField(Migration):
             ad.log.error(f"Migration revert failed: {e}")
             return False
 
+# Add this new migration class
+class AddStableIdentifiers(Migration):
+    def __init__(self):
+        super().__init__(description="Add stable schema_id and prompt_id fields to schemas and prompts")
+        
+    async def up(self, db) -> bool:
+        """Add schema_id and prompt_id fields"""
+        try:
+            # First, get existing normalized IDs to avoid duplicates
+            existing_schema_ids = set()
+            existing_prompt_ids = set()
+            
+            async for doc in db.schema_versions.find({}):
+                existing_schema_ids.add(doc["_id"])
+                
+            async for doc in db.prompt_versions.find({}):
+                existing_prompt_ids.add(doc["_id"])
+            
+            # Process schema_versions collection
+            schema_versions_cursor = db.schema_versions.find({})
+            to_delete_schema_ids = []
+            to_insert_schema_docs = []
+            schema_id_map = {}  # original_id -> normalized_id
+            
+            async for version_doc in schema_versions_cursor:
+                original_id = version_doc["_id"]
+                base_id = original_id.lower().replace(" ", "_")
+                
+                # Ensure ID uniqueness
+                normalized_id = base_id
+                counter = 1
+                while normalized_id in existing_schema_ids and normalized_id != original_id:
+                    normalized_id = f"{base_id}_{counter}"
+                    counter += 1
+                
+                existing_schema_ids.add(normalized_id)
+                schema_id_map[original_id] = normalized_id
+                
+                if normalized_id != original_id:
+                    to_delete_schema_ids.append(original_id)
+                    to_insert_schema_docs.append({
+                        "_id": normalized_id,
+                        "version": version_doc["version"]
+                    })
+            
+            # Process prompt_versions collection
+            prompt_versions_cursor = db.prompt_versions.find({})
+            to_delete_prompt_ids = []
+            to_insert_prompt_docs = []
+            prompt_id_map = {}  # original_id -> normalized_id
+            
+            async for version_doc in prompt_versions_cursor:
+                original_id = version_doc["_id"]
+                base_id = original_id.lower().replace(" ", "_")
+                
+                # Ensure ID uniqueness
+                normalized_id = base_id
+                counter = 1
+                while normalized_id in existing_prompt_ids and normalized_id != original_id:
+                    normalized_id = f"{base_id}_{counter}"
+                    counter += 1
+                
+                existing_prompt_ids.add(normalized_id)
+                prompt_id_map[original_id] = normalized_id
+                
+                if normalized_id != original_id:
+                    to_delete_prompt_ids.append(original_id)
+                    to_insert_prompt_docs.append({
+                        "_id": normalized_id,
+                        "version": version_doc["version"]
+                    })
+            
+            # Insert new documents first (to avoid conflicts if IDs already normalized)
+            for doc in to_insert_schema_docs:
+                try:
+                    await db.schema_versions.insert_one(doc)
+                except Exception as e:
+                    ad.log.warning(f"Could not insert schema version {doc['_id']}: {e}")
+            
+            for doc in to_insert_prompt_docs:
+                try:
+                    await db.prompt_versions.insert_one(doc)
+                except Exception as e:
+                    ad.log.warning(f"Could not insert prompt version {doc['_id']}: {e}")
+            
+            # Then delete old documents
+            for old_id in to_delete_schema_ids:
+                try:
+                    await db.schema_versions.delete_one({"_id": old_id})
+                except Exception as e:
+                    ad.log.warning(f"Could not delete schema version {old_id}: {e}")
+            
+            for old_id in to_delete_prompt_ids:
+                try:
+                    await db.prompt_versions.delete_one({"_id": old_id})
+                except Exception as e:
+                    ad.log.warning(f"Could not delete prompt version {old_id}: {e}")
+            
+            # Add schema_id to schemas
+            schemas_cursor = db.schemas.find({"schema_id": {"$exists": False}})
+            schema_names_processed = set()
+            
+            async for schema in schemas_cursor:
+                schema_name = schema["name"]
+                
+                if schema_name not in schema_names_processed:
+                    # Get normalized ID from map or create if not exists
+                    if schema_name in schema_id_map:
+                        schema_id = schema_id_map[schema_name]
+                    else:
+                        base_id = schema_name.lower().replace(" ", "_")
+                        schema_id = base_id
+                        counter = 1
+                        while schema_id in existing_schema_ids and schema_id != schema_name:
+                            schema_id = f"{base_id}_{counter}"
+                            counter += 1
+                    
+                    schema_names_processed.add(schema_name)
+                    
+                    # Update all versions of this schema with the same schema_id
+                    await db.schemas.update_many(
+                        {"name": schema_name},
+                        {"$set": {"schema_id": schema_id}}
+                    )
+            
+            # Add prompt_id to prompts
+            prompts_cursor = db.prompts.find({"prompt_id": {"$exists": False}})
+            prompt_names_processed = set()
+            
+            async for prompt in prompts_cursor:
+                prompt_name = prompt["name"]
+                
+                if prompt_name not in prompt_names_processed:
+                    # Get normalized ID from map or create if not exists
+                    if prompt_name in prompt_id_map:
+                        prompt_id = prompt_id_map[prompt_name]
+                    else:
+                        base_id = prompt_name.lower().replace(" ", "_")
+                        prompt_id = base_id
+                        counter = 1
+                        while prompt_id in existing_prompt_ids and prompt_id != prompt_name:
+                            prompt_id = f"{base_id}_{counter}"
+                            counter += 1
+                    
+                    prompt_names_processed.add(prompt_name)
+                    
+                    # Update all versions with prompt_id
+                    update_doc = {"prompt_id": prompt_id}
+                    
+                    # Also update schema_id if schema_name exists
+                    if "schema_name" in prompt and prompt["schema_name"]:
+                        if prompt["schema_name"] in schema_id_map:
+                            update_doc["schema_id"] = schema_id_map[prompt["schema_name"]]
+                        else:
+                            schema_id = prompt["schema_name"].lower().replace(" ", "_")
+                            update_doc["schema_id"] = schema_id
+                    
+                    await db.prompts.update_many(
+                        {"name": prompt_name},
+                        {"$set": update_doc}
+                    )
+            
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"Migration failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """Remove schema_id and prompt_id fields"""
+        try:
+            # Get mappings of ids to names
+            schema_id_to_name = {}
+            prompt_id_to_name = {}
+            
+            async for schema in db.schemas.find({"schema_id": {"$exists": True}}):
+                schema_id_to_name[schema["schema_id"]] = schema["name"]
+            
+            async for prompt in db.prompts.find({"prompt_id": {"$exists": True}}):
+                prompt_id_to_name[prompt["prompt_id"]] = prompt["name"]
+            
+            # Collect version entries to restore
+            schema_versions_to_restore = []
+            existing_schema_versions = set()
+            
+            async for version_doc in db.schema_versions.find({}):
+                schema_id = version_doc["_id"]
+                if schema_id in schema_id_to_name:
+                    schema_name = schema_id_to_name[schema_id]
+                    if schema_name not in existing_schema_versions:
+                        schema_versions_to_restore.append({
+                            "_id": schema_name,
+                            "version": version_doc["version"]
+                        })
+                        existing_schema_versions.add(schema_name)
+            
+            prompt_versions_to_restore = []
+            existing_prompt_versions = set()
+            
+            async for version_doc in db.prompt_versions.find({}):
+                prompt_id = version_doc["_id"]
+                if prompt_id in prompt_id_to_name:
+                    prompt_name = prompt_id_to_name[prompt_id]
+                    if prompt_name not in existing_prompt_versions:
+                        prompt_versions_to_restore.append({
+                            "_id": prompt_name,
+                            "version": version_doc["version"]
+                        })
+                        existing_prompt_versions.add(prompt_name)
+            
+            # Insert new documents before removing old ones
+            for doc in schema_versions_to_restore:
+                try:
+                    await db.schema_versions.insert_one(doc)
+                except Exception as e:
+                    ad.log.warning(f"Could not insert schema version with original name {doc['_id']}: {e}")
+            
+            for doc in prompt_versions_to_restore:
+                try:
+                    await db.prompt_versions.insert_one(doc)
+                except Exception as e:
+                    ad.log.warning(f"Could not insert prompt version with original name {doc['_id']}: {e}")
+            
+            # Remove new normalized version entries 
+            for schema_id in schema_id_to_name.keys():
+                try:
+                    await db.schema_versions.delete_one({"_id": schema_id})
+                except Exception as e:
+                    ad.log.warning(f"Could not delete schema version {schema_id}: {e}")
+            
+            for prompt_id in prompt_id_to_name.keys():
+                try:
+                    await db.prompt_versions.delete_one({"_id": prompt_id})
+                except Exception as e:
+                    ad.log.warning(f"Could not delete prompt version {prompt_id}: {e}")
+            
+            # Remove fields from schemas and prompts
+            await db.schemas.update_many(
+                {"schema_id": {"$exists": True}},
+                {"$unset": {"schema_id": ""}}
+            )
+            
+            await db.prompts.update_many(
+                {
+                    "$or": [
+                        {"prompt_id": {"$exists": True}},
+                        {"schema_id": {"$exists": True}}
+                    ]
+                },
+                {
+                    "$unset": {
+                        "prompt_id": "",
+                        "schema_id": ""
+                    }
+                }
+            )
+            
+            return True
+        except Exception as e:
+            ad.log.error(f"Migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -365,6 +627,7 @@ MIGRATIONS = [
     SchemaJsonSchemaMigration(),
     RenameJsonSchemaToResponseFormat(),
     RemoveSchemaFormatField(),
+    AddStableIdentifiers(),
     # Add more migrations here
 ]
 
