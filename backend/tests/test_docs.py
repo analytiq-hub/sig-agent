@@ -159,7 +159,7 @@ async def test_upload_document(test_db, pdf_fixture, request, mock_auth):
 
 @pytest.mark.asyncio
 async def test_document_lifecycle(test_db, small_pdf, mock_auth):
-    """Test the complete document lifecycle including tags"""
+    """Test the complete document lifecycle including tags and document name updates"""
     ad.log.info(f"test_document_lifecycle() start")
     
     # Use small_pdf instead of test_pdf
@@ -214,6 +214,7 @@ async def test_document_lifecycle(test_db, small_pdf, mock_auth):
         uploaded_doc = next((doc for doc in list_data["documents"] if doc["id"] == document_id), None)
         assert uploaded_doc is not None
         assert tag_id in uploaded_doc["tag_ids"]
+        assert uploaded_doc["document_name"] == test_pdf["name"]
         
         # Step 4: Create a second tag
         second_tag_data = {
@@ -257,7 +258,44 @@ async def test_document_lifecycle(test_db, small_pdf, mock_auth):
         assert second_tag_id in updated_doc["tag_ids"]
         assert tag_id not in updated_doc["tag_ids"]
         
-        # Step 7: Filter documents by tag
+        # Step 7: Update document name
+        new_document_name = "Updated Test Document.pdf"
+        update_name_data = {
+            "document_name": new_document_name
+        }
+        
+        update_name_response = client.put(
+            f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
+            json=update_name_data,
+            headers=get_auth_headers()
+        )
+        
+        assert update_name_response.status_code == 200
+        
+        # Step 8: List documents again and verify updated name
+        list_response_after_name_update = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents",
+            headers=get_auth_headers()
+        )
+        
+        assert list_response_after_name_update.status_code == 200
+        list_data_after_name_update = list_response_after_name_update.json()
+        renamed_doc = next((doc for doc in list_data_after_name_update["documents"] if doc["id"] == document_id), None)
+        assert renamed_doc is not None
+        assert renamed_doc["document_name"] == new_document_name
+        
+        # Step 9: Get the specific document to verify its name, content and tags
+        get_response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
+            headers=get_auth_headers()
+        )
+        
+        assert get_response.status_code == 200
+        doc_data = get_response.json()
+        assert doc_data["metadata"]["document_name"] == new_document_name
+        assert second_tag_id in doc_data["metadata"]["tag_ids"]
+        
+        # Step 10: Filter documents by tag
         filtered_list_response = client.get(
             f"/v0/orgs/{TEST_ORG_ID}/documents?tag_ids={second_tag_id}",
             headers=get_auth_headers()
@@ -268,18 +306,9 @@ async def test_document_lifecycle(test_db, small_pdf, mock_auth):
         assert len(filtered_list_data["documents"]) > 0
         filtered_doc = next((doc for doc in filtered_list_data["documents"] if doc["id"] == document_id), None)
         assert filtered_doc is not None
+        assert filtered_doc["document_name"] == new_document_name
         
-        # Step 8: Get the specific document to verify its content and tags
-        get_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
-            headers=get_auth_headers()
-        )
-        
-        assert get_response.status_code == 200
-        doc_data = get_response.json()
-        assert second_tag_id in doc_data["metadata"]["tag_ids"]
-        
-        # Step 9: Clean up - delete document
+        # Step 11: Clean up - delete document
         delete_response = client.delete(
             f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
             headers=get_auth_headers()
