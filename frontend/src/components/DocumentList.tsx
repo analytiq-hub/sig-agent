@@ -22,7 +22,6 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { isColorLight } from '@/utils/colors';
 import colors from 'tailwindcss/colors';
 import { DocumentUpdate } from './DocumentUpdate';
-import { DocumentRename } from './DocumentRename';
 import SearchIcon from '@mui/icons-material/Search';
 import { toast } from 'react-hot-toast';
 import DocumentRenameModal from './DocumentRename';
@@ -245,7 +244,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     } catch (error) {
       console.error('Error renaming document:', error);
       toast.error('Failed to rename document');
-      throw error; // Rethrow to handle in the modal
+      throw error; // Rethrow to handle in the component
     }
   };
 
