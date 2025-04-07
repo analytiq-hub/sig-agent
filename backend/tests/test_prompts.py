@@ -392,3 +392,97 @@ async def test_prompt_filtering(test_db, mock_auth):
         pass  # mock_auth fixture handles cleanup
     
     ad.log.info(f"test_prompt_filtering() end") 
+
+@pytest.mark.asyncio
+async def test_prompt_version_deletion(test_db, mock_auth):
+    """Test that when deleting a prompt, all versions with the same prompt_id are deleted"""
+    ad.log.info(f"test_prompt_version_deletion() start")
+    
+    try:
+        # Set up test models first
+        await setup_test_models(test_db)
+        
+        # Step 1: Create a prompt
+        original_prompt_data = {
+            "name": "My Versioned Prompt",
+            "content": "Original prompt content for version 1",
+            "model": "gpt-4o-mini",
+            "tag_ids": []
+        }
+        
+        create_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/prompts",
+            json=original_prompt_data,
+            headers=get_auth_headers()
+        )
+        
+        assert create_response.status_code == 200
+        original_prompt = create_response.json()
+        original_id = original_prompt["id"]
+        original_prompt_id = original_prompt["prompt_id"]  # This is the stable identifier
+        
+        # Step 2: Update the prompt with a new name and content
+        updated_prompt_data = {
+            "name": "Renamed Versioned Prompt",  # Changed name
+            "content": "Updated prompt content for version 2",
+            "model": "gpt-4o-mini",
+            "tag_ids": []
+        }
+        
+        update_response = client.put(
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_id}",
+            json=updated_prompt_data,
+            headers=get_auth_headers()
+        )
+        
+        assert update_response.status_code == 200
+        updated_prompt = update_response.json()
+        updated_id = updated_prompt["id"]
+        updated_prompt_id = updated_prompt["prompt_id"]
+        
+        # Verify both versions exist and have the same prompt_id but different names
+        assert original_id != updated_id  # Different MongoDB _id
+        assert original_prompt_id == updated_prompt_id  # Same stable identifier
+        assert original_prompt["name"] != updated_prompt["name"]  # Different names
+        
+        # Step 3: Check if both versions exist in the database
+        db_prompts = await test_db.prompts.find({
+            "prompt_id": original_prompt_id
+        }).to_list(None)
+        
+        assert len(db_prompts) == 2, "Should have two versions of the prompt"
+        
+        # Step 4: Delete the prompt using the original ID
+        delete_response = client.delete(
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_id}",
+            headers=get_auth_headers()
+        )
+        
+        assert delete_response.status_code == 200
+        
+        # Step 5: Verify both versions are deleted from the database
+        remaining_prompts = await test_db.prompts.find({
+            "prompt_id": original_prompt_id
+        }).to_list(None)
+        
+        assert len(remaining_prompts) == 0, "All versions of the prompt should be deleted"
+        
+        # Step 6: Check that the version counter is also deleted
+        version_counter = await test_db.prompt_versions.find_one({
+            "_id": original_prompt_id
+        })
+        
+        assert version_counter is None, "Version counter should be deleted"
+        
+        # Step 7: Verify that trying to get either version returns 404
+        for prompt_id in [original_id, updated_id]:
+            get_response = client.get(
+                f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_id}",
+                headers=get_auth_headers()
+            )
+            assert get_response.status_code == 404, f"Prompt with ID {prompt_id} should not exist"
+        
+    finally:
+        pass  # mock_auth fixture handles cleanup
+    
+    ad.log.info(f"test_prompt_version_deletion() end") 

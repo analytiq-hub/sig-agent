@@ -314,4 +314,137 @@ async def test_schema_validation(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_schema_validation() end") 
+    ad.log.info(f"test_schema_validation() end")
+
+@pytest.mark.asyncio
+async def test_schema_version_deletion(test_db, mock_auth):
+    """Test that when deleting a schema, all versions with the same schema_id are deleted"""
+    ad.log.info(f"test_schema_version_deletion() start")
+    
+    try:
+        # Step 1: Create a schema
+        original_schema_data = {
+            "name": "My Versioned Schema",
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "test_schema_v1",
+                    "schema": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "field1": {
+                                "type": "string",
+                                "description": "First field"
+                            },
+                            "field2": {
+                                "type": "number",
+                                "description": "Second field"
+                            }
+                        },
+                        "required": ["field1", "field2"]
+                    },
+                    "strict": True
+                }
+            }
+        }
+        
+        create_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas",
+            json=original_schema_data,
+            headers=get_auth_headers()
+        )
+        
+        assert create_response.status_code == 200
+        original_schema = create_response.json()
+        original_id = original_schema["id"]
+        original_schema_id = original_schema["schema_id"]  # This is the stable identifier
+        
+        # Step 2: Update the schema with a new name and fields
+        updated_schema_data = {
+            "name": "Renamed Versioned Schema",  # Changed name
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "test_schema_v2",
+                    "schema": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "field1": {
+                                "type": "string",
+                                "description": "First field modified"
+                            },
+                            "field2": {
+                                "type": "number",
+                                "description": "Second field modified"
+                            },
+                            "field3": {
+                                "type": "boolean",
+                                "description": "New third field"
+                            }
+                        },
+                        "required": ["field1", "field2", "field3"]
+                    },
+                    "strict": True
+                }
+            }
+        }
+        
+        update_response = client.put(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_id}",
+            json=updated_schema_data,
+            headers=get_auth_headers()
+        )
+        
+        assert update_response.status_code == 200
+        updated_schema = update_response.json()
+        updated_id = updated_schema["id"]
+        updated_schema_id = updated_schema["schema_id"]
+        
+        # Verify both versions exist and have the same schema_id but different names
+        assert original_id != updated_id  # Different MongoDB _id
+        assert original_schema_id == updated_schema_id  # Same stable identifier
+        assert original_schema["name"] != updated_schema["name"]  # Different names
+        
+        # Step 3: Check if both versions exist in the database
+        db_schemas = await test_db.schemas.find({
+            "schema_id": original_schema_id
+        }).to_list(None)
+        
+        assert len(db_schemas) == 2, "Should have two versions of the schema"
+        
+        # Step 4: Delete the schema using the original ID
+        delete_response = client.delete(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_id}",
+            headers=get_auth_headers()
+        )
+        
+        assert delete_response.status_code == 200
+        
+        # Step 5: Verify both versions are deleted from the database
+        remaining_schemas = await test_db.schemas.find({
+            "schema_id": original_schema_id
+        }).to_list(None)
+        
+        assert len(remaining_schemas) == 0, "All versions of the schema should be deleted"
+        
+        # Step 6: Check that the version counter is also deleted
+        version_counter = await test_db.schema_versions.find_one({
+            "_id": original_schema_id
+        })
+        
+        assert version_counter is None, "Version counter should be deleted"
+        
+        # Step 7: Verify that trying to get either version returns 404
+        for schema_id in [original_id, updated_id]:
+            get_response = client.get(
+                f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}",
+                headers=get_auth_headers()
+            )
+            assert get_response.status_code == 404, f"Schema with ID {schema_id} should not exist"
+        
+    finally:
+        pass  # mock_auth fixture handles cleanup
+    
+    ad.log.info(f"test_schema_version_deletion() end") 
