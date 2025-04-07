@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { listSchemasApi, deleteSchemaApi } from '@/utils/api';
+import { listSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
 import { SchemaField, Schema, ResponseFormat, JsonSchemaProperty } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -9,10 +9,13 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import DownloadIcon from '@mui/icons-material/Download';
+import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
 import colors from 'tailwindcss/colors';
 import { useSchemaContext } from '@/contexts/SchemaContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'react-hot-toast';
+import SchemaRenameModal from './SchemaRename';
 
 const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
@@ -26,6 +29,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [total, setTotal] = useState(0);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedSchema, setSelectedSchema] = useState<Schema | null>(null);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
 
   const loadSchemas = useCallback(async () => {
     try {
@@ -51,11 +55,14 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       await deleteSchemaApi({organizationId: organizationId, schemaId});
       setSchemas(schemas.filter(schema => schema.id !== schemaId));
       setMessage('Schema deleted successfully');
+      toast.success('Schema deleted successfully');
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error deleting schema';
       setMessage('Error: ' + errorMsg);
+      toast.error('Failed to delete schema');
     } finally {
       setIsLoading(false);
+      handleMenuClose();
     }
   };
 
@@ -70,6 +77,45 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     
     // Navigate to the create-schema tab
     router.push(`/orgs/${organizationId}/schemas?tab=schema-create`);
+    handleMenuClose();
+  };
+
+  // Add a function to handle schema rename
+  const handleRenameSchema = (schema: Schema) => {
+    setSelectedSchema(schema);
+    setIsRenameModalOpen(true);
+    handleMenuClose();
+  };
+
+  const handleRenameSubmit = async (newName: string) => {
+    if (!selectedSchema) return;
+    
+    try {
+      // Create a new schema config with the updated name
+      const schemaConfig = {
+        name: newName,
+        response_format: selectedSchema.response_format
+      };
+      
+      await updateSchemaApi({
+        organizationId: organizationId,
+        schemaId: selectedSchema.id,
+        schema: schemaConfig
+      });
+      
+      // Refresh the schema list to show the updated name
+      await loadSchemas();
+      toast.success('Schema renamed successfully');
+    } catch (error) {
+      console.error('Error renaming schema:', error);
+      toast.error('Failed to rename schema');
+      throw error; // Rethrow to handle in the component
+    }
+  };
+
+  const handleCloseRenameModal = () => {
+    setIsRenameModalOpen(false);
+    setSelectedSchema(null);
   };
 
   // Add a function to handle schema download
@@ -96,6 +142,8 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }, 100);
+      
+      handleMenuClose();
     } catch (error) {
       console.error('Error downloading schema:', error);
       setMessage('Error: Failed to download schema');
@@ -109,7 +157,6 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setSelectedSchema(null);
   };
 
   // Add filtered schemas
@@ -317,8 +364,16 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       >
         <MenuItem 
           onClick={() => {
+            if (selectedSchema) handleRenameSchema(selectedSchema);
+          }}
+          className="flex items-center gap-2"
+        >
+          <DriveFileRenameOutlineIcon fontSize="small" className="text-indigo-800" />
+          <span>Rename</span>
+        </MenuItem>
+        <MenuItem 
+          onClick={() => {
             if (selectedSchema) handleEdit(selectedSchema);
-            handleMenuClose();
           }}
           className="flex items-center gap-2"
         >
@@ -328,7 +383,6 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         <MenuItem 
           onClick={() => {
             if (selectedSchema) handleDownload(selectedSchema);
-            handleMenuClose();
           }}
           className="flex items-center gap-2"
         >
@@ -338,7 +392,6 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         <MenuItem 
           onClick={() => {
             if (selectedSchema) handleDelete(selectedSchema.id);
-            handleMenuClose();
           }}
           className="flex items-center gap-2"
         >
@@ -346,6 +399,16 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           <span>Delete</span>
         </MenuItem>
       </Menu>
+      
+      {/* Rename Modal */}
+      {selectedSchema && (
+        <SchemaRenameModal
+          isOpen={isRenameModalOpen}
+          onClose={handleCloseRenameModal}
+          schemaName={selectedSchema.name}
+          onSubmit={handleRenameSubmit}
+        />
+      )}
     </div>
   );
 };

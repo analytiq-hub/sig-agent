@@ -896,7 +896,7 @@ async def list_schemas(
         },
         {
             "$group": {
-                "_id": "$name",
+                "_id": "$schema_id",  # Group by schema_id instead of name
                 "doc": {"$first": "$$ROOT"}
             }
         },
@@ -1252,7 +1252,7 @@ async def list_prompts(
         },
         {
             "$group": {
-                "_id": "$name",
+                "_id": "$prompt_id",  # Group by prompt_id instead of name
                 "doc": {"$first": "$$ROOT"}
             }
         },
@@ -1419,12 +1419,12 @@ async def delete_prompt(
     
     # Delete all versions of this prompt within the organization
     result = await db.prompts.delete_many({
-        "name": prompt["name"],
+        "prompt_id": prompt["prompt_id"],
         "organization_id": organization_id  # Add organization check
     })
     
     # Also delete the version counter
-    await db.prompt_versions.delete_one({"_id": prompt["name"]})
+    await db.prompt_versions.delete_one({"_id": prompt["prompt_id"]})
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Prompt not found")

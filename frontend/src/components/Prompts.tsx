@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { listPromptsApi, deletePromptApi, listTagsApi, getSchemaApi, listSchemasApi } from '@/utils/api';
+import { listPromptsApi, deletePromptApi, listTagsApi, getSchemaApi, listSchemasApi, updatePromptApi } from '@/utils/api';
 import { Prompt, Tag } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -9,11 +9,13 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DownloadIcon from '@mui/icons-material/Download';
+import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
 import colors from 'tailwindcss/colors';
 import { isColorLight } from '@/utils/colors';
 import { usePromptContext } from '@/contexts/PromptContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import PromptRenameModal from './PromptRename';
 
 // Define default model constant
 const DEFAULT_LLM_MODEL = 'gemini-2.0-flash';
@@ -33,6 +35,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   // Add state for menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
 
   const loadPrompts = useCallback(async () => {
     try {
@@ -75,7 +78,9 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setSelectedPrompt(null);
+    if (!isRenameModalOpen) {
+      setSelectedPrompt(null);
+    }
   };
 
   // Update the edit handler
@@ -86,6 +91,47 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     // Navigate to the create-prompt tab
     router.push(`/orgs/${organizationId}/prompts?tab=prompt-create`);
     handleMenuClose();
+  };
+
+  // Add rename handler
+  const handleRenamePrompt = (prompt: Prompt) => {
+    setSelectedPrompt(prompt);
+    setIsRenameModalOpen(true);
+    setAnchorEl(null);
+  };
+
+  const handleRenameSubmit = async (newName: string) => {
+    if (!selectedPrompt) return;
+    
+    try {
+      // Create a new prompt config with the updated name
+      const promptConfig = {
+        name: newName,
+        content: selectedPrompt.content,
+        schema_id: selectedPrompt.schema_id,
+        schema_version: selectedPrompt.schema_version,
+        schema_name: selectedPrompt.schema_name,
+        tag_ids: selectedPrompt.tag_ids,
+        model: selectedPrompt.model
+      };
+      
+      await updatePromptApi({
+        organizationId: organizationId,
+        promptId: selectedPrompt.id,
+        prompt: promptConfig
+      });
+      
+      // Refresh the prompt list to show the updated name
+      await loadPrompts();
+    } catch (error) {
+      console.error('Error renaming prompt:', error);
+      throw error; // Rethrow to handle in the component
+    }
+  };
+
+  const handleCloseRenameModal = () => {
+    setIsRenameModalOpen(false);
+    setSelectedPrompt(null);
   };
 
   const handleDelete = async (promptId: string) => {
@@ -106,6 +152,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const handleDownload = async (prompt: Prompt) => {
     try {
       setIsLoading(true);
+      let schema;
 
       // Fetch the schema using schema_id instead of name+version
       if (prompt.schema_id && prompt.schema_version) {
@@ -125,7 +172,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         }
         
         // Fetch the full schema details
-        const schema = await getSchemaApi({
+        schema = await getSchemaApi({
           organizationId: organizationId,
           schemaId: matchingSchema.id
         });
@@ -140,10 +187,10 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           return tag ? tag.name : null;
         }) || [],
         content: prompt.content,
-        schema: {
+        schema: schema ? {
           name: schema.name,
           response_format: schema.response_format
-        },
+        } : null,
       };
       
       // Convert to JSON string with pretty formatting
@@ -366,6 +413,15 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         >
           <MenuItem 
             onClick={() => {
+              if (selectedPrompt) handleRenamePrompt(selectedPrompt);
+            }}
+            className="flex items-center gap-2"
+          >
+            <DriveFileRenameOutlineIcon fontSize="small" className="text-indigo-800" />
+            <span>Rename</span>
+          </MenuItem>
+          <MenuItem 
+            onClick={() => {
               if (selectedPrompt) handleEdit(selectedPrompt);
             }}
             className="flex items-center gap-2"
@@ -392,6 +448,16 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             <span>Delete</span>
           </MenuItem>
         </Menu>
+        
+        {/* Rename Modal */}
+        {selectedPrompt && (
+          <PromptRenameModal
+            isOpen={isRenameModalOpen}
+            onClose={handleCloseRenameModal}
+            promptName={selectedPrompt.name}
+            onSubmit={handleRenameSubmit}
+          />
+        )}
       </div>
     </div>
   );
