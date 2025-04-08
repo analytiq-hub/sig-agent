@@ -234,7 +234,7 @@
                     <!-- Video Thumbnail - Left Column -->
                     <div class="bg-gray-50 rounded-lg p-6">
                         <h3 class="text-lg font-medium text-gray-900 mb-3">Get Started</h3>
-                        <div class="video-thumbnail" onclick="openVideoModal()" style="margin-bottom: 0;">
+                        <a href="https://www.youtube.com/watch?v=CDH4oan2Nc8" target="_blank" rel="noopener noreferrer" class="video-thumbnail" style="margin-bottom: 0; text-decoration: none;">
                             <div style="position: relative;">
                                 <img src="https://img.youtube.com/vi/CDH4oan2Nc8/mqdefault.jpg" alt="Get Started Video" class="thumbnail-img">
                                 <div class="play-icon">
@@ -246,16 +246,8 @@
                             <div>
                                 <h3 class="text-base font-medium text-gray-900">Watch Video</h3>
                                 <p class="text-sm text-gray-600">Get started with DocRouter.AI</p>
-                                <!-- Hidden fallback link that will be used if JavaScript fails -->
-                                <noscript>
-                                    <div class="mt-2">
-                                        <a href="https://www.youtube.com/watch?v=CDH4oan2Nc8" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">
-                                            Open video on YouTube
-                                        </a>
-                                    </div>
-                                </noscript>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     
                     <!-- Key Features - Right Column -->
@@ -714,21 +706,8 @@ cd ../frontend; npm install; cd ..
         }
 
         function openVideoModal() {
-            const modal = document.getElementById('videoModal');
-            const videoFrame = document.getElementById('videoFrame');
-            
-            // Set the source right before showing the modal
-            try {
-                videoFrame.src = "https://www.youtube.com/embed/CDH4oan2Nc8?si=cAJ9DuR7PndZY8GO&autoplay=1";
-                modal.style.display = "block";
-                
-                // Prevent scrolling when modal is open
-                document.body.style.overflow = "hidden";
-            } catch (error) {
-                console.error("Error opening video modal:", error);
-                // Fallback - open YouTube directly if modal fails
-                window.open("https://www.youtube.com/watch?v=CDH4oan2Nc8", "_blank");
-            }
+            // This function is no longer needed, as we're directly linking to YouTube
+            window.open("https://www.youtube.com/watch?v=CDH4oan2Nc8", "_blank");
         }
         
         function closeVideoModal() {
@@ -759,17 +738,6 @@ cd ../frontend; npm install; cd ..
         window.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 closeVideoModal();
-            }
-        });
-
-        // Add event listener to the video thumbnail when the DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            const videoThumbnail = document.querySelector('.video-thumbnail');
-            if (videoThumbnail) {
-                videoThumbnail.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    openVideoModal();
-                });
             }
         });
     </script>
