@@ -552,3 +552,134 @@ async def test_schema_latest_version_listing(test_db, mock_auth):
         pass  # mock_auth fixture handles cleanup
     
     ad.log.info(f"test_schema_latest_version_listing() end")
+
+@pytest.mark.asyncio
+async def test_schema_name_only_update(test_db, mock_auth):
+    """Test that updating only the schema name doesn't create a new version"""
+    ad.log.info(f"test_schema_name_only_update() start")
+    
+    try:
+        # Step 1: Create a schema
+        original_schema_data = {
+            "name": "Original Schema Name",
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "test_schema",
+                    "schema": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "field1": {
+                                "type": "string",
+                                "description": "First field"
+                            }
+                        },
+                        "required": ["field1"]
+                    },
+                    "strict": True
+                }
+            }
+        }
+        
+        create_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas",
+            json=original_schema_data,
+            headers=get_auth_headers()
+        )
+        
+        assert create_response.status_code == 200
+        original_schema = create_response.json()
+        original_id = original_schema["id"]
+        original_schema_id = original_schema["schema_id"]
+        original_version = original_schema["version"]
+        
+        # Step 2: Update only the name
+        name_update_data = {
+            "name": "Updated Schema Name",
+            "response_format": original_schema["response_format"]
+        }
+        
+        update_response = client.put(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_id}",
+            json=name_update_data,
+            headers=get_auth_headers()
+        )
+        
+        assert update_response.status_code == 200
+        updated_schema = update_response.json()
+        updated_id = updated_schema["id"]
+        updated_version = updated_schema["version"]
+        
+        # Verify the ID remains the same (no new version created)
+        assert original_id == updated_id, "ID should remain the same for name-only updates"
+        assert original_version == updated_version, "Version should remain the same for name-only updates"
+        assert updated_schema["name"] == "Updated Schema Name", "Name should be updated"
+        
+        # Step 3: Verify only one version exists in the database
+        db_schemas = await test_db.schemas.find({
+            "schema_id": original_schema_id
+        }).to_list(None)
+        
+        assert len(db_schemas) == 1, "Should still have only one version of the schema"
+        
+        # Step 4: Update schema with a substantive change
+        content_update_data = {
+            "name": "Updated Schema Name",
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "test_schema",
+                    "schema": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "field1": {
+                                "type": "string",
+                                "description": "First field"
+                            },
+                            "field2": {
+                                "type": "string",
+                                "description": "Second field"
+                            }
+                        },
+                        "required": ["field1", "field2"]
+                    },
+                    "strict": True
+                }
+            }
+        }
+        
+        content_update_response = client.put(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_id}",
+            json=content_update_data,
+            headers=get_auth_headers()
+        )
+        
+        assert content_update_response.status_code == 200
+        content_updated_schema = content_update_response.json()
+        content_updated_id = content_updated_schema["id"]
+        content_updated_version = content_updated_schema["version"]
+        
+        # Verify a new version was created
+        assert original_id != content_updated_id, "ID should change for content updates"
+        assert original_version != content_updated_version, "Version should increase for content updates"
+        assert content_updated_version > original_version, "Version should increase for content updates"
+        
+        # Step 5: Verify two versions exist in the database
+        db_schemas_after = await test_db.schemas.find({
+            "schema_id": original_schema_id
+        }).to_list(None)
+        
+        assert len(db_schemas_after) == 2, "Should now have two versions of the schema"
+        
+        # Clean up
+        client.delete(
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_id}",
+            headers=get_auth_headers()
+        )
+        
+    finally:
+        pass  # mock_auth fixture handles cleanup
+    
+    ad.log.info(f"test_schema_name_only_update() end")

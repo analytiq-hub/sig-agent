@@ -973,6 +973,28 @@ async def update_schema(
     if existing_schema["created_by"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to update this schema")
     
+    # Check if only the name has changed
+    only_name_changed = (
+        schema.name != existing_schema["name"] and
+        schema.response_format.model_dump() == existing_schema["response_format"]
+    )
+    
+    if only_name_changed:
+        # Update the name without creating a new version
+        result = await db.schemas.update_one(
+            {"_id": ObjectId(schema_id)},
+            {"$set": {"name": schema.name}}
+        )
+        
+        if result.modified_count > 0:
+            # Return the updated schema
+            updated_schema = await db.schemas.find_one({"_id": ObjectId(schema_id)})
+            updated_schema["id"] = str(updated_schema.pop("_id"))
+            return Schema(**updated_schema)
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update schema name")
+    
+    # If other fields changed, create a new version
     # Atomically get the next version number using the stable schema_id
     new_version = await get_next_schema_version(existing_schema["schema_id"])
     
@@ -1189,8 +1211,8 @@ async def create_prompt(
         "prompt_id": prompt_id,  # Add stable identifier
         "content": prompt.content,
         "schema_id": prompt.schema_id,
-        "schema_name": prompt.schema_name or "",
-        "schema_version": prompt.schema_version or 0,
+        "schema_name": prompt.schema_name,
+        "schema_version": prompt.schema_version,
         "version": new_version,
         "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
@@ -1372,6 +1394,33 @@ async def update_prompt(
             )
         prompt.schema_name = schema["name"]
     
+    
+    # Check if only the name has changed
+    only_name_changed = (
+        prompt.name != existing_prompt["name"] and
+        prompt.content == existing_prompt["content"] and
+        prompt.schema_id == existing_prompt.get("schema_id") and
+        prompt.schema_version == existing_prompt.get("schema_version") and
+        prompt.model == existing_prompt["model"] and
+        set(prompt.tag_ids or []) == set(existing_prompt.get("tag_ids") or [])
+    )
+    
+    if only_name_changed:
+        # Update the name without creating a new version
+        result = await db.prompts.update_one(
+            {"_id": ObjectId(prompt_id)},
+            {"$set": {"name": prompt.name}}
+        )
+        
+        if result.modified_count > 0:
+            # Return the updated prompt
+            updated_prompt = await db.prompts.find_one({"_id": ObjectId(prompt_id)})
+            updated_prompt["id"] = str(updated_prompt.pop("_id"))
+            return Prompt(**updated_prompt)
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update prompt name")
+    
+    # If other fields changed, create a new version
     # Get the next version number using the stable prompt_id
     new_version = await get_next_prompt_version(existing_prompt["prompt_id"])
     
@@ -1381,8 +1430,8 @@ async def update_prompt(
         "prompt_id": existing_prompt["prompt_id"],  # Preserve stable identifier
         "content": prompt.content,
         "schema_id": prompt.schema_id,
-        "schema_name": prompt.schema_name or "",
-        "schema_version": prompt.schema_version or 0,
+        "schema_name": prompt.schema_name,
+        "schema_version": prompt.schema_version,
         "version": new_version,
         "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
