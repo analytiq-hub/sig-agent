@@ -4,7 +4,7 @@ from typing import Dict, List, Any, Optional, Union
 from datetime import datetime
 import json
 
-class AnalytiqClient:
+class DocRouterClient:
     """Client for interacting with the Analytiq API"""
     
     def __init__(self, base_url: str, api_token: str = None):

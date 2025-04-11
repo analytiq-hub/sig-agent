@@ -3,12 +3,12 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "analytiq-client"
+name = "docrouter-client"
 version = "0.1.0"
-description = "Python client library for the Analytiq Document Router API"
+description = "Python client library for the Smart Document Router API"
 readme = "README.md"
 authors = [
-    {name = "Analytiq Team", email = "info@analytiq.ai"}
+    {name = "Analytiq Hub Team", email = "andrei@analytiqhub.com"}
 ]
 license = {text = "Apache License 2.0"}
 classifiers = [
@@ -28,11 +28,11 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/analytiq/analytiq-client"
-"Bug Tracker" = "https://github.com/analytiq/analytiq-client/issues"
+"Homepage" = "https://github.com/analytiq/doc-router"
+"Bug Tracker" = "https://github.com/analytiq/doc-router/issues"
 
 [tool.setuptools]
-packages = ["analytiq_client"]
+packages = ["docrouter_client"]
 
 [tool.black]
 line-length = 88

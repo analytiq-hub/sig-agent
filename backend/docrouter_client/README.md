@@ -5,16 +5,17 @@ A Python client library for the Analytiq Document Router API.
 ## Installation
 
 ```bash
-pip install analytiq-client
+cd doc-router/backend
+pip install -e .
 ```
 
 ## Usage
 
 ```python
-from analytiq_client import AnalytiqClient
+from docrouter_client import DocRouterClient
 
 # Initialize the client
-client = AnalytiqClient(
+client = DocRouterClient(
     base_url="https://api.analytiq.ai",  # Replace with your API URL
     api_token="your_api_token"           # Replace with your API token
 )
