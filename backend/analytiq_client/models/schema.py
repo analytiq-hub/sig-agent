@@ -1,0 +1,28 @@
+from datetime import datetime
+from typing import Dict, List, Optional, Literal
+from pydantic import BaseModel, Field
+
+class JsonSchemaProperty(BaseModel):
+    type: Literal['string', 'integer', 'number', 'boolean', 'array', 'object']
+    format: Optional[str] = None
+    description: Optional[str] = None
+    
+class ResponseFormat(BaseModel):
+    type: Literal['json_schema']
+    json_schema: dict
+
+class SchemaConfig(BaseModel):
+    name: str
+    response_format: ResponseFormat
+
+class Schema(SchemaConfig):
+    id: str
+    schema_id: str
+    version: int
+    created_at: datetime
+    created_by: str
+
+class ListSchemasResponse(BaseModel):
+    schemas: List[Schema]
+    total_count: int
+    skip: int
