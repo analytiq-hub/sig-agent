@@ -56,7 +56,7 @@ class AnalytiqClient:
         
         # Make the request
         response = self.session.request(method, url, headers=headers, **kwargs)
-        
+
         # Check for errors
         try:
             response.raise_for_status()

@@ -164,10 +164,10 @@ def get_api_context(path: str) -> tuple[str, Optional[str]]:
     Returns (context_type, organization_id)
     """
     parts = path.split('/')
-    if parts[1] == "account":
+    if len(parts) > 2 and parts[2] == "account":
         return "account", None
-    elif parts[1] == "orgs" and len(parts) > 2:
-        return "organization", parts[2]
+    elif len(parts) > 2 and parts[2] == "orgs":
+        return "organization", parts[3]
     return "unknown", None
 
 # Modify get_current_user to validate based on context
@@ -216,6 +216,10 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
     except JWTError:
         # If JWT validation fails, check if it's an API token
         encrypted_token = ad.crypto.encrypt_token(token)
+        ad.log.info(f"token: {token}")
+        ad.log.info(f"encrypted_token: {encrypted_token}")
+        ad.log.info(f"context_type: {context_type}")
+        ad.log.info(f"org_id: {org_id}")
         
         # Build query based on context
         token_query = {"token": encrypted_token}
@@ -230,6 +234,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
             raise HTTPException(status_code=401, detail="Invalid API context")
             
         stored_token = await db.access_tokens.find_one(token_query)
+        ad.log.info(f"stored_token: {stored_token}")
         
         if stored_token:
             # Validate that user_id from stored token exists in database
