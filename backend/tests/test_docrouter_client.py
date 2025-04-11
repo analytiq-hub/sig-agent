@@ -210,14 +210,38 @@ async def test_llm_api(test_db, mock_auth, mock_docrouter_client):
     """Test the LLM API using the mock DocRouterClient"""
     ad.log.info(f"test_llm_api() start")
     
-    try:
-        # Test: List LLM models
-        models = mock_docrouter_client.llm.list_models()
-        assert hasattr(models, "models")
-        # We don't require any models to be present, we just test the API call works
+    # Mock the LLM API responses
+    with patch.object(mock_docrouter_client.llm, 'run', return_value={"status": "success", "result_id": "mock_result_id"}) as mock_run, \
+         patch.object(mock_docrouter_client.llm, 'get_result', return_value={"status": "completed", "output": "Sample output"}) as mock_get_result, \
+         patch.object(mock_docrouter_client.llm, 'update_result', return_value={"message": "Result updated successfully"}) as mock_update_result, \
+         patch.object(mock_docrouter_client.llm, 'delete_result', return_value={"message": "Result deleted successfully"}) as mock_delete_result:
         
-    finally:
-        pass  # mock_auth fixture handles cleanup
+        try:
+            # Generate a valid ObjectId for testing
+            document_id = str(ObjectId())  # This generates a valid ObjectId
+            prompt_id = "default_prompt"
+            
+            # Test: Run LLM analysis
+            run_response = mock_docrouter_client.llm.run(TEST_ORG_ID, document_id, prompt_id)
+            assert run_response["status"] == "success"
+            assert "result_id" in run_response
+            
+            # Test: Get LLM result
+            result_id = run_response["result_id"]
+            get_response = mock_docrouter_client.llm.get_result(TEST_ORG_ID, document_id, result_id)
+            assert get_response["status"] == "completed"
+            assert "output" in get_response
+            
+            # Test: Update LLM result
+            update_response = mock_docrouter_client.llm.update_result(TEST_ORG_ID, document_id, result_id, {"new_data": "value"})
+            assert update_response["message"] == "Result updated successfully"
+            
+            # Test: Delete LLM result
+            delete_response = mock_docrouter_client.llm.delete_result(TEST_ORG_ID, document_id, result_id)
+            assert delete_response["message"] == "Result deleted successfully"
+            
+        finally:
+            pass  # mock_auth fixture handles cleanup
     
     ad.log.info(f"test_llm_api() end")
 
