@@ -282,3 +282,117 @@ async def test_ocr_api(test_db, mock_auth, mock_docrouter_client, small_pdf):
             pass  # mock_auth fixture handles cleanup
     
     ad.log.info(f"test_ocr_api() end")
+
+@pytest.mark.asyncio
+async def test_schemas_api(test_db, mock_auth, mock_docrouter_client):
+    """Test the Schemas API using the DocRouterClient"""
+    ad.log.info(f"test_schemas_api() start")
+    
+    try:
+        # Step 1: Create a JSON schema
+        schema_data = {
+            "name": "Test Invoice Schema",
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "invoice_extraction",
+                    "schema": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "invoice_number": {
+                                "type": "string",
+                                "description": "The invoice identifier"
+                            },
+                            "total_amount": {
+                                "type": "number",
+                                "description": "Total invoice amount"
+                            },
+                            "vendor": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Vendor name"
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "description": "Vendor address"
+                                    }
+                                },
+                                "required": ["name"]
+                            }
+                        },
+                        "required": ["invoice_number", "total_amount"]
+                    },
+                    "strict": True
+                }
+            }
+        }
+        
+        create_response = mock_docrouter_client.schemas.create(TEST_ORG_ID, schema_data)
+        assert hasattr(create_response, "id")
+        assert create_response.name == "Test Invoice Schema"
+        
+        schema_id = create_response.id
+        
+        # Step 2: List schemas to verify it was created
+        list_response = mock_docrouter_client.schemas.list(TEST_ORG_ID)
+        assert list_response.total_count > 0
+        
+        # Find our schema in the list
+        created_schema = next((schema for schema in list_response.schemas if schema.id == schema_id), None)
+        assert created_schema is not None
+        assert created_schema.name == "Test Invoice Schema"
+        
+        # Step 3: Get the specific schema to verify its content
+        get_response = mock_docrouter_client.schemas.get(TEST_ORG_ID, schema_id)
+        assert get_response.id == schema_id
+        assert get_response.name == "Test Invoice Schema"
+        
+        # Step 4: Update the schema
+        update_data = {
+            "name": "Updated Invoice Schema",
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "invoice_extraction_updated",
+                    "schema": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "invoice_number": {
+                                "type": "string",
+                                "description": "The invoice identifier"
+                            },
+                            "date": {
+                                "type": "string",
+                                "description": "Invoice date"
+                            },
+                            "total_amount": {
+                                "type": "number",
+                                "description": "Total invoice amount"
+                            },
+                            "tax_amount": {
+                                "type": "number",
+                                "description": "Tax amount"
+                            }
+                        },
+                        "required": ["invoice_number", "date", "total_amount"]
+                    },
+                    "strict": True
+                }
+            }
+        }
+        
+        update_response = mock_docrouter_client.schemas.update(TEST_ORG_ID, schema_id, update_data)
+        assert update_response.name == "Updated Invoice Schema"
+        
+        # Step 5: Delete the schema
+        delete_response = mock_docrouter_client.schemas.delete(TEST_ORG_ID, schema_id)
+        assert delete_response["message"] == "Schema deleted successfully"
+        
+    finally:
+        pass  # mock_auth fixture handles cleanup
+    
+    ad.log.info(f"test_schemas_api() end")
