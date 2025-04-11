@@ -104,6 +104,29 @@ def small_pdf():
         "content": f"data:application/pdf;base64,{base64.b64encode(pdf_content).decode()}"
     }
 
+async def setup_test_models(db):
+    """Set up test LLM models in the database"""
+    # Check if the models already exist
+    models = await db.llm_models.find({}).to_list(None)
+    if models:
+        return  # Models already set up
+        
+    # Add test models
+    test_models = [
+        {
+            "name": "gpt-4o-mini",
+            "provider": "OpenAI",
+            "description": "GPT-4o Mini - efficient model for testing",
+            "max_tokens": 4096,
+            "cost_per_1m_input_tokens": 0.5,
+            "cost_per_1m_output_tokens": 1.5
+        }
+    ]
+    
+    await db.llm_models.insert_many(test_models)
+    ad.log.info(f"Added {len(test_models)} test LLM models to database")
+
+
 
 @pytest.mark.asyncio
 async def test_documents_api(test_db, mock_auth, mock_docrouter_client, small_pdf):
@@ -396,3 +419,102 @@ async def test_schemas_api(test_db, mock_auth, mock_docrouter_client):
         pass  # mock_auth fixture handles cleanup
     
     ad.log.info(f"test_schemas_api() end")
+
+@pytest.mark.asyncio
+async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
+    """Test the Prompts API using the DocRouterClient"""
+    ad.log.info(f"test_prompts_api() start")
+
+    # Set up test models first
+    await setup_test_models(test_db)
+
+    try:
+        # Step 1: Create a JSON schema
+        schema_data = {
+            "name": "Test Prompt Schema",
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "prompt_extraction",
+                    "schema": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "field1": {
+                                "type": "string",
+                                "description": "Field 1 description"
+                            },
+                            "field2": {
+                                "type": "number",
+                                "description": "Field 2 description"
+                            }
+                        },
+                        "required": ["field1", "field2"]
+                    },
+                    "strict": True
+                }
+            }
+        }
+        
+        schema_response = mock_docrouter_client.schemas.create(TEST_ORG_ID, schema_data)
+        assert hasattr(schema_response, "id")
+        assert schema_response.name == "Test Prompt Schema"
+
+        ad.log.info(f"Schema created: {schema_response}")
+        
+        schema_id = schema_response.schema_id
+        schema_version = schema_response.version
+        
+        ad.log.info(f"Schema created with ID: {schema_id} and version: {schema_version}")
+        
+        # Step 2: Create a prompt
+        prompt_data = {
+            "name": "Test Prompt",
+            "description": "A test prompt for demonstration",
+            "schema_id": schema_id,
+            "schema_version": schema_version,
+            "content": "Extract information from the document."
+        }
+        
+        create_response = mock_docrouter_client.prompts.create(TEST_ORG_ID, prompt_data)
+        assert hasattr(create_response, "id")
+        assert create_response.name == "Test Prompt"
+        
+        prompt_id = create_response.id
+        
+        # Step 3: List prompts to verify it was created
+        list_response = mock_docrouter_client.prompts.list(TEST_ORG_ID)
+        assert list_response.total_count > 0
+        
+        # Find our prompt in the list
+        created_prompt = next((prompt for prompt in list_response.prompts if prompt.id == prompt_id), None)
+        assert created_prompt is not None
+        assert created_prompt.name == "Test Prompt"
+        
+        # Step 4: Get the specific prompt to verify its content
+        get_response = mock_docrouter_client.prompts.get(TEST_ORG_ID, prompt_id)
+        assert get_response.id == prompt_id
+        assert get_response.name == "Test Prompt"
+        
+        # Step 5: Update the prompt
+        update_data = {
+            "name": "Updated Test Prompt",
+            "description": "An updated test prompt",
+            "content": "Extract detailed information from the document."
+        }
+        
+        update_response = mock_docrouter_client.prompts.update(TEST_ORG_ID, prompt_id, update_data)
+        assert update_response.name == "Updated Test Prompt"
+        
+        # Step 6: Delete the prompt
+        delete_response = mock_docrouter_client.prompts.delete(TEST_ORG_ID, prompt_id)
+        assert delete_response["message"] == "Prompt deleted successfully"
+        
+        # Step 7: Delete the schema
+        #delete_schema_response = mock_docrouter_client.schemas.delete(TEST_ORG_ID, schema_id)
+        #assert delete_schema_response["message"] == "Schema deleted successfully"
+        
+    finally:
+        pass  # mock_auth fixture handles cleanup
+    
+    ad.log.info(f"test_prompts_api() end")
