@@ -252,7 +252,8 @@ async def test_ocr_api(test_db, mock_auth, mock_docrouter_client, small_pdf):
     
     # Mock the OCR API responses
     with patch.object(mock_docrouter_client.ocr, 'get_text', return_value="Sample OCR text") as mock_get_text, \
-         patch.object(mock_docrouter_client.ocr, 'get_metadata', return_value={"n_pages": 1, "ocr_date": "2023-10-01"}) as mock_get_metadata:
+         patch.object(mock_docrouter_client.ocr, 'get_metadata', return_value={"n_pages": 1, "ocr_date": "2023-10-01"}) as mock_get_metadata, \
+         patch.object(mock_docrouter_client.ocr, 'get_blocks', return_value={"blocks": [{"text": "Sample block text", "position": {"x": 0, "y": 0}}]}) as mock_get_blocks:
         
         try:
             # Generate a valid ObjectId for testing
@@ -268,6 +269,14 @@ async def test_ocr_api(test_db, mock_auth, mock_docrouter_client, small_pdf):
             assert isinstance(ocr_metadata, dict)
             assert "n_pages" in ocr_metadata
             assert "ocr_date" in ocr_metadata
+            
+            # Test: Get OCR blocks
+            ocr_blocks = mock_docrouter_client.ocr.get_blocks(TEST_ORG_ID, document_id)
+            assert isinstance(ocr_blocks, dict)
+            assert "blocks" in ocr_blocks
+            assert len(ocr_blocks["blocks"]) > 0
+            assert "text" in ocr_blocks["blocks"][0]
+            assert "position" in ocr_blocks["blocks"][0]
             
         finally:
             pass  # mock_auth fixture handles cleanup
