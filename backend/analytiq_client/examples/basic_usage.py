@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 from analytiq_client import AnalytiqClient
 
 # Initialize the client

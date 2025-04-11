@@ -20,20 +20,20 @@ class AnalytiqClient:
         self.session = requests.Session()
         
         # Import API modules here to avoid circular imports
-        from .api.documents import DocumentsAPI
-        from .api.ocr import OCRAPI
-        from .api.llm import LLMAPI
-        from .api.schemas import SchemasAPI
-        from .api.prompts import PromptsAPI
-        from .api.tags import TagsAPI
+        from . import documents
+        from . import ocr
+        from . import llm
+        from . import schemas
+        from . import prompts
+        from . import tags
         
         # Initialize API modules
-        self.documents = DocumentsAPI(self)
-        self.ocr = OCRAPI(self)
-        self.llm = LLMAPI(self)
-        self.schemas = SchemasAPI(self)
-        self.prompts = PromptsAPI(self)
-        self.tags = TagsAPI(self)
+        self.documents = documents.DocumentsAPI(self)
+        self.ocr = ocr.OCRAPI(self)
+        self.llm = llm.LLMAPI(self)
+        self.schemas = schemas.SchemasAPI(self)
+        self.prompts = prompts.PromptsAPI(self)
+        self.tags = tags.TagsAPI(self)
     
     def request(self, method: str, path: str, **kwargs) -> Any:
         """

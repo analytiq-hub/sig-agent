@@ -1,3 +1,3 @@
-from .api.client import AnalytiqClient
+from .client import AnalytiqClient
 
 __all__ = ["AnalytiqClient"]
