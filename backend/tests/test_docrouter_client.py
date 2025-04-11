@@ -511,8 +511,8 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
         assert delete_response["message"] == "Prompt deleted successfully"
         
         # Step 7: Delete the schema
-        #delete_schema_response = mock_docrouter_client.schemas.delete(TEST_ORG_ID, schema_id)
-        #assert delete_schema_response["message"] == "Schema deleted successfully"
+        delete_schema_response = mock_docrouter_client.schemas.delete(TEST_ORG_ID, schema_id)
+        assert delete_schema_response["message"] == "Schema deleted successfully"
         
     finally:
         pass  # mock_auth fixture handles cleanup

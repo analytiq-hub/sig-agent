@@ -1021,6 +1021,7 @@ async def update_schema(
     new_schema["id"] = str(result.inserted_id)
     return Schema(**new_schema)
 
+# TO DO: we need to delete schemas by schema_id, not by id
 @app.delete("/v0/orgs/{organization_id}/schemas/{schema_id}", tags=["schemas"])
 async def delete_schema(
     organization_id: str,
@@ -1163,7 +1164,7 @@ async def create_prompt(
 ):
     """Create a prompt"""
     db = ad.common.get_async_db()
-    
+
     # Verify schema if specified
     if prompt.schema_id and prompt.schema_version:
         schema = await db.schemas.find_one({
