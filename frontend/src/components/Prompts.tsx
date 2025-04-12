@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { listPromptsApi, deletePromptApi, listTagsApi, getSchemaApi, listSchemasApi, updatePromptApi } from '@/utils/api';
-import { Prompt, Tag } from '@/types/index';
+import { Prompt, Tag, Schema } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';
@@ -28,6 +28,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [availableSchemas, setAvailableSchemas] = useState<Schema[]>([]);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
@@ -65,10 +66,29 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     }
   }, [organizationId]);
 
+  const loadSchemas = useCallback(async () => {
+    try {
+      const response = await listSchemasApi({ organizationId: organizationId });
+      setAvailableSchemas(response.schemas);
+    } catch (error) {
+      const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
+      setMessage('Error: ' + errorMsg);
+    }
+  }, [organizationId]);
+
   useEffect(() => {
-    loadPrompts();
-    loadTags();
-  }, [loadPrompts, loadTags]);
+    // Load all required data at once
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([loadPrompts(), loadTags(), loadSchemas()]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [loadPrompts, loadTags, loadSchemas]);
 
   // Menu handlers
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, prompt: Prompt) => {
@@ -155,12 +175,8 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
 
       // Fetch the schema using schema_id instead of name+version
       if (prompt.schema_id && prompt.schema_version) {
-        // Find schema with matching schema_id and version
-        const schemasResponse = await listSchemasApi({
-          organizationId: organizationId
-        });
-        
-        const matchingSchema = schemasResponse.schemas.find(
+        // Find schema with matching schema_id and version from preloaded schemas
+        const matchingSchema = availableSchemas.find(
           schema => schema.schema_id === prompt.schema_id && schema.schema_version === prompt.schema_version
         );
         
@@ -225,12 +241,15 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     }
   };
 
-  const getSchemaName = async (schemaId: string, schemaVersion: number) => {
-    const schemasResponse = await listSchemasApi({
-      organizationId: organizationId
-    });
-    const schema = schemasResponse.schemas.find(s => s.id === schemaId && s.schema_version === schemaVersion);
-    return schema ? `${schema.name}:v${schema.schema_version}` : '-';
+  // Synchronous schema name lookup from preloaded schemas
+  const getSchemaName = (schemaId: string, schemaVersion: number) => {
+    if (!schemaId || !schemaVersion) return '-';
+    
+    const schema = availableSchemas.find(
+      s => s.schema_id === schemaId && s.schema_version === schemaVersion
+    );
+    
+    return schema ? schema.name : '-';
   };  
 
   // Add filtered prompts
@@ -271,7 +290,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       headerAlign: 'left',
       align: 'left',
       renderCell: (params) => {
-        // Retrieve schema name using schema_id and schema_version from cache or state
+        // Retrieve schema name using schema_id and schema_version from preloaded schemas
         const schemaName = getSchemaName(params.row.schema_id, params.row.schema_version);
         return (
           <div className="text-gray-600 flex items-center h-full">
