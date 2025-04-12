@@ -191,7 +191,6 @@ class PromptConfig(BaseModel):
     content: str
     schema_id: Optional[str] = None
     schema_version: Optional[int] = None
-    schema_name: Optional[str] = None  # Keep for backward compatibility
     tag_ids: List[str] = []
     model: str = "gpt-4o-mini"
 

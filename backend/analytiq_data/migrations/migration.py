@@ -711,6 +711,57 @@ class RenameSchemaVersion(Migration):
             ad.log.error(f"Schema version rename migration revert failed: {e}")
             return False
 
+# Add this new migration class before the MIGRATIONS list
+class RemoveSchemaNameField(Migration):
+    def __init__(self):
+        super().__init__(description="Remove schema_name field from prompts collection")
+        
+    async def up(self, db) -> bool:
+        """Remove schema_name field from prompts collection"""
+        try:
+            # Remove schema_name field from all documents in prompts collection
+            result = await db.prompts.update_many(
+                {"schema_name": {"$exists": True}},
+                {"$unset": {"schema_name": ""}}
+            )
+            
+            ad.log.info(f"Removed schema_name field from {result.modified_count} documents")
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"Remove schema_name field migration failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """Restore schema_name field using schema_id to look up schemas"""
+        try:
+            # For each prompt with schema_id, look up the schema and add its name
+            cursor = db.prompts.find({"schema_id": {"$exists": True, "$ne": None}})
+            
+            restored_count = 0
+            async for prompt in cursor:
+                if "schema_id" in prompt and prompt["schema_id"]:
+                    # Find the corresponding schema
+                    schema = await db.schemas.find_one({
+                        "schema_id": prompt["schema_id"],
+                        "schema_version": prompt.get("schema_version", 1)
+                    })
+                    
+                    if schema and "name" in schema:
+                        # Update the prompt with the schema name
+                        await db.prompts.update_one(
+                            {"_id": prompt["_id"]},
+                            {"$set": {"schema_name": schema["name"]}}
+                        )
+                        restored_count += 1
+            
+            ad.log.info(f"Restored schema_name field for {restored_count} documents")
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"Restore schema_name field migration failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -721,6 +772,7 @@ MIGRATIONS = [
     AddStableIdentifiers(),
     RenamePromptVersion(),
     RenameSchemaVersion(),
+    RemoveSchemaNameField(),
     # Add more migrations here
 ]
 

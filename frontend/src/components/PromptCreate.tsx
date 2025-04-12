@@ -23,7 +23,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [currentPrompt, setCurrentPrompt] = useState<PromptConfig>({
     name: '',
     content: '',
-    schema_name: undefined,
+    schema_id: undefined,
     schema_version: undefined,
     tag_ids: [],
     model: undefined
@@ -61,8 +61,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
           setCurrentPrompt(prev => ({
             ...prev,
             schema_id: schema.schema_id,
-            schema_version: schema.schema_version,
-            schema_name: schema.name
+            schema_version: schema.schema_version
           }));
         }
       } catch (error) {
@@ -81,17 +80,17 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
       setCurrentPrompt({
         name: editingPrompt.name,
         content: editingPrompt.content,
-        schema_name: editingPrompt.schema_name,
+        schema_id: editingPrompt.schema_id,
         schema_version: editingPrompt.schema_version,
         tag_ids: editingPrompt.tag_ids || [],
         model: editingPrompt.model
       });
       
       setSelectedTagIds(editingPrompt.tag_ids || []);
-      setSelectedSchema(editingPrompt.schema_name || '');
+      setSelectedSchema(editingPrompt.schema_id || '');
       
-      if (editingPrompt.schema_name) {
-        handleSchemaSelect(editingPrompt.schema_name);
+      if (editingPrompt.schema_id) {
+        handleSchemaSelect(editingPrompt.schema_id);
       } else {
         setSelectedSchemaDetails(null);
       }
@@ -123,7 +122,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
       setCurrentPrompt({
         name: '',
         content: '',
-        schema_name: undefined,
+        schema_id: undefined,
         schema_version: undefined,
         tag_ids: [],
         model: undefined
@@ -278,7 +277,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
                   setCurrentPrompt({
                     name: '',
                     content: '',
-                    schema_name: undefined,
+                    schema_id: undefined,
                     schema_version: undefined,
                     tag_ids: [],
                     model: undefined

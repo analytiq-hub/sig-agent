@@ -1050,7 +1050,7 @@ async def delete_schema(
     if schema["created_by"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this schema")
     
-    # Check for dependent prompts by schema_id instead of schema_name
+    # Check for dependent prompts by schema_id
     dependent_prompts = await db.prompts.find({
         "schema_id": schema["schema_id"],
         "organization_id": organization_id
@@ -1223,7 +1223,6 @@ async def create_prompt(
         "prompt_id": prompt_id,  # Add stable identifier
         "content": prompt.content,
         "schema_id": prompt.schema_id,
-        "schema_name": prompt.schema_name,
         "schema_version": prompt.schema_version,
         "prompt_version": new_prompt_version,
         "created_at": datetime.now(UTC),
@@ -1358,15 +1357,15 @@ async def update_prompt(
         raise HTTPException(status_code=404, detail="Prompt not found")
     
     # Only verify schema if one is specified
-    if prompt.schema_name and prompt.schema_version:
+    if prompt.schema_id and prompt.schema_version:
         schema = await db.schemas.find_one({
-            "name": prompt.schema_name,
+            "schema_id": prompt.schema_id,
             "schema_version": prompt.schema_version  # Changed field name
         })
         if not schema:
             raise HTTPException(
                 status_code=404,
-                detail=f"Schema {prompt.schema_name} version {prompt.schema_version} not found"
+                detail=f"Schema id {prompt.schema_id} version {prompt.schema_version} not found"
             )
 
     # Validate model exists
@@ -1403,9 +1402,7 @@ async def update_prompt(
             raise HTTPException(
                 status_code=404,
                 detail=f"Schema with ID {prompt.schema_id} version {prompt.schema_version} not found"
-            )
-        prompt.schema_name = schema["name"]
-    
+            )    
     
     # Check if only the name has changed
     only_name_changed = (
@@ -1442,7 +1439,6 @@ async def update_prompt(
         "prompt_id": existing_prompt["prompt_id"],  # Preserve stable identifier
         "content": prompt.content,
         "schema_id": prompt.schema_id,
-        "schema_name": prompt.schema_name,
         "schema_version": prompt.schema_version,
         "prompt_version": new_prompt_version,
         "created_at": datetime.now(UTC),

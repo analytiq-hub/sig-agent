@@ -110,7 +110,6 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         content: selectedPrompt.content,
         schema_id: selectedPrompt.schema_id,
         schema_version: selectedPrompt.schema_version,
-        schema_name: selectedPrompt.schema_name,
         tag_ids: selectedPrompt.tag_ids,
         model: selectedPrompt.model
       };
@@ -226,6 +225,14 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     }
   };
 
+  const getSchemaName = async (schemaId: string, schemaVersion: number) => {
+    const schemasResponse = await listSchemasApi({
+      organizationId: organizationId
+    });
+    const schema = schemasResponse.schemas.find(s => s.id === schemaId && s.schema_version === schemaVersion);
+    return schema ? `${schema.name}:v${schema.schema_version}` : '-';
+  };  
+
   // Add filtered prompts
   const filteredPrompts = prompts.filter(prompt =>
     prompt.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -258,18 +265,22 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       ),
     },
     {
-      field: 'schema_name',
+      field: 'schema_id',
       headerName: 'Schema',
       width: 150,
       headerAlign: 'left',
       align: 'left',
-      renderCell: (params) => (
-        <div className="text-gray-600 flex items-center h-full">
-          {params.row.schema_name 
-            ? `${params.row.schema_name}:v${params.row.schema_version}`
-            : '-'}
-        </div>
-      ),
+      renderCell: (params) => {
+        // Retrieve schema name using schema_id and schema_version from cache or state
+        const schemaName = getSchemaName(params.row.schema_id, params.row.schema_version);
+        return (
+          <div className="text-gray-600 flex items-center h-full">
+            {params.row.schema_id 
+              ? `${schemaName}:v${params.row.schema_version}`
+              : '-'}
+          </div>
+        );
+      },
     },
     {
       field: 'model',

@@ -8,7 +8,6 @@ export interface PromptConfig {
   content: string;
   schema_id?: string;
   schema_version?: number;
-  schema_name?: string;
   tag_ids?: string[];
   model?: string;
 }
