@@ -32,35 +32,69 @@ This rename better reflects that:
 
 #### 1.2 Schema Adjustments
 
-Add a new boolean field to support templates:
+Add a simple boolean field to indicate templates:
 ```json
 {
   "is_template": true|false,
-  "template_id": "optional_id_of_parent_template"
+  "source": "system"|"user"  // For tracking template origin
 }
 ```
 
 ### 2. API Changes
 
-Update all API endpoints to reflect the new naming conventions:
+#### 2.1 Endpoint Structure
+
+Maintain backward compatibility with naming while adding template functionality:
 
 ```
-/v0/orgs/{organization_id}/prompts → no change (maintains backward compatibility)
-/v0/orgs/{organization_id}/prompt_templates → new endpoint for templates
+# Existing endpoints remain unchanged
+/v0/orgs/{organization_id}/prompts
+/v0/orgs/{organization_id}/prompts/{prompt_id}
+
+# New template endpoints
+/v0/orgs/{organization_id}/prompt_templates
+/v0/orgs/{organization_id}/prompt_templates/{template_id}
 ```
 
-API changes will be minimal, focusing on:
-- Adding template-related query parameters to existing endpoints
-- Creating new endpoints for template management
-- Maintaining backward compatibility in function names and parameters
+#### 2.2 API Specifications
+
+**Template Endpoints:**
+
+```
+GET /v0/orgs/{organization_id}/prompt_templates
+- Lists all available templates
+- Query params: skip, limit, tag_ids
+- Response: ListTemplatesResponse (same structure as ListPromptsResponse)
+
+GET /v0/orgs/{organization_id}/prompt_templates/{template_id}
+- Gets a specific template with full content
+- Response: PromptTemplate model (same structure as Prompt)
+
+POST /v0/orgs/{organization_id}/prompt_templates
+- Creates a new user template
+- Body: PromptTemplateConfig
+- Only for user-created templates
+
+DELETE /v0/orgs/{organization_id}/prompt_templates/{template_id}
+- Deletes a user template
+- Cannot delete system templates
+```
+
+**Modified Endpoints:**
+
+```
+POST /v0/orgs/{organization_id}/prompts
+- Add optional query param: from_template={template_id}
+- Creates a copy of the template as a new prompt without tracking relationship
+```
 
 ### 3. Frontend Changes
 
 #### 3.1 UI Components
 
-- Update `Prompts.tsx` to add template filtering options
-- Create a new `PromptTemplates.tsx` component for template management
-- Add template selection UI when creating new prompts
+- Add a `PromptTemplates.tsx` component for browsing templates
+- Add template selection in prompt creation flow
+- Create a "Use Template" button that pre-fills prompt creation form
 
 #### 3.2 TypeScript Types
 
@@ -74,7 +108,24 @@ export interface PromptConfig {
   tag_ids?: string[];
   model?: string;
   is_template?: boolean;
-  template_id?: string;
+  source?: 'system' | 'user';
+}
+
+export interface PromptTemplateConfig extends PromptConfig {
+  is_template: true;
+}
+
+// Add template-specific API interfaces
+export interface ListTemplatesParams {
+  organizationId: string;
+  skip?: number;
+  limit?: number;
+  tag_ids?: string;
+}
+
+export interface GetTemplateParams {
+  organizationId: string;
+  templateId: string;
 }
 ```
 
@@ -92,16 +143,21 @@ class PromptConfig(BaseModel):
     tag_ids: List[str] = []
     model: str = "gpt-4o-mini"
     is_template: bool = False
-    template_id: Optional[str] = None
+    source: Literal["system", "user"] = "user"
 
 # Add template methods to backend/docrouter_client/api/prompts.py
-def list_templates(self, organization_id: str, ...) -> ListPromptsResponse:
-    """List prompt templates"""
-    ...
+class PromptTemplatesAPI:
+    def list(self, organization_id: str, skip: int = 0, limit: int = 10, tag_ids: List[str] = None) -> ListTemplatesResponse:
+        """List prompt templates"""
+        ...
 
-def instantiate_from_template(self, organization_id: str, template_id: str, ...) -> Prompt:
-    """Create a prompt from a template"""
-    ...
+    def get(self, organization_id: str, template_id: str) -> PromptTemplate:
+        """Get a specific prompt template"""
+        ...
+
+    def create_from_template(self, organization_id: str, template_id: str, name: str) -> Prompt:
+        """Create a prompt from a template"""
+        ...
 ```
 
 ### 5. Git-Based Templates
@@ -112,7 +168,18 @@ Implement system for loading templates from Git repository:
 /templates/prompts/*.json → Stores templates as JSON files
 ```
 
-Add startup code in `lifespan` function to load templates:
+Template JSON format:
+```json
+{
+  "name": "Template Name",
+  "content": "Template content with {{variables}}",
+  "schema_id": "optional-schema-id", 
+  "model": "gpt-4o-mini",
+  "tag_ids": ["tag1", "tag2"]
+}
+```
+
+Add startup code to load templates:
 ```python
 async def lifespan(app):
     # Existing startup code
@@ -124,23 +191,24 @@ async def lifespan(app):
     
     # Existing shutdown code
 ```
-
 ### 6. Unit Tests
 
-Update existing tests in `backend/tests/test_prompts.py`:
-- Rename references to prompt collections
-- Add tests for template functionality
+Update existing tests and add new ones:
+- Update collection references from `prompts` to `prompt_definitions`
+- Add tests for template listing and retrieval
+- Add tests for template instantiation 
 - Add tests for Git-based template loading
+- Test system vs. user template permissions
 
 ## Implementation Plan
 
 1. Create database migration for collection renaming
-2. Update models and database access code
-3. Add template functionality
+2. Add is_template and source fields
+3. Implement template API endpoints
 4. Implement Git-based template loading
-5. Update frontend components
+5. Create template UI components
 6. Update docrouter_client
-7. Update unit tests
+7. Add template unit tests
 8. Deploy with backward compatibility
 
 ## Risk Assessment
@@ -148,16 +216,15 @@ Update existing tests in `backend/tests/test_prompts.py`:
 Low-risk changes:
 - Collection renaming (done via migration)
 - Adding template fields (optional fields)
+- Simple CRUD operations for templates
 
 Medium-risk changes:
 - Git integration for templates
-- Frontend UI changes
+- Template instantiation logic
+- Frontend template selection UI
 
 ## Conclusion
 
-This refactoring is feasible with minimal schema changes. The primary changes involve:
-1. Renaming collections to better reflect their purpose
-2. Adding template functionality through optional fields
-3. Implementing Git-based template storage
+This refactoring is feasible with minimal schema changes. By simply marking templates with a boolean flag rather than tracking parent-child relationships, we maintain a clean data model while adding powerful template functionality.
 
-The changes maintain backward compatibility while improving the system's extensibility and clarity.
+The implementation separates templates from regular prompts via API endpoints rather than complex database relationships, making the system easier to understand and maintain.
