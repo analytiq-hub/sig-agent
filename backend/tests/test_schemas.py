@@ -359,6 +359,7 @@ async def test_schema_version_deletion(test_db, mock_auth):
         original_schema = create_response.json()
         original_id = original_schema["id"]
         original_schema_id = original_schema["schema_id"]  # This is the stable identifier
+        original_schema_version = original_schema["schema_version"]
         
         # Step 2: Update the schema with a new name and fields
         updated_schema_data = {
@@ -401,15 +402,16 @@ async def test_schema_version_deletion(test_db, mock_auth):
         updated_schema = update_response.json()
         updated_id = updated_schema["id"]
         updated_schema_id = updated_schema["schema_id"]
-        
+
         # Verify both versions exist and have the same schema_id but different names
         assert original_id != updated_id  # Different MongoDB _id
         assert original_schema_id == updated_schema_id  # Same stable identifier
+        assert original_schema_version + 1 == updated_schema["schema_version"]  # Same stable identifier
         assert original_schema["name"] != updated_schema["name"]  # Different names
         
         # Step 3: Check if both versions exist in the database
         db_schemas = await test_db.schemas.find({
-            "schema_id": original_schema_id
+            "schema_id": original_schema["schema_id"]
         }).to_list(None)
         
         assert len(db_schemas) == 2, "Should have two versions of the schema"
@@ -424,14 +426,14 @@ async def test_schema_version_deletion(test_db, mock_auth):
         
         # Step 5: Verify both versions are deleted from the database
         remaining_schemas = await test_db.schemas.find({
-            "schema_id": original_schema_id
+            "schema_id": original_schema["schema_id"]
         }).to_list(None)
         
         assert len(remaining_schemas) == 0, "All versions of the schema should be deleted"
         
         # Step 6: Check that the version counter is also deleted
         version_counter = await test_db.schema_versions.find_one({
-            "_id": original_schema_id
+            "_id": original_schema["schema_id"]
         })
         
         assert version_counter is None, "Version counter should be deleted"
@@ -488,6 +490,7 @@ async def test_schema_latest_version_listing(test_db, mock_auth):
         original_schema = create_response.json()
         original_id = original_schema["id"]
         original_schema_id = original_schema["schema_id"]
+        original_schema_version = original_schema["schema_version"]
         
         # Step 2: Update the schema with a new name
         renamed_schema_data = {
@@ -533,7 +536,7 @@ async def test_schema_latest_version_listing(test_db, mock_auth):
         assert "schemas" in list_data
         
         # Find schemas with our schema_id
-        matching_schemas = [s for s in list_data["schemas"] if s["schema_id"] == original_schema_id]
+        matching_schemas = [s for s in list_data["schemas"] if s["schema_id"] == original_schema["schema_id"]]
         
         # Verify we only have one result for our schema_id
         assert len(matching_schemas) == 1, "Should only return latest version in listing"
@@ -592,7 +595,7 @@ async def test_schema_name_only_update(test_db, mock_auth):
         original_schema = create_response.json()
         original_id = original_schema["id"]
         original_schema_id = original_schema["schema_id"]
-        original_version = original_schema["version"]
+        original_schema_version = original_schema["schema_version"]
         
         # Step 2: Update only the name
         name_update_data = {
@@ -609,11 +612,12 @@ async def test_schema_name_only_update(test_db, mock_auth):
         assert update_response.status_code == 200
         updated_schema = update_response.json()
         updated_id = updated_schema["id"]
-        updated_version = updated_schema["version"]
+        updated_schema_version = updated_schema["schema_version"]
         
         # Verify the ID remains the same (no new version created)
         assert original_id == updated_id, "ID should remain the same for name-only updates"
-        assert original_version == updated_version, "Version should remain the same for name-only updates"
+        assert original_schema_id == updated_schema["schema_id"]
+        assert original_schema_version == updated_schema_version, "Version should remain the same for name-only updates"
         assert updated_schema["name"] == "Updated Schema Name", "Name should be updated"
         
         # Step 3: Verify only one version exists in the database
@@ -659,12 +663,12 @@ async def test_schema_name_only_update(test_db, mock_auth):
         assert content_update_response.status_code == 200
         content_updated_schema = content_update_response.json()
         content_updated_id = content_updated_schema["id"]
-        content_updated_version = content_updated_schema["version"]
+        content_updated_version = content_updated_schema["schema_version"]
         
         # Verify a new version was created
         assert original_id != content_updated_id, "ID should change for content updates"
-        assert original_version != content_updated_version, "Version should increase for content updates"
-        assert content_updated_version > original_version, "Version should increase for content updates"
+        assert original_schema_version != content_updated_version, "Version should increase for content updates"
+        assert content_updated_version > original_schema_version, "Version should increase for content updates"
         
         # Step 5: Verify two versions exist in the database
         db_schemas_after = await test_db.schemas.find({

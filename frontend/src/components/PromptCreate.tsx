@@ -58,12 +58,12 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
           });
           setSelectedSchemaDetails(schema);
           // Update currentPrompt with the schema_id and version
-          setCurrentPrompt(prev => ({
-            ...prev,
+          setCurrentPrompt({
+            ...currentPrompt,
             schema_id: schema.schema_id,
-            schema_version: schema.version,
+            schema_version: schema.schema_version,
             schema_name: schema.name // Keep schema_name for backward compatibility
-          }));
+          });
         }
       } catch (error) {
         console.error('Error fetching schema details:', error);
@@ -398,7 +398,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
             {selectedSchemaDetails && (
               <div className="w-1/2 p-4 bg-gray-50 rounded-md">
                 <h3 className="text-sm font-medium text-gray-700 mb-2">
-                  Schema: {selectedSchemaDetails.name} (v{selectedSchemaDetails.version})
+                  Schema: {selectedSchemaDetails.name} (v{selectedSchemaDetails.schema_version})
                 </h3>
                 <div className="space-y-1">
                   {jsonSchemaToFields(selectedSchemaDetails.response_format).map((field, index) => (
@@ -422,10 +422,10 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
               <div className="mt-2">
                 <div className="font-semibold">Dependent prompts:</div>
                 <ul className="list-disc pl-5">
-                  {(JSON.parse(message.split('dependent prompts:')[1]) as Array<{name: string; version: number}>)
+                  {(JSON.parse(message.split('dependent prompts:')[1]) as Array<{name: string; schema_version: number}>)
                     .map((prompt, idx) => (
                       <li key={idx}>
-                        {prompt.name} (v{prompt.version})
+                        {prompt.name} (v{prompt.schema_version})
                       </li>
                     ))}
                 </ul>

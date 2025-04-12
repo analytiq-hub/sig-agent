@@ -464,7 +464,7 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
         ad.log.info(f"Schema created: {schema_response}")
         
         schema_id = schema_response.schema_id
-        schema_version = schema_response.version
+        schema_version = schema_response.schema_version
         schema_id2 = schema_response.id
         
         # Step 2: Create a prompt

@@ -244,14 +244,14 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       },
     },
     {
-      field: 'version',
+      field: 'schema_version',
       headerName: 'Version',
       width: 100,
       headerAlign: 'left',
       align: 'left',
       renderCell: (params) => (
         <div className="text-gray-600">
-          v{params.row.version}
+          v{params.row.schema_version}
         </div>
       ),
     },

@@ -162,7 +162,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         });
         
         const matchingSchema = schemasResponse.schemas.find(
-          schema => schema.schema_id === prompt.schema_id && schema.version === prompt.schema_version
+          schema => schema.schema_id === prompt.schema_id && schema.schema_version === prompt.schema_version
         );
         
         if (!matchingSchema) {

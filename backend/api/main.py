@@ -831,11 +831,11 @@ async def get_next_schema_version(schema_id: str) -> int:
     db = ad.common.get_async_db()
     result = await db.schema_versions.find_one_and_update(
         {"_id": schema_id},
-        {"$inc": {"version": 1}},
+        {"$inc": {"schema_version": 1}},  # Change field name
         upsert=True,
         return_document=True
     )
-    return result["version"]
+    return result["schema_version"]  # Change field name
 
 # Schema management endpoints
 @app.post("/v0/orgs/{organization_id}/schemas", response_model=Schema, tags=["schemas"])
@@ -860,14 +860,14 @@ async def create_schema(
         schema_id = schema.name.lower().replace(" ", "_")
     
     # Get the next version
-    new_version = await get_next_schema_version(schema_id)
+    new_schema_version = await get_next_schema_version(schema_id)
     
     # Create schema document
     schema_dict = {
         "name": existing_schema["name"] if existing_schema else schema.name,
         "schema_id": schema_id,
         "response_format": schema.response_format.model_dump(),
-        "version": new_version,
+        "schema_version": new_schema_version,
         "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
         "organization_id": organization_id,
@@ -974,9 +974,15 @@ async def update_schema(
     if not existing_schema:
         raise HTTPException(status_code=404, detail="Schema not found")
     
-    # Check if user has permission to update
-    if existing_schema["created_by"] != current_user.user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to update this schema")
+    # Check if user is a member of the organization
+    # This ensures only organization members can update schemas
+    org = await db.organizations.find_one({"_id": ObjectId(organization_id)})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    # Check if user is a member of the organization
+    if not any(member["user_id"] == current_user.user_id for member in org["members"]):
+        raise HTTPException(status_code=403, detail="Not authorized to update schemas in this organization")
     
     # Check if only the name has changed
     only_name_changed = (
@@ -1008,7 +1014,7 @@ async def update_schema(
         "name": schema.name,
         "schema_id": existing_schema["schema_id"],  # Preserve stable identifier
         "response_format": schema.response_format.model_dump(),
-        "version": new_version,
+        "schema_version": new_version,  # Change field name
         "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
         "organization_id": organization_id,
@@ -1053,7 +1059,7 @@ async def delete_schema(
     if dependent_prompts:
         # Format the list of dependent prompts
         prompt_list = [
-            {"name": p["name"], "version": p["version"]} 
+            {"name": p["name"], "schema_version": p["schema_version"]} 
             for p in dependent_prompts
         ]
         raise HTTPException(
@@ -1169,7 +1175,7 @@ async def create_prompt(
     if prompt.schema_id and prompt.schema_version:
         schema = await db.schemas.find_one({
             "schema_id": prompt.schema_id,
-            "version": prompt.schema_version,
+            "schema_version": prompt.schema_version,  # Changed field name
             "organization_id": organization_id
         })
         if not schema:
@@ -1355,7 +1361,7 @@ async def update_prompt(
     if prompt.schema_name and prompt.schema_version:
         schema = await db.schemas.find_one({
             "name": prompt.schema_name,
-            "version": prompt.schema_version
+            "schema_version": prompt.schema_version  # Changed field name
         })
         if not schema:
             raise HTTPException(
@@ -1391,7 +1397,7 @@ async def update_prompt(
     if prompt.schema_id and prompt.schema_version:
         schema = await db.schemas.find_one({
             "schema_id": prompt.schema_id,
-            "version": prompt.schema_version
+            "schema_version": prompt.schema_version  # Changed field name
         })
         if not schema:
             raise HTTPException(
@@ -1673,7 +1679,7 @@ async def create_flow(
             "nodes": jsonable_encoder(flow.nodes),
             "edges": jsonable_encoder(flow.edges),
             "tag_ids": flow.tag_ids,
-            "version": 1,
+            "flow_version": 1,
             "created_at": datetime.now(UTC),
             "created_by": current_user.user_name,
             "organization_id": organization_id  # Add organization_id
@@ -1723,7 +1729,7 @@ async def list_flows(
             "nodes": flow["nodes"],
             "edges": flow["edges"],
             "tag_ids": flow.get("tag_ids", []),
-            "version": flow.get("version", 1),
+            "flow_version": flow.get("flow_version", 1),
             "created_at": flow["created_at"],
             "created_by": flow["created_by"]
         }
@@ -1764,7 +1770,7 @@ async def get_flow(
             "nodes": flow["nodes"],
             "edges": flow["edges"],
             "tag_ids": flow.get("tag_ids", []),
-            "version": flow.get("version", 1),
+            "flow_version": flow.get("flow_version", 1),
             "created_at": flow["created_at"],
             "created_by": flow["created_by"]
         }
@@ -1841,7 +1847,7 @@ async def update_flow(
             "nodes": jsonable_encoder(flow.nodes),
             "edges": jsonable_encoder(flow.edges),
             "tag_ids": flow.tag_ids,
-            "version": existing_flow.get("version", 1) + 1,
+            "flow_version": existing_flow.get("flow_version", 1) + 1,
             "updated_at": datetime.now(UTC)
         }
         
@@ -1862,7 +1868,7 @@ async def update_flow(
             "nodes": result["nodes"],
             "edges": result["edges"],
             "tag_ids": result.get("tag_ids", []),
-            "version": result["version"],
+            "flow_version": result["flow_version"],
             "created_at": result["created_at"],
             "created_by": result["created_by"]
         })

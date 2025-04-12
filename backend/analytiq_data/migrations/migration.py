@@ -665,6 +665,52 @@ class RenamePromptVersion(Migration):
             ad.log.error(f"Migration revert failed: {e}")
             return False
 
+# Add a migration to rename 'version' to 'schema_version' in schemas collection
+class RenameSchemaVersion(Migration):
+    def __init__(self):
+        super().__init__(description="Rename version to schema_version in schemas collection")
+    
+    async def up(self, db) -> bool:
+        try:
+            # Update all documents in schemas collection
+            async for schema in db.schemas.find({}):
+                await db.schemas.update_one(
+                    {"_id": schema["_id"]},
+                    {"$rename": {"version": "schema_version"}}
+                )
+            
+            # Update all documents in schema_versions collection
+            async for doc in db.schema_versions.find({}):
+                await db.schema_versions.update_one(
+                    {"_id": doc["_id"]},
+                    {"$rename": {"version": "schema_version"}}
+                )
+            
+            return True
+        except Exception as e:
+            ad.log.error(f"Schema version rename migration failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        try:
+            # Revert changes
+            async for schema in db.schemas.find({}):
+                await db.schemas.update_one(
+                    {"_id": schema["_id"]},
+                    {"$rename": {"schema_version": "version"}}
+                )
+            
+            async for doc in db.schema_versions.find({}):
+                await db.schema_versions.update_one(
+                    {"_id": doc["_id"]},
+                    {"$rename": {"schema_version": "version"}}
+                )
+            
+            return True
+        except Exception as e:
+            ad.log.error(f"Schema version rename migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -674,6 +720,7 @@ MIGRATIONS = [
     RemoveSchemaFormatField(),
     AddStableIdentifiers(),
     RenamePromptVersion(),
+    RenameSchemaVersion(),
     # Add more migrations here
 ]
 

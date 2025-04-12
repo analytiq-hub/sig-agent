@@ -26,7 +26,7 @@ export interface Schema {
   schema_id: string;  // Stable identifier
   name: string;
   response_format: ResponseFormat;
-  version: number;
+  schema_version: number;
   created_at: string;
   created_by: string;
 }

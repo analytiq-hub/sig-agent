@@ -176,7 +176,7 @@ class SchemaConfig(BaseModel):
 class Schema(SchemaConfig):
     id: str           # MongoDB's _id
     schema_id: str    # Stable identifier
-    version: int
+    schema_version: int
     created_at: datetime
     created_by: str
 
