@@ -58,12 +58,12 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
           });
           setSelectedSchemaDetails(schema);
           // Update currentPrompt with the schema_id and version
-          setCurrentPrompt({
-            ...currentPrompt,
+          setCurrentPrompt(prev => ({
+            ...prev,
             schema_id: schema.schema_id,
             schema_version: schema.schema_version,
-            schema_name: schema.name // Keep schema_name for backward compatibility
-          });
+            schema_name: schema.name
+          }));
         }
       } catch (error) {
         console.error('Error fetching schema details:', error);

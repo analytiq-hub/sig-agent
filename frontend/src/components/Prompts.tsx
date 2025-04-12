@@ -205,7 +205,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       // Create a temporary anchor element to trigger the download
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${prompt.name.replace(/\s+/g, '_')}_v${prompt.version}.json`;
+      a.download = `${prompt.name.replace(/\s+/g, '_')}_v${prompt.prompt_version}.json`;
       
       // Append to the document, click, and remove
       document.body.appendChild(a);
