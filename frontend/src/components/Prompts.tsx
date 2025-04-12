@@ -323,13 +323,13 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           params.row.tag_ids?.includes(tag.id)
         );
         return (
-          <div className="flex gap-1 flex-wrap">
+          <div className="flex gap-1 flex-wrap items-center h-full">
             {promptTags.map(tag => (
               <div
                 key={tag.id}
                 className={`px-2 py-1 rounded text-xs ${
                   isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
-                }`}
+                } flex items-center`}
                 style={{ backgroundColor: tag.color }}
               >
                 {tag.name}

@@ -300,14 +300,14 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       renderCell: (params) => {
         const documentTags = tags.filter(tag => params.row.tag_ids?.includes(tag.id));
         return (
-          <div className="flex gap-1 flex-wrap">
+          <div className="flex gap-1 flex-wrap items-center h-full">
             {documentTags.map(tag => {
               const bgColor = tag.color || colors.blue[500];
               const textColor = isColorLight(bgColor) ? 'text-gray-800' : 'text-white';
               return (
                 <div 
                   key={tag.id}
-                  className={`px-2 py-1 leading-none rounded shadow-sm ${textColor}`}
+                  className={`px-2 py-1 leading-none rounded shadow-sm ${textColor} flex items-center`}
                   style={{ backgroundColor: bgColor }}
                 >
                   {tag.name}
