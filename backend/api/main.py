@@ -826,16 +826,38 @@ async def delete_llm_result(
     return {"status": "success", "message": "LLM result deleted"}
 
 # Add this helper function near the top of the file with other functions
-async def get_next_schema_version(schema_id: str) -> int:
-    """Atomically get the next version number for a schema"""
+async def get_schema_id_and_version(schema_id: Optional[str] = None) -> tuple[str, int]:
+    """
+    Get the next version for an existing schema or create a new schema identifier.
+    
+    Args:
+        schema_id: Existing schema ID, or None to create a new one
+        
+    Returns:
+        Tuple of (schema_id, schema_version)
+    """
     db = ad.common.get_async_db()
-    result = await db.schema_versions.find_one_and_update(
-        {"_id": schema_id},
-        {"$inc": {"schema_version": 1}},  # Change field name
-        upsert=True,
-        return_document=True
-    )
-    return result["schema_version"]  # Change field name
+
+    if schema_id is None:
+        # Insert a placeholder document to get MongoDB-generated ID
+        result = await db.schema_versions.insert_one({
+            "schema_version": 1
+        })
+        
+        # Use the MongoDB-assigned _id as our schema_id
+        schema_id = str(result.inserted_id)
+        schema_version = 1
+    else:
+        # Get the next version for an existing schema
+        result = await db.schema_versions.find_one_and_update(
+            {"_id": ObjectId(schema_id)},
+            {"$inc": {"schema_version": 1}},
+            upsert=True,
+            return_document=True
+        )
+        schema_version = result["schema_version"]
+    
+    return schema_id, schema_version
 
 # Schema management endpoints
 @app.post("/v0/orgs/{organization_id}/schemas", response_model=Schema, tags=["schemas"])
@@ -853,19 +875,17 @@ async def create_schema(
         "organization_id": organization_id
     })
 
-    # Create or use existing schema_id
+    # Generate schema_id and version
     if existing_schema and "schema_id" in existing_schema:
-        schema_id = existing_schema["schema_id"]
+        schema_id, new_schema_version = await get_schema_id_and_version(existing_schema["schema_id"])
     else:
-        schema_id = schema.name.lower().replace(" ", "_")
-    
-    # Get the next version
-    new_schema_version = await get_next_schema_version(schema_id)
+        # Generate a new schema_id when creating a new schema
+        schema_id, new_schema_version = await get_schema_id_and_version(None)
     
     # Create schema document
     schema_dict = {
         "name": existing_schema["name"] if existing_schema else schema.name,
-        "schema_id": schema_id,
+        "schema_id": schema_id,  # This was None before
         "response_format": schema.response_format.model_dump(),
         "schema_version": new_schema_version,
         "created_at": datetime.now(UTC),
@@ -1007,7 +1027,7 @@ async def update_schema(
     
     # If other fields changed, create a new version
     # Atomically get the next version number using the stable schema_id
-    new_version = await get_next_schema_version(existing_schema["schema_id"])
+    _, new_version = await get_schema_id_and_version(existing_schema["schema_id"])
     
     # Create new version of the schema
     new_schema = {
@@ -1149,17 +1169,38 @@ def validate_schema_fields(fields: list) -> tuple[bool, str]:
         seen.add(name)
     return True, ""
 
-# Add this helper function near get_next_schema_version
-async def get_next_prompt_version(prompt_id: str) -> int:
-    """Atomically get the next version number for a prompt"""
+async def get_prompt_id_and_version(prompt_id: Optional[str] = None) -> tuple[str, int]:
+    """
+    Get the next version for an existing prompt or create a new prompt identifier.
+    
+    Args:
+        prompt_id: Existing prompt ID, or None to create a new one
+        
+    Returns:
+        Tuple of (prompt_id, prompt_version)
+    """
     db = ad.common.get_async_db()
-    result = await db.prompt_versions.find_one_and_update(
-        {"_id": prompt_id},
-        {"$inc": {"prompt_version": 1}},  # Change field name
-        upsert=True,
+    
+    if prompt_id is None:
+        # Insert a placeholder document to get MongoDB-generated ID
+        temp_result = await db.prompt_versions.insert_one({
+            "prompt_version": 1
+        })
+        
+        # Use the MongoDB-assigned _id as our prompt_id
+        prompt_id = str(temp_result.inserted_id)
+        prompt_version = 1
+    else:
+        # Get the next version for an existing prompt
+        result = await db.prompt_versions.find_one_and_update(
+            {"_id": ObjectId(prompt_id)},
+            {"$inc": {"prompt_version": 1}},
+            upsert=True,
         return_document=True
     )
-    return result["prompt_version"]  # Change field name
+        prompt_version = result["prompt_version"]
+    
+    return prompt_id, prompt_version
 
 # Prompt management endpoints
 @app.post("/v0/orgs/{organization_id}/prompts", response_model=Prompt, tags=["prompts"])
@@ -1211,11 +1252,18 @@ async def create_prompt(
         if prompt.schema_id and 'schema' in locals():
             prompt.schema_id = schema["schema_id"]
 
-    # Create a stable identifier for the prompt. TODO: This should be a UUID
-    prompt_id = prompt.name.lower().replace(" ", "_")
-    
-    # Get the next version - modify to use prompt_id instead of name
-    new_prompt_version = await get_next_prompt_version(prompt_id)
+    prompt_name = prompt.name
+
+    # Does the prompt name already exist?
+    existing_prompt = await db.prompts.find_one({
+        "name": prompt_name,
+        "organization_id": organization_id
+    })
+
+    if existing_prompt:
+        prompt_id, new_prompt_version = await get_prompt_id_and_version(existing_prompt["prompt_id"])
+    else:
+        prompt_id, new_prompt_version = await get_prompt_id_and_version(None)
     
     # Create prompt document
     prompt_dict = {
@@ -1431,7 +1479,7 @@ async def update_prompt(
     
     # If other fields changed, create a new version
     # Get the next version number using the stable prompt_id
-    new_prompt_version = await get_next_prompt_version(existing_prompt["prompt_id"])
+    _, new_prompt_version = await get_prompt_id_and_version(existing_prompt["prompt_id"])
     
     # Create new version of the prompt
     new_prompt = {
