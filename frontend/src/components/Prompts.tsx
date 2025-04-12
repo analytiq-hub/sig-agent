@@ -248,7 +248,6 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     const schema = availableSchemas.find(
       s => s.schema_id === schemaId && s.schema_version === schemaVersion
     );
-    
     return schema ? schema.name : '-';
   };  
 
@@ -294,7 +293,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         const schemaName = getSchemaName(params.row.schema_id, params.row.schema_version);
         return (
           <div className="text-gray-600 flex items-center h-full">
-            {params.row.schema_id 
+            {(params.row.schema_id && (schemaName !== '-')) 
               ? `${schemaName}:v${params.row.schema_version}`
               : '-'}
           </div>

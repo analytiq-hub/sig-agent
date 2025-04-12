@@ -49,13 +49,19 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
     if (schemaId) {
       try {
-        // Find schema with matching schema_id
-        const schemaDoc = schemas.find(s => s.schema_id === schemaId);
-        if (schemaDoc) {
+        // Find schema with matching schema_id and highest schema_version
+        const matchingSchemas = schemas.filter(s => s.schema_id === schemaId);
+        if (matchingSchemas.length > 0) {
+          // Sort by schema_version in descending order and take the first one
+          const schemaDoc = matchingSchemas.sort((a, b) => 
+            (b.schema_version || 0) - (a.schema_version || 0)
+          )[0];
+          
           const schema = await getSchemaApi({ 
             organizationId: organizationId, 
             schemaId: schemaDoc.id 
           });
+
           setSelectedSchemaDetails(schema);
           // Update currentPrompt with the schema_id and version
           setCurrentPrompt(prev => ({
@@ -71,7 +77,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
     } else {
       setSelectedSchemaDetails(null);
     }
-  }, [schemas, organizationId, setMessage, setSelectedSchema, setSelectedSchemaDetails, setCurrentPrompt]);
+  }, [schemas, organizationId, setMessage, setSelectedSchema, setSelectedSchemaDetails, setCurrentPrompt])
 
   // Load editing prompt if available
   useEffect(() => {
@@ -99,6 +105,40 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
       setEditingPrompt(null);
     }
   }, [editingPrompt, setEditingPrompt, handleSchemaSelect]);
+
+  // Initialize schema details when form is loaded with a schema
+  useEffect(() => {
+    const initSchema = async () => {
+      if (currentPrompt.schema_id && schemas.length > 0) {
+        // Find schema with matching schema_id and highest schema_version
+        const matchingSchemas = schemas.filter(s => s.schema_id === currentPrompt.schema_id);
+        if (matchingSchemas.length > 0) {
+          // Sort by schema_version in descending order and take the first one
+          const schemaDoc = matchingSchemas.sort((a, b) => 
+            (b.schema_version || 0) - (a.schema_version || 0)
+          )[0];
+          
+          try {
+            const schema = await getSchemaApi({ 
+              organizationId: organizationId, 
+              schemaId: schemaDoc.id 
+            });
+            setSelectedSchemaDetails(schema);
+            // Ensure currentPrompt has the latest schema_version
+            setCurrentPrompt(prev => ({
+              ...prev,
+              schema_version: schema.schema_version
+            }));
+          } catch (error) {
+            console.error('Error fetching schema details:', error);
+            setMessage('Error: Unable to fetch schema details');
+          }
+        }
+      }
+    };
+    
+    initSchema();
+  }, [schemas, currentPrompt.schema_id, organizationId]);
 
   const savePrompt = async () => {
     try {
