@@ -456,6 +456,7 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
             }
         }
         
+        ad.log.info(f"Creating schema: {schema_data['name']}")
         schema_response = mock_docrouter_client.schemas.create(TEST_ORG_ID, schema_data)
         assert hasattr(schema_response, "id")
         assert schema_response.name == "Test Prompt Schema"
@@ -464,8 +465,7 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
         
         schema_id = schema_response.schema_id
         schema_version = schema_response.version
-        
-        ad.log.info(f"Schema created with ID: {schema_id} and version: {schema_version}")
+        schema_id2 = schema_response.id
         
         # Step 2: Create a prompt
         prompt_data = {
@@ -476,14 +476,18 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
             "content": "Extract information from the document."
         }
         
+        ad.log.info(f"Creating prompt: {prompt_data['name']}")
         create_response = mock_docrouter_client.prompts.create(TEST_ORG_ID, prompt_data)
         assert hasattr(create_response, "id")
         assert create_response.name == "Test Prompt"
         
         prompt_id = create_response.id
-        
+        ad.log.info(f"Prompt created: {create_response}")
+
         # Step 3: List prompts to verify it was created
+        ad.log.info(f"Listing prompts")
         list_response = mock_docrouter_client.prompts.list(TEST_ORG_ID)
+        ad.log.info(f"List prompts response: {list_response}")
         assert list_response.total_count > 0
         
         # Find our prompt in the list
@@ -492,7 +496,9 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
         assert created_prompt.name == "Test Prompt"
         
         # Step 4: Get the specific prompt to verify its content
+        ad.log.info(f"Getting prompt: {prompt_id}")
         get_response = mock_docrouter_client.prompts.get(TEST_ORG_ID, prompt_id)
+        ad.log.info(f"Get prompt response: {get_response}")
         assert get_response.id == prompt_id
         assert get_response.name == "Test Prompt"
         
@@ -503,15 +509,21 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
             "content": "Extract detailed information from the document."
         }
         
+        ad.log.info(f"Updating prompt: {prompt_id}")
         update_response = mock_docrouter_client.prompts.update(TEST_ORG_ID, prompt_id, update_data)
+        ad.log.info(f"Update prompt response: {update_response}")
         assert update_response.name == "Updated Test Prompt"
         
         # Step 6: Delete the prompt
+        ad.log.info(f"Deleting prompt: {prompt_id}")
         delete_response = mock_docrouter_client.prompts.delete(TEST_ORG_ID, prompt_id)
+        ad.log.info(f"Delete prompt response: {delete_response}")
         assert delete_response["message"] == "Prompt deleted successfully"
         
         # Step 7: Delete the schema
-        delete_schema_response = mock_docrouter_client.schemas.delete(TEST_ORG_ID, schema_id)
+        ad.log.info(f"Deleting schema: {schema_id}")
+        delete_schema_response = mock_docrouter_client.schemas.delete(TEST_ORG_ID, schema_id2)
+        ad.log.info(f"Delete schema response: {delete_schema_response}")
         assert delete_schema_response["message"] == "Schema deleted successfully"
         
     finally:
