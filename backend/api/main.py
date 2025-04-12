@@ -1149,11 +1149,11 @@ async def get_next_prompt_version(prompt_id: str) -> int:
     db = ad.common.get_async_db()
     result = await db.prompt_versions.find_one_and_update(
         {"_id": prompt_id},
-        {"$inc": {"version": 1}},
+        {"$inc": {"prompt_version": 1}},  # Change field name
         upsert=True,
         return_document=True
     )
-    return result["version"]
+    return result["prompt_version"]  # Change field name
 
 # Prompt management endpoints
 @app.post("/v0/orgs/{organization_id}/prompts", response_model=Prompt, tags=["prompts"])
@@ -1209,7 +1209,7 @@ async def create_prompt(
     prompt_id = prompt.name.lower().replace(" ", "_")
     
     # Get the next version - modify to use prompt_id instead of name
-    new_version = await get_next_prompt_version(prompt_id)
+    new_prompt_version = await get_next_prompt_version(prompt_id)
     
     # Create prompt document
     prompt_dict = {
@@ -1219,7 +1219,7 @@ async def create_prompt(
         "schema_id": prompt.schema_id,
         "schema_name": prompt.schema_name,
         "schema_version": prompt.schema_version,
-        "version": new_version,
+        "prompt_version": new_prompt_version,
         "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
         "tag_ids": prompt.tag_ids,
@@ -1428,7 +1428,7 @@ async def update_prompt(
     
     # If other fields changed, create a new version
     # Get the next version number using the stable prompt_id
-    new_version = await get_next_prompt_version(existing_prompt["prompt_id"])
+    new_prompt_version = await get_next_prompt_version(existing_prompt["prompt_id"])
     
     # Create new version of the prompt
     new_prompt = {
@@ -1438,7 +1438,7 @@ async def update_prompt(
         "schema_id": prompt.schema_id,
         "schema_name": prompt.schema_name,
         "schema_version": prompt.schema_version,
-        "version": new_version,
+        "prompt_version": new_prompt_version,
         "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
         "tag_ids": prompt.tag_ids,

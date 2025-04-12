@@ -620,6 +620,51 @@ class AddStableIdentifiers(Migration):
             ad.log.error(f"Migration revert failed: {e}")
             return False
 
+# Add migration to rename the 'version' field to 'prompt_version' in prompts collection
+class RenamePromptVersion(Migration):
+    def __init__(self):
+        super().__init__(description="Rename version field to prompt_version in prompts collection")
+
+    async def up(self, db) -> bool:
+        try:
+            # Update all documents in prompts collection
+            result = await db.prompts.update_many(
+                {},
+                [
+                    {
+                        "$set": {
+                            "prompt_version": "$version",
+                            "version": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            ad.log.info(f"Updated {result.modified_count} prompts")
+            return True
+        except Exception as e:
+            ad.log.error(f"Migration failed: {e}")
+            return False
+
+    async def down(self, db) -> bool:
+        try:
+            # Revert the changes
+            result = await db.prompts.update_many(
+                {},
+                [
+                    {
+                        "$set": {
+                            "version": "$prompt_version",
+                            "prompt_version": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            ad.log.info(f"Reverted {result.modified_count} prompts")
+            return True
+        except Exception as e:
+            ad.log.error(f"Migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -628,6 +673,7 @@ MIGRATIONS = [
     RenameJsonSchemaToResponseFormat(),
     RemoveSchemaFormatField(),
     AddStableIdentifiers(),
+    RenamePromptVersion(),
     # Add more migrations here
 ]
 

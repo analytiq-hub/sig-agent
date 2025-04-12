@@ -14,7 +14,7 @@ class PromptConfig(BaseModel):
 class Prompt(PromptConfig):
     id: str
     prompt_id: str
-    version: int
+    prompt_version: int
     created_at: datetime
     created_by: str
 

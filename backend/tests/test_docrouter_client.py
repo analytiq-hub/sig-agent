@@ -482,7 +482,10 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
         assert create_response.name == "Test Prompt"
         
         prompt_id = create_response.id
+        prompt_version = create_response.prompt_version
         ad.log.info(f"Prompt created: {create_response}")
+
+        assert prompt_version == 1
 
         # Step 3: List prompts to verify it was created
         ad.log.info(f"Listing prompts")

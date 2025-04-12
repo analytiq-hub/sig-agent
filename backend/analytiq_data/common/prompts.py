@@ -182,10 +182,10 @@ async def get_prompt_ids_by_tag_ids(analytiq_client, tag_ids: list[str], latest_
         for elem in elems2:
             # Get the prompt name and version
             prompt_name = elem["_id"]
-            prompt_version = elem["version"]
+            prompt_version = elem["prompt_version"]
             # Look for the prompt name and version in the list of prompts
             for elem in elems:
-                if elem["name"] == prompt_name and elem["version"] == prompt_version:
+                if elem["name"] == prompt_name and elem["prompt_version"] == prompt_version:
                     prompt_ids.append(str(elem["_id"]))
                     break
     

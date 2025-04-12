@@ -420,6 +420,7 @@ async def test_prompt_version_deletion(test_db, mock_auth):
         original_prompt = create_response.json()
         original_id = original_prompt["id"]
         original_prompt_id = original_prompt["prompt_id"]  # This is the stable identifier
+        original_prompt_version = original_prompt["prompt_version"]
         
         # Step 2: Update the prompt with a new name and content
         updated_prompt_data = {
@@ -439,10 +440,12 @@ async def test_prompt_version_deletion(test_db, mock_auth):
         updated_prompt = update_response.json()
         updated_id = updated_prompt["id"]
         updated_prompt_id = updated_prompt["prompt_id"]
+        updated_prompt_version = updated_prompt["prompt_version"]
         
         # Verify both versions exist and have the same prompt_id but different names
         assert original_id != updated_id  # Different MongoDB _id
         assert original_prompt_id == updated_prompt_id  # Same stable identifier
+        assert original_prompt_version+1 == updated_prompt_version  # Same stable identifier
         assert original_prompt["name"] != updated_prompt["name"]  # Different names
         
         # Step 3: Check if both versions exist in the database
@@ -514,6 +517,7 @@ async def test_prompt_latest_version_listing(test_db, mock_auth):
         original_prompt = create_response.json()
         original_id = original_prompt["id"]
         original_prompt_id = original_prompt["prompt_id"]
+        original_prompt_version = original_prompt["prompt_version"]
         
         # Step 2: Update the prompt with a new name
         renamed_prompt_data = {
@@ -591,7 +595,7 @@ async def test_prompt_name_only_update(test_db, mock_auth):
         original_prompt = create_response.json()
         original_id = original_prompt["id"]
         original_prompt_id = original_prompt["prompt_id"]
-        original_version = original_prompt["version"]
+        original_prompt_version = original_prompt["prompt_version"]
         
         # Step 2: Update only the name
         name_update_data = {
@@ -610,16 +614,17 @@ async def test_prompt_name_only_update(test_db, mock_auth):
         assert update_response.status_code == 200
         updated_prompt = update_response.json()
         updated_id = updated_prompt["id"]
-        updated_version = updated_prompt["version"]
+        updated_prompt_version = updated_prompt["prompt_version"]
         
         # Verify the ID remains the same (no new version created)
         assert original_id == updated_id, "ID should remain the same for name-only updates"
-        assert original_version == updated_version, "Version should remain the same for name-only updates"
+        assert original_prompt_version == updated_prompt_version, "Version should remain the same for name-only updates"
         assert updated_prompt["name"] == "Updated Prompt Name", "Name should be updated"
         
         # Step 3: Verify only one version exists in the database
         db_prompts = await test_db.prompts.find({
-            "prompt_id": original_prompt_id
+            "prompt_id": original_prompt_id,
+            "prompt_version": original_prompt_version
         }).to_list(None)
         
         assert len(db_prompts) == 1, "Should still have only one version of the prompt"
@@ -641,12 +646,12 @@ async def test_prompt_name_only_update(test_db, mock_auth):
         assert content_update_response.status_code == 200
         content_updated_prompt = content_update_response.json()
         content_updated_id = content_updated_prompt["id"]
-        content_updated_version = content_updated_prompt["version"]
+        content_updated_prompt_version = content_updated_prompt["prompt_version"]
         
         # Verify a new version was created
         assert original_id != content_updated_id, "ID should change for content updates"
-        assert original_version != content_updated_version, "Version should increase for content updates"
-        assert content_updated_version > original_version, "Version should increase for content updates"
+        assert original_prompt_version != content_updated_prompt_version, "Version should increase for content updates"
+        assert content_updated_prompt_version > original_prompt_version, "Version should increase for content updates"
         
         # Step 5: Verify two versions exist in the database
         db_prompts_after = await test_db.prompts.find({

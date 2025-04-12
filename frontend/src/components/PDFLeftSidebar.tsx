@@ -844,7 +844,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
               className="w-full min-h-[48px] flex items-center justify-between px-4 bg-gray-100/[0.6] hover:bg-gray-100/[0.8] transition-colors cursor-pointer"
             >
               <span className="text-sm text-gray-900">
-                {prompt.name} <span className="text-gray-500 text-xs">(v{prompt.version})</span>
+                {prompt.name} <span className="text-gray-500 text-xs">(v{prompt.prompt_version})</span>
               </span>
               <div className="flex items-center gap-2">
                 <div

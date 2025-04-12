@@ -198,7 +198,7 @@ class PromptConfig(BaseModel):
 class Prompt(PromptConfig):
     id: str           # MongoDB's _id
     prompt_id: str    # Stable identifier
-    version: int
+    prompt_version: int
     created_at: datetime
     created_by: str
 

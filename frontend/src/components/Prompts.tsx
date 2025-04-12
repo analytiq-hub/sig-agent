@@ -246,14 +246,14 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       ),
     },
     {
-      field: 'version',
+      field: 'prompt_version',
       headerName: 'Version',
       width: 100,
       headerAlign: 'left',
       align: 'left',
       renderCell: (params) => (
         <div className="text-gray-600 flex items-center h-full">
-          v{params.row.version}
+          v{params.row.prompt_version}
         </div>
       ),
     },
