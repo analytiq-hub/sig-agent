@@ -135,9 +135,6 @@ class PromptTemplatesAPI:
         """Get a specific prompt template"""
         ...
 
-    def create_from_template(self, organization_id: str, template_id: str, name: str) -> Prompt:
-        """Create a prompt from a template"""
-        ...
 ```
 
 ### 5. Git-Based Templates
