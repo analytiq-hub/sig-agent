@@ -22,13 +22,13 @@ Issues with the current approach:
 #### 1.1 Collection Renaming
 
 ```
-prompts → prompt_definitions
-prompt_versions → prompt_version_counters
+prompts → prompt_revisions
+prompt_versions → prompts
 ```
 
 This rename better reflects that:
-- `prompt_definitions` contains the actual content and implementation of each prompt version
-- `prompt_version_counters` simply tracks version numbers for each prompt ID
+- `prompt_revisions` contains the actual content and implementation of each prompt version
+- `prompts` simply tracks name and latest version number for each prompt ID
 
 #### 1.2 Schema Adjustments
 
@@ -36,7 +36,6 @@ Add a simple boolean field to indicate templates:
 ```json
 {
   "is_template": true|false,
-  "source": "system"|"user"  // For tracking template origin
 }
 ```
 
@@ -69,23 +68,6 @@ GET /v0/orgs/{organization_id}/prompt_templates
 GET /v0/orgs/{organization_id}/prompt_templates/{template_id}
 - Gets a specific template with full content
 - Response: PromptTemplate model (same structure as Prompt)
-
-POST /v0/orgs/{organization_id}/prompt_templates
-- Creates a new user template
-- Body: PromptTemplateConfig
-- Only for user-created templates
-
-DELETE /v0/orgs/{organization_id}/prompt_templates/{template_id}
-- Deletes a user template
-- Cannot delete system templates
-```
-
-**Modified Endpoints:**
-
-```
-POST /v0/orgs/{organization_id}/prompts
-- Add optional query param: from_template={template_id}
-- Creates a copy of the template as a new prompt without tracking relationship
 ```
 
 ### 3. Frontend Changes
@@ -108,7 +90,6 @@ export interface PromptConfig {
   tag_ids?: string[];
   model?: string;
   is_template?: boolean;
-  source?: 'system' | 'user';
 }
 
 export interface PromptTemplateConfig extends PromptConfig {
@@ -143,7 +124,6 @@ class PromptConfig(BaseModel):
     tag_ids: List[str] = []
     model: str = "gpt-4o-mini"
     is_template: bool = False
-    source: Literal["system", "user"] = "user"
 
 # Add template methods to backend/docrouter_client/api/prompts.py
 class PromptTemplatesAPI:
