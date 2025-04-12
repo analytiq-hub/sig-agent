@@ -840,7 +840,7 @@ async def get_schema_id_and_version(schema_id: Optional[str] = None) -> tuple[st
 
     if schema_id is None:
         # Insert a placeholder document to get MongoDB-generated ID
-        result = await db.schema_versions.insert_one({
+        result = await db.schema_revisions.insert_one({
             "schema_version": 1
         })
         
@@ -849,7 +849,7 @@ async def get_schema_id_and_version(schema_id: Optional[str] = None) -> tuple[st
         schema_version = 1
     else:
         # Get the next version for an existing schema
-        result = await db.schema_versions.find_one_and_update(
+        result = await db.schema_revisions.find_one_and_update(
             {"_id": ObjectId(schema_id)},
             {"$inc": {"schema_version": 1}},
             upsert=True,
@@ -870,7 +870,7 @@ async def create_schema(
     db = ad.common.get_async_db()
 
     # Check if schema with this name already exists (case-insensitive)
-    existing_schema = await db.schemas.find_one({
+    existing_schema = await db.schema_revisions.find_one({
         "name": {"$regex": f"^{schema.name}$", "$options": "i"},
         "organization_id": organization_id
     })
@@ -894,7 +894,7 @@ async def create_schema(
     }
     
     # Insert into MongoDB
-    result = await db.schemas.insert_one(schema_dict)
+    result = await db.schema_revisions.insert_one(schema_dict)
     
     # Return complete schema
     schema_dict["id"] = str(result.inserted_id)
@@ -942,7 +942,7 @@ async def list_schemas(
         }
     ]
     
-    result = await db.schemas.aggregate(pipeline).to_list(length=1)
+    result = await db.schema_revisions.aggregate(pipeline).to_list(length=1)
     result = result[0]
     
     total_count = result["total"][0]["count"] if result["total"] else 0
@@ -966,7 +966,7 @@ async def get_schema(
 ):
     """Get a schema"""
     db = ad.common.get_async_db()
-    schema = await db.schemas.find_one({
+    schema = await db.schema_revisions.find_one({
         "_id": ObjectId(schema_id),
         "organization_id": organization_id,
     })
@@ -987,7 +987,7 @@ async def update_schema(
     
     db = ad.common.get_async_db()
     # Get the existing schema with organization check
-    existing_schema = await db.schemas.find_one({
+    existing_schema = await db.schema_revisions.find_one({
         "_id": ObjectId(schema_id),
         "organization_id": organization_id,
     })
@@ -1012,14 +1012,14 @@ async def update_schema(
     
     if only_name_changed:
         # Update the name without creating a new version
-        result = await db.schemas.update_one(
+        result = await db.schema_revisions.update_one(
             {"_id": ObjectId(schema_id)},
             {"$set": {"name": schema.name}}
         )
         
         if result.modified_count > 0:
             # Return the updated schema
-            updated_schema = await db.schemas.find_one({"_id": ObjectId(schema_id)})
+            updated_schema = await db.schema_revisions.find_one({"_id": ObjectId(schema_id)})
             updated_schema["id"] = str(updated_schema.pop("_id"))
             return Schema(**updated_schema)
         else:
@@ -1041,7 +1041,7 @@ async def update_schema(
     }
     
     # Insert new version
-    result = await db.schemas.insert_one(new_schema)
+    result = await db.schema_revisions.insert_one(new_schema)
     
     # Return updated schema
     new_schema["id"] = str(result.inserted_id)
@@ -1058,7 +1058,7 @@ async def delete_schema(
     db = ad.common.get_async_db()
     
     # Get the schema first to check permissions
-    schema = await db.schemas.find_one({
+    schema = await db.schema_revisions.find_one({
         "_id": ObjectId(schema_id),
         "organization_id": organization_id,
     })
@@ -1071,7 +1071,7 @@ async def delete_schema(
         raise HTTPException(status_code=403, detail="Not authorized to delete this schema")
     
     # Check for dependent prompts by schema_id
-    dependent_prompts = await db.prompts.find({
+    dependent_prompts = await db.prompt_revisions.find({
         "schema_id": schema["schema_id"],
         "organization_id": organization_id
     }).to_list(None)
@@ -1088,7 +1088,7 @@ async def delete_schema(
         )
     
     # If no dependent prompts, proceed with deletion
-    result = await db.schemas.delete_many({
+    result = await db.schema_revisions.delete_many({
         "schema_id": schema["schema_id"],
         "organization_id": organization_id
     })
@@ -1114,7 +1114,7 @@ async def validate_against_schema(
     db = ad.common.get_async_db()
     
     # Get the schema
-    schema_doc = await db.schemas.find_one({
+    schema_doc = await db.schema_revisions.find_one({
         "_id": ObjectId(schema_id),
         "organization_id": organization_id
     })
@@ -1183,7 +1183,7 @@ async def get_prompt_id_and_version(prompt_id: Optional[str] = None) -> tuple[st
     
     if prompt_id is None:
         # Insert a placeholder document to get MongoDB-generated ID
-        temp_result = await db.prompt_versions.insert_one({
+        temp_result = await db.prompt_revisions.insert_one({
             "prompt_version": 1
         })
         
@@ -1192,12 +1192,12 @@ async def get_prompt_id_and_version(prompt_id: Optional[str] = None) -> tuple[st
         prompt_version = 1
     else:
         # Get the next version for an existing prompt
-        result = await db.prompt_versions.find_one_and_update(
+        result = await db.prompt_revisions.find_one_and_update(
             {"_id": ObjectId(prompt_id)},
             {"$inc": {"prompt_version": 1}},
             upsert=True,
-        return_document=True
-    )
+            return_document=True
+        )
         prompt_version = result["prompt_version"]
     
     return prompt_id, prompt_version
@@ -1214,7 +1214,7 @@ async def create_prompt(
 
     # Verify schema if specified
     if prompt.schema_id and prompt.schema_version:
-        schema = await db.schemas.find_one({
+        schema = await db.schema_revisions.find_one({
             "schema_id": prompt.schema_id,
             "schema_version": prompt.schema_version,  # Changed field name
             "organization_id": organization_id
@@ -1255,7 +1255,7 @@ async def create_prompt(
     prompt_name = prompt.name
 
     # Does the prompt name already exist?
-    existing_prompt = await db.prompts.find_one({
+    existing_prompt = await db.prompt_revisions.find_one({
         "name": prompt_name,
         "organization_id": organization_id
     })
@@ -1281,7 +1281,7 @@ async def create_prompt(
     }
     
     # Insert into MongoDB
-    result = await db.prompts.insert_one(prompt_dict)
+    result = await db.prompt_revisions.insert_one(prompt_dict)
     
     # Return complete prompt
     prompt_dict["id"] = str(result.inserted_id)
@@ -1354,7 +1354,7 @@ async def list_prompts(
         }
     ])
     
-    result = await db.prompts.aggregate(pipeline).to_list(length=1)
+    result = await db.prompt_revisions.aggregate(pipeline).to_list(length=1)
     result = result[0]
     
     total_count = result["total"][0]["count"] if result["total"] else 0
@@ -1378,7 +1378,7 @@ async def get_prompt(
 ):
     """Get a prompt"""
     db = ad.common.get_async_db()
-    prompt = await db.prompts.find_one({
+    prompt = await db.prompt_revisions.find_one({
         "_id": ObjectId(prompt_id),
         "organization_id": organization_id  # Add organization check
     })
@@ -1397,7 +1397,7 @@ async def update_prompt(
     """Update a prompt"""
     db = ad.common.get_async_db()
     # Get the existing prompt with organization check
-    existing_prompt = await db.prompts.find_one({
+    existing_prompt = await db.prompt_revisions.find_one({
         "_id": ObjectId(prompt_id),
         "organization_id": organization_id
     })
@@ -1406,7 +1406,7 @@ async def update_prompt(
     
     # Only verify schema if one is specified
     if prompt.schema_id and prompt.schema_version:
-        schema = await db.schemas.find_one({
+        schema = await db.schema_revisions.find_one({
             "schema_id": prompt.schema_id,
             "schema_version": prompt.schema_version  # Changed field name
         })
@@ -1438,19 +1438,7 @@ async def update_prompt(
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid tag IDs: {list(invalid_tags)}"
-            )
-    
-    # Handle schema references (similar to create_prompt)
-    if prompt.schema_id and prompt.schema_version:
-        schema = await db.schemas.find_one({
-            "schema_id": prompt.schema_id,
-            "schema_version": prompt.schema_version  # Changed field name
-        })
-        if not schema:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Schema with ID {prompt.schema_id} version {prompt.schema_version} not found"
-            )    
+            ) 
     
     # Check if only the name has changed
     only_name_changed = (
@@ -1464,14 +1452,14 @@ async def update_prompt(
     
     if only_name_changed:
         # Update the name without creating a new version
-        result = await db.prompts.update_one(
+        result = await db.prompt_revisions.update_one(
             {"_id": ObjectId(prompt_id)},
             {"$set": {"name": prompt.name}}
         )
         
         if result.modified_count > 0:
             # Return the updated prompt
-            updated_prompt = await db.prompts.find_one({"_id": ObjectId(prompt_id)})
+            updated_prompt = await db.prompt_revisions.find_one({"_id": ObjectId(prompt_id)})
             updated_prompt["id"] = str(updated_prompt.pop("_id"))
             return Prompt(**updated_prompt)
         else:
@@ -1497,7 +1485,7 @@ async def update_prompt(
     }
     
     # Insert new version
-    result = await db.prompts.insert_one(new_prompt)
+    result = await db.prompt_revisions.insert_one(new_prompt)
     
     # Return updated prompt
     new_prompt["id"] = str(result.inserted_id)
@@ -1512,7 +1500,7 @@ async def delete_prompt(
     """Delete a prompt"""
     db = ad.common.get_async_db()
     # Get the prompt to find its name
-    prompt = await db.prompts.find_one({
+    prompt = await db.prompt_revisions.find_one({
         "_id": ObjectId(prompt_id),
         "organization_id": organization_id  # Add organization check
     })
@@ -1523,7 +1511,7 @@ async def delete_prompt(
         raise HTTPException(status_code=403, detail="Not authorized to delete this prompt")
     
     # Delete all versions of this prompt within the organization
-    result = await db.prompts.delete_many({
+    result = await db.prompt_revisions.delete_many({
         "prompt_id": prompt["prompt_id"],
         "organization_id": organization_id  # Add organization check
     })
@@ -1634,7 +1622,7 @@ async def delete_tag(
         )
 
     # Check if tag is used in any prompts
-    prompts_with_tag = await db.prompts.find_one({
+    prompts_with_tag = await db.prompt_revisions.find_one({
         "tag_ids": tag_id
     })
     
