@@ -914,7 +914,6 @@ async def list_schemas(
     organization_id: str,
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
-    latest_versions: bool = Query(True, description="Whether to return only the latest version of each schema"),
     current_user: User = Depends(get_current_user)
 ):
     """List schemas within an organization"""
@@ -939,25 +938,16 @@ async def list_schemas(
         },
         {
             "$sort": {"_id": -1}
-        }
-    ]
-    
-    # If only latest versions are requested, group by schema_id and take the first document
-    if latest_versions:
-        pipeline.extend([
-            {
-                "$group": {
-                    "_id": "$schema_id",
-                    "doc": {"$first": "$$ROOT"}
-                }
-            },
-            {
-                "$replaceRoot": {"newRoot": "$doc"}
+        },
+        {
+            "$group": {
+                "_id": "$schema_id",
+                "doc": {"$first": "$$ROOT"}
             }
-        ])
-    
-    # Continue with sorting and pagination
-    pipeline.extend([
+        },
+        {
+            "$replaceRoot": {"newRoot": "$doc"}
+        },
         {
             "$sort": {"_id": -1}
         },
@@ -970,7 +960,7 @@ async def list_schemas(
                 ]
             }
         }
-    ])
+    ]
     
     result = await db.schema_revisions.aggregate(pipeline).to_list(length=1)
     result = result[0]
@@ -981,7 +971,6 @@ async def list_schemas(
     # Convert _id to id in each schema and add name from schemas collection
     for schema in schemas:
         schema['schema_revid'] = str(schema.pop('_id'))
-        schema['schema_version'] = schema['schema_version']
         schema['name'] = schema_id_to_name.get(schema['schema_id'], "Unknown")
     
     return ListSchemasResponse(
@@ -990,10 +979,10 @@ async def list_schemas(
         skip=skip
     )
 
-@app.get("/v0/orgs/{organization_id}/schemas/{schema_id}", response_model=Schema, tags=["schemas"])
+@app.get("/v0/orgs/{organization_id}/schemas/{schema_revid}", response_model=Schema, tags=["schemas"])
 async def get_schema(
     organization_id: str,
-    schema_id: str,
+    schema_revid: str,
     current_user: User = Depends(get_current_user)
 ):
     """Get a schema"""
@@ -1001,7 +990,7 @@ async def get_schema(
     
     # Get the schema revision
     revision = await db.schema_revisions.find_one({
-        "_id": ObjectId(schema_id)
+        "_id": ObjectId(schema_revid)
     })
     if not revision:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -1020,21 +1009,21 @@ async def get_schema(
     
     return Schema(**revision)
 
-@app.put("/v0/orgs/{organization_id}/schemas/{schema_id}", response_model=Schema, tags=["schemas"])
+@app.put("/v0/orgs/{organization_id}/schemas/{schema_revid}", response_model=Schema, tags=["schemas"])
 async def update_schema(
     organization_id: str,
-    schema_id: str,
+    schema_revid: str,
     schema: SchemaConfig,
     current_user: User = Depends(get_current_user)
 ):
     """Update a schema"""
-    ad.log.info(f"update_schema() start: organization_id: {organization_id}, schema_id: {schema_id}, schema: {schema}")
+    ad.log.info(f"update_schema() start: organization_id: {organization_id}, schema_revid: {schema_revid}, schema: {schema}")
     
     db = ad.common.get_async_db()
     
     # Get the existing schema revision
     existing_revision = await db.schema_revisions.find_one({
-        "_id": ObjectId(schema_id)
+        "_id": ObjectId(schema_revid)
     })
     if not existing_revision:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -1106,10 +1095,10 @@ async def update_schema(
     new_schema["name"] = schema.name
     return Schema(**new_schema)
 
-@app.delete("/v0/orgs/{organization_id}/schemas/{schema_id}", tags=["schemas"])
+@app.delete("/v0/orgs/{organization_id}/schemas/{schema_revid}", tags=["schemas"])
 async def delete_schema(
     organization_id: str,
-    schema_id: str,
+    schema_revid: str,
     current_user: User = Depends(get_current_user)
 ):
     """Delete a schema"""
@@ -1117,7 +1106,7 @@ async def delete_schema(
     
     # Get the schema revision
     revision = await db.schema_revisions.find_one({
-        "_id": ObjectId(schema_id)
+        "_id": ObjectId(schema_revid)
     })
     if not revision:
         raise HTTPException(status_code=404, detail="Schema not found")
@@ -1173,21 +1162,21 @@ async def delete_schema(
         
     return {"message": "Schema deleted successfully"}
 
-@app.post("/v0/orgs/{organization_id}/schemas/{schema_id}/validate", tags=["schemas"])
+@app.post("/v0/orgs/{organization_id}/schemas/{schema_revid}/validate", tags=["schemas"])
 async def validate_against_schema(
     organization_id: str,
-    schema_id: str,
+    schema_revid: str,
     data: dict = Body(...),
     current_user: User = Depends(get_current_user)
 ):
     """Validate data against a schema"""
-    ad.log.info(f"validate_against_schema() start: organization_id: {organization_id}, schema_id: {schema_id}")
+    ad.log.info(f"validate_against_schema() start: organization_id: {organization_id}, schema_revid: {schema_revid}")
     
     db = ad.common.get_async_db()
     
     # Get the schema
     schema_doc = await db.schema_revisions.find_one({
-        "_id": ObjectId(schema_id),
+        "_id": ObjectId(schema_revid),
     })
     
     if not schema_doc:
@@ -1452,6 +1441,7 @@ async def list_prompts(
     
     total_count = result["total"][0]["count"] if result["total"] else 0
     prompts = result["prompts"]
+
     
     # Convert _id to id in each prompt and add name from prompts collection
     for prompt in prompts:

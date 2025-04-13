@@ -71,7 +71,7 @@ async def test_json_schema_lifecycle(test_db, mock_auth):
         assert schema_result["name"] == "Test Invoice Schema"
         assert "response_format" in schema_result
         
-        schema_id = schema_result["schema_revid"]
+        schema_revid = schema_result["schema_revid"]
         
         # Step 2: List schemas to verify it was created
         list_response = client.get(
@@ -84,19 +84,19 @@ async def test_json_schema_lifecycle(test_db, mock_auth):
         assert "schemas" in list_data
         
         # Find our schema in the list
-        created_schema = next((schema for schema in list_data["schemas"] if schema["schema_revid"] == schema_id), None)
+        created_schema = next((schema for schema in list_data["schemas"] if schema["schema_revid"] == schema_revid), None)
         assert created_schema is not None
         assert created_schema["name"] == "Test Invoice Schema"
         
         # Step 3: Get the specific schema to verify its content
         get_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_revid}",
             headers=get_auth_headers()
         )
         
         assert get_response.status_code == 200
         schema_data = get_response.json()
-        assert schema_data["schema_revid"] == schema_id
+        assert schema_data["schema_revid"] == schema_revid
         assert schema_data["name"] == "Test Invoice Schema"
         assert "response_format" in schema_data
         assert schema_data["response_format"]["type"] == "json_schema"
@@ -158,7 +158,7 @@ async def test_json_schema_lifecycle(test_db, mock_auth):
         }
         
         update_response = client.put(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_revid}",
             json=update_data,
             headers=get_auth_headers()
         )
@@ -185,7 +185,7 @@ async def test_json_schema_lifecycle(test_db, mock_auth):
         
         # Step 6: Delete the schema
         delete_response = client.delete(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_revid}",
             headers=get_auth_headers()
         )
         
@@ -201,12 +201,12 @@ async def test_json_schema_lifecycle(test_db, mock_auth):
         list_after_delete_data = list_after_delete_response.json()
         
         # Verify the schema is no longer in the list
-        deleted_schema = next((schema for schema in list_after_delete_data["schemas"] if schema["id"] == schema_id), None)
+        deleted_schema = next((schema for schema in list_after_delete_data["schemas"] if schema["schema_revid"] == schema_revid), None)
         assert deleted_schema is None, "Schema should have been deleted"
         
         # Step 8: Verify that getting the deleted schema returns 404
         get_deleted_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_revid}",
             headers=get_auth_headers()
         )
         
