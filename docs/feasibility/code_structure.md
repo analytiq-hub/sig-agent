@@ -7,27 +7,28 @@
 - The frontend is a separate npm-based package
 
 ## Recommended Monorepo Structure 
+This is not implemented yet, but here is a good project structure. We could slowly change towards this structure:
 ```
 doc-router/
 ├── packages/ # Backend packages
-│ ├── docrouter-sdk/ # Independent SDK package
-│ │ ├── pyproject.toml # SDK-specific dependencies
-│ │ ├── src/
-│ │ │ └── docrouter_sdk/ # SDK source code
-│ │ └── tests/ # SDK tests
+│ ├── pyproject.toml # Unified package with optional dependencies
+│ ├── docrouter_sdk/ # SDK implementation
+│ │ ├── api/ # API client implementation
+│ │ ├── models/ # Data models
+│ │ └── example/ # Example code
 │ │
-│ ├── analytiq-data/ # Data handling package
-│ │ ├── pyproject.toml # Data-specific dependencies
-│ │ ├── src/
-│ │ │ └── analytiq_data/ # Data source code
-│ │ └── tests/ # Data tests
+│ ├── analytiq_data/ # Data handling implementation
+│ │ ├── common/ # Common utilities
+│ │ ├── mongodb/ # MongoDB integration
+│ │ └── llm/ # LLM integration
 │ │
-│ └── docrouter-api/ # API and worker package
-│ ├── pyproject.toml # API-specific dependencies
-│ ├── src/
-│ │ ├── api/ # API implementation
-│ │ └── worker/ # Worker implementation
-│ └── tests/ # API and worker tests
+│ ├── api/ # API implementation
+│ │ └── main.py # FastAPI implementation
+│ │
+│ ├── worker/ # Worker implementation
+│ │ └── worker.py # Background worker tasks
+│ │
+│ └── tests/ # Tests for all packages
 │
 ├── frontend/ # Next.js frontend application
 │ ├── public/ # Static assets
@@ -49,14 +50,10 @@ doc-router/
 │ └── frontend/ # Frontend Dockerfile
 │
 ├── docs/ # Project documentation
-├── pyproject.toml # Python development dependencies
 ├── package.json # Root package.json for scripts
 ├── docker-compose.yml # Development environment setup
 └── README.md # Project overview
-Apply to code_structu...
-This content should be saved to the docs/feasibility/code_structure.md file to document the recommended code structure for the project.
 ```
-
 
 ## Dependencies Management
 
