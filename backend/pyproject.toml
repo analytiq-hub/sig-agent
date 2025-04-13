@@ -3,7 +3,7 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "docrouter-client"
+name = "docrouter-sdk"
 version = "0.1.0"
 description = "Python client library for the Smart Document Router API"
 readme = "README.md"
@@ -32,7 +32,7 @@ dependencies = [
 "Bug Tracker" = "https://github.com/analytiq/doc-router/issues"
 
 [tool.setuptools]
-packages = ["docrouter_client"]
+packages = ["docrouter_sdk"]
 
 [tool.black]
 line-length = 88

@@ -22,7 +22,7 @@ from backend.tests.test_utils import (
 )
 
 # Import the DocRouterClient
-from docrouter_client import DocRouterClient
+from docrouter_sdk import DocRouterClient
 
 @pytest.fixture
 def docrouter_client():

@@ -12,7 +12,7 @@ pip install -e .
 ## Usage
 
 ```python
-from docrouter_client import DocRouterClient
+from docrouter_sdk import DocRouterClient
 
 # Initialize the client
 client = DocRouterClient(

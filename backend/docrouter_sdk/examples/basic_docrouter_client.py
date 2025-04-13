@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 import os
-from docrouter_client import DocRouterClient
+from docrouter_sdk import DocRouterClient
 
 DOCROUTER_ORG_ID = os.getenv("DOCROUTER_ORG_ID")
 if not DOCROUTER_ORG_ID:

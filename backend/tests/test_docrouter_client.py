@@ -16,8 +16,8 @@ from .test_utils import (
 import analytiq_data as ad
 
 # Import the DocRouterClient
-from docrouter_client import DocRouterClient
-from docrouter_client.models.document import ListDocumentsResponse
+from docrouter_sdk import DocRouterClient
+from docrouter_sdk.models.document import ListDocumentsResponse
 
 # Check that ENV is set to pytest
 assert os.environ["ENV"] == "pytest"
