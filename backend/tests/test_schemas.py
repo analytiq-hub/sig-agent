@@ -410,7 +410,7 @@ async def test_schema_version_deletion(test_db, mock_auth):
         assert original_schema["name"] != updated_schema["name"]  # Different names
         
         # Step 3: Check if both versions exist in the database
-        db_schemas = await test_db.schemas.find({
+        db_schemas = await test_db.schema_revisions.find({
             "schema_id": original_schema["schema_id"]
         }).to_list(None)
         
@@ -621,7 +621,7 @@ async def test_schema_name_only_update(test_db, mock_auth):
         assert updated_schema["name"] == "Updated Schema Name", "Name should be updated"
         
         # Step 3: Verify only one version exists in the database
-        db_schemas = await test_db.schemas.find({
+        db_schemas = await test_db.schema_revisions.find({
             "schema_id": original_schema_id
         }).to_list(None)
         
@@ -671,11 +671,11 @@ async def test_schema_name_only_update(test_db, mock_auth):
         assert content_updated_version > original_schema_version, "Version should increase for content updates"
         
         # Step 5: Verify two versions exist in the database
-        db_schemas_after = await test_db.schemas.find({
+        db_schemas_after = await test_db.schema_revisions.find({
             "schema_id": original_schema_id
         }).to_list(None)
         
-        assert len(db_schemas_after) == 2, "Should now have two versions of the schema"
+        assert len(db_schemas_after) == 2, "Should now have two revisions of the schema"
         
         # Clean up
         client.delete(
