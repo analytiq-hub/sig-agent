@@ -762,6 +762,221 @@ class RemoveSchemaNameField(Migration):
             ad.log.error(f"Restore schema_name field migration failed: {e}")
             return False
 
+# Add this new migration class before the MIGRATIONS list
+class RenameCollections(Migration):
+    def __init__(self):
+        super().__init__(description="Rename schema and prompt collections to match new architecture")
+        
+    async def up(self, db) -> bool:
+        """Rename collections: 
+           schemas → schema_revisions
+           schema_versions → schemas
+           prompts → prompt_revisions
+           prompt_versions → prompts
+        """
+        try:
+            # Create new collections with data from old ones
+            # 1. Copy schemas to schema_revisions
+            schemas_cursor = db.schemas.find({})
+            async for doc in schemas_cursor:
+                await db.schema_revisions.insert_one(doc)
+            
+            # 2. Drop the schemas collection
+            await db.schemas.drop()
+            
+            # 3. Copy schema_versions to schemas
+            schema_versions_cursor = db.schema_versions.find({})
+            async for doc in schema_versions_cursor:
+                await db.schemas.insert_one(doc)
+            
+            # 4. Drop the schema_versions collection
+            await db.schema_versions.drop()
+            
+            # 5. Copy prompts to prompt_revisions
+            prompts_cursor = db.prompts.find({})
+            async for doc in prompts_cursor:
+                await db.prompt_revisions.insert_one(doc)
+            
+            # 6. Drop the prompts collection
+            await db.prompts.drop()
+            
+            # 7. Copy prompt_versions to prompts
+            prompt_versions_cursor = db.prompt_versions.find({})
+            async for doc in prompt_versions_cursor:
+                await db.prompts.insert_one(doc)
+            
+            # 8. Drop the prompt_versions collection
+            await db.prompt_versions.drop()
+
+            # 9. In the prompts collection, rename the version field to prompt_version
+            await db.prompts.update_many(
+                {},
+                {"$rename": {"version": "prompt_version"}}
+            )
+            
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"Collection rename migration failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """Revert collection renaming:
+           schema_revisions → schemas
+           schemas → schema_versions
+           prompt_revisions → prompts
+           prompts → prompt_versions
+        """
+        try:
+            # Create old collections with data from new ones
+            # 1. Copy schema_revisions to schemas
+            schema_revisions_cursor = db.schema_revisions.find({})
+            async for doc in schema_revisions_cursor:
+                await db.schemas.insert_one(doc)
+            
+            # 2. Copy schemas to schema_versions
+            schemas_cursor = db.schemas.find({})
+            async for doc in schemas_cursor:
+                await db.schema_versions.insert_one(doc)
+            
+            # 3. Copy prompt_revisions to prompts
+            prompt_revisions_cursor = db.prompt_revisions.find({})
+            async for doc in prompt_revisions_cursor:
+                await db.prompts.insert_one(doc)
+            
+            # 4. Copy prompts to prompt_versions
+            prompts_cursor = db.prompts.find({})
+            async for doc in prompts_cursor:
+                await db.prompt_versions.insert_one(doc)
+            
+            # Drop new collections (in reverse order to avoid conflicts)
+            await db.prompts.drop()
+            await db.prompt_revisions.drop()
+            await db.schemas.drop()
+            await db.schema_revisions.drop()
+            
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"Collection rename migration revert failed: {e}")
+            return False
+
+# Add this new migration class before the MIGRATIONS list
+class UseMongoObjectIDs(Migration):
+    def __init__(self):
+        super().__init__(description="Convert schema and prompt IDs to MongoDB ObjectIDs")
+        
+    async def up(self, db) -> bool:
+        """
+        Convert schema and prompt IDs to MongoDB ObjectIDs and update references in revisions.
+        """
+        try:
+            from bson import ObjectId
+            
+            # Process schemas first
+            schema_mapping = {}  # old_id -> new_objectid
+            
+            # Get all existing schemas
+            schemas_cursor = db.schemas.find({})
+            schema_docs = []
+            async for schema in schemas_cursor:
+                schema_docs.append(schema)
+            
+            # For each schema, create a new document with ObjectId
+            for old_schema in schema_docs:
+                old_id = old_schema["_id"]
+                
+                # Create a new document with a new ObjectId
+                new_schema = old_schema.copy()
+                del new_schema["_id"]  # Remove _id to let MongoDB generate a new one
+                
+                result = await db.schemas.insert_one(new_schema)
+                new_id = result.inserted_id
+                
+                # Store mapping
+                schema_mapping[old_id] = new_id
+                
+                # Delete old document
+                await db.schemas.delete_one({"_id": old_id})
+                
+                ad.log.info(f"Converted schema ID: {old_id} -> {new_id}")
+            
+            # Update schema_revisions to reference new schema IDs
+            revisions_cursor = db.schema_revisions.find({"schema_id": {"$exists": True}})
+            async for revision in revisions_cursor:
+                old_id = revision.get("schema_id")
+                if old_id in schema_mapping:
+                    new_id = schema_mapping[old_id]
+                    await db.schema_revisions.update_one(
+                        {"_id": revision["_id"]},
+                        {"$set": {"schema_id": str(new_id)}}
+                    )
+            
+            # Process prompts
+            prompt_mapping = {}  # old_id -> new_objectid
+            
+            # Get all existing prompts
+            prompts_cursor = db.prompts.find({})
+            prompt_docs = []
+            async for prompt in prompts_cursor:
+                prompt_docs.append(prompt)
+            
+            # For each prompt, create a new document with ObjectId
+            for old_prompt in prompt_docs:
+                old_id = old_prompt["_id"]
+                
+                # Create a new document with a new ObjectId
+                new_prompt = old_prompt.copy()
+                del new_prompt["_id"]  # Remove _id to let MongoDB generate a new one
+                
+                # Update schema_id reference if it exists
+                if "schema_id" in new_prompt and new_prompt["schema_id"] in schema_mapping:
+                    new_prompt["schema_id"] = str(schema_mapping[new_prompt["schema_id"]])
+                
+                result = await db.prompts.insert_one(new_prompt)
+                new_id = result.inserted_id
+                
+                # Store mapping
+                prompt_mapping[old_id] = new_id
+                
+                # Delete old document
+                await db.prompts.delete_one({"_id": old_id})
+                
+                ad.log.info(f"Converted prompt ID: {old_id} -> {new_id}")
+            
+            # Update prompt_revisions to reference new prompt IDs
+            revisions_cursor = db.prompt_revisions.find({"prompt_id": {"$exists": True}})
+            async for revision in revisions_cursor:
+                old_id = revision.get("prompt_id")
+                if old_id in prompt_mapping:
+                    new_id = prompt_mapping[old_id]
+                    await db.prompt_revisions.update_one(
+                        {"_id": revision["_id"]},
+                        {"$set": {"prompt_id": str(new_id)}}
+                    )
+                
+                # Also update schema_id if it exists
+                if "schema_id" in revision and revision["schema_id"] in schema_mapping:
+                    new_schema_id = schema_mapping[revision["schema_id"]]
+                    await db.prompt_revisions.update_one(
+                        {"_id": revision["_id"]},
+                        {"$set": {"schema_id": str(new_schema_id)}}
+                    )
+            
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"Migration to MongoDB ObjectIDs failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """
+        It's not practical to revert this migration as the original IDs are lost.
+        This is a one-way migration.
+        """
+        ad.log.warning("Cannot revert migration to MongoDB ObjectIDs as original IDs are not preserved.")
+        return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -773,6 +988,8 @@ MIGRATIONS = [
     RenamePromptVersion(),
     RenameSchemaVersion(),
     RemoveSchemaNameField(),
+    RenameCollections(),
+    UseMongoObjectIDs(),
     # Add more migrations here
 ]
 

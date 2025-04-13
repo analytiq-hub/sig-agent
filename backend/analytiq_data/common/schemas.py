@@ -22,7 +22,7 @@ async def get_schema_id(analytiq_client, schema_name: str, schema_version: int) 
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    collection = db["schemas"]
+    collection = db["schema_revisions"]
     elem = await collection.find_one({"name": schema_name, "schema_version": schema_version})
     if elem is None:
         raise ValueError(f"Schema {schema_name} version {schema_version} not found")

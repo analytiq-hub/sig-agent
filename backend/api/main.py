@@ -840,7 +840,7 @@ async def get_schema_id_and_version(schema_id: Optional[str] = None) -> tuple[st
 
     if schema_id is None:
         # Insert a placeholder document to get MongoDB-generated ID
-        result = await db.schema_revisions.insert_one({
+        result = await db.schemas.insert_one({
             "schema_version": 1
         })
         
@@ -849,7 +849,7 @@ async def get_schema_id_and_version(schema_id: Optional[str] = None) -> tuple[st
         schema_version = 1
     else:
         # Get the next version for an existing schema
-        result = await db.schema_revisions.find_one_and_update(
+        result = await db.schemas.find_one_and_update(
             {"_id": ObjectId(schema_id)},
             {"$inc": {"schema_version": 1}},
             upsert=True,
@@ -1180,19 +1180,19 @@ async def get_prompt_id_and_version(prompt_id: Optional[str] = None) -> tuple[st
         Tuple of (prompt_id, prompt_version)
     """
     db = ad.common.get_async_db()
-    
+
     if prompt_id is None:
         # Insert a placeholder document to get MongoDB-generated ID
-        temp_result = await db.prompt_revisions.insert_one({
+        result = await db.prompts.insert_one({
             "prompt_version": 1
         })
         
         # Use the MongoDB-assigned _id as our prompt_id
-        prompt_id = str(temp_result.inserted_id)
+        prompt_id = str(result.inserted_id)
         prompt_version = 1
     else:
         # Get the next version for an existing prompt
-        result = await db.prompt_revisions.find_one_and_update(
+        result = await db.prompts.find_one_and_update(
             {"_id": ObjectId(prompt_id)},
             {"$inc": {"prompt_version": 1}},
             upsert=True,

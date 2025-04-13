@@ -20,7 +20,7 @@ async def get_prompt_id(analytiq_client, prompt_name: str) -> str:
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    collection = db["prompts"]
+    collection = db["prompt_revisions"]
     elem = await collection.find_one({"name": prompt_name})
     if elem is None:
         raise ValueError(f"Prompt {prompt_name} not found")
@@ -32,7 +32,7 @@ async def get_prompt_name(analytiq_client, prompt_id: str) -> str:
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    collection = db["prompts"]
+    collection = db["prompt_revisions"]
     elem = await collection.find_one({"_id": ObjectId(prompt_id)})
     if elem is None:
         raise ValueError(f"Prompt {prompt_id} not found")
@@ -97,7 +97,7 @@ async def get_prompt_content(analytiq_client, prompt_id: str) -> str:
     # Get the prompt content
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    collection = db["prompts"]
+    collection = db["prompt_revisions"]
     
     elem = await collection.find_one({"_id": ObjectId(prompt_id)})
     if elem is None:
@@ -113,7 +113,7 @@ async def get_prompt_response_format(analytiq_client, prompt_id: str) -> dict:
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    collection = db["prompts"]
+    collection = db["prompt_revisions"]
     elem = await collection.find_one({"_id": ObjectId(prompt_id)})
     if elem is None:
         raise ValueError(f"Prompt {prompt_id} not found")
@@ -121,7 +121,7 @@ async def get_prompt_response_format(analytiq_client, prompt_id: str) -> dict:
     schema_version = elem["schema_version"]
 
     # Get the schema from the name and version
-    collection = db["schemas"]
+    collection = db["schema_revisions"]
     elem = await collection.find_one({"schema_id": schema_id, "schema_version": schema_version})
     if elem is None:
         raise ValueError(f"Prompt {prompt_id}: Schema {schema_id} version {schema_version} not found")
@@ -143,7 +143,7 @@ async def get_prompt_tag_ids(analytiq_client, prompt_id: str) -> list[str]:
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    collection = db["prompts"]
+    collection = db["prompt_revisions"]
     elem = await collection.find_one({"_id": ObjectId(prompt_id)})
     return elem["tag_ids"]
 
@@ -163,7 +163,7 @@ async def get_prompt_ids_by_tag_ids(analytiq_client, tag_ids: list[str], latest_
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    collection = db["prompts"]
+    collection = db["prompt_revisions"]
     elems = await collection.find({"tag_ids": {"$in": tag_ids}}).to_list(length=None)
 
     if not latest_version:
@@ -171,7 +171,7 @@ async def get_prompt_ids_by_tag_ids(analytiq_client, tag_ids: list[str], latest_
         prompt_ids = [str(elem["_id"]) for elem in elems]
     else:
         # Return only the latest version of each prompt
-        collection2 = db["prompt_versions"]
+        collection2 = db["prompts"]
         prompt_names = [elem["name"] for elem in elems]
 
         # Initialize the list of prompt IDs
