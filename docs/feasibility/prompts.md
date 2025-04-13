@@ -112,12 +112,12 @@ export interface GetTemplateParams {
 }
 ```
 
-### 4. docrouter_client Changes
+### 4. docrouter_sdk Changes
 
-Update client library in `backend/docrouter_client/`:
+Update client library in `backend/docrouter_sdk/`:
 
 ```python
-# Update models in backend/docrouter_client/models/prompt.py
+# Update models in backend/docrouter_sdk/models/prompt.py
 class PromptConfig(BaseModel):
     name: str
     content: str
@@ -127,7 +127,7 @@ class PromptConfig(BaseModel):
     model: str = "gpt-4o-mini"
     is_template: bool = False
 
-# Add template methods to backend/docrouter_client/api/prompts.py
+# Add template methods to backend/docrouter_sdk/api/prompts.py
 class PromptTemplatesAPI:
     def list(self, organization_id: str, skip: int = 0, limit: int = 10, tag_ids: List[str] = None) -> ListTemplatesResponse:
         """List prompt templates"""
@@ -186,7 +186,7 @@ Update existing tests and add new ones:
 3. Implement template API endpoints
 4. Implement Git-based template loading
 5. Create template UI components
-6. Update docrouter_client
+6. Update docrouter_sdk
 7. Add template unit tests
 8. Deploy with backward compatibility
 

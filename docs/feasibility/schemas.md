@@ -161,7 +161,7 @@ Update existing tests and add new ones:
 3. Implement template API endpoints
 4. Implement Git-based template loading
 5. Create template UI components
-6. Update docrouter_client
+6. Update docrouter_sdk
 7. Add template unit tests
 8. Deploy with backward compatibility
 

@@ -32,6 +32,7 @@ dependencies = [
 "Bug Tracker" = "https://github.com/analytiq/doc-router/issues"
 
 [tool.setuptools]
+package-dir = {"" = "backend"}
 packages = ["docrouter_sdk"]
 
 [tool.black]
