@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Python client library for the Smart Document Router API"
 readme = "README.md"
 authors = [
-    {name = "Analytiq Hub Team", email = "andrei@analytiqhub.com"}
+    {name = "Analytiq Hub", email = "andrei@analytiqhub.com"}
 ]
 license = {text = "Apache License 2.0"}
 classifiers = [
@@ -22,9 +22,9 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "requests>=2.25.0",
+    "requests>=2.0.0",
     "pydantic>=2.0.0",
-    "python-dateutil>=2.8.0"
+    "python-dateutil>=2.0.0"
 ]
 
 [project.urls]
@@ -32,7 +32,6 @@ dependencies = [
 "Bug Tracker" = "https://github.com/analytiq/doc-router/issues"
 
 [tool.setuptools]
-package-dir = {"" = "backend"}
 packages = ["docrouter_sdk"]
 
 [tool.black]
