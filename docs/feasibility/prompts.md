@@ -30,6 +30,8 @@ This rename better reflects that:
 - `prompt_revisions` contains the actual content and implementation of each prompt version
 - `prompts` simply tracks name and latest version number for each prompt ID
 
+The prompt name should be moved to `prompts`.
+
 #### 1.2 Schema Adjustments
 
 Add a simple boolean field to indicate templates:

@@ -29,6 +29,8 @@ This rename better reflects that:
 - `schema_revisions` contains the actual content and implementation of each schema version
 - `schemas` simply tracks name and latest version number for each schema ID
 
+The schema name should be moved to `schemas`
+
 #### 1.2 Schema Adjustments
 
 Add a simple boolean field to indicate templates:
