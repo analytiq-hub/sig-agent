@@ -449,7 +449,7 @@ async def test_prompt_version_deletion(test_db, mock_auth):
         assert original_prompt["name"] != updated_prompt["name"]  # Different names
         
         # Step 3: Check if both versions exist in the database
-        db_prompts = await test_db.prompts.find({
+        db_prompts = await test_db.prompt_revisions.find({
             "prompt_id": original_prompt_id
         }).to_list(None)
         
@@ -464,14 +464,14 @@ async def test_prompt_version_deletion(test_db, mock_auth):
         assert delete_response.status_code == 200
         
         # Step 5: Verify both versions are deleted from the database
-        remaining_prompts = await test_db.prompts.find({
+        remaining_prompts = await test_db.prompt_revisions.find({
             "prompt_id": original_prompt_id
         }).to_list(None)
         
         assert len(remaining_prompts) == 0, "All versions of the prompt should be deleted"
         
         # Step 6: Check that the version counter is also deleted
-        version_counter = await test_db.prompt_versions.find_one({
+        version_counter = await test_db.prompts.find_one({
             "_id": original_prompt_id
         })
         
