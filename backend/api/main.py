@@ -914,6 +914,7 @@ async def list_schemas(
     organization_id: str,
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
+    latest_versions: bool = Query(True, description="Whether to return only the latest version of each schema"),
     current_user: User = Depends(get_current_user)
 ):
     """List schemas within an organization"""
@@ -938,16 +939,25 @@ async def list_schemas(
         },
         {
             "$sort": {"_id": -1}
-        },
-        {
-            "$group": {
-                "_id": "$schema_id",
-                "doc": {"$first": "$$ROOT"}
+        }
+    ]
+    
+    # If only latest versions are requested, group by schema_id and take the first document
+    if latest_versions:
+        pipeline.extend([
+            {
+                "$group": {
+                    "_id": "$schema_id",
+                    "doc": {"$first": "$$ROOT"}
+                }
+            },
+            {
+                "$replaceRoot": {"newRoot": "$doc"}
             }
-        },
-        {
-            "$replaceRoot": {"newRoot": "$doc"}
-        },
+        ])
+    
+    # Continue with sorting and pagination
+    pipeline.extend([
         {
             "$sort": {"_id": -1}
         },
@@ -960,7 +970,7 @@ async def list_schemas(
                 ]
             }
         }
-    ]
+    ])
     
     result = await db.schema_revisions.aggregate(pipeline).to_list(length=1)
     result = result[0]
@@ -971,6 +981,7 @@ async def list_schemas(
     # Convert _id to id in each schema and add name from schemas collection
     for schema in schemas:
         schema['schema_revid'] = str(schema.pop('_id'))
+        schema['schema_version'] = schema['schema_version']
         schema['name'] = schema_id_to_name.get(schema['schema_id'], "Unknown")
     
     return ListSchemasResponse(

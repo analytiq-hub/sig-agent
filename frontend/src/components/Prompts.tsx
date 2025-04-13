@@ -177,7 +177,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       if (prompt.schema_id && prompt.schema_version) {
         // Find schema with matching schema_id and version from preloaded schemas
         const matchingSchema = availableSchemas.find(
-          schema => schema.schema_id === prompt.schema_id && schema.schema_version === prompt.schema_version
+          schema => schema.schema_id === prompt.schema_id
         );
         
         if (!matchingSchema) {
@@ -185,7 +185,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           setMessage('Warning: Could not find the referenced schema for download');
           return;
         }
-        
+
         // Fetch the full schema details
         schema = await getSchemaApi({
           organizationId: organizationId,
@@ -244,10 +244,14 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   // Synchronous schema name lookup from preloaded schemas
   const getSchemaName = (schemaId: string, schemaVersion: number) => {
     if (!schemaId || !schemaVersion) return '-';
+
+    console.log('getSchemaName', schemaId, schemaVersion);
     
     const schema = availableSchemas.find(
-      s => s.schema_id === schemaId && s.schema_version === schemaVersion
+      s => s.schema_id === schemaId
     );
+
+    console.log('getSchemaName2', schema);
     return schema ? schema.name : '-';
   };  
 
