@@ -15,12 +15,11 @@ import pathlib
 
 # Add the packages directory to the Python path
 TOP_DIR = pathlib.Path(__file__).parent.parent.parent.parent
-PACKAGES_DIR = TOP_DIR / "packages"
-sys.path.append(str(PACKAGES_DIR))
-sys.path.append(str(TOP_DIR))
+sys.path.append(str(TOP_DIR / "packages"))
+sys.path.append(str(TOP_DIR / "backend"))
 
 # Import test utilities using absolute import
-from backend.tests.test_utils import (
+from tests.test_utils import (
     client as api_client, TEST_USER, TEST_ORG_ID, 
     test_db, get_auth_headers, mock_auth
 )
