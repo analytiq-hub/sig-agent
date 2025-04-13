@@ -10,7 +10,7 @@ readme = "README.md"
 authors = [
     {name = "Analytiq Hub", email = "andrei@analytiqhub.com"}
 ]
-license = {text = "Apache License 2.0"}
+license = "Apache-2.0"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
