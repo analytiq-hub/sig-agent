@@ -1158,6 +1158,107 @@ class MigratePromptOrganizationIDs(Migration):
             ad.log.error(f"Organization ID migration revert failed: {e}")
             return False
 
+# Add this new migration class before the MIGRATIONS list
+class MigrateSchemaOrganizationIDs(Migration):
+    def __init__(self):
+        super().__init__(description="Copy organization_id from schema_revisions to schemas")
+        
+    async def up(self, db) -> bool:
+        """Copy organization_id from schema_revisions to schemas, then delete them from schema_revisions"""
+        try:
+            # Get all schemas
+            schemas_cursor = db.schemas.find({})
+            
+            updated_count = 0
+            
+            async for schema in schemas_cursor:
+                schema_id = schema.get("_id")
+                schema_version = schema.get("schema_version", 1)
+                
+                # Find corresponding schema_revision
+                revision = await db.schema_revisions.find_one({
+                    "schema_id": str(schema_id),
+                    "schema_version": schema_version
+                })
+                
+                if revision:
+                    update_fields = {}
+                    
+                    # Copy name if not already present in schema
+                    if "name" not in schema and "name" in revision:
+                        update_fields["name"] = revision["name"]
+                    
+                    # Copy organization_id
+                    if "organization_id" in revision:
+                        update_fields["organization_id"] = revision["organization_id"]
+                    
+                    if update_fields:
+                        await db.schemas.update_one(
+                            {"_id": schema_id},
+                            {"$set": update_fields}
+                        )
+                        updated_count += 1
+            
+            ad.log.info(f"Updated {updated_count} schemas with organization_id/name")
+            
+            # Remove fields from all schema_revisions
+            result = await db.schema_revisions.update_many(
+                {"$or": [
+                    {"name": {"$exists": True}},
+                    {"organization_id": {"$exists": True}}
+                ]},
+                {"$unset": {
+                    "name": "",
+                    "organization_id": ""
+                }}
+            )
+            
+            ad.log.info(f"Removed fields from {result.modified_count} schema_revisions")
+            
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"Schema organization ID migration failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """Restore organization_id and name from schemas to schema_revisions"""
+        try:
+            # For each schema, copy its organization_id back to all matching schema_revisions
+            schemas_cursor = db.schemas.find({
+                "$or": [
+                    {"name": {"$exists": True}},
+                    {"organization_id": {"$exists": True}}
+                ]
+            })
+            
+            restored_count = 0
+            async for schema in schemas_cursor:
+                schema_id = schema.get("_id")
+                update_fields = {}
+                
+                if "name" in schema:
+                    update_fields["name"] = schema["name"]
+                
+                if "organization_id" in schema:
+                    update_fields["organization_id"] = schema["organization_id"]
+                
+                if update_fields:
+                    # Find all revisions for this schema
+                    result = await db.schema_revisions.update_many(
+                        {"schema_id": str(schema_id)},
+                        {"$set": update_fields}
+                    )
+                    
+                    restored_count += result.modified_count
+            
+            ad.log.info(f"Restored fields for {restored_count} schema_revisions")
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"Schema organization ID migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -1173,6 +1274,7 @@ MIGRATIONS = [
     UseMongoObjectIDs(),
     MigratePromptNames(),
     MigratePromptOrganizationIDs(),
+    MigrateSchemaOrganizationIDs(),
     # Add more migrations here
 ]
 
