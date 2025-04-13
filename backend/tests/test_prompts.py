@@ -72,7 +72,7 @@ async def test_prompt_lifecycle(test_db, mock_auth):
         assert prompt_result["name"] == "Test Invoice Prompt"
         assert "content" in prompt_result
         
-        prompt_id = prompt_result["prompt_revid"]
+        prompt_revid = prompt_result["prompt_revid"]
         
         # Step 2: List prompts to verify it was created
         list_response = client.get(
@@ -85,19 +85,19 @@ async def test_prompt_lifecycle(test_db, mock_auth):
         assert "prompts" in list_data
         
         # Find our prompt in the list
-        created_prompt = next((prompt for prompt in list_data["prompts"] if prompt["prompt_revid"] == prompt_id), None)
+        created_prompt = next((prompt for prompt in list_data["prompts"] if prompt["prompt_revid"] == prompt_revid), None)
         assert created_prompt is not None
         assert created_prompt["name"] == "Test Invoice Prompt"
         
         # Step 3: Get the specific prompt to verify its content
         get_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_revid}",
             headers=get_auth_headers()
         )
         
         assert get_response.status_code == 200
         prompt_data = get_response.json()
-        assert prompt_data["prompt_revid"] == prompt_id
+        assert prompt_data["prompt_revid"] == prompt_revid
         assert prompt_data["name"] == "Test Invoice Prompt"
         assert "content" in prompt_data
         assert prompt_data["content"] == "Extract the following information from the invoice: invoice number, date, total amount, vendor name."
@@ -111,7 +111,7 @@ async def test_prompt_lifecycle(test_db, mock_auth):
         }
         
         update_response = client.put(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_revid}",
             json=update_data,
             headers=get_auth_headers()
         )
@@ -136,7 +136,7 @@ async def test_prompt_lifecycle(test_db, mock_auth):
         
         # Step 6: Delete the prompt
         delete_response = client.delete(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_revid}",
             headers=get_auth_headers()
         )
         
@@ -152,12 +152,12 @@ async def test_prompt_lifecycle(test_db, mock_auth):
         list_after_delete_data = list_after_delete_response.json()
         
         # Verify the prompt is no longer in the list
-        deleted_prompt = next((prompt for prompt in list_after_delete_data["prompts"] if prompt["prompt_revid"] == prompt_id), None)
+        deleted_prompt = next((prompt for prompt in list_after_delete_data["prompts"] if prompt["prompt_revid"] == prompt_revid), None)
         assert deleted_prompt is None, "Prompt should have been deleted"
         
         # Step 8: Verify that getting the deleted prompt returns 404
         get_deleted_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_revid}",
             headers=get_auth_headers()
         )
         
@@ -236,11 +236,11 @@ async def test_prompt_with_schema(test_db, mock_auth):
         
         assert create_response.status_code == 200
         prompt_result = create_response.json()
-        prompt_id = prompt_result["prompt_revid"]
+        prompt_revid = prompt_result["prompt_revid"]
         
         # Step 3: Get the prompt to verify it has the schema attached
         get_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_revid}",
             headers=get_auth_headers()
         )
         
@@ -251,7 +251,7 @@ async def test_prompt_with_schema(test_db, mock_auth):
         
         # Step 4: Delete the prompt and schema for cleanup
         client.delete(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_revid}",
             headers=get_auth_headers()
         )
         
