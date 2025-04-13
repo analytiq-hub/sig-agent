@@ -7,6 +7,14 @@ A Python client library for the Document Router API.
   ```bash
   pip install git+https://github.com/analytiq-hub/doc-router.git#subdirectory=backend
   ```
+* Get your DocRouter organization ID from the URL, e.g. `https://app.docrouter.ai/orgs/<docrouter_org_id>`
+* Create an organization token. 
+* Run the `basic_docrouter_client.py` example:
+  ```bash
+  export DOCROUTER_ORG_ID=<docrouter_org_id>
+  export DOCROUTER_ORG_API_TOKEN=<docrouter_org_api_token> 
+  backend/docrouter_sdk/examples/basic_docrouter_client.py
+```
 
 ## Installation
 
