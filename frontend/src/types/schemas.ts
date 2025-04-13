@@ -22,7 +22,7 @@ export interface ResponseFormat {
 }
 
 export interface Schema {
-  id: string;         // MongoDB's _id
+  schema_revid: string; // MongoDB's _id
   schema_id: string;  // Stable identifier
   name: string;
   response_format: ResponseFormat;

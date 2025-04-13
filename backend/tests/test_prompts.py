@@ -68,11 +68,11 @@ async def test_prompt_lifecycle(test_db, mock_auth):
         
         assert create_response.status_code == 200
         prompt_result = create_response.json()
-        assert "id" in prompt_result
+        assert "prompt_revid" in prompt_result
         assert prompt_result["name"] == "Test Invoice Prompt"
         assert "content" in prompt_result
         
-        prompt_id = prompt_result["id"]
+        prompt_id = prompt_result["prompt_revid"]
         
         # Step 2: List prompts to verify it was created
         list_response = client.get(
@@ -85,7 +85,7 @@ async def test_prompt_lifecycle(test_db, mock_auth):
         assert "prompts" in list_data
         
         # Find our prompt in the list
-        created_prompt = next((prompt for prompt in list_data["prompts"] if prompt["id"] == prompt_id), None)
+        created_prompt = next((prompt for prompt in list_data["prompts"] if prompt["prompt_revid"] == prompt_id), None)
         assert created_prompt is not None
         assert created_prompt["name"] == "Test Invoice Prompt"
         
@@ -97,7 +97,7 @@ async def test_prompt_lifecycle(test_db, mock_auth):
         
         assert get_response.status_code == 200
         prompt_data = get_response.json()
-        assert prompt_data["id"] == prompt_id
+        assert prompt_data["prompt_revid"] == prompt_id
         assert prompt_data["name"] == "Test Invoice Prompt"
         assert "content" in prompt_data
         assert prompt_data["content"] == "Extract the following information from the invoice: invoice number, date, total amount, vendor name."
@@ -119,7 +119,7 @@ async def test_prompt_lifecycle(test_db, mock_auth):
         assert update_response.status_code == 200
         updated_prompt_result = update_response.json()
 
-        updated_prompt_id = updated_prompt_result["id"]
+        updated_prompt_id = updated_prompt_result["prompt_revid"]
         
         # Step 5: Get the prompt again to verify the update
         get_updated_response = client.get(
@@ -129,7 +129,7 @@ async def test_prompt_lifecycle(test_db, mock_auth):
         
         assert get_updated_response.status_code == 200
         updated_prompt_data = get_updated_response.json()
-        assert updated_prompt_data["id"] == updated_prompt_id
+        assert updated_prompt_data["prompt_revid"] == updated_prompt_id
         assert updated_prompt_data["name"] == "Updated Invoice Prompt"
         assert updated_prompt_data["content"] == "Extract the following information from the invoice: invoice number, date, total amount, tax amount, vendor name, vendor address."
         assert updated_prompt_data["model"] == "gpt-4o"
@@ -152,7 +152,7 @@ async def test_prompt_lifecycle(test_db, mock_auth):
         list_after_delete_data = list_after_delete_response.json()
         
         # Verify the prompt is no longer in the list
-        deleted_prompt = next((prompt for prompt in list_after_delete_data["prompts"] if prompt["id"] == prompt_id), None)
+        deleted_prompt = next((prompt for prompt in list_after_delete_data["prompts"] if prompt["prompt_revid"] == prompt_id), None)
         assert deleted_prompt is None, "Prompt should have been deleted"
         
         # Step 8: Verify that getting the deleted prompt returns 404
@@ -236,7 +236,7 @@ async def test_prompt_with_schema(test_db, mock_auth):
         
         assert create_response.status_code == 200
         prompt_result = create_response.json()
-        prompt_id = prompt_result["id"]
+        prompt_id = prompt_result["prompt_revid"]
         
         # Step 3: Get the prompt to verify it has the schema attached
         get_response = client.get(
@@ -256,7 +256,7 @@ async def test_prompt_with_schema(test_db, mock_auth):
         )
         
         client.delete(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_result['id']}",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_result['schema_revid']}",
             headers=get_auth_headers()
         )
         
@@ -347,9 +347,9 @@ async def test_prompt_filtering(test_db, mock_auth):
         assert prompt2_response.status_code == 200
         assert prompt3_response.status_code == 200
         
-        prompt1_id = prompt1_response.json()["id"]
-        prompt2_id = prompt2_response.json()["id"]
-        prompt3_id = prompt3_response.json()["id"]
+        prompt1_id = prompt1_response.json()["prompt_revid"]
+        prompt2_id = prompt2_response.json()["prompt_revid"]
+        prompt3_id = prompt3_response.json()["prompt_revid"]
         
         # Step 3: Filter prompts by tag1
         filter_response = client.get(
@@ -361,7 +361,7 @@ async def test_prompt_filtering(test_db, mock_auth):
         filter_data = filter_response.json()
         
         # Should include prompt1 and prompt3
-        prompt_ids = [p["id"] for p in filter_data["prompts"]]
+        prompt_ids = [p["prompt_revid"] for p in filter_data["prompts"]]
         assert prompt1_id in prompt_ids
         assert prompt3_id in prompt_ids
         assert prompt2_id not in prompt_ids
@@ -376,7 +376,7 @@ async def test_prompt_filtering(test_db, mock_auth):
         filter_data = filter_response.json()
         
         # Should include prompt2 and prompt3
-        prompt_ids = [p["id"] for p in filter_data["prompts"]]
+        prompt_ids = [p["prompt_revid"] for p in filter_data["prompts"]]
         assert prompt2_id in prompt_ids
         assert prompt3_id in prompt_ids
         assert prompt1_id not in prompt_ids
@@ -418,7 +418,7 @@ async def test_prompt_version_deletion(test_db, mock_auth):
         
         assert create_response.status_code == 200
         original_prompt = create_response.json()
-        original_id = original_prompt["id"]
+        original_id = original_prompt["prompt_revid"]
         original_prompt_id = original_prompt["prompt_id"]  # This is the stable identifier
         original_prompt_version = original_prompt["prompt_version"]
         
@@ -438,7 +438,7 @@ async def test_prompt_version_deletion(test_db, mock_auth):
         
         assert update_response.status_code == 200
         updated_prompt = update_response.json()
-        updated_id = updated_prompt["id"]
+        updated_id = updated_prompt["prompt_revid"]
         updated_prompt_id = updated_prompt["prompt_id"]
         updated_prompt_version = updated_prompt["prompt_version"]
         
@@ -515,7 +515,7 @@ async def test_prompt_latest_version_listing(test_db, mock_auth):
         
         assert create_response.status_code == 200
         original_prompt = create_response.json()
-        original_id = original_prompt["id"]
+        original_id = original_prompt["prompt_revid"]
         original_prompt_id = original_prompt["prompt_id"]
         original_prompt_version = original_prompt["prompt_version"]
         
@@ -535,7 +535,7 @@ async def test_prompt_latest_version_listing(test_db, mock_auth):
         
         assert update_response.status_code == 200
         renamed_prompt = update_response.json()
-        renamed_id = renamed_prompt["id"]
+        renamed_id = renamed_prompt["prompt_revid"]
         
         # Step 3: List prompts and verify only the renamed version is returned
         list_response = client.get(
@@ -555,7 +555,7 @@ async def test_prompt_latest_version_listing(test_db, mock_auth):
         
         # Verify the one returned is the renamed version
         assert matching_prompts[0]["name"] == "Renamed Version Test Prompt"
-        assert matching_prompts[0]["id"] == renamed_id  # Should be the newer ID
+        assert matching_prompts[0]["prompt_revid"] == renamed_id  # Should be the newer ID
         
         # Step 4: Clean up
         client.delete(
@@ -593,7 +593,7 @@ async def test_prompt_name_only_update(test_db, mock_auth):
         
         assert create_response.status_code == 200
         original_prompt = create_response.json()
-        original_id = original_prompt["id"]
+        original_id = original_prompt["prompt_revid"]
         original_prompt_id = original_prompt["prompt_id"]
         original_prompt_version = original_prompt["prompt_version"]
         
@@ -613,7 +613,7 @@ async def test_prompt_name_only_update(test_db, mock_auth):
         
         assert update_response.status_code == 200
         updated_prompt = update_response.json()
-        updated_id = updated_prompt["id"]
+        updated_id = updated_prompt["prompt_revid"]
         updated_prompt_version = updated_prompt["prompt_version"]
         
         # Verify the ID remains the same (no new version created)
@@ -645,7 +645,7 @@ async def test_prompt_name_only_update(test_db, mock_auth):
         
         assert content_update_response.status_code == 200
         content_updated_prompt = content_update_response.json()
-        content_updated_id = content_updated_prompt["id"]
+        content_updated_id = content_updated_prompt["prompt_revid"]
         content_updated_prompt_version = content_updated_prompt["prompt_version"]
         
         # Verify a new version was created

@@ -13,7 +13,7 @@ export interface PromptConfig {
 }
 
 export interface Prompt extends PromptConfig {
-  id: string;
+  prompt_revid: string;
   prompt_id: string;
   prompt_version: number;
   created_at: string;

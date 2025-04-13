@@ -59,7 +59,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
           
           const schema = await getSchemaApi({ 
             organizationId: organizationId, 
-            schemaId: schemaDoc.id 
+            schemaId: schemaDoc.schema_revid 
           });
 
           setSelectedSchemaDetails(schema);
@@ -82,7 +82,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
   // Load editing prompt if available
   useEffect(() => {
     if (editingPrompt) {
-      setCurrentPromptId(editingPrompt.id);
+      setCurrentPromptId(editingPrompt.prompt_revid);
       setCurrentPrompt({
         name: editingPrompt.name,
         content: editingPrompt.content,
@@ -121,7 +121,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
           try {
             const schema = await getSchemaApi({ 
               organizationId: organizationId, 
-              schemaId: schemaDoc.id 
+              schemaId: schemaDoc.schema_revid 
             });
             setSelectedSchemaDetails(schema);
             // Ensure currentPrompt has the latest schema_version
@@ -366,7 +366,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
                 >
                   <option value="">None</option>
                   {schemas.map((schema) => (
-                    <option key={schema.id} value={schema.schema_id}>
+                    <option key={schema.schema_revid} value={schema.schema_revid}>
                       {schema.name}
                     </option>
                   ))}

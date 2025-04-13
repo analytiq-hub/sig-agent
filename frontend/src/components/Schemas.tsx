@@ -53,7 +53,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     try {
       setIsLoading(true);
       await deleteSchemaApi({organizationId: organizationId, schemaId});
-      setSchemas(schemas.filter(schema => schema.id !== schemaId));
+      setSchemas(schemas.filter(schema => schema.schema_revid !== schemaId));
       setMessage('Schema deleted successfully');
       toast.success('Schema deleted successfully');
     } catch (error) {
@@ -99,7 +99,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       
       await updateSchemaApi({
         organizationId: organizationId,
-        schemaId: selectedSchema.id,
+        schemaId: selectedSchema.schema_revid,
         schema: schemaConfig
       });
       
@@ -319,12 +319,13 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           <DataGrid
             rows={filteredSchemas}
             columns={columns}
+            getRowId={(row) => row.schema_revid}
             initialState={{
               pagination: {
                 paginationModel: { pageSize: 5 }
               },
               sorting: {
-                sortModel: [{ field: 'id', sort: 'desc' }]
+                sortModel: [{ field: 'schema_revid', sort: 'desc' }]
               }
             }}
             pageSizeOptions={[5, 10, 20]}
@@ -391,7 +392,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         </MenuItem>
         <MenuItem 
           onClick={() => {
-            if (selectedSchema) handleDelete(selectedSchema.id);
+            if (selectedSchema) handleDelete(selectedSchema.schema_revid);
           }}
           className="flex items-center gap-2"
         >

@@ -174,7 +174,7 @@ class SchemaConfig(BaseModel):
     response_format: ResponseFormat
 
 class Schema(SchemaConfig):
-    id: str           # MongoDB's _id
+    schema_revid: str           # MongoDB's _id
     schema_id: str    # Stable identifier
     schema_version: int
     created_at: datetime
@@ -195,7 +195,7 @@ class PromptConfig(BaseModel):
     model: str = "gpt-4o-mini"
 
 class Prompt(PromptConfig):
-    id: str           # MongoDB's _id
+    prompt_revid: str           # MongoDB's _id
     prompt_id: str    # Stable identifier
     prompt_version: int
     created_at: datetime

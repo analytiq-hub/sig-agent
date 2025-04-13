@@ -136,7 +136,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       
       await updatePromptApi({
         organizationId: organizationId,
-        promptId: selectedPrompt.id,
+        promptId: selectedPrompt.prompt_revid,
         prompt: promptConfig
       });
       
@@ -157,7 +157,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     try {
       setIsLoading(true);
       await deletePromptApi({organizationId: organizationId, promptId: promptId});
-      setPrompts(prompts.filter(prompt => prompt.id !== promptId));
+      setPrompts(prompts.filter(prompt => prompt.prompt_revid !== promptId));
       handleMenuClose();
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error deleting prompt';
@@ -189,7 +189,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         // Fetch the full schema details
         schema = await getSchemaApi({
           organizationId: organizationId,
-          schemaId: matchingSchema.id
+          schemaId: matchingSchema.schema_revid
         });
       }
       
@@ -403,12 +403,13 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           <DataGrid
             rows={filteredPrompts}
             columns={columns}
+            getRowId={(row) => row.prompt_revid}
             initialState={{
               pagination: {
                 paginationModel: { pageSize: 5 }
               },
               sorting: {
-                sortModel: [{ field: 'id', sort: 'desc' }]  // Sort by id descending by default
+                sortModel: [{ field: 'prompt_revid', sort: 'desc' }]  // Sort by prompt_revid descending by default
               }
             }}
             pageSizeOptions={[5, 10, 20]}
@@ -469,7 +470,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           </MenuItem>
           <MenuItem 
             onClick={() => {
-              if (selectedPrompt) handleDelete(selectedPrompt.id);
+              if (selectedPrompt) handleDelete(selectedPrompt.prompt_revid);
             }}
             className="flex items-center gap-2"
           >

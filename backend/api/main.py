@@ -906,7 +906,7 @@ async def create_schema(
     
     # Return complete schema
     schema_dict["name"] = schema.name
-    schema_dict["id"] = str(result.inserted_id)
+    schema_dict["schema_revid"] = str(result.inserted_id)
     return Schema(**schema_dict)
 
 @app.get("/v0/orgs/{organization_id}/schemas", response_model=ListSchemasResponse, tags=["schemas"])
@@ -970,7 +970,7 @@ async def list_schemas(
     
     # Convert _id to id in each schema and add name from schemas collection
     for schema in schemas:
-        schema['id'] = str(schema.pop('_id'))
+        schema['schema_revid'] = str(schema.pop('_id'))
         schema['name'] = schema_id_to_name.get(schema['schema_id'], "Unknown")
     
     return ListSchemasResponse(
@@ -1004,7 +1004,7 @@ async def get_schema(
         raise HTTPException(status_code=404, detail="Schema not found or not in this organization")
     
     # Combine the data
-    revision['id'] = str(revision.pop('_id'))
+    revision['schema_revid'] = str(revision.pop('_id'))
     revision['name'] = schema['name']
     
     return Schema(**revision)
@@ -1061,7 +1061,7 @@ async def update_schema(
         if result.modified_count > 0:
             # Return the updated schema
             updated_revision = existing_revision.copy()
-            updated_revision["id"] = str(updated_revision.pop("_id"))
+            updated_revision["schema_revid"] = str(updated_revision.pop("_id"))
             updated_revision["name"] = schema.name
             return Schema(**updated_revision)
         else:
@@ -1091,7 +1091,7 @@ async def update_schema(
     result = await db.schema_revisions.insert_one(new_schema)
     
     # Return updated schema
-    new_schema["id"] = str(result.inserted_id)
+    new_schema["schema_revid"] = str(result.inserted_id)
     new_schema["name"] = schema.name
     return Schema(**new_schema)
 
@@ -1353,7 +1353,7 @@ async def create_prompt(
     
     # Return complete prompt, adding name from prompts collection
     prompt_dict["name"] = prompt.name
-    prompt_dict["id"] = str(result.inserted_id)
+    prompt_dict["prompt_revid"] = str(result.inserted_id)
     return Prompt(**prompt_dict)
 
 @app.get("/v0/orgs/{organization_id}/prompts", response_model=ListPromptsResponse, tags=["prompts"])
@@ -1444,7 +1444,7 @@ async def list_prompts(
     
     # Convert _id to id in each prompt and add name from prompts collection
     for prompt in prompts:
-        prompt['id'] = str(prompt.pop('_id'))
+        prompt['prompt_revid'] = str(prompt.pop('_id'))
         prompt['name'] = prompt_id_to_name.get(prompt['prompt_id'], "Unknown")
     
     return ListPromptsResponse(
@@ -1478,7 +1478,7 @@ async def get_prompt(
         raise HTTPException(status_code=404, detail="Prompt not found or not in this organization")
     
     # Combine the data
-    revision['id'] = str(revision.pop('_id'))
+    revision['prompt_revid'] = str(revision.pop('_id'))
     revision['name'] = prompt['name']
     
     return Prompt(**revision)
@@ -1565,7 +1565,7 @@ async def update_prompt(
             if result.modified_count > 0:
                 # Return the updated prompt
                 updated_revision = existing_revision.copy()
-                updated_revision["id"] = str(updated_revision.pop("_id"))
+                updated_revision["prompt_revid"] = str(updated_revision.pop("_id"))
                 updated_revision["name"] = prompt.name
                 return Prompt(**updated_revision)
             else:
@@ -1592,7 +1592,7 @@ async def update_prompt(
     result = await db.prompt_revisions.insert_one(new_prompt)
     
     # Return updated prompt
-    new_prompt["id"] = str(result.inserted_id)
+    new_prompt["prompt_revid"] = str(result.inserted_id)
     new_prompt["name"] = prompt.name  # Add name from the prompts collection
     return Prompt(**new_prompt)
 
