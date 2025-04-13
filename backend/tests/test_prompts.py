@@ -464,18 +464,18 @@ async def test_prompt_version_deletion(test_db, mock_auth):
         assert delete_response.status_code == 200
         
         # Step 5: Verify both versions are deleted from the database
-        remaining_prompts = await test_db.prompt_revisions.find({
+        prompt_revisions = await test_db.prompt_revisions.find({
             "prompt_id": original_prompt_id
         }).to_list(None)
         
-        assert len(remaining_prompts) == 0, "All versions of the prompt should be deleted"
+        assert len(prompt_revisions) == 0, "All versions of the prompt should be deleted"
         
-        # Step 6: Check that the version counter is also deleted
-        version_counter = await test_db.prompts.find_one({
+        # Step 6: Check that the prompt is also deleted
+        db_prompts = await test_db.prompts.find_one({
             "_id": original_prompt_id
         })
         
-        assert version_counter is None, "Version counter should be deleted"
+        assert db_prompts is None, "Prompt should be deleted"
         
         # Step 7: Verify that trying to get either version returns 404
         for prompt_id in [original_id, updated_id]:
@@ -622,12 +622,12 @@ async def test_prompt_name_only_update(test_db, mock_auth):
         assert updated_prompt["name"] == "Updated Prompt Name", "Name should be updated"
         
         # Step 3: Verify only one version exists in the database
-        db_prompts = await test_db.prompts.find({
+        db_prompts = await test_db.prompt_revisions.find({
             "prompt_id": original_prompt_id,
             "prompt_version": original_prompt_version
         }).to_list(None)
         
-        assert len(db_prompts) == 1, "Should still have only one version of the prompt"
+        assert len(db_prompts) == 1, "Should still have only one revision of the prompt"
         
         # Step 4: Update prompt with a substantive change (content)
         content_update_data = {
@@ -654,11 +654,11 @@ async def test_prompt_name_only_update(test_db, mock_auth):
         assert content_updated_prompt_version > original_prompt_version, "Version should increase for content updates"
         
         # Step 5: Verify two versions exist in the database
-        db_prompts_after = await test_db.prompts.find({
+        db_prompts_after = await test_db.prompt_revisions.find({
             "prompt_id": original_prompt_id
         }).to_list(None)
         
-        assert len(db_prompts_after) == 2, "Should now have two versions of the prompt"
+        assert len(db_prompts_after) == 2, "Should now have two revisions of the prompt"
         
         # Clean up
         client.delete(
