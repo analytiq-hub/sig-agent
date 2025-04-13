@@ -1,4 +1,4 @@
-# Analytiq API Client
+# DocRouter Python SDK
 
 A Python client library for the Analytiq Document Router API.
 
