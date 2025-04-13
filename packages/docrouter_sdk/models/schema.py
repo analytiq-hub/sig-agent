@@ -16,7 +16,7 @@ class SchemaConfig(BaseModel):
     response_format: ResponseFormat
 
 class Schema(SchemaConfig):
-    id: str
+    schema_revid: str
     schema_id: str
     schema_version: int
     created_at: datetime

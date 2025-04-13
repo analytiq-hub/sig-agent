@@ -11,7 +11,7 @@ class PromptConfig(BaseModel):
     model: str = "gpt-4o-mini"
 
 class Prompt(PromptConfig):
-    id: str
+    prompt_revid: str
     prompt_id: str
     prompt_version: int
     created_at: datetime

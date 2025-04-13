@@ -361,23 +361,23 @@ async def test_schemas_api(test_db, mock_auth, mock_docrouter_client):
         }
         
         create_response = mock_docrouter_client.schemas.create(TEST_ORG_ID, schema_data)
-        assert hasattr(create_response, "id")
+        assert hasattr(create_response, "schema_revid")
         assert create_response.name == "Test Invoice Schema"
         
-        schema_id = create_response.id
+        schema_id = create_response.schema_revid
         
         # Step 2: List schemas to verify it was created
         list_response = mock_docrouter_client.schemas.list(TEST_ORG_ID)
         assert list_response.total_count > 0
         
         # Find our schema in the list
-        created_schema = next((schema for schema in list_response.schemas if schema.id == schema_id), None)
+        created_schema = next((schema for schema in list_response.schemas if schema.schema_revid == schema_id), None)
         assert created_schema is not None
         assert created_schema.name == "Test Invoice Schema"
         
         # Step 3: Get the specific schema to verify its content
         get_response = mock_docrouter_client.schemas.get(TEST_ORG_ID, schema_id)
-        assert get_response.id == schema_id
+        assert get_response.schema_revid == schema_id
         assert get_response.name == "Test Invoice Schema"
         
         # Step 4: Update the schema
@@ -465,14 +465,14 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
         
         ad.log.info(f"Creating schema: {schema_data['name']}")
         schema_response = mock_docrouter_client.schemas.create(TEST_ORG_ID, schema_data)
-        assert hasattr(schema_response, "id")
+        assert hasattr(schema_response, "schema_revid")
         assert schema_response.name == "Test Prompt Schema"
 
         ad.log.info(f"Schema created: {schema_response}")
         
         schema_id = schema_response.schema_id
         schema_version = schema_response.schema_version
-        schema_id2 = schema_response.id
+        schema_id2 = schema_response.schema_revid
         
         # Step 2: Create a prompt
         prompt_data = {
@@ -485,10 +485,10 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
         
         ad.log.info(f"Creating prompt: {prompt_data['name']}")
         create_response = mock_docrouter_client.prompts.create(TEST_ORG_ID, prompt_data)
-        assert hasattr(create_response, "id")
+        assert hasattr(create_response, "prompt_revid")
         assert create_response.name == "Test Prompt"
         
-        prompt_id = create_response.id
+        prompt_id = create_response.prompt_revid
         prompt_version = create_response.prompt_version
         ad.log.info(f"Prompt created: {create_response}")
 
@@ -501,7 +501,7 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
         assert list_response.total_count > 0
         
         # Find our prompt in the list
-        created_prompt = next((prompt for prompt in list_response.prompts if prompt.id == prompt_id), None)
+        created_prompt = next((prompt for prompt in list_response.prompts if prompt.prompt_revid == prompt_id), None)
         assert created_prompt is not None
         assert created_prompt.name == "Test Prompt"
         
@@ -509,7 +509,7 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
         ad.log.info(f"Getting prompt: {prompt_id}")
         get_response = mock_docrouter_client.prompts.get(TEST_ORG_ID, prompt_id)
         ad.log.info(f"Get prompt response: {get_response}")
-        assert get_response.id == prompt_id
+        assert get_response.prompt_revid == prompt_id
         assert get_response.name == "Test Prompt"
         
         # Step 5: Update the prompt
