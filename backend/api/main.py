@@ -916,7 +916,7 @@ async def list_schemas(
     limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_user)
 ):
-    """List schemas within an organization"""
+    """List latest schema revisions within an organization"""
     db = ad.common.get_async_db()
     
     # First, get schemas that belong to the organization
@@ -985,7 +985,7 @@ async def get_schema(
     schema_revid: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Get a schema"""
+    """Get a schema revision"""
     db = ad.common.get_async_db()
     
     # Get the schema revision

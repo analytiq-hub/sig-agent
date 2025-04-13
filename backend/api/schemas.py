@@ -174,7 +174,7 @@ class SchemaConfig(BaseModel):
     response_format: ResponseFormat
 
 class Schema(SchemaConfig):
-    schema_revid: str           # MongoDB's _id
+    schema_revid: str # MongoDB's _id
     schema_id: str    # Stable identifier
     schema_version: int
     created_at: datetime
