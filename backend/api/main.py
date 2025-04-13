@@ -1255,7 +1255,7 @@ async def create_prompt(
     prompt_name = prompt.name
 
     # Does the prompt name already exist?
-    existing_prompt = await db.prompt_revisions.find_one({
+    existing_prompt = await db.prompts.find_one({
         "name": prompt_name,
         "organization_id": organization_id
     })
@@ -1265,9 +1265,18 @@ async def create_prompt(
     else:
         prompt_id, new_prompt_version = await get_prompt_id_and_version(None)
     
-    # Create prompt document
+    # Update the prompts collection with name and organization_id
+    await db.prompts.update_one(
+        {"_id": ObjectId(prompt_id)},
+        {"$set": {
+            "name": prompt.name,
+            "organization_id": organization_id
+        }},
+        upsert=True
+    )
+    
+    # Create prompt document for prompt_revisions
     prompt_dict = {
-        "name": prompt.name,
         "prompt_id": prompt_id,  # Add stable identifier
         "content": prompt.content,
         "schema_id": prompt.schema_id,
@@ -1283,7 +1292,8 @@ async def create_prompt(
     # Insert into MongoDB
     result = await db.prompt_revisions.insert_one(prompt_dict)
     
-    # Return complete prompt
+    # Return complete prompt, adding name from prompts collection
+    prompt_dict["name"] = prompt.name
     prompt_dict["id"] = str(result.inserted_id)
     return Prompt(**prompt_dict)
 
@@ -1298,10 +1308,23 @@ async def list_prompts(
 ):
     """List prompts within an organization"""
     db = ad.common.get_async_db()
-    # Build the base pipeline
+    
+    # First, get prompts that belong to the organization
+    org_prompts = await db.prompts.find(
+        {"organization_id": organization_id}
+    ).to_list(None)
+    
+    if not org_prompts:
+        return ListPromptsResponse(prompts=[], total_count=0, skip=skip)
+    
+    # Extract prompt IDs
+    prompt_ids = [prompt["_id"] for prompt in org_prompts]
+    prompt_id_to_name = {str(prompt["_id"]): prompt["name"] for prompt in org_prompts}
+    
+    # Build pipeline for prompt_revisions
     pipeline = [
         {
-            "$match": {"organization_id": organization_id}
+            "$match": {"prompt_id": {"$in": [str(pid) for pid in prompt_ids]}}
         }
     ]
 
@@ -1333,7 +1356,7 @@ async def list_prompts(
         },
         {
             "$group": {
-                "_id": "$prompt_id",  # Group by prompt_id instead of name
+                "_id": "$prompt_id",
                 "doc": {"$first": "$$ROOT"}
             }
         },
@@ -1360,9 +1383,10 @@ async def list_prompts(
     total_count = result["total"][0]["count"] if result["total"] else 0
     prompts = result["prompts"]
     
-    # Convert _id to id in each prompt
+    # Convert _id to id in each prompt and add name from prompts collection
     for prompt in prompts:
         prompt['id'] = str(prompt.pop('_id'))
+        prompt['name'] = prompt_id_to_name.get(prompt['prompt_id'], "Unknown")
     
     return ListPromptsResponse(
         prompts=prompts,
@@ -1378,14 +1402,27 @@ async def get_prompt(
 ):
     """Get a prompt"""
     db = ad.common.get_async_db()
-    prompt = await db.prompt_revisions.find_one({
-        "_id": ObjectId(prompt_id),
-        "organization_id": organization_id  # Add organization check
+    
+    # Get the prompt revision
+    revision = await db.prompt_revisions.find_one({
+        "_id": ObjectId(prompt_id)
+    })
+    if not revision:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+    
+    # Get the prompt name and verify organization
+    prompt = await db.prompts.find_one({
+        "_id": ObjectId(revision["prompt_id"]),
+        "organization_id": organization_id
     })
     if not prompt:
-        raise HTTPException(status_code=404, detail="Prompt not found")
-    prompt['id'] = str(prompt.pop('_id'))
-    return Prompt(**prompt)
+        raise HTTPException(status_code=404, detail="Prompt not found or not in this organization")
+    
+    # Combine the data
+    revision['id'] = str(revision.pop('_id'))
+    revision['name'] = prompt['name']
+    
+    return Prompt(**revision)
 
 @app.put("/v0/orgs/{organization_id}/prompts/{prompt_id}", response_model=Prompt, tags=["prompts"])
 async def update_prompt(
@@ -1396,19 +1433,27 @@ async def update_prompt(
 ):
     """Update a prompt"""
     db = ad.common.get_async_db()
-    # Get the existing prompt with organization check
-    existing_prompt = await db.prompt_revisions.find_one({
-        "_id": ObjectId(prompt_id),
+    
+    # Get the existing prompt revision
+    existing_revision = await db.prompt_revisions.find_one({
+        "_id": ObjectId(prompt_id)
+    })
+    if not existing_revision:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+    
+    # Get the prompt and check organization
+    existing_prompt = await db.prompts.find_one({
+        "_id": ObjectId(existing_revision["prompt_id"]),
         "organization_id": organization_id
     })
     if not existing_prompt:
-        raise HTTPException(status_code=404, detail="Prompt not found")
+        raise HTTPException(status_code=404, detail="Prompt not found or not in this organization")
     
     # Only verify schema if one is specified
     if prompt.schema_id and prompt.schema_version:
         schema = await db.schema_revisions.find_one({
             "schema_id": prompt.schema_id,
-            "schema_version": prompt.schema_version  # Changed field name
+            "schema_version": prompt.schema_version
         })
         if not schema:
             raise HTTPException(
@@ -1443,36 +1488,37 @@ async def update_prompt(
     # Check if only the name has changed
     only_name_changed = (
         prompt.name != existing_prompt["name"] and
-        prompt.content == existing_prompt["content"] and
-        prompt.schema_id == existing_prompt.get("schema_id") and
-        prompt.schema_version == existing_prompt.get("schema_version") and
-        prompt.model == existing_prompt["model"] and
-        set(prompt.tag_ids or []) == set(existing_prompt.get("tag_ids") or [])
+        prompt.content == existing_revision["content"] and
+        prompt.schema_id == existing_revision.get("schema_id") and
+        prompt.schema_version == existing_revision.get("schema_version") and
+        prompt.model == existing_revision["model"] and
+        set(prompt.tag_ids or []) == set(existing_revision.get("tag_ids") or [])
     )
     
-    if only_name_changed:
-        # Update the name without creating a new version
-        result = await db.prompt_revisions.update_one(
-            {"_id": ObjectId(prompt_id)},
+    if prompt.name != existing_prompt["name"]:
+        # Update the name in the prompts collection
+        result = await db.prompts.update_one(
+            {"_id": ObjectId(existing_revision["prompt_id"])},
             {"$set": {"name": prompt.name}}
         )
-        
-        if result.modified_count > 0:
-            # Return the updated prompt
-            updated_prompt = await db.prompt_revisions.find_one({"_id": ObjectId(prompt_id)})
-            updated_prompt["id"] = str(updated_prompt.pop("_id"))
-            return Prompt(**updated_prompt)
-        else:
-            raise HTTPException(status_code=500, detail="Failed to update prompt name")
+
+        if only_name_changed:
+            if result.modified_count > 0:
+                # Return the updated prompt
+                updated_revision = existing_revision.copy()
+                updated_revision["id"] = str(updated_revision.pop("_id"))
+                updated_revision["name"] = prompt.name
+                return Prompt(**updated_revision)
+            else:
+                raise HTTPException(status_code=500, detail="Failed to update prompt name")
     
     # If other fields changed, create a new version
     # Get the next version number using the stable prompt_id
-    _, new_prompt_version = await get_prompt_id_and_version(existing_prompt["prompt_id"])
+    _, new_prompt_version = await get_prompt_id_and_version(existing_revision["prompt_id"])
     
-    # Create new version of the prompt
+    # Create new version of the prompt in prompt_revisions
     new_prompt = {
-        "name": prompt.name,
-        "prompt_id": existing_prompt["prompt_id"],  # Preserve stable identifier
+        "prompt_id": existing_revision["prompt_id"],  # Preserve stable identifier
         "content": prompt.content,
         "schema_id": prompt.schema_id,
         "schema_version": prompt.schema_version,
@@ -1480,8 +1526,7 @@ async def update_prompt(
         "created_at": datetime.now(UTC),
         "created_by": current_user.user_id,
         "tag_ids": prompt.tag_ids,
-        "model": prompt.model,
-        "organization_id": organization_id
+        "model": prompt.model
     }
     
     # Insert new version
@@ -1489,6 +1534,7 @@ async def update_prompt(
     
     # Return updated prompt
     new_prompt["id"] = str(result.inserted_id)
+    new_prompt["name"] = prompt.name  # Add name from the prompts collection
     return Prompt(**new_prompt)
 
 @app.delete("/v0/orgs/{organization_id}/prompts/{prompt_id}", tags=["prompts"])
@@ -1499,28 +1545,36 @@ async def delete_prompt(
 ):
     """Delete a prompt"""
     db = ad.common.get_async_db()
-    # Get the prompt to find its name
-    prompt = await db.prompt_revisions.find_one({
-        "_id": ObjectId(prompt_id),
-        "organization_id": organization_id  # Add organization check
+    
+    # Get the prompt revision
+    revision = await db.prompt_revisions.find_one({
+        "_id": ObjectId(prompt_id)
+    })
+    if not revision:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+    
+    # Get the prompt and verify organization
+    prompt = await db.prompts.find_one({
+        "_id": ObjectId(revision["prompt_id"]),
+        "organization_id": organization_id
     })
     if not prompt:
-        raise HTTPException(status_code=404, detail="Prompt not found")
+        raise HTTPException(status_code=404, detail="Prompt not found or not in this organization")
     
-    if prompt["created_by"] != current_user.user_id:
+    if revision["created_by"] != current_user.user_id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this prompt")
     
-    # Delete all versions of this prompt within the organization
+    # Delete all revisions of this prompt
     result = await db.prompt_revisions.delete_many({
-        "prompt_id": prompt["prompt_id"],
-        "organization_id": organization_id  # Add organization check
+        "prompt_id": revision["prompt_id"]
     })
     
-    # Also delete the version counter
-    await db.prompt_versions.delete_one({"_id": prompt["prompt_id"]})
+    # Delete the prompt entry
+    await db.prompts.delete_one({"_id": ObjectId(revision["prompt_id"])})
     
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Prompt not found")
+        raise HTTPException(status_code=404, detail="No prompt revisions found")
+        
     return {"message": "Prompt deleted successfully"}
 
 # Tag management endpoints

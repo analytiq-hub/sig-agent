@@ -977,6 +977,187 @@ class UseMongoObjectIDs(Migration):
         ad.log.warning("Cannot revert migration to MongoDB ObjectIDs as original IDs are not preserved.")
         return False
 
+# Add this new migration class before the MIGRATIONS list
+class MigratePromptNames(Migration):
+    def __init__(self):
+        super().__init__(description="Copy prompt names from prompt_revisions to prompts")
+        
+    async def up(self, db) -> bool:
+        """Copy prompt names from prompt_revisions to prompts, then delete the names from prompt_revisions"""
+        try:
+            # Get all prompts
+            prompts_cursor = db.prompts.find({})
+            
+            updated_count = 0
+            skipped_count = 0
+            
+            async for prompt in prompts_cursor:
+                prompt_id = prompt.get("_id")
+                prompt_version = prompt.get("prompt_version", 1)
+                
+                # Skip if prompt already has a name
+                if "name" in prompt and prompt["name"]:
+                    skipped_count += 1
+                    continue
+                
+                # Find corresponding prompt_revision
+                revision = await db.prompt_revisions.find_one({
+                    "prompt_id": str(prompt_id),
+                    "prompt_version": prompt_version
+                })
+                
+                if revision and "name" in revision:
+                    # Copy name to the prompt
+                    await db.prompts.update_one(
+                        {"_id": prompt_id},
+                        {"$set": {"name": revision["name"]}}
+                    )
+                    updated_count += 1
+            
+            ad.log.info(f"Updated {updated_count} prompts with names, skipped {skipped_count} prompts")
+            
+            # Remove name field from all prompt_revisions
+            result = await db.prompt_revisions.update_many(
+                {"name": {"$exists": True}},
+                {"$unset": {"name": ""}}
+            )
+            
+            ad.log.info(f"Removed name field from {result.modified_count} prompt_revisions")
+            
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"Prompt name migration failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """Restore prompt names from prompts to prompt_revisions"""
+        try:
+            # For each prompt, copy its name back to all matching prompt_revisions
+            prompts_cursor = db.prompts.find({"name": {"$exists": True}})
+            
+            restored_count = 0
+            async for prompt in prompts_cursor:
+                prompt_id = prompt.get("_id")
+                name = prompt.get("name")
+                
+                if name:
+                    # Find all revisions for this prompt
+                    result = await db.prompt_revisions.update_many(
+                        {"prompt_id": str(prompt_id)},
+                        {"$set": {"name": name}}
+                    )
+                    
+                    restored_count += result.modified_count
+            
+            ad.log.info(f"Restored name field for {restored_count} prompt_revisions")
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"Prompt name migration revert failed: {e}")
+            return False
+
+# Add this new migration class before the MIGRATIONS list
+class MigratePromptOrganizationIDs(Migration):
+    def __init__(self):
+        super().__init__(description="Copy organization_id from prompt_revisions to prompts")
+        
+    async def up(self, db) -> bool:
+        """Copy organization_id from prompt_revisions to prompts, then delete them from prompt_revisions"""
+        try:
+            # Get all prompts
+            prompts_cursor = db.prompts.find({})
+            
+            updated_count = 0
+            
+            async for prompt in prompts_cursor:
+                prompt_id = prompt.get("_id")
+                prompt_version = prompt.get("prompt_version", 1)
+                
+                # Find corresponding prompt_revision
+                revision = await db.prompt_revisions.find_one({
+                    "prompt_id": str(prompt_id),
+                    "prompt_version": prompt_version
+                })
+                
+                if revision:
+                    update_fields = {}
+                    
+                    # Copy name if not already present in prompt
+                    if "name" not in prompt and "name" in revision:
+                        update_fields["name"] = revision["name"]
+                    
+                    # Copy organization_id
+                    if "organization_id" in revision:
+                        update_fields["organization_id"] = revision["organization_id"]
+                    
+                    if update_fields:
+                        await db.prompts.update_one(
+                            {"_id": prompt_id},
+                            {"$set": update_fields}
+                        )
+                        updated_count += 1
+            
+            ad.log.info(f"Updated {updated_count} prompts with organization_id/name")
+            
+            # Remove fields from all prompt_revisions
+            result = await db.prompt_revisions.update_many(
+                {"$or": [
+                    {"name": {"$exists": True}},
+                    {"organization_id": {"$exists": True}}
+                ]},
+                {"$unset": {
+                    "name": "",
+                    "organization_id": ""
+                }}
+            )
+            
+            ad.log.info(f"Removed fields from {result.modified_count} prompt_revisions")
+            
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"Organization ID migration failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """Restore organization_id and name from prompts to prompt_revisions"""
+        try:
+            # For each prompt, copy its organization_id back to all matching prompt_revisions
+            prompts_cursor = db.prompts.find({
+                "$or": [
+                    {"name": {"$exists": True}},
+                    {"organization_id": {"$exists": True}}
+                ]
+            })
+            
+            restored_count = 0
+            async for prompt in prompts_cursor:
+                prompt_id = prompt.get("_id")
+                update_fields = {}
+                
+                if "name" in prompt:
+                    update_fields["name"] = prompt["name"]
+                
+                if "organization_id" in prompt:
+                    update_fields["organization_id"] = prompt["organization_id"]
+                
+                if update_fields:
+                    # Find all revisions for this prompt
+                    result = await db.prompt_revisions.update_many(
+                        {"prompt_id": str(prompt_id)},
+                        {"$set": update_fields}
+                    )
+                    
+                    restored_count += result.modified_count
+            
+            ad.log.info(f"Restored fields for {restored_count} prompt_revisions")
+            return True
+            
+        except Exception as e:
+            ad.log.error(f"Organization ID migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -990,6 +1171,8 @@ MIGRATIONS = [
     RemoveSchemaNameField(),
     RenameCollections(),
     UseMongoObjectIDs(),
+    MigratePromptNames(),
+    MigratePromptOrganizationIDs(),
     # Add more migrations here
 ]
 
