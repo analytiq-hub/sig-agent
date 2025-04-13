@@ -366,7 +366,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
                 >
                   <option value="">None</option>
                   {schemas.map((schema) => (
-                    <option key={schema.schema_revid} value={schema.schema_revid}>
+                    <option key={schema.schema_id} value={schema.schema_id}>
                       {schema.name}
                     </option>
                   ))}
