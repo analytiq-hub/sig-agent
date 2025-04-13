@@ -1,6 +1,8 @@
 import pytest
 import pytest_asyncio
 import os
+import sys
+import pathlib
 import base64
 from fastapi.testclient import TestClient
 from bson import ObjectId
@@ -14,6 +16,11 @@ from .test_utils import (
     test_db, get_auth_headers, mock_auth
 )
 import analytiq_data as ad
+
+# Add the packages directory to the Python path
+TOP_DIR = pathlib.Path(__file__).parent.parent.parent
+PACKAGES_DIR = TOP_DIR / "packages"
+sys.path.append(str(PACKAGES_DIR))
 
 # Import the DocRouterClient
 from docrouter_sdk import DocRouterClient
