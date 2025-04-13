@@ -11,9 +11,13 @@ import requests
 import pathlib
 
 # Add the backend directory to the Python path
-sys.path.append(str(pathlib.Path(__file__).parent.parent.parent.parent))
+#sys.path.append(str(pathlib.Path(__file__).parent.parent.parent.parent))
 
-print(sys.path)
+# Add the packages directory to the Python path
+TOP_DIR = pathlib.Path(__file__).parent.parent.parent.parent
+PACKAGES_DIR = TOP_DIR / "packages"
+sys.path.append(str(PACKAGES_DIR))
+sys.path.append(str(TOP_DIR))
 
 # Import test utilities using absolute import
 from backend.tests.test_utils import (
