@@ -1,5 +1,10 @@
 #! /bin/bash
 
+# Get the project root directory regardless of where the script is called from
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_ROOT="${SCRIPT_DIR}"
+VENV_PATH="${PROJECT_ROOT}/.venv"
+
 # Define colors for different processes
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -50,11 +55,11 @@ run_with_color() {
     
     # Run the command with virtual environment activation and optional directory change
     if [ -n "$dir" ]; then
-        (cd "$dir" && source ~/.venv/doc-router/bin/activate && $command) 2>&1 | while read -r line; do
+        (cd "$dir" && source "${VENV_PATH}/bin/activate" && $command) 2>&1 | while read -r line; do
             echo -e "${color}[$name] $line${NC}"
         done &
     else
-        (source ~/.venv/doc-router/bin/activate && $command) 2>&1 | while read -r line; do
+        (source "${VENV_PATH}/bin/activate" && $command) 2>&1 | while read -r line; do
             echo -e "${color}[$name] $line${NC}"
         done &
     fi
