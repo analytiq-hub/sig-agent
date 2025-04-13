@@ -167,17 +167,17 @@ async def test_json_schema_lifecycle(test_db, mock_auth):
 
         ad.log.info(f"update_response: {update_response.json()}")
 
-        updated_schema_id = update_response.json()["schema_revid"]
+        updated_schema_revid = update_response.json()["schema_revid"]
         
         # Step 5: Get the schema again to verify the update
         get_updated_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{updated_schema_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{updated_schema_revid}",
             headers=get_auth_headers()
         )
         
         assert get_updated_response.status_code == 200
         updated_schema_data = get_updated_response.json()
-        assert updated_schema_data["schema_revid"] == updated_schema_id
+        assert updated_schema_data["schema_revid"] == updated_schema_revid
         assert updated_schema_data["name"] == "Updated Invoice Schema"
         assert "response_format" in updated_schema_data
         assert "tax_amount" in updated_schema_data["response_format"]["json_schema"]["schema"]["properties"]
@@ -262,7 +262,7 @@ async def test_schema_validation(test_db, mock_auth):
         
         assert create_response.status_code == 200
         schema_result = create_response.json()
-        schema_id = schema_result["schema_revid"]
+        schema_revid = schema_result["schema_revid"]
         
         # Step 2: Test validation with valid data
         valid_data = {
@@ -274,7 +274,7 @@ async def test_schema_validation(test_db, mock_auth):
         }
         
         valid_validation_response = client.post(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}/validate",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_revid}/validate",
             json=valid_data,
             headers=get_auth_headers()
         )
@@ -294,7 +294,7 @@ async def test_schema_validation(test_db, mock_auth):
         }
         
         invalid_validation_response = client.post(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}/validate",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_revid}/validate",
             json=invalid_data,
             headers=get_auth_headers()
         )
@@ -307,7 +307,7 @@ async def test_schema_validation(test_db, mock_auth):
         
         # Clean up
         client.delete(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_revid}",
             headers=get_auth_headers()
         )
         
@@ -357,7 +357,7 @@ async def test_schema_version_deletion(test_db, mock_auth):
         
         assert create_response.status_code == 200
         original_schema = create_response.json()
-        original_id = original_schema["schema_revid"]
+        original_revid = original_schema["schema_revid"]
         original_schema_id = original_schema["schema_id"]  # This is the stable identifier
         original_schema_version = original_schema["schema_version"]
         
@@ -393,18 +393,18 @@ async def test_schema_version_deletion(test_db, mock_auth):
         }
         
         update_response = client.put(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_revid}",
             json=updated_schema_data,
             headers=get_auth_headers()
         )
         
         assert update_response.status_code == 200
         updated_schema = update_response.json()
-        updated_id = updated_schema["schema_revid"]
+        updated_revid = updated_schema["schema_revid"]
         updated_schema_id = updated_schema["schema_id"]
 
         # Verify both versions exist and have the same schema_id but different names
-        assert original_id != updated_id  # Different MongoDB _id
+        assert original_revid != updated_revid  # Different MongoDB _id
         assert original_schema_id == updated_schema_id  # Same stable identifier
         assert original_schema_version + 1 == updated_schema["schema_version"]  # Same stable identifier
         assert original_schema["name"] != updated_schema["name"]  # Different names
@@ -418,7 +418,7 @@ async def test_schema_version_deletion(test_db, mock_auth):
         
         # Step 4: Delete the schema using the original ID
         delete_response = client.delete(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_revid}",
             headers=get_auth_headers()
         )
         
@@ -439,12 +439,12 @@ async def test_schema_version_deletion(test_db, mock_auth):
         assert version_counter is None, "Version counter should be deleted"
         
         # Step 7: Verify that trying to get either version returns 404
-        for schema_id in [original_id, updated_id]:
+        for schema_revid in [original_revid, updated_revid]:
             get_response = client.get(
-                f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_id}",
+                f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_revid}",
                 headers=get_auth_headers()
             )
-            assert get_response.status_code == 404, f"Schema with ID {schema_id} should not exist"
+            assert get_response.status_code == 404, f"Schema with ID {schema_revid} should not exist"
         
     finally:
         pass  # mock_auth fixture handles cleanup
@@ -488,7 +488,7 @@ async def test_schema_latest_version_listing(test_db, mock_auth):
         
         assert create_response.status_code == 200
         original_schema = create_response.json()
-        original_id = original_schema["schema_revid"]
+        original_revid = original_schema["schema_revid"]
         original_schema_id = original_schema["schema_id"]
         original_schema_version = original_schema["schema_version"]
         
@@ -516,14 +516,14 @@ async def test_schema_latest_version_listing(test_db, mock_auth):
         }
         
         update_response = client.put(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_revid}",
             json=renamed_schema_data,
             headers=get_auth_headers()
         )
         
         assert update_response.status_code == 200
         renamed_schema = update_response.json()
-        renamed_id = renamed_schema["schema_revid"]
+        renamed_revid = renamed_schema["schema_revid"]
         
         # Step 3: List schemas and verify only the renamed version is returned
         list_response = client.get(
@@ -543,11 +543,11 @@ async def test_schema_latest_version_listing(test_db, mock_auth):
         
         # Verify the one returned is the renamed version
         assert matching_schemas[0]["name"] == "Renamed Version Test Schema"
-        assert matching_schemas[0]["schema_revid"] == renamed_id  # Should be the newer ID
+        assert matching_schemas[0]["schema_revid"] == renamed_revid  # Should be the newer ID
         
         # Step 4: Clean up
         client.delete(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_revid}",
             headers=get_auth_headers()
         )
         
@@ -593,7 +593,7 @@ async def test_schema_name_only_update(test_db, mock_auth):
         
         assert create_response.status_code == 200
         original_schema = create_response.json()
-        original_id = original_schema["schema_revid"]
+        original_revid = original_schema["schema_revid"]
         original_schema_id = original_schema["schema_id"]
         original_schema_version = original_schema["schema_version"]
         
@@ -604,18 +604,18 @@ async def test_schema_name_only_update(test_db, mock_auth):
         }
         
         update_response = client.put(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_revid}",
             json=name_update_data,
             headers=get_auth_headers()
         )
         
         assert update_response.status_code == 200
         updated_schema = update_response.json()
-        updated_id = updated_schema["schema_revid"]
+        updated_revid = updated_schema["schema_revid"]
         updated_schema_version = updated_schema["schema_version"]
         
         # Verify the ID remains the same (no new version created)
-        assert original_id == updated_id, "ID should remain the same for name-only updates"
+        assert original_revid == updated_revid, "ID should remain the same for name-only updates"
         assert original_schema_id == updated_schema["schema_id"]
         assert original_schema_version == updated_schema_version, "Version should remain the same for name-only updates"
         assert updated_schema["name"] == "Updated Schema Name", "Name should be updated"
@@ -655,18 +655,18 @@ async def test_schema_name_only_update(test_db, mock_auth):
         }
         
         content_update_response = client.put(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_revid}",
             json=content_update_data,
             headers=get_auth_headers()
         )
         
         assert content_update_response.status_code == 200
         content_updated_schema = content_update_response.json()
-        content_updated_id = content_updated_schema["schema_revid"]
+        content_updated_revid = content_updated_schema["schema_revid"]
         content_updated_version = content_updated_schema["schema_version"]
         
         # Verify a new version was created
-        assert original_id != content_updated_id, "ID should change for content updates"
+        assert original_revid != content_updated_revid, "ID should change for content updates"
         assert original_schema_version != content_updated_version, "Version should increase for content updates"
         assert content_updated_version > original_schema_version, "Version should increase for content updates"
         
@@ -679,7 +679,7 @@ async def test_schema_name_only_update(test_db, mock_auth):
         
         # Clean up
         client.delete(
-            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/schemas/{original_revid}",
             headers=get_auth_headers()
         )
         
