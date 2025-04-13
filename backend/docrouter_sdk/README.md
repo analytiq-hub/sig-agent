@@ -5,7 +5,7 @@ A Python client library for the Document Router API.
 ## Quick Start
 * Install directly from GitHub:
   ```bash
-  pip install git+https://github.com/analytiq-hub/doc-router.git
+  pip install git+https://github.com/analytiq-hub/doc-router.git#subdirectory=backend
   ```
 
 ## Installation
