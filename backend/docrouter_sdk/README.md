@@ -1,6 +1,6 @@
 # DocRouter Python SDK
 
-A Python client library for the Analytiq Document Router API.
+A Python client library for the Document Router API.
 
 ## Installation
 
