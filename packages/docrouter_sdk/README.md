@@ -11,6 +11,8 @@ A Python client library for the Document Router API.
 * Create an organization token. 
 * Run the `basic_docrouter_client.py` example:
   ```bash
+  export DOCROUTER_URL="https://app.docrouter.ai/fastapi"
+  # export DOCROUTER_URL="http://localhost:8000" # for local development
   export DOCROUTER_ORG_ID=<docrouter_org_id>
   export DOCROUTER_ORG_API_TOKEN=<docrouter_org_api_token> 
   packages/docrouter_sdk/examples/basic_docrouter_client.py

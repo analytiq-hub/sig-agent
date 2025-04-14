@@ -13,7 +13,8 @@ The `basic_usage.py` example shows how to:
 
 ```bash
 # Set your API credentials as environment variables
-export DOCROUTER_API_URL="http://localhost:8000"
+export DOCROUTER_URL="https://app.docrouter.ai/fastapi"
+# export DOCROUTER_URL="http://localhost:8000" # for local development
 export DOCROUTER_API_TOKEN="your_actual_token_here"
 export DOCROUTER_ORGANIZATION_ID="your_actual_org_id_here"
 
