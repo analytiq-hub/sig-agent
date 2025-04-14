@@ -3,10 +3,12 @@ FastMCP Server with APIs for data, prompts, and tools
 """
 
 from mcp.server.fastmcp import FastMCP, Context
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Annotated
 import json
 from contextlib import asynccontextmanager
 from datetime import datetime
+import inspect
+from functools import wraps
 
 # Mock database for demonstration
 class Database:
@@ -72,31 +74,39 @@ mcp = FastMCP(
     lifespan=app_lifespan
 )
 
+# Helper function to get context
+def get_context() -> Context:
+    return mcp.get_context()
+
 # ---- DATA RESOURCES ----
 
 @mcp.resource("data://users")
-def get_users(ctx: Context) -> str:
+def get_users() -> str:
     """Get all users"""
+    ctx = get_context()
     users = ctx.request_context.lifespan_context.db.query_users()
     return json.dumps(users, indent=2)
 
 @mcp.resource("data://users/{user_id}")
-def get_user(user_id: int, ctx: Context) -> str:
+def get_user(user_id: int) -> str:
     """Get user by ID"""
+    ctx = get_context()
     user = ctx.request_context.lifespan_context.db.get_user(user_id)
     if not user:
         return f"User with ID {user_id} not found"
     return json.dumps(user, indent=2)
 
 @mcp.resource("data://products")
-def get_products(ctx: Context) -> str:
+def get_products() -> str:
     """Get all products"""
+    ctx = get_context()
     products = ctx.request_context.lifespan_context.db.query_products()
     return json.dumps(products, indent=2)
 
 @mcp.resource("data://products/{product_id}")
-def get_product(product_id: int, ctx: Context) -> str:
+def get_product(product_id: int) -> str:
     """Get product by ID"""
+    ctx = get_context()
     product = ctx.request_context.lifespan_context.db.get_product(product_id)
     if not product:
         return f"Product with ID {product_id} not found"
@@ -105,8 +115,9 @@ def get_product(product_id: int, ctx: Context) -> str:
 # ---- TOOLS ----
 
 @mcp.tool()
-def search_users(name: str, ctx: Context) -> str:
+def search_users(name: str) -> str:
     """Search users by name"""
+    ctx = get_context()
     users = ctx.request_context.lifespan_context.db.query_users()
     results = [user for user in users if name.lower() in user["name"].lower()]
     
@@ -117,8 +128,9 @@ def search_users(name: str, ctx: Context) -> str:
     return json.dumps(results, indent=2)
 
 @mcp.tool()
-def calculate_total_price(product_ids: List[int], ctx: Context) -> str:
+def calculate_total_price(product_ids: List[int]) -> str:
     """Calculate total price for given products"""
+    ctx = get_context()
     db = ctx.request_context.lifespan_context.db
     total = 0.0
     products_found = []
