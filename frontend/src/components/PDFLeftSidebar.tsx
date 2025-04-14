@@ -838,9 +838,9 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
 
         {/* Other Prompts */}
         {matchingPrompts.map((prompt) => (
-          <div key={prompt.id} className="border-b border-black/10">
+          <div key={prompt.prompt_revid} className="border-b border-black/10">
             <div
-              onClick={() => handlePromptChange(prompt.id)}
+              onClick={() => handlePromptChange(prompt.prompt_revid)}
               className="w-full min-h-[48px] flex items-center justify-between px-4 bg-gray-100/[0.6] hover:bg-gray-100/[0.8] transition-colors cursor-pointer"
             >
               <span className="text-sm text-gray-900">
@@ -850,11 +850,11 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
                 <div
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleRunPrompt(prompt.id);
+                    handleRunPrompt(prompt.prompt_revid);
                   }}
                   className="p-1 rounded-full hover:bg-black/5 transition-colors cursor-pointer"
                 >
-                  {runningPrompts.has(prompt.id) ? (
+                  {runningPrompts.has(prompt.prompt_revid) ? (
                     <div className="w-4 h-4 border-2 border-[#2B4479]/60 border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <ArrowPathIcon className="w-4 h-4 text-gray-600" />
@@ -862,17 +862,17 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
                 </div>
                 <ChevronDownIcon 
                   className={`w-5 h-5 text-gray-600 transition-transform ${
-                    expandedPrompt === prompt.id ? 'rotate-180' : ''
+                    expandedPrompt === prompt.prompt_revid ? 'rotate-180' : ''
                   }`}
                 />
               </div>
             </div>
             <div 
               className={`transition-all duration-200 ease-in-out ${
-                expandedPrompt === prompt.id ? '' : 'hidden'
+                expandedPrompt === prompt.prompt_revid ? '' : 'hidden'
               }`}
             >
-              {renderPromptResults(prompt.id)}
+              {renderPromptResults(prompt.prompt_revid)}
             </div>
           </div>
         ))}

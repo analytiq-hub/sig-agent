@@ -241,7 +241,7 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   };
 
   const handlePromptSelect = useCallback((nodeId: string, promptId: string) => {
-    const selectedPrompt = prompts.find(p => p.id === promptId);
+    const selectedPrompt = prompts.find(p => p.prompt_revid === promptId);
     setNodes(nds => 
       nds.map(n => 
         n.id === nodeId 

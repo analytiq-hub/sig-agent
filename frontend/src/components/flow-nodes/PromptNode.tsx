@@ -30,7 +30,7 @@ const PromptNode = ({ id, data, prompts, handlePromptSelect }: PromptNodeProps) 
       >
         <option value="">Select a prompt...</option>
         {prompts.map(prompt => (
-          <option key={prompt.id} value={prompt.id}>
+          <option key={prompt.prompt_revid} value={prompt.prompt_revid}>
             {prompt.name}
           </option>
         ))}
