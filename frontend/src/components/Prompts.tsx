@@ -136,7 +136,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       
       await updatePromptApi({
         organizationId: organizationId,
-        promptId: selectedPrompt.prompt_revid,
+        promptId: selectedPrompt.prompt_id,
         prompt: promptConfig
       });
       

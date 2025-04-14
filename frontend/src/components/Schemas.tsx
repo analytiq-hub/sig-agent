@@ -53,7 +53,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     try {
       setIsLoading(true);
       await deleteSchemaApi({organizationId: organizationId, schemaId});
-      setSchemas(schemas.filter(schema => schema.schema_revid !== schemaId));
+      setSchemas(schemas.filter(schema => schema.schema_id !== schemaId));
       setMessage('Schema deleted successfully');
       toast.success('Schema deleted successfully');
     } catch (error) {
@@ -99,7 +99,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       
       await updateSchemaApi({
         organizationId: organizationId,
-        schemaId: selectedSchema.schema_revid,
+        schemaId: selectedSchema.schema_id,
         schema: schemaConfig
       });
       
@@ -392,7 +392,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         </MenuItem>
         <MenuItem 
           onClick={() => {
-            if (selectedSchema) handleDelete(selectedSchema.schema_revid);
+            if (selectedSchema) handleDelete(selectedSchema.schema_id);
           }}
           className="flex items-center gap-2"
         >

@@ -1009,58 +1009,56 @@ async def get_schema(
     
     return Schema(**revision)
 
-@app.put("/v0/orgs/{organization_id}/schemas/{schema_revid}", response_model=Schema, tags=["schemas"])
+@app.put("/v0/orgs/{organization_id}/schemas/{schema_id}", response_model=Schema, tags=["schemas"])
 async def update_schema(
     organization_id: str,
-    schema_revid: str,
+    schema_id: str,
     schema: SchemaConfig,
     current_user: User = Depends(get_current_user)
 ):
     """Update a schema"""
-    ad.log.info(f"update_schema() start: organization_id: {organization_id}, schema_revid: {schema_revid}, schema: {schema}")
+    ad.log.info(f"update_schema() start: organization_id: {organization_id}, schema_id: {schema_id}, schema: {schema}")
     
     db = ad.common.get_async_db()
-    
-    # Get the existing schema revision
-    existing_revision = await db.schema_revisions.find_one({
-        "_id": ObjectId(schema_revid)
-    })
-    if not existing_revision:
-        raise HTTPException(status_code=404, detail="Schema not found")
-    
-    # Get the schema and check organization
-    existing_schema = await db.schemas.find_one({
-        "_id": ObjectId(existing_revision["schema_id"]),
-        "organization_id": organization_id
-    })
-    if not existing_schema:
-        raise HTTPException(status_code=404, detail="Schema not found or not in this organization")
-    
+
     # Check if user is a member of the organization
     org = await db.organizations.find_one({"_id": ObjectId(organization_id)})
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
-    
+
     # Check if user is a member of the organization
     if not any(member["user_id"] == current_user.user_id for member in org["members"]):
         raise HTTPException(status_code=403, detail="Not authorized to update schemas in this organization")
+
+    # Get the existing schema and latest revision
+    existing_schema = await db.schemas.find_one({"_id": ObjectId(schema_id)})
+    if not existing_schema:
+        raise HTTPException(status_code=404, detail="Schema not found")
     
+    latest_schema_revision = await db.schema_revisions.find_one(
+        {"schema_id": schema_id},
+        sort=[("schema_version", -1)]
+    )
+    
+    if not latest_schema_revision:
+        raise HTTPException(status_code=404, detail="Schema revision not found")
+
     # Check if only the name has changed
     only_name_changed = (
         schema.name != existing_schema["name"] and
-        schema.response_format.model_dump() == existing_revision["response_format"]
+        schema.response_format.model_dump() == latest_schema_revision["response_format"]
     )
     
     if only_name_changed:
         # Update the name in the schemas collection
         result = await db.schemas.update_one(
-            {"_id": ObjectId(existing_revision["schema_id"])},
+            {"_id": ObjectId(schema_id)},
             {"$set": {"name": schema.name}}
         )
         
         if result.modified_count > 0:
             # Return the updated schema
-            updated_revision = existing_revision.copy()
+            updated_revision = latest_schema_revision.copy()
             updated_revision["schema_revid"] = str(updated_revision.pop("_id"))
             updated_revision["name"] = schema.name
             return Schema(**updated_revision)
@@ -1069,18 +1067,18 @@ async def update_schema(
     
     # If other fields changed, create a new version
     # Get the next version number using the stable schema_id
-    _, new_schema_version = await get_schema_id_and_version(existing_revision["schema_id"])
+    _, new_schema_version = await get_schema_id_and_version(schema_id)
     
     # Update the schemas collection if name changed
     if schema.name != existing_schema["name"]:
         await db.schemas.update_one(
-            {"_id": ObjectId(existing_revision["schema_id"])},
+            {"_id": ObjectId(schema_id)},
             {"$set": {"name": schema.name}}
         )
     
     # Create new version of the schema in schema_revisions
     new_schema = {
-        "schema_id": existing_revision["schema_id"],
+        "schema_id": schema_id,
         "response_format": schema.response_format.model_dump(),
         "schema_version": new_schema_version,
         "created_at": datetime.now(UTC),
@@ -1095,37 +1093,26 @@ async def update_schema(
     new_schema["name"] = schema.name
     return Schema(**new_schema)
 
-@app.delete("/v0/orgs/{organization_id}/schemas/{schema_revid}", tags=["schemas"])
+@app.delete("/v0/orgs/{organization_id}/schemas/{schema_id}", tags=["schemas"])
 async def delete_schema(
     organization_id: str,
-    schema_revid: str,
+    schema_id: str,
     current_user: User = Depends(get_current_user)
 ):
     """Delete a schema"""
     db = ad.common.get_async_db()
     
-    # Get the schema revision
-    revision = await db.schema_revisions.find_one({
-        "_id": ObjectId(schema_revid)
-    })
-    if not revision:
-        raise HTTPException(status_code=404, detail="Schema not found")
-    
     # Get the schema and verify organization
     schema = await db.schemas.find_one({
-        "_id": ObjectId(revision["schema_id"]),
+        "_id": ObjectId(schema_id),
         "organization_id": organization_id
     })
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found or not in this organization")
-    
-    # Check if user has permission to delete
-    if revision["created_by"] != current_user.user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to delete this schema")
-    
+
     # Check for dependent prompts by schema_id
     dependent_prompts = await db.prompt_revisions.find({
-        "schema_id": revision["schema_id"]
+        "schema_id": schema_id
     }).to_list(None)
     
     if dependent_prompts:
@@ -1151,11 +1138,11 @@ async def delete_schema(
     
     # If no dependent prompts, proceed with deletion
     result = await db.schema_revisions.delete_many({
-        "schema_id": revision["schema_id"]
+        "schema_id": schema_id
     })
     
     # Delete the schema entry
-    await db.schemas.delete_one({"_id": ObjectId(revision["schema_id"])})
+    await db.schemas.delete_one({"_id": ObjectId(schema_id)})
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="No schema revisions found")
@@ -1169,7 +1156,7 @@ async def validate_against_schema(
     data: dict = Body(...),
     current_user: User = Depends(get_current_user)
 ):
-    """Validate data against a schema"""
+    """Validate data against a schema revision"""
     ad.log.info(f"validate_against_schema() start: organization_id: {organization_id}, schema_revid: {schema_revid}")
     
     db = ad.common.get_async_db()
@@ -1493,21 +1480,14 @@ async def update_prompt(
 ):
     """Update a prompt"""
     db = ad.common.get_async_db()
-    
-    # Get the existing prompt revision
-    existing_revision = await db.prompt_revisions.find_one({
-        "_id": ObjectId(prompt_id)
-    })
-    if not existing_revision:
-        raise HTTPException(status_code=404, detail="Prompt not found")
-    
-    # Get the prompt and check organization
+
+    # Check if the prompt exists
     existing_prompt = await db.prompts.find_one({
-        "_id": ObjectId(existing_revision["prompt_id"]),
+        "_id": ObjectId(prompt_id),
         "organization_id": organization_id
     })
     if not existing_prompt:
-        raise HTTPException(status_code=404, detail="Prompt not found or not in this organization")
+        raise HTTPException(status_code=404, detail="Prompt not found")
     
     # Only verify schema if one is specified
     if prompt.schema_id and prompt.schema_version:
@@ -1544,28 +1524,36 @@ async def update_prompt(
                 status_code=400,
                 detail=f"Invalid tag IDs: {list(invalid_tags)}"
             ) 
-    
+
+    # Get the latest prompt revision
+    latest_prompt_revision = await db.prompt_revisions.find_one(
+        {"prompt_id": prompt_id},
+        sort=[("prompt_version", -1)]
+    )
+    if not latest_prompt_revision:
+        raise HTTPException(status_code=404, detail="Prompt not found or not in this organization")
+
     # Check if only the name has changed
     only_name_changed = (
         prompt.name != existing_prompt["name"] and
-        prompt.content == existing_revision["content"] and
-        prompt.schema_id == existing_revision.get("schema_id") and
-        prompt.schema_version == existing_revision.get("schema_version") and
-        prompt.model == existing_revision["model"] and
-        set(prompt.tag_ids or []) == set(existing_revision.get("tag_ids") or [])
+        prompt.content == latest_prompt_revision["content"] and
+        prompt.schema_id == latest_prompt_revision.get("schema_id") and
+        prompt.schema_version == latest_prompt_revision.get("schema_version") and
+        prompt.model == latest_prompt_revision["model"] and
+        set(prompt.tag_ids or []) == set(latest_prompt_revision.get("tag_ids") or [])
     )
     
     if prompt.name != existing_prompt["name"]:
         # Update the name in the prompts collection
         result = await db.prompts.update_one(
-            {"_id": ObjectId(existing_revision["prompt_id"])},
+            {"_id": ObjectId(prompt_id)},
             {"$set": {"name": prompt.name}}
         )
 
         if only_name_changed:
             if result.modified_count > 0:
                 # Return the updated prompt
-                updated_revision = existing_revision.copy()
+                updated_revision = latest_prompt_revision.copy()
                 updated_revision["prompt_revid"] = str(updated_revision.pop("_id"))
                 updated_revision["name"] = prompt.name
                 return Prompt(**updated_revision)
@@ -1574,11 +1562,11 @@ async def update_prompt(
     
     # If other fields changed, create a new version
     # Get the next version number using the stable prompt_id
-    _, new_prompt_version = await get_prompt_id_and_version(existing_revision["prompt_id"])
+    _, new_prompt_version = await get_prompt_id_and_version(prompt_id)
     
     # Create new version of the prompt in prompt_revisions
     new_prompt = {
-        "prompt_id": existing_revision["prompt_id"],  # Preserve stable identifier
+        "prompt_id": prompt_id,  # Preserve stable identifier
         "content": prompt.content,
         "schema_id": prompt.schema_id,
         "schema_version": prompt.schema_version,
@@ -1606,31 +1594,28 @@ async def delete_prompt(
     """Delete a prompt"""
     db = ad.common.get_async_db()
     
-    # Get the prompt revision
-    revision = await db.prompt_revisions.find_one({
-        "_id": ObjectId(prompt_id)
+    # Get the prompt revision   
+    prompt_revision = await db.prompt_revisions.find_one({
+        "prompt_id": prompt_id
     })
-    if not revision:
+    if not prompt_revision:
         raise HTTPException(status_code=404, detail="Prompt not found")
     
     # Get the prompt and verify organization
     prompt = await db.prompts.find_one({
-        "_id": ObjectId(revision["prompt_id"]),
+        "_id": ObjectId(prompt_id),
         "organization_id": organization_id
     })
     if not prompt:
         raise HTTPException(status_code=404, detail="Prompt not found or not in this organization")
-    
-    if revision["created_by"] != current_user.user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to delete this prompt")
-    
+  
     # Delete all revisions of this prompt
     result = await db.prompt_revisions.delete_many({
-        "prompt_id": revision["prompt_id"]
+        "prompt_id": prompt_id
     })
     
     # Delete the prompt entry
-    await db.prompts.delete_one({"_id": ObjectId(revision["prompt_id"])})
+    await db.prompts.delete_one({"_id": ObjectId(prompt_id)})
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="No prompt revisions found")

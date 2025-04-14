@@ -72,6 +72,7 @@ async def test_prompt_lifecycle(test_db, mock_auth):
         assert prompt_result["name"] == "Test Invoice Prompt"
         assert "content" in prompt_result
         
+        prompt_id = prompt_result["prompt_id"]
         prompt_revid = prompt_result["prompt_revid"]
         
         # Step 2: List prompts to verify it was created
@@ -111,32 +112,33 @@ async def test_prompt_lifecycle(test_db, mock_auth):
         }
         
         update_response = client.put(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_revid}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_id}",
             json=update_data,
             headers=get_auth_headers()
         )
         
         assert update_response.status_code == 200
         updated_prompt_result = update_response.json()
-
-        updated_prompt_id = updated_prompt_result["prompt_revid"]
+        updated_prompt_id = updated_prompt_result["prompt_id"]
+        updated_prompt_revid = updated_prompt_result["prompt_revid"]
         
         # Step 5: Get the prompt again to verify the update
         get_updated_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{updated_prompt_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{updated_prompt_revid}",
             headers=get_auth_headers()
         )
         
         assert get_updated_response.status_code == 200
         updated_prompt_data = get_updated_response.json()
-        assert updated_prompt_data["prompt_revid"] == updated_prompt_id
+        assert updated_prompt_data["prompt_id"] == updated_prompt_id
+        assert updated_prompt_data["prompt_revid"] == updated_prompt_revid
         assert updated_prompt_data["name"] == "Updated Invoice Prompt"
         assert updated_prompt_data["content"] == "Extract the following information from the invoice: invoice number, date, total amount, tax amount, vendor name, vendor address."
         assert updated_prompt_data["model"] == "gpt-4o"
         
         # Step 6: Delete the prompt
         delete_response = client.delete(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_revid}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_id}",
             headers=get_auth_headers()
         )
         
@@ -418,8 +420,8 @@ async def test_prompt_version_deletion(test_db, mock_auth):
         
         assert create_response.status_code == 200
         original_prompt = create_response.json()
-        original_id = original_prompt["prompt_revid"]
         original_prompt_id = original_prompt["prompt_id"]  # This is the stable identifier
+        original_prompt_revid = original_prompt["prompt_revid"]
         original_prompt_version = original_prompt["prompt_version"]
         
         # Step 2: Update the prompt with a new name and content
@@ -431,20 +433,20 @@ async def test_prompt_version_deletion(test_db, mock_auth):
         }
         
         update_response = client.put(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_prompt_id}",
             json=updated_prompt_data,
             headers=get_auth_headers()
         )
         
         assert update_response.status_code == 200
         updated_prompt = update_response.json()
-        updated_id = updated_prompt["prompt_revid"]
         updated_prompt_id = updated_prompt["prompt_id"]
+        updated_prompt_revid = updated_prompt["prompt_revid"]
         updated_prompt_version = updated_prompt["prompt_version"]
         
         # Verify both versions exist and have the same prompt_id but different names
-        assert original_id != updated_id  # Different MongoDB _id
         assert original_prompt_id == updated_prompt_id  # Same stable identifier
+        assert original_prompt_revid != updated_prompt_revid  # Different MongoDB _id
         assert original_prompt_version+1 == updated_prompt_version  # Same stable identifier
         assert original_prompt["name"] != updated_prompt["name"]  # Different names
         
@@ -457,7 +459,7 @@ async def test_prompt_version_deletion(test_db, mock_auth):
         
         # Step 4: Delete the prompt using the original ID
         delete_response = client.delete(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_prompt_id}",
             headers=get_auth_headers()
         )
         
@@ -478,12 +480,12 @@ async def test_prompt_version_deletion(test_db, mock_auth):
         assert db_prompts is None, "Prompt should be deleted"
         
         # Step 7: Verify that trying to get either version returns 404
-        for prompt_id in [original_id, updated_id]:
+        for prompt_revid in [original_prompt_revid, updated_prompt_revid]:
             get_response = client.get(
-                f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_id}",
+                f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_revid}",
                 headers=get_auth_headers()
             )
-            assert get_response.status_code == 404, f"Prompt with ID {prompt_id} should not exist"
+            assert get_response.status_code == 404, f"Prompt with ID {prompt_revid} should not exist"
         
     finally:
         pass  # mock_auth fixture handles cleanup
@@ -515,8 +517,8 @@ async def test_prompt_latest_version_listing(test_db, mock_auth):
         
         assert create_response.status_code == 200
         original_prompt = create_response.json()
-        original_id = original_prompt["prompt_revid"]
         original_prompt_id = original_prompt["prompt_id"]
+        original_prompt_revid = original_prompt["prompt_revid"]
         original_prompt_version = original_prompt["prompt_version"]
         
         # Step 2: Update the prompt with a new name
@@ -528,14 +530,16 @@ async def test_prompt_latest_version_listing(test_db, mock_auth):
         }
         
         update_response = client.put(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_prompt_id}",
             json=renamed_prompt_data,
             headers=get_auth_headers()
         )
         
         assert update_response.status_code == 200
         renamed_prompt = update_response.json()
-        renamed_id = renamed_prompt["prompt_revid"]
+        renamed_prompt_id = renamed_prompt["prompt_id"]
+        renamed_prompt_revid = renamed_prompt["prompt_revid"]
+        assert original_prompt_id == renamed_prompt["prompt_id"], "Prompt ID should remain the same"
         
         # Step 3: List prompts and verify only the renamed version is returned
         list_response = client.get(
@@ -555,11 +559,11 @@ async def test_prompt_latest_version_listing(test_db, mock_auth):
         
         # Verify the one returned is the renamed version
         assert matching_prompts[0]["name"] == "Renamed Version Test Prompt"
-        assert matching_prompts[0]["prompt_revid"] == renamed_id  # Should be the newer ID
+        assert matching_prompts[0]["prompt_revid"] == renamed_prompt_revid  # Should be the newer ID
         
         # Step 4: Clean up
         client.delete(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_prompt_id}",
             headers=get_auth_headers()
         )
         
@@ -593,8 +597,8 @@ async def test_prompt_name_only_update(test_db, mock_auth):
         
         assert create_response.status_code == 200
         original_prompt = create_response.json()
-        original_id = original_prompt["prompt_revid"]
         original_prompt_id = original_prompt["prompt_id"]
+        original_prompt_revid = original_prompt["prompt_revid"]
         original_prompt_version = original_prompt["prompt_version"]
         
         # Step 2: Update only the name
@@ -606,18 +610,19 @@ async def test_prompt_name_only_update(test_db, mock_auth):
         }
         
         update_response = client.put(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_prompt_id}",
             json=name_update_data,
             headers=get_auth_headers()
         )
         
         assert update_response.status_code == 200
         updated_prompt = update_response.json()
-        updated_id = updated_prompt["prompt_revid"]
+        updated_prompt_id = updated_prompt["prompt_id"]
+        updated_prompt_revid = updated_prompt["prompt_revid"]
         updated_prompt_version = updated_prompt["prompt_version"]
         
         # Verify the ID remains the same (no new version created)
-        assert original_id == updated_id, "ID should remain the same for name-only updates"
+        assert original_prompt_id == updated_prompt_id, "ID should remain the same for name-only updates"
         assert original_prompt_version == updated_prompt_version, "Version should remain the same for name-only updates"
         assert updated_prompt["name"] == "Updated Prompt Name", "Name should be updated"
         
@@ -638,18 +643,19 @@ async def test_prompt_name_only_update(test_db, mock_auth):
         }
         
         content_update_response = client.put(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_prompt_id}",
             json=content_update_data,
             headers=get_auth_headers()
         )
         
         assert content_update_response.status_code == 200
         content_updated_prompt = content_update_response.json()
-        content_updated_id = content_updated_prompt["prompt_revid"]
+        content_updated_prompt_id = content_updated_prompt["prompt_id"]
+        content_updated_prompt_revid = content_updated_prompt["prompt_revid"]
         content_updated_prompt_version = content_updated_prompt["prompt_version"]
         
         # Verify a new version was created
-        assert original_id != content_updated_id, "ID should change for content updates"
+        assert original_prompt_id == content_updated_prompt["prompt_id"], "ID should remain the same for content updates"
         assert original_prompt_version != content_updated_prompt_version, "Version should increase for content updates"
         assert content_updated_prompt_version > original_prompt_version, "Version should increase for content updates"
         
@@ -662,7 +668,7 @@ async def test_prompt_name_only_update(test_db, mock_auth):
         
         # Clean up
         client.delete(
-            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/prompts/{original_prompt_id}",
             headers=get_auth_headers()
         )
         

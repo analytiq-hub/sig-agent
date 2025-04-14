@@ -298,7 +298,7 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
   // Load editing schema if available
   useEffect(() => {
     if (editingSchema) {
-      setCurrentSchemaId(editingSchema.schema_revid);
+      setCurrentSchemaId(editingSchema.schema_id);
       setCurrentSchema({
         name: editingSchema.name,
         response_format: editingSchema.response_format

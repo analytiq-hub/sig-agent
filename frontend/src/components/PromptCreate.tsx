@@ -82,7 +82,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
   // Load editing prompt if available
   useEffect(() => {
     if (editingPrompt) {
-      setCurrentPromptId(editingPrompt.prompt_revid);
+      setCurrentPromptId(editingPrompt.prompt_id);
       setCurrentPrompt({
         name: editingPrompt.name,
         content: editingPrompt.content,
