@@ -7,9 +7,9 @@ DOCROUTER_ORG_ID = os.getenv("DOCROUTER_ORG_ID")
 if not DOCROUTER_ORG_ID:
     raise ValueError("DOCROUTER_ORG_ID is not set")
 
-DOCROUTER_API_URL = os.getenv("DOCROUTER_API_URL", "http://localhost:8000")
-if not DOCROUTER_API_URL:
-    raise ValueError("DOCROUTER_API_URL is not set")
+DOCROUTER_URL = os.getenv("DOCROUTER_URL", "http://localhost:8000")
+if not DOCROUTER_URL:
+    raise ValueError("DOCROUTER_URL is not set")
 
 DOCROUTER_ORG_API_TOKEN = os.getenv("DOCROUTER_ORG_API_TOKEN")
 if not DOCROUTER_ORG_API_TOKEN:
@@ -17,8 +17,8 @@ if not DOCROUTER_ORG_API_TOKEN:
 
 # Initialize the client
 client = DocRouterClient(
-    base_url=DOCROUTER_API_URL,  # Replace with your API URL
-    api_token=DOCROUTER_ORG_API_TOKEN  # Replace with your API token
+    base_url=DOCROUTER_URL,            # Replace with your DocRouter URL
+    api_token=DOCROUTER_ORG_API_TOKEN  # Replace with your organization API token
 )
 
 # Example: List documents
