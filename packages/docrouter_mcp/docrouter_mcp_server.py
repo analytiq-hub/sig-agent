@@ -511,6 +511,13 @@ def run_docrouter_extraction(document_id: str, prompt_id: str, force: bool = Fal
 @mcp.prompt()
 def docrouter_help_prompt() -> str:
     """Help information about using the DocRouter API"""
+
+    ctx = get_context()
+    ctx.request_context.session.send_log_message(
+        level="info",
+        data="Executing docrouter_help_prompt()"
+    )
+
     return """
     # DocRouter API Help
     
@@ -567,6 +574,7 @@ def docrouter_help_prompt() -> str:
 @mcp.prompt()
 def docrouter_document_analysis_prompt(document_id: str) -> str:
     """Generate a prompt to analyze a specific document"""
+    
     return f"""
     # Document Analysis
     
