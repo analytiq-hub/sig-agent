@@ -218,6 +218,383 @@ def user_search_prompt(search_term: str) -> str:
     the data://users/{{user_id}} resource.
     """
 
+# ---- DOCROUTER RESOURCES ----
+
+@mcp.resource("data://docrouter/documents")
+def get_docrouter_documents() -> str:
+    """Get all documents from DocRouter"""
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        documents = docrouter_client.documents.list(DOCROUTER_ORG_ID)
+        return json.dumps({
+            "documents": [doc.dict() for doc in documents.documents],
+            "total_count": documents.total_count
+        }, indent=2)
+    except Exception as e:
+        ctx.error(f"Error fetching documents: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.resource("data://docrouter/documents/{document_id}")
+def get_docrouter_document(document_id: str) -> str:
+    """Get document by ID from DocRouter"""
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        document = docrouter_client.documents.get(DOCROUTER_ORG_ID, document_id)
+        return json.dumps(document.dict(), indent=2)
+    except Exception as e:
+        ctx.error(f"Error fetching document {document_id}: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.resource("data://docrouter/documents/{document_id}/ocr")
+def get_docrouter_document_ocr(document_id: str) -> str:
+    """Get OCR text for a document from DocRouter"""
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        ocr_text = docrouter_client.ocr.get_text(DOCROUTER_ORG_ID, document_id)
+        return ocr_text
+    except Exception as e:
+        ctx.error(f"Error fetching OCR for document {document_id}: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.resource("data://docrouter/documents/{document_id}/ocr/page/{page_num}")
+def get_docrouter_document_ocr_page(document_id: str, page_num: int) -> str:
+    """Get OCR text for a specific page of a document from DocRouter"""
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        ocr_text = docrouter_client.ocr.get_text(DOCROUTER_ORG_ID, document_id, page_num=page_num)
+        return ocr_text
+    except Exception as e:
+        ctx.error(f"Error fetching OCR for document {document_id} page {page_num}: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.resource("data://docrouter/documents/{document_id}/ocr/metadata")
+def get_docrouter_document_ocr_metadata(document_id: str) -> str:
+    """Get OCR metadata for a document from DocRouter"""
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        metadata = docrouter_client.ocr.get_metadata(DOCROUTER_ORG_ID, document_id)
+        return json.dumps(metadata, indent=2)
+    except Exception as e:
+        ctx.error(f"Error fetching OCR metadata for document {document_id}: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.resource("data://docrouter/tags")
+def get_docrouter_tags() -> str:
+    """Get all tags from DocRouter"""
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        tags = docrouter_client.tags.list(DOCROUTER_ORG_ID)
+        return json.dumps({
+            "tags": [tag.dict() for tag in tags.tags],
+            "total_count": tags.total_count
+        }, indent=2)
+    except Exception as e:
+        ctx.error(f"Error fetching tags: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.resource("data://docrouter/tags/{tag_id}")
+def get_docrouter_tag(tag_id: str) -> str:
+    """Get tag by ID from DocRouter"""
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        tag = docrouter_client.tags.get(DOCROUTER_ORG_ID, tag_id)
+        return json.dumps(tag.dict(), indent=2)
+    except Exception as e:
+        ctx.error(f"Error fetching tag {tag_id}: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.resource("data://docrouter/prompts")
+def get_docrouter_prompts() -> str:
+    """Get all prompts from DocRouter"""
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        prompts = docrouter_client.prompts.list(DOCROUTER_ORG_ID)
+        return json.dumps({
+            "prompts": [prompt.dict() for prompt in prompts.prompts],
+            "total_count": prompts.total_count
+        }, indent=2)
+    except Exception as e:
+        ctx.error(f"Error fetching prompts: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.resource("data://docrouter/prompts/{prompt_id}")
+def get_docrouter_prompt(prompt_id: str) -> str:
+    """Get prompt by ID from DocRouter"""
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        prompt = docrouter_client.prompts.get(DOCROUTER_ORG_ID, prompt_id)
+        
+        # If the prompt has a schema, fetch the schema details
+        schema_info = {}
+        if prompt.schema_id:
+            try:
+                schema = docrouter_client.schemas.get(DOCROUTER_ORG_ID, prompt.schema_id)
+                schema_info = schema.dict()
+            except Exception as schema_err:
+                ctx.warning(f"Error fetching schema {prompt.schema_id}: {str(schema_err)}")
+        
+        # Combine prompt with schema info
+        result = prompt.dict()
+        result["schema_details"] = schema_info
+        
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        ctx.error(f"Error fetching prompt {prompt_id}: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.resource("data://docrouter/documents/{document_id}/extractions/{prompt_id}")
+def get_docrouter_extraction(document_id: str, prompt_id: str) -> str:
+    """Get extraction results for a document using a specific prompt"""
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        result = docrouter_client.llm.get_result(DOCROUTER_ORG_ID, document_id, prompt_id)
+        return json.dumps(result.dict(), indent=2)
+    except Exception as e:
+        ctx.error(f"Error fetching extraction for document {document_id} with prompt {prompt_id}: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+# ---- DOCROUTER TOOLS ----
+
+@mcp.tool()
+def search_docrouter_documents(query: str, tag_ids: str = None) -> str:
+    """
+    Search documents in DocRouter
+    
+    Args:
+        query: Search term to look for in document names
+        tag_ids: Comma-separated list of tag IDs to filter by
+    """
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        # Convert tag_ids string to list if provided
+        tag_id_list = tag_ids.split(",") if tag_ids else None
+        
+        # Get all documents
+        documents = docrouter_client.documents.list(DOCROUTER_ORG_ID, tag_ids=tag_id_list)
+        
+        # Filter by query term
+        results = [doc for doc in documents.documents if query.lower() in doc.document_name.lower()]
+        
+        ctx.info(f"Found {len(results)} documents matching '{query}'")
+        
+        if not results:
+            return f"No documents found matching '{query}'"
+        
+        return json.dumps({
+            "documents": [doc.dict() for doc in results],
+            "count": len(results)
+        }, indent=2)
+    except Exception as e:
+        ctx.error(f"Error searching documents: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.tool()
+def search_docrouter_prompts(query: str) -> str:
+    """
+    Search prompts in DocRouter
+    
+    Args:
+        query: Search term to look for in prompt names or content
+    """
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        # Get all prompts
+        prompts = docrouter_client.prompts.list(DOCROUTER_ORG_ID)
+        
+        # Filter by query term
+        results = [
+            prompt for prompt in prompts.prompts 
+            if query.lower() in prompt.name.lower() or query.lower() in prompt.content.lower()
+        ]
+        
+        ctx.info(f"Found {len(results)} prompts matching '{query}'")
+        
+        if not results:
+            return f"No prompts found matching '{query}'"
+        
+        return json.dumps({
+            "prompts": [prompt.dict() for prompt in results],
+            "count": len(results)
+        }, indent=2)
+    except Exception as e:
+        ctx.error(f"Error searching prompts: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.tool()
+def search_docrouter_tags(query: str) -> str:
+    """
+    Search tags in DocRouter
+    
+    Args:
+        query: Search term to look for in tag names or descriptions
+    """
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        # Get all tags
+        tags = docrouter_client.tags.list(DOCROUTER_ORG_ID)
+        
+        # Filter by query term
+        results = [
+            tag for tag in tags.tags 
+            if (query.lower() in tag.name.lower() or 
+                (tag.description and query.lower() in tag.description.lower()))
+        ]
+        
+        ctx.info(f"Found {len(results)} tags matching '{query}'")
+        
+        if not results:
+            return f"No tags found matching '{query}'"
+        
+        return json.dumps({
+            "tags": [tag.dict() for tag in results],
+            "count": len(results)
+        }, indent=2)
+    except Exception as e:
+        ctx.error(f"Error searching tags: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.tool()
+def run_docrouter_extraction(document_id: str, prompt_id: str, force: bool = False) -> str:
+    """
+    Run extraction on a document using a specific prompt
+    
+    Args:
+        document_id: ID of the document to analyze
+        prompt_id: ID of the prompt to use
+        force: Whether to force a new extraction even if results exist
+    """
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        result = docrouter_client.llm.run(DOCROUTER_ORG_ID, document_id, prompt_id, force)
+        return json.dumps(result.dict(), indent=2)
+    except Exception as e:
+        ctx.error(f"Error running extraction: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+# ---- DOCROUTER PROMPTS ----
+
+@mcp.prompt()
+def docrouter_help_prompt() -> str:
+    """Help information about using the DocRouter API"""
+    return """
+    # DocRouter API Help
+    
+    This server provides access to DocRouter resources and tools.
+    
+    ## Available Resources
+    
+    ### Documents
+    - `data://docrouter/documents` - List all documents
+    - `data://docrouter/documents/{document_id}` - Get document by ID
+    - `data://docrouter/documents/{document_id}/ocr` - Get OCR text for a document
+    - `data://docrouter/documents/{document_id}/ocr/page/{page_num}` - Get OCR text for a specific page
+    - `data://docrouter/documents/{document_id}/ocr/metadata` - Get OCR metadata for a document
+    - `data://docrouter/documents/{document_id}/extractions/{prompt_id}` - Get extraction results
+    
+    ### Tags
+    - `data://docrouter/tags` - List all tags
+    - `data://docrouter/tags/{tag_id}` - Get tag by ID
+    
+    ### Prompts
+    - `data://docrouter/prompts` - List all prompts
+    - `data://docrouter/prompts/{prompt_id}` - Get prompt by ID
+    
+    ## Available Tools
+    
+    - `search_docrouter_documents` - Search documents by name
+    - `search_docrouter_prompts` - Search prompts by name or content
+    - `search_docrouter_tags` - Search tags by name or description
+    - `run_docrouter_extraction` - Run extraction on a document using a specific prompt
+    
+    ## Example Workflows
+    
+    1. Find documents related to invoices:
+       ```
+       search_docrouter_documents("invoice")
+       ```
+    
+    2. Get OCR text for a document:
+       ```
+       data://docrouter/documents/doc123/ocr
+       ```
+    
+    3. Run extraction on a document:
+       ```
+       run_docrouter_extraction("doc123", "prompt456")
+       ```
+    
+    4. View extraction results:
+       ```
+       data://docrouter/documents/doc123/extractions/prompt456
+       ```
+    """
+
+@mcp.prompt()
+def docrouter_document_analysis_prompt(document_id: str) -> str:
+    """Generate a prompt to analyze a specific document"""
+    return f"""
+    # Document Analysis
+    
+    I'd like to analyze the document with ID `{document_id}`.
+    
+    First, let's get the document details:
+    ```
+    data://docrouter/documents/{document_id}
+    ```
+    
+    Then, let's get the OCR text:
+    ```
+    data://docrouter/documents/{document_id}/ocr
+    ```
+    
+    Now, let's see what prompts are available:
+    ```
+    data://docrouter/prompts
+    ```
+    
+    Based on the document content, please suggest which prompt would be most appropriate for analyzing this document.
+    
+    After selecting a prompt (let's call its ID `prompt_id`), we can run an extraction:
+    ```
+    run_docrouter_extraction("{document_id}", "prompt_id")
+    ```
+    
+    And then view the results:
+    ```
+    data://docrouter/documents/{document_id}/extractions/prompt_id
+    ```
+    
+    Please help me understand the key information in this document.
+    """
+
 # Run the server
 if __name__ == "__main__":
     mcp.run(transport='stdio')
