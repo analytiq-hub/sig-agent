@@ -223,7 +223,7 @@ def get_env(key: str) -> str:
 
 # ---- DOCROUTER RESOURCES ----
 
-@mcp.resource("data://docrouter/documents")
+@mcp.resource("data://docrouter/documents", mime_type="application/json")
 def get_docrouter_documents() -> str:
     """Get all documents from DocRouter"""
     ctx = get_context()
@@ -231,13 +231,17 @@ def get_docrouter_documents() -> str:
     
     try:
         documents = docrouter_client.documents.list(DOCROUTER_ORG_ID)
-        return json.dumps({
+        # Convert documents to proper Python dictionaries instead of JSON strings
+        result = {
             "documents": [doc.json() for doc in documents.documents],
             "total_count": documents.total_count
-        }, indent=2)
+        }
+        
+        # Return JSON string
+        return json.dumps(result)
     except Exception as e:
         ctx.error(f"Error fetching documents: {str(e)}")
-        return json.dumps({"error": str(e)}, indent=2)
+        return json.dumps({"error": str(e)})
 
 @mcp.resource("data://docrouter/documents/{document_id}")
 def get_docrouter_document(document_id: str) -> str:
@@ -278,7 +282,7 @@ def get_docrouter_document_ocr_page(document_id: str, page_num: int) -> str:
         ctx.error(f"Error fetching OCR for document {document_id} page {page_num}: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-@mcp.resource("data://docrouter/documents/{document_id}/ocr/metadata")
+@mcp.resource("data://docrouter/documents/{document_id}/ocr/metadata", mime_type="application/json")
 def get_docrouter_document_ocr_metadata(document_id: str) -> str:
     """Get OCR metadata for a document from DocRouter"""
     ctx = get_context()
@@ -291,7 +295,7 @@ def get_docrouter_document_ocr_metadata(document_id: str) -> str:
         ctx.error(f"Error fetching OCR metadata for document {document_id}: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-@mcp.resource("data://docrouter/tags")
+@mcp.resource("data://docrouter/tags", mime_type="application/json")
 def get_docrouter_tags() -> str:
     """Get all tags from DocRouter"""
     ctx = get_context()
@@ -307,7 +311,7 @@ def get_docrouter_tags() -> str:
         ctx.error(f"Error fetching tags: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-@mcp.resource("data://docrouter/tags/{tag_id}")
+@mcp.resource("data://docrouter/tags/{tag_id}", mime_type="application/json")
 def get_docrouter_tag(tag_id: str) -> str:
     """Get tag by ID from DocRouter"""
     ctx = get_context()
@@ -320,7 +324,7 @@ def get_docrouter_tag(tag_id: str) -> str:
         ctx.error(f"Error fetching tag {tag_id}: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-@mcp.resource("data://docrouter/prompts")
+@mcp.resource("data://docrouter/prompts", mime_type="application/json")
 def get_docrouter_prompts() -> str:
     """Get all prompts from DocRouter"""
     ctx = get_context()
@@ -336,7 +340,7 @@ def get_docrouter_prompts() -> str:
         ctx.error(f"Error fetching prompts: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-@mcp.resource("data://docrouter/prompts/{prompt_id}")
+@mcp.resource("data://docrouter/prompts/{prompt_id}", mime_type="application/json")
 def get_docrouter_prompt(prompt_id: str) -> str:
     """Get prompt by ID from DocRouter"""
     ctx = get_context()
@@ -363,7 +367,7 @@ def get_docrouter_prompt(prompt_id: str) -> str:
         ctx.error(f"Error fetching prompt {prompt_id}: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-@mcp.resource("data://docrouter/documents/{document_id}/extractions/{prompt_id}")
+@mcp.resource("data://docrouter/documents/{document_id}/extractions/{prompt_id}", mime_type="application/json")
 def get_docrouter_extraction(document_id: str, prompt_id: str) -> str:
     """Get extraction results for a document using a specific prompt"""
     ctx = get_context()
