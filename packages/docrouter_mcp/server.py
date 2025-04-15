@@ -2,6 +2,7 @@
 FastMCP Server with APIs for data, prompts, and tools
 """
 
+import os
 from mcp.server.fastmcp import FastMCP, Context
 from typing import Dict, List, Any, Annotated
 import json
@@ -153,6 +154,11 @@ def get_current_time() -> str:
     """Get the current server time"""
     return f"Current time: {datetime.now().isoformat()}"
 
+@mcp.tool()
+def get_env(key: str) -> str:
+    """Get the environment variable for the given key"""
+    return os.environ[key]
+
 # ---- PROMPTS ----
 
 @mcp.prompt()
@@ -203,4 +209,8 @@ def user_search_prompt(search_term: str) -> str:
 
 # Run the server
 if __name__ == "__main__":
-    mcp.run()
+    # Print environment variables to /tmp/mcp.env
+    with open("/tmp/mcp.env", "w") as f:
+        for key, value in os.environ.items():
+            f.write(f"{key}={value}\n")
+    mcp.run(transport='stdio')
