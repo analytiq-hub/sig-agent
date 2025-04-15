@@ -3,7 +3,7 @@ FastMCP Server with APIs for data, prompts, and tools
 """
 
 import os
-from mcp.server.fastmcp import FastMCP, Context
+from mcp.server.fastmcp import FastMCP, Context # type: ignore
 from typing import Dict, List, Any, Annotated
 import json
 from contextlib import asynccontextmanager
