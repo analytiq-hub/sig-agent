@@ -10,8 +10,11 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 import inspect
 from functools import wraps
+import logging
 
 from docrouter_sdk import DocRouterClient
+
+logging.basicConfig(level=logging.WARNING)  # Only show WARNING and above (ERROR, CRITICAL)
 
 DOCROUTER_URL = os.getenv("DOCROUTER_URL")
 DOCROUTER_ORG_ID = os.getenv("DOCROUTER_ORG_ID")
