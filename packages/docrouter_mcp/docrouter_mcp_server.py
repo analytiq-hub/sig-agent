@@ -229,7 +229,7 @@ def get_docrouter_documents() -> str:
     try:
         documents = docrouter_client.documents.list(DOCROUTER_ORG_ID)
         return json.dumps({
-            "documents": [doc.dict() for doc in documents.documents],
+            "documents": [doc.json() for doc in documents.documents],
             "total_count": documents.total_count
         }, indent=2)
     except Exception as e:
@@ -244,7 +244,7 @@ def get_docrouter_document(document_id: str) -> str:
     
     try:
         document = docrouter_client.documents.get(DOCROUTER_ORG_ID, document_id)
-        return json.dumps(document.dict(), indent=2)
+        return json.dumps(document.json(), indent=2)
     except Exception as e:
         ctx.error(f"Error fetching document {document_id}: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
@@ -297,7 +297,7 @@ def get_docrouter_tags() -> str:
     try:
         tags = docrouter_client.tags.list(DOCROUTER_ORG_ID)
         return json.dumps({
-            "tags": [tag.dict() for tag in tags.tags],
+            "tags": [tag.json() for tag in tags.tags],
             "total_count": tags.total_count
         }, indent=2)
     except Exception as e:
@@ -312,7 +312,7 @@ def get_docrouter_tag(tag_id: str) -> str:
     
     try:
         tag = docrouter_client.tags.get(DOCROUTER_ORG_ID, tag_id)
-        return json.dumps(tag.dict(), indent=2)
+        return json.dumps(tag.json(), indent=2)
     except Exception as e:
         ctx.error(f"Error fetching tag {tag_id}: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
@@ -326,7 +326,7 @@ def get_docrouter_prompts() -> str:
     try:
         prompts = docrouter_client.prompts.list(DOCROUTER_ORG_ID)
         return json.dumps({
-            "prompts": [prompt.dict() for prompt in prompts.prompts],
+            "prompts": [prompt.json() for prompt in prompts.prompts],
             "total_count": prompts.total_count
         }, indent=2)
     except Exception as e:
@@ -347,12 +347,12 @@ def get_docrouter_prompt(prompt_id: str) -> str:
         if prompt.schema_id:
             try:
                 schema = docrouter_client.schemas.get(DOCROUTER_ORG_ID, prompt.schema_id)
-                schema_info = schema.dict()
+                schema_info = schema.json()
             except Exception as schema_err:
                 ctx.warning(f"Error fetching schema {prompt.schema_id}: {str(schema_err)}")
         
         # Combine prompt with schema info
-        result = prompt.dict()
+        result = prompt.json()
         result["schema_details"] = schema_info
         
         return json.dumps(result, indent=2)
