@@ -11,6 +11,12 @@ from datetime import datetime
 import inspect
 from functools import wraps
 
+from docrouter_sdk import DocRouterClient
+
+DOCROUTER_URL = os.getenv("DOCROUTER_URL")
+DOCROUTER_ORG_ID = os.getenv("DOCROUTER_ORG_ID")
+DOCROUTER_ORG_API_TOKEN = os.getenv("DOCROUTER_ORG_API_TOKEN")
+
 # Mock database for demonstration
 class Database:
     def __init__(self):
@@ -53,17 +59,22 @@ class Database:
 
 # Application context for dependency injection
 class AppContext:
-    def __init__(self, db: Database):
+    def __init__(self, db: Database, docrouter_client: DocRouterClient):
         self.db = db
+        self.docrouter_client = docrouter_client
 
 # Create lifespan context manager for database connection
 @asynccontextmanager
 async def app_lifespan(server: FastMCP):
     # Initialize resources on startup
     db = await Database().connect()
+    docrouter_client = DocRouterClient(
+        base_url=DOCROUTER_URL,
+        api_token=DOCROUTER_ORG_API_TOKEN
+    )
     
     try:
-        yield AppContext(db=db)
+        yield AppContext(db=db, docrouter_client=docrouter_client)
     finally:
         # Cleanup on shutdown
         await db.disconnect()
@@ -209,8 +220,4 @@ def user_search_prompt(search_term: str) -> str:
 
 # Run the server
 if __name__ == "__main__":
-    # Print environment variables to /tmp/mcp.env
-    with open("/tmp/mcp.env", "w") as f:
-        for key, value in os.environ.items():
-            f.write(f"{key}={value}\n")
     mcp.run(transport='stdio')
