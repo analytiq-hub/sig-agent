@@ -20,6 +20,13 @@ DOCROUTER_URL = os.getenv("DOCROUTER_URL")
 DOCROUTER_ORG_ID = os.getenv("DOCROUTER_ORG_ID")
 DOCROUTER_ORG_API_TOKEN = os.getenv("DOCROUTER_ORG_API_TOKEN")
 
+# Add this class near the top of the file with other imports
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+
 # Mock database for demonstration
 class Database:
     def __init__(self):
@@ -409,10 +416,11 @@ def search_docrouter_documents(query: str, tag_ids: str = None) -> str:
         if not results:
             return f"No documents found matching '{query}'"
         
+        # Convert to dictionaries and use custom encoder for datetime objects
         return json.dumps({
             "documents": [doc.dict() for doc in results],
             "count": len(results)
-        }, indent=2)
+        }, indent=2, cls=DateTimeEncoder)
     except Exception as e:
         ctx.error(f"Error searching documents: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
