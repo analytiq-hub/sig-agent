@@ -265,7 +265,16 @@ def get_docrouter_document(document_id: str) -> str:
 
 @mcp.resource("data://docrouter/documents/{document_id}/ocr")
 def get_docrouter_document_ocr(document_id: str) -> str:
-    """Get OCR text for a document from DocRouter"""
+    """
+    Get the raw OCR text for a document from DocRouter.
+    
+    This endpoint returns the plain text extracted from the document.
+    Use this when you need to see the raw text content of a document.
+    Do NOT use run_docrouter_extraction() for this purpose.
+
+    Args:
+        document_id: ID of the document to get OCR text for
+    """
     ctx = get_context()
     docrouter_client = ctx.request_context.lifespan_context.docrouter_client
     
@@ -278,7 +287,17 @@ def get_docrouter_document_ocr(document_id: str) -> str:
 
 @mcp.resource("data://docrouter/documents/{document_id}/ocr/page/{page_num}")
 def get_docrouter_document_ocr_page(document_id: str, page_num: int) -> str:
-    """Get OCR text for a specific page of a document from DocRouter"""
+    """
+    Get OCR text for a specific page of a document from DocRouter
+    
+    This endpoint returns the plain text extracted from the specified page of the document.
+    Use this when you need to see the raw text content of a specific page of a document.
+    Do NOT use run_docrouter_extraction() for this purpose.
+
+    Args:
+        document_id: ID of the document to get OCR text for
+        page_num: Page number to get OCR text for
+    """
     ctx = get_context()
     docrouter_client = ctx.request_context.lifespan_context.docrouter_client
     
@@ -497,7 +516,10 @@ def search_docrouter_tags(query: str) -> str:
 @mcp.tool()
 def run_docrouter_extraction(document_id: str, prompt_id: str, force: bool = False) -> str:
     """
-    Run extraction on a document using a specific prompt
+    Run an AI extraction on a document using a specific prompt.
+    
+    This tool performs structured data extraction based on a prompt template.
+    It does NOT return the raw OCR text - use data://docrouter/documents/{document_id}/ocr for that.
     
     Args:
         document_id: ID of the document to analyze
@@ -536,7 +558,7 @@ def docrouter_help_prompt() -> str:
     ### Documents
     - `data://docrouter/documents` - List all documents
     - `data://docrouter/documents/{document_id}` - Get document by ID
-    - `data://docrouter/documents/{document_id}/ocr` - Get OCR text for a document
+    - `data://docrouter/documents/{document_id}/ocr` - Get raw OCR text for a document (use this to see document content)
     - `data://docrouter/documents/{document_id}/ocr/page/{page_num}` - Get OCR text for a specific page
     - `data://docrouter/documents/{document_id}/ocr/metadata` - Get OCR metadata for a document
     - `data://docrouter/documents/{document_id}/extractions/{prompt_id}` - Get extraction results
@@ -554,7 +576,7 @@ def docrouter_help_prompt() -> str:
     - `search_docrouter_documents` - Search documents by name
     - `search_docrouter_prompts` - Search prompts by name or content
     - `search_docrouter_tags` - Search tags by name or description
-    - `run_docrouter_extraction` - Run extraction on a document using a specific prompt
+    - `run_docrouter_extraction` - Run AI extraction on a document using a specific prompt (requires both document_id AND prompt_id)
     
     ## Example Workflows
     
@@ -563,12 +585,12 @@ def docrouter_help_prompt() -> str:
        search_docrouter_documents("invoice")
        ```
     
-    2. Get OCR text for a document:
+    2. Get OCR text for a document (to see the document content):
        ```
        data://docrouter/documents/doc123/ocr
        ```
     
-    3. Run extraction on a document:
+    3. Run AI extraction on a document (requires a prompt):
        ```
        run_docrouter_extraction("doc123", "prompt456")
        ```
