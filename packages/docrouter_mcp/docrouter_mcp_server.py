@@ -557,19 +557,19 @@ def docrouter_help_prompt() -> str:
     
     ### Documents
     - `data://docrouter/documents` - List all documents
-    - `data://docrouter/documents/{document_id}` - Get document by ID
-    - `data://docrouter/documents/{document_id}/ocr` - Get raw OCR text for a document (use this to see document content)
-    - `data://docrouter/documents/{document_id}/ocr/page/{page_num}` - Get OCR text for a specific page
-    - `data://docrouter/documents/{document_id}/ocr/metadata` - Get OCR metadata for a document
-    - `data://docrouter/documents/{document_id}/extractions/{prompt_id}` - Get extraction results
+    - `data://docrouter/documents/{{document_id}}` - Get document by ID
+    - `data://docrouter/documents/{{document_id}}/ocr` - Get raw OCR text for a document (use this to see document content)
+    - `data://docrouter/documents/{{document_id}}/ocr/page/{{page_num}}` - Get OCR text for a specific page
+    - `data://docrouter/documents/{{document_id}}/ocr/metadata` - Get OCR metadata for a document
+    - `data://docrouter/documents/{{document_id}}/extractions/{{prompt_id}}` - Get extraction results
     
     ### Tags
     - `data://docrouter/tags` - List all tags
-    - `data://docrouter/tags/{tag_id}` - Get tag by ID
+    - `data://docrouter/tags/{{tag_id}}` - Get tag by ID
     
     ### Prompts
     - `data://docrouter/prompts` - List all prompts
-    - `data://docrouter/prompts/{prompt_id}` - Get prompt by ID
+    - `data://docrouter/prompts/{{prompt_id}}` - Get prompt by ID
     
     ## Available Tools
     
@@ -608,16 +608,16 @@ def docrouter_document_analysis_prompt(document_id: str) -> str:
     return f"""
     # Document Analysis
     
-    I'd like to analyze the document with ID `{document_id}`.
+    I'd like to analyze the document with ID `{{document_id}}`.
     
     First, let's get the document details:
     ```
-    data://docrouter/documents/{document_id}
+    data://docrouter/documents/{{document_id}}
     ```
     
     Then, let's get the OCR text:
     ```
-    data://docrouter/documents/{document_id}/ocr
+    data://docrouter/documents/{{document_id}}/ocr
     ```
     
     Now, let's see what prompts are available:
@@ -627,14 +627,14 @@ def docrouter_document_analysis_prompt(document_id: str) -> str:
     
     Based on the document content, please suggest which prompt would be most appropriate for analyzing this document.
     
-    After selecting a prompt (let's call its ID `prompt_id`), we can run an extraction:
+    After selecting a prompt (let's call its ID `{{prompt_id}}`), we can run an extraction:
     ```
-    run_docrouter_extraction("{document_id}", "prompt_id")
+    run_docrouter_extraction("{{document_id}}", "{{prompt_id}}")
     ```
     
     And then view the results:
     ```
-    data://docrouter/documents/{document_id}/extractions/prompt_id
+    data://docrouter/documents/{{document_id}}/extractions/{{prompt_id}}
     ```
     
     Please help me understand the key information in this document.
