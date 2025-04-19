@@ -177,8 +177,8 @@ cd doc-router</code></pre>
                 <p class="text-gray-600 mb-4">To use this MCP server with Claude Desktop:</p>
                 <ol class="list-decimal list-inside text-gray-600 space-y-2">
                     <li>Run the MCP server</li>
-                    <li>In Claude Desktop, go to Settings > Model Context Protocol</li>
-                    <li>Add a new server with the appropriate connection details</li>
+                    <li>In Claude Desktop, go to Settings > Developer, open claude_desktop_config.json</li>
+                    <li>Add a new MCP server with the appropriate connection details</li>
                     <pre><code class="language-bash"> npx @modelcontextprotocol/inspector python docrouter_mcp_server.py --url https://app.docrouter.ai/fastapi --org-id ORG_ID --org-api-token ORG_API_TOKEN</code></pre>
                     <li>Claude will now be able to access your docrouter.ai workspace through the MCP server</li>
                 </ol>
