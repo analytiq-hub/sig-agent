@@ -49,16 +49,16 @@
   
   <!-- MongoDB -->
   <rect x="570" y="190" width="160" height="50" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
-  <text x="650" y="220" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">MongoDB</text>
+  <text x="650" y="220" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">Documents</text>
   
   <!-- Document Storage -->
   <rect x="570" y="250" width="160" height="50" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
-  <text x="650" y="280" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">Document Storage</text>
+  <text x="650" y="280" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">Prompts, Schemas</text>
   
   <!-- LLM Integration -->
   <rect x="570" y="310" width="160" height="50" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
   <text x="650" y="340" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">LLM Integration</text>
-  
+
   <!-- Arrows -->
   <!-- Client to Server -->
   <line x1="250" y1="140" x2="300" y2="140" stroke="#4a6baf" stroke-width="2" marker-end="url(#arrowhead)"/>
