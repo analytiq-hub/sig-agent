@@ -203,51 +203,56 @@ cd doc-router</code></pre>
             <section id="interfaces" class="bg-white rounded-lg shadow-lg p-8 mb-12">
                 <h2 class="text-2xl font-semibold text-gray-900 mb-4">Interfaces</h2>
                 
-                <h3 class="text-lg font-medium text-gray-900 mb-3">Resource Interfaces</h3>
-                <p class="text-gray-600 mb-4">The MCP server exposes the following resource interfaces:</p>
-                
-                <h4 class="text-gray-900 font-medium mt-4 mb-2">Documents</h4>
+                <h3 class="text-lg font-medium text-gray-900 mb-3">Document Tools</h3>
                 <ul class="list-disc list-inside text-gray-600 mb-4">
-                    <li><code>documents://list</code> - List all documents in the workspace</li>
-                    <li><code>documents://{document_id}</code> - Get a specific document by ID</li>
-                    <li><code>documents://{document_id}/content</code> - Get the content of a specific document</li>
+                    <li><code>get_docrouter_documents()</code> - List all documents in the workspace</li>
+                    <li><code>get_docrouter_document(document_id)</code> - Get a specific document by ID</li>
+                    <li><code>get_docrouter_document_ocr(document_id)</code> - Get the raw OCR text for a document</li>
+                    <li><code>get_docrouter_document_ocr_page(document_id, page_num)</code> - Get OCR text for a specific page</li>
+                    <li><code>get_docrouter_document_ocr_metadata(document_id)</code> - Get OCR metadata for a document</li>
                 </ul>
                 
-                <h4 class="text-gray-900 font-medium mt-4 mb-2">Prompts</h4>
+                <h3 class="text-lg font-medium text-gray-900 mt-4 mb-3">Tag Tools</h3>
                 <ul class="list-disc list-inside text-gray-600 mb-4">
-                    <li><code>prompts://list</code> - List all prompts in the workspace</li>
-                    <li><code>prompts://{prompt_id}</code> - Get a specific prompt by ID</li>
-                    <li><code>prompts://{prompt_id}/config</code> - Get the configuration of a specific prompt</li>
+                    <li><code>get_docrouter_tags()</code> - List all tags in the workspace</li>
+                    <li><code>get_docrouter_tag(tag_id)</code> - Get a specific tag by ID</li>
+                    <li><code>search_docrouter_tags(query)</code> - Search tags by name or description</li>
                 </ul>
                 
-                <h4 class="text-gray-900 font-medium mt-4 mb-2">Extraction Schemas</h4>
+                <h3 class="text-lg font-medium text-gray-900 mt-4 mb-3">Prompt Tools</h3>
                 <ul class="list-disc list-inside text-gray-600 mb-4">
-                    <li><code>schemas://list</code> - List all extraction schemas in the workspace</li>
-                    <li><code>schemas://{schema_id}</code> - Get a specific schema by ID</li>
-                    <li><code>schemas://{schema_id}/config</code> - Get the configuration of a specific schema</li>
+                    <li><code>get_docrouter_prompts()</code> - List all prompts in the workspace</li>
+                    <li><code>get_docrouter_prompt(prompt_id)</code> - Get a specific prompt by ID</li>
+                    <li><code>search_docrouter_prompts(query)</code> - Search prompts by name or content</li>
                 </ul>
                 
-                <h4 class="text-gray-900 font-medium mt-4 mb-2">Extraction Results</h4>
+                <h3 class="text-lg font-medium text-gray-900 mt-4 mb-3">Search & Extraction Tools</h3>
                 <ul class="list-disc list-inside text-gray-600 mb-4">
-                    <li><code>results://list</code> - List all extraction results in the workspace</li>
-                    <li><code>results://{document_id}</code> - Get extraction results for a specific document</li>
-                    <li><code>results://{document_id}/{schema_id}</code> - Get extraction results for a specific document and schema</li>
+                    <li><code>search_docrouter_documents(query, tag_ids)</code> - Search documents by name or content with optional tag filtering</li>
+                    <li><code>get_docrouter_extraction(document_id, prompt_id)</code> - Get extraction results for a document using a specific prompt</li>
+                    <li><code>run_docrouter_extraction(document_id, prompt_id, force)</code> - Run AI extraction on a document using a specific prompt</li>
                 </ul>
                 
-                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Tool Interfaces</h3>
-                <p class="text-gray-600 mb-4">The MCP server exposes the following tool interfaces:</p>
-                
-                <h4 class="text-gray-900 font-medium mt-4 mb-2">Document Management</h4>
+                <h3 class="text-lg font-medium text-gray-900 mt-4 mb-3">Help Tools</h3>
                 <ul class="list-disc list-inside text-gray-600 mb-4">
-                    <li><code>upload_document(name: str, content: str)</code> - Upload a new document</li>
-                    <li><code>delete_document(document_id: str)</code> - Delete a document</li>
+                    <li><code>docrouter_help()</code> - Get comprehensive help information about using the DocRouter API</li>
+                    <li><code>docrouter_document_analysis_guide(document_id)</code> - Get guidance for analyzing a specific document</li>
                 </ul>
+
+                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Example Workflows</h3>
+                <p class="text-gray-600 mb-4">Here are some common workflows using the MCP server:</p>
                 
-                <h4 class="text-gray-900 font-medium mt-4 mb-2">Extraction</h4>
-                <ul class="list-disc list-inside text-gray-600 mb-4">
-                    <li><code>extract_document(document_id: str, schema_id: str)</code> - Extract data from a document using a specific schema</li>
-                    <li><code>update_extraction(document_id: str, schema_id: str, data: dict)</code> - Update extraction results</li>
-                </ul>
+                <h4 class="text-gray-900 font-medium mt-4 mb-2">Finding Documents</h4>
+                <pre><code class="language-python">search_docrouter_documents("invoice")</code></pre>
+                
+                <h4 class="text-gray-900 font-medium mt-4 mb-2">Viewing Document Content</h4>
+                <pre><code class="language-python">get_docrouter_document_ocr("doc123")</code></pre>
+                
+                <h4 class="text-gray-900 font-medium mt-4 mb-2">Running Extractions</h4>
+                <pre><code class="language-python">run_docrouter_extraction("doc123", "prompt456")</code></pre>
+                
+                <h4 class="text-gray-900 font-medium mt-4 mb-2">Viewing Extraction Results</h4>
+                <pre><code class="language-python">get_docrouter_extraction("doc123", "prompt456")</code></pre>
             </section>
 
             <section id="github" class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-lg p-8 mb-12">
