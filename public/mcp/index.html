@@ -180,20 +180,22 @@ cd doc-router</code></pre>
                     <li>In Claude Desktop, go to Settings > Developer, open claude_desktop_config.json</li>
                     <li>Add a new MCP server with the appropriate connection details</li>
                     <pre><code class="language-bash">{
-                        "mcpServers": {
-                          "docrouter": {
-                            "command": "/Users/andrei/build/analytiq/doc-router/packages/docrouter_mcp/.venv/bin/python",
-                            "args": [
-                              "/Users/andrei/build/analytiq/doc-router/packages/docrouter_mcp/docrouter_mcp_server.py"
-                            ],
-                            "env": {
-                              "DOCROUTER_URL": "https://app.docrouter.ai/fastapi",
-                              "DOCROUTER_ORG_ID": "<ORG_IDx>",
-                              "DOCROUTER_ORG_API_TOKEN": "<ORG_API_TOKEN>"
-                            }
-                          }
-                        }
-                      }</code></pre>
+    "mcpServers": {
+        "docrouter": {
+        "command": "/Users/<username>/build/analytiq/doc-router/packages/docrouter_mcp/.venv/bin/python",
+        "args": [
+            "/Users/<username>/build/analytiq/doc-router/packages/docrouter_mcp/docrouter_mcp_server.py"
+        ],
+        "env": {
+            "DOCROUTER_URL": "https://app.docrouter.ai/fastapi",
+            "DOCROUTER_ORG_ID": "<ORG_IDx>",
+            "DOCROUTER_ORG_API_TOKEN": "<ORG_API_TOKEN>"
+        }
+        }
+    }
+}</code></pre>
+                    <li>Adjust the path to the python executable and to the MCP server script to match your local setup</li>
+                    <li>Url, org-id and org-api-token need to be specified as environment variables (Claude Desktop limitation)</li>
                     <li>Claude will now be able to access your docrouter.ai workspace through the MCP server</li>
                 </ol>
             </section>
