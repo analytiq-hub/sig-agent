@@ -76,7 +76,10 @@
   
   <!-- Legend -->
   <rect x="50" y="430" width="700" height="50" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="5" ry="5"/>
-  <text x="400" y="455" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">
-    The MCP Server exposes DocRouter functionality through tool interfaces that Claude and other LLMs can call directly
+  <text x="400" y="448" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">
+    The MCP Server exposes DocRouter functionality through tool interfaces
+  </text>
+  <text x="400" y="468" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">
+    that Claude and other LLMs can call directly
   </text>
 </svg>
