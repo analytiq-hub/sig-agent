@@ -167,16 +167,11 @@ cd doc-router</code></pre>
                 
                 <h3 class="text-lg font-medium text-gray-900 mb-3">Running the Server</h3>
                 <p class="text-gray-600 mb-4">You can run the MCP server using the MCP CLI:</p>
-                <pre><code class="language-bash"># Development mode
-mcp dev packages/docrouter_mcp/docrouter_mcp_server.py
-
-# Production mode
-mcp serve packages/docrouter_mcp/docrouter_mcp_server.py</code></pre>
+                <pre><code class="language-bash">python packages/docrouter_mcp/docrouter_mcp_server.py --url https://app.docrouter.ai/fastapi --org-id ORG_ID --org-api-token ORG_API_TOKEN</code></pre>
                 
                 <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Testing the Server</h3>
                 <p class="text-gray-600 mb-4">To test the server functionality:</p>
-                <pre><code class="language-bash">python -m mcp_server.tests.test_server</code></pre>
-                <p class="text-gray-600 mb-4">Note: You'll need to replace the <code>TEST_TOKEN</code> in the test script with a valid user token.</p>
+                <pre><code class="language-bash"> npx @modelcontextprotocol/inspector python docrouter_mcp_server.py --url https://app.docrouter.ai/fastapi --org-id ORG_ID --org-api-token ORG_API_TOKEN</code></pre>
                 
                 <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Integration with Claude</h3>
                 <p class="text-gray-600 mb-4">To use this MCP server with Claude Desktop:</p>
@@ -184,6 +179,7 @@ mcp serve packages/docrouter_mcp/docrouter_mcp_server.py</code></pre>
                     <li>Run the MCP server</li>
                     <li>In Claude Desktop, go to Settings > Model Context Protocol</li>
                     <li>Add a new server with the appropriate connection details</li>
+                    <pre><code class="language-bash"> npx @modelcontextprotocol/inspector python docrouter_mcp_server.py --url https://app.docrouter.ai/fastapi --org-id ORG_ID --org-api-token ORG_API_TOKEN</code></pre>
                     <li>Claude will now be able to access your docrouter.ai workspace through the MCP server</li>
                 </ol>
             </section>
