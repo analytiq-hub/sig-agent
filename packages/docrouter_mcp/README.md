@@ -2,7 +2,10 @@
 
 ## Development Setup
 ```bash
-npx @modelcontextprotocol/inspector python docrouter_mcp_server.py --url https://app.docrouter.com --org-id <orgid> --org-api-token <token>
+export DOCROUTER_URL=https://app.docrouter.ai/fastapi
+export DOCROUTER_ORG_ID=<orgid>
+export DOCROUTER_ORG_API_TOKEN=<token>
+npx @modelcontextprotocol/inspector python docrouter_mcp_server.py 
 ```
 
 ## Claude Desktop JSON Configuration
