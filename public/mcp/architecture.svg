@@ -43,32 +43,29 @@
   <rect x="550" y="80" width="200" height="340" fill="#e9ecef" stroke="#4a6baf" stroke-width="2" rx="5" ry="5"/>
   <text x="650" y="105" font-family="Arial" font-size="16" text-anchor="middle" fill="#212529" font-weight="bold">DocRouter Backend</text>
   
-  <!-- MongoDB -->
+  <!-- FastAPI (formerly API Services) - Moved to top -->
   <rect x="570" y="130" width="160" height="50" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
-  <text x="650" y="160" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">MongoDB</text>
+  <text x="650" y="160" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">FastAPI</text>
+  
+  <!-- MongoDB -->
+  <rect x="570" y="190" width="160" height="50" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
+  <text x="650" y="220" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">MongoDB</text>
   
   <!-- Document Storage -->
-  <rect x="570" y="190" width="160" height="50" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
-  <text x="650" y="220" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">Document Storage</text>
+  <rect x="570" y="250" width="160" height="50" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
+  <text x="650" y="280" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">Document Storage</text>
   
   <!-- LLM Integration -->
-  <rect x="570" y="250" width="160" height="50" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
-  <text x="650" y="280" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">LLM Integration</text>
-  
-  <!-- API Services -->
   <rect x="570" y="310" width="160" height="50" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
-  <text x="650" y="340" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">API Services</text>
+  <text x="650" y="340" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">LLM Integration</text>
   
   <!-- Arrows -->
   <!-- Client to Server -->
   <line x1="250" y1="140" x2="300" y2="140" stroke="#4a6baf" stroke-width="2" marker-end="url(#arrowhead)"/>
   <line x1="300" y1="160" x2="250" y2="160" stroke="#4a6baf" stroke-width="2" marker-end="url(#arrowhead)"/>
   
-  <!-- Server to Backend -->
+  <!-- Server to Backend - Only keep the first arrow to FastAPI -->
   <line x1="500" y1="155" x2="570" y2="155" stroke="#4a6baf" stroke-width="2" marker-end="url(#arrowhead)"/>
-  <line x1="500" y1="215" x2="570" y2="215" stroke="#4a6baf" stroke-width="2" marker-end="url(#arrowhead)"/>
-  <line x1="500" y1="275" x2="570" y2="275" stroke="#4a6baf" stroke-width="2" marker-end="url(#arrowhead)"/>
-  <line x1="500" y1="335" x2="570" y2="335" stroke="#4a6baf" stroke-width="2" marker-end="url(#arrowhead)"/>
   
   <!-- Arrowhead definition -->
   <defs>
