@@ -100,137 +100,9 @@ mcp = FastMCP(
 def get_context() -> Context:
     return mcp.get_context()
 
-# ---- DATA RESOURCES ----
-
-# @mcp.resource("data://users")
-# def get_users() -> str:
-#     """Get all users"""
-#     ctx = get_context()
-#     users = ctx.request_context.lifespan_context.db.query_users()
-#     return json.dumps(users, indent=2)
-
-# @mcp.resource("data://users/{user_id}")
-# def get_user(user_id: int) -> str:
-#     """Get user by ID"""
-#     ctx = get_context()
-#     user = ctx.request_context.lifespan_context.db.get_user(user_id)
-#     if not user:
-#         return f"User with ID {user_id} not found"
-#     return json.dumps(user, indent=2)
-
-# @mcp.resource("data://products")
-# def get_products() -> str:
-#     """Get all products"""
-#     ctx = get_context()
-#     products = ctx.request_context.lifespan_context.db.query_products()
-#     return json.dumps(products, indent=2)
-
-# @mcp.resource("data://products/{product_id}")
-# def get_product(product_id: int) -> str:
-#     """Get product by ID"""
-#     ctx = get_context()
-#     product = ctx.request_context.lifespan_context.db.get_product(product_id)
-#     if not product:
-#         return f"Product with ID {product_id} not found"
-#     return json.dumps(product, indent=2)
-
-# ---- TOOLS ----
-
-# @mcp.tool()
-# def search_users(name: str) -> str:
-#     """Search users by name"""
-#     ctx = get_context()
-#     users = ctx.request_context.lifespan_context.db.query_users()
-#     results = [user for user in users if name.lower() in user["name"].lower()]
-    
-#     ctx.info(f"Found {len(results)} users matching '{name}'")
-    
-#     if not results:
-#         return f"No users found matching '{name}'"
-#     return json.dumps(results, indent=2)
-
-# @mcp.tool()
-# def calculate_total_price(product_ids: List[int]) -> str:
-#     """Calculate total price for given products"""
-#     ctx = get_context()
-#     db = ctx.request_context.lifespan_context.db
-#     total = 0.0
-#     products_found = []
-    
-#     for pid in product_ids:
-#         product = db.get_product(pid)
-#         if product:
-#             total += product["price"]
-#             products_found.append(product["name"])
-    
-#     ctx.info(f"Calculated price for {len(products_found)} products")
-    
-#     if not products_found:
-#         return "No valid products found"
-    
-#     return f"Total price for {', '.join(products_found)}: ${total:.2f}"
-
-@mcp.tool()
-def get_current_time() -> str:
-    """Get the current server time"""
-    return f"Current time: {datetime.now().isoformat()}"
-
-@mcp.tool()
-def get_env(key: str) -> str:
-    """Get the environment variable for the given key"""
-    return os.environ[key]
-
-# ---- PROMPTS ----
-
-# @mcp.prompt()
-# def help_prompt() -> str:
-#     """Help information about using this API"""
-#     return """
-#     Welcome to the Data API Server!
-    
-#     This server provides access to user and product data along with helpful tools.
-    
-#     Available resources:
-#     - data://users - List all users
-#     - data://users/{user_id} - Get user by ID
-#     - data://products - List all products
-#     - data://products/{product_id} - Get product by ID
-    
-#     Available tools:
-#     - search_users - Search users by name
-#     - calculate_total_price - Calculate total price for given products
-#     - get_current_time - Get the current server time
-    
-#     Try accessing these resources or using these tools!
-#     """
-
-# @mcp.prompt()
-# def product_info_prompt(product_id: int) -> str:
-#     """Generate a prompt to ask about a specific product"""
-#     return f"""
-#     Please provide information about the product with ID {product_id}.
-#     You can use the data://products/{product_id} resource to fetch this information.
-    
-#     Suggested questions:
-#     1. What is the name of this product?
-#     2. How much does this product cost?
-#     3. Are there any similar products available?
-#     """
-
-# @mcp.prompt()
-# def user_search_prompt(search_term: str) -> str:
-#     """Generate a prompt to search for users"""
-#     return f"""
-#     Please help me find users matching the term "{search_term}".
-#     You can use the search_users tool to find matching users.
-    
-#     After finding the users, I might want to get more details about them using
-#     the data://users/{{user_id}} resource.
-#     """
-
 # ---- DOCROUTER RESOURCES ----
 
-@mcp.resource("data://docrouter/documents", mime_type="application/json")
+@mcp.tool()
 def get_docrouter_documents() -> str:
     """Get all documents from DocRouter"""
     ctx = get_context()
@@ -250,7 +122,7 @@ def get_docrouter_documents() -> str:
         ctx.error(f"Error fetching documents: {str(e)}")
         return json.dumps({"error": str(e)})
 
-@mcp.resource("data://docrouter/documents/{document_id}")
+@mcp.tool()
 def get_docrouter_document(document_id: str) -> str:
     """Get document by ID from DocRouter"""
     ctx = get_context()
@@ -263,7 +135,7 @@ def get_docrouter_document(document_id: str) -> str:
         ctx.error(f"Error fetching document {document_id}: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-@mcp.resource("data://docrouter/documents/{document_id}/ocr")
+@mcp.tool()
 def get_docrouter_document_ocr(document_id: str) -> str:
     """
     Get the raw OCR text for a document from DocRouter.
@@ -285,7 +157,7 @@ def get_docrouter_document_ocr(document_id: str) -> str:
         ctx.error(f"Error fetching OCR for document {document_id}: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-@mcp.resource("data://docrouter/documents/{document_id}/ocr/page/{page_num}")
+@mcp.tool()
 def get_docrouter_document_ocr_page(document_id: str, page_num: int) -> str:
     """
     Get OCR text for a specific page of a document from DocRouter
@@ -308,7 +180,7 @@ def get_docrouter_document_ocr_page(document_id: str, page_num: int) -> str:
         ctx.error(f"Error fetching OCR for document {document_id} page {page_num}: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-@mcp.resource("data://docrouter/documents/{document_id}/ocr/metadata", mime_type="application/json")
+@mcp.tool()
 def get_docrouter_document_ocr_metadata(document_id: str) -> str:
     """Get OCR metadata for a document from DocRouter"""
     ctx = get_context()
@@ -321,7 +193,7 @@ def get_docrouter_document_ocr_metadata(document_id: str) -> str:
         ctx.error(f"Error fetching OCR metadata for document {document_id}: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-@mcp.resource("data://docrouter/tags", mime_type="application/json")
+@mcp.tool()
 def get_docrouter_tags() -> str:
     """Get all tags from DocRouter"""
     ctx = get_context()
@@ -337,7 +209,7 @@ def get_docrouter_tags() -> str:
         ctx.error(f"Error fetching tags: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-@mcp.resource("data://docrouter/tags/{tag_id}", mime_type="application/json")
+@mcp.tool()
 def get_docrouter_tag(tag_id: str) -> str:
     """Get tag by ID from DocRouter"""
     ctx = get_context()
@@ -350,7 +222,7 @@ def get_docrouter_tag(tag_id: str) -> str:
         ctx.error(f"Error fetching tag {tag_id}: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-@mcp.resource("data://docrouter/prompts", mime_type="application/json")
+@mcp.tool()
 def get_docrouter_prompts() -> str:
     """Get all prompts from DocRouter"""
     ctx = get_context()
@@ -366,7 +238,7 @@ def get_docrouter_prompts() -> str:
         ctx.error(f"Error fetching prompts: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-@mcp.resource("data://docrouter/prompts/{prompt_id}", mime_type="application/json")
+@mcp.tool()
 def get_docrouter_prompt(prompt_id: str) -> str:
     """Get prompt by ID from DocRouter"""
     ctx = get_context()
@@ -393,7 +265,7 @@ def get_docrouter_prompt(prompt_id: str) -> str:
         ctx.error(f"Error fetching prompt {prompt_id}: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-@mcp.resource("data://docrouter/documents/{document_id}/extractions/{prompt_id}", mime_type="application/json")
+@mcp.tool()
 def get_docrouter_extraction(document_id: str, prompt_id: str) -> str:
     """Get extraction results for a document using a specific prompt"""
     ctx = get_context()
@@ -406,146 +278,314 @@ def get_docrouter_extraction(document_id: str, prompt_id: str) -> str:
         ctx.error(f"Error fetching extraction for document {document_id} with prompt {prompt_id}: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-# ---- DOCROUTER TOOLS ----
+# ---- DOCROUTER TOOLS (CONVERTED FROM RESOURCES) ----
 
 @mcp.tool()
-def search_docrouter_documents(query: str, tag_ids: str = None) -> str:
+def get_docrouter_documents() -> str:
     """
-    Search documents in DocRouter
+    Get all documents from DocRouter
     
-    Args:
-        query: Search term to look for in document names
-        tag_ids: Comma-separated list of tag IDs to filter by
+    Returns a JSON string containing all documents in the organization.
     """
     ctx = get_context()
     docrouter_client = ctx.request_context.lifespan_context.docrouter_client
     
     try:
-        # Convert tag_ids string to list if provided
-        tag_id_list = tag_ids.split(",") if tag_ids else None
+        documents = docrouter_client.documents.list(DOCROUTER_ORG_ID)
+        # Convert documents to proper Python dictionaries instead of JSON strings
+        result = {
+            "documents": [doc.dict() for doc in documents.documents],
+            "total_count": documents.total_count
+        }
         
-        # Get all documents
-        documents = docrouter_client.documents.list(DOCROUTER_ORG_ID, tag_ids=tag_id_list)
-        
-        # Filter by query term
-        results = [doc for doc in documents.documents if query.lower() in doc.document_name.lower()]
-        
-        ctx.info(f"Found {len(results)} documents matching '{query}'")
-        
-        if not results:
-            return f"No documents found matching '{query}'"
-        
-        # Convert to dictionaries and use custom encoder for datetime objects
+        # Return JSON string with custom encoder
+        return json.dumps(result, cls=DateTimeEncoder)
+    except Exception as e:
+        ctx.error(f"Error fetching documents: {str(e)}")
+        return json.dumps({"error": str(e)})
+
+@mcp.tool()
+def get_docrouter_document(document_id: str) -> str:
+    """
+    Get document by ID from DocRouter
+    
+    Args:
+        document_id: ID of the document to retrieve
+    """
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        document = docrouter_client.documents.get(DOCROUTER_ORG_ID, document_id)
+        return json.dumps(document.dict(), indent=2, cls=DateTimeEncoder)
+    except Exception as e:
+        ctx.error(f"Error fetching document {document_id}: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.tool()
+def get_docrouter_document_ocr(document_id: str) -> str:
+    """
+    Get the raw OCR text for a document from DocRouter.
+    
+    This tool returns the plain text extracted from the document.
+    Use this when you need to see the raw text content of a document.
+    Do NOT use run_docrouter_extraction() for this purpose.
+
+    Args:
+        document_id: ID of the document to get OCR text for
+    """
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        ocr_text = docrouter_client.ocr.get_text(DOCROUTER_ORG_ID, document_id)
+        return ocr_text
+    except Exception as e:
+        ctx.error(f"Error fetching OCR for document {document_id}: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.tool()
+def get_docrouter_document_ocr_page(document_id: str, page_num: int) -> str:
+    """
+    Get OCR text for a specific page of a document from DocRouter
+    
+    This tool returns the plain text extracted from the specified page of the document.
+    Use this when you need to see the raw text content of a specific page of a document.
+    Do NOT use run_docrouter_extraction() for this purpose.
+
+    Args:
+        document_id: ID of the document to get OCR text for
+        page_num: Page number to get OCR text for
+    """
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        ocr_text = docrouter_client.ocr.get_text(DOCROUTER_ORG_ID, document_id, page_num=page_num)
+        return ocr_text
+    except Exception as e:
+        ctx.error(f"Error fetching OCR for document {document_id} page {page_num}: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.tool()
+def get_docrouter_document_ocr_metadata(document_id: str) -> str:
+    """
+    Get OCR metadata for a document from DocRouter
+    
+    Args:
+        document_id: ID of the document to get OCR metadata for
+    """
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        metadata = docrouter_client.ocr.get_metadata(DOCROUTER_ORG_ID, document_id)
+        return json.dumps(metadata, indent=2, cls=DateTimeEncoder)
+    except Exception as e:
+        ctx.error(f"Error fetching OCR metadata for document {document_id}: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.tool()
+def get_docrouter_tags() -> str:
+    """Get all tags from DocRouter"""
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        tags = docrouter_client.tags.list(DOCROUTER_ORG_ID)
         return json.dumps({
-            "documents": [doc.dict() for doc in results],
-            "count": len(results)
+            "tags": [tag.dict() for tag in tags.tags],
+            "total_count": tags.total_count
         }, indent=2, cls=DateTimeEncoder)
     except Exception as e:
-        ctx.error(f"Error searching documents: {str(e)}")
+        ctx.error(f"Error fetching tags: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.tool()
+def get_docrouter_tag(tag_id: str) -> str:
+    """
+    Get tag by ID from DocRouter
+    
+    Args:
+        tag_id: ID of the tag to retrieve
+    """
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        tag = docrouter_client.tags.get(DOCROUTER_ORG_ID, tag_id)
+        return json.dumps(tag.dict(), indent=2, cls=DateTimeEncoder)
+    except Exception as e:
+        ctx.error(f"Error fetching tag {tag_id}: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.tool()
+def get_docrouter_prompts() -> str:
+    """Get all prompts from DocRouter"""
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        prompts = docrouter_client.prompts.list(DOCROUTER_ORG_ID)
+        return json.dumps({
+            "prompts": [prompt.dict() for prompt in prompts.prompts],
+            "total_count": prompts.total_count
+        }, indent=2, cls=DateTimeEncoder)
+    except Exception as e:
+        ctx.error(f"Error fetching prompts: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.tool()
+def get_docrouter_prompt(prompt_id: str) -> str:
+    """
+    Get prompt by ID from DocRouter
+    
+    Args:
+        prompt_id: ID of the prompt to retrieve
+    """
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        prompt = docrouter_client.prompts.get(DOCROUTER_ORG_ID, prompt_id)
+        
+        # If the prompt has a schema, fetch the schema details
+        schema_info = {}
+        if prompt.schema_id:
+            try:
+                schema = docrouter_client.schemas.get(DOCROUTER_ORG_ID, prompt.schema_id)
+                schema_info = schema.dict()
+            except Exception as schema_err:
+                ctx.warning(f"Error fetching schema {prompt.schema_id}: {str(schema_err)}")
+        
+        # Combine prompt with schema info
+        result = prompt.dict()
+        result["schema_details"] = schema_info
+        
+        return json.dumps(result, indent=2, cls=DateTimeEncoder)
+    except Exception as e:
+        ctx.error(f"Error fetching prompt {prompt_id}: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.tool()
+def get_docrouter_extraction(document_id: str, prompt_id: str) -> str:
+    """
+    Get extraction results for a document using a specific prompt
+    
+    Args:
+        document_id: ID of the document
+        prompt_id: ID of the prompt used for extraction
+    """
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        result = docrouter_client.llm.get_result(DOCROUTER_ORG_ID, document_id, prompt_id)
+        return json.dumps(result.dict(), indent=2, cls=DateTimeEncoder)
+    except Exception as e:
+        ctx.error(f"Error fetching extraction for document {document_id} with prompt {prompt_id}: {str(e)}")
+        return json.dumps({"error": str(e)}, indent=2)
+
+@mcp.tool()
+def search_docrouter_documents(query: str, tag_ids: List[str] = None) -> str:
+    """
+    Search documents by name or content
+    
+    Args:
+        query: Search query string
+        tag_ids: Optional list of tag IDs to filter by
+    """
+    ctx = get_context()
+    docrouter_client = ctx.request_context.lifespan_context.docrouter_client
+    
+    try:
+        documents = docrouter_client.documents.list(DOCROUTER_ORG_ID, query=query, tag_ids=tag_ids)
+        result = {
+            "documents": [doc.dict() for doc in documents.documents],
+            "total_count": documents.total_count
+        }
+        return json.dumps(result, indent=2, cls=DateTimeEncoder)
+    except Exception as e:
+        ctx.error(f"Error searching documents with query '{query}': {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
 @mcp.tool()
 def search_docrouter_prompts(query: str) -> str:
     """
-    Search prompts in DocRouter
+    Search prompts by name or content
     
     Args:
-        query: Search term to look for in prompt names or content
+        query: Search query string
     """
     ctx = get_context()
     docrouter_client = ctx.request_context.lifespan_context.docrouter_client
     
     try:
-        # Get all prompts
-        prompts = docrouter_client.prompts.list(DOCROUTER_ORG_ID)
-        
-        # Filter by query term
-        results = [
-            prompt for prompt in prompts.prompts 
-            if query.lower() in prompt.name.lower() or query.lower() in prompt.content.lower()
-        ]
-        
-        ctx.info(f"Found {len(results)} prompts matching '{query}'")
-        
-        if not results:
-            return f"No prompts found matching '{query}'"
-        
-        return json.dumps({
-            "prompts": [prompt.dict() for prompt in results],
-            "count": len(results)
-        }, indent=2, cls=DateTimeEncoder)
+        prompts = docrouter_client.prompts.list(DOCROUTER_ORG_ID, query=query)
+        result = {
+            "prompts": [prompt.dict() for prompt in prompts.prompts],
+            "total_count": prompts.total_count
+        }
+        return json.dumps(result, indent=2, cls=DateTimeEncoder)
     except Exception as e:
-        ctx.error(f"Error searching prompts: {str(e)}")
+        ctx.error(f"Error searching prompts with query '{query}': {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
 @mcp.tool()
 def search_docrouter_tags(query: str) -> str:
     """
-    Search tags in DocRouter
+    Search tags by name or description
     
     Args:
-        query: Search term to look for in tag names or descriptions
+        query: Search query string
     """
     ctx = get_context()
     docrouter_client = ctx.request_context.lifespan_context.docrouter_client
     
     try:
-        # Get all tags
-        tags = docrouter_client.tags.list(DOCROUTER_ORG_ID)
-        
-        # Filter by query term
-        results = [
-            tag for tag in tags.tags 
-            if (query.lower() in tag.name.lower() or 
-                (tag.description and query.lower() in tag.description.lower()))
-        ]
-        
-        ctx.info(f"Found {len(results)} tags matching '{query}'")
-        
-        if not results:
-            return f"No tags found matching '{query}'"
-        
-        return json.dumps({
-            "tags": [tag.dict() for tag in results],
-            "count": len(results)
-        }, indent=2, cls=DateTimeEncoder)
+        tags = docrouter_client.tags.list(DOCROUTER_ORG_ID, query=query)
+        result = {
+            "tags": [tag.dict() for tag in tags.tags],
+            "total_count": tags.total_count
+        }
+        return json.dumps(result, indent=2, cls=DateTimeEncoder)
     except Exception as e:
-        ctx.error(f"Error searching tags: {str(e)}")
+        ctx.error(f"Error searching tags with query '{query}': {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
 @mcp.tool()
 def run_docrouter_extraction(document_id: str, prompt_id: str, force: bool = False) -> str:
     """
-    Run an AI extraction on a document using a specific prompt.
+    Run AI extraction on a document using a specific prompt
     
-    This tool performs structured data extraction based on a prompt template.
-    It does NOT return the raw OCR text - use data://docrouter/documents/{document_id}/ocr for that.
+    This tool triggers a new extraction using the specified prompt on the document.
+    Use this when you need to extract structured data from a document.
     
     Args:
-        document_id: ID of the document to analyze
-        prompt_id: ID of the prompt to use
-        force: Whether to force a new extraction even if results exist
+        document_id: ID of the document to extract from
+        prompt_id: ID of the prompt to use for extraction
+        force: Whether to force re-extraction even if results already exist
     """
     ctx = get_context()
     docrouter_client = ctx.request_context.lifespan_context.docrouter_client
     
     try:
-        result = docrouter_client.llm.run(DOCROUTER_ORG_ID, document_id, prompt_id, force)
+        result = docrouter_client.llm.run(DOCROUTER_ORG_ID, document_id, prompt_id, force=force)
         return json.dumps(result.dict(), indent=2, cls=DateTimeEncoder)
     except Exception as e:
-        ctx.error(f"Error running extraction: {str(e)}")
+        ctx.error(f"Error running extraction for document {document_id} with prompt {prompt_id}: {str(e)}")
         return json.dumps({"error": str(e)}, indent=2)
 
-# ---- DOCROUTER PROMPTS ----
+# ---- DOCROUTER TOOLS (CONVERTED FROM PROMPTS) ----
 
-@mcp.prompt()
-def docrouter_help_prompt() -> str:
-    """Help information about using the DocRouter API"""
+@mcp.tool()
+def docrouter_help() -> str:
+    """Get help information about using the DocRouter API"""
 
     ctx = get_context()
     ctx.request_context.session.send_log_message(
         level="info",
-        data="Executing docrouter_help_prompt()"
+        data="Executing docrouter_help()"
     )
 
     return """
@@ -553,30 +593,29 @@ def docrouter_help_prompt() -> str:
     
     This server provides access to DocRouter resources and tools.
     
-    ## Available Resources
-    
-    ### Documents
-    - `data://docrouter/documents` - List all documents
-    - `data://docrouter/documents/{{document_id}}` - Get document by ID
-    - `data://docrouter/documents/{{document_id}}/ocr` - Get raw OCR text for a document (use this to see document content)
-    - `data://docrouter/documents/{{document_id}}/ocr/page/{{page_num}}` - Get OCR text for a specific page
-    - `data://docrouter/documents/{{document_id}}/ocr/metadata` - Get OCR metadata for a document
-    - `data://docrouter/documents/{{document_id}}/extractions/{{prompt_id}}` - Get extraction results
-    
-    ### Tags
-    - `data://docrouter/tags` - List all tags
-    - `data://docrouter/tags/{{tag_id}}` - Get tag by ID
-    
-    ### Prompts
-    - `data://docrouter/prompts` - List all prompts
-    - `data://docrouter/prompts/{{prompt_id}}` - Get prompt by ID
-    
     ## Available Tools
     
-    - `search_docrouter_documents` - Search documents by name
-    - `search_docrouter_prompts` - Search prompts by name or content
-    - `search_docrouter_tags` - Search tags by name or description
-    - `run_docrouter_extraction` - Run AI extraction on a document using a specific prompt (requires both document_id AND prompt_id)
+    ### Document Tools
+    - `get_docrouter_documents()` - List all documents
+    - `get_docrouter_document(document_id)` - Get document by ID
+    - `get_docrouter_document_ocr(document_id)` - Get raw OCR text for a document (use this to see document content)
+    - `get_docrouter_document_ocr_page(document_id, page_num)` - Get OCR text for a specific page
+    - `get_docrouter_document_ocr_metadata(document_id)` - Get OCR metadata for a document
+    - `get_docrouter_extraction(document_id, prompt_id)` - Get extraction results
+    
+    ### Tag Tools
+    - `get_docrouter_tags()` - List all tags
+    - `get_docrouter_tag(tag_id)` - Get tag by ID
+    
+    ### Prompt Tools
+    - `get_docrouter_prompts()` - List all prompts
+    - `get_docrouter_prompt(prompt_id)` - Get prompt by ID
+    
+    ### Search and Extraction Tools
+    - `search_docrouter_documents(query, tag_ids)` - Search documents by name
+    - `search_docrouter_prompts(query)` - Search prompts by name or content
+    - `search_docrouter_tags(query)` - Search tags by name or description
+    - `run_docrouter_extraction(document_id, prompt_id, force)` - Run AI extraction on a document using a specific prompt
     
     ## Example Workflows
     
@@ -587,7 +626,7 @@ def docrouter_help_prompt() -> str:
     
     2. Get OCR text for a document (to see the document content):
        ```
-       data://docrouter/documents/doc123/ocr
+       get_docrouter_document_ocr("doc123")
        ```
     
     3. Run AI extraction on a document (requires a prompt):
@@ -597,47 +636,60 @@ def docrouter_help_prompt() -> str:
     
     4. View extraction results:
        ```
-       data://docrouter/documents/doc123/extractions/prompt456
+       get_docrouter_extraction("doc123", "prompt456")
        ```
     """
 
-@mcp.prompt()
-def docrouter_document_analysis_prompt(document_id: str) -> str:
-    """Generate a prompt to analyze a specific document"""
+@mcp.tool()
+def docrouter_document_analysis_guide(document_id: str) -> str:
+    """
+    Generate a guide to analyze a specific document
+    
+    Args:
+        document_id: ID of the document to analyze
+    """
     
     return f"""
-    # Document Analysis
+    # Document Analysis Guide for Document {document_id}
     
-    I'd like to analyze the document with ID `{{document_id}}`.
+    Here's a step-by-step guide to analyze this document:
     
-    First, let's get the document details:
+    ## 1. Get Document Details
+    First, get the document details:
     ```
-    data://docrouter/documents/{{document_id}}
-    ```
-    
-    Then, let's get the OCR text:
-    ```
-    data://docrouter/documents/{{document_id}}/ocr
+    get_docrouter_document("{document_id}")
     ```
     
-    Now, let's see what prompts are available:
+    ## 2. View Document Content
+    Get the OCR text to see the document content:
     ```
-    data://docrouter/prompts
-    ```
-    
-    Based on the document content, please suggest which prompt would be most appropriate for analyzing this document.
-    
-    After selecting a prompt (let's call its ID `{{prompt_id}}`), we can run an extraction:
-    ```
-    run_docrouter_extraction("{{document_id}}", "{{prompt_id}}")
+    get_docrouter_document_ocr("{document_id}")
     ```
     
-    And then view the results:
+    ## 3. Find Available Prompts
+    See what prompts are available:
     ```
-    data://docrouter/documents/{{document_id}}/extractions/{{prompt_id}}
+    get_docrouter_prompts()
     ```
     
-    Please help me understand the key information in this document.
+    ## 4. Select an Appropriate Prompt
+    Based on the document content, select a prompt that would be most appropriate.
+    Let's say you choose a prompt with ID "prompt_id".
+    
+    ## 5. Run Extraction
+    Run an extraction with the selected prompt:
+    ```
+    run_docrouter_extraction("{document_id}", "prompt_id")
+    ```
+    
+    ## 6. View Results
+    View the extraction results:
+    ```
+    get_docrouter_extraction("{document_id}", "prompt_id")
+    ```
+    
+    ## 7. Analyze Results
+    Analyze the extracted information to understand the key details in this document.
     """
 
 # Run the server
