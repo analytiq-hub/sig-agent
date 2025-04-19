@@ -11,14 +11,23 @@ from datetime import datetime
 import inspect
 from functools import wraps
 import logging
+import argparse  # Add this import
 
 from docrouter_sdk import DocRouterClient
 
 logging.basicConfig(level=logging.WARNING)  # Only show WARNING and above (ERROR, CRITICAL)
 
-DOCROUTER_URL = os.getenv("DOCROUTER_URL")
-DOCROUTER_ORG_ID = os.getenv("DOCROUTER_ORG_ID")
-DOCROUTER_ORG_API_TOKEN = os.getenv("DOCROUTER_ORG_API_TOKEN")
+# Add command line argument parsing
+parser = argparse.ArgumentParser(description='DocRouter MCP Server')
+parser.add_argument('--url', help='DocRouter URL. Also accepts DOCROUTER_URL environment variable.')
+parser.add_argument('--org-id', help='DocRouter Organization ID. Also accepts DOCROUTER_ORG_ID environment variable.')
+parser.add_argument('--org-api-token', help='DocRouter Organization API Token. Also accepts DOCROUTER_ORG_API_TOKEN environment variable.')
+args = parser.parse_args()
+
+# Use command line args if provided, otherwise fall back to environment variables
+DOCROUTER_URL = args.url or os.getenv("DOCROUTER_URL")
+DOCROUTER_ORG_ID = args.org_id or os.getenv("DOCROUTER_ORG_ID")
+DOCROUTER_ORG_API_TOKEN = args.org_api_token or os.getenv("DOCROUTER_ORG_API_TOKEN")
 
 # Add this class near the top of the file with other imports
 class DateTimeEncoder(json.JSONEncoder):
