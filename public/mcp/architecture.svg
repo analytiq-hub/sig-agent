@@ -20,24 +20,23 @@
   <rect x="320" y="130" width="160" height="50" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
   <text x="400" y="160" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">Authentication</text>
   
-  <!-- Tools Module -->
-  <rect x="320" y="190" width="160" height="210" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
-  <text x="400" y="210" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529" font-weight="bold">Tools</text>
+  <!-- Tools Module - REALIGNED WITHOUT "TOOLS" LABEL -->
+  <rect x="320" y="190" width="160" height="190" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
   
   <!-- Document Tools - MORE PROMINENT -->
-  <text x="400" y="235" font-family="Arial" font-size="13" text-anchor="middle" fill="#4a5568" font-weight="bold">Document Tools</text>
-  <text x="400" y="255" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">get_docrouter_documents()</text>
-  <text x="400" y="270" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">get_docrouter_document_ocr()</text>
+  <text x="400" y="215" font-family="Arial" font-size="13" text-anchor="middle" fill="#4a5568" font-weight="bold">Document Tools</text>
+  <text x="400" y="235" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">get_docrouter_documents()</text>
+  <text x="400" y="250" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">get_docrouter_document_ocr()</text>
   
   <!-- Tag & Prompt Tools - MORE PROMINENT -->
-  <text x="400" y="295" font-family="Arial" font-size="13" text-anchor="middle" fill="#4a5568" font-weight="bold">Tag &amp; Prompt Tools</text>
-  <text x="400" y="310" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">get_docrouter_tags()</text>
-  <text x="400" y="325" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">get_docrouter_prompts()</text>
+  <text x="400" y="275" font-family="Arial" font-size="13" text-anchor="middle" fill="#4a5568" font-weight="bold">Tag &amp; Prompt Tools</text>
+  <text x="400" y="290" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">get_docrouter_tags()</text>
+  <text x="400" y="305" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">get_docrouter_prompts()</text>
   
   <!-- Search & Extraction Tools - MORE PROMINENT -->
-  <text x="400" y="350" font-family="Arial" font-size="13" text-anchor="middle" fill="#4a5568" font-weight="bold">Search &amp; Extraction</text>
-  <text x="400" y="365" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">search_docrouter_documents()</text>
-  <text x="400" y="380" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">run_docrouter_extraction()</text>
+  <text x="400" y="330" font-family="Arial" font-size="13" text-anchor="middle" fill="#4a5568" font-weight="bold">Search &amp; Extraction</text>
+  <text x="400" y="345" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">search_docrouter_documents()</text>
+  <text x="400" y="360" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">run_docrouter_extraction()</text>
   
   <!-- DocRouter Backend Section -->
   <rect x="550" y="80" width="200" height="340" fill="#e9ecef" stroke="#4a6baf" stroke-width="2" rx="5" ry="5"/>
