@@ -4,93 +4,147 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DocRouter MCP Server</title>
-    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="../css/styles.css" rel="stylesheet">
     <!-- Add Prism.js for code highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css">
 </head>
-<body>
-    <header>
-        <div class="container">
-            <h1>DocRouter MCP Server</h1>
-            <p class="subtitle">Model Context Protocol Implementation for docrouter.ai</p>
-            <nav>
-                <ul>
-                    <li><a href="#overview">Overview</a></li>
-                    <li><a href="#features">Features</a></li>
-                    <li><a href="#architecture">Architecture</a></li>
-                    <li><a href="#installation">Installation</a></li>
-                    <li><a href="#usage">Usage</a></li>
-                    <li><a href="#interfaces">Interfaces</a></li>
-                    <li><a href="#github">GitHub</a></li>
-                </ul>
-            </nav>
+<body class="bg-gray-50">
+    <!-- Sticky Navigation -->
+    <nav class="sticky top-0 bg-white shadow-md z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0">
+                    <a href="../index.html" class="text-xl font-semibold text-gray-900 hover:text-gray-700">Smart Document Router</a>
+                </div>
+                <!-- Desktop Menu -->
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-center space-x-4">
+                        <a href="#overview" 
+                           class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                            Overview
+                        </a>
+                        <a href="#features" 
+                           class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                            Features
+                        </a>
+                        <a href="#installation" 
+                           class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                            Installation
+                        </a>
+                        <a href="#interfaces" 
+                           class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                            Interfaces
+                        </a>
+                    </div>
+                </div>
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button type="button" id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
-    </header>
 
-    <main class="container">
-        <section id="overview">
-            <h2>Overview</h2>
-            <p>
-                The DocRouter MCP Server is an implementation of Anthropic's Model Context Protocol (MCP) for docrouter.ai. 
-                It enables Claude and other MCP clients to securely access and interact with docrouter.ai workspaces, 
-                providing standardized interfaces for documents, prompts, extraction schemas, and extraction results.
-            </p>
-            <p>
-                MCP is an open protocol that standardizes how applications provide context to LLMs. Think of MCP like a USB-C port for AI applications. 
-                Just as USB-C provides a standardized way to connect your devices to various peripherals and accessories, 
-                MCP provides a standardized way to connect AI models to different data sources and tools.
-            </p>
-        </section>
-
-        <section id="features">
-            <h2>Features</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <h3>Authentication</h3>
-                    <p>Uses docrouter.ai's existing user token-based authentication system to ensure secure access</p>
-                </div>
-                <div class="feature-card">
-                    <h3>Workspace Exposure</h3>
-                    <p>Exposes a single workspace (organization) based on the authenticated user's token</p>
-                </div>
-                <div class="feature-card">
-                    <h3>Document Management</h3>
-                    <p>Interfaces to list, view, upload, and delete documents in the workspace</p>
-                </div>
-                <div class="feature-card">
-                    <h3>Prompts Access</h3>
-                    <p>Interfaces to list and view prompts and their configurations</p>
-                </div>
-                <div class="feature-card">
-                    <h3>Extraction Schemas</h3>
-                    <p>Interfaces to list and view extraction schemas and their configurations</p>
-                </div>
-                <div class="feature-card">
-                    <h3>Extraction Results</h3>
-                    <p>Interfaces to list and view extraction results for documents</p>
-                </div>
+        <!-- Mobile menu -->
+        <div class="mobile-menu md:hidden bg-white shadow-lg">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="#overview" 
+                   class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                    Overview
+                </a>
+                <a href="#features" 
+                   class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                    Features
+                </a>
+                <a href="#installation" 
+                   class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                    Installation
+                </a>
+                <a href="#interfaces" 
+                   class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                    Interfaces
+                </a>
             </div>
-        </section>
+        </div>
+    </nav>
 
-        <section id="architecture">
-            <h2>Architecture</h2>
-            <p>
-                The MCP server is implemented as a separate directory and process from the main docrouter.ai application.
-                This separation provides several benefits:
-            </p>
-            <ul>
-                <li><strong>Isolation:</strong> The MCP server can run independently, reducing the risk of affecting the main application.</li>
-                <li><strong>Scalability:</strong> The MCP server can be scaled separately from the main application.</li>
-                <li><strong>Deployment Flexibility:</strong> The MCP server can be deployed on the same or different machines as the main application.</li>
-                <li><strong>Development Independence:</strong> Changes to the MCP server can be made without affecting the main application.</li>
-            </ul>
-            
-            <div class="architecture-diagram">
-                <img src="architecture.svg" alt="MCP Server Architecture Diagram">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-4 md:py-12">
+        <header class="text-center md:mb-12 mb-4">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4 hidden sm:block">DocRouter MCP Server</h1>
+            <div class="text-xl text-gray-600">
+                <p class="mb-2">Model Context Protocol Implementation for docrouter.ai</p>
             </div>
-            
-            <h3>Directory Structure</h3>
-            <pre><code class="language-bash">mcp_server/
+        </header>
+
+        <main>
+            <section id="overview" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Overview</h2>
+                <p class="text-gray-600 mb-6">
+                    The DocRouter MCP Server is an implementation of Anthropic's Model Context Protocol (MCP) for docrouter.ai. 
+                    It enables Claude and other MCP clients to securely access and interact with docrouter.ai workspaces, 
+                    providing standardized interfaces for documents, prompts, extraction schemas, and extraction results.
+                </p>
+                <p class="text-gray-600 mb-6">
+                    MCP is an open protocol that standardizes how applications provide context to LLMs. Think of MCP like a USB-C port for AI applications. 
+                    Just as USB-C provides a standardized way to connect your devices to various peripherals and accessories, 
+                    MCP provides a standardized way to connect AI models to different data sources and tools.
+                </p>
+            </section>
+
+            <section id="features" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-6">Features</h2>
+                
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <h3>Authentication</h3>
+                        <p class="text-gray-600">Uses docrouter.ai's existing user token-based authentication system to ensure secure access</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Workspace Exposure</h3>
+                        <p class="text-gray-600">Exposes a single workspace (organization) based on the authenticated user's token</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Document Management</h3>
+                        <p class="text-gray-600">Interfaces to list, view, upload, and delete documents in the workspace</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Prompts Access</h3>
+                        <p class="text-gray-600">Interfaces to list and view prompts and their configurations</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Extraction Schemas</h3>
+                        <p class="text-gray-600">Interfaces to list and view extraction schemas and their configurations</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Extraction Results</h3>
+                        <p class="text-gray-600">Interfaces to list and view extraction results for documents</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="architecture" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Architecture</h2>
+                <p class="text-gray-600 mb-6">
+                    The MCP server is implemented as a separate directory and process from the main docrouter.ai application.
+                    This separation provides several benefits:
+                </p>
+                <ul class="list-disc list-inside text-gray-600 space-y-2 mb-6">
+                    <li><strong>Isolation:</strong> The MCP server can run independently, reducing the risk of affecting the main application.</li>
+                    <li><strong>Scalability:</strong> The MCP server can be scaled separately from the main application.</li>
+                    <li><strong>Deployment Flexibility:</strong> The MCP server can be deployed on the same or different machines as the main application.</li>
+                    <li><strong>Development Independence:</strong> Changes to the MCP server can be made without affecting the main application.</li>
+                </ul>
+                
+                <div class="architecture-diagram">
+                    <img src="architecture.svg" alt="MCP Server Architecture Diagram">
+                </div>
+                
+                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Directory Structure</h3>
+                <pre><code class="language-bash">mcp_server/
 ├── __init__.py          # Package initialization
 ├── main.py              # Main server implementation
 ├── auth.py              # Authentication logic
@@ -108,119 +162,208 @@
 └── tests/               # Tests
     ├── __init__.py
     └── test_server.py   # Server test script</code></pre>
-        </section>
+            </section>
 
-        <section id="installation">
-            <h2>Installation</h2>
-            <p>To install the MCP server, follow these steps:</p>
-            
-            <h3>1. Clone the repository</h3>
-            <pre><code class="language-bash">git clone https://github.com/analytiq-hub/doc-router.git
+            <section id="installation" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Installation</h2>
+                <p class="text-gray-600 mb-6">To install the MCP server, follow these steps:</p>
+                
+                <h3 class="text-lg font-medium text-gray-900 mb-3">1. Clone the repository</h3>
+                <pre><code class="language-bash">git clone https://github.com/analytiq-hub/doc-router.git
 cd doc-router</code></pre>
-            
-            <h3>2. Install the MCP Python SDK</h3>
-            <pre><code class="language-bash">pip install "mcp[cli]"</code></pre>
-            
-            <h3>3. Alternatively, use the installation script</h3>
-            <pre><code class="language-bash">python mcp_server/install.py</code></pre>
-        </section>
+                
+                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">2. Install the MCP Python SDK</h3>
+                <pre><code class="language-bash">pip install "mcp[cli]"</code></pre>
+                
+                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">3. Alternatively, use the installation script</h3>
+                <pre><code class="language-bash">python mcp_server/install.py</code></pre>
+            </section>
 
-        <section id="usage">
-            <h2>Usage</h2>
-            
-            <h3>Running the Server</h3>
-            <p>You can run the MCP server using the MCP CLI:</p>
-            <pre><code class="language-bash"># Development mode
+            <section id="usage" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Usage</h2>
+                
+                <h3 class="text-lg font-medium text-gray-900 mb-3">Running the Server</h3>
+                <p class="text-gray-600 mb-4">You can run the MCP server using the MCP CLI:</p>
+                <pre><code class="language-bash"># Development mode
 mcp dev mcp_server/main.py
 
 # Production mode
 mcp serve mcp_server/main.py</code></pre>
-            
-            <h3>Testing the Server</h3>
-            <p>To test the server functionality:</p>
-            <pre><code class="language-bash">python -m mcp_server.tests.test_server</code></pre>
-            <p>Note: You'll need to replace the <code>TEST_TOKEN</code> in the test script with a valid user token.</p>
-            
-            <h3>Integration with Claude</h3>
-            <p>To use this MCP server with Claude Desktop:</p>
-            <ol>
-                <li>Run the MCP server</li>
-                <li>In Claude Desktop, go to Settings > Model Context Protocol</li>
-                <li>Add a new server with the appropriate connection details</li>
-                <li>Claude will now be able to access your docrouter.ai workspace through the MCP server</li>
-            </ol>
-        </section>
+                
+                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Testing the Server</h3>
+                <p class="text-gray-600 mb-4">To test the server functionality:</p>
+                <pre><code class="language-bash">python -m mcp_server.tests.test_server</code></pre>
+                <p class="text-gray-600 mb-4">Note: You'll need to replace the <code>TEST_TOKEN</code> in the test script with a valid user token.</p>
+                
+                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Integration with Claude</h3>
+                <p class="text-gray-600 mb-4">To use this MCP server with Claude Desktop:</p>
+                <ol class="list-decimal list-inside text-gray-600 space-y-2">
+                    <li>Run the MCP server</li>
+                    <li>In Claude Desktop, go to Settings > Model Context Protocol</li>
+                    <li>Add a new server with the appropriate connection details</li>
+                    <li>Claude will now be able to access your docrouter.ai workspace through the MCP server</li>
+                </ol>
+            </section>
 
-        <section id="interfaces">
-            <h2>Interfaces</h2>
-            
-            <h3>Resource Interfaces</h3>
-            <p>The MCP server exposes the following resource interfaces:</p>
-            
-            <h4>Documents</h4>
-            <ul>
-                <li><code>documents://list</code> - List all documents in the workspace</li>
-                <li><code>documents://{document_id}</code> - Get a specific document by ID</li>
-                <li><code>documents://{document_id}/content</code> - Get the content of a specific document</li>
-            </ul>
-            
-            <h4>Prompts</h4>
-            <ul>
-                <li><code>prompts://list</code> - List all prompts in the workspace</li>
-                <li><code>prompts://{prompt_id}</code> - Get a specific prompt by ID</li>
-                <li><code>prompts://{prompt_id}/config</code> - Get the configuration of a specific prompt</li>
-            </ul>
-            
-            <h4>Extraction Schemas</h4>
-            <ul>
-                <li><code>schemas://list</code> - List all extraction schemas in the workspace</li>
-                <li><code>schemas://{schema_id}</code> - Get a specific schema by ID</li>
-                <li><code>schemas://{schema_id}/config</code> - Get the configuration of a specific schema</li>
-            </ul>
-            
-            <h4>Extraction Results</h4>
-            <ul>
-                <li><code>results://list</code> - List all extraction results in the workspace</li>
-                <li><code>results://{document_id}</code> - Get extraction results for a specific document</li>
-                <li><code>results://{document_id}/{schema_id}</code> - Get extraction results for a specific document and schema</li>
-            </ul>
-            
-            <h3>Tool Interfaces</h3>
-            <p>The MCP server exposes the following tool interfaces:</p>
-            
-            <h4>Document Management</h4>
-            <ul>
-                <li><code>upload_document(name: str, content: str)</code> - Upload a new document</li>
-                <li><code>delete_document(document_id: str)</code> - Delete a document</li>
-            </ul>
-            
-            <h4>Extraction</h4>
-            <ul>
-                <li><code>extract_document(document_id: str, schema_id: str)</code> - Extract data from a document using a specific schema</li>
-                <li><code>update_extraction(document_id: str, schema_id: str, data: dict)</code> - Update extraction results</li>
-            </ul>
-        </section>
+            <section id="interfaces" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Interfaces</h2>
+                
+                <h3 class="text-lg font-medium text-gray-900 mb-3">Resource Interfaces</h3>
+                <p class="text-gray-600 mb-4">The MCP server exposes the following resource interfaces:</p>
+                
+                <h4 class="text-gray-900 font-medium mt-4 mb-2">Documents</h4>
+                <ul class="list-disc list-inside text-gray-600 mb-4">
+                    <li><code>documents://list</code> - List all documents in the workspace</li>
+                    <li><code>documents://{document_id}</code> - Get a specific document by ID</li>
+                    <li><code>documents://{document_id}/content</code> - Get the content of a specific document</li>
+                </ul>
+                
+                <h4 class="text-gray-900 font-medium mt-4 mb-2">Prompts</h4>
+                <ul class="list-disc list-inside text-gray-600 mb-4">
+                    <li><code>prompts://list</code> - List all prompts in the workspace</li>
+                    <li><code>prompts://{prompt_id}</code> - Get a specific prompt by ID</li>
+                    <li><code>prompts://{prompt_id}/config</code> - Get the configuration of a specific prompt</li>
+                </ul>
+                
+                <h4 class="text-gray-900 font-medium mt-4 mb-2">Extraction Schemas</h4>
+                <ul class="list-disc list-inside text-gray-600 mb-4">
+                    <li><code>schemas://list</code> - List all extraction schemas in the workspace</li>
+                    <li><code>schemas://{schema_id}</code> - Get a specific schema by ID</li>
+                    <li><code>schemas://{schema_id}/config</code> - Get the configuration of a specific schema</li>
+                </ul>
+                
+                <h4 class="text-gray-900 font-medium mt-4 mb-2">Extraction Results</h4>
+                <ul class="list-disc list-inside text-gray-600 mb-4">
+                    <li><code>results://list</code> - List all extraction results in the workspace</li>
+                    <li><code>results://{document_id}</code> - Get extraction results for a specific document</li>
+                    <li><code>results://{document_id}/{schema_id}</code> - Get extraction results for a specific document and schema</li>
+                </ul>
+                
+                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Tool Interfaces</h3>
+                <p class="text-gray-600 mb-4">The MCP server exposes the following tool interfaces:</p>
+                
+                <h4 class="text-gray-900 font-medium mt-4 mb-2">Document Management</h4>
+                <ul class="list-disc list-inside text-gray-600 mb-4">
+                    <li><code>upload_document(name: str, content: str)</code> - Upload a new document</li>
+                    <li><code>delete_document(document_id: str)</code> - Delete a document</li>
+                </ul>
+                
+                <h4 class="text-gray-900 font-medium mt-4 mb-2">Extraction</h4>
+                <ul class="list-disc list-inside text-gray-600 mb-4">
+                    <li><code>extract_document(document_id: str, schema_id: str)</code> - Extract data from a document using a specific schema</li>
+                    <li><code>update_extraction(document_id: str, schema_id: str, data: dict)</code> - Update extraction results</li>
+                </ul>
+            </section>
 
-        <section id="github">
-            <h2>GitHub Repository</h2>
-            <p>
-                The DocRouter MCP Server is part of the docrouter.ai open source project.
-                You can find the source code on GitHub:
-            </p>
-            <div class="github-link">
-                <a href="https://github.com/analytiq-hub/doc-router" target="_blank" class="button">View on GitHub</a>
-            </div>
-        </section>
-    </main>
+            <section id="github" class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-lg p-8 mb-12">
+                <div class="text-center">
+                    <h2 class="text-2xl font-semibold text-white mb-4">GitHub Repository</h2>
+                    <p class="text-blue-100 mb-6">
+                        The DocRouter MCP Server is part of the docrouter.ai open source project.
+                        You can find the source code on GitHub.
+                    </p>
+                    <a href="https://github.com/analytiq-hub/doc-router" 
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="inline-block bg-white text-blue-600 hover:bg-blue-50 px-8 py-3 rounded-lg font-medium transition-colors duration-200">
+                        View on GitHub
+                    </a>
+                </div>
+            </section>
+        </main>
 
-    <footer>
-        <div class="container">
-            <p>&copy; 2025 DocRouter MCP Server. Part of the <a href="https://github.com/analytiq-hub/doc-router">docrouter.ai</a> project.</p>
-        </div>
-    </footer>
+        <footer class="mt-12 text-center text-gray-600">
+            <p>© 2025 DocRouter MCP Server. Part of the <a href="https://github.com/analytiq-hub/doc-router" class="text-blue-600 hover:text-blue-800">docrouter.ai</a> project.</p>
+        </footer>
+    </div>
 
-    <!-- Add Prism.js for code highlighting -->
+    <!-- Prism.js for code highlighting -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        // Function to get the active section based on scroll position
+        function getActiveSection() {
+            const sections = document.querySelectorAll('section[id]');
+            let closest = null;
+            let closestDistance = Infinity;
+            
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                // Consider a section "active" when its top is within 100px of the viewport top
+                // or when it takes up most of the viewport
+                const distance = Math.abs(rect.top - 100);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closest = section;
+                }
+            });
+            
+            return closest?.id;
+        }
+
+        // Function to update active navigation link
+        function updateActiveNav() {
+            const activeId = getActiveSection();
+            
+            // Remove active class from all nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Add active class to current section's nav link
+            if (activeId) {
+                const activeLink = document.querySelector(`a[href="#${activeId}"]`);
+                if (activeLink) {
+                    activeLink.classList.add('active');
+                }
+            }
+        }
+
+        // Listen for scroll events
+        window.addEventListener('scroll', updateActiveNav);
+        
+        // Initial check
+        updateActiveNav();
+
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.querySelector('.mobile-menu');
+
+        mobileMenuButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent click from bubbling to document
+            mobileMenu.classList.toggle('show');
+        });
+
+        // Handle all mobile menu link clicks
+        document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.remove('show');
+                
+                // Handle smooth scrolling for anchor links
+                if (link.getAttribute('href').startsWith('#')) {
+                    const targetId = link.getAttribute('href').slice(1);
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
+            });
+        });
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (mobileMenu.classList.contains('show') && 
+                !mobileMenu.contains(e.target) && 
+                !mobileMenuButton.contains(e.target)) {
+                mobileMenu.classList.remove('show');
+            }
+        });
+
+        // Prevent clicks inside mobile menu from closing it
+        mobileMenu.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+    </script>
 </body>
 </html>
