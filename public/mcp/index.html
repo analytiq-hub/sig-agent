@@ -144,24 +144,10 @@
                 </div>
                 
                 <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Directory Structure</h3>
-                <pre><code class="language-bash">mcp_server/
-├── __init__.py          # Package initialization
-├── main.py              # Main server implementation
-├── auth.py              # Authentication logic
-├── install.py           # Installation script
-├── resources/           # Resource definitions
-│   ├── __init__.py
-│   ├── documents.py     # Document resources
-│   ├── prompts.py       # Prompt resources
-│   ├── schemas.py       # Schema resources
-│   └── results.py       # Result resources
-├── tools/               # Tool definitions
-│   ├── __init__.py
-│   ├── documents.py     # Document management tools
-│   └── extraction.py    # Extraction tools
-└── tests/               # Tests
-    ├── __init__.py
-    └── test_server.py   # Server test script</code></pre>
+                <pre><code class="language-bash">packages/docrouter_mcp/
+├── __init__.py                 # Package initialization
+├── docrouter_mcp_server.py     # Main server implementation
+└── requirements.txt            # Server dependencies</code></pre>
             </section>
 
             <section id="installation" class="bg-white rounded-lg shadow-lg p-8 mb-12">
@@ -175,8 +161,8 @@ cd doc-router</code></pre>
                 <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">2. Install the MCP Python SDK</h3>
                 <pre><code class="language-bash">pip install "mcp[cli]"</code></pre>
                 
-                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">3. Alternatively, use the installation script</h3>
-                <pre><code class="language-bash">python mcp_server/install.py</code></pre>
+                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">3. Install required dependencies</h3>
+                <pre><code class="language-bash">pip install -r packages/docrouter_mcp/requirements.txt</code></pre>
             </section>
 
             <section id="usage" class="bg-white rounded-lg shadow-lg p-8 mb-12">
@@ -185,10 +171,10 @@ cd doc-router</code></pre>
                 <h3 class="text-lg font-medium text-gray-900 mb-3">Running the Server</h3>
                 <p class="text-gray-600 mb-4">You can run the MCP server using the MCP CLI:</p>
                 <pre><code class="language-bash"># Development mode
-mcp dev mcp_server/main.py
+mcp dev packages/docrouter_mcp/docrouter_mcp_server.py
 
 # Production mode
-mcp serve mcp_server/main.py</code></pre>
+mcp serve packages/docrouter_mcp/docrouter_mcp_server.py</code></pre>
                 
                 <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Testing the Server</h3>
                 <p class="text-gray-600 mb-4">To test the server functionality:</p>
