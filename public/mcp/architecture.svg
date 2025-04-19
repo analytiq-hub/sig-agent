@@ -20,19 +20,24 @@
   <rect x="320" y="130" width="160" height="50" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
   <text x="400" y="160" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">Authentication</text>
   
-  <!-- Resources Module -->
-  <rect x="320" y="190" width="160" height="120" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
-  <text x="400" y="210" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529" font-weight="bold">Resources</text>
-  <text x="400" y="235" font-family="Arial" font-size="12" text-anchor="middle" fill="#6c757d">Documents</text>
-  <text x="400" y="260" font-family="Arial" font-size="12" text-anchor="middle" fill="#6c757d">Prompts</text>
-  <text x="400" y="285" font-family="Arial" font-size="12" text-anchor="middle" fill="#6c757d">Schemas</text>
-  <text x="400" y="310" font-family="Arial" font-size="12" text-anchor="middle" fill="#6c757d">Results</text>
-  
   <!-- Tools Module -->
-  <rect x="320" y="320" width="160" height="80" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
-  <text x="400" y="340" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529" font-weight="bold">Tools</text>
-  <text x="400" y="365" font-family="Arial" font-size="12" text-anchor="middle" fill="#6c757d">Document Management</text>
-  <text x="400" y="390" font-family="Arial" font-size="12" text-anchor="middle" fill="#6c757d">Extraction</text>
+  <rect x="320" y="190" width="160" height="210" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="3" ry="3"/>
+  <text x="400" y="210" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529" font-weight="bold">Tools</text>
+  
+  <!-- Document Tools -->
+  <text x="400" y="235" font-family="Arial" font-size="12" text-anchor="middle" fill="#6c757d">Document Tools</text>
+  <text x="400" y="255" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">get_docrouter_documents()</text>
+  <text x="400" y="270" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">get_docrouter_document_ocr()</text>
+  
+  <!-- Tag & Prompt Tools -->
+  <text x="400" y="295" font-family="Arial" font-size="12" text-anchor="middle" fill="#6c757d">Tag &amp; Prompt Tools</text>
+  <text x="400" y="310" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">get_docrouter_tags()</text>
+  <text x="400" y="325" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">get_docrouter_prompts()</text>
+  
+  <!-- Search & Extraction Tools -->
+  <text x="400" y="350" font-family="Arial" font-size="12" text-anchor="middle" fill="#6c757d">Search &amp; Extraction Tools</text>
+  <text x="400" y="365" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">search_docrouter_documents()</text>
+  <text x="400" y="380" font-family="Arial" font-size="10" text-anchor="middle" fill="#6c757d">run_docrouter_extraction()</text>
   
   <!-- DocRouter Backend Section -->
   <rect x="550" y="80" width="200" height="340" fill="#e9ecef" stroke="#4a6baf" stroke-width="2" rx="5" ry="5"/>
@@ -75,6 +80,6 @@
   <!-- Legend -->
   <rect x="50" y="430" width="700" height="50" fill="#ffffff" stroke="#6c757d" stroke-width="1" rx="5" ry="5"/>
   <text x="400" y="455" font-family="Arial" font-size="14" text-anchor="middle" fill="#212529">
-    The MCP Server acts as a bridge between Claude/LLMs and the DocRouter backend, providing standardized access to workspace data
+    The MCP Server exposes DocRouter functionality through tool interfaces that Claude and other LLMs can call directly
   </text>
 </svg>
