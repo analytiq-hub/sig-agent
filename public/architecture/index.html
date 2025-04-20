@@ -447,6 +447,167 @@
                     </a>
                 </div>
             </section>
+
+            <section id="schema-prompt-flow" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Diagram Flow: Schema and Prompt config</h2>
+                <p class="text-gray-600 mb-6">
+                    This flow illustrates how schemas and prompts are configured in the system.
+                </p>
+                <div class="py-4">
+                    <div class="mermaid">
+                        flowchart LR
+                            %% Define nodes
+                            Client["Next.js<br>Client"]:::light-green
+                            Server["Next.js<br>Server"]:::light-green
+                            FastAPI["FastAPI<br>(python)"]:::light-blue
+                            Workers["Python<br>workers"]:::light-blue
+                            MongoDB["MongoDB"]:::light-gray
+                            OCR["OCR"]:::light-pink
+                            LiteLLM["LiteLLM"]:::light-pink
+                            OpenAI["OpenAI"]:::light-pink
+                            Anthropic["Anthropic"]:::light-pink
+                            Gemini["Gemini..."]:::light-pink
+                            
+                            %% Define connections
+                            Client -->|1| Server
+                            Client -->|2| FastAPI
+                            FastAPI -->|3| MongoDB
+                            FastAPI --> Workers
+                            Workers --> OCR
+                            Workers --> LiteLLM
+                            LiteLLM --> OpenAI
+                            LiteLLM --> Anthropic
+                            LiteLLM --> Gemini
+                            
+                            %% Circle indicators
+                            Circle1((1)):::circle
+                            Circle2((2)):::circle
+                            Circle3((3)):::circle
+                            
+                            %% Position circles near their steps
+                            Circle1 ~~~ Client
+                            Circle2 ~~~ FastAPI
+                            Circle3 ~~~ MongoDB
+                            
+                            %% Style definitions
+                            classDef light-green fill:#d1f5d3,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                            classDef light-blue fill:#d1e5f5,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                            classDef light-gray fill:#f5f5f5,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                            classDef light-pink fill:#f5d1e5,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                            classDef circle fill:#f8d7da,stroke:#721c24,color:#721c24,stroke-width:1px
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Schema/Prompt Creation Steps</h3>
+                    <ul class="list-none space-y-3">
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-800 flex items-center justify-center mr-2">1</span>
+                            <span>User adds schema in the UI</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-800 flex items-center justify-center mr-2">2</span>
+                            <span>Next.JS client calls FastAPI</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-800 flex items-center justify-center mr-2">3</span>
+                            <span>FastAPI saves schema in Mongo</span>
+                        </li>
+                    </ul>
+
+                    <p class="mt-4 text-gray-600">
+                        Same steps for adding prompts, except prompts have associated schema, LLM and tags.
+                    </p>
+                </div>
+            </section>
+
+            <section id="doc-upload-flow" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Diagram Flow: Doc upload, LLM run</h2>
+                <p class="text-gray-600 mb-6">
+                    This flow illustrates how documents are uploaded and processed through OCR and LLMs.
+                </p>
+                <div class="py-4">
+                    <div class="mermaid">
+                        flowchart LR
+                            %% Define nodes
+                            Client["Next.js<br>Client"]:::light-green
+                            Server["Next.js<br>Server"]:::light-green
+                            FastAPI["FastAPI<br>(python)"]:::light-blue
+                            Workers["Python<br>workers"]:::light-blue
+                            MongoDB["MongoDB"]:::light-gray
+                            OCR["OCR"]:::light-pink
+                            LiteLLM["LiteLLM"]:::light-pink
+                            OpenAI["OpenAI"]:::light-pink
+                            Anthropic["Anthropic"]:::light-pink
+                            Gemini["Gemini..."]:::light-pink
+                            
+                            %% Define connections
+                            Client -->|1| Server
+                            Server -->|2| FastAPI
+                            FastAPI -->|3| Workers
+                            Workers -->|4| OCR
+                            Workers -->|5| LiteLLM
+                            LiteLLM --> OpenAI
+                            LiteLLM --> Anthropic
+                            LiteLLM --> Gemini
+                            
+                            %% Mongo connections
+                            FastAPI --> MongoDB
+                            Workers --> MongoDB
+                            
+                            %% Circle indicators
+                            Circle1((1)):::circle
+                            Circle2((2)):::circle
+                            Circle3((3)):::circle
+                            Circle4((4)):::circle
+                            Circle5((5)):::circle
+                            
+                            %% Position circles near their steps
+                            Circle1 ~~~ Client
+                            Circle2 ~~~ FastAPI
+                            Circle3 ~~~ Workers
+                            Circle4 ~~~ OCR
+                            Circle5 ~~~ LiteLLM
+                            
+                            %% Style definitions
+                            classDef light-green fill:#d1f5d3,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                            classDef light-blue fill:#d1e5f5,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                            classDef light-gray fill:#f5f5f5,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                            classDef light-pink fill:#f5d1e5,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                            classDef circle fill:#f8d7da,stroke:#721c24,color:#721c24,stroke-width:1px
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Document Processing Steps</h3>
+                    <ul class="list-none space-y-3">
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-800 flex items-center justify-center mr-2">1</span>
+                            <span>Tagged document is uploaded</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-800 flex items-center justify-center mr-2">2</span>
+                            <span>Next.JS server calls FastAPI</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-800 flex items-center justify-center mr-2">3</span>
+                            <span>Message posted to workers to run OCR</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-800 flex items-center justify-center mr-2">4</span>
+                            <span>OCR is run, output saved in Mongo</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-800 flex items-center justify-center mr-2">5</span>
+                            <span>Worker retrieves prompt, schema, OCR output and runs LLM</span>
+                        </li>
+                    </ul>
+
+                    <p class="mt-4 text-gray-600">
+                        LLM output saved to Mongo then displayed in UI
+                    </p>
+                </div>
+            </section>
         </main>
 
         <footer class="mt-12 text-center text-gray-600">
