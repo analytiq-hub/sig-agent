@@ -64,7 +64,7 @@
                         flowchart TB
                             UserApp["User App"] -->|Rest API|FastAPI
                         
-                            NextClient["Client"] --> NextServer["Server"]
+                            NextClient["Next.js Client"] --> NextServer["Next.js Server"]
                             
                             MongoDB[(MongoDB)]:::light-gray
                             
@@ -82,35 +82,28 @@
                             LiteLLM --> Anthropic[Anthropic]
                             LiteLLM --> Gemini[Gemini]
                             
-                            %% Direction for subgraphs
-                            subgraph db [" Database "]
-                                direction TB
+                            %% Position MongoDB in the top right using subgraphs
+                            subgraph db [" "]
                                 MongoDB
-                                dbLabel["Database"]:::label
                             end
                             
-                            subgraph clients [" Next.js "]
-                                direction TB
+                            %% Position other components
+                            subgraph clients [" "]
                                 NextClient
                                 NextServer
-                                clientLabel["Front-end"]:::label
                             end
                             
-                            subgraph apis [" Python "]
-                                direction TB
+                            subgraph apis [" "]
                                 FastAPI
                                 Workers
-                                apiLabel["Back-end"]:::label
                             end
                             
-                            subgraph llms [" Services "]
-                                direction TB
+                            subgraph llms [" "]
                                 OCR
                                 LiteLLM
                                 OpenAI
                                 Anthropic
                                 Gemini
-                                llmLabel["External APIs"]:::label
                             end
                             
                             %% Order subgraphs
@@ -118,11 +111,8 @@
                             apis ~~~ llms
                             clients ~~~ db
                             
-                            %% Hide the labels (make them invisible)
-                            classDef label fill:none,stroke:none,color:transparent
-                            
-                            %% Styling for nodes
-                            class NextClient,NextServer light-green
+                            class Client light-green
+                            class NextServer light-green
                             class FastAPI,Workers light-blue
                             class OCR,LiteLLM,OpenAI,Anthropic,Gemini light-pink
                             
