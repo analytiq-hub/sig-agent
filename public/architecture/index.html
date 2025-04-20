@@ -61,24 +61,56 @@
                 </p>
                 <div class="py-4">
                     <div class="mermaid">
-                        flowchart TD
-                            Client["Next.js<br>Client"] --> NextServer["Next.js<br>Server"]
-                            Client --> FastAPI["FastAPI<br>(python)"]
+                        flowchart TB
+                            NextClient["Client"] --> NextServer["Server"]
                             
-                            FastAPI --> MongoDB[(MongoDB)]
-                            FastAPI --> Workers["Python<br>workers"]
+                            MongoDB[(MongoDB)]:::light-gray
+                            
+                            NextServer --> FastAPI["FastAPI"]
+                            NextServer --> MongoDB
+                            FastAPI --> MongoDB
+                            FastAPI --> Workers["Workers"]
                             
                             Workers --> OCR[OCR]
                             Workers --> LiteLLM[LiteLLM]
+                            Workers --> MongoDB
                             
                             LiteLLM --> OpenAI[OpenAI]
                             LiteLLM --> Anthropic[Anthropic]
                             LiteLLM --> Gemini[Gemini]
                             
+                            %% Position MongoDB in the top right using subgraphs
+                            subgraph db [" "]
+                                MongoDB
+                            end
+                            
+                            %% Position other components
+                            subgraph clients ["Next.js"]
+                                NextClient
+                                NextServer
+                            end
+                            
+                            subgraph apis ["Python"]
+                                FastAPI
+                                Workers
+                            end
+                            
+                            subgraph llms ["Services"]
+                                OCR
+                                LiteLLM
+                                OpenAI
+                                Anthropic
+                                Gemini
+                            end
+                            
+                            %% Order subgraphs
+                            clients ~~~ apis
+                            apis ~~~ llms
+                            clients ~~~ db
+                            
                             class Client light-green
                             class NextServer light-green
                             class FastAPI,Workers light-blue
-                            class MongoDB light-gray
                             class OCR,LiteLLM,OpenAI,Anthropic,Gemini light-pink
                             
                             classDef light-green fill:#d1f5d3,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
