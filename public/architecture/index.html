@@ -15,15 +15,239 @@
 
     <div class="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-4 md:py-12">
         <header class="text-center md:mb-12 mb-4">
-            <h1 class="text-4xl font-bold text-gray-900 mb-4 hidden sm:block">DocRouter Architecture (under construction)</h1>
+            <h1 class="text-4xl font-bold text-gray-900 mb-4 hidden sm:block">DocRouter Architecture</h1>
             <div class="text-xl text-gray-600">
-                <p class="mb-2">Model Context Protocol Implementation for docrouter.ai</p>
+                <p class="mb-2">System architecture and implementation details for docrouter.ai</p>
             </div>
         </header>
 
         <main>
             <section id="overview" class="bg-white rounded-lg shadow-lg p-8 mb-12">
-                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Overview</h2>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">System Overview</h2>
+                <p class="text-gray-600 mb-6">
+                    DocRouter is a document processing and analysis platform that enables users to extract structured data from documents using OCR and LLM technologies. The system consists of a Next.js frontend, a FastAPI backend, and a MongoDB database.
+                </p>
+                <div class="architecture-diagram py-4">
+                    <pre><code class="language-text">┌────────────────┐      ┌─────────────────┐      ┌─────────────────┐
+│                │      │                 │      │                 │
+│   Frontend     │◄────►│    Backend      │◄────►│    Database     │
+│   (Next.js)    │      │   (FastAPI)     │      │   (MongoDB)     │
+│                │      │                 │      │                 │
+└────────────────┘      └─────────────────┘      └─────────────────┘
+        ▲                       ▲                        
+        │                       │                        
+        ▼                       ▼                        
+┌────────────────┐      ┌─────────────────┐             
+│                │      │                 │             
+│  Client/User   │      │ External APIs   │             
+│  (Browser)     │      │ (OCR, LLM)      │             
+│                │      │                 │             
+└────────────────┘      └─────────────────┘</code></pre>
+                </div>
+            </section>
+
+            <section id="components" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-6">Architecture Components</h2>
+                
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">Frontend Architecture (Next.js)</h3>
+                <p class="text-gray-600 mb-4">
+                    The frontend utilizes Next.js 14 with the App Router architecture. It follows a component-based approach with the following structure:
+                </p>
+                <pre><code class="language-bash">frontend/
+├── src/
+│   ├── app/                    # App Router pages and layouts
+│   │   ├── api/                # API routes
+│   │   ├── auth/               # Authentication pages
+│   │   ├── dashboard/          # Dashboard views
+│   │   ├── orgs/               # Organization management
+│   │   └── ...                 # Other routes
+│   ├── components/             # Reusable React components
+│   ├── contexts/               # React context providers
+│   ├── hooks/                  # Custom React hooks
+│   ├── styles/                 # Global styles
+│   ├── types/                  # TypeScript type definitions
+│   ├── utils/                  # Utility functions
+│   └── auth.ts                 # Authentication configuration
+└── public/                     # Static assets</code></pre>
+                
+                <h4 class="text-lg font-medium text-gray-900 mt-6 mb-3">Key Frontend Technologies</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="border rounded-lg p-4 shadow-sm">
+                        <ul class="list-disc list-inside text-gray-600 space-y-1">
+                            <li>Next.js 14 with App Router</li>
+                            <li>Next-Auth v4 for authentication</li>
+                            <li>Tailwind CSS for styling</li>
+                            <li>Material UI for complex components and icons</li>
+                        </ul>
+                    </div>
+                    <div class="border rounded-lg p-4 shadow-sm">
+                        <ul class="list-disc list-inside text-gray-600 space-y-1">
+                            <li>React-Data-Grid for data tables</li>
+                            <li>PDF.js for PDF handling</li>
+                            <li>ReactFlow for drag & drop interfaces</li>
+                            <li>Axios for API communication</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <h3 class="text-xl font-semibold text-gray-900 mb-4 mt-8">Backend Architecture (FastAPI)</h3>
+                <p class="text-gray-600 mb-4">
+                    The backend is built with FastAPI and provides RESTful API endpoints for various functionalities:
+                </p>
+                <pre><code class="language-bash">backend/
+├── api/
+│   ├── __init__.py
+│   ├── main.py                # Main FastAPI application
+│   ├── schemas.py             # Pydantic schemas/models
+│   ├── payments.py            # Payment processing
+│   ├── startup.py             # Startup configuration
+│   ├── email_utils.py         # Email utilities
+│   ├── organizations.py       # Organization management 
+│   ├── limits.py              # Rate limiting
+│   └── users.py               # User management
+├── tests/                     # Test suite
+├── worker/                    # Background task processing
+└── analytiq_data/             # Data processing library</code></pre>
+                
+                <h4 class="text-lg font-medium text-gray-900 mt-6 mb-3">Key Backend Technologies</h4>
+                <ul class="list-disc list-inside text-gray-600 space-y-1 mb-6">
+                    <li>FastAPI for API development</li>
+                    <li>Motor for asynchronous MongoDB access</li>
+                    <li>JWT for authentication</li>
+                    <li>OCR and LLM services integration</li>
+                </ul>
+                
+                <h3 class="text-xl font-semibold text-gray-900 mb-4 mt-8">Database (MongoDB)</h3>
+                <p class="text-gray-600 mb-4">
+                    The system uses MongoDB for data storage with the following main collections:
+                </p>
+                <ul class="list-disc list-inside text-gray-600 space-y-1 mb-6">
+                    <li>Users</li>
+                    <li>Organizations</li>
+                    <li>Documents</li>
+                    <li>Schemas</li>
+                    <li>Prompts</li>
+                    <li>Tags</li>
+                    <li>LLM Results</li>
+                </ul>
+            </section>
+
+            <section id="features" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-6">Core Features</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="border rounded-lg p-6 shadow-sm">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Authentication & Authorization</h3>
+                        <ul class="list-disc list-inside text-gray-600 space-y-1">
+                            <li>JWT-based authentication</li>
+                            <li>NextAuth.js integration with social logins</li>
+                            <li>Role-based access control</li>
+                            <li>Organization-level permissions</li>
+                            <li>API token management for programmatic access</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="border rounded-lg p-6 shadow-sm">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">Document Management</h3>
+                        <ul class="list-disc list-inside text-gray-600 space-y-1">
+                            <li>Document upload and storage</li>
+                            <li>Tagging system for categorization</li>
+                            <li>OCR processing for text extraction</li>
+                            <li>Metadata extraction and storage</li>
+                            <li>Document versioning</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="border rounded-lg p-6 shadow-sm">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">LLM Integration</h3>
+                        <ul class="list-disc list-inside text-gray-600 space-y-1">
+                            <li>Integration with various LLM models</li>
+                            <li>Customizable prompts for document analysis</li>
+                            <li>Schema definition for structured data extraction</li>
+                            <li>Result verification and management</li>
+                            <li>Model selection for different document types</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="border rounded-lg p-6 shadow-sm">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">API and SDK</h3>
+                        <ul class="list-disc list-inside text-gray-600 space-y-1">
+                            <li>RESTful API endpoints for all operations</li>
+                            <li>Python SDK for programmatic access</li>
+                            <li>Versioned API endpoints</li>
+                            <li>Comprehensive documentation</li>
+                            <li>API token authentication</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="data-flow" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Data Flow</h2>
+                
+                <h3 class="text-lg font-medium text-gray-900 mb-3">Document Processing Flow</h3>
+                <div class="py-4">
+                    <pre><code class="language-text">┌────────────┐    ┌────────────┐    ┌────────────┐    ┌────────────┐
+│            │    │            │    │            │    │            │
+│  Document  │───►│    OCR     │───►│    LLM     │───►│ Structured │
+│  Upload    │    │ Processing │    │  Analysis  │    │    Data    │
+│            │    │            │    │            │    │            │
+└────────────┘    └────────────┘    └────────────┘    └────────────┘</code></pre>
+                </div>
+                
+                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Authentication Flow</h3>
+                <div class="py-4">
+                    <pre><code class="language-text">┌────────────┐    ┌────────────┐    ┌────────────┐    ┌────────────┐
+│            │    │            │    │            │    │            │
+│   Login    │───►│  NextAuth  │───►│  JWT Token │───►│  Access    │
+│   Request  │    │            │    │ Generation │    │  Granted   │
+│            │    │            │    │            │    │            │
+└────────────┘    └────────────┘    └────────────┘    └────────────┘</code></pre>
+                </div>
+            </section>
+
+            <section id="security" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Security Considerations</h2>
+                <ul class="list-disc list-inside text-gray-600 space-y-2 mb-6">
+                    <li><strong>JWT-based Authentication:</strong> Secure token handling with appropriate expiration</li>
+                    <li><strong>HTTPS:</strong> All communications are encrypted using HTTPS</li>
+                    <li><strong>Password Hashing:</strong> User passwords are hashed using bcrypt</li>
+                    <li><strong>Email Verification:</strong> New accounts require email verification</li>
+                    <li><strong>API Rate Limiting:</strong> Prevention of abuse through rate limiting</li>
+                    <li><strong>Input Validation:</strong> Comprehensive validation using Pydantic models</li>
+                    <li><strong>Role-based Access Control:</strong> Fine-grained permissions based on user roles</li>
+                    <li><strong>Organization Isolation:</strong> Data is isolated between organizations</li>
+                </ul>
+            </section>
+
+            <section id="deployment" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Deployment Architecture</h2>
+                <div class="py-4">
+                    <pre><code class="language-text">┌─────────────────────────────────────────────────────┐
+│                   Cloud Provider                    │
+│                                                     │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────┐  │
+│  │             │    │             │    │         │  │
+│  │  Frontend   │    │  Backend    │    │  MongoDB│  │
+│  │  Container  │    │  Container  │    │  Service│  │
+│  │             │    │             │    │         │  │
+│  └─────────────┘    └─────────────┘    └─────────┘  │
+│                                                     │
+└─────────────────────────────────────────────────────┘</code></pre>
+                </div>
+                
+                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Scalability Considerations</h3>
+                <ul class="list-disc list-inside text-gray-600 space-y-2 mb-6">
+                    <li>Containerized deployment for easy scaling</li>
+                    <li>Stateless API design</li>
+                    <li>Asynchronous processing for document analysis</li>
+                    <li>Background task workers for long-running processes</li>
+                    <li>MongoDB sharding for database scaling</li>
+                </ul>
+            </section>
+
+            <section id="mcp-integration" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Model Context Protocol Integration</h2>
                 <p class="text-gray-600 mb-6">
                     The DocRouter MCP Server is an implementation of Anthropic's Model Context Protocol (MCP) for docrouter.ai. 
                     It enables Claude and other MCP clients to securely access and interact with docrouter.ai workspaces, 
@@ -34,175 +258,42 @@
                     Just as USB-C provides a standardized way to connect your devices to various peripherals and accessories, 
                     MCP provides a standardized way to connect AI models to different data sources and tools.
                 </p>
-            </section>
-
-            <section id="features" class="bg-white rounded-lg shadow-lg p-8 mb-12">
-                <h2 class="text-2xl font-semibold text-gray-900 mb-6">Features</h2>
                 
-                <div class="features-grid">
+                <div class="features-grid mt-6">
                     <div class="feature-card">
                         <h3>Authentication</h3>
                         <p class="text-gray-600">Uses docrouter.ai's existing user token-based authentication system to ensure secure access</p>
                     </div>
                     <div class="feature-card">
-                        <h3>Workspace Exposure</h3>
-                        <p class="text-gray-600">Exposes a single workspace (organization) based on the authenticated user's token</p>
+                        <h3>Document Access</h3>
+                        <p class="text-gray-600">Allows LLMs to access document content and metadata through standardized interfaces</p>
                     </div>
                     <div class="feature-card">
-                        <h3>Document Management</h3>
-                        <p class="text-gray-600">Interfaces to list, view, and search documents in the workspace</p>
-                    </div>
-                    <div class="feature-card">
-                        <h3>Prompts Access</h3>
-                        <p class="text-gray-600">Interfaces to list and view prompts and their configurations</p>
-                    </div>
-                    <div class="feature-card">
-                        <h3>Extraction Schemas</h3>
-                        <p class="text-gray-600">Interfaces to list and view extraction schemas and their configurations</p>
-                    </div>
-                    <div class="feature-card">
-                        <h3>Extraction Results</h3>
-                        <p class="text-gray-600">Interfaces to list and view extraction results for documents</p>
+                        <h3>Extraction Interface</h3>
+                        <p class="text-gray-600">Enables LLMs to run and analyze document extractions with organization's prompts and schemas</p>
                     </div>
                 </div>
             </section>
 
-            <section id="architecture" class="bg-white rounded-lg shadow-lg p-8 mb-12">
-                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Architecture</h2>
-                <p class="text-gray-600 mb-6">
-                    The MCP server is implemented as a separate directory and process from the main docrouter.ai application.
-                    This separation provides several benefits:
-                </p>
+            <section id="roadmap" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Future Development Roadmap</h2>
                 <ul class="list-disc list-inside text-gray-600 space-y-2 mb-6">
-                    <li><strong>Isolation:</strong> The MCP server can run independently, reducing the risk of affecting the main application.</li>
-                    <li><strong>Scalability:</strong> The MCP server can be scaled separately from the main application.</li>
-                    <li><strong>Deployment Flexibility:</strong> The MCP server can be deployed on the same or different machines as the main application.</li>
-                    <li><strong>Development Independence:</strong> Changes to the MCP server can be made without affecting the main application.</li>
+                    <li><strong>Enhanced LLM Integration:</strong> Support for more models and advanced prompting techniques</li>
+                    <li><strong>Workflow Automation:</strong> Document processing pipelines with conditional branching</li>
+                    <li><strong>Advanced Classification:</strong> Improved document categorization using ML</li>
+                    <li><strong>Enterprise Integration:</strong> Connectors for common document management systems</li>
+                    <li><strong>Mobile Applications:</strong> Native mobile apps for document capture and review</li>
+                    <li><strong>Advanced Analytics:</strong> Deeper insights into document processing statistics</li>
+                    <li><strong>Collaboration Features:</strong> Enhanced team collaboration tools</li>
+                    <li><strong>Multi-language Support:</strong> Expanded OCR and processing for more languages</li>
                 </ul>
-                
-                <div class="architecture-diagram">
-                    <object type="image/svg+xml" data="architecture.svg">
-                        Your browser does not support SVG
-                    </object>
-                </div>
-                
-                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Directory Structure</h3>
-                <pre><code class="language-bash">packages/docrouter_mcp/
-├── __init__.py                 # Package initialization
-├── docrouter_mcp_server.py     # Main server implementation
-└── requirements.txt            # Server dependencies</code></pre>
-            </section>
-
-            <section id="installation" class="bg-white rounded-lg shadow-lg p-8 mb-12">
-                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Installation</h2>
-                <p class="text-gray-600 mb-6">To install the MCP server, follow these steps:</p>
-                
-                <h3 class="text-lg font-medium text-gray-900 mb-3">1. Clone the repository</h3>
-                <pre><code class="language-bash">git clone https://github.com/analytiq-hub/doc-router.git
-cd doc-router</code></pre>
-                
-                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">2. Install required dependencies</h3>
-                <pre><code class="language-bash">pip install -r packages/docrouter_mcp/requirements.txt</code></pre>
-            </section>
-
-            <section id="usage" class="bg-white rounded-lg shadow-lg p-8 mb-12">
-                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Usage</h2>
-                
-                <h3 class="text-lg font-medium text-gray-900 mb-3">Running the Server</h3>
-                <p class="text-gray-600 mb-4">You can run the MCP server using the MCP CLI:</p>
-                <pre><code class="language-bash">python packages/docrouter_mcp/docrouter_mcp_server.py --url https://app.docrouter.ai/fastapi --org-id ORG_ID --org-api-token ORG_API_TOKEN</code></pre>
-                
-                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Testing the Server</h3>
-                <p class="text-gray-600 mb-4">To test the server functionality:</p>
-                <pre><code class="language-bash"> npx @modelcontextprotocol/inspector python docrouter_mcp_server.py --url https://app.docrouter.ai/fastapi --org-id ORG_ID --org-api-token ORG_API_TOKEN</code></pre>
-                
-                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Integration with Claude</h3>
-                <p class="text-gray-600 mb-4">To use this MCP server with Claude Desktop:</p>
-                <ol class="list-decimal list-inside text-gray-600 space-y-2">
-                    <li>Run the MCP server</li>
-                    <li>In Claude Desktop, go to Settings > Developer, open claude_desktop_config.json</li>
-                    <li>Add a new MCP server with the appropriate connection details</li>
-                    <pre><code class="language-bash">{
-    "mcpServers": {
-        "docrouter": {
-        "command": "/Users/<username>/build/analytiq/doc-router/packages/docrouter_mcp/.venv/bin/python",
-        "args": [
-            "/Users/<username>/build/analytiq/doc-router/packages/docrouter_mcp/docrouter_mcp_server.py"
-        ],
-        "env": {
-            "DOCROUTER_URL": "https://app.docrouter.ai/fastapi",
-            "DOCROUTER_ORG_ID": "<ORG_IDx>",
-            "DOCROUTER_ORG_API_TOKEN": "<ORG_API_TOKEN>"
-        }
-        }
-    }
-}</code></pre>
-                    <li>Adjust the path to the python executable and to the MCP server script to match your local setup</li>
-                    <li>Url, org-id and org-api-token need to be specified as environment variables (Claude Desktop limitation)</li>
-                    <li>Claude will now be able to access your docrouter.ai workspace through the MCP server</li>
-                </ol>
-            </section>
-
-            <section id="interfaces" class="bg-white rounded-lg shadow-lg p-8 mb-12">
-                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Interfaces</h2>
-                
-                <h3 class="text-lg font-medium text-gray-900 mb-3">Document Tools</h3>
-                <ul class="list-disc list-inside text-gray-600 mb-4">
-                    <li><code>get_docrouter_documents()</code> - List all documents in the workspace</li>
-                    <li><code>get_docrouter_document(document_id)</code> - Get a specific document by ID</li>
-                    <li><code>get_docrouter_document_ocr(document_id)</code> - Get the raw OCR text for a document</li>
-                    <li><code>get_docrouter_document_ocr_page(document_id, page_num)</code> - Get OCR text for a specific page</li>
-                    <li><code>get_docrouter_document_ocr_metadata(document_id)</code> - Get OCR metadata for a document</li>
-                </ul>
-                
-                <h3 class="text-lg font-medium text-gray-900 mt-4 mb-3">Tag Tools</h3>
-                <ul class="list-disc list-inside text-gray-600 mb-4">
-                    <li><code>get_docrouter_tags()</code> - List all tags in the workspace</li>
-                    <li><code>get_docrouter_tag(tag_id)</code> - Get a specific tag by ID</li>
-                    <li><code>search_docrouter_tags(query)</code> - Search tags by name or description</li>
-                </ul>
-                
-                <h3 class="text-lg font-medium text-gray-900 mt-4 mb-3">Prompt Tools</h3>
-                <ul class="list-disc list-inside text-gray-600 mb-4">
-                    <li><code>get_docrouter_prompts()</code> - List all prompts in the workspace</li>
-                    <li><code>get_docrouter_prompt(prompt_id)</code> - Get a specific prompt by ID</li>
-                    <li><code>search_docrouter_prompts(query)</code> - Search prompts by name or content</li>
-                </ul>
-                
-                <h3 class="text-lg font-medium text-gray-900 mt-4 mb-3">Search & Extraction Tools</h3>
-                <ul class="list-disc list-inside text-gray-600 mb-4">
-                    <li><code>search_docrouter_documents(query, tag_ids)</code> - Search documents by name or content with optional tag filtering</li>
-                    <li><code>get_docrouter_extraction(document_id, prompt_id)</code> - Get extraction results for a document using a specific prompt</li>
-                    <li><code>run_docrouter_extraction(document_id, prompt_id, force)</code> - Run AI extraction on a document using a specific prompt</li>
-                </ul>
-                
-                <h3 class="text-lg font-medium text-gray-900 mt-4 mb-3">Help Tools</h3>
-                <ul class="list-disc list-inside text-gray-600 mb-4">
-                    <li><code>docrouter_help()</code> - Get comprehensive help information about using the DocRouter API</li>
-                    <li><code>docrouter_document_analysis_guide(document_id)</code> - Get guidance for analyzing a specific document</li>
-                </ul>
-
-                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Example Workflows</h3>
-                <p class="text-gray-600 mb-4">Here are some common workflows using the MCP server:</p>
-                
-                <h4 class="text-gray-900 font-medium mt-4 mb-2">Finding Documents</h4>
-                <pre><code class="language-python">search_docrouter_documents("invoice")</code></pre>
-                
-                <h4 class="text-gray-900 font-medium mt-4 mb-2">Viewing Document Content</h4>
-                <pre><code class="language-python">get_docrouter_document_ocr("doc123")</code></pre>
-                
-                <h4 class="text-gray-900 font-medium mt-4 mb-2">Running Extractions</h4>
-                <pre><code class="language-python">run_docrouter_extraction("doc123", "prompt456")</code></pre>
-                
-                <h4 class="text-gray-900 font-medium mt-4 mb-2">Viewing Extraction Results</h4>
-                <pre><code class="language-python">get_docrouter_extraction("doc123", "prompt456")</code></pre>
             </section>
 
             <section id="github" class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-lg p-8 mb-12">
                 <div class="text-center">
                     <h2 class="text-2xl font-semibold text-white mb-4">GitHub Repository</h2>
                     <p class="text-blue-100 mb-6">
-                        The DocRouter MCP Server is part of the docrouter.ai open source project.
+                        DocRouter is an open source project.
                         You can find the source code on GitHub.
                     </p>
                     <a href="https://github.com/analytiq-hub/doc-router" 
@@ -216,7 +307,7 @@ cd doc-router</code></pre>
         </main>
 
         <footer class="mt-12 text-center text-gray-600">
-            <p>© 2025 DocRouter MCP Server. Part of the <a href="https://github.com/analytiq-hub/doc-router" class="text-blue-600 hover:text-blue-800">docrouter.ai</a> project.</p>
+            <p>© 2025 DocRouter. Part of the <a href="https://github.com/analytiq-hub/doc-router" class="text-blue-600 hover:text-blue-800">docrouter.ai</a> project.</p>
         </footer>
     </div>
 
