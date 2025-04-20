@@ -8,7 +8,20 @@
     <link href="../css/styles.css" rel="stylesheet">
     <!-- Add Prism.js for code highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css">
+    <!-- Add Mermaid.js for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script src="../js/load-nav.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'neutral',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+    </script>
 </head>
 <body class="bg-gray-50">
     <div id="nav-container" class="sticky top-0 z-50"></div>
@@ -28,21 +41,16 @@
                     DocRouter is a document processing and analysis platform that enables users to extract structured data from documents using OCR and LLM technologies. The system consists of a Next.js frontend, a FastAPI backend, and a MongoDB database.
                 </p>
                 <div class="architecture-diagram py-4">
-                    <pre><code class="language-text">┌────────────────┐      ┌─────────────────┐      ┌─────────────────┐
-│                │      │                 │      │                 │
-│   Frontend     │◄────►│    Backend      │◄────►│    Database     │
-│   (Next.js)    │      │   (FastAPI)     │      │   (MongoDB)     │
-│                │      │                 │      │                 │
-└────────────────┘      └─────────────────┘      └─────────────────┘
-        ▲                       ▲                        
-        │                       │                        
-        ▼                       ▼                        
-┌────────────────┐      ┌─────────────────┐             
-│                │      │                 │             
-│  Client/User   │      │ External APIs   │             
-│  (Browser)     │      │ (OCR, LLM)      │             
-│                │      │                 │             
-└────────────────┘      └─────────────────┘</code></pre>
+                    <div class="mermaid">
+                        graph LR
+                            User["Client/User<br>(Browser)"] <--> Frontend["Frontend<br>(Next.js)"]
+                            Frontend <--> Backend["Backend<br>(FastAPI)"]
+                            Backend <--> DB["Database<br>(MongoDB)"]
+                            Backend <--> ExternalAPIs["External APIs<br>(OCR, LLM)"]
+                            
+                            class User,Frontend,Backend,DB,ExternalAPIs node-style
+                            classDef node-style fill:#f9f9f9,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                    </div>
                 </div>
             </section>
 
@@ -121,15 +129,20 @@
                 <p class="text-gray-600 mb-4">
                     The system uses MongoDB for data storage with the following main collections:
                 </p>
-                <ul class="list-disc list-inside text-gray-600 space-y-1 mb-6">
-                    <li>Users</li>
-                    <li>Organizations</li>
-                    <li>Documents</li>
-                    <li>Schemas</li>
-                    <li>Prompts</li>
-                    <li>Tags</li>
-                    <li>LLM Results</li>
-                </ul>
+                <div class="mermaid py-4">
+                    graph TB
+                        MongoDB[("MongoDB Database")]
+                        MongoDB --> Users[("Users")]
+                        MongoDB --> Organizations[("Organizations")]
+                        MongoDB --> Documents[("Documents")]
+                        MongoDB --> Schemas[("Schemas")]
+                        MongoDB --> Prompts[("Prompts")]
+                        MongoDB --> Tags[("Tags")]
+                        MongoDB --> LLMResults[("LLM Results")]
+                        
+                        class MongoDB,Users,Organizations,Documents,Schemas,Prompts,Tags,LLMResults collection-style
+                        classDef collection-style fill:#f8f8f8,stroke:#bbb,stroke-width:1px,rx:10px,ry:10px
+                </div>
             </section>
 
             <section id="features" class="bg-white rounded-lg shadow-lg p-8 mb-12">
@@ -185,27 +198,31 @@
             <section id="data-flow" class="bg-white rounded-lg shadow-lg p-8 mb-12">
                 <h2 class="text-2xl font-semibold text-gray-900 mb-4">Data Flow</h2>
                 
-                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Authentication Flow</h3>
+                <h3 class="text-lg font-medium text-gray-900 mb-3">Authentication Flow</h3>
                 <div class="py-4">
-                    <pre><code class="language-text">┌────────────┐    ┌────────────┐    ┌────────────┐    ┌────────────┐
-│            │    │            │    │            │    │            │
-│   Login    │───►│  NextAuth  │───►│  JWT Token │───►│  Access    │
-│   Request  │    │            │    │ Generation │    │  Granted   │
-│            │    │            │    │            │    │            │
-└────────────┘    └────────────┘    └────────────┘    └────────────┘</code></pre>
+                    <div class="mermaid">
+                        flowchart LR
+                            Login["Login Request"] --> NextAuth["NextAuth"]
+                            NextAuth --> JWT["JWT Token Generation"]
+                            JWT --> Access["Access Granted"]
+                            
+                            class Login,NextAuth,JWT,Access flow-node
+                            classDef flow-node fill:#f5f5f5,stroke:#ddd,stroke-width:1px,rx:4px,ry:4px
+                    </div>
                 </div>
                 
-                <h3 class="text-lg font-medium text-gray-900 mb-3">Document Processing Flow</h3>
+                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Document Processing Flow</h3>
                 <div class="py-4">
-                    <pre><code class="language-text">┌────────────┐    ┌────────────┐    ┌────────────┐    ┌────────────┐
-│            │    │            │    │            │    │            │
-│  Document  │───►│    OCR     │───►│    LLM     │───►│ Structured │
-│  Upload    │    │ Processing │    │  Analysis  │    │    Data    │
-│            │    │            │    │            │    │            │
-└────────────┘    └────────────┘    └────────────┘    └────────────┘</code></pre>
+                    <div class="mermaid">
+                        flowchart LR
+                            Upload["Document Upload"] --> OCR["OCR Processing"]
+                            OCR --> LLM["LLM Analysis"]
+                            LLM --> Data["Structured Data"]
+                            
+                            class Upload,OCR,LLM,Data flow-node
+                            classDef flow-node fill:#f5f5f5,stroke:#ddd,stroke-width:1px,rx:4px,ry:4px
+                    </div>
                 </div>
-                
-                
             </section>
 
             <section id="security" class="bg-white rounded-lg shadow-lg p-8 mb-12">
@@ -225,17 +242,21 @@
             <section id="deployment" class="bg-white rounded-lg shadow-lg p-8 mb-12">
                 <h2 class="text-2xl font-semibold text-gray-900 mb-4">Deployment Architecture</h2>
                 <div class="py-4">
-                    <pre><code class="language-text">┌─────────────────────────────────────────────────────┐
-│                   Cloud Provider                    │
-│                                                     │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────┐  │
-│  │             │    │             │    │         │  │
-│  │  Frontend   │    │  Backend    │    │  MongoDB│  │
-│  │  Container  │    │  Container  │    │  Service│  │
-│  │             │    │             │    │         │  │
-│  └─────────────┘    └─────────────┘    └─────────┘  │
-│                                                     │
-└─────────────────────────────────────────────────────┘</code></pre>
+                    <div class="mermaid">
+                        flowchart TD
+                            subgraph Cloud["Cloud Provider"]
+                                Frontend["Frontend Container"]
+                                Backend["Backend Container"]
+                                MongoDB["MongoDB Service"]
+                                Frontend <--> Backend
+                                Backend <--> MongoDB
+                            end
+                            
+                            class Cloud cloud-node
+                            class Frontend,Backend,MongoDB service-node
+                            classDef cloud-node fill:#f0f8ff,stroke:#a3c6ff,stroke-width:1px,rx:8px,ry:8px
+                            classDef service-node fill:#fff,stroke:#ccc,stroke-width:1px,rx:4px,ry:4px
+                    </div>
                 </div>
                 
                 <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Scalability Considerations</h3>
@@ -261,17 +282,27 @@
                     MCP provides a standardized way to connect AI models to different data sources and tools.
                 </p>
                 
-                <div class="features-grid mt-6">
-                    <div class="feature-card">
-                        <h3>Authentication</h3>
+                <div class="py-4">
+                    <div class="mermaid">
+                        flowchart LR
+                            Claude["Claude or other<br>MCP Clients"] <--> MCP["DocRouter<br>MCP Server"] <--> DocRouter["DocRouter<br>API"]
+                            
+                            class Claude,MCP,DocRouter mcp-node
+                            classDef mcp-node fill:#f5f5f5,stroke:#ddd,stroke-width:1px,rx:4px,ry:4px
+                    </div>
+                </div>
+                
+                <div class="features-grid mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="feature-card border rounded-lg p-4 shadow-sm">
+                        <h3 class="font-semibold mb-2 text-gray-900">Authentication</h3>
                         <p class="text-gray-600">Uses docrouter.ai's existing user token-based authentication system to ensure secure access</p>
                     </div>
-                    <div class="feature-card">
-                        <h3>Document Access</h3>
+                    <div class="feature-card border rounded-lg p-4 shadow-sm">
+                        <h3 class="font-semibold mb-2 text-gray-900">Document Access</h3>
                         <p class="text-gray-600">Allows LLMs to access document content and metadata through standardized interfaces</p>
                     </div>
-                    <div class="feature-card">
-                        <h3>Extraction Interface</h3>
+                    <div class="feature-card border rounded-lg p-4 shadow-sm">
+                        <h3 class="font-semibold mb-2 text-gray-900">Extraction Interface</h3>
                         <p class="text-gray-600">Enables LLMs to run and analyze document extractions with organization's prompts and schemas</p>
                     </div>
                 </div>
