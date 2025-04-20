@@ -214,3 +214,36 @@ pre {
 code {
     font-family: 'Courier New', Courier, monospace;
 }
+
+/* Dropdown menu styles */
+.dropdown-container {
+    position: relative;
+}
+
+.dropdown-menu {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+}
+
+.dropdown-container:hover .dropdown-menu {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* Mobile dropdown styles */
+.mobile-dropdown-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.mobile-dropdown-content.show {
+    max-height: 500px; /* Large enough to accommodate content */
+}
+
+.mobile-dropdown-button .rotate-180 {
+    transform: rotate(180deg);
+}

@@ -34,6 +34,9 @@ function loadNavigation(rootPath) {
                 navElement.classList.add('sticky', 'top-0', 'z-50');
             }
             
+            // Initialize dropdowns
+            initializeDropdowns();
+            
             // Re-initialize navigation event listeners
             const mobileMenuButton = document.getElementById('mobile-menu-button');
             const mobileMenu = document.querySelector('.mobile-menu');
@@ -82,6 +85,43 @@ function loadNavigation(rootPath) {
             console.error('Error loading navigation:', error);
             navContainer.innerHTML = `<div class="bg-red-100 p-4 rounded">Error loading navigation. Please start a local server.</div>`;
         });
+}
+
+// Function to initialize dropdown functionality
+function initializeDropdowns() {
+    // Desktop dropdowns
+    const dropdownButtons = document.querySelectorAll('.dropdown-button');
+    
+    dropdownButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const dropdownMenu = this.nextElementSibling;
+            dropdownMenu.classList.toggle('hidden');
+        });
+    });
+    
+    // Mobile dropdowns
+    const mobileDropdownButtons = document.querySelectorAll('.mobile-dropdown-button');
+    
+    mobileDropdownButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const content = this.nextElementSibling;
+            const arrow = this.querySelector('svg');
+            
+            content.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180');
+        });
+    });
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function() {
+        const dropdownMenus = document.querySelectorAll('.dropdown-menu');
+        dropdownMenus.forEach(menu => {
+            if (!menu.classList.contains('hidden')) {
+                menu.classList.add('hidden');
+            }
+        });
+    });
 }
 
 // Make sure we have this function defined or imported

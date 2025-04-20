@@ -16,10 +16,33 @@
                        class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
                         Use Cases
                     </a>
-                    <a href="{{rootPath}}#documentation" 
-                       class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                        Documentation
-                    </a>
+                    
+                    <!-- Documentation Dropdown -->
+                    <div class="relative dropdown-container">
+                        <button type="button" 
+                                class="nav-link dropdown-button px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 inline-flex items-center">
+                            Documentation
+                            <svg class="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div class="dropdown-menu hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                            <a href="{{rootPath}}#documentation" 
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                Overview
+                            </a>
+                            <a href="https://doc-router.analytiqhub.com/fastapi/docs#/" 
+                               target="_blank"
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                REST API
+                            </a>
+                            <a href="{{rootPath}}mcp/index.html" 
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                MCP Server
+                            </a>
+                        </div>
+                    </div>
+                    
                     <a href="{{rootPath}}#getting-started" 
                        class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
                         Get Started
@@ -48,10 +71,33 @@
                class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
                 Use Cases
             </a>
-            <a href="{{rootPath}}#documentation" 
-               class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                Documentation
-            </a>
+            
+            <!-- Mobile Documentation Dropdown -->
+            <div class="mobile-dropdown">
+                <button type="button" 
+                        class="mobile-dropdown-button w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex justify-between items-center">
+                    Documentation
+                    <svg class="h-4 w-4 transform transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div class="mobile-dropdown-content hidden pl-4 space-y-1 mt-1">
+                    <a href="{{rootPath}}#documentation" 
+                       class="block px-3 py-2 rounded-md text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        Overview
+                    </a>
+                    <a href="https://doc-router.analytiqhub.com/fastapi/docs#/" 
+                       target="_blank"
+                       class="block px-3 py-2 rounded-md text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        REST API
+                    </a>
+                    <a href="{{rootPath}}mcp/index.html" 
+                       class="block px-3 py-2 rounded-md text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        MCP Server
+                    </a>
+                </div>
+            </div>
+            
             <a href="{{rootPath}}#getting-started" 
                class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
                 Get Started
