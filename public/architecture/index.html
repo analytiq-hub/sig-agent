@@ -62,18 +62,21 @@
                 <div class="py-4">
                     <div class="mermaid">
                         flowchart TB
+                            UserApp["User App"] -->|Rest API|FastAPI
+                        
                             NextClient["Client"] --> NextServer["Server"]
                             
                             MongoDB[(MongoDB)]:::light-gray
                             
-                            NextServer --> FastAPI["FastAPI"]
-                            NextServer --> MongoDB
-                            FastAPI --> MongoDB
+                            NextServer -->|Rest API| FastAPI["FastAPI"]
                             FastAPI --> Workers["Workers"]
                             
                             Workers --> OCR[OCR]
                             Workers --> LiteLLM[LiteLLM]
+
                             Workers --> MongoDB
+                            FastAPI --> MongoDB
+                            NextServer --> MongoDB
                             
                             LiteLLM --> OpenAI[OpenAI]
                             LiteLLM --> Anthropic[Anthropic]
