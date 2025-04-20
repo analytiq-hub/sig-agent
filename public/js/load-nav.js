@@ -89,38 +89,49 @@ function loadNavigation(rootPath) {
 
 // Function to initialize dropdown functionality
 function initializeDropdowns() {
-    // Desktop dropdowns
+    // Desktop dropdown toggle
     const dropdownButtons = document.querySelectorAll('.dropdown-button');
     
     dropdownButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.stopPropagation();
             const dropdownMenu = this.nextElementSibling;
+            
+            // Toggle the dropdown menu
             dropdownMenu.classList.toggle('hidden');
+            dropdownMenu.classList.toggle('show');
         });
     });
     
-    // Mobile dropdowns
+    // Mobile dropdown toggle
     const mobileDropdownButtons = document.querySelectorAll('.mobile-dropdown-button');
     
     mobileDropdownButtons.forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
             const content = this.nextElementSibling;
             const arrow = this.querySelector('svg');
             
+            // Toggle the mobile dropdown content
             content.classList.toggle('hidden');
+            content.classList.toggle('show');
             arrow.classList.toggle('rotate-180');
         });
     });
     
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', function() {
-        const dropdownMenus = document.querySelectorAll('.dropdown-menu');
-        dropdownMenus.forEach(menu => {
-            if (!menu.classList.contains('hidden')) {
+    // Close dropdowns when clicking elsewhere
+    document.addEventListener('click', function(e) {
+        // If the click is not inside a dropdown button or menu
+        if (!e.target.closest('.dropdown-container')) {
+            // Close all desktop dropdowns
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
                 menu.classList.add('hidden');
-            }
-        });
+                menu.classList.remove('show');
+            });
+        }
+        
+        // Don't close mobile dropdowns when clicking elsewhere
+        // as this can be confusing on mobile
     });
 }
 
