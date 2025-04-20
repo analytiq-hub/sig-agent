@@ -470,7 +470,7 @@
                             
                             %% Define connections
                             Client -->|1| Server
-                            Client -->|2| FastAPI
+                            Server -->|2| FastAPI
                             FastAPI -->|3| MongoDB
                             FastAPI --> Workers
                             Workers --> OCR
@@ -507,7 +507,7 @@
                         </li>
                         <li class="flex items-start">
                             <span class="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-800 flex items-center justify-center mr-2">2</span>
-                            <span>Next.JS client calls FastAPI</span>
+                            <span>Next.JS server calls FastAPI</span>
                         </li>
                         <li class="flex items-start">
                             <span class="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-800 flex items-center justify-center mr-2">3</span>
