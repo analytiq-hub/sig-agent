@@ -82,28 +82,35 @@
                             LiteLLM --> Anthropic[Anthropic]
                             LiteLLM --> Gemini[Gemini]
                             
-                            %% Position MongoDB in the top right using subgraphs
-                            subgraph db [" "]
+                            %% Direction for subgraphs
+                            subgraph db [" Database "]
+                                direction TB
                                 MongoDB
+                                dbLabel["Database"]:::label
                             end
                             
-                            %% Position other components
-                            subgraph clients ["Next.js"]
+                            subgraph clients [" Next.js "]
+                                direction TB
                                 NextClient
                                 NextServer
+                                clientLabel["Front-end"]:::label
                             end
                             
-                            subgraph apis ["Python"]
+                            subgraph apis [" Python "]
+                                direction TB
                                 FastAPI
                                 Workers
+                                apiLabel["Back-end"]:::label
                             end
                             
-                            subgraph llms ["Services"]
+                            subgraph llms [" Services "]
+                                direction TB
                                 OCR
                                 LiteLLM
                                 OpenAI
                                 Anthropic
                                 Gemini
+                                llmLabel["External APIs"]:::label
                             end
                             
                             %% Order subgraphs
@@ -111,8 +118,11 @@
                             apis ~~~ llms
                             clients ~~~ db
                             
-                            class Client light-green
-                            class NextServer light-green
+                            %% Hide the labels (make them invisible)
+                            classDef label fill:none,stroke:none,color:transparent
+                            
+                            %% Styling for nodes
+                            class NextClient,NextServer light-green
                             class FastAPI,Workers light-blue
                             class OCR,LiteLLM,OpenAI,Anthropic,Gemini light-pink
                             
