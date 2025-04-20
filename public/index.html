@@ -8,67 +8,8 @@
     <link href="css/styles.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50">
-    <!-- Sticky Navigation -->
-    <nav class="sticky top-0 bg-white shadow-md z-50">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex-shrink-0">
-                    <a href="#" class="text-xl font-semibold text-gray-900 hover:text-gray-700">Smart Document Router</a>
-                </div>
-                <!-- Desktop Menu -->
-                <div class="hidden md:block">
-                    <div class="ml-10 flex items-center space-x-4">
-                        <a href="#transform" 
-                           class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                            Launch Demo
-                        </a>
-                        <a href="#use-cases" 
-                           class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                            Use Cases
-                        </a>
-                        <a href="#documentation" 
-                           class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                            Documentation
-                        </a>
-                        <a href="#getting-started" 
-                           class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                            Get Started
-                        </a>
-                    </div>
-                </div>
-                <!-- Mobile menu button -->
-                <div class="md:hidden">
-                    <button type="button" id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Move mobile menu inside nav -->
-        <div class="mobile-menu md:hidden bg-white shadow-lg">
-            <div class="px-2 pt-2 pb-3 space-y-1">
-                <a href="#transform" 
-                   class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                    Launch Demo
-                </a>
-                <a href="#use-cases" 
-                   class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                    Use Cases
-                </a>
-                <a href="#documentation" 
-                   class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                    Documentation
-                </a>
-                <a href="#getting-started" 
-                   class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                    Get Started
-                </a>
-            </div>
-        </div>
-    </nav>
+    <!-- Include the navigation component -->
+    <div id="nav-container"></div>
 
     <div class="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-4 md:py-12">
         <header class="text-center md:mb-12 mb-4">
@@ -459,143 +400,28 @@ cd ../frontend; npm install; cd ..
         </div>
     </div>
 
+    <!-- Load JS files -->
+    <script src="js/navigation.js"></script>
+    <script src="js/content.js"></script>
+    <script src="js/video.js"></script>
     <script>
-        // Function to get the active section based on scroll position
-        function getActiveSection() {
-            const sections = document.querySelectorAll('section[id]');
-            let closest = null;
-            let closestDistance = Infinity;
-            
-            sections.forEach(section => {
-                const rect = section.getBoundingClientRect();
-                // Consider a section "active" when its top is within 100px of the viewport top
-                // or when it takes up most of the viewport
-                const distance = Math.abs(rect.top - 100);
-                if (distance < closestDistance) {
-                    closestDistance = distance;
-                    closest = section;
-                }
-            });
-            
-            return closest?.id;
-        }
-
-        // Function to update active navigation link
-        function updateActiveNav() {
-            const activeId = getActiveSection();
-            
-            // Remove active class from all nav links
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
-            
-            // Add active class to current section's nav link
-            if (activeId) {
-                const activeLink = document.querySelector(`a[href="#${activeId}"]`);
-                if (activeLink) {
-                    activeLink.classList.add('active');
-                }
-            }
-        }
-
-        // Listen for scroll events
-        window.addEventListener('scroll', updateActiveNav);
-        
-        // Initial check
-        updateActiveNav();
-
-        // Mobile menu toggle
-        const mobileMenuButton = document.getElementById('mobile-menu-button');
-        const mobileMenu = document.querySelector('.mobile-menu');
-
-        mobileMenuButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent click from bubbling to document
-            mobileMenu.classList.toggle('show');
-        });
-
-        // Handle all mobile menu link clicks
-        document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
-            link.addEventListener('click', () => {
-                mobileMenu.classList.remove('show');
+        // Load the navigation component
+        fetch('components/sticky_nav.html')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('nav-container').innerHTML = html;
+                // Re-initialize navigation event listeners after loading the component
+                const mobileMenuButton = document.getElementById('mobile-menu-button');
+                const mobileMenu = document.querySelector('.mobile-menu');
                 
-                // Handle smooth scrolling for anchor links
-                if (link.getAttribute('href').startsWith('#')) {
-                    const targetId = link.getAttribute('href').slice(1);
-                    const targetElement = document.getElementById(targetId);
-                    if (targetElement) {
-                        targetElement.scrollIntoView({ behavior: 'smooth' });
-                    }
+                if (mobileMenuButton && mobileMenu) {
+                    mobileMenuButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        mobileMenu.classList.toggle('show');
+                    });
                 }
-            });
-        });
-
-        // Close mobile menu when clicking outside
-        document.addEventListener('click', (e) => {
-            if (mobileMenu.classList.contains('show') && 
-                !mobileMenu.contains(e.target) && 
-                !mobileMenuButton.contains(e.target)) {
-                mobileMenu.classList.remove('show');
-            }
-        });
-
-        // Prevent clicks inside mobile menu from closing it
-        mobileMenu.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-
-        function toggleUseCase(id) {
-            const content = document.getElementById(`${id}-content`);
-            const arrow = document.getElementById(`${id}-arrow`);
-            const button = arrow.closest('button');
-            
-            content.classList.toggle('hidden');
-            arrow.classList.toggle('rotate-180');
-            
-            // Toggle rounded bottom corners on button
-            if (content.classList.contains('hidden')) {
-                button.classList.remove('rounded-t-lg');
-                button.classList.add('rounded-lg');
-            } else {
-                button.classList.remove('rounded-lg');
-                button.classList.add('rounded-t-lg');
-            }
-        }
-
-        function openVideoModal() {
-            // This function is no longer needed, as we're directly linking to YouTube
-            window.open("https://www.youtube.com/watch?v=CDH4oan2Nc8", "_blank");
-        }
-        
-        function closeVideoModal() {
-            try {
-                const modal = document.getElementById('videoModal');
-                const videoFrame = document.getElementById('videoFrame');
-                
-                // Clear the iframe source to stop video playback
-                videoFrame.src = "";
-                modal.style.display = "none";
-                
-                // Re-enable scrolling
-                document.body.style.overflow = "auto";
-            } catch (error) {
-                console.error("Error closing video modal:", error);
-            }
-        }
-        
-        // Close modal when clicking outside of it
-        window.addEventListener('click', function(event) {
-            const modal = document.getElementById('videoModal');
-            if (event.target == modal) {
-                closeVideoModal();
-            }
-        });
-        
-        // Close modal with Escape key
-        window.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                closeVideoModal();
-            }
-        });
+            })
+            .catch(error => console.error('Error loading navigation:', error));
     </script>
 </body>
 </html> 
