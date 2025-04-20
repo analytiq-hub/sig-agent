@@ -335,119 +335,6 @@
                 </div>
             </section>
 
-            <section id="security" class="bg-white rounded-lg shadow-lg p-8 mb-12">
-                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Security Considerations</h2>
-                <ul class="list-disc list-inside text-gray-600 space-y-2 mb-6">
-                    <li><strong>JWT-based Authentication:</strong> Secure token handling with appropriate expiration</li>
-                    <li><strong>HTTPS:</strong> All communications are encrypted using HTTPS</li>
-                    <li><strong>Password Hashing:</strong> User passwords are hashed using bcrypt</li>
-                    <li><strong>Email Verification:</strong> New accounts require email verification</li>
-                    <li><strong>API Rate Limiting:</strong> Prevention of abuse through rate limiting</li>
-                    <li><strong>Input Validation:</strong> Comprehensive validation using Pydantic models</li>
-                    <li><strong>Role-based Access Control:</strong> Fine-grained permissions based on user roles</li>
-                    <li><strong>Organization Isolation:</strong> Data is isolated between organizations</li>
-                </ul>
-            </section>
-
-            <section id="deployment" class="bg-white rounded-lg shadow-lg p-8 mb-12">
-                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Deployment Architecture</h2>
-                <div class="py-4">
-                    <div class="mermaid">
-                        flowchart TD
-                            subgraph Cloud["Cloud Provider"]
-                                Frontend["Frontend Container"]
-                                Backend["Backend Container"]
-                                MongoDB["MongoDB Service"]
-                                Frontend <--> Backend
-                                Backend <--> MongoDB
-                            end
-                            
-                            class Cloud cloud-node
-                            class Frontend,Backend,MongoDB service-node
-                            classDef cloud-node fill:#f0f8ff,stroke:#a3c6ff,stroke-width:1px,rx:8px,ry:8px
-                            classDef service-node fill:#fff,stroke:#ccc,stroke-width:1px,rx:4px,ry:4px
-                    </div>
-                </div>
-                
-                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Scalability Considerations</h3>
-                <ul class="list-disc list-inside text-gray-600 space-y-2 mb-6">
-                    <li>Containerized deployment for easy scaling</li>
-                    <li>Stateless API design</li>
-                    <li>Asynchronous processing for document analysis</li>
-                    <li>Background task workers for long-running processes</li>
-                    <li>MongoDB sharding for database scaling</li>
-                </ul>
-            </section>
-
-            <section id="mcp-integration" class="bg-white rounded-lg shadow-lg p-8 mb-12">
-                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Model Context Protocol Integration</h2>
-                <p class="text-gray-600 mb-6">
-                    The DocRouter MCP Server is an implementation of Anthropic's Model Context Protocol (MCP) for docrouter.ai. 
-                    It enables Claude and other MCP clients to securely access and interact with docrouter.ai workspaces, 
-                    providing standardized interfaces for documents, prompts, extraction schemas, and extraction results.
-                </p>
-                <p class="text-gray-600 mb-6">
-                    MCP is an open protocol that standardizes how applications provide context to LLMs. Think of MCP like a USB-C port for AI applications. 
-                    Just as USB-C provides a standardized way to connect your devices to various peripherals and accessories, 
-                    MCP provides a standardized way to connect AI models to different data sources and tools.
-                </p>
-                
-                <div class="py-4">
-                    <div class="mermaid">
-                        flowchart LR
-                            Claude["Claude or other<br>MCP Clients"] <--> MCP["DocRouter<br>MCP Server"] <--> DocRouter["DocRouter<br>API"]
-                            
-                            class Claude,MCP,DocRouter mcp-node
-                            classDef mcp-node fill:#f5f5f5,stroke:#ddd,stroke-width:1px,rx:4px,ry:4px
-                    </div>
-                </div>
-                
-                <div class="features-grid mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="feature-card border rounded-lg p-4 shadow-sm">
-                        <h3 class="font-semibold mb-2 text-gray-900">Authentication</h3>
-                        <p class="text-gray-600">Uses docrouter.ai's existing user token-based authentication system to ensure secure access</p>
-                    </div>
-                    <div class="feature-card border rounded-lg p-4 shadow-sm">
-                        <h3 class="font-semibold mb-2 text-gray-900">Document Access</h3>
-                        <p class="text-gray-600">Allows LLMs to access document content and metadata through standardized interfaces</p>
-                    </div>
-                    <div class="feature-card border rounded-lg p-4 shadow-sm">
-                        <h3 class="font-semibold mb-2 text-gray-900">Extraction Interface</h3>
-                        <p class="text-gray-600">Enables LLMs to run and analyze document extractions with organization's prompts and schemas</p>
-                    </div>
-                </div>
-            </section>
-
-            <section id="roadmap" class="bg-white rounded-lg shadow-lg p-8 mb-12">
-                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Future Development Roadmap</h2>
-                <ul class="list-disc list-inside text-gray-600 space-y-2 mb-6">
-                    <li><strong>Enhanced LLM Integration:</strong> Support for more models and advanced prompting techniques</li>
-                    <li><strong>Workflow Automation:</strong> Document processing pipelines with conditional branching</li>
-                    <li><strong>Advanced Classification:</strong> Improved document categorization using ML</li>
-                    <li><strong>Enterprise Integration:</strong> Connectors for common document management systems</li>
-                    <li><strong>Mobile Applications:</strong> Native mobile apps for document capture and review</li>
-                    <li><strong>Advanced Analytics:</strong> Deeper insights into document processing statistics</li>
-                    <li><strong>Collaboration Features:</strong> Enhanced team collaboration tools</li>
-                    <li><strong>Multi-language Support:</strong> Expanded OCR and processing for more languages</li>
-                </ul>
-            </section>
-
-            <section id="github" class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-lg p-8 mb-12">
-                <div class="text-center">
-                    <h2 class="text-2xl font-semibold text-white mb-4">GitHub Repository</h2>
-                    <p class="text-blue-100 mb-6">
-                        DocRouter is an open source project.
-                        You can find the source code on GitHub.
-                    </p>
-                    <a href="https://github.com/analytiq-hub/doc-router" 
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       class="inline-block bg-white text-blue-600 hover:bg-blue-50 px-8 py-3 rounded-lg font-medium transition-colors duration-200">
-                        View on GitHub
-                    </a>
-                </div>
-            </section>
-
             <section id="schema-prompt-flow" class="bg-white rounded-lg shadow-lg p-8 mb-12">
                 <h2 class="text-2xl font-semibold text-gray-900 mb-4">Diagram Flow: Schema and Prompt config</h2>
                 <p class="text-gray-600 mb-6">
@@ -606,6 +493,119 @@
                     <p class="mt-4 text-gray-600">
                         LLM output saved to Mongo then displayed in UI
                     </p>
+                </div>
+            </section>
+
+            <section id="security" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Security Considerations</h2>
+                <ul class="list-disc list-inside text-gray-600 space-y-2 mb-6">
+                    <li><strong>JWT-based Authentication:</strong> Secure token handling with appropriate expiration</li>
+                    <li><strong>HTTPS:</strong> All communications are encrypted using HTTPS</li>
+                    <li><strong>Password Hashing:</strong> User passwords are hashed using bcrypt</li>
+                    <li><strong>Email Verification:</strong> New accounts require email verification</li>
+                    <li><strong>API Rate Limiting:</strong> Prevention of abuse through rate limiting</li>
+                    <li><strong>Input Validation:</strong> Comprehensive validation using Pydantic models</li>
+                    <li><strong>Role-based Access Control:</strong> Fine-grained permissions based on user roles</li>
+                    <li><strong>Organization Isolation:</strong> Data is isolated between organizations</li>
+                </ul>
+            </section>
+
+            <section id="deployment" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Deployment Architecture</h2>
+                <div class="py-4">
+                    <div class="mermaid">
+                        flowchart TD
+                            subgraph Cloud["Cloud Provider"]
+                                Frontend["Frontend Container"]
+                                Backend["Backend Container"]
+                                MongoDB["MongoDB Service"]
+                                Frontend <--> Backend
+                                Backend <--> MongoDB
+                            end
+                            
+                            class Cloud cloud-node
+                            class Frontend,Backend,MongoDB service-node
+                            classDef cloud-node fill:#f0f8ff,stroke:#a3c6ff,stroke-width:1px,rx:8px,ry:8px
+                            classDef service-node fill:#fff,stroke:#ccc,stroke-width:1px,rx:4px,ry:4px
+                    </div>
+                </div>
+                
+                <h3 class="text-lg font-medium text-gray-900 mt-6 mb-3">Scalability Considerations</h3>
+                <ul class="list-disc list-inside text-gray-600 space-y-2 mb-6">
+                    <li>Containerized deployment for easy scaling</li>
+                    <li>Stateless API design</li>
+                    <li>Asynchronous processing for document analysis</li>
+                    <li>Background task workers for long-running processes</li>
+                    <li>MongoDB sharding for database scaling</li>
+                </ul>
+            </section>
+
+            <section id="mcp-integration" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Model Context Protocol Integration</h2>
+                <p class="text-gray-600 mb-6">
+                    The DocRouter MCP Server is an implementation of Anthropic's Model Context Protocol (MCP) for docrouter.ai. 
+                    It enables Claude and other MCP clients to securely access and interact with docrouter.ai workspaces, 
+                    providing standardized interfaces for documents, prompts, extraction schemas, and extraction results.
+                </p>
+                <p class="text-gray-600 mb-6">
+                    MCP is an open protocol that standardizes how applications provide context to LLMs. Think of MCP like a USB-C port for AI applications. 
+                    Just as USB-C provides a standardized way to connect your devices to various peripherals and accessories, 
+                    MCP provides a standardized way to connect AI models to different data sources and tools.
+                </p>
+                
+                <div class="py-4">
+                    <div class="mermaid">
+                        flowchart LR
+                            Claude["Claude or other<br>MCP Clients"] <--> MCP["DocRouter<br>MCP Server"] <--> DocRouter["DocRouter<br>API"]
+                            
+                            class Claude,MCP,DocRouter mcp-node
+                            classDef mcp-node fill:#f5f5f5,stroke:#ddd,stroke-width:1px,rx:4px,ry:4px
+                    </div>
+                </div>
+                
+                <div class="features-grid mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="feature-card border rounded-lg p-4 shadow-sm">
+                        <h3 class="font-semibold mb-2 text-gray-900">Authentication</h3>
+                        <p class="text-gray-600">Uses docrouter.ai's existing user token-based authentication system to ensure secure access</p>
+                    </div>
+                    <div class="feature-card border rounded-lg p-4 shadow-sm">
+                        <h3 class="font-semibold mb-2 text-gray-900">Document Access</h3>
+                        <p class="text-gray-600">Allows LLMs to access document content and metadata through standardized interfaces</p>
+                    </div>
+                    <div class="feature-card border rounded-lg p-4 shadow-sm">
+                        <h3 class="font-semibold mb-2 text-gray-900">Extraction Interface</h3>
+                        <p class="text-gray-600">Enables LLMs to run and analyze document extractions with organization's prompts and schemas</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="roadmap" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Future Development Roadmap</h2>
+                <ul class="list-disc list-inside text-gray-600 space-y-2 mb-6">
+                    <li><strong>Enhanced LLM Integration:</strong> Support for more models and advanced prompting techniques</li>
+                    <li><strong>Workflow Automation:</strong> Document processing pipelines with conditional branching</li>
+                    <li><strong>Advanced Classification:</strong> Improved document categorization using ML</li>
+                    <li><strong>Enterprise Integration:</strong> Connectors for common document management systems</li>
+                    <li><strong>Mobile Applications:</strong> Native mobile apps for document capture and review</li>
+                    <li><strong>Advanced Analytics:</strong> Deeper insights into document processing statistics</li>
+                    <li><strong>Collaboration Features:</strong> Enhanced team collaboration tools</li>
+                    <li><strong>Multi-language Support:</strong> Expanded OCR and processing for more languages</li>
+                </ul>
+            </section>
+
+            <section id="github" class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-lg p-8 mb-12">
+                <div class="text-center">
+                    <h2 class="text-2xl font-semibold text-white mb-4">GitHub Repository</h2>
+                    <p class="text-blue-100 mb-6">
+                        DocRouter is an open source project.
+                        You can find the source code on GitHub.
+                    </p>
+                    <a href="https://github.com/analytiq-hub/doc-router" 
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="inline-block bg-white text-blue-600 hover:bg-blue-50 px-8 py-3 rounded-lg font-medium transition-colors duration-200">
+                        View on GitHub
+                    </a>
                 </div>
             </section>
         </main>
