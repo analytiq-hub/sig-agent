@@ -54,6 +54,81 @@
                 </div>
             </section>
 
+            <section id="technical-architecture" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Technical Architecture</h2>
+                <p class="text-gray-600 mb-6">
+                    The DocRouter system is built on a modern tech stack with Next.js for the frontend, FastAPI for the backend, and dedicated workers for processing tasks.
+                </p>
+                <div class="py-4">
+                    <div class="mermaid">
+                        flowchart TD
+                            Client["Next.js<br>Client"] --> NextServer["Next.js<br>Server"]
+                            Client --> FastAPI["FastAPI<br>(python)"]
+                            
+                            FastAPI --> MongoDB[(MongoDB)]
+                            FastAPI --> Workers["Python<br>workers"]
+                            
+                            Workers --> OCR[OCR]
+                            Workers --> LiteLLM[LiteLLM]
+                            
+                            LiteLLM --> OpenAI[OpenAI]
+                            LiteLLM --> Anthropic[Anthropic]
+                            LiteLLM --> Gemini[Gemini]
+                            
+                            class Client light-green
+                            class NextServer light-green
+                            class FastAPI,Workers light-blue
+                            class MongoDB light-gray
+                            class OCR,LiteLLM,OpenAI,Anthropic,Gemini light-pink
+                            
+                            classDef light-green fill:#d1f5d3,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                            classDef light-blue fill:#d1e5f5,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                            classDef light-gray fill:#f5f5f5,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                            classDef light-pink fill:#f5d1e5,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                    </div>
+                </div>
+            </section>
+
+            <section id="lightweight-install" class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Lightweight Installation</h2>
+                <p class="text-gray-600 mb-6">
+                    DocRouter can be deployed as a lightweight integration with existing enterprise systems, connecting to document sources and processing pipelines.
+                </p>
+                <div class="py-4">
+                    <div class="mermaid">
+                        flowchart LR
+                            OtherERP["Other ERP"] --> DocRouter
+                            FaxQueue["Fax queue"] --> DocRouter
+                            EmailQueue["Email queue"] --> DocRouter
+                            
+                            DocRouter <--> HumanReview["Human Review"]
+                            DocRouter --> SOR["System of Record<br>(e.g. ERP)"]
+                            DocRouter -.-> AIWorkflows["AI Workflows"]
+                            
+                            SOR --> ManualWF["Manual<br>Workflows"]
+                            SOR --> AIWF["AI<br>Workflows"]
+                            
+                            class DocRouter light-red
+                            class HumanReview,ManualWF,AIWF light-blue
+                            class OtherERP,FaxQueue,EmailQueue,SOR light-gray
+                            class AIWorkflows light-gray-dotted
+                            
+                            classDef light-red fill:#ff6b6b,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                            classDef light-blue fill:#d1e8ff,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                            classDef light-gray fill:#f8f8f8,stroke:#aaa,stroke-width:1px,rx:5px,ry:5px
+                            classDef light-gray-dotted fill:#f8f8f8,stroke:#aaa,stroke-width:1px,stroke-dasharray: 5 5,rx:5px,ry:5px
+                    </div>
+                </div>
+                
+                <h3 class="text-lg font-medium text-gray-900 mt-8 mb-3">Key Integration Points</h3>
+                <ul class="list-disc list-inside text-gray-600 mb-4">
+                    <li>Ingest selected documents and send to AI</li>
+                    <li>AI enriches docs</li>
+                    <li>Human performs review of data</li>
+                    <li>DocRouter updates ERP</li>
+                </ul>
+            </section>
+
             <section id="components" class="bg-white rounded-lg shadow-lg p-8 mb-12">
                 <h2 class="text-2xl font-semibold text-gray-900 mb-6">Architecture Components</h2>
                 
