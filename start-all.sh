@@ -78,7 +78,7 @@ cleanup_uvicorn() {
 cleanup_next_server
 cleanup_uvicorn
 # Run both processes
-run_with_color "uvicorn main:app --host 0.0.0.0 --port 8000" "$RED" "FASTAPI" "backend/api"
+run_with_color "uvicorn main:app --reload --host 0.0.0.0 --port 8000" "$RED" "FASTAPI" "backend/api"
 run_with_color "python worker.py" "$GREEN" "WORKER" "backend/worker"
 run_with_color "npm run dev" "$MAGENTA" "NEXTJS" "frontend"
 

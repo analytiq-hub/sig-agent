@@ -558,7 +558,7 @@ async def webhook_received(
 ):
     """Handle Stripe webhook events"""
 
-    ad.log.info(f"Received Stripe webhook event")
+    ad.log.info("Received Stripe webhook event")
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
 
@@ -573,6 +573,8 @@ async def webhook_received(
     except stripe.error.SignatureVerificationError as e:
         raise HTTPException(status_code=400, detail="Invalid signature")
     
+    ad.log.info(f"Stripe webhook event received: {event['type']}")
+
     # Store event in database for audit
     event_doc = {
         "stripe_event_id": event["id"],
