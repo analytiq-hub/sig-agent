@@ -7,6 +7,7 @@ export * from './llm';
 export * from './llm_tokens';
 export * from './ocr';
 export * from './organizations';
+export * from './payments';
 export * from './prompts';
 export * from './schemas';
 export * from './tags';

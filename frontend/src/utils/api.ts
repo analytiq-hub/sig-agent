@@ -82,6 +82,10 @@ import {
   GetFlowParams,
   DeleteFlowParams,
 } from '@/types/index';
+import { 
+  PortalSessionCreate,
+  PortalSessionResponse
+} from '@/types/index';
 import { toast } from 'react-hot-toast';
 import { JsonValue } from 'type-fest';
 
@@ -673,5 +677,14 @@ export const acceptInvitationApi = async (token: string, data: AcceptInvitationR
 
 export const getInvitationApi = async (token: string): Promise<InvitationResponse> => {
   const response = await api.get<InvitationResponse>(`/v0/account/email/invitations/${token}`);
+  return response.data;
+};
+
+// Subscription APIs
+export const getCustomerPortalApi = async (userId: string): Promise<PortalSessionResponse> => {
+  const portalSessionCreate: PortalSessionCreate = {
+    customer_id: userId
+  };
+  const response = await api.post<PortalSessionResponse>(`/v0/account/stripe/customer-portal`, portalSessionCreate);
   return response.data;
 };

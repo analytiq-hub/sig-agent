@@ -55,6 +55,9 @@ class UsageRecord(BaseModel):
 class PortalSessionCreate(BaseModel):
     customer_id: str
 
+class PortalSessionResponse(BaseModel):
+    url: str
+
 async def init_payments_env():
     global MONGO_URI, ENV
     global DEFAULT_PRICE_ID
@@ -537,7 +540,7 @@ async def create_subscription(
 async def customer_portal(
     data: PortalSessionCreate,
     db: AsyncIOMotorDatabase = Depends(get_db)
-):
+) -> PortalSessionResponse:
     """Generate a Stripe Customer Portal link"""
 
     ad.log.info(f"Generating Stripe customer portal for customer_id: {data.customer_id}")
@@ -547,7 +550,7 @@ async def customer_portal(
             customer=data.customer_id,
             return_url=f"{NEXTAUTH_URL}/settings",
         )
-        return {"url": session.url}
+        return PortalSessionResponse(url=session.url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
