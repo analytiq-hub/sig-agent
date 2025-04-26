@@ -238,8 +238,11 @@ async def get_or_create_payments_customer(user_id: str, email: str, name: Option
 async def record_usage(user_id: str, pages_processed: int, operation: str, source: str = "backend") -> Dict[str, Any]:
     """Record usage for a user and report to Stripe if on paid tier"""
 
+    ad.log.info(f"record_usage called with user_id: {user_id}, pages_processed: {pages_processed}, operation: {operation}, source: {source}")
+
     if not stripe.api_key:
         # No-op if Stripe is not configured
+        ad.log.warning("Stripe API key not configured - record_usage aborted")
         return None
 
     ad.log.info(f"Recording usage for user_id: {user_id}")
@@ -551,7 +554,6 @@ async def customer_portal(
 @router.post("/webhook", status_code=200)
 async def webhook_received(
     request: Request,
-    background_tasks: BackgroundTasks,
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """Handle Stripe webhook events"""
@@ -585,16 +587,16 @@ async def webhook_received(
     # Process different event types
     if event["type"] == "customer.subscription.created" or event["type"] == "customer.subscription.updated":
         subscription = event["data"]["object"]
-        background_tasks.add_task(handle_subscription_updated, subscription)
+        await handle_subscription_updated(subscription)
     elif event["type"] == "customer.subscription.deleted":
         subscription = event["data"]["object"]
-        background_tasks.add_task(handle_subscription_deleted, subscription)
+        await handle_subscription_deleted(subscription)
     elif event["type"] == "invoice.paid":
         invoice = event["data"]["object"]
-        background_tasks.add_task(handle_invoice_paid, invoice)
+        await handle_invoice_paid(invoice)
     elif event["type"] == "invoice.payment_failed":
         invoice = event["data"]["object"]
-        background_tasks.add_task(handle_invoice_payment_failed, invoice)
+        await handle_invoice_payment_failed(invoice)
     
     # Mark event as processed
     await stripe_events.update_one(
@@ -841,8 +843,6 @@ async def delete_all_stripe_customers(dryrun: bool = True) -> Dict[str, Any]:
     Returns:
         Dictionary with status information about the operation
     """
-
-    await init_payments_env()
     
     ad.log.warning("Starting deletion of ALL Stripe customers")
     
