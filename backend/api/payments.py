@@ -161,29 +161,74 @@ async def get_or_create_payments_customer(user_id: str, email: str, name: Option
     if customer_doc:
         return customer_doc
 
-    # Create new customer in Stripe
-    stripe_customer = stripe.Customer.create(
-        email=email,
-        name=name,
-        metadata={"user_id": user_id}
-    )
+    # Check if customer exists in Stripe by email
+    try:
+        # Search for customers in Stripe with the given email
+        existing_customers = stripe.Customer.list(email=email)
+        
+        if existing_customers and existing_customers.data:
+            # Customer exists in Stripe but not in our DB
+            stripe_customer = existing_customers.data[0]
+            
+            # Update the customer in Stripe with additional metadata
+            stripe.Customer.modify(
+                stripe_customer.id,
+                name=name,  # Update name if provided
+                metadata={"user_id": user_id, "updated_at": datetime.utcnow().isoformat()}
+            )
+            
+            ad.log.info(f"Found existing Stripe customer with id: {stripe_customer.id}")
+        else:
+            # Create new customer in Stripe
+            stripe_customer = stripe.Customer.create(
+                email=email,
+                name=name,
+                metadata={"user_id": user_id}
+            )
+            
+            ad.log.info(f"Created new Stripe customer with id: {stripe_customer.id}")
+        
+        # Store in our database
+        customer_doc = {
+            "user_id": user_id,
+            "stripe_customer_id": stripe_customer.id,
+            "email": email,
+            "name": name,
+            "payment_status": "none",
+            "free_usage_remaining": FREE_TIER_LIMIT,
+            "current_month_usage": 0,
+            "usage_tier": "free",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        await stripe_customers.insert_one(customer_doc)
+        return customer_doc
     
-    # Store in our database
-    customer_doc = {
-        "user_id": user_id,
-        "stripe_customer_id": stripe_customer.id,
-        "email": email,
-        "name": name,
-        "payment_status": "none",
-        "free_usage_remaining": FREE_TIER_LIMIT,
-        "current_month_usage": 0,
-        "usage_tier": "free",
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
-    }
-    
-    await stripe_customers.insert_one(customer_doc)
-    return customer_doc
+    except Exception as e:
+        ad.log.error(f"Error in get_or_create_payments_customer: {e}")
+        # If there's an error, try creating a new customer as fallback
+        stripe_customer = stripe.Customer.create(
+            email=email,
+            name=name,
+            metadata={"user_id": user_id}
+        )
+        
+        customer_doc = {
+            "user_id": user_id,
+            "stripe_customer_id": stripe_customer.id,
+            "email": email,
+            "name": name,
+            "payment_status": "none",
+            "free_usage_remaining": FREE_TIER_LIMIT,
+            "current_month_usage": 0,
+            "usage_tier": "free",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        await stripe_customers.insert_one(customer_doc)
+        return customer_doc
 
 async def record_usage(user_id: str, pages_processed: int, operation: str, source: str = "backend") -> Dict[str, Any]:
     """Record usage for a user and report to Stripe if on paid tier"""
