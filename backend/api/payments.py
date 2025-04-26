@@ -10,7 +10,7 @@ from bson import ObjectId
 import analytiq_data as ad
 
 # Initialize FastAPI router
-router = APIRouter(prefix="/v0/account/stripe", tags=["stripe"])
+router = APIRouter(prefix="/v0/account/payments", tags=["payments"])
 
 stripe_webhook_secret = None
 

@@ -685,6 +685,6 @@ export const getCustomerPortalApi = async (userId: string): Promise<PortalSessio
   const portalSessionCreate: PortalSessionCreate = {
     customer_id: userId
   };
-  const response = await api.post<PortalSessionResponse>(`/v0/account/stripe/customer-portal`, portalSessionCreate);
+  const response = await api.post<PortalSessionResponse>(`/v0/account/payments/customer-portal`, portalSessionCreate);
   return response.data;
 };
