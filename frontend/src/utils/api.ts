@@ -683,7 +683,7 @@ export const getInvitationApi = async (token: string): Promise<InvitationRespons
 // Subscription APIs
 export const getCustomerPortalApi = async (userId: string): Promise<PortalSessionResponse> => {
   const portalSessionCreate: PortalSessionCreate = {
-    customer_id: userId
+    user_id: userId
   };
   const response = await api.post<PortalSessionResponse>(`/v0/account/payments/customer-portal`, portalSessionCreate);
   return response.data;

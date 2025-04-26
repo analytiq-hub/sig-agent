@@ -53,7 +53,7 @@ class UsageRecord(BaseModel):
     source: str = "backend"
 
 class PortalSessionCreate(BaseModel):
-    customer_id: str
+    user_id: str
 
 class PortalSessionResponse(BaseModel):
     url: str
@@ -543,15 +543,22 @@ async def customer_portal(
 ) -> PortalSessionResponse:
     """Generate a Stripe Customer Portal link"""
 
-    ad.log.info(f"Generating Stripe customer portal for customer_id: {data.customer_id}")
+    ad.log.info(f"Generating Stripe customer portal for user_id: {data.user_id}")
+
+    user_id = data.user_id
+    customer = await stripe_customers.find_one({"user_id": user_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found for user_id: {user_id}")
 
     try:
         session = stripe.billing_portal.Session.create(
-            customer=data.customer_id,
+            customer=customer["stripe_customer_id"],
             return_url=f"{NEXTAUTH_URL}/settings",
         )
+        ad.log.info(f"Stripe customer portal URL: {session.url}")
         return PortalSessionResponse(url=session.url)
     except Exception as e:
+        ad.log.error(f"Error generating Stripe customer portal: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/webhook", status_code=200)

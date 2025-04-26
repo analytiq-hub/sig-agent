@@ -1,5 +1,5 @@
 export interface PortalSessionCreate {
-  customer_id: string;
+  user_id: string;
 }
 
 export interface PortalSessionResponse {
