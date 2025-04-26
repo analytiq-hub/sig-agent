@@ -85,8 +85,8 @@ async def init_payments():
 
     ad.log.info("Stripe initialized")
 
-    #await sync_customers()
-    #ad.log.info("Stripe customers synced")
+    await sync_customers()
+    ad.log.info("Stripe customers synced")
 
 async def sync_customers() -> Tuple[int, int, List[str]]:
     """
