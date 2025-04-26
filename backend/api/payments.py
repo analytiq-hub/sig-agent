@@ -55,7 +55,7 @@ class UsageRecord(BaseModel):
 class PortalSessionCreate(BaseModel):
     customer_id: str
 
-async def init_payments():
+async def init_payments_env():
     global MONGO_URI, ENV
     global DEFAULT_PRICE_ID
     global NEXTAUTH_URL
@@ -70,18 +70,23 @@ async def init_payments():
 
     client = AsyncIOMotorClient(MONGO_URI)
     db = client[ENV]
+
     stripe_customers = db["stripe.customers"]
     stripe_subscriptions = db["stripe.subscriptions"]
     stripe_usage = db["stripe.usage"]
     stripe_events = db["stripe.events"]
-
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
+    print(f"Stripe API key: '{stripe.api_key[:-1]}'")
+
+async def init_payments():
+    await init_payments_env()
+
     ad.log.info("Stripe initialized")
 
-    await sync_customers()
-    ad.log.info("Stripe customers synced")
+    #await sync_customers()
+    #ad.log.info("Stripe customers synced")
 
 async def sync_customers() -> Tuple[int, int, List[str]]:
     """
@@ -820,3 +825,102 @@ async def handle_invoice_payment_failed(invoice: Dict[str, Any]):
             )
     except Exception as e:
         print(f"Error processing invoice payment failure: {e}")
+
+async def delete_all_stripe_customers(dryrun: bool = True) -> Dict[str, Any]:
+    """
+    Permanently delete all customers from Stripe
+    
+    WARNING: This is a destructive operation that cannot be undone. It will:
+    1. Delete all customers from Stripe
+    2. Remove all customer records from the local database
+    3. Delete all related subscriptions and usage records
+    
+    Args:
+        confirm: Safety flag that must be set to True to perform deletion
+        
+    Returns:
+        Dictionary with status information about the operation
+    """
+
+    await init_payments_env()
+    
+    ad.log.warning("Starting deletion of ALL Stripe customers")
+    
+    deleted_count = 0
+    failed_count = 0
+    error_messages = []
+    
+    try:
+        # First get all customers from Stripe
+        has_more = True
+        starting_after = None
+        batch_size = 100
+        
+        while has_more:
+            # Fetch customers in batches
+            params = {"limit": batch_size}
+            if starting_after:
+                params["starting_after"] = starting_after
+                
+            customers = stripe.Customer.list(**params)
+            
+            # Process each customer in the batch
+            for customer in customers.data:
+                try:
+                    # First cancel any active subscriptions
+                    subscriptions = stripe.Subscription.list(customer=customer.id)
+                    for subscription in subscriptions.data:
+                        try:
+                            if not dryrun:
+                                stripe.Subscription.delete(subscription.id)
+                                ad.log.info(f"Deleted subscription {subscription.id} for customer {customer.id}")
+                            else:
+                                ad.log.info(f"Would have deleted subscription {subscription.id} for customer {customer.id}")
+                        except Exception as e:
+                            ad.log.error(f"Error deleting subscription {subscription.id}: {e}")
+                    
+                    # Delete the customer
+                    if not dryrun:
+                        stripe.Customer.delete(customer.id)
+                        deleted_count += 1
+                        ad.log.info(f"Deleted Stripe customer: {customer.id}")
+                    else:
+                        ad.log.info(f"Would have deleted Stripe customer: {customer.id}")
+                    
+                except Exception as e:
+                    error_msg = f"Error deleting Stripe customer {customer.id}: {str(e)}"
+                    ad.log.error(error_msg)
+                    error_messages.append(error_msg)
+                    failed_count += 1
+            
+            # Check if there are more customers to process
+            has_more = customers.has_more
+            if has_more and customers.data:
+                starting_after = customers.data[-1].id
+        
+        # Now clean up our local database
+        try:
+            if not dryrun:
+                # Delete all local records
+                await stripe_subscriptions.delete_many({})
+                await stripe_usage.delete_many({})
+                await stripe_customers.delete_many({})
+                ad.log.info("Deleted all local Stripe customer records")
+            else:
+                ad.log.info("Would have deleted all local Stripe customer records")
+        except Exception as e:
+            error_msg = f"Error cleaning up local database: {str(e)}"
+            ad.log.error(error_msg)
+            error_messages.append(error_msg)
+        
+        return {
+            "success": True,
+            "deleted_count": deleted_count,
+            "failed_count": failed_count,
+            "errors": error_messages,
+            "warning": "All Stripe customers have been permanently deleted."
+        }
+        
+    except Exception as e:
+        ad.log.error(f"Error during bulk deletion: {e}")
+        return {"success": False, "error": str(e)}
