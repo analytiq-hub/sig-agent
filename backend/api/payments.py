@@ -193,7 +193,7 @@ def parse_stripe_subscription(subscription):
         'metered_usage': metered_usage
     }
 
-def parse_stripe_usage(parsed_subscription):
+def parse_stripe_usage(parsed_subscription, stripe_customer_id):
     # Get metered usage information
     usage = {}
     if parsed_subscription and parsed_subscription.get("metered_usage"):
@@ -203,12 +203,15 @@ def parse_stripe_usage(parsed_subscription):
                 # Get the current billing period's usage
                 if "subscription_item_id" in item_data:
                     subscription_item_id = item_data["subscription_item_id"]
-                    
-                    # Get usage record summaries from Stripe
-                    usage_records = stripe.SubscriptionItem.list_usage_record_summaries(
-                        subscription_item_id,
-                        limit=100
+
+                    meter_event_summaries = stripe.billing.Meter.list_event_summaries(
+                        item_data["meter_id"],
+                        customer=stripe_customer_id,
+                        start_time=item_data["current_period_start"],
+                        end_time=item_data["current_period_end"],
                     )
+
+                    ad.log.info(f"Meter event summaries: {meter_event_summaries}")
                     
                     # Extract relevant usage information
                     current_usage = {
@@ -216,16 +219,16 @@ def parse_stripe_usage(parsed_subscription):
                         "period_details": []
                     }
                     
-                    for record in usage_records.get("data", []):
-                        period_info = {
-                            "period_start": datetime.fromtimestamp(record.get("period", {}).get("start", 0)),
-                            "period_end": datetime.fromtimestamp(record.get("period", {}).get("end", 0)),
-                            "total_usage": record.get("total_usage", 0)
-                        }
-                        current_usage["period_details"].append(period_info)
+                    # for record in usage_records.get("data", []):
+                    #     period_info = {
+                    #         "period_start": datetime.fromtimestamp(record.get("period", {}).get("start", 0)),
+                    #         "period_end": datetime.fromtimestamp(record.get("period", {}).get("end", 0)),
+                    #         "total_usage": record.get("total_usage", 0)
+                    #     }
+                    #     current_usage["period_details"].append(period_info)
                         
-                        # Add to total usage
-                        current_usage["total_usage"] += record.get("total_usage", 0)
+                    #     # Add to total usage
+                    #     current_usage["total_usage"] += record.get("total_usage", 0)
                     
                     # Store usage for this subscription item
                     usage[subscription_item_id] = current_usage
@@ -295,7 +298,7 @@ async def get_or_create_payments_customer(user_id: str, email: str, name: Option
         ad.log.info(f"Parsed subscription: {parsed_subscription}")
         
         # Get metered usage information
-        usage = parse_stripe_usage(parsed_subscription)
+        usage = parse_stripe_usage(parsed_subscription, stripe_customer.id)
         ad.log.info(f"Parsed usage: {usage}")
         
         if customer_doc:
