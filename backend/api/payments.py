@@ -376,36 +376,46 @@ async def record_usage(user_id: str, pages_processed: int, operation: str, sourc
         }
     )
     
-    # If customer is on paid tier, report to Stripe
-    if customer.get("usage_tier") == "paid" and customer.get("stripe_subscription_id"):
+    # Check if customer has an active subscription with metered usage
+    if customer.get("stripe_subscription") and customer["stripe_subscription"].get("is_active"):
         try:
-            # Report usage to Stripe
-            subscription = await stripe_subscriptions.find_one({"subscription_id": customer["stripe_subscription_id"]})
-            if subscription and subscription.get("status") == "active":
-                stripe.SubscriptionItem.create_usage_record(
-                    subscription["subscription_item_id"],
-                    {
-                        "quantity": pages_processed,
-                        "timestamp": int(datetime.utcnow().timestamp()),
-                        "action": "increment"
-                    }
-                )
-                
-                # Mark as reported
+            # Get metered usage items from the subscription
+            metered_usage = customer["stripe_subscription"].get("metered_usage", {})
+            if metered_usage:
+                # Report usage to Stripe for each metered subscription item
+                for item_id, item_data in metered_usage.items():
+                    if "subscription_item_id" in item_data:
+                        subscription_item_id = item_data["subscription_item_id"]
+
+                        meter_event = stripe.billing.MeterEvent.create(
+                            event_name="docrouterpages",
+                            payload={"stripe_customer_id": customer["stripe_customer_id"], "value": pages_processed},
+                        )
+                        ad.log.info(f"Reported usage to Stripe for user_id: {customer['user_id']}")
+                        ad.log.info(f"Meter event: {meter_event}")
+                        
+                # Mark usage as reported to Stripe
                 await stripe_usage.update_one(
                     {"_id": usage_id},
                     {"$set": {"reported_to_stripe": True}}
                 )
+                
+                ad.log.info(f"Reported {pages_processed} pages of usage to Stripe for user_id: {user_id}")
         except Exception as e:
-            print(f"Error reporting usage to Stripe: {e}")
+            ad.log.error(f"Error reporting usage to Stripe: {e}")
+    else:
+        ad.log.info(f"User {user_id} has no active subscription with metered usage - skipping Stripe reporting")
     
-    # Check if user needs to upgrade
-    updated_customer = await stripe_customers.find_one({"user_id": user_id})
-    if updated_customer["usage_tier"] == "free" and updated_customer["current_month_usage"] >= FREE_TIER_LIMIT:
-        await stripe_customers.update_one(
-            {"user_id": user_id},
-            {"$set": {"free_usage_remaining": 0}}
-        )
+    # Check if user needs to upgrade (has reached free tier limit)
+    if not customer.get("stripe_subscription") or customer["stripe_subscription"].get("is_active") == False:
+        # Only check limits for free tier users
+        current_usage = customer.get("current_month_usage", 0) + pages_processed
+        if current_usage >= FREE_TIER_LIMIT:
+            await stripe_customers.update_one(
+                {"user_id": user_id},
+                {"$set": {"free_usage_remaining": 0}}
+            )
+            ad.log.info(f"User {user_id} has reached free usage limit")
     
     return usage_record
 
