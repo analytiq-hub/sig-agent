@@ -151,6 +151,91 @@ async def sync_customers() -> Tuple[int, int, List[str]]:
 async def get_db() -> AsyncIOMotorDatabase:
     return db
 
+def parse_stripe_subscription(subscription):
+    
+    # 1. Check if subscription is active
+    is_active = subscription.get('status') == 'active'
+    
+    # 2. Check if payment method is on file
+    # This can be determined by checking for default_payment_method or default_source
+    has_payment_method = bool(subscription.get('default_payment_method') or subscription.get('default_source'))
+    
+    # 3. Check if payments are current
+    # In Stripe, if a subscription is 'active', it generally means payments are current
+    # You might also want to check if there are any past_due invoices related to this subscription
+    payments_current = is_active  # For basic check
+    
+    # 4. Get metered usage information
+    metered_usage = {}
+    
+    # Check subscription items for metered plans
+    items = subscription.get('items', {}).get('data', [])
+    for item in items:
+        plan = item.get('plan', {})
+        price = item.get('price', {})
+        
+        # Check if this is a metered plan
+        if plan.get('usage_type') == 'metered':
+            item_id = item.get('id')
+            metered_usage[item_id] = {
+                'subscription_item_id': item_id,
+                'meter_id': plan.get('meter'),
+                'product_id': plan.get('product'),
+                'price_id': price.get('id'),
+                'current_period_start': item.get('current_period_start'),
+                'current_period_end': item.get('current_period_end')
+            }
+    
+    return {
+        'is_active': is_active,
+        'has_payment_method': has_payment_method,
+        'payments_current': payments_current,
+        'metered_usage': metered_usage
+    }
+
+def parse_stripe_usage(parsed_subscription):
+    # Get metered usage information
+    usage = {}
+    if parsed_subscription and parsed_subscription.get("metered_usage"):
+        try:
+            # Get usage for each subscription item that has metered billing
+            for item_id, item_data in parsed_subscription["metered_usage"].items():
+                # Get the current billing period's usage
+                if "subscription_item_id" in item_data:
+                    subscription_item_id = item_data["subscription_item_id"]
+                    
+                    # Get usage record summaries from Stripe
+                    usage_records = stripe.SubscriptionItem.list_usage_record_summaries(
+                        subscription_item_id,
+                        limit=100
+                    )
+                    
+                    # Extract relevant usage information
+                    current_usage = {
+                        "total_usage": 0,
+                        "period_details": []
+                    }
+                    
+                    for record in usage_records.get("data", []):
+                        period_info = {
+                            "period_start": datetime.fromtimestamp(record.get("period", {}).get("start", 0)),
+                            "period_end": datetime.fromtimestamp(record.get("period", {}).get("end", 0)),
+                            "total_usage": record.get("total_usage", 0)
+                        }
+                        current_usage["period_details"].append(period_info)
+                        
+                        # Add to total usage
+                        current_usage["total_usage"] += record.get("total_usage", 0)
+                    
+                    # Store usage for this subscription item
+                    usage[subscription_item_id] = current_usage
+        
+        except Exception as e:
+            ad.log.error(f"Error retrieving Stripe usage information: {e}")
+            # Continue with empty usage object rather than failing
+    
+    return usage
+
 # Helper functions
 async def get_or_create_payments_customer(user_id: str, email: str, name: Optional[str] = None) -> Dict[str, Any]:
     """Create or retrieve a Stripe customer for the given user"""
@@ -163,11 +248,8 @@ async def get_or_create_payments_customer(user_id: str, email: str, name: Option
     ad.log.info(f"Email: {email}")
     ad.log.info(f"Name: {name}")
 
-    # Check if customer already exists in our DB
+    # Check if customer already exists in our DB. We will reconcilie this with Stripe.
     customer_doc = await stripe_customers.find_one({"user_id": user_id})
-    
-    if customer_doc:
-        return customer_doc
 
     # Check if customer exists in Stripe by email
     try:
@@ -177,15 +259,18 @@ async def get_or_create_payments_customer(user_id: str, email: str, name: Option
         if existing_customers and existing_customers.data:
             # Customer exists in Stripe but not in our DB
             stripe_customer = existing_customers.data[0]
-            
-            # Update the customer in Stripe with additional metadata
-            stripe.Customer.modify(
-                stripe_customer.id,
-                name=name,  # Update name if provided
-                metadata={"user_id": user_id, "updated_at": datetime.utcnow().isoformat()}
-            )
-            
-            ad.log.info(f"Found existing Stripe customer with id: {stripe_customer.id}")
+
+            # Has name changed?
+            if name and name != stripe_customer.name:
+                # Update the customer in Stripe with additional metadata
+                stripe.Customer.modify(
+                    stripe_customer.id,
+                    name=name,  # Update name if provided
+                    metadata={"user_id": user_id, "updated_at": datetime.utcnow().isoformat()}
+                )
+                ad.log.info(f"Updated Stripe customer name for user_id: {user_id}")
+            else:          
+                ad.log.info(f"Found existing Stripe customer with id: {stripe_customer.id}")
         else:
             # Create new customer in Stripe
             stripe_customer = stripe.Customer.create(
@@ -196,47 +281,56 @@ async def get_or_create_payments_customer(user_id: str, email: str, name: Option
             
             ad.log.info(f"Created new Stripe customer with id: {stripe_customer.id}")
         
-        # Store in our database
-        customer_doc = {
-            "user_id": user_id,
-            "stripe_customer_id": stripe_customer.id,
-            "email": email,
-            "name": name,
-            "payment_status": "none",
-            "free_usage_remaining": FREE_TIER_LIMIT,
-            "current_month_usage": 0,
-            "usage_tier": "free",
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        }
+        # Check if the customer has an active subscription
+        subscription = None
+        subscriptions = stripe.Subscription.list(customer=stripe_customer.id)
+        if subscriptions.data:
+            subscription = subscriptions.data[0]
+            if subscription.status == "active":
+                ad.log.info(f"Customer {user_id} has an active subscription")
+        else:
+            ad.log.info(f"Customer {user_id} has no active subscriptions")
         
-        await stripe_customers.insert_one(customer_doc)
+        parsed_subscription = parse_stripe_subscription(subscription) if subscription else None
+        ad.log.info(f"Parsed subscription: {parsed_subscription}")
+        
+        # Get metered usage information
+        usage = parse_stripe_usage(parsed_subscription)
+        ad.log.info(f"Parsed usage: {usage}")
+        
+        if customer_doc:
+            # Update the customer document with the new subscription and usage data
+            await stripe_customers.update_one(
+                {"user_id": user_id},
+                {"$set": {
+                    "stripe_subscription": parsed_subscription,
+                    "stripe_usage": usage,
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            customer_doc = await stripe_customers.find_one({"user_id": user_id})
+            ad.log.info(f"Updated customer document for user_id: {user_id}")
+        else:
+            ad.log.info(f"Customer {user_id} has no customer document")
+        
+            # Store in our database
+            customer_doc = {
+                "user_id": user_id,
+                "stripe_customer_id": stripe_customer.id,
+                "email": email,
+                "name": name,
+                "stripe_subscription": parsed_subscription,
+                "stripe_usage": usage,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+
+            await stripe_customers.insert_one(customer_doc)
         return customer_doc
     
     except Exception as e:
         ad.log.error(f"Error in get_or_create_payments_customer: {e}")
-        # If there's an error, try creating a new customer as fallback
-        stripe_customer = stripe.Customer.create(
-            email=email,
-            name=name,
-            metadata={"user_id": user_id}
-        )
-        
-        customer_doc = {
-            "user_id": user_id,
-            "stripe_customer_id": stripe_customer.id,
-            "email": email,
-            "name": name,
-            "payment_status": "none",
-            "free_usage_remaining": FREE_TIER_LIMIT,
-            "current_month_usage": 0,
-            "usage_tier": "free",
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        }
-        
-        await stripe_customers.insert_one(customer_doc)
-        return customer_doc
+        raise e
 
 async def record_usage(user_id: str, pages_processed: int, operation: str, source: str = "backend") -> Dict[str, Any]:
     """Record usage for a user and report to Stripe if on paid tier"""
