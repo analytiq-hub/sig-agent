@@ -75,8 +75,19 @@ const SubscriptionPage: React.FC = () => {
                       setLoading(true);
                       const response = await getCustomerPortalApi(session.user.id);
                       window.open(response.url, '_blank');
-                    } catch (error) {
-                      toast.error(`Failed to access subscription portal: ${error}`);
+                    } catch (error: unknown) {
+                      // If the error, stringified, is Not Found, show a different message
+                      let errorMsg = '';
+                      if (error instanceof Error) {
+                        errorMsg = error.message;
+                      } else {
+                        errorMsg = String(error);
+                      }
+                      if (errorMsg.startsWith('Not Found')) {
+                        toast.error('Subscription not implemented.');
+                      } else {
+                        toast.error(`Failed to access subscription portal: ${errorMsg}`);
+                      }
                     } finally {
                       setLoading(false);
                     }
