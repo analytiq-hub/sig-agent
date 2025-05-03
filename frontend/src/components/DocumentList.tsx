@@ -241,7 +241,6 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       
       // Refresh the document list to show the updated name
       await fetchFiles();
-      toast.success('Document renamed successfully');
     } catch (error) {
       console.error('Error renaming document:', error);
       toast.error('Failed to rename document');

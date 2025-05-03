@@ -1420,6 +1420,11 @@ async def list_prompts(
             pipeline.append({
                 "$match": {"tag_ids": {"$in": document_tag_ids}}
             })
+        else:
+            # Only return the default prompt if no tags
+            pipeline.append({
+                "$match": {"name": "Default Prompt"}
+            })
     # Add direct tag filtering if tag_ids are provided
     elif tag_ids:
         tag_id_list = [tid.strip() for tid in tag_ids.split(",")]
