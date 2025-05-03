@@ -6,6 +6,10 @@ import { Button, Typography, CircularProgress, IconButton } from '@mui/material'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DescriptionIcon from '@mui/icons-material/Description';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import ArticleIcon from '@mui/icons-material/Article';
+import CodeIcon from '@mui/icons-material/Code';
 import { 
   uploadDocumentsApi,
   listTagsApi
@@ -216,6 +220,18 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
               <div className="flex items-center bg-gray-100 rounded-full px-3 py-1 mr-2">
                 <PictureAsPdfIcon className="text-red-600 mr-1" fontSize="small" />
                 <span className="text-sm">PDF</span>
+              </div>
+              <div className="flex items-center bg-gray-100 rounded-full px-3 py-1 mr-2">
+                <DescriptionIcon className="text-blue-700 mr-1" fontSize="small" />
+                <span className="text-sm">DOC</span>
+              </div>
+              <div className="flex items-center bg-gray-100 rounded-full px-3 py-1 mr-2">
+                <TableChartIcon className="text-green-700 mr-1" fontSize="small" />
+                <span className="text-sm">CSV,XLS</span>
+              </div>
+              <div className="flex items-center bg-gray-100 rounded-full px-3 py-1 mr-2">
+                <ArticleIcon className="text-gray-700 mr-1" fontSize="small" />
+                <span className="text-sm">TXT,MD</span>
               </div>
             </div>
             
