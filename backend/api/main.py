@@ -623,7 +623,14 @@ async def delete_document(
             detail="Document metadata is corrupted: missing mongo_file_name"
         )
 
+    # Delete the original file
     await ad.common.delete_file_async(analytiq_client, file_name=document["mongo_file_name"])
+
+    # Delete the associated PDF if it's different
+    pdf_file_name = document.get("pdf_file_name")
+    if pdf_file_name and pdf_file_name != document["mongo_file_name"]:
+        await ad.common.delete_file_async(analytiq_client, file_name=pdf_file_name)
+
     await ad.common.delete_doc(analytiq_client, document_id, organization_id)
     
     return {"message": "Document deleted successfully"}
