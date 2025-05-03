@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import SettingsLayout from '@/components/SettingsLayout';
 import { useAppSession } from '@/utils/useAppSession';
 import { getCustomerPortalApi } from '@/utils/api';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 
 const SubscriptionPage: React.FC = () => {
   const { session, status } = useAppSession();

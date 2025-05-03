@@ -3,7 +3,7 @@
 import React from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import UserAcceptInvitation from '@/components/UserAcceptInvitation';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 
 const AcceptInvitationPage = () => {
   const searchParams = useSearchParams();

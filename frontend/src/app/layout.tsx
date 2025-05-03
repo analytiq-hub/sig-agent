@@ -6,6 +6,7 @@ import ThemeRegistry from '@/components/ThemeRegistry';
 import { OrganizationProvider } from '@/contexts/OrganizationContext';
 import { getAppServerSession } from '@/utils/session';
 import { Toaster } from 'react-hot-toast';
+import { ToastContainer } from 'react-toastify';
 
 export const metadata = {
   title: 'Smart Document Router',
@@ -24,7 +25,6 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Toaster position="top-right" />
         <ThemeRegistry>
           <SessionProvider session={appSession}>
             <OrganizationProvider>
@@ -32,6 +32,8 @@ export default async function RootLayout({
             </OrganizationProvider>
           </SessionProvider>
         </ThemeRegistry>
+        <ToastContainer position="top-right" />
+        <Toaster position="top-right" />
       </body>
     </html>
   );

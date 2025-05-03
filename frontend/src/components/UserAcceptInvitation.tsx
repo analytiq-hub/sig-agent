@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { acceptInvitationApi, getInvitationApi } from '@/utils/api';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 import { signIn, useSession } from 'next-auth/react';
 
 interface Invitation {

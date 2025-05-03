@@ -23,7 +23,7 @@ import { isColorLight } from '@/utils/colors';
 import colors from 'tailwindcss/colors';
 import { DocumentUpdate } from './DocumentUpdate';
 import SearchIcon from '@mui/icons-material/Search';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 import DocumentRenameModal from './DocumentRename';
 
 type File = DocumentMetadata;  // Use type alias instead of interface

@@ -16,7 +16,7 @@ import { Switch, IconButton } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { useSession } from 'next-auth/react'
 import UserAddToOrgModal from './UserAddToOrgModal'
-import { toast } from 'react-hot-toast'
+import { toast } from 'react-toastify'
 
 interface OrganizationEditProps {
   organizationId: string

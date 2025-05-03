@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { getUsersApi, createInvitationApi } from '@/utils/api';
 import { UserResponse } from '@/types/index';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 
 interface UserAddToOrgModalProps {
   open: boolean;

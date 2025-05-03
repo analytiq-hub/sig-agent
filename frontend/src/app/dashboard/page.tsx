@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { getOrganizationsApi } from '@/utils/api';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/types/AppSession';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 
 export default function DashboardRedirect() {
   const router = useRouter();

@@ -86,7 +86,7 @@ import {
   PortalSessionCreate,
   PortalSessionResponse
 } from '@/types/index';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 import { JsonValue } from 'type-fest';
 
 // These APIs execute from the frontend

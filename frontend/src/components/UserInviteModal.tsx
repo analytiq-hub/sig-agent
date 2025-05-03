@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { createInvitationApi, getOrganizationsApi } from '@/utils/api';
 import { Organization } from '@/types/index';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 import debounce from 'lodash/debounce';
 import { isAxiosError } from 'axios';
 
