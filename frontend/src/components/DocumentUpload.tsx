@@ -9,7 +9,6 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import ArticleIcon from '@mui/icons-material/Article';
-import CodeIcon from '@mui/icons-material/Code';
 import { 
   uploadDocumentsApi,
   listTagsApi
