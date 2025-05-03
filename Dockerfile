@@ -30,6 +30,12 @@ FROM python:3.12-slim AS backend
 # Set the working directory in the container
 WORKDIR /app
 
+# Install system dependencies (add this before pip install)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libreoffice && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy only backend requirements first
 COPY backend/requirements.txt ./backend/
 RUN pip install --no-cache-dir -r backend/requirements.txt
