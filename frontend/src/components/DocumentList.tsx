@@ -168,7 +168,8 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     try {
       const response = await getDocumentApi({
         organizationId: organizationId,
-        documentId: doc.id
+        documentId: doc.id,
+        fileType: "original"
       });
       
       // Create a blob from the array buffer

@@ -47,6 +47,7 @@ export interface ListDocumentsParams {
 export interface GetDocumentParams {
   organizationId: string;
   documentId: string;
+  fileType?: string; // "original" or "pdf". Default is "original".
 }
 
 export interface GetDocumentResponse {

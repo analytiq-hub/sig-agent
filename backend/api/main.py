@@ -555,10 +555,13 @@ async def list_documents(
 async def get_document(
     organization_id: str,
     document_id: str,
+    file_type: str = Query(default="original", 
+                           enum=["original", "pdf"], 
+                           description="Which file to retrieve: 'original' or 'pdf'"),
     current_user: User = Depends(get_current_user)
 ):
-    """Get a document"""
-    ad.log.debug(f"get_document() start: document_id: {document_id}")
+    """Get a document (original or associated PDF)"""
+    ad.log.debug(f"get_document() start: document_id: {document_id}, file_type: {file_type}")
     analytiq_client = ad.common.get_analytiq_client()
     db = ad.common.get_async_db(analytiq_client)
 
@@ -574,12 +577,18 @@ async def get_document(
         
     ad.log.debug(f"get_document() found document: {document}")
 
+    # Decide which file to return
+    if file_type == "pdf":
+        file_name = document.get("pdf_file_name", document.get("mongo_file_name"))
+    else:
+        file_name = document.get("mongo_file_name")
+
     # Get the file from mongodb
-    file = ad.common.get_file(analytiq_client, document["mongo_file_name"])
+    file = ad.common.get_file(analytiq_client, file_name)
     if file is None:
         raise HTTPException(status_code=404, detail="File not found")
 
-    ad.log.debug(f"get_document() got file: {document}")
+    ad.log.debug(f"get_document() got file: {file_name}")
 
     # Create metadata response
     metadata = DocumentMetadata(

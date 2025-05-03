@@ -112,7 +112,8 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
         const response = await getDocumentApi(
           {
             organizationId: organizationId,
-            documentId: id
+            documentId: id,
+            fileType: "pdf"
           }
         );
         

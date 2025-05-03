@@ -213,8 +213,9 @@ export const listDocumentsApi = async (params?: ListDocumentsParams) => {
 };
 
 export const getDocumentApi = async (params: GetDocumentParams): Promise<GetDocumentResponse> => {
-  const { organizationId, documentId } = params;
-  const response = await api.get(`/v0/orgs/${organizationId}/documents/${documentId}`);
+  const { organizationId, documentId, fileType } = params;
+  // Always request the associated PDF
+  const response = await api.get(`/v0/orgs/${organizationId}/documents/${documentId}?file_type=${fileType}`);
   const data = response.data;
   
   // Convert base64 content back to ArrayBuffer
