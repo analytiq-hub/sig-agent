@@ -81,8 +81,6 @@ async def init_payments_env():
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
-    print(f"Stripe API key: '{stripe.api_key[:-1]}'")
-
 async def init_payments():
     await init_payments_env()
 
