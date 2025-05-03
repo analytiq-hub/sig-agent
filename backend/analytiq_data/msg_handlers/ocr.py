@@ -38,9 +38,15 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
             if ocr_json is not None:
                 ad.log.info(f"OCR list for {document_id} already exists. Skipping OCR.")        
         
-        if ocr_json is None:
+        if ocr_json is None:            
             # Get the file
-            mongo_file_name = f"{document_id}.pdf"
+            doc = await ad.common.doc.get_doc(analytiq_client, document_id)
+            if not doc or "mongo_file_name" not in doc:
+                ad.log.error(f"Document metadata for {document_id} not found or missing mongo_file_name. Skipping OCR.")
+                await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_FAILED)
+                return
+
+            mongo_file_name = doc["mongo_file_name"]
             file = ad.common.get_file(analytiq_client, mongo_file_name)
             if file is None:
                 ad.log.error(f"File for {document_id} not found. Skipping OCR.")
