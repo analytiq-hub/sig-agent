@@ -226,3 +226,11 @@ async def get_doc_ids_by_tag_ids(analytiq_client, tag_ids: list[str]) -> list[st
     # Convert cursor to list before processing
     elems = await cursor.to_list(length=None)  # None means no limit
     return [str(elem["_id"]) for elem in elems]
+
+def is_pdf_or_image(mime_type):
+    return mime_type in [
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/tiff"
+    ]

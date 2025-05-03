@@ -401,16 +401,28 @@ async def upload_document(
                                         blob=content,
                                         metadata=metadata)
 
+        if mime_type == "application/pdf":
+            pdf_id = document_id
+            pdf_file_name = mongo_file_name
+        else:
+            # Convert to PDF and save
+            pdf_blob = ad.common.file.convert_to_pdf(content, ext)  # You will implement this function
+            pdf_id = ad.common.create_id()
+            pdf_file_name = f"{pdf_id}.pdf"
+            await ad.common.save_file_async(analytiq_client, pdf_file_name, pdf_blob, metadata)
+
         document_metadata = {
             "_id": ObjectId(document_id),
             "user_file_name": document.name,
             "mongo_file_name": mongo_file_name,
             "document_id": document_id,
+            "pdf_id": pdf_id,
+            "pdf_file_name": pdf_file_name,
             "upload_date": datetime.now(UTC),
             "uploaded_by": current_user.user_name,
             "state": ad.common.doc.DOCUMENT_STATE_UPLOADED,
             "tag_ids": document.tag_ids,
-            "organization_id": organization_id  # Add organization_id
+            "organization_id": organization_id
         }
         
         await ad.common.save_doc(analytiq_client, document_metadata)
@@ -523,14 +535,16 @@ async def list_documents(
     
     return ListDocumentsResponse(
         documents=[
-            {
-                "id": str(doc["_id"]),
-                "document_name": doc["user_file_name"],
-                "upload_date": doc["upload_date"].isoformat(),
-                "uploaded_by": doc["uploaded_by"],
-                "state": doc.get("state", ""),
-                "tag_ids": doc.get("tag_ids", [])
-            }
+            DocumentMetadata(
+                id=str(doc["_id"]),
+                pdf_id=doc.get("pdf_id", doc.get("document_id", str(doc["_id"]))),  # fallback for old docs
+                document_name=doc.get("user_file_name", doc.get("document_name", "")),
+                upload_date=doc["upload_date"].isoformat() if isinstance(doc["upload_date"], datetime) else doc["upload_date"],
+                uploaded_by=doc.get("uploaded_by", ""),
+                state=doc.get("state", ""),
+                tag_ids=doc.get("tag_ids", []),
+                # Optionally add pdf_file_name if you want to expose it
+            )
             for doc in documents
         ],
         total_count=total_count,
@@ -570,6 +584,7 @@ async def get_document(
     # Create metadata response
     metadata = DocumentMetadata(
         id=str(document["_id"]),
+        pdf_id=document.get("pdf_id", document["document_id"]),
         document_name=document["user_file_name"],
         upload_date=document["upload_date"],
         uploaded_by=document["uploaded_by"],

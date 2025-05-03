@@ -23,6 +23,7 @@ export interface UploadedDocument {
 
 export interface DocumentMetadata {
     id: string;
+    pdf_id: string;
     document_name: string;
     upload_date: string;
     uploaded_by: string;

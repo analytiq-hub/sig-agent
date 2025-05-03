@@ -1,5 +1,6 @@
 from datetime import datetime, UTC
 import analytiq_data as ad
+import os
 
 class Migration:
     def __init__(self, description: str):
@@ -1259,6 +1260,53 @@ class MigrateSchemaOrganizationIDs(Migration):
             ad.log.error(f"Schema organization ID migration revert failed: {e}")
             return False
 
+# Add this new migration class before the MIGRATIONS list
+class AddPdfIdToDocuments(Migration):
+    def __init__(self):
+        super().__init__("Add pdf_id to documents and convert non-PDFs to PDF")
+
+    async def up(self, db):
+        analytiq_client = ad.common.get_analytiq_client()
+
+        docs = db["docs"]
+        files = db["files.files"]
+        async for doc in docs.find({}):
+            if "pdf_id" in doc:
+                continue  # Already migrated
+
+            file_name = doc["mongo_file_name"]
+            file_ext = os.path.splitext(file_name)[1].lower()
+            mime_type = ad.common.doc.EXTENSION_TO_MIME.get(file_ext)
+            if mime_type == "application/pdf":
+                pdf_id = doc["document_id"]
+                pdf_file_name = file_name
+            else:
+                # Download original file
+                file_blob = ad.common.get_file(analytiq_client, file_name)["blob"]
+                # Convert to PDF
+                pdf_blob = ad.common.file.convert_to_pdf(file_blob, file_ext)
+                pdf_id = ad.common.create_id()
+                pdf_file_name = f"{pdf_id}.pdf"
+                # Save PDF file
+                await ad.common.save_file_async(analytiq_client, pdf_file_name, pdf_blob, {
+                    "name": pdf_file_name,
+                    "type": "application/pdf",
+                    "size": len(pdf_blob),
+                    "created_at": datetime.now(UTC),
+                    "updated_at": datetime.now(UTC)
+                })
+
+            # Update document
+            await docs.update_one(
+                {"_id": doc["_id"]},
+                {"$set": {"pdf_id": pdf_id, "pdf_file_name": pdf_file_name}}
+            )
+        return True
+
+    async def down(self, db):
+        await db["docs"].update_many({}, {"$unset": {"pdf_id": "", "pdf_file_name": ""}})
+        return True
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -1275,6 +1323,7 @@ MIGRATIONS = [
     MigratePromptNames(),
     MigratePromptOrganizationIDs(),
     MigrateSchemaOrganizationIDs(),
+    AddPdfIdToDocuments(),
     # Add more migrations here
 ]
 

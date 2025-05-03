@@ -1,5 +1,7 @@
 from datetime import datetime, UTC
 import os
+import subprocess
+import tempfile
 
 import analytiq_data as ad
 
@@ -262,3 +264,25 @@ async def download_all_files_async(analytiq_client, output_dir: str):
         file_path = os.path.join(output_dir, file_name)
         with open(file_path, "wb") as f:
             f.write(file_blob)
+
+def convert_to_pdf(blob: bytes, ext: str) -> bytes:
+    with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as input_file:
+        input_file.write(blob)
+        input_file.flush()
+        input_path = input_file.name
+
+    output_path = input_path.replace(ext, ".pdf")
+    subprocess.run([
+        "libreoffice",
+        "--headless",
+        "--convert-to", "pdf",
+        "--outdir", os.path.dirname(input_path),
+        input_path
+    ], check=True)
+
+    with open(output_path, "rb") as f:
+        pdf_blob = f.read()
+
+    os.remove(input_path)
+    os.remove(output_path)
+    return pdf_blob

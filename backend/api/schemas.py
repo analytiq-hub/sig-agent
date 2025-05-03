@@ -36,6 +36,7 @@ class DocumentsUpload(BaseModel):
 
 class DocumentMetadata(BaseModel):
     id: str
+    pdf_id: str
     document_name: str
     upload_date: datetime
     uploaded_by: str
