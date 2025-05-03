@@ -21,6 +21,7 @@ EXTENSION_TO_MIME = {
     ".xls":  "application/vnd.ms-excel",
     ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ".txt":  "text/plain",
+    ".md":   "text/markdown"
 }
 
 def get_mime_type(file_name: str) -> str:
