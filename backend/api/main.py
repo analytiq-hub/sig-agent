@@ -377,19 +377,29 @@ async def upload_document(
             )
 
     for document in documents_upload.documents:
-        if not document.name.endswith('.pdf'):
-            raise HTTPException(status_code=400, detail=f"Document {document.name} is not a PDF")
-        
-        # Decode and save the document
-        content = base64.b64decode(document.content.split(',')[1])
+        # Accept PDF and Word documents
+        if document.name.endswith('.pdf'):
+            mime_type = "application/pdf"
+            ext = ".pdf"
+        elif document.name.endswith('.docx'):
+            mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            ext = ".docx"
+        elif document.name.endswith('.doc'):
+            mime_type = "application/msword"
+            ext = ".doc"
+        elif document.name.endswith('.csv'):
+            mime_type = "text/csv"
+            ext = ".csv"
+        else:
+            raise HTTPException(status_code=400, detail=f"Document {document.name} is not a supported file type (PDF or Word)")
 
-        # Create a unique id for the document
+        content = base64.b64decode(document.content.split(',')[1])
         document_id = ad.common.create_id()
-        mongo_file_name = f"{document_id}.pdf"
+        mongo_file_name = f"{document_id}{ext}"
 
         metadata = {
             "document_id": document_id,
-            "type": "application/pdf",
+            "type": mime_type,
             "size": len(content),
             "user_file_name": document.name
         }
