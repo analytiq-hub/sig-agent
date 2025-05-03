@@ -63,7 +63,13 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'application/pdf': ['.pdf']
+      'application/pdf': ['.pdf'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/csv': ['.csv'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'text/plain': ['.txt'],
     },
     multiple: true
   });
@@ -150,6 +156,10 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
               </p>
               <ul className="list-disc list-inside space-y-1 mb-2">
                 <li><strong>PDF files</strong> (.pdf)</li>
+                <li><strong>Word documents</strong> (.doc, .docx)</li>
+                <li><strong>Excel files</strong> (.xls, .xlsx)</li>
+                <li><strong>CSV files</strong> (.csv)</li>
+                <li><strong>Text files</strong> (.txt)</li>
               </ul>
               <p className="mb-2">
                 <strong>Note:</strong> Select appropriate tags for your documents to control which prompts are run.
@@ -202,7 +212,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
             
             <div className="flex items-center mb-3">
               <span className="mr-2">Supported formats:</span>
-              <div className="flex items-center bg-gray-100 rounded-full px-3 py-1">
+              <div className="flex items-center bg-gray-100 rounded-full px-3 py-1 mr-2">
                 <PictureAsPdfIcon className="text-red-600 mr-1" fontSize="small" />
                 <span className="text-sm">PDF</span>
               </div>
@@ -212,12 +222,12 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
               {...getRootProps()}
               className="border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer hover:bg-gray-50 transition-colors"
             >
-              <input {...getInputProps()} accept="application/pdf" />
+              <input {...getInputProps()} />
               <CloudUploadIcon sx={{ fontSize: 48, mb: 2, color: '#4B5563' }} />
               {isDragActive ? (
-                <Typography>Drop PDF files here ...</Typography>
+                <Typography>Drop files here ...</Typography>
               ) : (
-                <Typography>Drag PDF files here, or click to select files</Typography>
+                <Typography>Drag files here, or click to select files</Typography>
               )}
             </div>
             

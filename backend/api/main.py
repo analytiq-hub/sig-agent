@@ -390,6 +390,9 @@ async def upload_document(
         elif document.name.endswith('.csv'):
             mime_type = "text/csv"
             ext = ".csv"
+        elif document.name.endswith('.txt'):
+            mime_type = "text/plain"
+            ext = ".txt"
         else:
             raise HTTPException(status_code=400, detail=f"Document {document.name} is not a supported file type (PDF or Word)")
 
