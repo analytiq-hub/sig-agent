@@ -76,6 +76,7 @@ from api.payments import (
     delete_payments_customer
 )
 import analytiq_data as ad
+from analytiq_data.common.doc import get_mime_type
 
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
@@ -377,24 +378,11 @@ async def upload_document(
             )
 
     for document in documents_upload.documents:
-        # Accept PDF and Word documents
-        if document.name.endswith('.pdf'):
-            mime_type = "application/pdf"
-            ext = ".pdf"
-        elif document.name.endswith('.docx'):
-            mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            ext = ".docx"
-        elif document.name.endswith('.doc'):
-            mime_type = "application/msword"
-            ext = ".doc"
-        elif document.name.endswith('.csv'):
-            mime_type = "text/csv"
-            ext = ".csv"
-        elif document.name.endswith('.txt'):
-            mime_type = "text/plain"
-            ext = ".txt"
-        else:
-            raise HTTPException(status_code=400, detail=f"Document {document.name} is not a supported file type (PDF or Word)")
+        try:
+            mime_type = get_mime_type(document.name)
+            ext = os.path.splitext(document.name)[1].lower()
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
         content = base64.b64decode(document.content.split(',')[1])
         document_id = ad.common.create_id()

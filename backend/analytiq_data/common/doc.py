@@ -1,6 +1,7 @@
 from datetime import datetime, UTC
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
+import os
 
 import analytiq_data as ad
 
@@ -11,6 +12,26 @@ DOCUMENT_STATE_OCR_FAILED = "ocr_failed"
 DOCUMENT_STATE_LLM_PROCESSING = "llm_processing"
 DOCUMENT_STATE_LLM_COMPLETED = "llm_completed"
 DOCUMENT_STATE_LLM_FAILED = "llm_failed"
+
+EXTENSION_TO_MIME = {
+    ".pdf":  "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".doc":  "application/msword",
+    ".csv":  "text/csv",
+    ".xls":  "application/vnd.ms-excel",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".txt":  "text/plain",
+}
+
+def get_mime_type(file_name: str) -> str:
+    """
+    Get the MIME type for a given file name based on its extension.
+    Raises ValueError if the extension is not supported.
+    """
+    ext = os.path.splitext(file_name)[1].lower()
+    if ext in EXTENSION_TO_MIME:
+        return EXTENSION_TO_MIME[ext]
+    raise ValueError(f"Unsupported file extension {ext}: {file_name}")
 
 async def get_doc(analytiq_client, document_id: str, organization_id: str | None = None) -> dict:
     """
