@@ -131,6 +131,9 @@ const processQueue = (error: Error | null = null) => {
   failedQueue = [];
 };
 
+// Store the toast ID outside the interceptor
+let sessionExpiredToastId: React.ReactText | null = null;
+
 // Add a response interceptor that handles all errors
 api.interceptors.response.use(
   (response) => response,
@@ -146,9 +149,9 @@ api.interceptors.response.use(
           .then(() => api(originalRequest))
           .catch(() => {
             // Only show session expiration toast once
-            toast.error('Your session has expired. Please login again.', {
-              id: 'session-expired', // This ensures only one toast is shown
-            });
+            if (!sessionExpiredToastId || !toast.isActive(sessionExpiredToastId)) {
+              sessionExpiredToastId = toast.error('Your session has expired. Please login again.');
+            }
             return Promise.reject(new Error('Session expired'));
           });
       }
@@ -163,16 +166,16 @@ api.interceptors.response.use(
           processQueue();
           return api(originalRequest);
         } else {
-          toast.error('Your session has expired. Please login again.', {
-            id: 'session-expired',
-          });
+          if (!sessionExpiredToastId || !toast.isActive(sessionExpiredToastId)) {
+            sessionExpiredToastId = toast.error('Your session has expired. Please login again.');
+          }
           return Promise.reject(new Error('Session expired'));
         }
       } catch (refreshError) {
         processQueue(refreshError instanceof Error ? refreshError : new Error('Token refresh failed'));
-        toast.error('Your session has expired. Please login again.', {
-          id: 'session-expired',
-        });
+        if (!sessionExpiredToastId || !toast.isActive(sessionExpiredToastId)) {
+          sessionExpiredToastId = toast.error('Your session has expired. Please login again.');
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
