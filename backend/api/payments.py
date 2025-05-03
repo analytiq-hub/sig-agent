@@ -10,7 +10,7 @@ from bson import ObjectId
 import analytiq_data as ad
 
 # Initialize FastAPI router
-router = APIRouter(prefix="/v0/account/payments", tags=["payments"])
+payments_router = APIRouter(prefix="/v0/account/payments", tags=["payments"])
 
 stripe_webhook_secret = None
 
@@ -553,7 +553,7 @@ async def delete_payments_customer(user_id: str) -> Dict[str, Any]:
         ad.log.error(f"Error handling Stripe customer deletion: {e}")
         return {"success": False, "error": str(e)}
 
-@router.post("/setup-intent")
+@payments_router.post("/setup-intent")
 async def create_setup_intent(
     data: SetupIntentCreate,
     db: AsyncIOMotorDatabase = Depends(get_db)
@@ -571,7 +571,7 @@ async def create_setup_intent(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/create-subscription")
+@payments_router.post("/create-subscription")
 async def create_subscription(
     data: SubscriptionCreate,
     db: AsyncIOMotorDatabase = Depends(get_db)
@@ -641,7 +641,7 @@ async def create_subscription(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/customer-portal")
+@payments_router.post("/customer-portal")
 async def customer_portal(
     data: PortalSessionCreate,
     db: AsyncIOMotorDatabase = Depends(get_db)
@@ -666,7 +666,7 @@ async def customer_portal(
         ad.log.error(f"Error generating Stripe customer portal: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/webhook", status_code=200)
+@payments_router.post("/webhook", status_code=200)
 async def webhook_received(
     request: Request,
     db: AsyncIOMotorDatabase = Depends(get_db)
@@ -723,7 +723,7 @@ async def webhook_received(
     
     return {"status": "success"}
 
-@router.post("/record-usage")
+@payments_router.post("/record-usage")
 async def api_record_usage(
     usage: UsageRecord,
     db: AsyncIOMotorDatabase = Depends(get_db)
@@ -747,7 +747,7 @@ async def api_record_usage(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/usage-stats/{user_id}")
+@payments_router.get("/usage-stats/{user_id}")
 async def get_usage_stats(
     user_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db)

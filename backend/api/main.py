@@ -68,7 +68,7 @@ from api.schemas import (
     Flow,
     ListFlowsResponse, FlowMetadata
 )
-from api.payments import router as payments_router
+from api.payments import payments_router
 from api.payments import (
     init_payments,
     get_or_create_payments_customer,
