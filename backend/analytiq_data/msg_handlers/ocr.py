@@ -46,8 +46,14 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
                 await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_FAILED)
                 return
 
-            mongo_file_name = doc["mongo_file_name"]
-            file = ad.common.get_file(analytiq_client, mongo_file_name)
+            # Use the PDF file if available, otherwise fallback to original
+            pdf_file_name = doc.get("pdf_file_name")
+            if pdf_file_name is None:
+                ad.log.error(f"Document metadata for {document_id} not found or missing pdf_file_name. Skipping OCR.")
+                await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_FAILED)
+                return
+
+            file = ad.common.get_file(analytiq_client, pdf_file_name)
             if file is None:
                 ad.log.error(f"File for {document_id} not found. Skipping OCR.")
                 await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_FAILED)
