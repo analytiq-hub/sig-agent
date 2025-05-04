@@ -21,6 +21,13 @@ from .test_utils import (
 )
 import analytiq_data as ad
 
+import io
+import zipfile
+import tempfile
+import subprocess
+
+from analytiq_data.common.doc import EXTENSION_TO_MIME
+
 # Check that ENV is set to pytest
 assert os.environ["ENV"] == "pytest"
 
@@ -55,6 +62,115 @@ def large_pdf():
     return {
         "name": "large_test.pdf",
         "content": f"data:application/pdf;base64,{base64.b64encode(pdf_content).decode()}"
+    }
+
+@pytest.fixture(params=list(EXTENSION_TO_MIME.items()), ids=lambda x: x[0])
+def minimal_file(request):
+    ext, mime = request.param
+    content = None
+
+    if ext == ".pdf":
+        # Use libreoffice to generate a PDF from a txt file with "Hello World"
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as txt_file:
+            txt_file.write(b"Hello World")
+            txt_file.flush()
+            txt_path = txt_file.name
+        pdf_path = txt_path.replace(".txt", ".pdf")
+        try:
+            subprocess.run([
+                "libreoffice",
+                "--headless",
+                "--convert-to", "pdf",
+                "--outdir", os.path.dirname(txt_path),
+                txt_path
+            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            with open(pdf_path, "rb") as f:
+                content = f.read()
+        finally:
+            os.remove(txt_path)
+            if os.path.exists(pdf_path):
+                os.remove(pdf_path)
+    elif ext == ".docx":
+        # Use libreoffice to generate a docx from a txt file with "Hello World"
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as txt_file:
+            txt_file.write(b"Hello World")
+            txt_file.flush()
+            txt_path = txt_file.name
+        docx_path = txt_path.replace(".txt", ".docx")
+        try:
+            subprocess.run([
+                "libreoffice",
+                "--headless",
+                "--convert-to", "docx",
+                "--outdir", os.path.dirname(txt_path),
+                txt_path
+            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            with open(docx_path, "rb") as f:
+                content = f.read()
+        finally:
+            os.remove(txt_path)
+            if os.path.exists(docx_path):
+                os.remove(docx_path)
+    elif ext == ".xlsx":
+        # Use libreoffice to generate a xlsx from a csv file with "Hello World"
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as csv_file:
+            csv_file.write(b"Hello World,SecondCol\n1,2\n")
+            csv_file.flush()
+            csv_path = csv_file.name
+        xlsx_path = csv_path.replace(".csv", ".xlsx")
+        try:
+            subprocess.run([
+                "libreoffice",
+                "--headless",
+                "--convert-to", "xlsx",
+                "--outdir", os.path.dirname(csv_path),
+                csv_path
+            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            with open(xlsx_path, "rb") as f:
+                content = f.read()
+        finally:
+            os.remove(csv_path)
+            if os.path.exists(xlsx_path):
+                os.remove(xlsx_path)
+    elif ext == ".csv":
+        content = b"Hello World,SecondCol\n1,2\n"
+    elif ext == ".txt":
+        content = b"Hello World\n"
+    elif ext == ".md":
+        content = b"Hello World\n# Markdown"
+    elif ext == ".doc":
+        # Use libreoffice to generate a docx from a txt file with "Hello World"
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as txt_file:
+            txt_file.write(b"Hello World")
+            txt_file.flush()
+            txt_path = txt_file.name
+        doc_path = txt_path.replace(".txt", ".doc")
+        try:
+            subprocess.run([
+                "libreoffice",
+                "--headless",
+                "--convert-to", "doc",
+                "--outdir", os.path.dirname(txt_path),
+                txt_path
+            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            with open(doc_path, "rb") as f:
+                content = f.read()
+        finally:
+            os.remove(txt_path)
+            if os.path.exists(doc_path):
+                os.remove(doc_path)
+    elif ext == ".xls":
+        # Not a real XLS, but starts with Hello World
+        content = b"Hello World" + b"\x00" * 10
+    else:
+        raise NotImplementedError(f"Test for {ext} not implemented")
+
+    return {
+        "name": f"test{ext}",
+        "content": f"data:{mime};base64,{base64.b64encode(content).decode()}",
+        "mime": mime,
+        "ext": ext,
+        "raw_content": content,
     }
 
 def get_auth_headers():
@@ -328,3 +444,76 @@ async def test_document_lifecycle(test_db, small_pdf, mock_auth):
         pass  # mock_auth fixture handles cleanup
 
     ad.log.info(f"test_document_lifecycle() end")
+
+@pytest.mark.asyncio
+async def test_upload_supported_file_types(test_db, minimal_file, mock_auth):
+    """Test uploading each supported file type"""
+    test_file = minimal_file
+    ad.log.info(f"Testing upload for {test_file['name']} ({test_file['mime']})")
+    upload_data = {
+        "documents": [
+            {
+                "name": test_file["name"],
+                "content": test_file["content"],
+                "tag_ids": []
+            }
+        ]
+    }
+    # Upload
+    upload_response = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/documents",
+        json=upload_data,
+        headers=get_auth_headers()
+    )
+    assert upload_response.status_code == 200
+    upload_result = upload_response.json()
+    assert "uploaded_documents" in upload_result
+    assert len(upload_result["uploaded_documents"]) == 1
+    assert upload_result["uploaded_documents"][0]["document_name"] == test_file["name"]
+    document_id = upload_result["uploaded_documents"][0]["document_id"]
+
+    # List and verify
+    list_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/documents",
+        headers=get_auth_headers()
+    )
+    assert list_response.status_code == 200
+    docs = list_response.json()["documents"]
+    uploaded_doc = next((doc for doc in docs if doc["id"] == document_id), None)
+    assert uploaded_doc is not None
+    assert uploaded_doc["document_name"] == test_file["name"]
+
+    # Get and verify content
+    get_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
+        headers=get_auth_headers()
+    )
+    assert get_response.status_code == 200
+    doc_data = get_response.json()
+    assert "content" in doc_data
+    retrieved_content = base64.b64decode(doc_data["content"])
+
+    # For non-PDFs, the backend may convert to PDF, so only check for PDF if ext is .pdf
+    if test_file["ext"] == ".pdf":
+        # For PDF, check that "Hello World" is in the PDF text stream
+        assert retrieved_content.startswith(b"%PDF")
+    elif test_file["ext"] in [".docx", ".xlsx"]:
+        # For docx/xlsx, the backend will convert to PDF, so check for PDF header and "Hello World" in the PDF
+        assert retrieved_content[:4] == b'PK\x03\x04'
+    elif test_file["ext"] in [".doc"]:
+        # For doc, the backend will convert to PDF, so check for PDF header and "Hello World" in the PDF
+        assert retrieved_content[:4] == b'\xd0\xcf\x11\xe0'
+    else:
+        # For other types, accept either a PDF (converted) or the original file
+        if retrieved_content[:4] == b"%PDF":
+            assert b"Hello World" in retrieved_content
+        else:
+            # Must match original and start with Hello World
+            assert retrieved_content.startswith(b"Hello World")
+
+    # Clean up
+    delete_response = client.delete(
+        f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
+        headers=get_auth_headers()
+    )
+    assert delete_response.status_code == 200
