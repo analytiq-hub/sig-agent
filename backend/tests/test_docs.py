@@ -511,9 +511,34 @@ async def test_upload_supported_file_types(test_db, minimal_file, mock_auth):
             # Must match original and start with Hello World
             assert retrieved_content.startswith(b"Hello World")
 
+    # --- NEW: Download and verify the PDF version of the document ---
+    get_pdf_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}?file_type=pdf",
+        headers=get_auth_headers()
+    )
+    assert get_pdf_response.status_code == 200
+    pdf_doc_data = get_pdf_response.json()
+    assert "content" in pdf_doc_data
+    pdf_content = base64.b64decode(pdf_doc_data["content"])
+    assert pdf_content.startswith(b"%PDF"), "Downloaded file_type=pdf does not start with %PDF"
+
     # Clean up
     delete_response = client.delete(
         f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
         headers=get_auth_headers()
     )
     assert delete_response.status_code == 200
+
+    # Verify document is gone
+    get_deleted_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
+        headers=get_auth_headers()
+    )
+    assert get_deleted_response.status_code == 404
+
+    # Verify PDF is gone
+    get_pdf_deleted_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}?file_type=pdf",
+        headers=get_auth_headers()
+    )
+    assert get_pdf_deleted_response.status_code == 404
