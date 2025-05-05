@@ -106,12 +106,19 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   useEffect(() => {
     const fetchUsers = async () => {
       if (isOrgAdmin || isSysAdmin) {
-        try {
-          const usersResponse = await getUsersApi();
-          setAllUsers(usersResponse.users);
-        } catch (err) {
-          console.error('Failed to fetch users:', err);
-        }
+        let allUsers: UserResponse[] = [];
+        let skip = 0;
+        const limit = 100;
+        let total = 0;
+
+        do {
+          const usersResponse = await getUsersApi({ organizationId, skip, limit });
+          allUsers = allUsers.concat(usersResponse.users);
+          total = usersResponse.total_count;
+          skip += limit;
+        } while (allUsers.length < total);
+
+        setAllUsers(allUsers);
       }
     };
 
