@@ -112,7 +112,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         let total = 0;
 
         do {
-          const usersResponse = await getUsersApi({ organizationId, skip, limit });
+          const usersResponse = await getUsersApi({ organization_id: organizationId, skip, limit });
           allUsers = allUsers.concat(usersResponse.users);
           total = usersResponse.total_count;
           skip += limit;
