@@ -14,6 +14,9 @@ import { signOut } from 'next-auth/react';
 import { useAppSession } from '@/utils/useAppSession';
 import UserInviteModal from './UserInviteModal';
 import UserAddModal from './UserAddModal';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 
 interface DeleteUserModalProps {
   isOpen: boolean;
@@ -66,6 +69,8 @@ const UserManager: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedUser, setSelectedUser] = useState<UserResponse | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -125,6 +130,16 @@ const UserManager: React.FC = () => {
     user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, user: UserResponse) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedUser(user);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedUser(null);
+  };
+
   const columns: GridColDef[] = [
     {
       field: 'name',
@@ -164,20 +179,14 @@ const UserManager: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 80,
       renderCell: (params) => (
-        <div className="flex gap-2 items-center h-full">
+        <div>
           <IconButton
-            onClick={() => router.push(`/settings/account/users/${params.row.id}`)}
-            className="text-blue-600 hover:bg-blue-50"
+            onClick={(e) => handleMenuOpen(e, params.row)}
+            className="text-gray-600 hover:bg-gray-50"
           >
-            <EditIcon />
-          </IconButton>
-          <IconButton
-            onClick={() => handleDeleteClick(params.row.id)}
-            className="text-red-600 hover:bg-red-50"
-          >
-            <DeleteIcon />
+            <MoreVertIcon />
           </IconButton>
         </div>
       ),
@@ -282,6 +291,33 @@ const UserManager: React.FC = () => {
         onClose={() => setIsInviteModalOpen(false)}
         onInvited={fetchUsers}
       />
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem
+          onClick={() => {
+            if (selectedUser) router.push(`/settings/account/users/${selectedUser.id}`);
+            handleMenuClose();
+          }}
+          className="flex items-center gap-2"
+        >
+          <EditIcon fontSize="small" className="text-blue-600" />
+          <span>Edit</span>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (selectedUser) handleDeleteClick(selectedUser.id);
+            handleMenuClose();
+          }}
+          className="flex items-center gap-2"
+        >
+          <DeleteIcon fontSize="small" className="text-red-600" />
+          <span>Delete</span>
+        </MenuItem>
+      </Menu>
     </div>
   );
 };
