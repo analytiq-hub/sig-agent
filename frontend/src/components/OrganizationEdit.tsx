@@ -17,6 +17,9 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import { useSession } from 'next-auth/react'
 import UserAddToOrgModal from './UserAddToOrgModal'
 import { toast } from 'react-toastify'
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 
 interface OrganizationEditProps {
   organizationId: string
@@ -52,6 +55,8 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [isSysAdmin, setIsSysAdmin] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedMember, setSelectedMember] = useState<{ id: string, isAdmin: boolean } | null>(null);
 
   // Filter current organization members
   const filteredMembers = members.filter(member => {
@@ -203,6 +208,16 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     })
   }
 
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, memberId: string, isAdmin: boolean) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedMember({ id: memberId, isAdmin });
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedMember(null);
+  };
+
   // Define columns for the grid
   const columns: GridColDef[] = [
     {
@@ -225,24 +240,24 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
       headerName: 'Admin',
       width: 120,
       renderCell: (params: GridRenderCellParams) => (
-        <Switch
-          checked={params.value}
-          onChange={(e) => handleRoleChange(params.row.id, e.target.checked ? 'admin' : 'user')}
-          color="primary"
-        />
+        <span className={params.value ? 'text-blue-600' : ''}>
+          {params.value ? 'Admin' : 'User'}
+        </span>
       )
     },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 100,
+      width: 80,
       renderCell: (params: GridRenderCellParams) => (
-        <IconButton
-          onClick={() => handleRemoveMember(params.row.id)}
-          size="small"
-        >
-          <DeleteIcon />
-        </IconButton>
+        <div>
+          <IconButton
+            onClick={(e) => handleMenuOpen(e, params.row.id, params.row.isAdmin)}
+            className="text-gray-600 hover:bg-gray-50"
+          >
+            <MoreVertIcon />
+          </IconButton>
+        </div>
       )
     }
   ]
@@ -416,6 +431,56 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
                   }
                 }}
               />
+              {/* Actions Menu for member row */}
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
+              >
+                <MenuItem
+                  onClick={() => {
+                    if (selectedMember) {
+                      handleRoleChange(
+                        selectedMember.id,
+                        selectedMember.isAdmin ? 'user' : 'admin'
+                      );
+                    }
+                    handleMenuClose();
+                  }}
+                  className="flex items-center gap-2"
+                  disabled={!selectedMember}
+                >
+                  <Switch
+                    checked={selectedMember?.isAdmin || false}
+                    onChange={() => {
+                      if (selectedMember) {
+                        handleRoleChange(
+                          selectedMember.id,
+                          selectedMember.isAdmin ? 'user' : 'admin'
+                        );
+                      }
+                      handleMenuClose();
+                    }}
+                    color="primary"
+                    size="small"
+                    inputProps={{ 'aria-label': 'Toggle admin' }}
+                  />
+                  <span>
+                    {selectedMember?.isAdmin ? 'Remove Admin' : 'Make Admin'}
+                  </span>
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    if (selectedMember) handleRemoveMember(selectedMember.id);
+                    handleMenuClose();
+                  }}
+                  className="flex items-center gap-2"
+                  disabled={!selectedMember}
+                >
+                  <DeleteIcon fontSize="small" className="text-red-600" />
+                  <span>Remove</span>
+                </MenuItem>
+              </Menu>
             </div>
           </div>
         </form>
