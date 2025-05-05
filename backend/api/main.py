@@ -2352,9 +2352,8 @@ async def list_organizations(
     - Otherwise returns all organizations (admin only)
     - user_id and organization_id are mutually exclusive
     """
-    ad.log.debug(f"list_organizations(): current_user: {current_user}")
+    ad.log.debug(f"list_organizations(): user_id: {user_id} organization_id: {organization_id} current_user: {current_user}")
     db = ad.common.get_async_db()
-    ad.log.debug(f"list_organizations(): db: {db}")
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_system_admin = db_user and db_user.get("role") == "admin"
 
@@ -2413,13 +2412,14 @@ async def list_organizations(
 
     organizations = await db.organizations.find(query).to_list(None)
 
-    return ListOrganizationsResponse(organizations=[
+    ret = ListOrganizationsResponse(organizations=[
         Organization(**{
             **org,
             "id": str(org["_id"]),
             "type": org["type"]
         }) for org in organizations
     ])
+    return ret
 
 @app.post("/v0/account/organizations", response_model=Organization, tags=["account/organizations"])
 async def create_organization(
@@ -2591,6 +2591,8 @@ async def list_users(
     - Otherwise returns all users (admin only)
     - user_id and organization_id are mutually exclusive
     """
+    ad.log.debug(f"list_users(): organization_id: {organization_id} user_id: {user_id} current_user: {current_user} skip: {skip} limit: {limit}")
+    
     db = ad.common.get_async_db()
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_system_admin = db_user and db_user.get("role") == "admin"
@@ -2636,7 +2638,7 @@ async def list_users(
                     detail="Not authorized to view this user"
                 )
                 
-        return ListUsersResponse(
+        ret = ListUsersResponse(
             users=[UserResponse(
                 id=str(user["_id"]),
                 email=user["email"],
@@ -2649,6 +2651,7 @@ async def list_users(
             total_count=1,
             skip=0
         )
+        return ret
 
     # Handle organization filter
     if organization_id:
@@ -2689,7 +2692,7 @@ async def list_users(
     total_count = await db.users.count_documents(query)
     users = await db.users.find(query).skip(skip).limit(limit).to_list(None)
 
-    return ListUsersResponse(
+    ret = ListUsersResponse(
         users=[
             UserResponse(
                 id=str(user["_id"]),
@@ -2705,6 +2708,7 @@ async def list_users(
         total_count=total_count,
         skip=skip
     )
+    return ret
 
 @app.post("/v0/account/users", response_model=UserResponse, tags=["account/users"])
 async def create_user(
