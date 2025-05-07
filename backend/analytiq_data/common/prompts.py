@@ -152,9 +152,9 @@ async def get_prompt_tag_ids(analytiq_client, prompt_id: str) -> list[str]:
     elem = await collection.find_one({"_id": ObjectId(prompt_id)})
     return elem["tag_ids"]
 
-async def get_prompt_ids_by_tag_ids(analytiq_client, tag_ids: list[str], latest_version: bool = True) -> list[str]:
+async def get_prompt_revision_ids_by_tag_ids(analytiq_client, tag_ids: list[str], latest_version: bool = True) -> list[str]:
     """
-    Get prompt IDs by tag IDs
+    Get prompt revision IDs by tag IDs
 
     Args:
         analytiq_client: AnalytiqClient
@@ -172,26 +172,16 @@ async def get_prompt_ids_by_tag_ids(analytiq_client, tag_ids: list[str], latest_
     elems = await collection.find({"tag_ids": {"$in": tag_ids}}).to_list(length=None)
 
     if not latest_version:
-        # Return all prompt IDs
-        prompt_ids = [str(elem["_id"]) for elem in elems]
+        # Return all prompt revision IDs
+        prompt_revision_ids = [str(elem["_id"]) for elem in elems]
     else:
-        # Return only the latest version of each prompt
-        collection2 = db["prompts"]
-        prompt_names = [elem["name"] for elem in elems]
+        # Eliminate elements that don't have the latest version
+        elems2 = []
+        for elem in elems:
+            # Is there another element with the same prompt_id and a higher prompt_version?
+            if not any(elem2["prompt_id"] == elem["prompt_id"] and elem2["prompt_version"] > elem["prompt_version"] for elem2 in elems):
+                elems2.append(elem)
 
-        # Initialize the list of prompt IDs
-        prompt_ids = []
-
-        # Get the latest version of each prompt
-        elems2 = await collection2.find({"_id": {"$in": prompt_names}}).to_list(length=None)
-        for elem in elems2:
-            # Get the prompt name and version
-            prompt_name = elem["_id"]
-            prompt_version = elem["prompt_version"]
-            # Look for the prompt name and version in the list of prompts
-            for elem in elems:
-                if elem["name"] == prompt_name and elem["prompt_version"] == prompt_version:
-                    prompt_ids.append(str(elem["_id"]))
-                    break
+        prompt_revision_ids = [str(elem["_id"]) for elem in elems2]
     
-    return prompt_ids
+    return prompt_revision_ids

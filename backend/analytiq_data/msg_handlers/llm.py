@@ -16,7 +16,7 @@ async def process_llm_msg(analytiq_client, msg):
         tags = await ad.common.doc.get_doc_tag_ids(analytiq_client, document_id)
 
         # Get all the prompt ids for the tags
-        prompt_ids = await ad.common.get_prompt_ids_by_tag_ids(analytiq_client, tags)
+        prompt_ids = await ad.common.get_prompt_revision_ids_by_tag_ids(analytiq_client, tags)
 
         # Add the default prompt id as first prompt
         prompt_ids.insert(0, "default")
