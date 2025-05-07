@@ -51,28 +51,31 @@ async def get_default_prompt_content(analytiq_client) -> str:
             Prompt content
     """
     prompt = f"""Extract the document type, company name and address from the following text. 
-    Return the result in JSON format.
+    Return the result in JSON format with the following fields:
+    - document_type: The type of document (e.g. "invoice", "purchase_order", "statement")
+    - document_date: The date of the document, if not present, return ""
+    - summary: A one line summary or description of the document.
     
     Examples:
     Input: "INVOICE ABC Corp. 123 Business St, New York, NY 10001 Invoice #12345"
     Output: {{
         "document_type": "invoice",
-        "company_name": "ABC Corp.",
-        "address": "123 Business St, New York, NY 10001"
+        "document_date": "",
+        "summary": "Invoice for ABC Corp."
     }}
     
-    Input: "Purchase Order XYZ Industries 456 Industrial Ave, Chicago, IL 60601"
+    Input: "Purchase Order XYZ Industries 456 Industrial Ave, Chicago, IL 60601, dated 2021-01-01"
     Output: {{
         "document_type": "purchase_order",
-        "company_name": "XYZ Industries",
-        "address": "456 Industrial Ave, Chicago, IL 60601"
+        "document_date": "2021-01-01",
+        "summary": "Purchase Order for XYZ Industries"
     }}
     
     Input: "Statement of Account Global Trading Co. 789 Commerce Rd, Los Angeles, CA 90001"
     Output: {{
         "document_type": "statement",
-        "company_name": "Global Trading Co.",
-        "address": "789 Commerce Rd, Los Angeles, CA 90001"
+        "document_date": "",
+        "summary": "Statement of Account for Global Trading Co."
     }}
     """
     return prompt
