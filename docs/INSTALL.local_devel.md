@@ -31,10 +31,14 @@
 * In the two terminals you will run the fastapi and worker, activate the virtual environment: `. ~/.venv/doc-router/bin/activate`
 * Start the back end
   ```bash
-  cd backend/fastapi
-  uvicorn main:app --host 0.0.0.0 --port 8000
+  cd backend
+  uvicorn api.main:app --host 0.0.0.0 --port 8000
   ```
-  * To test in Swagger UI, open [http://localhost:8000/docs], authenticate with a user token, and execute any API calls.
+* In a separate shell, start the workers
+  ```bash
+  cd backend/workers
+  python worker.py
+  ```
 * Open [http://localhost:8000/docs](http://localhost:8000/docs) to experiment with the FastAPI
 
 * Start the front end
