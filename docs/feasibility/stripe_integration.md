@@ -1,4 +1,4 @@
-# PRD: Stripe Payment Integration for DocRouter
+# System Design: Stripe Payment Integration for DocRouter
 ## Overview
 This document outlines the integration of Stripe's metered billing system with DocRouter. The solution will implement pay-as-you-go billing based on document pages processed by LLM calls, while allowing new users to try the service before requiring payment information.
 
