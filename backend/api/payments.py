@@ -30,9 +30,11 @@ stripe_events = None
 
 # Stripe configuration constants
 FREE_TIER_LIMIT = 50  # Number of free pages
-PRICE_ID_INDIVIDUAL = None
-PRICE_ID_TEAM = None
-PRICE_ID_ENTERPRISE = None
+TIER_TO_PRICE = {
+    "individual": None,
+    "team": None,
+    "enterprise": None
+}
 NEXTAUTH_URL = None
 
 # Pydantic models for request/response validation
@@ -62,7 +64,7 @@ class PortalSessionResponse(BaseModel):
 
 async def init_payments_env():
     global MONGO_URI, ENV
-    global PRICE_ID_INDIVIDUAL, PRICE_ID_TEAM, PRICE_ID_ENTERPRISE
+    global TIER_TO_PRICE
     global NEXTAUTH_URL
     global client, db
     global stripe_customers, stripe_subscriptions, stripe_usage, stripe_events
@@ -70,9 +72,11 @@ async def init_payments_env():
 
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     ENV = os.getenv("ENV", "dev")
-    PRICE_ID_INDIVIDUAL = os.getenv("STRIPE_PRICE_ID_INDIVIDUAL", "")
-    PRICE_ID_TEAM = os.getenv("STRIPE_PRICE_ID_TEAM", "")
-    PRICE_ID_ENTERPRISE = os.getenv("STRIPE_PRICE_ID_ENTERPRISE", "")
+    TIER_TO_PRICE = {
+        "individual": os.getenv("STRIPE_PRICE_ID_INDIVIDUAL", ""),
+        "team": os.getenv("STRIPE_PRICE_ID_TEAM", ""),
+        "enterprise": os.getenv("STRIPE_PRICE_ID_ENTERPRISE", "")
+    }
     NEXTAUTH_URL = os.getenv("NEXTAUTH_URL", "http://localhost:3000")
 
     client = AsyncIOMotorClient(MONGO_URI)
@@ -591,7 +595,7 @@ async def create_subscription(
             raise HTTPException(status_code=404, detail="Customer not found")
         
         # Use default price ID if not provided
-        price_id = data.price_id or PRICE_ID_INDIVIDUAL
+        price_id = data.price_id or TIER_TO_PRICE["individual"]
         if not price_id:
             raise HTTPException(status_code=400, detail="No price ID provided or configured")
         
