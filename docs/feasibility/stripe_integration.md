@@ -15,7 +15,9 @@ This document outlines the integration of Stripe's metered billing system with D
 * Apply different rates for different types of operations if needed
 ### User Tiers
 * __Free Tier__: Limited number of pages per month (e.g., 50 pages)
-* __Paid Tier__: Unlimited pages at a metered rate (e.g., $0.01 per page)
+* __Basic Tier__: Unlimited pages at a metered rate, $0.01 per page
+* __Teams Tier__: Unlimited pages at $0.05 per page
+* __Enterprise Tier__: Unlimited pages at $0.10 per page
 ### Payment Processing
 * Collect and securely store payment details through Stripe
 * Process automatic payments based on usage
@@ -96,6 +98,13 @@ This document outlines the integration of Stripe's metered billing system with D
   reportedToStripe: Boolean
 }
 ```
+### Stripe Configuration
+* One meter: __DocRouterPages__
+* Three products:
+  * __DocRouterBasic__
+  * __DocRouterTeams__
+  * __DocRouterEnterprise__
+
 ### FastAPI Backend Components
 ####API Endpoints:
 * `/api/stripe/create-customer` - Create a new Stripe customer
