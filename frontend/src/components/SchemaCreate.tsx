@@ -211,6 +211,8 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [fields, setFields] = useState<SchemaField[]>([{ name: '', type: 'str' }]);
   const [expandedNestedFields, setExpandedNestedFields] = useState<Record<number, boolean>>({});
   const [expandedArrayFields, setExpandedArrayFields] = useState<Record<number, boolean>>({});
+  const [activeTab, setActiveTab] = useState<'fields' | 'json'>('fields');
+  const [jsonSchema, setJsonSchema] = useState('');
 
   // Define jsonSchemaToFields with useCallback
   const jsonSchemaToFields = useCallback((responseFormat: ResponseFormat): SchemaField[] => {
@@ -309,6 +311,28 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
       setEditingSchema(null);
     }
   }, [editingSchema, setEditingSchema, jsonSchemaToFields]);
+
+  // Update jsonSchema when currentSchema changes
+  useEffect(() => {
+    setJsonSchema(JSON.stringify(currentSchema.response_format, null, 2));
+  }, [currentSchema]);
+
+  // Add handler for JSON schema changes
+  const handleJsonSchemaChange = (value: string | undefined) => {
+    if (!value) return;
+    try {
+      const parsedSchema = JSON.parse(value);
+      setCurrentSchema(prev => ({
+        ...prev,
+        response_format: parsedSchema
+      }));
+      // Update fields based on the new schema
+      setFields(jsonSchemaToFields(parsedSchema));
+    } catch (error) {
+      // Invalid JSON - don't update
+      console.error('Invalid JSON schema');
+    }
+  };
 
   const saveSchema = async (schema: SchemaConfig) => {
     try {
@@ -712,193 +736,237 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
             </div>
           </div>
 
-          {/* Grid Container */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Fields Editor - Left Column */}
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold mb-2">Fields Editor</h3>
-              <div className="space-y-2 max-h-[300px] overflow-y-auto p-2 border rounded">
-                <DragDropContext onDragEnd={handleDragEnd}>
-                  <Droppable droppableId="fields">
-                    {(provided) => (
-                      <div
-                        {...provided.droppableProps}
-                        ref={provided.innerRef}
-                        className="space-y-2"
-                      >
-                        {fields.map((field, index) => (
-                          <Draggable key={index} draggableId={`field-${index}`} index={index}>
-                            {(provided) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className="mb-2 border rounded p-3 bg-gray-50"
-                              >
-                                <div className="flex items-center gap-2 mb-2">
-                                  <div 
-                                    {...provided.dragHandleProps}
-                                    className="flex items-center text-gray-400 cursor-grab p-1"
-                                  >
-                                    <DragIndicatorIcon fontSize="small" />
-                                  </div>
-                                  <input
-                                    type="text"
-                                    className="flex-1 p-1.5 border rounded text-sm"
-                                    value={field.name}
-                                    onChange={e => updateField(index, { name: e.target.value })}
-                                    placeholder="field_name"
-                                    disabled={isLoading}
-                                  />
-                                  <select
-                                    className="p-1.5 border rounded text-sm w-24"
-                                    value={field.type}
-                                    onChange={e => updateField(index, { type: e.target.value as SchemaField['type'] })}
-                                    disabled={isLoading}
-                                  >
-                                    <option value="str">String</option>
-                                    <option value="int">Integer</option>
-                                    <option value="float">Float</option>
-                                    <option value="bool">Boolean</option>
-                                    <option value="object">Object</option>
-                                    <option value="array">Array</option>
-                                  </select>
-                                  <button
-                                    type="button"
-                                    onClick={() => removeField(index)}
-                                    className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 text-sm h-8 w-8 flex items-center justify-center"
-                                    disabled={isLoading}
-                                    aria-label="Remove field"
-                                  >
-                                    <span className="inline-block leading-none translate-y-[1px]">✕</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const newFields = [...fields];
-                                      newFields.splice(index + 1, 0, { name: '', type: 'str' });
-                                      setFields(newFields);
-                                      setCurrentSchema(prev => ({
-                                        ...prev,
-                                        response_format: fieldsToJsonSchema(newFields)
-                                      }));
-                                    }}
-                                    className="p-1 bg-green-50 text-green-600 rounded hover:bg-green-100 disabled:opacity-50 text-xl h-8 w-8 flex items-center justify-center"
-                                    disabled={isLoading}
-                                    aria-label="Add field after this one"
-                                  >
-                                    <span className="inline-block leading-none">+</span>
-                                  </button>
-                                </div>
-                                <textarea
-                                  className="w-full p-1.5 border rounded text-sm min-h-[30px] resize-y"
-                                  value={field.description || ''}
-                                  onChange={e => updateField(index, { description: e.target.value })}
-                                  placeholder="Description of this field"
-                                  disabled={isLoading}
-                                  onKeyDown={e => {
-                                    // Allow Shift+Enter for new lines, but prevent form submission
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                      e.preventDefault();
-                                    }
-                                  }}
-                                />
-                                
-                                {/* Nested fields for object type */}
-                                {field.type === 'object' && (
-                                  <div className="mt-2 pl-4 border-l-2 border-blue-200">
-                                    <div 
-                                      className="flex items-center text-sm font-medium text-blue-600 mb-2 cursor-pointer"
-                                      onClick={() => toggleNestedFieldExpansion(index)}
-                                    >
-                                      <span className="mr-1 inline-flex items-center justify-center w-4">
-                                        {expandedNestedFields[index] ? 
-                                          <ExpandMoreIcon fontSize="small" /> : 
-                                          <ChevronRightIcon fontSize="small" />
-                                        }
-                                      </span>
-                                      <span>Nested Fields</span>
-                                    </div>
-                                    
-                                    {expandedNestedFields[index] && (
-                                      <NestedFieldsEditor 
-                                        fields={field.nestedFields || [{ name: '', type: 'str' }]}
-                                        onChange={(nestedFields) => handleNestedFieldsChange(index, nestedFields)}
-                                        isLoading={isLoading}
-                                      />
-                                    )}
-                                  </div>
-                                )}
-
-                                {/* Array type configuration */}
-                                {field.type === 'array' && (
-                                  <div className="mt-2 pl-4 border-l-2 border-green-200">
-                                    <div 
-                                      className="flex items-center text-sm font-medium text-green-600 mb-2 cursor-pointer"
-                                      onClick={() => toggleArrayFieldExpansion(index)}
-                                    >
-                                      <span className="mr-1 inline-flex items-center justify-center w-4">
-                                        {expandedArrayFields[index] ? 
-                                          <ExpandMoreIcon fontSize="small" /> : 
-                                          <ChevronRightIcon fontSize="small" />
-                                        }
-                                      </span>
-                                      <span>Array Item Type</span>
-                                    </div>
-                                    
-                                    {expandedArrayFields[index] && (
-                                      <>
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <select
-                                            className="p-1.5 border rounded text-sm"
-                                            value={field.arrayItemType || 'str'}
-                                            onChange={e => handleArrayItemTypeChange(index, e.target.value as SchemaField['type'])}
-                                            disabled={isLoading}
-                                          >
-                                            <option value="str">String</option>
-                                            <option value="int">Integer</option>
-                                            <option value="float">Float</option>
-                                            <option value="bool">Boolean</option>
-                                            <option value="object">Object</option>
-                                          </select>
-                                        </div>
-                                        
-                                        {/* For array of objects, show object field editor */}
-                                        {field.arrayItemType === 'object' && (
-                                          <div className="mt-2">
-                                            <div className="text-sm font-medium text-blue-600 mb-2">Array Object Fields</div>
-                                            <NestedFieldsEditor 
-                                              fields={field.arrayObjectFields || [{ name: '', type: 'str' }]}
-                                              onChange={(objectFields) => handleArrayObjectFieldsChange(index, objectFields)}
-                                              isLoading={isLoading}
-                                            />
-                                          </div>
-                                        )}
-                                      </>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </DragDropContext>
-              </div>
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-200 mb-4">
+            <div className="flex gap-8">
               <button
-                type="button"
-                onClick={addField}
-                className="w-full p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 disabled:opacity-50 text-sm"
-                disabled={isLoading}
+                onClick={() => setActiveTab('fields')}
+                className={`pb-4 px-1 relative font-semibold text-base ${
+                  activeTab === 'fields'
+                    ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
               >
-                Add Field
+                Fields Editor
+              </button>
+              <button
+                onClick={() => setActiveTab('json')}
+                className={`pb-4 px-1 relative font-semibold text-base ${
+                  activeTab === 'json'
+                    ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                JSON Schema
               </button>
             </div>
+          </div>
 
-            {/* JSON Schema Preview - Right Column */}
-            <SchemaPreview schema={currentSchema.response_format} />
+          {/* Tab Content */}
+          <div className="space-y-4">
+            {activeTab === 'fields' ? (
+              // Fields Editor Tab
+              <div className="space-y-2">
+                <div className="h-[calc(100vh-300px)] overflow-y-auto p-2 border rounded">
+                  <DragDropContext onDragEnd={handleDragEnd}>
+                    <Droppable droppableId="fields">
+                      {(provided) => (
+                        <div
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                          className="space-y-2"
+                        >
+                          {fields.map((field, index) => (
+                            <Draggable key={index} draggableId={`field-${index}`} index={index}>
+                              {(provided) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  className="mb-2 border rounded p-3 bg-gray-50"
+                                >
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div 
+                                      {...provided.dragHandleProps}
+                                      className="flex items-center text-gray-400 cursor-grab p-1"
+                                    >
+                                      <DragIndicatorIcon fontSize="small" />
+                                    </div>
+                                    <input
+                                      type="text"
+                                      className="flex-1 p-1.5 border rounded text-sm"
+                                      value={field.name}
+                                      onChange={e => updateField(index, { name: e.target.value })}
+                                      placeholder="field_name"
+                                      disabled={isLoading}
+                                    />
+                                    <select
+                                      className="p-1.5 border rounded text-sm w-24"
+                                      value={field.type}
+                                      onChange={e => updateField(index, { type: e.target.value as SchemaField['type'] })}
+                                      disabled={isLoading}
+                                    >
+                                      <option value="str">String</option>
+                                      <option value="int">Integer</option>
+                                      <option value="float">Float</option>
+                                      <option value="bool">Boolean</option>
+                                      <option value="object">Object</option>
+                                      <option value="array">Array</option>
+                                    </select>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeField(index)}
+                                      className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 text-sm h-8 w-8 flex items-center justify-center"
+                                      disabled={isLoading}
+                                      aria-label="Remove field"
+                                    >
+                                      <span className="inline-block leading-none translate-y-[1px]">✕</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newFields = [...fields];
+                                        newFields.splice(index + 1, 0, { name: '', type: 'str' });
+                                        setFields(newFields);
+                                        setCurrentSchema(prev => ({
+                                          ...prev,
+                                          response_format: fieldsToJsonSchema(newFields)
+                                        }));
+                                      }}
+                                      className="p-1 bg-green-50 text-green-600 rounded hover:bg-green-100 disabled:opacity-50 text-xl h-8 w-8 flex items-center justify-center"
+                                      disabled={isLoading}
+                                      aria-label="Add field after this one"
+                                    >
+                                      <span className="inline-block leading-none">+</span>
+                                    </button>
+                                  </div>
+                                  <textarea
+                                    className="w-full p-1.5 border rounded text-sm min-h-[30px] resize-y"
+                                    value={field.description || ''}
+                                    onChange={e => updateField(index, { description: e.target.value })}
+                                    placeholder="Description of this field"
+                                    disabled={isLoading}
+                                    onKeyDown={e => {
+                                      // Allow Shift+Enter for new lines, but prevent form submission
+                                      if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                      }
+                                    }}
+                                  />
+                                  
+                                  {/* Nested fields for object type */}
+                                  {field.type === 'object' && (
+                                    <div className="mt-2 pl-4 border-l-2 border-blue-200">
+                                      <div 
+                                        className="flex items-center text-sm font-medium text-blue-600 mb-2 cursor-pointer"
+                                        onClick={() => toggleNestedFieldExpansion(index)}
+                                      >
+                                        <span className="mr-1 inline-flex items-center justify-center w-4">
+                                          {expandedNestedFields[index] ? 
+                                            <ExpandMoreIcon fontSize="small" /> : 
+                                            <ChevronRightIcon fontSize="small" />
+                                          }
+                                        </span>
+                                        <span>Nested Fields</span>
+                                      </div>
+                                      
+                                      {expandedNestedFields[index] && (
+                                        <NestedFieldsEditor 
+                                          fields={field.nestedFields || [{ name: '', type: 'str' }]}
+                                          onChange={(nestedFields) => handleNestedFieldsChange(index, nestedFields)}
+                                          isLoading={isLoading}
+                                        />
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Array type configuration */}
+                                  {field.type === 'array' && (
+                                    <div className="mt-2 pl-4 border-l-2 border-green-200">
+                                      <div 
+                                        className="flex items-center text-sm font-medium text-green-600 mb-2 cursor-pointer"
+                                        onClick={() => toggleArrayFieldExpansion(index)}
+                                      >
+                                        <span className="mr-1 inline-flex items-center justify-center w-4">
+                                          {expandedArrayFields[index] ? 
+                                            <ExpandMoreIcon fontSize="small" /> : 
+                                            <ChevronRightIcon fontSize="small" />
+                                          }
+                                        </span>
+                                        <span>Array Item Type</span>
+                                      </div>
+                                      
+                                      {expandedArrayFields[index] && (
+                                        <>
+                                          <div className="flex items-center gap-2 mb-2">
+                                            <select
+                                              className="p-1.5 border rounded text-sm"
+                                              value={field.arrayItemType || 'str'}
+                                              onChange={e => handleArrayItemTypeChange(index, e.target.value as SchemaField['type'])}
+                                              disabled={isLoading}
+                                            >
+                                              <option value="str">String</option>
+                                              <option value="int">Integer</option>
+                                              <option value="float">Float</option>
+                                              <option value="bool">Boolean</option>
+                                              <option value="object">Object</option>
+                                            </select>
+                                          </div>
+                                          
+                                          {/* For array of objects, show object field editor */}
+                                          {field.arrayItemType === 'object' && (
+                                            <div className="mt-2">
+                                              <div className="text-sm font-medium text-blue-600 mb-2">Array Object Fields</div>
+                                              <NestedFieldsEditor 
+                                                fields={field.arrayObjectFields || [{ name: '', type: 'str' }]}
+                                                onChange={(objectFields) => handleArrayObjectFieldsChange(index, objectFields)}
+                                                isLoading={isLoading}
+                                              />
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
+                </div>
+                <button
+                  type="button"
+                  onClick={addField}
+                  className="w-full p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 disabled:opacity-50 text-sm"
+                  disabled={isLoading}
+                >
+                  Add Field
+                </button>
+              </div>
+            ) : (
+              // JSON Schema Tab
+              <div className="h-[calc(100vh-300px)] border rounded">
+                <Editor
+                  height="100%"
+                  defaultLanguage="json"
+                  value={jsonSchema}
+                  onChange={handleJsonSchemaChange}
+                  options={{
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    wordWrap: "on",
+                    wrappingIndent: "indent",
+                    lineNumbers: "on",
+                    folding: true,
+                    renderValidationDecorations: "on"
+                  }}
+                  theme="vs-light"
+                />
+              </div>
+            )}
           </div>
         </form>
 
