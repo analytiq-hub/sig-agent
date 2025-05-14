@@ -16,7 +16,7 @@ import { useSchemaContext } from '@/contexts/SchemaContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
-import SchemaRenameModal from './SchemaNameModal';
+import SchemaNameModal from './SchemaNameModal';
 
 const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
@@ -30,7 +30,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [total, setTotal] = useState(0);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedSchema, setSelectedSchema] = useState<Schema | null>(null);
-  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
 
   const loadSchemas = useCallback(async () => {
@@ -80,15 +80,15 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     handleMenuClose();
   };
 
-  // Add a function to handle schema rename
-  const handleRenameSchema = (schema: Schema) => {
+  // Add a function to handle schema name change
+  const handleNameSchema = (schema: Schema) => {
     setSelectedSchema(schema);
     setIsCloning(false);
-    setIsRenameModalOpen(true);
+    setIsNameModalOpen(true);
     handleMenuClose();
   };
 
-  const handleRenameSubmit = async (newName: string) => {
+  const handleNameSubmit = async (newName: string) => {
     if (!selectedSchema) return;
     
     try {
@@ -122,8 +122,8 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     }
   };
 
-  const handleCloseRenameModal = () => {
-    setIsRenameModalOpen(false);
+  const handleCloseNameModal = () => {
+    setIsNameModalOpen(false);
     setSelectedSchema(null);
     setIsCloning(false);
   };
@@ -173,7 +173,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const handleCloneOperation = (schema: Schema) => {
     setSelectedSchema(schema);
     setIsCloning(true);
-    setIsRenameModalOpen(true);
+    setIsNameModalOpen(true);
     handleMenuClose();
   };
 
@@ -386,7 +386,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       >
         <MenuItem 
           onClick={() => {
-            if (selectedSchema) handleRenameSchema(selectedSchema);
+            if (selectedSchema) handleNameSchema(selectedSchema);
           }}
           className="flex items-center gap-2"
         >
@@ -433,11 +433,11 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       
       {/* Rename/Clone Modal */}
       {selectedSchema && (
-        <SchemaRenameModal
-          isOpen={isRenameModalOpen}
-          onClose={handleCloseRenameModal}
+        <SchemaNameModal
+          isOpen={isNameModalOpen}
+          onClose={handleCloseNameModal}
           schemaName={isCloning ? `${selectedSchema.name} (Copy)` : selectedSchema.name}
-          onSubmit={handleRenameSubmit}
+          onSubmit={handleNameSubmit}
           isCloning={isCloning}
           organizationId={organizationId}
         />

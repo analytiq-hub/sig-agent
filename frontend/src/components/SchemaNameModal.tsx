@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { listSchemasApi } from '@/utils/api';
 
-interface SchemaRenameModalProps {
+interface SchemaNameModalProps {
   isOpen: boolean;
   onClose: () => void;
   schemaName: string;
@@ -10,7 +10,7 @@ interface SchemaRenameModalProps {
   organizationId: string;
 }
 
-const SchemaRenameModal: React.FC<SchemaRenameModalProps> = ({ 
+const SchemaNameModal: React.FC<SchemaNameModalProps> = ({ 
   isOpen, 
   onClose, 
   schemaName, 
@@ -130,4 +130,4 @@ const SchemaRenameModal: React.FC<SchemaRenameModalProps> = ({
   );
 };
 
-export default SchemaRenameModal; 
+export default SchemaNameModal; 
