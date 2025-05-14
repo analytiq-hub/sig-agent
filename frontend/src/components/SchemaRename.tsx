@@ -1,38 +1,78 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { listSchemasApi } from '@/utils/api';
 
 interface SchemaRenameModalProps {
   isOpen: boolean;
   onClose: () => void;
   schemaName: string;
   onSubmit: (newName: string) => Promise<void>;
+  isCloning?: boolean;
+  organizationId: string;
 }
 
 const SchemaRenameModal: React.FC<SchemaRenameModalProps> = ({ 
   isOpen, 
   onClose, 
   schemaName, 
-  onSubmit 
+  onSubmit,
+  isCloning = false,
+  organizationId
 }) => {
   const [newName, setNewName] = useState(schemaName);
-  const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [existingNames, setExistingNames] = useState<string[]>([]);
+
+  // When schemaName prop changes, update the newName state
+  useEffect(() => {
+    setNewName(schemaName);
+  }, [schemaName]);
+
+  // Fetch existing schema names for uniqueness check
+  useEffect(() => {
+    if (isOpen) {
+      const fetchSchemaNames = async () => {
+        try {
+          const response = await listSchemasApi({
+            organizationId,
+            skip: 0,
+            limit: 1000
+          });
+          
+          setExistingNames(response.schemas.map(schema => schema.name.toLowerCase()));
+        } catch (err) {
+          console.error("Failed to fetch schema names:", err);
+        }
+      };
+      
+      fetchSchemaNames();
+    }
+  }, [isOpen, organizationId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
+    
+    // Validate the input
     if (!newName.trim()) {
       setError('Schema name cannot be empty');
       return;
     }
 
-    setIsSubmitting(true);
+    // Check for uniqueness
+    if (newName.trim().toLowerCase() !== schemaName.toLowerCase() && 
+        existingNames.includes(newName.trim().toLowerCase())) {
+      setError('A schema with this name already exists');
+      return;
+    }
+
     try {
-      await onSubmit(newName);
+      setIsSubmitting(true);
+      await onSubmit(newName.trim());
       onClose();
-    } catch (error) {
-      console.error('Schema rename failed:', error);
-      setError('Failed to rename schema');
+    } catch (err) {
+      console.error(`Failed to ${isCloning ? 'clone' : 'rename'} schema:`, err);
+      setError(`Failed to ${isCloning ? 'clone' : 'rename'} schema`);
     } finally {
       setIsSubmitting(false);
     }
@@ -43,7 +83,9 @@ const SchemaRenameModal: React.FC<SchemaRenameModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
-        <h3 className="text-lg font-medium mb-4">Rename Schema</h3>
+        <h3 className="text-lg font-medium mb-4">
+          {isCloning ? 'Clone Schema' : 'Rename Schema'}
+        </h3>
         
         {error && (
           <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md">
@@ -73,13 +115,13 @@ const SchemaRenameModal: React.FC<SchemaRenameModalProps> = ({
             <button
               type="submit"
               className={`px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 ${
-                isSubmitting || !newName.trim() || newName === schemaName
+                isSubmitting || !newName.trim() || (!isCloning && newName === schemaName)
                   ? 'opacity-50 cursor-not-allowed'
                   : ''
               }`}
-              disabled={isSubmitting || !newName.trim() || newName === schemaName}
+              disabled={isSubmitting || !newName.trim() || (!isCloning && newName === schemaName)}
             >
-              {isSubmitting ? 'Saving...' : 'Save'}
+              {isSubmitting ? 'Saving...' : (isCloning ? 'Clone' : 'Save')}
             </button>
           </div>
         </form>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { listSchemasApi, deleteSchemaApi, updateSchemaApi } from '@/utils/api';
+import { listSchemasApi, deleteSchemaApi, updateSchemaApi, createSchemaApi } from '@/utils/api';
 import { SchemaField, Schema, ResponseFormat, JsonSchemaProperty } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -10,6 +10,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import DownloadIcon from '@mui/icons-material/Download';
 import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import colors from 'tailwindcss/colors';
 import { useSchemaContext } from '@/contexts/SchemaContext';
 import { useRouter } from 'next/navigation';
@@ -30,6 +31,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedSchema, setSelectedSchema] = useState<Schema | null>(null);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [isCloning, setIsCloning] = useState(false);
 
   const loadSchemas = useCallback(async () => {
     try {
@@ -54,8 +56,6 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       setIsLoading(true);
       await deleteSchemaApi({organizationId: organizationId, schemaId});
       setSchemas(schemas.filter(schema => schema.schema_id !== schemaId));
-      setMessage('Schema deleted successfully');
-      toast.success('Schema deleted successfully');
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error deleting schema';
       setMessage('Error: ' + errorMsg);
@@ -83,6 +83,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   // Add a function to handle schema rename
   const handleRenameSchema = (schema: Schema) => {
     setSelectedSchema(schema);
+    setIsCloning(false);
     setIsRenameModalOpen(true);
     handleMenuClose();
   };
@@ -97,25 +98,34 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         response_format: selectedSchema.response_format
       };
       
-      await updateSchemaApi({
-        organizationId: organizationId,
-        schemaId: selectedSchema.schema_id,
-        schema: schemaConfig
-      });
+      if (isCloning) {
+        // For cloning, create a new schema
+        await createSchemaApi({
+          organizationId: organizationId,
+          ...schemaConfig
+        });
+      } else {
+        // For renaming, update existing schema
+        await updateSchemaApi({
+          organizationId: organizationId,
+          schemaId: selectedSchema.schema_id,
+          schema: schemaConfig
+        });
+      }
       
-      // Refresh the schema list to show the updated name
+      // Refresh the schema list
       await loadSchemas();
-      toast.success('Schema renamed successfully');
     } catch (error) {
-      console.error('Error renaming schema:', error);
-      toast.error('Failed to rename schema');
-      throw error; // Rethrow to handle in the component
+      console.error(`Error ${isCloning ? 'cloning' : 'renaming'} schema:`, error);
+      toast.error(`Failed to ${isCloning ? 'clone' : 'rename'} schema`);
+      throw error;
     }
   };
 
   const handleCloseRenameModal = () => {
     setIsRenameModalOpen(false);
     setSelectedSchema(null);
+    setIsCloning(false);
   };
 
   // Add a function to handle schema download
@@ -157,6 +167,14 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  // Add a new function to handle clone operation
+  const handleCloneOperation = (schema: Schema) => {
+    setSelectedSchema(schema);
+    setIsCloning(true);
+    setIsRenameModalOpen(true);
+    handleMenuClose();
   };
 
   // Add filtered schemas
@@ -377,6 +395,15 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         </MenuItem>
         <MenuItem 
           onClick={() => {
+            if (selectedSchema) handleCloneOperation(selectedSchema);
+          }}
+          className="flex items-center gap-2"
+        >
+          <ContentCopyIcon fontSize="small" className="text-purple-600" />
+          <span>Clone</span>
+        </MenuItem>
+        <MenuItem 
+          onClick={() => {
             if (selectedSchema) handleEdit(selectedSchema);
           }}
           className="flex items-center gap-2"
@@ -404,13 +431,15 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         </MenuItem>
       </Menu>
       
-      {/* Rename Modal */}
+      {/* Rename/Clone Modal */}
       {selectedSchema && (
         <SchemaRenameModal
           isOpen={isRenameModalOpen}
           onClose={handleCloseRenameModal}
-          schemaName={selectedSchema.name}
+          schemaName={isCloning ? `${selectedSchema.name} (Copy)` : selectedSchema.name}
           onSubmit={handleRenameSubmit}
+          isCloning={isCloning}
+          organizationId={organizationId}
         />
       )}
     </div>
