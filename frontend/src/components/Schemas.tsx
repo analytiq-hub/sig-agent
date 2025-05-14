@@ -16,7 +16,7 @@ import { useSchemaContext } from '@/contexts/SchemaContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
-import SchemaRenameModal from './SchemaRename';
+import SchemaRenameModal from './SchemaNameModal';
 
 const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();

@@ -15,7 +15,7 @@ import { isColorLight } from '@/utils/colors';
 import { usePromptContext } from '@/contexts/PromptContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import PromptRenameModal from './PromptRename';
+import PromptRenameModal from './PromptNameModal';
 
 // Define default model constant
 const DEFAULT_LLM_MODEL = 'gemini-2.0-flash';
