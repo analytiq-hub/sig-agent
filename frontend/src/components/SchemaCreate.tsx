@@ -294,15 +294,51 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
     if (!value) return;
     try {
       const parsedSchema = JSON.parse(value);
+      
+      // Validate schema structure
+      if (!parsedSchema.json_schema || !parsedSchema.json_schema.schema) {
+        setMessage('Error: Invalid schema format. Must contain json_schema.schema');
+        return;
+      }
+      
+      const schema = parsedSchema.json_schema.schema;
+      
+      // Validate required properties
+      if (!schema.type || schema.type !== 'object') {
+        setMessage('Error: Schema type must be "object"');
+        return;
+      }
+      
+      if (!schema.properties || typeof schema.properties !== 'object') {
+        setMessage('Error: Schema must have properties object');
+        return;
+      }
+      
+      if (!Array.isArray(schema.required)) {
+        setMessage('Error: Schema must have required array');
+        return;
+      }
+      
+      // Check additionalProperties is present and is boolean
+      if (typeof schema.additionalProperties !== 'boolean') {
+        setMessage('Error: additionalProperties must be a boolean');
+        return;
+      }
+      
+      // Clear any error messages
+      setMessage('');
+      
+      // Update schema and fields
       setCurrentSchema(prev => ({
         ...prev,
         response_format: parsedSchema
       }));
+      
       // Update fields based on the new schema
       setFields(jsonSchemaToFields(parsedSchema));
     } catch (error) {
       // Invalid JSON - don't update
-      console.error('Invalid JSON schema');
+      setMessage(`Error: Invalid JSON syntax: ${error}`);
     }
   };
 
