@@ -11,34 +11,6 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useSchemaContext } from '@/contexts/SchemaContext';
 
-interface SchemaPreviewProps {
-  schema: ResponseFormat;
-}
-
-const SchemaPreview: React.FC<SchemaPreviewProps> = ({ schema }) => (
-  <div className="space-y-2">
-    <h3 className="text-lg font-semibold mb-2">JSON Schema</h3>
-    <div className="h-[300px] border rounded">
-      <Editor
-        height="100%"
-        defaultLanguage="json"
-        value={JSON.stringify(schema, null, 2)}
-        options={{
-          readOnly: true,
-          minimap: { enabled: false },
-          scrollBeyondLastLine: false,
-          wordWrap: "on",
-          wrappingIndent: "indent",
-          lineNumbers: "off",
-          folding: true,
-          renderValidationDecorations: "off"
-        }}
-        theme="vs-light"
-      />
-    </div>
-  </div>
-);
-
 interface NestedFieldsEditorProps {
   fields: SchemaField[];
   onChange: (fields: SchemaField[]) => void;
@@ -740,6 +712,7 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
           <div className="border-b border-gray-200 mb-4">
             <div className="flex gap-8">
               <button
+                type="button"
                 onClick={() => setActiveTab('fields')}
                 className={`pb-4 px-1 relative font-semibold text-base ${
                   activeTab === 'fields'
@@ -750,6 +723,7 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
                 Fields Editor
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab('json')}
                 className={`pb-4 px-1 relative font-semibold text-base ${
                   activeTab === 'json'
