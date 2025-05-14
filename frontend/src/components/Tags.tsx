@@ -97,9 +97,12 @@ const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         const textColor = isColorLight(bgColor) ? 'text-gray-800' : 'text-white';
         
         return (
-          <div className="flex items-center h-full w-full">
+          <div 
+            className="flex items-center h-full w-full cursor-pointer"
+            onClick={() => handleEdit(params.row)}
+          >
             <div 
-              className={`px-2 py-1 leading-none rounded shadow-sm ${textColor}`}
+              className={`px-2 py-1 leading-none rounded shadow-sm ${textColor} hover:opacity-80`}
               style={{ 
                 backgroundColor: bgColor,
               }}
