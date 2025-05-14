@@ -269,10 +269,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       headerAlign: 'left',
       align: 'left',
       renderCell: (params) => (
-        <div 
-          className="text-blue-600 cursor-pointer hover:underline flex items-center h-full"
-          onClick={() => handleEdit(params.row)}
-        >
+        <div className="text-blue-600 flex items-center h-full">
           {params.row.name}
         </div>
       ),
