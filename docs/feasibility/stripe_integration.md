@@ -100,7 +100,7 @@ This document outlines the integration of Stripe's metered billing system with D
 ```
 ### Stripe Configuration
 * One meter: __DocRouterPages__
-* Three products:
+* One product with three tiers:
   * __DocRouterBasic__
   * __DocRouterTeams__
   * __DocRouterEnterprise__

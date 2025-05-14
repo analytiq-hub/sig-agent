@@ -218,7 +218,10 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       headerAlign: 'left',
       align: 'left',
       renderCell: (params) => (
-        <div className="text-blue-600">
+        <div 
+          className="text-blue-600 cursor-pointer hover:underline"
+          onClick={() => handleEdit(params.row)}
+        >
           {params.row.name}
         </div>
       ),
