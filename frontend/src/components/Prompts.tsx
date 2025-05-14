@@ -15,7 +15,7 @@ import { isColorLight } from '@/utils/colors';
 import { usePromptContext } from '@/contexts/PromptContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import PromptRenameModal from './PromptNameModal';
+import PromptNameModal from './PromptNameModal';
 
 // Define default model constant
 const DEFAULT_LLM_MODEL = 'gemini-2.0-flash';
@@ -36,7 +36,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   // Add state for menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
-  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [isNameModalOpen, setIsNameModalOpen] = useState(false);
 
   const loadPrompts = useCallback(async () => {
     try {
@@ -98,7 +98,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    if (!isRenameModalOpen) {
+    if (!isNameModalOpen) {
       setSelectedPrompt(null);
     }
   };
@@ -116,7 +116,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   // Add rename handler
   const handleRenamePrompt = (prompt: Prompt) => {
     setSelectedPrompt(prompt);
-    setIsRenameModalOpen(true);
+    setIsNameModalOpen(true);
     setAnchorEl(null);
   };
 
@@ -148,8 +148,8 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     }
   };
 
-  const handleCloseRenameModal = () => {
-    setIsRenameModalOpen(false);
+  const handleCloseNameModal = () => {
+    setIsNameModalOpen(false);
     setSelectedPrompt(null);
   };
 
@@ -488,9 +488,9 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         
         {/* Rename Modal */}
         {selectedPrompt && (
-          <PromptRenameModal
-            isOpen={isRenameModalOpen}
-            onClose={handleCloseRenameModal}
+          <PromptNameModal
+            isOpen={isNameModalOpen}
+            onClose={handleCloseNameModal}
             promptName={selectedPrompt.name}
             onSubmit={handleRenameSubmit}
           />

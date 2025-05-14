@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 
-interface PromptRenameModalProps {
+interface PromptNameModalProps {
   isOpen: boolean;
   onClose: () => void;
   promptName: string;
   onSubmit: (newName: string) => Promise<void>;
 }
 
-const PromptRenameModal: React.FC<PromptRenameModalProps> = ({ 
+const PromptNameModal: React.FC<PromptNameModalProps> = ({ 
   isOpen, 
   onClose, 
   promptName, 
@@ -88,4 +88,4 @@ const PromptRenameModal: React.FC<PromptRenameModalProps> = ({
   );
 };
 
-export default PromptRenameModal; 
+export default PromptNameModal; 
