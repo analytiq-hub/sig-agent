@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { listPromptsApi, deletePromptApi, listTagsApi, getSchemaApi, listSchemasApi, updatePromptApi } from '@/utils/api';
+import { listPromptsApi, deletePromptApi, listTagsApi, getSchemaApi, listSchemasApi, updatePromptApi, createPromptApi } from '@/utils/api';
 import { Prompt, Tag, Schema } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -10,6 +10,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DownloadIcon from '@mui/icons-material/Download';
 import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import colors from 'tailwindcss/colors';
 import { isColorLight } from '@/utils/colors';
 import { usePromptContext } from '@/contexts/PromptContext';
@@ -37,6 +38,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
+  const [isCloning, setIsCloning] = useState(false);
 
   const loadPrompts = useCallback(async () => {
     try {
@@ -120,11 +122,19 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     setAnchorEl(null);
   };
 
+  // Add clone handler
+  const handleClonePrompt = (prompt: Prompt) => {
+    setSelectedPrompt(prompt);
+    setIsCloning(true);
+    setIsNameModalOpen(true);
+    setAnchorEl(null);
+  };
+
   const handleRenameSubmit = async (newName: string) => {
     if (!selectedPrompt) return;
     
     try {
-      // Create a new prompt config with the updated name
+      // Create a prompt config with the updated name
       const promptConfig = {
         name: newName,
         content: selectedPrompt.content,
@@ -134,23 +144,33 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         model: selectedPrompt.model
       };
       
-      await updatePromptApi({
-        organizationId: organizationId,
-        promptId: selectedPrompt.prompt_id,
-        prompt: promptConfig
-      });
+      if (isCloning) {
+        // For cloning, create a new prompt
+        await createPromptApi({
+          organizationId: organizationId,
+          prompt: promptConfig
+        });
+      } else {
+        // For renaming, update existing prompt
+        await updatePromptApi({
+          organizationId: organizationId,
+          promptId: selectedPrompt.prompt_id,
+          prompt: promptConfig
+        });
+      }
       
       // Refresh the prompt list to show the updated name
       await loadPrompts();
     } catch (error) {
-      console.error('Error renaming prompt:', error);
-      throw error; // Rethrow to handle in the component
+      console.error(`Error ${isCloning ? 'cloning' : 'renaming'} prompt:`, error);
+      throw error;
     }
   };
 
   const handleCloseNameModal = () => {
     setIsNameModalOpen(false);
     setSelectedPrompt(null);
+    setIsCloning(false);
   };
 
   const handleDelete = async (promptId: string) => {
@@ -459,6 +479,15 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           </MenuItem>
           <MenuItem 
             onClick={() => {
+              if (selectedPrompt) handleClonePrompt(selectedPrompt);
+            }}
+            className="flex items-center gap-2"
+          >
+            <ContentCopyIcon fontSize="small" className="text-purple-600" />
+            <span>Clone</span>
+          </MenuItem>
+          <MenuItem 
+            onClick={() => {
               if (selectedPrompt) handleEdit(selectedPrompt);
             }}
             className="flex items-center gap-2"
@@ -486,13 +515,14 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           </MenuItem>
         </Menu>
         
-        {/* Rename Modal */}
+        {/* Rename/Clone Modal */}
         {selectedPrompt && (
           <PromptNameModal
             isOpen={isNameModalOpen}
             onClose={handleCloseNameModal}
-            promptName={selectedPrompt.name}
+            promptName={isCloning ? `${selectedPrompt.name} (Copy)` : selectedPrompt.name}
             onSubmit={handleRenameSubmit}
+            isCloning={isCloning}
           />
         )}
       </div>

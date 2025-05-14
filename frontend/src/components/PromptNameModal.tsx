@@ -1,21 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface PromptNameModalProps {
   isOpen: boolean;
   onClose: () => void;
   promptName: string;
   onSubmit: (newName: string) => Promise<void>;
+  isCloning?: boolean;
 }
 
 const PromptNameModal: React.FC<PromptNameModalProps> = ({ 
   isOpen, 
   onClose, 
   promptName, 
-  onSubmit 
+  onSubmit,
+  isCloning = false
 }) => {
   const [newName, setNewName] = useState(promptName);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setNewName(promptName);
+  }, [promptName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,8 +37,8 @@ const PromptNameModal: React.FC<PromptNameModalProps> = ({
       await onSubmit(newName);
       onClose();
     } catch (error) {
-      console.error('Prompt rename failed:', error);
-      setError('Failed to rename prompt');
+      console.error(`Prompt ${isCloning ? 'clone' : 'rename'} failed:`, error);
+      setError(`Failed to ${isCloning ? 'clone' : 'rename'} prompt`);
     } finally {
       setIsSubmitting(false);
     }
@@ -43,7 +49,9 @@ const PromptNameModal: React.FC<PromptNameModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
-        <h3 className="text-lg font-medium mb-4">Rename Prompt</h3>
+        <h3 className="text-lg font-medium mb-4">
+          {isCloning ? 'Clone Prompt' : 'Rename Prompt'}
+        </h3>
         
         {error && (
           <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md">
@@ -73,13 +81,13 @@ const PromptNameModal: React.FC<PromptNameModalProps> = ({
             <button
               type="submit"
               className={`px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 ${
-                isSubmitting || !newName.trim() || newName === promptName
+                isSubmitting || !newName.trim() || (!isCloning && newName === promptName)
                   ? 'opacity-50 cursor-not-allowed'
                   : ''
               }`}
-              disabled={isSubmitting || !newName.trim() || newName === promptName}
+              disabled={isSubmitting || !newName.trim() || (!isCloning && newName === promptName)}
             >
-              {isSubmitting ? 'Saving...' : 'Save'}
+              {isSubmitting ? 'Saving...' : (isCloning ? 'Clone' : 'Save')}
             </button>
           </div>
         </form>
