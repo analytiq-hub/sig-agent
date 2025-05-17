@@ -38,7 +38,7 @@ from jsonschema import validate, ValidationError, Draft7Validator
 
 # Local imports
 from api import email_utils, startup, organizations, users, limits
-from api.schemas import (
+from api.models import (
     User, AccessToken, ListAccessTokensResponse,
     CreateAccessTokenRequest, ListDocumentsResponse,
     DocumentMetadata, DocumentUpload, DocumentsUpload,

@@ -19,7 +19,7 @@ sys.path.append(f"{cwd}/..")
 
 # Now import the FastAPI app and dependencies
 from api.main import app, security, get_current_user, get_admin_user
-from api.schemas import User
+from api.models import User
 import analytiq_data as ad
 
 def setup_env():
