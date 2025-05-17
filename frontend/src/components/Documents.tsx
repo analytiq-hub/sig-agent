@@ -26,10 +26,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import { toast } from 'react-toastify';
 import DocumentRenameModal from './DocumentRename';
 
-type File = DocumentMetadata;  // Use type alias instead of interface
-
-const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
-  const [files, setFiles] = useState<File[]>([]);
+const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => {
+  const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [skipRows, setSkipRows] = useState<number>(0);
   const [countRows, setCountRows] = useState<number>(0);
   const [totalRows, setTotalRows] = useState<number>(0);
@@ -63,7 +61,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         limit: paginationModel.pageSize
       });
       console.log('Documents response:', response);
-      setFiles(response.documents);  // Changed from pdfs
+      setDocuments(response.documents);  // Changed from pdfs
       setCountRows(response.documents.length);  // Changed from pdfs
       setSkipRows(paginationModel.page * paginationModel.pageSize);
       setTotalRows(response.total_count);
@@ -79,19 +77,19 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
             skip: paginationModel.page * paginationModel.pageSize,
             limit: paginationModel.pageSize
           }); 
-          setFiles(retryResponse.documents);  // Changed from pdfs
+          setDocuments(retryResponse.documents);  // Changed from pdfs
           setCountRows(retryResponse.documents.length);  // Changed from pdfs
           setSkipRows(retryResponse.skip);
           setTotalRows(retryResponse.total_count);
         } catch (retryError) {
           console.error('Retry failed:', retryError);
-          setFiles([]);
+          setDocuments([]);
           setCountRows(0);
           setSkipRows(0);
           setTotalRows(0);
         }
       } else {
-        setFiles([]);
+        setDocuments([]);
         setCountRows(0);
         setSkipRows(0);
         setTotalRows(0);
@@ -441,10 +439,10 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
       <DataGrid
         loading={isLoading}
-        rows={files.filter(file => 
-          file.document_name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        rows={documents.filter(document => 
+          document.document_name.toLowerCase().includes(searchTerm.toLowerCase()) &&
           (selectedTagFilters.length === 0 || 
-           selectedTagFilters.every(tag => file.tag_ids.includes(tag.id)))
+           selectedTagFilters.every(tag => document.tag_ids.includes(tag.id)))
         )}
         columns={columns}
         paginationModel={paginationModel}
@@ -543,4 +541,4 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   );
 };
 
-export default DocumentList;
+export default Documents;

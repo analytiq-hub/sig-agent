@@ -1,6 +1,6 @@
 'use client'
 
-import DocumentList from '@/components/DocumentList';
+import Documents from '@/components/Documents';
 import DocumentUpload from '@/components/DocumentUpload';
 import { useSearchParams, useRouter } from 'next/navigation';
 
@@ -44,7 +44,7 @@ export default function DocumentsPage({ params }: { params: { organizationId: st
 
       <div className="max-w-6xl mx-auto">
         <div role="tabpanel" hidden={tab !== 'documents'}>
-          {tab === 'documents' && <DocumentList organizationId={params.organizationId} />}
+          {tab === 'documents' && <Documents organizationId={params.organizationId} />}
         </div>
         <div role="tabpanel" hidden={tab !== 'upload'}>
           {tab === 'upload' && <DocumentUpload organizationId={params.organizationId} />}
