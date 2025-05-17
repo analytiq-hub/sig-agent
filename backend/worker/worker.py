@@ -18,8 +18,9 @@ ENV = os.getenv("ENV", "dev")
 N_WORKERS = int(os.getenv("N_WORKERS", "1"))  # Convert to int with default value of 1
 
 # Configure logging
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, LOG_LEVEL),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("worker.worker")
