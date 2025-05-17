@@ -299,83 +299,81 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
 
   return (
     <div className="p-4 mx-auto">
-      <div className="bg-white p-6 rounded-lg shadow">
       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800 hidden md:block">
-          <p className="text-sm">
-            Schemas define the structure for extracting key data fields from your documents. Below is a list of your existing schemas. 
-            If none are available, <Link href={`/orgs/${organizationId}/schemas?tab=schema-create`} className="text-blue-600 font-medium hover:underline">click here</Link> or use the tab above to create a new schema.
-          </p>
-        </div>
-        <h2 className="text-xl font-bold mb-4 hidden md:block">Schemas</h2>
-        
-        {/* Search Box */}
-        <div className="mb-4">
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Search schemas..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </div>
+        <p className="text-sm">
+          Schemas define the structure for extracting key data fields from your documents. Below is a list of your existing schemas. 
+          If none are available, <Link href={`/orgs/${organizationId}/schemas?tab=schema-create`} className="text-blue-600 font-medium hover:underline">click here</Link> or use the tab above to create a new schema.
+        </p>
+      </div>
+      <h2 className="text-xl font-bold mb-4 hidden md:block">Schemas</h2>
+      
+      {/* Search Box */}
+      <div className="mb-4">
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Search schemas..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </div>
 
-        {/* Message */}
-        {message && (
-          <div className={`mb-4 p-3 rounded ${
-            message.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
-          }`}>
-            {message}
-          </div>
-        )}
-
-        {/* Data Grid */}
-        <div style={{ height: 400, width: '100%' }}>
-          <DataGrid
-            rows={filteredSchemas}
-            columns={columns}
-            getRowId={(row) => row.schema_revid}
-            initialState={{
-              pagination: {
-                paginationModel: { pageSize: 5 }
-              },
-              sorting: {
-                sortModel: [{ field: 'schema_revid', sort: 'desc' }]
-              }
-            }}
-            pageSizeOptions={[5, 10, 20]}
-            disableRowSelectionOnClick
-            loading={isLoading}
-            paginationMode="server"
-            rowCount={total}
-            onPaginationModelChange={(model) => {
-              setPage(model.page);
-              setPageSize(model.pageSize);
-            }}
-            getRowHeight={({ model }) => {
-              const fields = jsonSchemaToFields(model.response_format);
-              const numFields = fields.length;
-              return Math.max(52, 24 * numFields + 16);
-            }}
-            sx={{
-              '& .MuiDataGrid-cell': {
-                padding: 'px',
-              },
-              '& .MuiDataGrid-row:nth-of-type(odd)': {
-                backgroundColor: colors.gray[100],  // Using Tailwind colors
-              },
-              '& .MuiDataGrid-row:hover': {
-                backgroundColor: `${colors.gray[200]} !important`,  // Using Tailwind colors
-              },
-            }}
-          />
+      {/* Message */}
+      {message && (
+        <div className={`mb-4 p-3 rounded ${
+          message.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
+        }`}>
+          {message}
         </div>
+      )}
+
+      {/* Data Grid */}
+      <div style={{ height: 400, width: '100%' }}>
+        <DataGrid
+          rows={filteredSchemas}
+          columns={columns}
+          getRowId={(row) => row.schema_revid}
+          initialState={{
+            pagination: {
+              paginationModel: { pageSize: 5 }
+            },
+            sorting: {
+              sortModel: [{ field: 'schema_revid', sort: 'desc' }]
+            }
+          }}
+          pageSizeOptions={[5, 10, 20]}
+          disableRowSelectionOnClick
+          loading={isLoading}
+          paginationMode="server"
+          rowCount={total}
+          onPaginationModelChange={(model) => {
+            setPage(model.page);
+            setPageSize(model.pageSize);
+          }}
+          getRowHeight={({ model }) => {
+            const fields = jsonSchemaToFields(model.response_format);
+            const numFields = fields.length;
+            return Math.max(52, 24 * numFields + 16);
+          }}
+          sx={{
+            '& .MuiDataGrid-cell': {
+              padding: 'px',
+            },
+            '& .MuiDataGrid-row:nth-of-type(odd)': {
+              backgroundColor: colors.gray[100],  // Using Tailwind colors
+            },
+            '& .MuiDataGrid-row:hover': {
+              backgroundColor: `${colors.gray[200]} !important`,  // Using Tailwind colors
+            },
+          }}
+        />
       </div>
       
       {/* Actions Menu */}

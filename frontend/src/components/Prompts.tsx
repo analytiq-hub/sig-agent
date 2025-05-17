@@ -389,78 +389,77 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   return (
     <div className="p-4 w-full">
       {/* Prompts List */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800 hidden md:block">
-          <p className="text-sm">
-            Prompts define extraction instructions for your documents. They can be linked to schemas to ensure structured output format. 
-            If none are available, <Link href={`/orgs/${organizationId}/prompts?tab=prompt-create`} className="text-blue-600 font-medium hover:underline">click here</Link> or use the tab above to create a new prompt.
-          </p>
-        </div>
-        <h2 className="text-xl font-bold mb-4">Prompts</h2>
-        
-        {/* Search Box */}
-        <div className="mb-4">
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Search prompts..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </div>
+      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800 hidden md:block">
+        <p className="text-sm">
+          Prompts define extraction instructions for your documents. They can be linked to schemas to ensure structured output format. 
+          If none are available, <Link href={`/orgs/${organizationId}/prompts?tab=prompt-create`} className="text-blue-600 font-medium hover:underline">click here</Link> or use the tab above to create a new prompt.
+        </p>
+      </div>
+      <h2 className="text-xl font-bold mb-4">Prompts</h2>
+      
+      {/* Search Box */}
+      <div className="mb-4">
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Search prompts..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </div>
 
-        {/* Message */}
-        {message && (
-          <div className={`mb-4 p-3 rounded ${
-            message.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
-          }`}>
-            {message}
-          </div>
-        )}
-
-        {/* Data Grid */}
-        <div style={{ height: 400, width: '100%' }}>
-          <DataGrid
-            rows={filteredPrompts}
-            columns={columns}
-            getRowId={(row) => row.prompt_revid}
-            initialState={{
-              pagination: {
-                paginationModel: { pageSize: 5 }
-              },
-              sorting: {
-                sortModel: [{ field: 'prompt_revid', sort: 'desc' }]  // Sort by prompt_revid descending by default
-              }
-            }}
-            pageSizeOptions={[5, 10, 20]}
-            disableRowSelectionOnClick
-            loading={isLoading}
-            paginationMode="server"
-            rowCount={total}  // Add this to show total count
-            onPaginationModelChange={(model) => {
-              setPage(model.page);
-              setPageSize(model.pageSize);
-            }}
-            sx={{
-              '& .MuiDataGrid-cell': {
-                padding: '8px',
-              },
-              '& .MuiDataGrid-row:nth-of-type(odd)': {
-                backgroundColor: colors.gray[100],
-              },
-              '& .MuiDataGrid-row:hover': {
-                backgroundColor: `${colors.gray[200]} !important`,
-              },
-            }}
-          />
+      {/* Message */}
+      {message && (
+        <div className={`mb-4 p-3 rounded ${
+          message.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
+        }`}>
+          {message}
         </div>
+      )}
+
+      {/* Data Grid */}
+      <div style={{ height: 400, width: '100%' }}>
+        <DataGrid
+          rows={filteredPrompts}
+          columns={columns}
+          getRowId={(row) => row.prompt_revid}
+          initialState={{
+            pagination: {
+              paginationModel: { pageSize: 5 }
+            },
+            sorting: {
+              sortModel: [{ field: 'prompt_revid', sort: 'desc' }]  // Sort by prompt_revid descending by default
+            }
+          }}
+          pageSizeOptions={[5, 10, 20]}
+          disableRowSelectionOnClick
+          loading={isLoading}
+          paginationMode="server"
+          rowCount={total}  // Add this to show total count
+          onPaginationModelChange={(model) => {
+            setPage(model.page);
+            setPageSize(model.pageSize);
+          }}
+          sx={{
+            '& .MuiDataGrid-cell': {
+              padding: '8px',
+            },
+            '& .MuiDataGrid-row:nth-of-type(odd)': {
+              backgroundColor: colors.gray[100],
+            },
+            '& .MuiDataGrid-row:hover': {
+              backgroundColor: `${colors.gray[200]} !important`,
+            },
+          }}
+        />
+      
         
         {/* Actions Menu */}
         <Menu
