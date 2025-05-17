@@ -98,6 +98,12 @@ FASTAPI_SECRET = os.getenv("FASTAPI_SECRET")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
 # Define MongoDB connection check function to be used in lifespan
 async def check_mongodb_connection(uri):
     try:

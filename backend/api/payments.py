@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request, Body, BackgroundTasks
@@ -7,7 +8,8 @@ import stripe
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from bson import ObjectId
 
-import analytiq_data as ad
+# Configure logger
+logger = logging.getLogger(__name__)
 
 # Initialize FastAPI router
 payments_router = APIRouter(prefix="/v0/account/payments", tags=["payments"])
@@ -92,10 +94,10 @@ async def init_payments_env():
 async def init_payments():
     await init_payments_env()
 
-    ad.log.info("Stripe initialized")
+    logger.info("Stripe initialized")
 
     await sync_customers()
-    ad.log.info("Stripe customers synced")
+    logger.info("Stripe customers synced")
 
 async def sync_customers() -> Tuple[int, int, List[str]]:
     """
@@ -106,10 +108,10 @@ async def sync_customers() -> Tuple[int, int, List[str]]:
     """
     if not stripe.api_key:
         # No-op if Stripe is not configured
-        ad.log.warning("Stripe API key not configured - sync_customers aborted")
+        logger.warning("Stripe API key not configured - sync_customers aborted")
         return 0, 0, ["Stripe API key not configured"]
 
-    ad.log.info("Starting sync of all users with Stripe")
+    logger.info("Starting sync of all users with Stripe")
     
     try:
         # Get all users from the database
@@ -143,14 +145,14 @@ async def sync_customers() -> Tuple[int, int, List[str]]:
             
             except Exception as e:
                 error_msg = f"Error syncing user {user.get('_id', 'unknown')}: {str(e)}"
-                ad.log.error(error_msg)
+                logger.error(error_msg)
                 errors.append(error_msg)
         
-        ad.log.info(f"Completed sync: {successful}/{total_users} users synchronized with Stripe")
+        logger.info(f"Completed sync: {successful}/{total_users} users synchronized with Stripe")
         return total_users, successful, errors
     
     except Exception as e:
-        ad.log.error(f"Error during customer sync: {e}")
+        logger.error(f"Error during customer sync: {e}")
         return 0, 0, [f"Global error: {str(e)}"]
 
 # Dependency to get database
@@ -217,7 +219,7 @@ def parse_stripe_usage(parsed_subscription, stripe_customer_id):
                         end_time=item_data["current_period_end"],
                     )
 
-                    ad.log.info(f"Meter event summaries: {meter_event_summaries}")
+                    logger.info(f"Meter event summaries: {meter_event_summaries}")
                     
                     # Extract relevant usage information
                     current_usage = {
@@ -240,7 +242,7 @@ def parse_stripe_usage(parsed_subscription, stripe_customer_id):
                     usage[subscription_item_id] = current_usage
         
         except Exception as e:
-            ad.log.error(f"Error retrieving Stripe usage information: {e}")
+            logger.error(f"Error retrieving Stripe usage information: {e}")
             # Continue with empty usage object rather than failing
     
     return usage
@@ -253,9 +255,9 @@ async def get_or_create_payments_customer(user_id: str, email: str, name: Option
         # No-op if Stripe is not configured
         return None
 
-    ad.log.info(f"Getting or creating Stripe customer for user_id: {user_id}")
-    ad.log.info(f"Email: {email}")
-    ad.log.info(f"Name: {name}")
+    logger.info(f"Getting or creating Stripe customer for user_id: {user_id}")
+    logger.info(f"Email: {email}")
+    logger.info(f"Name: {name}")
 
     # Check if customer already exists in our DB. We will reconcilie this with Stripe.
     customer_doc = await stripe_customers.find_one({"user_id": user_id})
@@ -277,9 +279,9 @@ async def get_or_create_payments_customer(user_id: str, email: str, name: Option
                     name=name,  # Update name if provided
                     metadata={"user_id": user_id, "updated_at": datetime.utcnow().isoformat()}
                 )
-                ad.log.info(f"Updated Stripe customer name for user_id: {user_id}")
+                logger.info(f"Updated Stripe customer name for user_id: {user_id}")
             else:          
-                ad.log.info(f"Found existing Stripe customer with id: {stripe_customer.id}")
+                logger.info(f"Found existing Stripe customer with id: {stripe_customer.id}")
         else:
             # Create new customer in Stripe
             stripe_customer = stripe.Customer.create(
@@ -288,7 +290,7 @@ async def get_or_create_payments_customer(user_id: str, email: str, name: Option
                 metadata={"user_id": user_id}
             )
             
-            ad.log.info(f"Created new Stripe customer with id: {stripe_customer.id}")
+            logger.info(f"Created new Stripe customer with id: {stripe_customer.id}")
         
         # Check if the customer has an active subscription
         subscription = None
@@ -296,16 +298,16 @@ async def get_or_create_payments_customer(user_id: str, email: str, name: Option
         if subscriptions.data:
             subscription = subscriptions.data[0]
             if subscription.status == "active":
-                ad.log.info(f"Customer {user_id} has an active subscription")
+                logger.info(f"Customer {user_id} has an active subscription")
         else:
-            ad.log.info(f"Customer {user_id} has no active subscriptions")
+            logger.info(f"Customer {user_id} has no active subscriptions")
         
         parsed_subscription = parse_stripe_subscription(subscription) if subscription else None
-        ad.log.info(f"Parsed subscription: {parsed_subscription}")
+        logger.info(f"Parsed subscription: {parsed_subscription}")
         
         # Get metered usage information
         usage = parse_stripe_usage(parsed_subscription, stripe_customer.id)
-        ad.log.info(f"Parsed usage: {usage}")
+        logger.info(f"Parsed usage: {usage}")
         
         if customer_doc:
             # Update the customer document with the new subscription and usage data
@@ -318,9 +320,9 @@ async def get_or_create_payments_customer(user_id: str, email: str, name: Option
                 }}
             )
             customer_doc = await stripe_customers.find_one({"user_id": user_id})
-            ad.log.info(f"Updated customer document for user_id: {user_id}")
+            logger.info(f"Updated customer document for user_id: {user_id}")
         else:
-            ad.log.info(f"Customer {user_id} has no customer document")
+            logger.info(f"Customer {user_id} has no customer document")
         
             # Store in our database
             customer_doc = {
@@ -338,23 +340,23 @@ async def get_or_create_payments_customer(user_id: str, email: str, name: Option
         return customer_doc
     
     except Exception as e:
-        ad.log.error(f"Error in get_or_create_payments_customer: {e}")
+        logger.error(f"Error in get_or_create_payments_customer: {e}")
         raise e
 
 async def record_usage(user_id: str, pages_processed: int, operation: str, source: str = "backend") -> Dict[str, Any]:
     """Record usage for a user and report to Stripe if on paid tier"""
 
-    ad.log.info(f"record_usage called with user_id: {user_id}, pages_processed: {pages_processed}, operation: {operation}, source: {source}")
+    logger.info(f"record_usage called with user_id: {user_id}, pages_processed: {pages_processed}, operation: {operation}, source: {source}")
 
     if not stripe.api_key:
         # No-op if Stripe is not configured
-        ad.log.warning("Stripe API key not configured - record_usage aborted")
+        logger.warning("Stripe API key not configured - record_usage aborted")
         return None
 
-    ad.log.info(f"Recording usage for user_id: {user_id}")
-    ad.log.info(f"Pages processed: {pages_processed}")
-    ad.log.info(f"Operation: {operation}")
-    ad.log.info(f"Source: {source}")
+    logger.info(f"Recording usage for user_id: {user_id}")
+    logger.info(f"Pages processed: {pages_processed}")
+    logger.info(f"Operation: {operation}")
+    logger.info(f"Source: {source}")
 
     # Get customer record
     customer = await stripe_customers.find_one({"user_id": user_id})
@@ -400,8 +402,8 @@ async def record_usage(user_id: str, pages_processed: int, operation: str, sourc
                             event_name="docrouterpages",
                             payload={"stripe_customer_id": customer["stripe_customer_id"], "value": pages_processed},
                         )
-                        ad.log.info(f"Reported usage to Stripe for user_id: {customer['user_id']}")
-                        ad.log.info(f"Meter event: {meter_event}")
+                        logger.info(f"Reported usage to Stripe for user_id: {customer['user_id']}")
+                        logger.info(f"Meter event: {meter_event}")
                         
                 # Mark usage as reported to Stripe
                 await stripe_usage.update_one(
@@ -409,11 +411,11 @@ async def record_usage(user_id: str, pages_processed: int, operation: str, sourc
                     {"$set": {"reported_to_stripe": True}}
                 )
                 
-                ad.log.info(f"Reported {pages_processed} pages of usage to Stripe for user_id: {user_id}")
+                logger.info(f"Reported {pages_processed} pages of usage to Stripe for user_id: {user_id}")
         except Exception as e:
-            ad.log.error(f"Error reporting usage to Stripe: {e}")
+            logger.error(f"Error reporting usage to Stripe: {e}")
     else:
-        ad.log.info(f"User {user_id} has no active subscription with metered usage - skipping Stripe reporting")
+        logger.info(f"User {user_id} has no active subscription with metered usage - skipping Stripe reporting")
     
     # Check if user needs to upgrade (has reached free tier limit)
     if not customer.get("stripe_subscription") or customer["stripe_subscription"].get("is_active") == False:
@@ -424,7 +426,7 @@ async def record_usage(user_id: str, pages_processed: int, operation: str, sourc
                 {"user_id": user_id},
                 {"$set": {"free_usage_remaining": 0}}
             )
-            ad.log.info(f"User {user_id} has reached free usage limit")
+            logger.info(f"User {user_id} has reached free usage limit")
     
     return usage_record
 
@@ -435,7 +437,7 @@ async def check_usage_limits(user_id: str) -> Dict[str, Any]:
         # No-op if Stripe is not configured
         return None
 
-    ad.log.info(f"Checking usage limits for user_id: {user_id}")
+    logger.info(f"Checking usage limits for user_id: {user_id}")
 
     customer = await stripe_customers.find_one({"user_id": user_id})
     if not customer:
@@ -473,13 +475,13 @@ async def update_payments_customer(user_id: str, email: Optional[str] = None, na
         # No-op if Stripe is not configured
         return None
 
-    ad.log.info(f"Updating Stripe customer for user_id: {user_id}")
+    logger.info(f"Updating Stripe customer for user_id: {user_id}")
     
     try:
         # Check if customer exists in our DB
         stripe_customer = await stripe_customers.find_one({"user_id": user_id})
         if not stripe_customer:
-            ad.log.warning(f"No Stripe customer found for user_id: {user_id}")
+            logger.warning(f"No Stripe customer found for user_id: {user_id}")
             return None
             
         # Only update if we have data to update
@@ -510,7 +512,7 @@ async def update_payments_customer(user_id: str, email: Optional[str] = None, na
         return await stripe_customers.find_one({"user_id": user_id})
         
     except Exception as e:
-        ad.log.error(f"Error updating Stripe customer: {e}")
+        logger.error(f"Error updating Stripe customer: {e}")
         # Return the original customer info even if update failed
         return stripe_customer
 
@@ -529,13 +531,13 @@ async def delete_payments_customer(user_id: str) -> Dict[str, Any]:
         # No-op if Stripe is not configured
         return None
 
-    ad.log.info(f"Marking Stripe customer as deleted for user_id: {user_id}")
+    logger.info(f"Marking Stripe customer as deleted for user_id: {user_id}")
     
     try:
         # Find Stripe customer
         stripe_customer = await stripe_customers.find_one({"user_id": user_id})
         if not stripe_customer:
-            ad.log.warning(f"No Stripe customer found for user_id: {user_id}")
+            logger.warning(f"No Stripe customer found for user_id: {user_id}")
             return {"success": False, "reason": "Customer not found"}
             
         # In Stripe, we typically don't delete customers but mark them as deleted
@@ -558,7 +560,7 @@ async def delete_payments_customer(user_id: str) -> Dict[str, Any]:
         }
         
     except Exception as e:
-        ad.log.error(f"Error handling Stripe customer deletion: {e}")
+        logger.error(f"Error handling Stripe customer deletion: {e}")
         return {"success": False, "error": str(e)}
 
 @payments_router.post("/setup-intent")
@@ -568,7 +570,7 @@ async def create_setup_intent(
 ):
     """Create a setup intent for collecting payment method"""
 
-    ad.log.info(f"Creating setup intent for customer_id: {data.customer_id}")
+    logger.info(f"Creating setup intent for customer_id: {data.customer_id}")
 
     try:
         setup_intent = stripe.SetupIntent.create(
@@ -586,7 +588,7 @@ async def create_subscription(
 ):
     """Create a metered subscription for a customer"""
 
-    ad.log.info(f"Creating subscription for customer_id: {data.customer_id}")
+    logger.info(f"Creating subscription for customer_id: {data.customer_id}")
 
     try:
         # Find the customer in our database
@@ -656,7 +658,7 @@ async def customer_portal(
 ) -> PortalSessionResponse:
     """Generate a Stripe Customer Portal link"""
 
-    ad.log.info(f"Generating Stripe customer portal for user_id: {data.user_id}")
+    logger.info(f"Generating Stripe customer portal for user_id: {data.user_id}")
 
     user_id = data.user_id
     customer = await stripe_customers.find_one({"user_id": user_id})
@@ -668,10 +670,10 @@ async def customer_portal(
             customer=customer["stripe_customer_id"],
             return_url=f"{NEXTAUTH_URL}/settings",
         )
-        ad.log.info(f"Stripe customer portal URL: {session.url}")
+        logger.info(f"Stripe customer portal URL: {session.url}")
         return PortalSessionResponse(url=session.url)
     except Exception as e:
-        ad.log.error(f"Error generating Stripe customer portal: {e}")
+        logger.error(f"Error generating Stripe customer portal: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @payments_router.post("/webhook", status_code=200)
@@ -681,7 +683,7 @@ async def webhook_received(
 ):
     """Handle Stripe webhook events"""
 
-    ad.log.info("Received Stripe webhook event")
+    logger.info("Received Stripe webhook event")
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
 
@@ -696,7 +698,7 @@ async def webhook_received(
     except stripe.error.SignatureVerificationError as e:
         raise HTTPException(status_code=400, detail="Invalid signature")
     
-    ad.log.info(f"Stripe webhook event received: {event['type']}")
+    logger.info(f"Stripe webhook event received: {event['type']}")
 
     # Store event in database for audit
     event_doc = {
@@ -738,10 +740,10 @@ async def api_record_usage(
 ):
     """Record usage for a user"""
 
-    ad.log.info(f"Recording usage for user_id: {usage.user_id}")
-    ad.log.info(f"Pages processed: {usage.pages_processed}")
-    ad.log.info(f"Operation: {usage.operation}")
-    ad.log.info(f"Source: {usage.source}")
+    logger.info(f"Recording usage for user_id: {usage.user_id}")
+    logger.info(f"Pages processed: {usage.pages_processed}")
+    logger.info(f"Operation: {usage.operation}")
+    logger.info(f"Source: {usage.source}")
 
     try:
         result = await record_usage(
@@ -762,7 +764,7 @@ async def get_usage_stats(
 ):
     """Get current usage statistics for a user"""
 
-    ad.log.info(f"Getting usage stats for user_id: {user_id}")
+    logger.info(f"Getting usage stats for user_id: {user_id}")
     try:
         customer = await stripe_customers.find_one({"user_id": user_id})
         if not customer:
@@ -799,7 +801,7 @@ async def get_usage_stats(
 async def handle_subscription_updated(subscription: Dict[str, Any]):
     """Handle subscription created or updated event"""
 
-    ad.log.info(f"Handling subscription updated event for subscription_id: {subscription['id']}")
+    logger.info(f"Handling subscription updated event for subscription_id: {subscription['id']}")
     try:
         # Find the subscription in our database
         sub_doc = await stripe_subscriptions.find_one({"subscription_id": subscription["id"]})
@@ -861,7 +863,7 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
 async def handle_subscription_deleted(subscription: Dict[str, Any]):
     """Handle subscription deleted event"""
 
-    ad.log.info(f"Handling subscription deleted event for subscription_id: {subscription['id']}")
+    logger.info(f"Handling subscription deleted event for subscription_id: {subscription['id']}")
 
     try:
         # Update subscription in our database
@@ -893,7 +895,7 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
 async def handle_invoice_paid(invoice: Dict[str, Any]):
     """Handle invoice paid event"""
     
-    ad.log.info(f"Handling invoice paid event for invoice_id: {invoice['id']}")
+    logger.info(f"Handling invoice paid event for invoice_id: {invoice['id']}")
 
     try:
         # Update subscription status if needed
@@ -926,7 +928,7 @@ async def handle_invoice_paid(invoice: Dict[str, Any]):
 async def handle_invoice_payment_failed(invoice: Dict[str, Any]):
     """Handle invoice payment failed event"""
 
-    ad.log.info(f"Handling invoice payment failed event for invoice_id: {invoice['id']}")
+    logger.info(f"Handling invoice payment failed event for invoice_id: {invoice['id']}")
     try:
         # Update customer payment status
         await stripe_customers.update_one(
@@ -969,7 +971,7 @@ async def delete_all_stripe_customers(dryrun: bool = True) -> Dict[str, Any]:
         Dictionary with status information about the operation
     """
     
-    ad.log.warning("Starting deletion of ALL Stripe customers")
+    logger.warning("Starting deletion of ALL Stripe customers")
     
     deleted_count = 0
     failed_count = 0
@@ -998,23 +1000,23 @@ async def delete_all_stripe_customers(dryrun: bool = True) -> Dict[str, Any]:
                         try:
                             if not dryrun:
                                 stripe.Subscription.delete(subscription.id)
-                                ad.log.info(f"Deleted subscription {subscription.id} for customer {customer.id}")
+                                logger.info(f"Deleted subscription {subscription.id} for customer {customer.id}")
                             else:
-                                ad.log.info(f"Would have deleted subscription {subscription.id} for customer {customer.id}")
+                                logger.info(f"Would have deleted subscription {subscription.id} for customer {customer.id}")
                         except Exception as e:
-                            ad.log.error(f"Error deleting subscription {subscription.id}: {e}")
+                            logger.error(f"Error deleting subscription {subscription.id}: {e}")
                     
                     # Delete the customer
                     if not dryrun:
                         stripe.Customer.delete(customer.id)
                         deleted_count += 1
-                        ad.log.info(f"Deleted Stripe customer: {customer.id}")
+                        logger.info(f"Deleted Stripe customer: {customer.id}")
                     else:
-                        ad.log.info(f"Would have deleted Stripe customer: {customer.id}")
+                        logger.info(f"Would have deleted Stripe customer: {customer.id}")
                     
                 except Exception as e:
                     error_msg = f"Error deleting Stripe customer {customer.id}: {str(e)}"
-                    ad.log.error(error_msg)
+                    logger.error(error_msg)
                     error_messages.append(error_msg)
                     failed_count += 1
             
@@ -1030,12 +1032,12 @@ async def delete_all_stripe_customers(dryrun: bool = True) -> Dict[str, Any]:
                 await stripe_subscriptions.delete_many({})
                 await stripe_usage.delete_many({})
                 await stripe_customers.delete_many({})
-                ad.log.info("Deleted all local Stripe customer records")
+                logger.info("Deleted all local Stripe customer records")
             else:
-                ad.log.info("Would have deleted all local Stripe customer records")
+                logger.info("Would have deleted all local Stripe customer records")
         except Exception as e:
             error_msg = f"Error cleaning up local database: {str(e)}"
-            ad.log.error(error_msg)
+            logger.error(error_msg)
             error_messages.append(error_msg)
         
         return {
@@ -1047,5 +1049,5 @@ async def delete_all_stripe_customers(dryrun: bool = True) -> Dict[str, Any]:
         }
         
     except Exception as e:
-        ad.log.error(f"Error during bulk deletion: {e}")
+        logger.error(f"Error during bulk deletion: {e}")
         return {"success": False, "error": str(e)}
