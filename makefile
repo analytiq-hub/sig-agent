@@ -3,3 +3,5 @@ dev:
 
 tests:
 	. .venv/bin/activate && pytest -s backend/tests/
+
+.PHONY: dev tests
