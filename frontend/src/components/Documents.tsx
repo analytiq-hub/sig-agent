@@ -51,6 +51,8 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedDocument, setSelectedDocument] = useState<DocumentMetadata | null>(null);
 
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
+
   const fetchFiles = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -246,10 +248,26 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
     }
   };
 
-  const columns: GridColDef[] = [
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsSmallScreen(window.innerWidth < 768);
+    };
+    
+    // Initial check
+    checkScreenSize();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkScreenSize);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  // Define all columns
+  const allColumns: GridColDef[] = [
     {
-      field: 'document_name',  // Changed from file_name
-      headerName: 'Document Name',  // Updated header
+      field: 'document_name',
+      headerName: 'Document Name',
       flex: 1,
       renderCell: (params) => {
         return (
@@ -332,6 +350,11 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
       ),
     },
   ];
+  
+  // Filter columns based on screen size
+  const columns = isSmallScreen 
+    ? allColumns.filter(col => ['document_name', 'tag_ids', 'actions'].includes(col.field))
+    : allColumns;
 
   const handleCloseTagEditor = () => {
     setIsTagEditorOpen(false);
