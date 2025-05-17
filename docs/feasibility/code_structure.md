@@ -18,7 +18,7 @@ doc-router/
 │ │
 │ └── tests/ # Tests for all packages
 │
-├── backend/ # Backend python packages. Some could be moved to packages/
+├── packages/ # Python packages. Some could be moved to packages/
 │ ├── analytiq_data/ # Data handling implementation
 │ │ ├── common/ # Common utilities
 │ │ ├── mongodb/ # MongoDB integration

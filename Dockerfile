@@ -36,11 +36,11 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy only backend requirements first
-COPY backend/requirements.txt ./backend/
-RUN pip install --no-cache-dir -r backend/requirements.txt
+# Copy only packages requirements first
+COPY packages/requirements.txt ./packages/
+RUN pip install --no-cache-dir -r packages/requirements.txt
 
-# Then copy the rest of the backend
-COPY backend/ ./backend/
+# Then copy the rest of the packages
+COPY packages/ ./packages/
 
 EXPOSE 8000

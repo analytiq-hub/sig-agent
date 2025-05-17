@@ -23,7 +23,7 @@ def main():
     # Try to find requirements.txt in the same directory as the script
     requirements_path = script_dir / "requirements.txt"
     
-    # If not found, try one directory up (assuming script is in a subdirectory like 'backend')
+    # If not found, try one directory up (assuming script is in a subdirectory like 'packages')
     if not requirements_path.exists():
         requirements_path = script_dir.parent / "requirements.txt"
         

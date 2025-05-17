@@ -24,7 +24,7 @@ The migration system allows you to make changes to the database schema in a vers
 
 ### 1. Create a New Migration
 
-Create a new class in `backend/analytiq_data/migrations/migration.py` that inherits from the `Migration` base class:
+Create a new class in `packages/analytiq_data/migrations/migration.py` that inherits from the `Migration` base class:
 
 ```python
 class YourMigrationName(Migration):
@@ -50,7 +50,7 @@ class YourMigrationName(Migration):
 
 ### 2. Register the Migration
 
-Add your migration to the `MIGRATIONS` list in `backend/analytiq_data/migrations/migration.py`. The version number will be automatically assigned based on the position in the list:
+Add your migration to the `MIGRATIONS` list in `packages/analytiq_data/migrations/migration.py`. The version number will be automatically assigned based on the position in the list:
 
 ```python
 MIGRATIONS = [

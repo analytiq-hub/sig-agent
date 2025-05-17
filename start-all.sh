@@ -78,8 +78,8 @@ cleanup_uvicorn() {
 cleanup_next_server
 cleanup_uvicorn
 # Run both processes
-run_with_color "uvicorn api.main:app --reload --host 0.0.0.0 --port 8000" "$RED" "FASTAPI" "backend"
-run_with_color "python worker.py" "$GREEN" "WORKER" "backend/worker"
+run_with_color "uvicorn api.main:app --reload --host 0.0.0.0 --port 8000" "$RED" "FASTAPI" "packages"
+run_with_color "python worker.py" "$GREEN" "WORKER" "packages/worker"
 run_with_color "npm run dev" "$MAGENTA" "NEXTJS" "frontend"
 
 # Wait for any process to exit
