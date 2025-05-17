@@ -88,21 +88,22 @@ FASTAPI_ROOT_PATH = os.getenv("FASTAPI_ROOT_PATH", "/")
 MONGODB_URI = os.getenv("MONGODB_URI")
 SES_FROM_EMAIL = os.getenv("SES_FROM_EMAIL")
 
-ad.log.info(f"ENV: {ENV}")
-ad.log.info(f"NEXTAUTH_URL: {NEXTAUTH_URL}")
-ad.log.info(f"FASTAPI_ROOT_PATH: {FASTAPI_ROOT_PATH}")
-ad.log.info(f"MONGODB_URI: {MONGODB_URI}")
-ad.log.info(f"SES_FROM_EMAIL: {SES_FROM_EMAIL}")
-# JWT settings
-FASTAPI_SECRET = os.getenv("FASTAPI_SECRET")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+logger = logging.getLogger(__name__)
+
+logger.info(f"ENV: {ENV}")
+logger.info(f"NEXTAUTH_URL: {NEXTAUTH_URL}")
+logger.info(f"FASTAPI_ROOT_PATH: {FASTAPI_ROOT_PATH}")
+logger.info(f"MONGODB_URI: {MONGODB_URI}")
+logger.info(f"SES_FROM_EMAIL: {SES_FROM_EMAIL}")
+# JWT settings
+FASTAPI_SECRET = os.getenv("FASTAPI_SECRET")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # Define MongoDB connection check function to be used in lifespan
 async def check_mongodb_connection(uri):
@@ -112,10 +113,10 @@ async def check_mongodb_connection(uri):
         
         # The ismaster command is cheap and does not require auth
         await mongo_client.admin.command('ismaster')
-        ad.log.info(f"MongoDB connection successful at {uri}")
+        logger.info(f"MongoDB connection successful at {uri}")
         return True
     except Exception as e:
-        ad.log.error(f"Failed to connect to MongoDB at {uri}: {e}")
+        logger.error(f"Failed to connect to MongoDB at {uri}: {e}")
         return False
 
 UPLOAD_DIR = "data"
@@ -153,7 +154,7 @@ origins = [
     NEXTAUTH_URL,
 ]
 
-ad.log.info(f"CORS allowed origins: {origins}")
+logger.info(f"CORS allowed origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -223,10 +224,10 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
     except JWTError:
         # If JWT validation fails, check if it's an API token
         encrypted_token = ad.crypto.encrypt_token(token)
-        ad.log.info(f"token: {token}")
-        ad.log.info(f"encrypted_token: {encrypted_token}")
-        ad.log.info(f"context_type: {context_type}")
-        ad.log.info(f"org_id: {org_id}")
+        logger.info(f"token: {token}")
+        logger.info(f"encrypted_token: {encrypted_token}")
+        logger.info(f"context_type: {context_type}")
+        logger.info(f"org_id: {org_id}")
         
         # Build query based on context
         token_query = {"token": encrypted_token}
@@ -241,7 +242,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
             raise HTTPException(status_code=401, detail="Invalid API context")
             
         stored_token = await db.access_tokens.find_one(token_query)
-        ad.log.info(f"stored_token: {stored_token}")
+        logger.info(f"stored_token: {stored_token}")
         
         if stored_token:
             # Validate that user_id from stored token exists in database
