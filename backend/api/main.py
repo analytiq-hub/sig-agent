@@ -93,6 +93,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+
 logger = logging.getLogger(__name__)
 
 logger.info(f"ENV: {ENV}")
@@ -154,7 +155,7 @@ origins = [
     NEXTAUTH_URL,
 ]
 
-logger.info(f"CORS allowed origins: {origins}")
+ad.log.info(f"CORS allowed origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -224,10 +225,10 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
     except JWTError:
         # If JWT validation fails, check if it's an API token
         encrypted_token = ad.crypto.encrypt_token(token)
-        logger.info(f"token: {token}")
-        logger.info(f"encrypted_token: {encrypted_token}")
-        logger.info(f"context_type: {context_type}")
-        logger.info(f"org_id: {org_id}")
+        ad.log.info(f"token: {token}")
+        ad.log.info(f"encrypted_token: {encrypted_token}")
+        ad.log.info(f"context_type: {context_type}")
+        ad.log.info(f"org_id: {org_id}")
         
         # Build query based on context
         token_query = {"token": encrypted_token}
@@ -242,7 +243,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
             raise HTTPException(status_code=401, detail="Invalid API context")
             
         stored_token = await db.access_tokens.find_one(token_query)
-        logger.info(f"stored_token: {stored_token}")
+        ad.log.info(f"stored_token: {stored_token}")
         
         if stored_token:
             # Validate that user_id from stored token exists in database
