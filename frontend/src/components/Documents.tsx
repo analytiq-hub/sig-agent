@@ -268,7 +268,7 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
     {
       field: 'document_name',
       headerName: 'Document Name',
-      flex: 1,
+      flex: 2,
       renderCell: (params) => {
         return (
           <Link href={`/orgs/${organizationId}/pdf-viewer/${params.row.id}`}
@@ -280,8 +280,8 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
     },
     {
       field: 'upload_date',
-      headerName: 'Upload Date',
-      flex: 1,
+      headerName: 'Date',
+      flex: .5,
       valueFormatter: (params: GridRenderCellParams) => {
         if (!params.value) return '';
         const date = new Date(params.value as string);
@@ -308,7 +308,7 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
       },
     },
     { field: 'uploaded_by', headerName: 'Uploaded By', flex: 1 },
-    { field: 'state', headerName: 'State', flex: 1 },
+    { field: 'state', headerName: 'State', flex: .75 },
     {
       field: 'tag_ids',
       headerName: 'Tags',
@@ -385,7 +385,13 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
   }, []);
 
   return (
-    <Box sx={{ height: containerHeight, width: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ 
+      flex: 1, 
+      width: '100%', 
+      display: 'flex', 
+      flexDirection: 'column',
+      height: 'calc(100vh - 184px)' // Just header + search + footer
+    }}>
       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800 hidden md:block">
         <p className="text-sm">
           Welcome! Upload your documents to begin transforming unstructured data into structured insights. 
