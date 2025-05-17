@@ -45,8 +45,7 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTagFilters, setSelectedTagFilters] = useState<Tag[]>([]);
-  const [containerHeight, setContainerHeight] = useState('calc(100vh - 250px)');
-  
+
   // Add state for menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedDocument, setSelectedDocument] = useState<DocumentMetadata | null>(null);
@@ -118,10 +117,6 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
     };
     loadTags();
   }, [organizationId]);
-
-  // Calculate the current range
-  const startRange = skipRows + 1;
-  const endRange = Math.min(startRange + countRows - 1, totalRows);
 
   // Menu handlers
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, document: DocumentMetadata) => {
@@ -365,24 +360,6 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
     setIsRenameModalOpen(false);
     setEditingDocument(null);
   };
-
-  useEffect(() => {
-    const updateHeight = () => {
-      const headerHeight = 64;
-      const searchBarHeight = 80;
-      const footerHeight = 40;
-      const padding = 66;
-      
-      const availableHeight = window.innerHeight - (headerHeight + searchBarHeight + footerHeight + padding);
-      setContainerHeight(`${Math.max(400, availableHeight)}px`);
-    };
-
-    updateHeight();
-    
-    window.addEventListener('resize', updateHeight);
-    
-    return () => window.removeEventListener('resize', updateHeight);
-  }, []);
 
   return (
     <Box sx={{ 
