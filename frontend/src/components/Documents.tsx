@@ -28,8 +28,6 @@ import DocumentRenameModal from './DocumentRename';
 
 const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
-  const [skipRows, setSkipRows] = useState<number>(0);
-  const [countRows, setCountRows] = useState<number>(0);
   const [totalRows, setTotalRows] = useState<number>(0);
   const [paginationModel, setPaginationModel] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -63,8 +61,6 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
       });
       console.log('Documents response:', response);
       setDocuments(response.documents);  // Changed from pdfs
-      setCountRows(response.documents.length);  // Changed from pdfs
-      setSkipRows(paginationModel.page * paginationModel.pageSize);
       setTotalRows(response.total_count);
     } catch (error: unknown) {
       console.error('Error fetching documents:', error);
@@ -79,20 +75,14 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
             limit: paginationModel.pageSize
           }); 
           setDocuments(retryResponse.documents);  // Changed from pdfs
-          setCountRows(retryResponse.documents.length);  // Changed from pdfs
-          setSkipRows(retryResponse.skip);
           setTotalRows(retryResponse.total_count);
         } catch (retryError) {
           console.error('Retry failed:', retryError);
           setDocuments([]);
-          setCountRows(0);
-          setSkipRows(0);
           setTotalRows(0);
         }
       } else {
         setDocuments([]);
-        setCountRows(0);
-        setSkipRows(0);
         setTotalRows(0);
       }
     } finally {
