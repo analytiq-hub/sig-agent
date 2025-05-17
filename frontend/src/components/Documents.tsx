@@ -494,11 +494,7 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
         }}
       />
       <div>
-        {isLoading ? 'Loading...' : 
-          totalRows > 0 ? 
-            `Showing ${startRange}-${endRange} of ${totalRows} documents` : 
-            'No documents found'
-        }
+        {isLoading ? 'Loading...' : null}
       </div>
       
       {/* Actions Menu */}
