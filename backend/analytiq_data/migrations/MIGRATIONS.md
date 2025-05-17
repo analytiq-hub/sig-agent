@@ -36,7 +36,7 @@ class YourMigrationName(Migration):
             # Implement your migration logic here
             return True
         except Exception as e:
-            ad.log.error(f"Migration failed: {e}")
+            logger.error(f"Migration failed: {e}")
             return False
     
     async def down(self, db) -> bool:
@@ -44,7 +44,7 @@ class YourMigrationName(Migration):
             # Implement your rollback logic here
             return True
         except Exception as e:
-            ad.log.error(f"Migration revert failed: {e}")
+            logger.error(f"Migration revert failed: {e}")
             return False
 ```
 
@@ -90,7 +90,7 @@ class RenameFieldMigration(Migration):
             )
             return True
         except Exception as e:
-            ad.log.error(f"Migration failed: {e}")
+            logger.error(f"Migration failed: {e}")
             return False
 
     async def down(self, db) -> bool:
@@ -101,7 +101,7 @@ class RenameFieldMigration(Migration):
             )
             return True
         except Exception as e:
-            ad.log.error(f"Migration revert failed: {e}")
+            logger.error(f"Migration revert failed: {e}")
             return False
 ```
 
@@ -122,7 +122,7 @@ class AddNewFieldMigration(Migration):
             )
             return True
         except Exception as e:
-            ad.log.error(f"Migration failed: {e}")
+            logger.error(f"Migration failed: {e}")
             return False
 
     async def down(self, db) -> bool:
@@ -133,7 +133,7 @@ class AddNewFieldMigration(Migration):
             )
             return True
         except Exception as e:
-            ad.log.error(f"Migration revert failed: {e}")
+            logger.error(f"Migration revert failed: {e}")
             return False
 ```
 

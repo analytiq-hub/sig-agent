@@ -2,8 +2,11 @@ from datetime import datetime, UTC
 import os
 import subprocess
 import tempfile
+import logging
 
 import analytiq_data as ad
+
+logger = logging.getLogger(__name__)
 
 def get_file(analytiq_client, file_name: str) -> dict:
     """
@@ -38,7 +41,7 @@ def save_file(analytiq_client, file_name:str, blob:bytes, metadata:dict):
     """
     ad.mongodb.save_blob(analytiq_client, bucket="files", key=file_name, blob=blob, metadata=metadata)
     
-    ad.log.debug(f"File {file_name} has been saved.")
+    logger.debug(f"File {file_name} has been saved.")
 
 def delete_file(analytiq_client, file_name:str):
     """
@@ -52,7 +55,7 @@ def delete_file(analytiq_client, file_name:str):
     """
     ad.mongodb.delete_blob(analytiq_client, bucket="files", key=file_name)
 
-    ad.log.debug(f"File {file_name} has been deleted.")
+    logger.debug(f"File {file_name} has been deleted.")
 
 def upload_file(analytiq_client, file_path: str, file_type: str = "application/pdf"):
     """
@@ -168,7 +171,7 @@ async def save_file_async(analytiq_client, file_name:str, blob:bytes, metadata:d
             file metadata
     """
     await ad.mongodb.save_blob_async(analytiq_client, bucket="files", key=file_name, blob=blob, metadata=metadata)
-    ad.log.debug(f"File {file_name} has been saved.")
+    logger.debug(f"File {file_name} has been saved.")
 
 async def delete_file_async(analytiq_client, file_name:str):
     """
@@ -181,7 +184,7 @@ async def delete_file_async(analytiq_client, file_name:str):
             File name
     """
     await ad.mongodb.delete_blob_async(analytiq_client, bucket="files", key=file_name)
-    ad.log.debug(f"File {file_name} has been deleted.")
+    logger.debug(f"File {file_name} has been deleted.")
 
 async def upload_file_async(analytiq_client, file_path: str, file_type: str = "application/pdf"):
     """

@@ -6,8 +6,10 @@ import time
 import asyncio
 from datetime import datetime
 import uuid
-
+import logging
 import analytiq_data as ad
+
+logger = logging.getLogger(__name__)
 
 async def run_textract(analytiq_client,
                        blob: bytes,
@@ -82,7 +84,7 @@ async def run_textract(analytiq_client,
         while True:
             status_response = textract_get_completion(JobId=job_id)
             status = status_response['JobStatus']
-            ad.log.info(f"{analytiq_client.name}: ocr step {idx}: {status}")
+            logger.info(f"{analytiq_client.name}: ocr step {idx}: {status}")
             idx += 1
 
             if status in ["SUCCEEDED", "FAILED"]:
@@ -112,7 +114,7 @@ async def run_textract(analytiq_client,
         else:
             raise Exception(f"Textract document analysis failed: {status} for s3://{s3_bucket_name}/{s3_key}")
     except Exception as e:
-        ad.log.error(f"Error running textract: {e}")
+        logger.error(f"Error running textract: {e}")
         raise e
     finally:
         # Delete the s3 object

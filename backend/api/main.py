@@ -155,7 +155,7 @@ origins = [
     NEXTAUTH_URL,
 ]
 
-ad.log.info(f"CORS allowed origins: {origins}")
+logger.info(f"CORS allowed origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -225,10 +225,10 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
     except JWTError:
         # If JWT validation fails, check if it's an API token
         encrypted_token = ad.crypto.encrypt_token(token)
-        ad.log.info(f"token: {token}")
-        ad.log.info(f"encrypted_token: {encrypted_token}")
-        ad.log.info(f"context_type: {context_type}")
-        ad.log.info(f"org_id: {org_id}")
+        logger.info(f"token: {token}")
+        logger.info(f"encrypted_token: {encrypted_token}")
+        logger.info(f"context_type: {context_type}")
+        logger.info(f"org_id: {org_id}")
         
         # Build query based on context
         token_query = {"token": encrypted_token}
@@ -243,7 +243,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
             raise HTTPException(status_code=401, detail="Invalid API context")
             
         stored_token = await db.access_tokens.find_one(token_query)
-        ad.log.info(f"stored_token: {stored_token}")
+        logger.info(f"stored_token: {stored_token}")
         
         if stored_token:
             # Validate that user_id from stored token exists in database
@@ -358,7 +358,7 @@ async def upload_document(
     current_user: User = Depends(get_current_user)
 ):
     """Upload one or more documents"""
-    ad.log.debug(f"upload_document(): documents: {[doc.name for doc in documents_upload.documents]}")
+    logger.debug(f"upload_document(): documents: {[doc.name for doc in documents_upload.documents]}")
     uploaded_documents = []
 
     # Validate all tag IDs first
@@ -454,7 +454,7 @@ async def update_document(
     current_user: User = Depends(get_current_user)
 ):
     """Update a document"""
-    ad.log.debug(f"Updating document {document_id} with data: {update}")
+    logger.debug(f"Updating document {document_id} with data: {update}")
     analytiq_client = ad.common.get_analytiq_client()
     db = ad.common.get_async_db(analytiq_client)
 
@@ -569,7 +569,7 @@ async def get_document(
     current_user: User = Depends(get_current_user)
 ):
     """Get a document (original or associated PDF)"""
-    ad.log.debug(f"get_document() start: document_id: {document_id}, file_type: {file_type}")
+    logger.debug(f"get_document() start: document_id: {document_id}, file_type: {file_type}")
     analytiq_client = ad.common.get_analytiq_client()
     db = ad.common.get_async_db(analytiq_client)
 
@@ -580,10 +580,10 @@ async def get_document(
     })
     
     if not document:
-        ad.log.debug(f"get_document() document not found: {document}")
+        logger.debug(f"get_document() document not found: {document}")
         raise HTTPException(status_code=404, detail="Document not found")
         
-    ad.log.debug(f"get_document() found document: {document}")
+    logger.debug(f"get_document() found document: {document}")
 
     # Decide which file to return
     if file_type == "pdf":
@@ -596,7 +596,7 @@ async def get_document(
     if file is None:
         raise HTTPException(status_code=404, detail="File not found")
 
-    ad.log.debug(f"get_document() got file: {file_name}")
+    logger.debug(f"get_document() got file: {file_name}")
 
     # Create metadata response
     metadata = DocumentMetadata(
@@ -659,7 +659,7 @@ async def download_ocr_blocks(
     current_user: User = Depends(get_current_user)
 ):
     """Download OCR blocks for a document"""
-    ad.log.debug(f"download_ocr_blocks() start: document_id: {document_id}")
+    logger.debug(f"download_ocr_blocks() start: document_id: {document_id}")
     analytiq_client = ad.common.get_analytiq_client()
 
     document = await ad.common.get_doc(analytiq_client, document_id)
@@ -682,7 +682,7 @@ async def download_ocr_text(
     current_user: User = Depends(get_current_user)
 ):
     """Download OCR text for a document"""
-    ad.log.debug(f"download_ocr_text() start: document_id: {document_id}, page_num: {page_num}")
+    logger.debug(f"download_ocr_text() start: document_id: {document_id}, page_num: {page_num}")
     
     analytiq_client = ad.common.get_analytiq_client()
     document = await ad.common.get_doc(analytiq_client, document_id)
@@ -709,7 +709,7 @@ async def get_ocr_metadata(
     current_user: User = Depends(get_current_user)
 ):
     """Get OCR metadata for a document"""
-    ad.log.debug(f"get_ocr_metadata() start: document_id: {document_id}")
+    logger.debug(f"get_ocr_metadata() start: document_id: {document_id}")
     
     analytiq_client = ad.common.get_analytiq_client()
     document = await ad.common.get_doc(analytiq_client, document_id)
@@ -738,7 +738,7 @@ async def run_llm_analysis(
     """
     Run LLM on a document, with optional force refresh.
     """
-    ad.log.debug(f"run_llm_analysis() start: document_id: {document_id}, prompt_id: {prompt_id}, force: {force}")
+    logger.debug(f"run_llm_analysis() start: document_id: {document_id}, prompt_id: {prompt_id}, force: {force}")
     analytiq_client = ad.common.get_analytiq_client()
     
     # Verify document exists and user has access
@@ -765,7 +765,7 @@ async def run_llm_analysis(
         )
         
     except Exception as e:
-        ad.log.error(f"Error in LLM run: {str(e)}")
+        logger.error(f"Error in LLM run: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error processing document: {str(e)}"
@@ -781,7 +781,7 @@ async def get_llm_result(
     """
     Retrieve existing LLM results for a document.
     """
-    ad.log.debug(f"get_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
+    logger.debug(f"get_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
     analytiq_client = ad.common.get_analytiq_client()
     
     # Verify document exists and user has access
@@ -848,7 +848,7 @@ async def delete_llm_result(
     """
     Delete LLM results for a specific document and prompt.
     """
-    ad.log.debug(f"delete_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
+    logger.debug(f"delete_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
     analytiq_client = ad.common.get_analytiq_client()
     # Verify document exists and user has access
     document = await ad.common.get_doc(analytiq_client, document_id, organization_id)
@@ -1057,7 +1057,7 @@ async def update_schema(
     current_user: User = Depends(get_current_user)
 ):
     """Update a schema"""
-    ad.log.info(f"update_schema() start: organization_id: {organization_id}, schema_id: {schema_id}, schema: {schema}")
+    logger.info(f"update_schema() start: organization_id: {organization_id}, schema_id: {schema_id}, schema: {schema}")
     
     db = ad.common.get_async_db()
 
@@ -1197,7 +1197,7 @@ async def validate_against_schema(
     current_user: User = Depends(get_current_user)
 ):
     """Validate data against a schema revision"""
-    ad.log.info(f"validate_against_schema() start: organization_id: {organization_id}, schema_revid: {schema_revid}")
+    logger.info(f"validate_against_schema() start: organization_id: {organization_id}, schema_revid: {schema_revid}")
     
     db = ad.common.get_async_db()
     
@@ -1242,7 +1242,7 @@ async def validate_against_schema(
     except KeyError as e:
         raise HTTPException(status_code=400, detail=f"Invalid schema format: {str(e)}")
     except Exception as e:
-        ad.log.error(f"Error validating data: {str(e)}")
+        logger.error(f"Error validating data: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error validating data: {str(e)}")
 
 
@@ -1869,7 +1869,7 @@ async def create_flow(
         return Flow(**flow_data)
         
     except Exception as e:
-        ad.log.error(f"Error creating flow: {str(e)}")
+        logger.error(f"Error creating flow: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error creating flow: {str(e)}"
@@ -1954,7 +1954,7 @@ async def get_flow(
         return Flow(**flow_dict)
         
     except Exception as e:
-        ad.log.error(f"Error getting flow {flow_id}: {str(e)}")
+        logger.error(f"Error getting flow {flow_id}: {str(e)}")
         if isinstance(e, HTTPException):
             raise e
         raise HTTPException(
@@ -1986,7 +1986,7 @@ async def delete_flow(
         return {"message": "Flow deleted successfully"}
         
     except Exception as e:
-        ad.log.error(f"Error deleting flow {flow_id}: {str(e)}")
+        logger.error(f"Error deleting flow {flow_id}: {str(e)}")
         if isinstance(e, HTTPException):
             raise e
         raise HTTPException(
@@ -2050,7 +2050,7 @@ async def update_flow(
         })
         
     except Exception as e:
-        ad.log.error(f"Error updating flow {flow_id}: {str(e)}")
+        logger.error(f"Error updating flow {flow_id}: {str(e)}")
         if isinstance(e, HTTPException):
             raise e
         raise HTTPException(
@@ -2061,7 +2061,7 @@ async def update_flow(
 @app.post("/v0/account/auth/token", tags=["account/auth"])
 async def create_auth_token(user_data: dict = Body(...)):
     """Create an authentication token"""
-    ad.log.debug(f"create_auth_token(): user_data: {user_data}")
+    logger.debug(f"create_auth_token(): user_data: {user_data}")
     token = jwt.encode(
         {
             "userId": user_data["id"],
@@ -2113,7 +2113,7 @@ async def access_token_create(
     organization_id: Optional[str] = Depends(get_current_org)
 ):
     """Create an API token"""
-    ad.log.debug(f"Creating API token for user: {current_user} request: {request}")
+    logger.debug(f"Creating API token for user: {current_user} request: {request}")
     db = ad.common.get_async_db()
 
     token = secrets.token_urlsafe(32)
@@ -2202,7 +2202,7 @@ async def list_llm_models():
     # Convert MongoDB documents to LLMModel instances
     llm_models = []
     for model in models:
-        ad.log.info(f"model: {model}")
+        logger.info(f"model: {model}")
         llm_models.append(LLMModel(
             id=str(model["_id"]),
             name=model["name"],
@@ -2221,7 +2221,7 @@ async def llm_token_create(
     current_user: User = Depends(get_admin_user)
 ):
     """Create or update an LLM token (admin only)"""
-    ad.log.debug(f"Creating/Updating LLM token for user: {current_user} request: {request}")
+    logger.debug(f"Creating/Updating LLM token for user: {current_user} request: {request}")
     db = ad.common.get_async_db()
 
     # Check if a token for this vendor already exists
@@ -2244,13 +2244,13 @@ async def llm_token_create(
             new_token
         )
         new_token["id"] = str(existing_token["_id"])
-        ad.log.debug(f"Updated existing LLM token for {request.llm_vendor}")
+        logger.debug(f"Updated existing LLM token for {request.llm_vendor}")
     else:
         # Insert a new token
         result = await db.llm_tokens.insert_one(new_token)
         new_token["id"] = str(result.inserted_id)
         new_token["token"] = ad.crypto.decrypt_token(new_token["token"])
-        ad.log.debug(f"Created new LLM token for {request.llm_vendor}")
+        logger.debug(f"Created new LLM token for {request.llm_vendor}")
 
     return new_token
 
@@ -2360,7 +2360,7 @@ async def list_organizations(
     - Otherwise returns all organizations (admin only)
     - user_id and organization_id are mutually exclusive
     """
-    ad.log.debug(f"list_organizations(): user_id: {user_id} organization_id: {organization_id} current_user: {current_user}")
+    logger.debug(f"list_organizations(): user_id: {user_id} organization_id: {organization_id} current_user: {current_user}")
     db = ad.common.get_async_db()
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
     is_system_admin = db_user and db_user.get("role") == "admin"
@@ -2490,12 +2490,12 @@ async def update_organization(
     current_user: User = Depends(get_current_user)
 ):
     """Update an organization (account admin or organization admin)"""
-    ad.log.info(f"Updating organization {organization_id} with {organization_update}")
+    logger.info(f"Updating organization {organization_id} with {organization_update}")
     db = ad.common.get_async_db()
 
     organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
     if not organization:
-        ad.log.error(f"Organization not found: {organization_id}")
+        logger.error(f"Organization not found: {organization_id}")
         raise HTTPException(status_code=404, detail="Organization not found")
 
     # Check if user has permission (account admin or organization admin)
@@ -2511,7 +2511,7 @@ async def update_organization(
 
     # Is the type changing?
     if organization_update.type is not None and organization_update.type != organization["type"]:
-        ad.log.info(f"Updating organization type from {organization['type']} to {organization_update.type}")
+        logger.info(f"Updating organization type from {organization['type']} to {organization_update.type}")
         await organizations.update_organization_type(
             db=db,
             organization_id=organization_id,
@@ -2525,7 +2525,7 @@ async def update_organization(
     if organization_update.members is not None:
         # Ensure at least one admin remains
         if not any(m.role == "admin" for m in organization_update.members):
-            ad.log.error(f"Organization must have at least one admin: {organization_update.members}")
+            logger.error(f"Organization must have at least one admin: {organization_update.members}")
             raise HTTPException(
                 status_code=400,
                 detail="Organization must have at least one admin"
@@ -2542,7 +2542,7 @@ async def update_organization(
         )
         
         if not updated_organization:
-            ad.log.error(f"Organization not found after update: {organization_id}")
+            logger.error(f"Organization not found after update: {organization_id}")
             raise HTTPException(status_code=404, detail="Organization not found")
     else:
         # If no updates were needed, just return the current organization
@@ -2599,7 +2599,7 @@ async def list_users(
     - Otherwise returns all users (admin only)
     - user_id and organization_id are mutually exclusive
     """
-    ad.log.debug(f"list_users(): organization_id: {organization_id} user_id: {user_id} current_user: {current_user} skip: {skip} limit: {limit}")
+    logger.debug(f"list_users(): organization_id: {organization_id} user_id: {user_id} current_user: {current_user} skip: {skip} limit: {limit}")
     
     db = ad.common.get_async_db()
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
@@ -2915,7 +2915,7 @@ async def delete_user(
         await users.delete_user(db, user_id)
         return {"message": "User and related data deleted successfully"}
     except Exception as e:
-        ad.log.error(f"Error deleting user {user_id}: {str(e)}")
+        logger.error(f"Error deleting user {user_id}: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail="Failed to delete user and related data"
@@ -3028,20 +3028,20 @@ async def send_verification_email(
 @app.post("/v0/account/email/verification/{token}", tags=["account/email"])
 async def verify_email(token: str, background_tasks: BackgroundTasks):
     """Verify email address using token"""
-    ad.log.info(f"Verifying email with token: {token}")
+    logger.info(f"Verifying email with token: {token}")
     db = ad.common.get_async_db()
 
     # Find verification record
     verification = await db.email_verifications.find_one({"token": token})
     if not verification:
-        ad.log.info(f"No verification record found for token: {token}")
+        logger.info(f"No verification record found for token: {token}")
         raise HTTPException(status_code=400, detail="Invalid verification token")
         
     # Check if token expired
     # Convert stored expiration to UTC for comparison
     stored_expiry = verification["expires"].replace(tzinfo=UTC)
     if stored_expiry < datetime.now(UTC):
-        ad.log.info(f"Verification token expired: {stored_expiry} < {datetime.now(UTC)}")
+        logger.info(f"Verification token expired: {stored_expiry} < {datetime.now(UTC)}")
         raise HTTPException(status_code=400, detail="Verification token expired")
     
     # Update user's email verification status
@@ -3052,18 +3052,18 @@ async def verify_email(token: str, background_tasks: BackgroundTasks):
     )
 
     if not updated_user:
-        ad.log.info(f"Failed to verify email for user {verification['user_id']}")
+        logger.info(f"Failed to verify email for user {verification['user_id']}")
         raise HTTPException(status_code=404, detail="User not found")
     
     if updated_user.get("emailVerified"):
         return {"message": "Email already verified"}
 
     # Allow the user to re-verify their email for 1 minute
-    ad.log.info(f"Scheduling deletion of verification record for token: {token}")
+    logger.info(f"Scheduling deletion of verification record for token: {token}")
     async def delete_verification_later():
         await asyncio.sleep(60)  # Wait 60 seconds
         await db.email_verifications.delete_one({"token": token})
-        ad.log.info(f"Deleted verification record for token: {token}")
+        logger.info(f"Deleted verification record for token: {token}")
 
     background_tasks.add_task(delete_verification_later)
     
@@ -3075,7 +3075,7 @@ async def create_invitation(
     current_user: User = Depends(get_admin_user)
 ):
     """Create a new invitation (admin only)"""
-    ad.log.info(f"Got invitation request: {invitation}")
+    logger.info(f"Got invitation request: {invitation}")
     analytiq_client = ad.common.get_analytiq_client()
     db = ad.common.get_async_db(analytiq_client)
 
@@ -3171,7 +3171,7 @@ async def create_invitation(
         )
         return InvitationResponse(**invitation_doc)
     except Exception as e:
-        ad.log.error(f"Failed to send invitation email: {str(e)}")
+        logger.error(f"Failed to send invitation email: {str(e)}")
         # Delete invitation if email fails
         await db.invitations.delete_one({"_id": result.inserted_id})
         raise HTTPException(
@@ -3265,7 +3265,7 @@ async def accept_invitation(
     data: AcceptInvitationRequest = Body(...)  # Change to use AcceptInvitationRequest
 ):
     """Accept an invitation and create user account if needed"""
-    ad.log.info(f"Accepting invitation with token: {token}")
+    logger.info(f"Accepting invitation with token: {token}")
     db = ad.common.get_async_db()
     # Find and validate invitation
     invitation = await db.invitations.find_one({
@@ -3407,7 +3407,7 @@ async def create_account_token(
     current_user: User = Depends(get_current_user)
 ):
     """Create an account-level API token"""
-    ad.log.debug(f"Creating account token for user: {current_user} request: {request}")
+    logger.debug(f"Creating account token for user: {current_user} request: {request}")
     db = ad.common.get_async_db()
 
     token = secrets.token_urlsafe(32)

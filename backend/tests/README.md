@@ -87,7 +87,7 @@ Example:
 @pytest.mark.asyncio
 async def test_access_tokens(test_db, mock_auth):
     """Test the complete access token lifecycle"""
-    ad.log.info(f"test_access_tokens() start")
+    logger.info(f"test_access_tokens() start")
     
     try:
         # Step 1: Create an access token
@@ -151,7 +151,7 @@ async def test_access_tokens(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_access_tokens() end")
+    logger.info(f"test_access_tokens() end")
 ```
 
 ### Test Lifecycle Pattern

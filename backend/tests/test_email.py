@@ -4,6 +4,7 @@ from bson import ObjectId
 import os
 from datetime import datetime, UTC
 import re
+import logging
 
 # Import shared test utilities
 from .test_utils import (
@@ -11,6 +12,8 @@ from .test_utils import (
     test_db, get_auth_headers, mock_auth
 )
 import analytiq_data as ad
+
+logger = logging.getLogger(__name__)
 
 # Check that ENV is set to pytest
 assert os.environ["ENV"] == "pytest"
@@ -29,7 +32,7 @@ def mock_send_email():
 @pytest.mark.asyncio
 async def test_email_verification(test_db, mock_auth, mock_send_email):
     """Test email verification endpoints"""
-    ad.log.info(f"test_email_verification() start")
+    logger.info(f"test_email_verification() start")
     
     try:
         # Create an invitation for a new user
@@ -65,7 +68,7 @@ async def test_email_verification(test_db, mock_auth, mock_send_email):
         
         if token_match:
             invitation_token = token_match.group(1)
-            ad.log.info(f"Extracted invitation token: {invitation_token}")
+            logger.info(f"Extracted invitation token: {invitation_token}")
             
             # Accept the invitation to create a new user
             accept_data = {
@@ -105,12 +108,12 @@ async def test_email_verification(test_db, mock_auth, mock_send_email):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_email_verification() end")
+    logger.info(f"test_email_verification() end")
 
 @pytest.mark.asyncio
 async def test_invitation_lifecycle(test_db, mock_auth, mock_send_email):
     """Test the invitation creation functionality"""
-    ad.log.info(f"test_invitation_lifecycle() start")
+    logger.info(f"test_invitation_lifecycle() start")
     
     try:
         # Step 1: Create an invitation using the API
@@ -171,7 +174,7 @@ async def test_invitation_lifecycle(test_db, mock_auth, mock_send_email):
         
         if token_match:
             invitation_token = token_match.group(1)
-            ad.log.info(f"Extracted invitation token: {invitation_token}")
+            logger.info(f"Extracted invitation token: {invitation_token}")
         else:
             assert False, f"Could not extract invitation token from email content"
         
@@ -240,4 +243,4 @@ async def test_invitation_lifecycle(test_db, mock_auth, mock_send_email):
         # Clean up - we'll use the database directly to ensure cleanup
         await test_db.invitations.delete_many({"email": "invited@example.com"})
     
-    ad.log.info(f"test_invitation_lifecycle() end") 
+    logger.info(f"test_invitation_lifecycle() end") 

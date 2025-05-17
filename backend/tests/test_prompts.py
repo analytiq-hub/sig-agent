@@ -2,6 +2,7 @@ import pytest
 from bson import ObjectId
 import os
 from datetime import datetime, UTC
+import logging
 
 # Import shared test utilities
 from .test_utils import (
@@ -9,6 +10,8 @@ from .test_utils import (
     test_db, get_auth_headers, mock_auth
 )
 import analytiq_data as ad
+
+logger = logging.getLogger(__name__)
 
 # Check that ENV is set to pytest
 assert os.environ["ENV"] == "pytest"
@@ -41,12 +44,12 @@ async def setup_test_models(db):
     ]
     
     await db.llm_models.insert_many(test_models)
-    ad.log.info(f"Added {len(test_models)} test LLM models to database")
+    logger.info(f"Added {len(test_models)} test LLM models to database")
 
 @pytest.mark.asyncio
 async def test_prompt_lifecycle(test_db, mock_auth):
     """Test the complete prompt lifecycle"""
-    ad.log.info(f"test_prompt_lifecycle() start")
+    logger.info(f"test_prompt_lifecycle() start")
     
     try:
         # Set up test models first
@@ -168,12 +171,12 @@ async def test_prompt_lifecycle(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_prompt_lifecycle() end")
+    logger.info(f"test_prompt_lifecycle() end")
 
 @pytest.mark.asyncio
 async def test_prompt_with_schema(test_db, mock_auth):
     """Test creating and using prompts with associated schemas"""
-    ad.log.info(f"test_prompt_with_schema() start")
+    logger.info(f"test_prompt_with_schema() start")
     
     try:
         # Set up test models first
@@ -265,12 +268,12 @@ async def test_prompt_with_schema(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_prompt_with_schema() end")
+    logger.info(f"test_prompt_with_schema() end")
 
 @pytest.mark.asyncio
 async def test_prompt_filtering(test_db, mock_auth):
     """Test filtering prompts by tags"""
-    ad.log.info(f"test_prompt_filtering() start")
+    logger.info(f"test_prompt_filtering() start")
     
     try:
         # Set up test models first
@@ -393,12 +396,12 @@ async def test_prompt_filtering(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_prompt_filtering() end") 
+    logger.info(f"test_prompt_filtering() end") 
 
 @pytest.mark.asyncio
 async def test_prompt_version_deletion(test_db, mock_auth):
     """Test that when deleting a prompt, all versions with the same prompt_id are deleted"""
-    ad.log.info(f"test_prompt_version_deletion() start")
+    logger.info(f"test_prompt_version_deletion() start")
     
     try:
         # Set up test models first
@@ -490,12 +493,12 @@ async def test_prompt_version_deletion(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_prompt_version_deletion() end") 
+    logger.info(f"test_prompt_version_deletion() end") 
 
 @pytest.mark.asyncio
 async def test_prompt_latest_version_listing(test_db, mock_auth):
     """Test that when listing prompts, only the latest versions are shown"""
-    ad.log.info(f"test_prompt_latest_version_listing() start")
+    logger.info(f"test_prompt_latest_version_listing() start")
     
     try:
         # Set up test models first
@@ -570,12 +573,12 @@ async def test_prompt_latest_version_listing(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_prompt_latest_version_listing() end") 
+    logger.info(f"test_prompt_latest_version_listing() end") 
 
 @pytest.mark.asyncio
 async def test_prompt_name_only_update(test_db, mock_auth):
     """Test that updating only the prompt name doesn't create a new version"""
-    ad.log.info(f"test_prompt_name_only_update() start")
+    logger.info(f"test_prompt_name_only_update() start")
     
     try:
         # Set up test models first
@@ -675,4 +678,4 @@ async def test_prompt_name_only_update(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_prompt_name_only_update() end") 
+    logger.info(f"test_prompt_name_only_update() end") 

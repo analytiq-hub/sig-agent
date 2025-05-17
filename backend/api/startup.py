@@ -2,12 +2,15 @@ import sys, os
 from datetime import datetime, UTC
 from bcrypt import hashpw, gensalt
 from bson import ObjectId
+import logging
 
 # Set up the path
 cwd = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(f"{cwd}/..")
 
 import analytiq_data as ad
+
+logger = logging.getLogger(__name__)
 
 async def setup_llm_models(db):
     """Set up default LLM models by upserting based on model name"""
@@ -95,9 +98,9 @@ async def setup_llm_models(db):
                 {"$set": model},  # update/insert the entire model document
                 upsert=True  # create if doesn't exist, update if exists
             )
-        ad.log.info("LLM models upserted successfully")
+        logger.info("LLM models upserted successfully")
     except Exception as e:
-        ad.log.error(f"Failed to upsert LLM models: {e}")
+        logger.error(f"Failed to upsert LLM models: {e}")
 
     # Remove any models that are not in the default_models list
     await db.llm_models.delete_many({
@@ -109,7 +112,7 @@ async def setup_database(analytiq_client):
     try:
         await ad.migrations.run_migrations(analytiq_client)
     except Exception as e:
-        ad.log.error(f"Database migration failed: {e}")
+        logger.error(f"Database migration failed: {e}")
         raise
 
 async def setup_admin(analytiq_client):
@@ -169,9 +172,9 @@ async def setup_admin(analytiq_client):
             "hasSeenTour": False
         })
         
-        ad.log.info(f"Created default admin user: {admin_email}")
+        logger.info(f"Created default admin user: {admin_email}")
     except Exception as e:
-        ad.log.error(f"Failed to create default admin: {e}")
+        logger.error(f"Failed to create default admin: {e}")
 
 async def setup_api_creds(analytiq_client):
     """
@@ -213,7 +216,7 @@ async def setup_api_creds(analytiq_client):
                 },
                 upsert=True
             )
-            ad.log.info("AWS credentials configured for admin user")
+            logger.info("AWS credentials configured for admin user")
             
         # LLM API Keys
         llm_credentials = []
@@ -264,7 +267,7 @@ async def setup_api_creds(analytiq_client):
                 },
                 upsert=True
             )
-            ad.log.info(f"{vendor} API key configured for admin user")
+            logger.info(f"{vendor} API key configured for admin user")
             
     except Exception as e:
-        ad.log.error(f"Failed to set up API credentials: {e}")
+        logger.error(f"Failed to set up API credentials: {e}")

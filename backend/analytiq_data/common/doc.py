@@ -2,8 +2,11 @@ from datetime import datetime, UTC
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import logging
 
 import analytiq_data as ad
+
+logger = logging.getLogger(__name__)
 
 DOCUMENT_STATE_UPLOADED = "uploaded"
 DOCUMENT_STATE_OCR_PROCESSING = "ocr_processing" 
@@ -93,7 +96,7 @@ async def save_doc(analytiq_client, document: dict) -> str:
         upsert=True
     )
     
-    ad.log.debug(f"Document {document['_id']} has been saved.")
+    logger.debug(f"Document {document['_id']} has been saved.")
 
     return str(document["_id"])
 
@@ -124,7 +127,7 @@ async def delete_doc(analytiq_client, document_id: str, organization_id: str):
     # Delete all OCR results for the document
     ad.common.delete_ocr_all(analytiq_client, document_id=document_id)
 
-    ad.log.info(f"Document {document_id} has been deleted with all LLM and OCR results.")
+    logger.info(f"Document {document_id} has been deleted with all LLM and OCR results.")
 
 
 async def list_docs(analytiq_client, organization_id: str, skip: int = 0, limit: int = 10) -> tuple[list, int]:
@@ -182,7 +185,7 @@ async def update_doc_state(analytiq_client, document_id: str, state: str):
         }}
     )
     
-    ad.log.debug(f"Document {document_id} state updated to {state}")
+    logger.debug(f"Document {document_id} state updated to {state}")
 
 async def get_doc_tag_ids(analytiq_client, document_id: str) -> list[str]:
     """

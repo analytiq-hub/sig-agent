@@ -14,6 +14,8 @@ from bson import ObjectId
 import pytest
 from bson import ObjectId
 
+import logging
+
 # Import shared test utilities
 from .test_utils import (
     client, TEST_USER, TEST_ORG_ID, 
@@ -27,6 +29,8 @@ import tempfile
 import subprocess
 
 from analytiq_data.common.doc import EXTENSION_TO_MIME
+
+logger = logging.getLogger(__name__)
 
 # Check that ENV is set to pytest
 assert os.environ["ENV"] == "pytest"
@@ -57,7 +61,7 @@ def large_pdf():
     # Combine to create a valid PDF of the specified size
     pdf_content = pdf_header + random_content + pdf_eof
     
-    ad.log.info(f"Created large test PDF of size {len(pdf_content)} bytes")
+    logger.info(f"Created large test PDF of size {len(pdf_content)} bytes")
     
     return {
         "name": "large_test.pdf",
@@ -187,7 +191,7 @@ async def test_upload_document(test_db, pdf_fixture, request, mock_auth):
     # Get the actual PDF fixture using the fixture name
     test_pdf = request.getfixturevalue(pdf_fixture)
     
-    ad.log.info(f"test_upload_document() start with {test_pdf['name']}")
+    logger.info(f"test_upload_document() start with {test_pdf['name']}")
     
     # Prepare test data
     upload_data = {
@@ -271,12 +275,12 @@ async def test_upload_document(test_db, pdf_fixture, request, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
 
-    ad.log.info(f"test_upload_document() end with {test_pdf['name']}")
+    logger.info(f"test_upload_document() end with {test_pdf['name']}")
 
 @pytest.mark.asyncio
 async def test_document_lifecycle(test_db, small_pdf, mock_auth):
     """Test the complete document lifecycle including tags and document name updates"""
-    ad.log.info(f"test_document_lifecycle() start")
+    logger.info(f"test_document_lifecycle() start")
     
     # Use small_pdf instead of test_pdf
     test_pdf = small_pdf
@@ -443,13 +447,13 @@ async def test_document_lifecycle(test_db, small_pdf, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
 
-    ad.log.info(f"test_document_lifecycle() end")
+    logger.info(f"test_document_lifecycle() end")
 
 @pytest.mark.asyncio
 async def test_upload_supported_file_types(test_db, minimal_file, mock_auth):
     """Test uploading each supported file type"""
     test_file = minimal_file
-    ad.log.info(f"Testing upload for {test_file['name']} ({test_file['mime']})")
+    logger.info(f"Testing upload for {test_file['name']} ({test_file['mime']})")
     upload_data = {
         "documents": [
             {

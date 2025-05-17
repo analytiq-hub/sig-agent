@@ -1,6 +1,9 @@
-from datetime import datetime, UTC
+
 import analytiq_data as ad
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Migration:
     def __init__(self, description: str):
@@ -32,13 +35,13 @@ async def run_migrations(analytiq_client, target_version: int = None) -> None:
     if target_version is None:
         target_version = len(MIGRATIONS)
         
-    ad.log.info(f"Db current version: {current_version}, target version: {target_version}")
+    logger.info(f"Db current version: {current_version}, target version: {target_version}")
 
     try:
         if target_version > current_version:
             # Run migrations up
             for migration in MIGRATIONS[current_version:target_version]:
-                ad.log.info(f"Running migration {migration.version}: {migration.description}")
+                logger.info(f"Running migration {migration.version}: {migration.description}")
                 success = await migration.up(db)
                 if success:
                     await db.migrations.update_one(
@@ -57,7 +60,7 @@ async def run_migrations(analytiq_client, target_version: int = None) -> None:
         elif target_version < current_version:
             # Run migrations down
             for migration in reversed(MIGRATIONS[target_version:current_version]):
-                ad.log.info(f"Reverting migration {migration.version}")
+                logger.info(f"Reverting migration {migration.version}")
                 success = await migration.down(db)
                 if success:
                     await db.migrations.update_one(
@@ -73,7 +76,7 @@ async def run_migrations(analytiq_client, target_version: int = None) -> None:
                     raise Exception(f"Migration revert {migration.version} failed")
                     
     except Exception as e:
-        ad.log.error(f"Migration failed: {e}")
+        logger.error(f"Migration failed: {e}")
         raise
 
 # Example migration for OCR key renaming
@@ -93,7 +96,7 @@ class OcrKeyMigration(Migration):
                 )
             return True
         except Exception as e:
-            ad.log.error(f"Migration failed: {e}")
+            logger.error(f"Migration failed: {e}")
             return False
             
     async def down(self, db) -> bool:
@@ -108,7 +111,7 @@ class OcrKeyMigration(Migration):
                 )
             return True
         except Exception as e:
-            ad.log.error(f"Migration revert failed: {e}")
+            logger.error(f"Migration revert failed: {e}")
             return False
 
 class LlmResultFieldsMigration(Migration):
@@ -151,7 +154,7 @@ class LlmResultFieldsMigration(Migration):
             return True
             
         except Exception as e:
-            ad.log.error(f"LLM results migration failed: {e}")
+            logger.error(f"LLM results migration failed: {e}")
             return False
     
     async def down(self, db) -> bool:
@@ -172,7 +175,7 @@ class LlmResultFieldsMigration(Migration):
             return True
             
         except Exception as e:
-            ad.log.error(f"LLM results migration revert failed: {e}")
+            logger.error(f"LLM results migration revert failed: {e}")
             return False
 
 # Add this new migration class
@@ -242,7 +245,7 @@ class SchemaJsonSchemaMigration(Migration):
             return True
             
         except Exception as e:
-            ad.log.error(f"Schema migration failed: {e}")
+            logger.error(f"Schema migration failed: {e}")
             return False
     
     async def down(self, db) -> bool:
@@ -283,7 +286,7 @@ class SchemaJsonSchemaMigration(Migration):
             return True
             
         except Exception as e:
-            ad.log.error(f"Schema migration revert failed: {e}")
+            logger.error(f"Schema migration revert failed: {e}")
             return False
 
 class RenameJsonSchemaToResponseFormat(Migration):
@@ -304,10 +307,10 @@ class RenameJsonSchemaToResponseFormat(Migration):
                     }
                 ]
             )
-            ad.log.info(f"Updated {result.modified_count} schemas")
+            logger.info(f"Updated {result.modified_count} schemas")
             return True
         except Exception as e:
-            ad.log.error(f"Migration failed: {e}")
+            logger.error(f"Migration failed: {e}")
             return False
 
     async def down(self, db) -> bool:
@@ -324,10 +327,10 @@ class RenameJsonSchemaToResponseFormat(Migration):
                     }
                 ]
             )
-            ad.log.info(f"Reverted {result.modified_count} schemas")
+            logger.info(f"Reverted {result.modified_count} schemas")
             return True
         except Exception as e:
-            ad.log.error(f"Migration revert failed: {e}")
+            logger.error(f"Migration revert failed: {e}")
             return False
 
 class RemoveSchemaFormatField(Migration):
@@ -340,10 +343,10 @@ class RemoveSchemaFormatField(Migration):
                 {"schema_format": {"$exists": True}},
                 {"$unset": {"schema_format": ""}}
             )
-            ad.log.info(f"Removed schema_format field from {result.modified_count} schemas")
+            logger.info(f"Removed schema_format field from {result.modified_count} schemas")
             return True
         except Exception as e:
-            ad.log.error(f"Migration failed: {e}")
+            logger.error(f"Migration failed: {e}")
             return False
 
     async def down(self, db) -> bool:
@@ -353,10 +356,10 @@ class RemoveSchemaFormatField(Migration):
                 {},
                 {"$set": {"schema_format": "json_schema"}}
             )
-            ad.log.info(f"Restored schema_format field to {result.modified_count} schemas")
+            logger.info(f"Restored schema_format field to {result.modified_count} schemas")
             return True
         except Exception as e:
-            ad.log.error(f"Migration revert failed: {e}")
+            logger.error(f"Migration revert failed: {e}")
             return False
 
 # Add this new migration class
@@ -436,26 +439,26 @@ class AddStableIdentifiers(Migration):
                 try:
                     await db.schema_versions.insert_one(doc)
                 except Exception as e:
-                    ad.log.warning(f"Could not insert schema version {doc['_id']}: {e}")
+                    logger.warning(f"Could not insert schema version {doc['_id']}: {e}")
             
             for doc in to_insert_prompt_docs:
                 try:
                     await db.prompt_versions.insert_one(doc)
                 except Exception as e:
-                    ad.log.warning(f"Could not insert prompt version {doc['_id']}: {e}")
+                    logger.warning(f"Could not insert prompt version {doc['_id']}: {e}")
             
             # Then delete old documents
             for old_id in to_delete_schema_ids:
                 try:
                     await db.schema_versions.delete_one({"_id": old_id})
                 except Exception as e:
-                    ad.log.warning(f"Could not delete schema version {old_id}: {e}")
+                    logger.warning(f"Could not delete schema version {old_id}: {e}")
             
             for old_id in to_delete_prompt_ids:
                 try:
                     await db.prompt_versions.delete_one({"_id": old_id})
                 except Exception as e:
-                    ad.log.warning(f"Could not delete prompt version {old_id}: {e}")
+                    logger.warning(f"Could not delete prompt version {old_id}: {e}")
             
             # Add schema_id to schemas
             schemas_cursor = db.schemas.find({"schema_id": {"$exists": False}})
@@ -524,7 +527,7 @@ class AddStableIdentifiers(Migration):
             return True
             
         except Exception as e:
-            ad.log.error(f"Migration failed: {e}")
+            logger.error(f"Migration failed: {e}")
             return False
     
     async def down(self, db) -> bool:
@@ -574,26 +577,26 @@ class AddStableIdentifiers(Migration):
                 try:
                     await db.schema_versions.insert_one(doc)
                 except Exception as e:
-                    ad.log.warning(f"Could not insert schema version with original name {doc['_id']}: {e}")
+                    logger.warning(f"Could not insert schema version with original name {doc['_id']}: {e}")
             
             for doc in prompt_versions_to_restore:
                 try:
                     await db.prompt_versions.insert_one(doc)
                 except Exception as e:
-                    ad.log.warning(f"Could not insert prompt version with original name {doc['_id']}: {e}")
+                    logger.warning(f"Could not insert prompt version with original name {doc['_id']}: {e}")
             
             # Remove new normalized version entries 
             for schema_id in schema_id_to_name.keys():
                 try:
                     await db.schema_versions.delete_one({"_id": schema_id})
                 except Exception as e:
-                    ad.log.warning(f"Could not delete schema version {schema_id}: {e}")
+                    logger.warning(f"Could not delete schema version {schema_id}: {e}")
             
             for prompt_id in prompt_id_to_name.keys():
                 try:
                     await db.prompt_versions.delete_one({"_id": prompt_id})
                 except Exception as e:
-                    ad.log.warning(f"Could not delete prompt version {prompt_id}: {e}")
+                    logger.warning(f"Could not delete prompt version {prompt_id}: {e}")
             
             # Remove fields from schemas and prompts
             await db.schemas.update_many(
@@ -618,7 +621,7 @@ class AddStableIdentifiers(Migration):
             
             return True
         except Exception as e:
-            ad.log.error(f"Migration revert failed: {e}")
+            logger.error(f"Migration revert failed: {e}")
             return False
 
 # Add migration to rename the 'version' field to 'prompt_version' in prompts collection
@@ -640,10 +643,10 @@ class RenamePromptVersion(Migration):
                     }
                 ]
             )
-            ad.log.info(f"Updated {result.modified_count} prompts")
+            logger.info(f"Updated {result.modified_count} prompts")
             return True
         except Exception as e:
-            ad.log.error(f"Migration failed: {e}")
+            logger.error(f"Migration failed: {e}")
             return False
 
     async def down(self, db) -> bool:
@@ -660,10 +663,10 @@ class RenamePromptVersion(Migration):
                     }
                 ]
             )
-            ad.log.info(f"Reverted {result.modified_count} prompts")
+            logger.info(f"Reverted {result.modified_count} prompts")
             return True
         except Exception as e:
-            ad.log.error(f"Migration revert failed: {e}")
+            logger.error(f"Migration revert failed: {e}")
             return False
 
 # Add a migration to rename 'version' to 'schema_version' in schemas collection
@@ -689,7 +692,7 @@ class RenameSchemaVersion(Migration):
             
             return True
         except Exception as e:
-            ad.log.error(f"Schema version rename migration failed: {e}")
+            logger.error(f"Schema version rename migration failed: {e}")
             return False
     
     async def down(self, db) -> bool:
@@ -709,7 +712,7 @@ class RenameSchemaVersion(Migration):
             
             return True
         except Exception as e:
-            ad.log.error(f"Schema version rename migration revert failed: {e}")
+            logger.error(f"Schema version rename migration revert failed: {e}")
             return False
 
 # Add this new migration class before the MIGRATIONS list
@@ -726,11 +729,11 @@ class RemoveSchemaNameField(Migration):
                 {"$unset": {"schema_name": ""}}
             )
             
-            ad.log.info(f"Removed schema_name field from {result.modified_count} documents")
+            logger.info(f"Removed schema_name field from {result.modified_count} documents")
             return True
             
         except Exception as e:
-            ad.log.error(f"Remove schema_name field migration failed: {e}")
+            logger.error(f"Remove schema_name field migration failed: {e}")
             return False
     
     async def down(self, db) -> bool:
@@ -756,11 +759,11 @@ class RemoveSchemaNameField(Migration):
                         )
                         restored_count += 1
             
-            ad.log.info(f"Restored schema_name field for {restored_count} documents")
+            logger.info(f"Restored schema_name field for {restored_count} documents")
             return True
             
         except Exception as e:
-            ad.log.error(f"Restore schema_name field migration failed: {e}")
+            logger.error(f"Restore schema_name field migration failed: {e}")
             return False
 
 # Add this new migration class before the MIGRATIONS list
@@ -818,7 +821,7 @@ class RenameCollections(Migration):
             return True
             
         except Exception as e:
-            ad.log.error(f"Collection rename migration failed: {e}")
+            logger.error(f"Collection rename migration failed: {e}")
             return False
     
     async def down(self, db) -> bool:
@@ -859,7 +862,7 @@ class RenameCollections(Migration):
             return True
             
         except Exception as e:
-            ad.log.error(f"Collection rename migration revert failed: {e}")
+            logger.error(f"Collection rename migration revert failed: {e}")
             return False
 
 # Add this new migration class before the MIGRATIONS list
@@ -900,7 +903,7 @@ class UseMongoObjectIDs(Migration):
                 # Delete old document
                 await db.schemas.delete_one({"_id": old_id})
                 
-                ad.log.info(f"Converted schema ID: {old_id} -> {new_id}")
+                logger.info(f"Converted schema ID: {old_id} -> {new_id}")
             
             # Update schema_revisions to reference new schema IDs
             revisions_cursor = db.schema_revisions.find({"schema_id": {"$exists": True}})
@@ -943,7 +946,7 @@ class UseMongoObjectIDs(Migration):
                 # Delete old document
                 await db.prompts.delete_one({"_id": old_id})
                 
-                ad.log.info(f"Converted prompt ID: {old_id} -> {new_id}")
+                logger.info(f"Converted prompt ID: {old_id} -> {new_id}")
             
             # Update prompt_revisions to reference new prompt IDs
             revisions_cursor = db.prompt_revisions.find({"prompt_id": {"$exists": True}})
@@ -967,7 +970,7 @@ class UseMongoObjectIDs(Migration):
             return True
             
         except Exception as e:
-            ad.log.error(f"Migration to MongoDB ObjectIDs failed: {e}")
+            logger.error(f"Migration to MongoDB ObjectIDs failed: {e}")
             return False
     
     async def down(self, db) -> bool:
@@ -975,7 +978,7 @@ class UseMongoObjectIDs(Migration):
         It's not practical to revert this migration as the original IDs are lost.
         This is a one-way migration.
         """
-        ad.log.warning("Cannot revert migration to MongoDB ObjectIDs as original IDs are not preserved.")
+        logger.warning("Cannot revert migration to MongoDB ObjectIDs as original IDs are not preserved.")
         return False
 
 # Add this new migration class before the MIGRATIONS list
@@ -1015,7 +1018,7 @@ class MigratePromptNames(Migration):
                     )
                     updated_count += 1
             
-            ad.log.info(f"Updated {updated_count} prompts with names, skipped {skipped_count} prompts")
+            logger.info(f"Updated {updated_count} prompts with names, skipped {skipped_count} prompts")
             
             # Remove name field from all prompt_revisions
             result = await db.prompt_revisions.update_many(
@@ -1023,12 +1026,12 @@ class MigratePromptNames(Migration):
                 {"$unset": {"name": ""}}
             )
             
-            ad.log.info(f"Removed name field from {result.modified_count} prompt_revisions")
+            logger.info(f"Removed name field from {result.modified_count} prompt_revisions")
             
             return True
             
         except Exception as e:
-            ad.log.error(f"Prompt name migration failed: {e}")
+            logger.error(f"Prompt name migration failed: {e}")
             return False
     
     async def down(self, db) -> bool:
@@ -1051,11 +1054,11 @@ class MigratePromptNames(Migration):
                     
                     restored_count += result.modified_count
             
-            ad.log.info(f"Restored name field for {restored_count} prompt_revisions")
+            logger.info(f"Restored name field for {restored_count} prompt_revisions")
             return True
             
         except Exception as e:
-            ad.log.error(f"Prompt name migration revert failed: {e}")
+            logger.error(f"Prompt name migration revert failed: {e}")
             return False
 
 # Add this new migration class before the MIGRATIONS list
@@ -1099,7 +1102,7 @@ class MigratePromptOrganizationIDs(Migration):
                         )
                         updated_count += 1
             
-            ad.log.info(f"Updated {updated_count} prompts with organization_id/name")
+            logger.info(f"Updated {updated_count} prompts with organization_id/name")
             
             # Remove fields from all prompt_revisions
             result = await db.prompt_revisions.update_many(
@@ -1113,12 +1116,12 @@ class MigratePromptOrganizationIDs(Migration):
                 }}
             )
             
-            ad.log.info(f"Removed fields from {result.modified_count} prompt_revisions")
+            logger.info(f"Removed fields from {result.modified_count} prompt_revisions")
             
             return True
             
         except Exception as e:
-            ad.log.error(f"Organization ID migration failed: {e}")
+            logger.error(f"Organization ID migration failed: {e}")
             return False
     
     async def down(self, db) -> bool:
@@ -1152,11 +1155,11 @@ class MigratePromptOrganizationIDs(Migration):
                     
                     restored_count += result.modified_count
             
-            ad.log.info(f"Restored fields for {restored_count} prompt_revisions")
+            logger.info(f"Restored fields for {restored_count} prompt_revisions")
             return True
             
         except Exception as e:
-            ad.log.error(f"Organization ID migration revert failed: {e}")
+            logger.error(f"Organization ID migration revert failed: {e}")
             return False
 
 # Add this new migration class before the MIGRATIONS list
@@ -1200,7 +1203,7 @@ class MigrateSchemaOrganizationIDs(Migration):
                         )
                         updated_count += 1
             
-            ad.log.info(f"Updated {updated_count} schemas with organization_id/name")
+            logger.info(f"Updated {updated_count} schemas with organization_id/name")
             
             # Remove fields from all schema_revisions
             result = await db.schema_revisions.update_many(
@@ -1214,12 +1217,12 @@ class MigrateSchemaOrganizationIDs(Migration):
                 }}
             )
             
-            ad.log.info(f"Removed fields from {result.modified_count} schema_revisions")
+            logger.info(f"Removed fields from {result.modified_count} schema_revisions")
             
             return True
             
         except Exception as e:
-            ad.log.error(f"Schema organization ID migration failed: {e}")
+            logger.error(f"Schema organization ID migration failed: {e}")
             return False
     
     async def down(self, db) -> bool:
@@ -1253,11 +1256,11 @@ class MigrateSchemaOrganizationIDs(Migration):
                     
                     restored_count += result.modified_count
             
-            ad.log.info(f"Restored fields for {restored_count} schema_revisions")
+            logger.info(f"Restored fields for {restored_count} schema_revisions")
             return True
             
         except Exception as e:
-            ad.log.error(f"Schema organization ID migration revert failed: {e}")
+            logger.error(f"Schema organization ID migration revert failed: {e}")
             return False
 
 # Add this new migration class before the MIGRATIONS list

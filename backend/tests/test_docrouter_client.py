@@ -9,6 +9,7 @@ from bson import ObjectId
 from unittest.mock import patch, MagicMock
 import json
 from typing import Dict, Any, List
+import logging
 
 # Import shared test utilities
 from .test_utils import (
@@ -16,6 +17,8 @@ from .test_utils import (
     test_db, get_auth_headers, mock_auth
 )
 import analytiq_data as ad
+
+logger = logging.getLogger(__name__)
 
 # Add the packages directory to the Python path
 TOP_DIR = pathlib.Path(__file__).parent.parent.parent
@@ -131,14 +134,14 @@ async def setup_test_models(db):
     ]
     
     await db.llm_models.insert_many(test_models)
-    ad.log.info(f"Added {len(test_models)} test LLM models to database")
+    logger.info(f"Added {len(test_models)} test LLM models to database")
 
 
 
 @pytest.mark.asyncio
 async def test_documents_api(test_db, mock_auth, mock_docrouter_client, small_pdf):
     """Test the documents API using the mock DocRouterClient"""
-    ad.log.info(f"test_documents_api() start")
+    logger.info(f"test_documents_api() start")
     
     try:
         # Test 1: Create a document
@@ -192,13 +195,13 @@ async def test_documents_api(test_db, mock_auth, mock_docrouter_client, small_pd
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_documents_api() end")
+    logger.info(f"test_documents_api() end")
 
 
 @pytest.mark.asyncio
 async def test_tags_api(test_db, mock_auth, mock_docrouter_client):
     """Test the tags API using the mock DocRouterClient"""
-    ad.log.info(f"test_tags_api() start")
+    logger.info(f"test_tags_api() start")
     
     try:
         # Test: List tags
@@ -232,13 +235,13 @@ async def test_tags_api(test_db, mock_auth, mock_docrouter_client):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_tags_api() end")
+    logger.info(f"test_tags_api() end")
 
 
 @pytest.mark.asyncio
 async def test_llm_api(test_db, mock_auth, mock_docrouter_client):
     """Test the LLM API using the mock DocRouterClient"""
-    ad.log.info(f"test_llm_api() start")
+    logger.info(f"test_llm_api() start")
     
     # Mock the LLM API responses
     with patch.object(mock_docrouter_client.llm, 'run', return_value={"status": "success", "result_id": "mock_result_id"}) as mock_run, \
@@ -273,12 +276,12 @@ async def test_llm_api(test_db, mock_auth, mock_docrouter_client):
         finally:
             pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_llm_api() end")
+    logger.info(f"test_llm_api() end")
 
 @pytest.mark.asyncio
 async def test_ocr_api(test_db, mock_auth, mock_docrouter_client, small_pdf):
     """Test the OCR API using the mock DocRouterClient"""
-    ad.log.info(f"test_ocr_api() start")
+    logger.info(f"test_ocr_api() start")
     
     # Mock the OCR API responses
     with patch.object(mock_docrouter_client.ocr, 'get_text', return_value="Sample OCR text") as mock_get_text, \
@@ -311,12 +314,12 @@ async def test_ocr_api(test_db, mock_auth, mock_docrouter_client, small_pdf):
         finally:
             pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_ocr_api() end")
+    logger.info(f"test_ocr_api() end")
 
 @pytest.mark.asyncio
 async def test_schemas_api(test_db, mock_auth, mock_docrouter_client):
     """Test the Schemas API using the DocRouterClient"""
-    ad.log.info(f"test_schemas_api() start")
+    logger.info(f"test_schemas_api() start")
     
     try:
         # Step 1: Create a JSON schema
@@ -426,12 +429,12 @@ async def test_schemas_api(test_db, mock_auth, mock_docrouter_client):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_schemas_api() end")
+    logger.info(f"test_schemas_api() end")
 
 @pytest.mark.asyncio
 async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
     """Test the Prompts API using the DocRouterClient"""
-    ad.log.info(f"test_prompts_api() start")
+    logger.info(f"test_prompts_api() start")
 
     # Set up test models first
     await setup_test_models(test_db)
@@ -464,12 +467,12 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
             }
         }
         
-        ad.log.info(f"Creating schema: {schema_data['name']}")
+        logger.info(f"Creating schema: {schema_data['name']}")
         schema_response = mock_docrouter_client.schemas.create(TEST_ORG_ID, schema_data)
         assert hasattr(schema_response, "schema_revid")
         assert schema_response.name == "Test Prompt Schema"
 
-        ad.log.info(f"Schema created: {schema_response}")
+        logger.info(f"Schema created: {schema_response}")
         
         schema_id = schema_response.schema_id
         schema_revid = schema_response.schema_revid
@@ -484,7 +487,7 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
             "content": "Extract information from the document."
         }
         
-        ad.log.info(f"Creating prompt: {prompt_data['name']}")
+        logger.info(f"Creating prompt: {prompt_data['name']}")
         create_response = mock_docrouter_client.prompts.create(TEST_ORG_ID, prompt_data)
         assert hasattr(create_response, "prompt_revid")
         assert create_response.name == "Test Prompt"
@@ -492,14 +495,14 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
         prompt_id = create_response.prompt_id
         prompt_revid = create_response.prompt_revid
         prompt_version = create_response.prompt_version
-        ad.log.info(f"Prompt created: {create_response}")
+        logger.info(f"Prompt created: {create_response}")
 
         assert prompt_version == 1
 
         # Step 3: List prompts to verify it was created
-        ad.log.info(f"Listing prompts")
+        logger.info(f"Listing prompts")
         list_response = mock_docrouter_client.prompts.list(TEST_ORG_ID)
-        ad.log.info(f"List prompts response: {list_response}")
+        logger.info(f"List prompts response: {list_response}")
         assert list_response.total_count > 0
         
         # Find our prompt in the list
@@ -508,9 +511,9 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
         assert created_prompt.name == "Test Prompt"
         
         # Step 4: Get the specific prompt to verify its content
-        ad.log.info(f"Getting prompt: {prompt_revid}")
+        logger.info(f"Getting prompt: {prompt_revid}")
         get_response = mock_docrouter_client.prompts.get(TEST_ORG_ID, prompt_revid)
-        ad.log.info(f"Get prompt response: {get_response}")
+        logger.info(f"Get prompt response: {get_response}")
         assert get_response.prompt_revid == prompt_revid
         assert get_response.name == "Test Prompt"
         
@@ -521,24 +524,24 @@ async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
             "content": "Extract detailed information from the document."
         }
         
-        ad.log.info(f"Updating prompt: {prompt_id}")
+        logger.info(f"Updating prompt: {prompt_id}")
         update_response = mock_docrouter_client.prompts.update(TEST_ORG_ID, prompt_id, update_data)
-        ad.log.info(f"Update prompt response: {update_response}")
+        logger.info(f"Update prompt response: {update_response}")
         assert update_response.name == "Updated Test Prompt"
         
         # Step 6: Delete the prompt
-        ad.log.info(f"Deleting prompt: {prompt_id}")
+        logger.info(f"Deleting prompt: {prompt_id}")
         delete_response = mock_docrouter_client.prompts.delete(TEST_ORG_ID, prompt_id)
-        ad.log.info(f"Delete prompt response: {delete_response}")
+        logger.info(f"Delete prompt response: {delete_response}")
         assert delete_response["message"] == "Prompt deleted successfully"
         
         # Step 7: Delete the schema
-        ad.log.info(f"Deleting schema: {schema_id}")
+        logger.info(f"Deleting schema: {schema_id}")
         delete_schema_response = mock_docrouter_client.schemas.delete(TEST_ORG_ID, schema_id)
-        ad.log.info(f"Delete schema response: {delete_schema_response}")
+        logger.info(f"Delete schema response: {delete_schema_response}")
         assert delete_schema_response["message"] == "Schema deleted successfully"
         
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_prompts_api() end")
+    logger.info(f"test_prompts_api() end")

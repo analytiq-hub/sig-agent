@@ -2,6 +2,9 @@ from datetime import datetime, UTC
 import os
 import pickle
 import analytiq_data as ad
+import logging
+
+logger = logging.getLogger(__name__)
 
 OCR_BUCKET = "ocr"
 
@@ -27,10 +30,10 @@ def save_ocr_json(analytiq_client, document_id:str, ocr_json:list, metadata:dict
     key = f"{document_id}_json"
     ocr_bytes = pickle.dumps(ocr_json)
     size_mb = len(ocr_bytes) / 1024 / 1024
-    ad.log.info(f"Saving OCR json for {document_id} with metadata: {metadata} size: {size_mb:.2f}MB")
+    logger.info(f"Saving OCR json for {document_id} with metadata: {metadata} size: {size_mb:.2f}MB")
     ad.mongodb.save_blob(analytiq_client, bucket=OCR_BUCKET, key=key, blob=ocr_bytes, metadata=metadata)
     
-    ad.log.info(f"OCR JSON for {document_id} has been saved.")
+    logger.info(f"OCR JSON for {document_id} has been saved.")
 
 def delete_ocr_json(analytiq_client, document_id:str):
     """
@@ -45,7 +48,7 @@ def delete_ocr_json(analytiq_client, document_id:str):
     key = f"{document_id}_json"
     ad.mongodb.delete_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
 
-    ad.log.debug(f"OCR JSON for {document_id} has been deleted.")
+    logger.debug(f"OCR JSON for {document_id} has been deleted.")
 
 def get_ocr_text(analytiq_client, document_id:str, page_idx:int=None) -> str:
     """
@@ -98,7 +101,7 @@ def save_ocr_text(analytiq_client, document_id:str, ocr_text:str, page_idx:int=N
     # Save the blob
     ad.mongodb.save_blob(analytiq_client, bucket=OCR_BUCKET, key=key, blob=ocr_text_bytes, metadata=metadata)
     
-    ad.log.debug(f"OCR text for {document_id} page {page_idx} has been saved.")
+    logger.debug(f"OCR text for {document_id} page {page_idx} has been saved.")
 
 def delete_ocr_text(analytiq_client, document_id:str, page_idx:int=None):
     """
@@ -117,7 +120,7 @@ def delete_ocr_text(analytiq_client, document_id:str, page_idx:int=None):
         key += f"_page_{page_idx}"
     ad.mongodb.delete_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
 
-    ad.log.debug(f"OCR text for {document_id} page {page_idx} has been deleted.")
+    logger.debug(f"OCR text for {document_id} page {page_idx} has been deleted.")
 
 def delete_ocr_all(analytiq_client, document_id:str):
     """
@@ -157,7 +160,7 @@ def save_ocr_text_from_list(analytiq_client, document_id:str, ocr_json:list, met
     if not force:
         ocr_text = get_ocr_text(analytiq_client, document_id)
         if ocr_text is not None:
-            ad.log.info(f"OCR text for {document_id} already exists. Returning.")
+            logger.info(f"OCR text for {document_id} already exists. Returning.")
             return
     else:
         # Remove the old OCR text, if any
@@ -174,13 +177,13 @@ def save_ocr_text_from_list(analytiq_client, document_id:str, ocr_json:list, met
     for page_num, page_text in page_text_map.items():
         page_idx = int(page_num) - 1
         save_ocr_text(analytiq_client, document_id, page_text, page_idx, metadata)
-        ad.log.info(f"OCR text for {document_id} page {page_idx} has been saved.")
+        logger.info(f"OCR text for {document_id} page {page_idx} has been saved.")
 
     text = "\n".join(page_text_map.values())
-    ad.log.info(f"Saving OCR text for {document_id} with metadata: {metadata} length: {len(text)}")
+    logger.info(f"Saving OCR text for {document_id} with metadata: {metadata} length: {len(text)}")
     save_ocr_text(analytiq_client, document_id, text, metadata=metadata)
 
-    ad.log.info(f"OCR text for {document_id} has been saved.")
+    logger.info(f"OCR text for {document_id} has been saved.")
 
 def get_ocr_metadata(analytiq_client, document_id:str) -> dict:
     """

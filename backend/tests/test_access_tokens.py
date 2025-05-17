@@ -1,6 +1,7 @@
 import pytest
 from bson import ObjectId
 import os
+import logging
 
 # Import shared test utilities
 from .test_utils import (
@@ -9,13 +10,15 @@ from .test_utils import (
 )
 import analytiq_data as ad
 
+logger = logging.getLogger(__name__)
+
 # Check that ENV is set to pytest
 assert os.environ["ENV"] == "pytest"
 
 @pytest.mark.asyncio
 async def test_access_tokens(test_db, mock_auth):
     """Test the complete access token lifecycle"""
-    ad.log.info(f"test_access_tokens() start")
+    logger.info(f"test_access_tokens() start")
     
     try:
         # Step 1: Create an access token
@@ -79,12 +82,12 @@ async def test_access_tokens(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_access_tokens() end")
+    logger.info(f"test_access_tokens() end")
 
 @pytest.mark.asyncio
 async def test_account_access_tokens(test_db, mock_auth):
     """Test the account-level access token lifecycle"""
-    ad.log.info(f"test_account_access_tokens() start")
+    logger.info(f"test_account_access_tokens() start")
     
     try:
         # Step 1: Create an account-level access token
@@ -150,4 +153,4 @@ async def test_account_access_tokens(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_account_access_tokens() end") 
+    logger.info(f"test_account_access_tokens() end") 

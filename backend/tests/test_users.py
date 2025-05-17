@@ -2,6 +2,7 @@ import pytest
 from bson import ObjectId
 import os
 from datetime import datetime, UTC
+import logging
 
 # Import shared test utilities
 from .test_utils import (
@@ -10,13 +11,15 @@ from .test_utils import (
 )
 import analytiq_data as ad
 
+logger = logging.getLogger(__name__)
+
 # Check that ENV is set to pytest
 assert os.environ["ENV"] == "pytest"
 
 @pytest.mark.asyncio
 async def test_list_users(test_db, mock_auth):
     """Test listing users endpoint"""
-    ad.log.info(f"test_list_users() start")
+    logger.info(f"test_list_users() start")
     
     try:
         # List users
@@ -52,12 +55,12 @@ async def test_list_users(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_list_users() end")
+    logger.info(f"test_list_users() end")
 
 @pytest.mark.asyncio
 async def test_user_lifecycle(test_db, mock_auth):
     """Test the complete user lifecycle (create, get, update, delete)"""
-    ad.log.info(f"test_user_lifecycle() start")
+    logger.info(f"test_user_lifecycle() start")
     
     try:
         # Step 1: Create a user
@@ -166,4 +169,4 @@ async def test_user_lifecycle(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_user_lifecycle() end")
+    logger.info(f"test_user_lifecycle() end")

@@ -1,9 +1,11 @@
 from datetime import datetime, UTC
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
+import logging
 
 import analytiq_data as ad
 
+logger = logging.getLogger(__name__)
 
 async def get_tag_id(analytiq_client, tag_name: str) -> str:
     """
@@ -25,12 +27,12 @@ async def get_tag_id(analytiq_client, tag_name: str) -> str:
 
     # Print all collection elements
     elements = await collection.find().to_list(length=None)
-    ad.log.info(elements)
+    logger.info(elements)
 
-    ad.log.info(f"db_name: {db_name}")
+    logger.info(f"db_name: {db_name}")
     # List all collections
     collections = await db.list_collection_names()
-    ad.log.info(f"collections: {collections}")
+    logger.info(f"collections: {collections}")
     
     element = await collection.find_one({"name": tag_name})
     if element is None:

@@ -1,6 +1,7 @@
 import pytest
 from bson import ObjectId
 import os
+import logging
 
 # Import shared test utilities
 from .test_utils import (
@@ -9,13 +10,15 @@ from .test_utils import (
 )
 import analytiq_data as ad
 
+logger = logging.getLogger(__name__)
+
 # Check that ENV is set to pytest
 assert os.environ["ENV"] == "pytest"
 
 @pytest.mark.asyncio
 async def test_json_schema_lifecycle(test_db, mock_auth):
     """Test the complete JSON schema lifecycle"""
-    ad.log.info(f"test_json_schema_lifecycle() start")
+    logger.info(f"test_json_schema_lifecycle() start")
     
     try:
         # Step 1: Create a JSON schema
@@ -166,7 +169,7 @@ async def test_json_schema_lifecycle(test_db, mock_auth):
         
         assert update_response.status_code == 200
 
-        ad.log.info(f"update_response: {update_response.json()}")
+        logger.info(f"update_response: {update_response.json()}")
 
         updated_schema_revid = update_response.json()["schema_revid"]
         
@@ -216,12 +219,12 @@ async def test_json_schema_lifecycle(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_json_schema_lifecycle() end")
+    logger.info(f"test_json_schema_lifecycle() end")
 
 @pytest.mark.asyncio
 async def test_schema_validation(test_db, mock_auth):
     """Test schema validation functionality"""
-    ad.log.info(f"test_schema_validation() start")
+    logger.info(f"test_schema_validation() start")
     
     try:
         # Step 1: Create a simple JSON schema for validation testing
@@ -315,12 +318,12 @@ async def test_schema_validation(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_schema_validation() end")
+    logger.info(f"test_schema_validation() end")
 
 @pytest.mark.asyncio
 async def test_schema_version_deletion(test_db, mock_auth):
     """Test that when deleting a schema, all versions with the same schema_id are deleted"""
-    ad.log.info(f"test_schema_version_deletion() start")
+    logger.info(f"test_schema_version_deletion() start")
     
     try:
         # Step 1: Create a schema
@@ -450,12 +453,12 @@ async def test_schema_version_deletion(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_schema_version_deletion() end")
+    logger.info(f"test_schema_version_deletion() end")
 
 @pytest.mark.asyncio
 async def test_schema_latest_version_listing(test_db, mock_auth):
     """Test that when listing schemas, only the latest versions are shown"""
-    ad.log.info(f"test_schema_latest_version_listing() start")
+    logger.info(f"test_schema_latest_version_listing() start")
     
     try:
         # Step 1: Create a schema
@@ -558,12 +561,12 @@ async def test_schema_latest_version_listing(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_schema_latest_version_listing() end")
+    logger.info(f"test_schema_latest_version_listing() end")
 
 @pytest.mark.asyncio
 async def test_schema_name_only_update(test_db, mock_auth):
     """Test that updating only the schema name doesn't create a new version"""
-    ad.log.info(f"test_schema_name_only_update() start")
+    logger.info(f"test_schema_name_only_update() start")
     
     try:
         # Step 1: Create a schema
@@ -690,4 +693,4 @@ async def test_schema_name_only_update(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    ad.log.info(f"test_schema_name_only_update() end")
+    logger.info(f"test_schema_name_only_update() end")

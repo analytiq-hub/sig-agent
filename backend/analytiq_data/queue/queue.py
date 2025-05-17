@@ -1,8 +1,11 @@
 from datetime import datetime, UTC
 from typing import Optional, Dict, Any
 from bson import ObjectId
+import logging
 
 import analytiq_data as ad
+
+logger = logging.getLogger(__name__)
 
 def get_queue_collection_name(queue_name: str) -> str:
     """
@@ -46,7 +49,7 @@ async def send_msg(
 
     result = await queue_collection.insert_one(msg_data)
     msg_id = str(result.inserted_id)
-    ad.log.info(f"Sent message: {msg_id} to {queue_name}")
+    logger.info(f"Sent message: {msg_id} to {queue_name}")
     return msg_id
 
 async def recv_msg(analytiq_client, queue_name: str) -> Optional[Dict[str, Any]]:
@@ -92,4 +95,4 @@ async def delete_msg(analytiq_client, queue_name: str, msg_id: str, status: str 
         {"_id": ObjectId(msg_id)},
         {"$set": {"status": status}}
     )
-    ad.log.info(f"Deleted message {msg_id} from {queue_name} with status: {status}") 
+    logger.info(f"Deleted message {msg_id} from {queue_name} with status: {status}") 

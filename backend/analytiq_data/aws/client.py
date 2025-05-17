@@ -1,8 +1,11 @@
 import boto3
 import botocore
 from botocore.credentials import AssumeRoleCredentialFetcher, DeferredRefreshableCredentials
+import logging
 
 import analytiq_data as ad
+
+logger = logging.getLogger(__name__)
 
 class AWSClient:
     def __init__(self, analytiq_client, region_name: str = "us-east-1"):
@@ -58,8 +61,8 @@ class AWSClient:
             self.textract = self.session.client("textract", region_name=region_name)
 
         except Exception as e:
-            ad.log.info(f"AWS credentials are not correct: {e}")
-            ad.log.info("AWS client created with empty AWS credentials")
+            logger.info(f"AWS credentials are not correct: {e}")
+            logger.info("AWS client created with empty AWS credentials")
 
 def get_aws_client(analytiq_client, region_name: str = "us-east-1") -> AWSClient:
     """

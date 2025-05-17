@@ -7,6 +7,9 @@ from datetime import datetime, UTC
 from pydantic import BaseModel, create_model
 from typing import Optional, Dict, Any
 from collections import OrderedDict
+import logging
+
+logger = logging.getLogger(__name__)
 
 async def run_llm(analytiq_client, 
                   document_id: str,
@@ -31,18 +34,18 @@ async def run_llm(analytiq_client,
     if not force:
         existing_result = await get_llm_result(analytiq_client, document_id, prompt_id)
         if existing_result:
-            ad.log.info(f"Using cached LLM result for document_id: {document_id}, prompt_id: {prompt_id}")
+            logger.info(f"Using cached LLM result for document_id: {document_id}, prompt_id: {prompt_id}")
             return existing_result["llm_result"]
     else:
         # Delete the existing result
         await delete_llm_result(analytiq_client, document_id, prompt_id)
 
-    ad.log.info(f"Running new LLM analysis for document_id: {document_id}, prompt_id: {prompt_id}")
+    logger.info(f"Running new LLM analysis for document_id: {document_id}, prompt_id: {prompt_id}")
 
     if llm_model is None:
         llm_model = await ad.llm.get_llm_model(analytiq_client, prompt_id)
 
-    ad.log.info(f"LLM model: {llm_model}")
+    logger.info(f"LLM model: {llm_model}")
 
     # Get the appropriate API key based on the model prefix
     provider = "OpenAI"  # Default
@@ -59,7 +62,7 @@ async def run_llm(analytiq_client,
     api_key = await ad.llm.get_llm_key(analytiq_client, provider)
     ocr_text = ad.common.get_ocr_text(analytiq_client, document_id)
 
-    ad.log.info(f"LLM model: {llm_model}, provider: {provider}, api_key: {api_key}")
+    logger.info(f"LLM model: {llm_model}, provider: {provider}, api_key: {api_key}")
     
     prompt1 = await ad.common.get_prompt_content(analytiq_client, prompt_id)
     
@@ -86,10 +89,10 @@ async def run_llm(analytiq_client,
         if supports_response_schema(model=llm_model) and prompt_id != "default":
             # Get the prompt response format, if any
             response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_id)
-            ad.log.info(f"Response format: {response_format}")
+            logger.info(f"Response format: {response_format}")
         
         if response_format is None:
-            ad.log.info(f"No response format found for prompt {prompt_id}")
+            logger.info(f"No response format found for prompt {prompt_id}")
             # Use a default response format
             response_format = {"type": "json_object"}
 
@@ -115,7 +118,7 @@ async def run_llm(analytiq_client,
             # Get ordered properties from schema
             ordered_properties = list(schema.get("properties", {}).keys())
             
-            #ad.log.info(f"Ordered properties: {ordered_properties}")
+            #logger.info(f"Ordered properties: {ordered_properties}")
 
             # Create new ordered dictionary based on schema property order
             ordered_resp = OrderedDict()
@@ -123,7 +126,7 @@ async def run_llm(analytiq_client,
                 if key in resp_dict:
                     ordered_resp[key] = resp_dict[key]
 
-            #ad.log.info(f"Ordered response: {ordered_resp}")
+            #logger.info(f"Ordered response: {ordered_resp}")
             
             # Add any remaining keys that might not be in schema
             for key in resp_dict:
@@ -132,7 +135,7 @@ async def run_llm(analytiq_client,
                     
             resp_dict = dict(ordered_resp)  # Convert back to regular dict
 
-            #ad.log.info(f"Reordered response: {resp_dict}")
+            #logger.info(f"Reordered response: {resp_dict}")
 
     # Save the new result
     await save_llm_result(analytiq_client, document_id, prompt_id, resp_dict)
@@ -170,7 +173,7 @@ async def get_llm_result(analytiq_client,
         # Remove MongoDB's _id field
         result.pop('_id', None)
 
-        ad.log.info(f"LLM result: {result}")
+        logger.info(f"LLM result: {result}")
         return result
         
     return None
@@ -207,7 +210,7 @@ async def save_llm_result(analytiq_client,
         "updated_at": current_time_utc
     }
 
-    ad.log.info(f"Saving LLM result: {element}")
+    logger.info(f"Saving LLM result: {element}")
 
     # Save the result, return the ID
     result = await queue_collection.insert_one(element)
@@ -261,7 +264,7 @@ async def run_llm_for_prompt_ids(analytiq_client, document_id: str, prompt_ids: 
     # Run the tasks
     results = await asyncio.gather(*tasks)
 
-    ad.log.info(f"LLM run completed for {document_id} with {n_prompts} prompts: {results}")
+    logger.info(f"LLM run completed for {document_id} with {n_prompts} prompts: {results}")
 
 async def update_llm_result(analytiq_client,
                             document_id: str,
