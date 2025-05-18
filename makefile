@@ -13,6 +13,7 @@ setup:
 	# Install build dependencies
 	uv pip install hatchling ; \
 	# Install packages in order
+	uv pip install -r packages/requirements.txt ; \
 	uv pip install -e packages/docrouter_sdk ; \
 	uv pip install -e packages/docrouter_mcp ; \
 
