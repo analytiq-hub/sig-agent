@@ -281,7 +281,7 @@ def convert_to_pdf(blob: bytes, ext: str) -> bytes:
         "--convert-to", "pdf",
         "--outdir", os.path.dirname(input_path),
         input_path
-    ], check=True)
+    ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     with open(output_path, "rb") as f:
         pdf_blob = f.read()
