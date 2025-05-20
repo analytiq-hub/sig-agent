@@ -151,9 +151,7 @@ security = HTTPBearer()
 
 # CORS configuration
 origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    NEXTAUTH_URL,
+    "*"
 ]
 
 logger.info(f"CORS allowed origins: {origins}")
