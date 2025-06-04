@@ -730,14 +730,14 @@ async def get_ocr_metadata(
 async def run_llm_analysis(
     organization_id: str,
     document_id: str,
-    prompt_id: str = Query(default="default", description="The prompt ID to use"),
+    prompt_rev_id: str = Query(default="default", description="The prompt revision ID to use"),
     force: bool = Query(default=False, description="Force new run even if result exists"),
     current_user: User = Depends(get_current_user)
 ):
     """
     Run LLM on a document, with optional force refresh.
     """
-    logger.debug(f"run_llm_analysis() start: document_id: {document_id}, prompt_id: {prompt_id}, force: {force}")
+    logger.debug(f"run_llm_analysis() start: document_id: {document_id}, prompt_rev_id: {prompt_rev_id}, force: {force}")
     analytiq_client = ad.common.get_analytiq_client()
     
     # Verify document exists and user has access
@@ -754,7 +754,7 @@ async def run_llm_analysis(
         result = await ad.llm.run_llm(
             analytiq_client,
             document_id=document_id,
-            prompt_id=prompt_id,
+            prompt_rev_id=prompt_rev_id,
             force=force
         )
         

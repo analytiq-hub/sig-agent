@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 async def run_llm(analytiq_client, 
                   document_id: str,
-                  prompt_id: str = "default",
+                  prompt_rev_id: str = "default",
                   llm_model: str = None,
                   force: bool = False) -> dict:
     """
@@ -22,7 +22,7 @@ async def run_llm(analytiq_client,
     Args:
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
-        prompt_id: The prompt ID
+        prompt_rev_id: The prompt revision ID
         llm_model: The model to use (e.g. "gpt-4", "claude-3-sonnet", "mixtral-8x7b-32768")
                If not provided, the model will be retrieved from the prompt.
         force: If True, run the LLM even if the result is already cached
@@ -32,18 +32,18 @@ async def run_llm(analytiq_client,
     """
     # Check for existing result unless force is True
     if not force:
-        existing_result = await get_llm_result(analytiq_client, document_id, prompt_id)
+        existing_result = await get_llm_result(analytiq_client, document_id, prompt_rev_id)
         if existing_result:
-            logger.info(f"Using cached LLM result for document_id: {document_id}, prompt_id: {prompt_id}")
+            logger.info(f"Using cached LLM result for document_id: {document_id}, prompt_rev_id: {prompt_rev_id}")
             return existing_result["llm_result"]
     else:
         # Delete the existing result
-        await delete_llm_result(analytiq_client, document_id, prompt_id)
+        await delete_llm_result(analytiq_client, document_id, prompt_rev_id)
 
-    logger.info(f"Running new LLM analysis for document_id: {document_id}, prompt_id: {prompt_id}")
+    logger.info(f"Running new LLM analysis for document_id: {document_id}, prompt_rev_id: {prompt_rev_id}")
 
     if llm_model is None:
-        llm_model = await ad.llm.get_llm_model(analytiq_client, prompt_id)
+        llm_model = await ad.llm.get_llm_model(analytiq_client, prompt_rev_id)
 
     logger.info(f"LLM model: {llm_model}")
 
@@ -64,7 +64,7 @@ async def run_llm(analytiq_client,
 
     logger.info(f"LLM model: {llm_model}, provider: {provider}, api_key: {api_key}")
     
-    prompt1 = await ad.common.get_prompt_content(analytiq_client, prompt_id)
+    prompt1 = await ad.common.get_prompt_content(analytiq_client, prompt_rev_id)
     
     # Build the prompt
     prompt = f"""{prompt1}
@@ -86,13 +86,13 @@ async def run_llm(analytiq_client,
 
         # Most but not all models support response_format
         # See https://platform.openai.com/docs/guides/structured-outputs?format=without-parse
-        if supports_response_schema(model=llm_model) and prompt_id != "default":
+        if supports_response_schema(model=llm_model) and prompt_rev_id != "default":
             # Get the prompt response format, if any
-            response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_id)
+            response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_rev_id)
             logger.info(f"Response format: {response_format}")
         
         if response_format is None:
-            logger.info(f"No response format found for prompt {prompt_id}")
+            logger.info(f"No response format found for prompt {prompt_rev_id}")
             # Use a default response format
             response_format = {"type": "json_object"}
 
@@ -110,9 +110,9 @@ async def run_llm(analytiq_client,
     resp_dict = json.loads(response.choices[0].message.content)
 
     # If this is not the default prompt, reorder the response to match schema
-    if prompt_id != "default":
+    if prompt_rev_id != "default":
         # Get the prompt response format
-        response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_id)
+        response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_rev_id)
         if response_format and response_format.get("type") == "json_schema":
             schema = response_format["json_schema"]["schema"]
             # Get ordered properties from schema
@@ -138,7 +138,7 @@ async def run_llm(analytiq_client,
             #logger.info(f"Reordered response: {resp_dict}")
 
     # Save the new result
-    await save_llm_result(analytiq_client, document_id, prompt_id, resp_dict)
+    await save_llm_result(analytiq_client, document_id, prompt_rev_id, resp_dict)
     
     return resp_dict
 

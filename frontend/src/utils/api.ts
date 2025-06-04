@@ -287,7 +287,7 @@ export const runLLMApi = async (params: RunLLMParams) => {
     {},
     {
       params: {
-        prompt_id: promptId,
+        prompt_rev_id: promptId,
         force: force
       }
     }
