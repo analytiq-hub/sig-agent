@@ -15,6 +15,7 @@ import hashlib
 import asyncio
 from typing import Optional, List
 from contextlib import asynccontextmanager
+import litellm
 
 # Set up the path first, before other imports
 cwd = os.path.dirname(os.path.abspath(__file__))
@@ -44,6 +45,7 @@ from api.models import (
     DocumentMetadata, DocumentUpload, DocumentsUpload,
     DocumentUpdate,
     LLMModel, ListLLMModelsResponse,
+    LLMProvider, ListLLMProvidersResponse,
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
     GetOCRMetadataResponse,
@@ -2182,7 +2184,7 @@ async def access_token_delete(
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
 
-@app.get("/v0/account/llm_models", response_model=ListLLMModelsResponse, tags=["account/llm_models"])
+@app.get("/v0/account/llm_models", response_model=ListLLMModelsResponse, tags=["account/llm"])
 async def list_llm_models():
     """List all supported LLM models"""
     db = ad.common.get_async_db()
@@ -2207,7 +2209,39 @@ async def list_llm_models():
     
     return ListLLMModelsResponse(models=llm_models)
 
-@app.post("/v0/account/llm_tokens", response_model=LLMToken, tags=["account/llm_tokens"])
+@app.get("/v0/account/llm_providers", response_model=ListLLMProvidersResponse, tags=["account/llm"])
+async def list_llm_providers(
+    current_user: User = Depends(get_admin_user)
+):
+    """List all supported LLM providers"""
+    db = ad.common.get_async_db()
+    
+    # Retrieve models from MongoDB
+    cursor = db.llm_providers.find({})
+    providers = await cursor.to_list(length=None)
+    
+    # Convert MongoDB documents to LLMModel instances
+    llm_providers = []
+    for provider in providers:
+        logger.info(f"provider: {provider}")
+
+        # Add all available models to the provider
+        provider["litellm_available_models"] = litellm.models_by_provider[provider["litellm_provider"]]
+
+        llm_providers.append(LLMProvider(
+            name=provider["name"],
+            display_name=provider["display_name"],
+            litellm_provider=provider["litellm_provider"],
+            litellm_model_default=provider["litellm_model_default"],
+            litellm_models=provider["litellm_models"],
+            litellm_available_models=provider["litellm_available_models"],
+            token=provider["token"],
+            token_created_at=provider["token_created_at"]
+        ))
+    
+    return ListLLMProvidersResponse(providers=llm_providers)
+
+@app.post("/v0/account/llm_tokens", response_model=LLMToken, tags=["account/llm"])
 async def llm_token_create(
     request: CreateLLMTokenRequest,
     current_user: User = Depends(get_admin_user)
@@ -2246,7 +2280,7 @@ async def llm_token_create(
 
     return new_token
 
-@app.get("/v0/account/llm_tokens", response_model=ListLLMTokensResponse, tags=["account/llm_tokens"])
+@app.get("/v0/account/llm_tokens", response_model=ListLLMTokensResponse, tags=["account/llm"])
 async def llm_token_list(current_user: User = Depends(get_admin_user)):
     """List LLM tokens (admin only)"""
     db = ad.common.get_async_db()
@@ -2264,7 +2298,7 @@ async def llm_token_list(current_user: User = Depends(get_admin_user)):
     ]
     return ListLLMTokensResponse(llm_tokens=llm_tokens)
 
-@app.delete("/v0/account/llm_tokens/{token_id}", tags=["account/llm_tokens"])
+@app.delete("/v0/account/llm_tokens/{token_id}", tags=["account/llm"])
 async def llm_token_delete(
     token_id: str,
     current_user: User = Depends(get_admin_user)

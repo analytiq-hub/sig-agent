@@ -2,6 +2,7 @@ from bson.objectid import ObjectId
 import os
 import logging
 import litellm
+from datetime import datetime
 import analytiq_data as ad
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ async def setup_llm_providers(analytiq_client):
             "litellm_models": [],
             "litellm_model_default": "j2-light",
             "token" : "",
+            "token_created_at": None,
             "token_env": "AI21_API_KEY",
         },
         "anthropic": {
@@ -38,6 +40,7 @@ async def setup_llm_providers(analytiq_client):
             "litellm_models": [],
             "litellm_model_default": "claude-3-7-sonnet-latest",
             "token" : "",
+            "token_created_at": None,
             "token_env": "ANTHROPIC_API_KEY",
         },
         "azure": {
@@ -46,6 +49,7 @@ async def setup_llm_providers(analytiq_client):
             "litellm_models": [],
             "litellm_model_default": "azure/gpt-4.1-nano",
             "token" : "",
+            "token_created_at": None,
             "token_env": "AZURE_OPENAI_API_KEY",
         },
         "azure_ai": {
@@ -54,6 +58,7 @@ async def setup_llm_providers(analytiq_client):
             "litellm_models": [],
             "litellm_model_default": "azure_ai/deepseek-v3",
             "token" : "",
+            "token_created_at": None,
             "token_env": "AZURE_AI_STUDIO_API_KEY",
         },
         "bedrock": {
@@ -62,6 +67,7 @@ async def setup_llm_providers(analytiq_client):
             "litellm_models": [],
             "litellm_model_default": "anthropic.claude-3-7-sonnet-20250219-v1:0",
             "token" : "",
+            "token_created_at": None,
             "token_env": "AWS_BEDROCK_API_KEY",
         },
         "gemini": {
@@ -70,6 +76,7 @@ async def setup_llm_providers(analytiq_client):
             "litellm_models": [],
             "litellm_model_default": "gemini/gemini-2.0-flash",
             "token" : "",
+            "token_created_at": None,
             "token_env": "GEMINI_API_KEY",
         },
         "groq": {
@@ -78,6 +85,7 @@ async def setup_llm_providers(analytiq_client):
             "litellm_models": [],
             "litellm_model_default": "groq/deepseek-r1-distill-llama-70b",
             "token" : "",
+            "token_created_at": None,
             "token_env": "GROQ_API_KEY",
         },
         "mistral": {
@@ -86,6 +94,7 @@ async def setup_llm_providers(analytiq_client):
             "litellm_models": [],
             "litellm_model_default": "mistral/mistral-tiny",
             "token" : "",
+            "token_created_at": None,
             "token_env": "MISTRAL_API_KEY",
         },
         "openai": {
@@ -94,6 +103,7 @@ async def setup_llm_providers(analytiq_client):
             "litellm_models": [],
             "litellm_model_default": "gpt-4o-mini",
             "token" : "",
+            "token_created_at": None,
             "token_env": "OPENAI_API_KEY",
         },
         "vertex_ai": {
@@ -102,14 +112,10 @@ async def setup_llm_providers(analytiq_client):
             "litellm_models": [],
             "litellm_model_default": "gemini-1.5-flash",
             "token" : "",
+            "token_created_at": None,
             "token_env": "VERTEX_AI_API_KEY",
         },
     }
-
-    # If the token is available in the environment, set it in the config
-    for provider, config in providers.items():
-        if os.getenv(config["token_env"]):
-            config["token"] = os.getenv(config["token_env"])
 
     try:
         # Upsert each provider individually using the name as the unique identifier
@@ -125,13 +131,18 @@ async def setup_llm_providers(analytiq_client):
 
             # If the provider is not in MongoDB, create it
             if provider_config is None:
+                logger.info(f"Creating provider config for {provider}")
                 provider_config = {**config}
                 update = True
 
             # Should we update the token?
-            if provider_config.get("token") in [None, ""] and config["token"] != "":
-                # Update the token
-                provider_config["token"] = config["token"]
+            if provider_config.get("token") in [None, ""]:
+                # If the token is available in the environment, set it in the config
+                if os.getenv(config["token_env"]):
+                    logger.info(f"Updating token for {provider}")
+                    provider_config["token"] = os.getenv(config["token_env"])
+                    provider_config["token_created_at"] = datetime.now()
+                    update = True
 
             # Update the litellm_model_default
             provider_config["litellm_model_default"] = config["litellm_model_default"]

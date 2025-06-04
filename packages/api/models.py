@@ -85,6 +85,19 @@ class LLMToken(BaseModel):
     token: str
     created_at: datetime
 
+class LLMProvider(BaseModel):
+    name: str
+    display_name: str
+    litellm_provider: str
+    litellm_model_default: str
+    litellm_models: List[str]
+    litellm_available_models: List[str]
+    token: str | None
+    token_created_at: datetime | None
+
+class ListLLMProvidersResponse(BaseModel):
+    providers: List[LLMProvider]
+
 class CreateLLMTokenRequest(BaseModel):
     llm_vendor: Literal["OpenAI", "Anthropic", "Gemini", "Groq", "Mistral"]
     token: str
