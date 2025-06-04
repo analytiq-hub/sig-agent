@@ -16,7 +16,7 @@ const DevelopmentSettingsPage: React.FC = () => {
               Manage your Large Language Models (LLMs) and their API tokens.
             </p>
           </div>
-          <Link href="/settings/account/development/llm-tokens" passHref>
+          <Link href="/settings/account/development/llm-manager" passHref>
             <Button variant="contained" color="primary">
               Manage
             </Button>
