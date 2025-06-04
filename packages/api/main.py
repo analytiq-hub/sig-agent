@@ -2188,25 +2188,36 @@ async def access_token_delete(
 async def list_llm_models():
     """List all supported LLM models"""
     db = ad.common.get_async_db()
-    
-    # Retrieve models from MongoDB
-    cursor = db.llm_models.find({})
-    models = await cursor.to_list(length=None)
-    
-    # Convert MongoDB documents to LLMModel instances
+
+    # Retrieve providers from MongoDB
+    cursor = db.llm_providers.find({})
+
+    # Get all enabled providers
+    providers = await cursor.to_list(length=None)
+
+    # Get all available models for each provider
     llm_models = []
-    for model in models:
-        logger.info(f"model: {model}")
-        llm_models.append(LLMModel(
-            id=str(model["_id"]),
-            name=model["name"],
-            provider=model["provider"],
-            description=model["description"],
-            max_tokens=model["max_tokens"],
-            cost_per_1m_input_tokens=model["cost_per_1m_input_tokens"],
-            cost_per_1m_output_tokens=model["cost_per_1m_output_tokens"]
-        ))
-    
+    for provider in providers:
+        # Skip disabled providers
+        if not provider["enabled"]:
+            continue
+        
+        # Get all enabled models for the provider
+        all_models = litellm.models_by_provider[provider["litellm_provider"]]
+        enabled_models = [model for model in all_models if model in provider["litellm_models"]]
+
+        # Get the max input and output tokens for each model
+        for model in enabled_models:
+            llm_model = LLMModel(
+                litellm_model=model,
+                litellm_provider=provider["litellm_provider"],
+                max_input_tokens=litellm.model_cost[model]["max_input_tokens"],
+                max_output_tokens=litellm.model_cost[model]["max_output_tokens"],
+                input_cost_per_token=litellm.model_cost[model]["input_cost_per_token"],
+                output_cost_per_token=litellm.model_cost[model]["output_cost_per_token"],
+            )
+            llm_models.append(llm_model)
+
     return ListLLMModelsResponse(models=llm_models)
 
 @app.get("/v0/account/llm_providers", response_model=ListLLMProvidersResponse, tags=["account/llm"])

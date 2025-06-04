@@ -67,13 +67,12 @@ class DocumentUpdate(BaseModel):
     )
 
 class LLMModel(BaseModel):
-    id: str
-    name: str
-    provider: str
-    description: str
-    max_tokens: int
-    cost_per_1m_input_tokens: float
-    cost_per_1m_output_tokens: float
+    litellm_model: str
+    litellm_provider: str
+    max_input_tokens: int
+    max_output_tokens: int
+    input_cost_per_token: float
+    output_cost_per_token: float
 
 class ListLLMModelsResponse(BaseModel):
     models: List[LLMModel]

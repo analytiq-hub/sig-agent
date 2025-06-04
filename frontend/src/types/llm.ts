@@ -1,11 +1,10 @@
 export interface LLMModel {
-  id: string;
-  name: string;
-  provider: string;
-  description: string;
-  max_tokens: number;
-  cost_per_1m_input_tokens: number;
-  cost_per_1m_output_tokens: number;
+  litellm_model: string;
+  litellm_provider: string;
+  max_input_tokens: number;
+  max_output_tokens: number;
+  input_cost_per_token: number;
+  output_cost_per_token: number;
 }
 
 export interface ListLLMModelsResponse {

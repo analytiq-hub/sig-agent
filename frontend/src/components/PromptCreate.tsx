@@ -204,21 +204,7 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const loadLLMModels = useCallback(async () => {
     try {
       const response = await listLLMModelsApi();
-      
-      // Sort models: Gemini models first (alphabetically), then other models alphabetically
-      const sortedModels = [...response.models].sort((a, b) => {
-        const aIsGemini = a.name.toLowerCase().includes(DEFAULT_LLM_MODEL);
-        const bIsGemini = b.name.toLowerCase().includes(DEFAULT_LLM_MODEL);
-        
-        // If one is Gemini and the other isn't, prioritize Gemini
-        if (aIsGemini && !bIsGemini) return -1;
-        if (!aIsGemini && bIsGemini) return 1;
-        
-        // If both are Gemini or both are non-Gemini, sort alphabetically
-        return a.name.localeCompare(b.name);
-      });
-      
-      setLLMModels(sortedModels);
+      setLLMModels(response.models);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading LLM models';
       setMessage('Error: ' + errorMsg);
@@ -384,8 +370,8 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
                   className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
                   {llmModels.map((model) => (
-                    <option key={model.id} value={model.name}>
-                      {model.name} ({model.provider})
+                    <option key={model.litellm_model} value={model.litellm_model}>
+                      {model.litellm_model} ({model.litellm_provider})
                     </option>
                   ))}
                 </select>
