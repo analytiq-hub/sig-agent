@@ -4,6 +4,8 @@ import { getLLMTokensApi, createLLMTokenApi, deleteLLMTokenApi } from '@/utils/a
 import { LLMToken } from '@/types/index';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import colors from 'tailwindcss/colors';
 
 const LLMTokenManager: React.FC = () => {
   const [llmTokens, setLLMTokens] = useState<LLMToken[]>([]);
@@ -13,14 +15,19 @@ const LLMTokenManager: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const getLLMTokensData = async () => {
       try {
+        setLoading(true);
         const response = await getLLMTokensApi();
         setLLMTokens(response.llm_tokens);
       } catch (error) {
         console.error('Error fetching LLM tokens:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -73,60 +80,91 @@ const LLMTokenManager: React.FC = () => {
     setSelectedProvider(null);
   };
 
+  // Filter tokens based on search
+  const filteredTokens = llmTokens.filter(token => 
+    searchQuery === '' || 
+    token.llm_vendor.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const columns: GridColDef[] = [
+    {
+      field: 'llm_vendor',
+      headerName: 'Provider',
+      flex: 1,
+      minWidth: 150,
+    },
+    {
+      field: 'token',
+      headerName: 'Token',
+      flex: 1,
+      minWidth: 200,
+      renderCell: (params: GridRenderCellParams) => (
+        <span>{params.value ? `${params.value.slice(0, 16)}••••••••` : 'Not set'}</span>
+      ),
+    },
+    {
+      field: 'created_at',
+      headerName: 'Created At',
+      flex: 1,
+      minWidth: 150,
+      renderCell: (params: GridRenderCellParams) => (
+        <span>{params.value ? new Date(params.value).toLocaleString() : '-'}</span>
+      ),
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 80,
+      renderCell: (params) => (
+        <div>
+          <button
+            onClick={(e) => handleMenuOpen(e, params.row.llm_vendor)}
+            className="p-1 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100"
+          >
+            <MoreVertIcon className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div>
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="w-1/5 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Provider
-              </th>
-              <th className="w-2/5 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Token
-              </th>
-              <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created At
-              </th>
-              <th className="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {['OpenAI', 'Anthropic', 'Gemini', 'Groq', 'Mistral'].map((provider) => {
-              const token = llmTokens.find(t => t.llm_vendor === provider);
-              return (
-                <tr 
-                  key={provider}
-                  className="even:bg-gray-50"
-                >
-                  <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900">
-                    {provider}
-                  </td>
-                  <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900">
-                    {token ? (
-                      <span>{token.token.slice(0, 16)}••••••••</span>
-                    ) : (
-                      <span className="text-gray-400">Not set</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900">
-                    {token ? new Date(token.created_at).toLocaleString() : '-'}
-                  </td>
-                  <td className="px-6 py-2 whitespace-nowrap text-sm">
-                    <button
-                      onClick={(e) => handleMenuOpen(e, provider)}
-                      className="p-1 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100"
-                    >
-                      <MoreVertIcon className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+    <div className="bg-white p-6 rounded-lg shadow">
+      <div className="mb-4">
+        <input
+          type="text"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          placeholder="Search providers..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      <div style={{ height: 400, width: '100%' }}>
+        <DataGrid
+          rows={filteredTokens}
+          columns={columns}
+          loading={loading}
+          disableRowSelectionOnClick
+          getRowId={(row) => row.llm_vendor}
+          sx={{
+            '& .MuiDataGrid-cell': {
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              height: '100%',
+            },
+            '& .MuiDataGrid-row': {
+              height: '48px !important',
+            },
+            '& .MuiDataGrid-row:nth-of-type(odd)': {
+              backgroundColor: colors.gray[100],
+            },
+            '& .MuiDataGrid-row:hover': {
+              backgroundColor: `${colors.gray[200]} !important`,
+            }
+          }}
+        />
       </div>
 
       {/* Edit Token Modal */}
