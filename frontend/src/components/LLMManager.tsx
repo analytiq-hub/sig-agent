@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Delete as DeleteIcon, Edit as EditIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
-import { getLLMTokensApi, createLLMTokenApi, deleteLLMTokenApi } from '@/utils/api';
-import { LLMToken } from '@/types/index';
+import { listLLMProvidersApi, setLLMProviderConfigApi } from '@/utils/api';
+import { LLMProvider } from '@/types/index';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import colors from 'tailwindcss/colors';
 
 const LLMTokenManager: React.FC = () => {
-  const [llmTokens, setLLMTokens] = useState<LLMToken[]>([]);
+  const [llmProviders, setLLMProviders] = useState<LLMProvider[]>([]);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
   const [editTokenValue, setEditTokenValue] = useState('');
@@ -19,19 +19,19 @@ const LLMTokenManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getLLMTokensData = async () => {
+    const getLLMProvidersData = async () => {
       try {
         setLoading(true);
-        const response = await getLLMTokensApi();
-        setLLMTokens(response.llm_tokens);
+        const response = await listLLMProvidersApi();
+        setLLMProviders(response.providers);
       } catch (error) {
-        console.error('Error fetching LLM tokens:', error);
+        console.error('Error fetching LLM providers:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    getLLMTokensData();
+    getLLMProvidersData();
   }, []);
 
   const handleEditLLMToken = (provider: string) => {
@@ -44,26 +44,33 @@ const LLMTokenManager: React.FC = () => {
     if (!editingProvider) return;
 
     try {
-      await createLLMTokenApi({
-        llm_vendor: editingProvider as 'OpenAI' | 'Anthropic' | 'Gemini' | 'Groq' | 'Mistral',
+      await setLLMProviderConfigApi(editingProvider, {
         token: editTokenValue,
+        enabled: true,
+        litellm_model_default: null,
+        litellm_models: null
       });
       setEditModalOpen(false);
-      // Refresh the LLM tokens list
-      const response = await getLLMTokensApi();
-      setLLMTokens(response.llm_tokens);
+      // Refresh the LLM providers list
+      const response = await listLLMProvidersApi();
+      setLLMProviders(response.providers);
     } catch (error) {
       console.error('Error saving LLM token:', error);
       setError('An error occurred while saving the LLM token. Please try again.');
     }
   };
 
-  const handleDeleteLLMToken = async (tokenId: string) => {
+  const handleDeleteLLMToken = async (providerName: string) => {
     try {
-      await deleteLLMTokenApi(tokenId);
-      // Refresh the LLM tokens list
-      const response = await getLLMTokensApi();
-      setLLMTokens(response.llm_tokens);
+      await setLLMProviderConfigApi(providerName, {
+        token: null,
+        enabled: false,
+        litellm_model_default: null,
+        litellm_models: null
+      });
+      // Refresh the LLM providers list
+      const response = await listLLMProvidersApi();
+      setLLMProviders(response.providers);
     } catch (error) {
       console.error('Error deleting LLM token:', error);
       setError('An error occurred while deleting the LLM token. Please try again.');
@@ -80,15 +87,15 @@ const LLMTokenManager: React.FC = () => {
     setSelectedProvider(null);
   };
 
-  // Filter tokens based on search
-  const filteredTokens = llmTokens.filter(token => 
+  // Filter providers based on search
+  const filteredProviders = llmProviders.filter(provider => 
     searchQuery === '' || 
-    token.llm_vendor.toLowerCase().includes(searchQuery.toLowerCase())
+    provider.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const columns: GridColDef[] = [
     {
-      field: 'llm_vendor',
+      field: 'name',
       headerName: 'Provider',
       flex: 1,
       minWidth: 150,
@@ -103,7 +110,7 @@ const LLMTokenManager: React.FC = () => {
       ),
     },
     {
-      field: 'created_at',
+      field: 'token_created_at',
       headerName: 'Created At',
       flex: 1,
       minWidth: 150,
@@ -118,7 +125,7 @@ const LLMTokenManager: React.FC = () => {
       renderCell: (params) => (
         <div>
           <button
-            onClick={(e) => handleMenuOpen(e, params.row.llm_vendor)}
+            onClick={(e) => handleMenuOpen(e, params.row.name)}
             className="p-1 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100"
           >
             <MoreVertIcon className="w-4 h-4" />
@@ -142,11 +149,11 @@ const LLMTokenManager: React.FC = () => {
 
       <div style={{ height: 400, width: '100%' }}>
         <DataGrid
-          rows={filteredTokens}
+          rows={filteredProviders}
           columns={columns}
           loading={loading}
           disableRowSelectionOnClick
-          getRowId={(row) => row.llm_vendor}
+          getRowId={(row) => row.name}
           sx={{
             '& .MuiDataGrid-cell': {
               padding: '8px',
@@ -231,11 +238,11 @@ const LLMTokenManager: React.FC = () => {
           <EditIcon fontSize="small" className="text-blue-600" />
           <span>Edit</span>
         </MenuItem>
-        {selectedProvider && llmTokens.find(t => t.llm_vendor === selectedProvider) && (
+        {selectedProvider && llmProviders.find(p => p.name === selectedProvider) && (
           <MenuItem
             onClick={() => {
-              const token = llmTokens.find(t => t.llm_vendor === selectedProvider);
-              if (token) handleDeleteLLMToken(token.id);
+              const provider = llmProviders.find(p => p.name === selectedProvider);
+              if (provider) handleDeleteLLMToken(provider.name);
               handleMenuClose();
             }}
             className="flex items-center gap-2"
