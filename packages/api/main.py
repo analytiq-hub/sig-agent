@@ -2228,6 +2228,14 @@ async def list_llm_providers(
         # Add all available models to the provider
         provider["litellm_available_models"] = litellm.models_by_provider[provider["litellm_provider"]]
 
+        token = provider["token"]
+        if len(token) > 16:
+            token = token[:16] + "******"
+        elif len(token) > 0:
+            token = "******"
+        else:
+            token = None
+
         llm_providers.append(LLMProvider(
             name=provider["name"],
             display_name=provider["display_name"],
@@ -2235,7 +2243,7 @@ async def list_llm_providers(
             litellm_model_default=provider["litellm_model_default"],
             litellm_models=provider["litellm_models"],
             litellm_available_models=provider["litellm_available_models"],
-            token=provider["token"],
+            token=token,
             token_created_at=provider["token_created_at"]
         ))
     
