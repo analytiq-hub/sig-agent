@@ -12,6 +12,29 @@ export interface ListLLMModelsResponse {
   models: LLMModel[];
 }
 
+export interface LLMProvider {
+  name: string;
+  display_name: string;
+  litellm_provider: string;
+  litellm_model_default: string;
+  litellm_models: string[];
+  litellm_available_models: string[];
+  enabled: boolean;
+  token: string | null;
+  token_created_at: string | null;
+}
+
+export interface ListLLMProvidersResponse {
+  providers: LLMProvider[];
+}
+
+export interface SetLLMProviderConfigRequest {
+  litellm_model_default: string | null;
+  litellm_models: string[] | null;
+  enabled: boolean | null;
+  token: string | null;
+}
+
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 export interface RunLLMParams {

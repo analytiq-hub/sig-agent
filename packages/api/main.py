@@ -45,7 +45,7 @@ from api.models import (
     DocumentMetadata, DocumentUpload, DocumentsUpload,
     DocumentUpdate,
     LLMModel, ListLLMModelsResponse,
-    LLMProvider, ListLLMProvidersResponse,
+    LLMProvider, ListLLMProvidersResponse, SetLLMProviderConfigRequest,
     LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
     GetOCRMetadataResponse,
@@ -2249,6 +2249,63 @@ async def list_llm_providers(
         ))
     
     return ListLLMProvidersResponse(providers=llm_providers)
+
+@app.put("/v0/account/llm_provider/{provider_name}", tags=["account/llm"])
+async def set_llm_provider_config(
+    provider_name: str,
+    request: SetLLMProviderConfigRequest,
+    current_user: User = Depends(get_admin_user)
+):
+    """Set LLM provider config"""
+
+    db = ad.common.get_async_db()
+
+    if provider_name is None:
+        raise HTTPException(status_code=400, detail="Provider name is required")
+
+    # Get the litellm_provider from the name
+    elem = await db.llm_providers.find_one({"name": provider_name})
+    if elem is None:
+        raise HTTPException(status_code=400, detail=f"Provider '{provider_name}' not found")
+    litellm_provider = elem["litellm_provider"]
+
+    if request.litellm_model_default is not None:
+        if request.litellm_model_default not in litellm.models_by_provider[litellm_provider]:
+            raise HTTPException(status_code=400, detail=f"Model '{request.litellm_model_default}' is not available for provider '{provider_name}'")
+
+    if request.litellm_models not in [None, []]:
+        for model in request.litellm_models:
+            if model not in litellm.models_by_provider[litellm_provider]:
+                raise HTTPException(status_code=400, detail=f"Model '{model}' is not available for provider '{provider_name}'")
+    
+    if request.litellm_model_default is not None:
+        elem["litellm_model_default"] = request.litellm_model_default
+    if request.litellm_models not in [None, []]:
+        # Ensure the default model is in the list
+        if elem["litellm_model_default"] not in request.litellm_models:
+            request.litellm_models.append(elem["litellm_model_default"])
+        # Reorder the list
+        litellm_models_ordered = sorted(request.litellm_models, 
+                                        key=lambda x: litellm.models_by_provider[litellm_provider].index(x))
+        # Save the reordered list
+        elem["litellm_models"] = litellm_models_ordered
+
+    if request.enabled is not None:
+        elem["enabled"] = request.enabled
+    if request.token is not None:
+        elem["token"] = request.token
+        if len(request.token) > 0:
+            elem["token_created_at"] = datetime.now(UTC)
+        else:
+            elem["token_created_at"] = None
+
+    # Save the updated provider
+    await db.llm_providers.update_one(
+        {"name": provider_name},
+        {"$set": elem}
+    )
+
+    return {"message": "LLM provider config updated successfully"}
 
 @app.post("/v0/account/llm_tokens", response_model=LLMToken, tags=["account/llm"])
 async def llm_token_create(

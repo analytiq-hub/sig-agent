@@ -99,6 +99,12 @@ class LLMProvider(BaseModel):
 class ListLLMProvidersResponse(BaseModel):
     providers: List[LLMProvider]
 
+class SetLLMProviderConfigRequest(BaseModel):
+    litellm_model_default: str | None = None
+    litellm_models: List[str] | None = None
+    enabled: bool | None = None
+    token: str | None = None
+
 class CreateLLMTokenRequest(BaseModel):
     llm_vendor: Literal["OpenAI", "Anthropic", "Gemini", "Groq", "Mistral"]
     token: str
