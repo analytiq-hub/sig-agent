@@ -1,7 +1,8 @@
-
-import analytiq_data as ad
+from datetime import datetime, UTC
 import os
 import logging
+
+import analytiq_data as ad
 
 logger = logging.getLogger(__name__)
 
@@ -1310,6 +1311,51 @@ class AddPdfIdToDocuments(Migration):
         await db["docs"].update_many({}, {"$unset": {"pdf_id": "", "pdf_file_name": ""}})
         return True
 
+# Add this new migration class before the MIGRATIONS list
+class RenamePromptIdToPromptRevId(Migration):
+    def __init__(self):
+        super().__init__(description="Rename prompt_id to prompt_rev_id in llm.runs collection")
+
+    async def up(self, db) -> bool:
+        try:
+            # Update all documents in llm.runs collection
+            result = await db["llm.runs"].update_many(
+                {"prompt_id": {"$exists": True}},
+                [
+                    {
+                        "$set": {
+                            "prompt_rev_id": "$prompt_id",
+                            "prompt_id": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            logger.info(f"Updated {result.modified_count} documents in llm.runs collection")
+            return True
+        except Exception as e:
+            logger.error(f"Migration failed: {e}")
+            return False
+
+    async def down(self, db) -> bool:
+        try:
+            # Revert the changes
+            result = await db["llm.runs"].update_many(
+                {"prompt_rev_id": {"$exists": True}},
+                [
+                    {
+                        "$set": {
+                            "prompt_id": "$prompt_rev_id",
+                            "prompt_rev_id": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            logger.info(f"Reverted {result.modified_count} documents in llm.runs collection")
+            return True
+        except Exception as e:
+            logger.error(f"Migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -1327,6 +1373,7 @@ MIGRATIONS = [
     MigratePromptOrganizationIDs(),
     MigrateSchemaOrganizationIDs(),
     AddPdfIdToDocuments(),
+    RenamePromptIdToPromptRevId(),
     # Add more migrations here
 ]
 

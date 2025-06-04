@@ -26,7 +26,7 @@ async def process_llm_msg(analytiq_client, msg):
         logger.info(f"Running LLM for document {document_id} with prompt id list: {prompt_rev_ids}")
 
         # Run the LLM for the document for the default prompt
-        await ad.llm.run_llm_for_prompt_ids(analytiq_client, document_id, prompt_rev_ids)
+        await ad.llm.run_llm_for_prompt_rev_ids(analytiq_client, document_id, prompt_rev_ids)
 
         # Update state to LLM completed
         await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_LLM_COMPLETED)

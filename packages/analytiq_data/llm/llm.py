@@ -164,7 +164,7 @@ async def get_llm_result(analytiq_client,
     result = await collection.find_one(
         {
             "document_id": document_id,
-            "prompt_id": prompt_rev_id
+            "prompt_rev_id": prompt_rev_id
         },
         sort=[("_id", -1)]
     )
@@ -188,7 +188,7 @@ async def save_llm_result(analytiq_client,
     Args:
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
-        prompt_id: The prompt ID
+        prompt_rev_id: The prompt revision ID
         llm_result: The LLM result
     """
 
@@ -200,7 +200,7 @@ async def save_llm_result(analytiq_client,
     current_time_utc = datetime.now(UTC)
 
     element = {
-        "prompt_id": prompt_rev_id,
+        "prompt_rev_id": prompt_rev_id,
         "document_id": document_id,
         "llm_result": llm_result,
         "updated_llm_result": llm_result.copy(),
@@ -239,14 +239,14 @@ async def delete_llm_result(analytiq_client,
     }
 
     if prompt_rev_id is not None:
-        delete_filter["prompt_id"] = prompt_rev_id
+        delete_filter["prompt_rev_id"] = prompt_rev_id
 
     result = await collection.delete_many(delete_filter)
     
     return result.deleted_count > 0
 
 
-async def run_llm_for_prompt_ids(analytiq_client, document_id: str, prompt_rev_ids: list[str], model: str = "gpt-4o-mini") -> None:
+async def run_llm_for_prompt_rev_ids(analytiq_client, document_id: str, prompt_rev_ids: list[str], model: str = "gpt-4o-mini") -> None:
     """
     Run the LLM for the given prompt IDs.
 
@@ -270,7 +270,7 @@ async def run_llm_for_prompt_ids(analytiq_client, document_id: str, prompt_rev_i
 
 async def update_llm_result(analytiq_client,
                             document_id: str,
-                            prompt_id: str,
+                            prompt_rev_id: str,
                             updated_llm_result: dict,
                             is_verified: bool = False) -> str:
     """
@@ -279,7 +279,7 @@ async def update_llm_result(analytiq_client,
     Args:
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
-        prompt_id: The prompt ID
+        prompt_rev_id: The prompt revision ID
         updated_llm_result: The updated LLM result
         is_verified: Whether this result has been verified
     
@@ -297,13 +297,13 @@ async def update_llm_result(analytiq_client,
     existing = await collection.find_one(
         {
             "document_id": document_id,
-            "prompt_id": prompt_id
+            "prompt_rev_id": prompt_rev_id
         },
         sort=[("_id", -1)]
     )
     
     if not existing:
-        raise ValueError(f"No existing LLM result found for document_id: {document_id}, prompt_id: {prompt_id}")
+        raise ValueError(f"No existing LLM result found for document_id: {document_id}, prompt_rev_id: {prompt_rev_id}")
     
     # Validate that the updated result has the same structure as the original
     existing_keys = set(existing["llm_result"].keys())

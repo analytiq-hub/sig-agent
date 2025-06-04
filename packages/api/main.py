@@ -819,7 +819,7 @@ async def update_llm_result(
         await ad.llm.update_llm_result(
             analytiq_client,
             document_id=document_id,
-            prompt_id=prompt_rev_id,
+            prompt_rev_id=prompt_rev_id,
             updated_llm_result=update.updated_llm_result,
             is_verified=update.is_verified
         )
