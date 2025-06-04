@@ -4,7 +4,9 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 import analytiq_data as ad
 
-async def get_prompt_id(analytiq_client, prompt_name: str) -> str:
+async def get_prompt_id_and_version(analytiq_client,
+                                    prompt_name: str,
+                                    organization_id: str) -> tuple[str, int]:
     """
     Get a prompt ID by its name
 
@@ -13,17 +15,35 @@ async def get_prompt_id(analytiq_client, prompt_name: str) -> str:
             The analytiq client
         prompt_name: str
             Prompt name
-
+        organization_id: str
+            Organization ID
     Returns:
         str
             Prompt ID
+        int
+            Prompt version
+    """
+    db_name = analytiq_client.env
+    db = analytiq_client.mongodb_async[db_name]
+
+    collection = db["prompts"]
+    elem = await collection.find_one({"name": prompt_name, "organization_id": organization_id})
+    if elem is None:
+        raise ValueError(f"Prompt {prompt_name} not found in organization {organization_id}")
+    return str(elem["_id"]), elem["prompt_version"]
+
+async def get_prompt_rev_id(analytiq_client,
+                            prompt_id: str,
+                            prompt_version: int) -> str:
+    """
+    Get a prompt revision ID by its ID and version
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
     collection = db["prompt_revisions"]
-    elem = await collection.find_one({"name": prompt_name})
+    elem = await collection.find_one({"prompt_id": prompt_id, "prompt_version": prompt_version})
     if elem is None:
-        raise ValueError(f"Prompt {prompt_name} not found")
+        raise ValueError(f"Prompt {prompt_id} version {prompt_version} not found")
     return str(elem["_id"])
 
 async def get_prompt_name(analytiq_client, prompt_id: str) -> str:
@@ -79,6 +99,7 @@ async def get_default_prompt_content(analytiq_client) -> str:
     }}
     """
     return prompt
+
 async def get_prompt_content(analytiq_client, prompt_id: str) -> str:
     """
     Get a prompt content by its ID
