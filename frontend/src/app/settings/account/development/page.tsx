@@ -13,7 +13,7 @@ const DevelopmentSettingsPage: React.FC = () => {
           <div>
             <h2 className="text-xl font-semibold">LLM Configuration</h2>
             <p className="text-gray-600 mb-2">
-              Manage your Large Language Models (LLMs) and their API tokens.
+              Manage your Large Language Models and their API tokens.
             </p>
           </div>
           <Link href="/settings/account/development/llm-manager" passHref>
