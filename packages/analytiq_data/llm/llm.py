@@ -158,10 +158,9 @@ async def get_llm_result(analytiq_client,
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    collection = db["llm.runs"]
     
     # Sort by _id in descending order to get the latest document
-    result = await collection.find_one(
+    result = await db.llm_runs.find_one(
         {
             "document_id": document_id,
             "prompt_rev_id": prompt_rev_id
@@ -194,8 +193,6 @@ async def save_llm_result(analytiq_client,
 
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    queue_collection_name = f"llm.runs"
-    queue_collection = db[queue_collection_name]
 
     current_time_utc = datetime.now(UTC)
 
@@ -213,7 +210,7 @@ async def save_llm_result(analytiq_client,
     logger.info(f"Saving LLM result: {element}")
 
     # Save the result, return the ID
-    result = await queue_collection.insert_one(element)
+    result = await db.llm_runs.insert_one(element)
     return str(result.inserted_id)
 
 async def delete_llm_result(analytiq_client,
@@ -232,7 +229,6 @@ async def delete_llm_result(analytiq_client,
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    collection = db["llm.runs"]
 
     delete_filter = {
         "document_id": document_id
@@ -241,7 +237,7 @@ async def delete_llm_result(analytiq_client,
     if prompt_rev_id is not None:
         delete_filter["prompt_rev_id"] = prompt_rev_id
 
-    result = await collection.delete_many(delete_filter)
+    result = await db.llm_runs.delete_many(delete_filter)
     
     return result.deleted_count > 0
 
@@ -268,7 +264,7 @@ async def run_llm_for_prompt_rev_ids(analytiq_client, document_id: str, prompt_r
 
     return results
 
-async def update_llm_result(analytiq_client: ad.common.AnalytiqClient,
+async def update_llm_result(analytiq_client,
                             document_id: str,
                             prompt_rev_id: str,
                             updated_llm_result: dict,
@@ -291,10 +287,9 @@ async def update_llm_result(analytiq_client: ad.common.AnalytiqClient,
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
-    collection = db["llm.runs"]
     
     # Get the latest result
-    existing = await collection.find_one(
+    existing = await db.llm_runs.find_one(
         {
             "document_id": document_id,
             "prompt_rev_id": prompt_rev_id
@@ -330,7 +325,7 @@ async def update_llm_result(analytiq_client: ad.common.AnalytiqClient,
         "updated_at": updated_at
     }
     
-    result = await collection.update_one(
+    result = await db.llm_runs.update_one(
         {"_id": existing["_id"]},
         {"$set": update_data}
     )

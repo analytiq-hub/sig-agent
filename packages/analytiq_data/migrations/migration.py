@@ -1356,6 +1356,47 @@ class RenamePromptIdToPromptRevId(Migration):
             logger.error(f"Migration revert failed: {e}")
             return False
 
+# Add this new migration class before the MIGRATIONS list
+class RenameLlmRunsCollection(Migration):
+    def __init__(self):
+        super().__init__(description="Rename llm.runs collection to llm_runs")
+        
+    async def up(self, db) -> bool:
+        """Rename llm.runs collection to llm_runs"""
+        try:
+            # Create new collection with data from old one
+            llm_runs_cursor = db["llm.runs"].find({})
+            async for doc in llm_runs_cursor:
+                await db.llm_runs.insert_one(doc)
+            
+            # Drop the old collection
+            await db["llm.runs"].drop()
+            
+            logger.info("Successfully renamed llm.runs collection to llm_runs")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Collection rename migration failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """Revert collection renaming: llm_runs → llm.runs"""
+        try:
+            # Create old collection with data from new one
+            llm_runs_cursor = db.llm_runs.find({})
+            async for doc in llm_runs_cursor:
+                await db["llm.runs"].insert_one(doc)
+            
+            # Drop the new collection
+            await db.llm_runs.drop()
+            
+            logger.info("Successfully reverted llm_runs collection back to llm.runs")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Collection rename migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -1374,6 +1415,7 @@ MIGRATIONS = [
     MigrateSchemaOrganizationIDs(),
     AddPdfIdToDocuments(),
     RenamePromptIdToPromptRevId(),
+    RenameLlmRunsCollection(),
     # Add more migrations here
 ]
 
