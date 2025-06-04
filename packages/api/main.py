@@ -774,13 +774,13 @@ async def run_llm_analysis(
 async def get_llm_result(
     organization_id: str,
     document_id: str,
-    prompt_id: str = Query(default="default", description="The prompt ID to retrieve"),
+    prompt_rev_id: str = Query(default="default", description="The prompt revision ID to retrieve"),
     current_user: User = Depends(get_current_user)
 ):
     """
     Retrieve existing LLM results for a document.
     """
-    logger.debug(f"get_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
+    logger.debug(f"get_llm_result() start: document_id: {document_id}, prompt_rev_id: {prompt_rev_id}")
     analytiq_client = ad.common.get_analytiq_client()
     
     # Verify document exists and user has access
@@ -788,11 +788,11 @@ async def get_llm_result(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    llm_result = await ad.llm.get_llm_result(analytiq_client, document_id, prompt_id)
+    llm_result = await ad.llm.get_llm_result(analytiq_client, document_id, prompt_rev_id)
     if not llm_result:
         raise HTTPException(
             status_code=404,
-            detail=f"LLM result not found for document_id: {document_id} and prompt_id: {prompt_id}"
+            detail=f"LLM result not found for document_id: {document_id} and prompt_rev_id: {prompt_rev_id}"
         )
     
     return llm_result
@@ -801,7 +801,7 @@ async def get_llm_result(
 async def update_llm_result(
     organization_id: str,
     document_id: str,
-    prompt_id: str = Query(..., description="The prompt ID to update"),
+    prompt_rev_id: str = Query(..., description="The prompt revision ID to update"),
     update: UpdateLLMResultRequest = Body(..., description="The update request"),
     current_user: User = Depends(get_current_user)
 ):
@@ -819,12 +819,12 @@ async def update_llm_result(
         await ad.llm.update_llm_result(
             analytiq_client,
             document_id=document_id,
-            prompt_id=prompt_id,
+            prompt_id=prompt_rev_id,
             updated_llm_result=update.updated_llm_result,
             is_verified=update.is_verified
         )
         
-        return await ad.llm.get_llm_result(analytiq_client, document_id, prompt_id)
+        return await ad.llm.get_llm_result(analytiq_client, document_id, prompt_rev_id)
         
     except ValueError as e:
         raise HTTPException(
@@ -841,25 +841,25 @@ async def update_llm_result(
 async def delete_llm_result(
     organization_id: str,
     document_id: str,
-    prompt_id: str = Query(..., description="The prompt ID to delete"),
+    prompt_rev_id: str = Query(..., description="The prompt revision ID to delete"),
     current_user: User = Depends(get_current_user)
 ):
     """
     Delete LLM results for a specific document and prompt.
     """
-    logger.debug(f"delete_llm_result() start: document_id: {document_id}, prompt_id: {prompt_id}")
+    logger.debug(f"delete_llm_result() start: document_id: {document_id}, prompt_rev_id: {prompt_rev_id}")
     analytiq_client = ad.common.get_analytiq_client()
     # Verify document exists and user has access
     document = await ad.common.get_doc(analytiq_client, document_id, organization_id)
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    deleted = await ad.llm.delete_llm_result(analytiq_client, document_id, prompt_id)
+    deleted = await ad.llm.delete_llm_result(analytiq_client, document_id, prompt_rev_id)
     
     if not deleted:
         raise HTTPException(
             status_code=404,
-            detail=f"LLM result not found for document_id: {document_id} and prompt_id: {prompt_id}"
+            detail=f"LLM result not found for document_id: {document_id} and prompt_rev_id: {prompt_rev_id}"
         )
     
     return {"status": "success", "message": "LLM result deleted"}

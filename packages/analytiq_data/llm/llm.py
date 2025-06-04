@@ -144,14 +144,14 @@ async def run_llm(analytiq_client,
 
 async def get_llm_result(analytiq_client,
                          document_id: str,
-                         prompt_id: str) -> dict | None:
+                         prompt_rev_id: str) -> dict | None:
     """
     Retrieve the latest LLM result from MongoDB.
     
     Args:
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
-        prompt_id: The prompt ID
+        prompt_rev_id: The prompt revision ID
     
     Returns:
         dict | None: The latest LLM result if found, None otherwise
@@ -164,7 +164,7 @@ async def get_llm_result(analytiq_client,
     result = await collection.find_one(
         {
             "document_id": document_id,
-            "prompt_id": prompt_id
+            "prompt_id": prompt_rev_id
         },
         sort=[("_id", -1)]
     )
@@ -180,7 +180,7 @@ async def get_llm_result(analytiq_client,
 
 async def save_llm_result(analytiq_client, 
                           document_id: str,
-                          prompt_id: str, 
+                          prompt_rev_id: str, 
                           llm_result: dict) -> str:
     """
     Save the LLM result to MongoDB.
@@ -200,7 +200,7 @@ async def save_llm_result(analytiq_client,
     current_time_utc = datetime.now(UTC)
 
     element = {
-        "prompt_id": prompt_id,
+        "prompt_id": prompt_rev_id,
         "document_id": document_id,
         "llm_result": llm_result,
         "updated_llm_result": llm_result.copy(),

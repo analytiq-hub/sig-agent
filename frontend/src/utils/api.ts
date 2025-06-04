@@ -301,7 +301,7 @@ export const getLLMResultApi = async (params: GetLLMResultParams) => {
     `/v0/orgs/${organizationId}/llm/result/${documentId}`,
     {
       params: {
-        prompt_id: promptId
+        prompt_rev_id: promptId
       }
     }
   );
@@ -329,7 +329,7 @@ export const updateLLMResultApi = async ({
     },
     {
       params: {
-        prompt_id: promptId
+        prompt_rev_id: promptId
       }
     }
   );
@@ -347,7 +347,7 @@ export const deleteLLMResultApi = async (params: DeleteLLMResultParams) => {
     `/v0/orgs/${organizationId}/llm/result/${documentId}`,
     {
       params: {
-        prompt_id: promptId
+        prompt_rev_id: promptId
       }
     }
   );
