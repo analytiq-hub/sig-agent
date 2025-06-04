@@ -88,13 +88,6 @@ FASTAPI_ROOT_PATH = os.getenv("FASTAPI_ROOT_PATH", "/")
 MONGODB_URI = os.getenv("MONGODB_URI")
 SES_FROM_EMAIL = os.getenv("SES_FROM_EMAIL")
 
-# Configure logging
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-
 logger = logging.getLogger(__name__)
 
 logger.info(f"ENV: {ENV}")
