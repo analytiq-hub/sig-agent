@@ -28,7 +28,7 @@ async def setup_llm_providers(analytiq_client):
         "ai21": {
             "display_name": "AI21",
             "litellm_provider": "ai21",
-            "litellm_models": [],
+            "litellm_models": ["j2-light"],
             "litellm_model_default": "j2-light",
             "enabled": False,
             "token" : "",
@@ -38,7 +38,7 @@ async def setup_llm_providers(analytiq_client):
         "anthropic": {
             "display_name": "Anthropic",
             "litellm_provider": "anthropic",
-            "litellm_models": [],
+            "litellm_models": ["claude-3-5-sonnet-latest", "claude-3-7-sonnet-latest"],
             "litellm_model_default": "claude-3-7-sonnet-latest",
             "enabled": True,
             "token" : "",
@@ -48,7 +48,7 @@ async def setup_llm_providers(analytiq_client):
         "azure": {
             "display_name": "Azure OpenAI",
             "litellm_provider": "azure",
-            "litellm_models": [],
+            "litellm_models": ["azure/gpt-4.1-nano"],
             "litellm_model_default": "azure/gpt-4.1-nano",
             "enabled": True,
             "token" : "",
@@ -58,7 +58,7 @@ async def setup_llm_providers(analytiq_client):
         "azure_ai": {
             "display_name": "Azure AI Studio",
             "litellm_provider": "azure_ai",
-            "litellm_models": [],
+            "litellm_models": ["azure_ai/deepseek-v3"],
             "litellm_model_default": "azure_ai/deepseek-v3",
             "enabled": False,
             "token" : "",
@@ -68,7 +68,7 @@ async def setup_llm_providers(analytiq_client):
         "bedrock": {
             "display_name": "AWS Bedrock",
             "litellm_provider": "bedrock",
-            "litellm_models": [],
+            "litellm_models": ["anthropic.claude-3-7-sonnet-20250219-v1:0"],
             "litellm_model_default": "anthropic.claude-3-7-sonnet-20250219-v1:0",
             "enabled": False,
             "token" : "",
@@ -78,7 +78,7 @@ async def setup_llm_providers(analytiq_client):
         "gemini": {
             "display_name": "Gemini",
             "litellm_provider": "gemini",
-            "litellm_models": [],
+            "litellm_models": ["gemini/gemini-2.0-flash", "gemini/gemini-2.5-flash-preview-tts"],
             "litellm_model_default": "gemini/gemini-2.0-flash",
             "enabled": True,
             "token" : "",
@@ -88,7 +88,7 @@ async def setup_llm_providers(analytiq_client):
         "groq": {
             "display_name": "Groq",
             "litellm_provider": "groq",
-            "litellm_models": [],
+            "litellm_models": ["groq/deepseek-r1-distill-llama-70b"],
             "litellm_model_default": "groq/deepseek-r1-distill-llama-70b",
             "enabled": True,
             "token" : "",
@@ -98,7 +98,7 @@ async def setup_llm_providers(analytiq_client):
         "mistral": {
             "display_name": "Mistral",
             "litellm_provider": "mistral",
-            "litellm_models": [],
+            "litellm_models": ["mistral/mistral-tiny"],
             "litellm_model_default": "mistral/mistral-tiny",
             "enabled": False,
             "token" : "",
@@ -108,7 +108,7 @@ async def setup_llm_providers(analytiq_client):
         "openai": {
             "display_name": "OpenAI",
             "litellm_provider": "openai",
-            "litellm_models": [],
+            "litellm_models": ["gpt-4o-mini", "gpt-4o-2024-08-06", "o4-mini"],
             "litellm_model_default": "gpt-4o-mini",
             "enabled": True,
             "token" : "",
@@ -118,7 +118,7 @@ async def setup_llm_providers(analytiq_client):
         "vertex_ai": {
             "display_name": "Google Vertex AI",
             "litellm_provider": "vertex_ai",
-            "litellm_models": [],
+            "litellm_models": ["gemini-1.5-flash"],
             "litellm_model_default": "gemini-1.5-flash",
             "enabled": False,
             "token" : "",
