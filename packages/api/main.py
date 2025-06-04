@@ -2229,10 +2229,12 @@ async def list_llm_providers(
         provider["litellm_available_models"] = litellm.models_by_provider[provider["litellm_provider"]]
 
         token = provider["token"]
-        if len(token) > 16:
-            token = token[:16] + "******"
-        elif len(token) > 0:
-            token = "******"
+        if len(token) > 0:
+            token = ad.crypto.decrypt_token(token)
+            if len(token) > 16:
+                token = token[:16] + "******"
+            elif len(token) > 0:
+                token = "******"
         else:
             token = None
 
@@ -2293,8 +2295,8 @@ async def set_llm_provider_config(
     if request.enabled is not None:
         elem["enabled"] = request.enabled
     if request.token is not None:
-        elem["token"] = request.token
         if len(request.token) > 0:
+            elem["token"] = ad.crypto.encrypt_token(request.token)
             elem["token_created_at"] = datetime.now(UTC)
         else:
             elem["token_created_at"] = None

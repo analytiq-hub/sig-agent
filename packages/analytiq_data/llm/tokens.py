@@ -1,22 +1,15 @@
 import analytiq_data as ad
 
-async def get_llm_key(analytiq_client, llm_vendor: str = "OpenAI") -> str:
+async def get_llm_key(analytiq_client, llm_provider: str) -> str:
     """
     Get the LLM key
     """
-    if llm_vendor not in ["OpenAI", "Anthropic", "Gemini", "Groq", "Cerebras", "Mistral"]:
-        raise ValueError(f"Invalid LLM vendor: {llm_vendor}")
-
-    # Get the MongoDB client
-    mongo = analytiq_client.mongodb_async
-    db_name = analytiq_client.env
-    db = mongo[db_name]
-    collection = db["llm_tokens"]
-
-    # Get the LLM token
-    tokens = await collection.find_one({"llm_vendor": llm_vendor})
-    if tokens is None:
-        raise ValueError("No LLM token found in the database")
+    db = analytiq_client.mongodb_async[analytiq_client.env]
+    provider_config = await db.llm_providers.find_one({"litellm_provider": llm_provider})
+    if provider_config is None:
+        raise ValueError(f"LLM provider {llm_provider} not found")
+    if provider_config["token"] in [None, ""]:
+        return ""
 
     # Decrypt the token before returning
-    return ad.crypto.decrypt_token(tokens["token"])
+    return ad.crypto.decrypt_token(provider_config["token"])

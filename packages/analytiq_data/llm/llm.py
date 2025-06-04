@@ -45,25 +45,17 @@ async def run_llm(analytiq_client,
     if llm_model is None:
         llm_model = await ad.llm.get_llm_model(analytiq_client, prompt_rev_id)
 
-    logger.info(f"LLM model: {llm_model}")
-
-    # Get the appropriate API key based on the model prefix
-    provider = "OpenAI"  # Default
-    if llm_model.startswith("claude"):
-        llm_model = "claude-3-5-sonnet-20240620"
-        provider = "Anthropic"
-    elif llm_model.startswith("gemini"):
-        provider = "Gemini"
-    elif llm_model.startswith("groq"):
-        provider = "Groq"
-    elif llm_model.startswith("mistral"):
-        provider = "Mistral"
+    # Get the provider for the given LLM model
+    llm_provider = ad.llm.get_llm_model_provider(llm_model)
+    if llm_provider is None:
+        logger.info(f"LLM model {llm_model} not supported, falling back to default llm_model")
+        llm_model = "gpt-4o-mini"
+        llm_provider = "openai"
         
-    api_key = await ad.llm.get_llm_key(analytiq_client, provider)
-    ocr_text = ad.common.get_ocr_text(analytiq_client, document_id)
+    api_key = await ad.llm.get_llm_key(analytiq_client, llm_provider)
+    logger.info(f"LLM model: {llm_model}, provider: {llm_provider}, api_key: {api_key[:16]}********")
 
-    logger.info(f"LLM model: {llm_model}, provider: {provider}, api_key: {api_key}")
-    
+    ocr_text = ad.common.get_ocr_text(analytiq_client, document_id)
     prompt1 = await ad.common.get_prompt_content(analytiq_client, prompt_rev_id)
     
     # Build the prompt
@@ -80,7 +72,7 @@ async def run_llm(analytiq_client,
     )
 
     response_format = None
-    if provider in ["OpenAI", "Anthropic", "Gemini", "Groq", "Mistral"]:
+    if llm_provider in ["anthropic", "gemini", "groq", "mistral","openai"]:
         # Initialize response_format
         response_format = None
 

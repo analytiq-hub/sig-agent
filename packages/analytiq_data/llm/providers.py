@@ -150,7 +150,9 @@ async def setup_llm_providers(analytiq_client):
                 # If the token is available in the environment, set it in the config
                 if os.getenv(config["token_env"]):
                     logger.info(f"Updating token for {provider}")
-                    provider_config["token"] = os.getenv(config["token_env"])
+                    token = os.getenv(config["token_env"])
+                    if len(token) > 0:
+                        provider_config["token"] = ad.crypto.encrypt_token(token)
                     provider_config["token_created_at"] = datetime.now()
                     update = True
 
@@ -223,3 +225,23 @@ async def setup_llm_providers(analytiq_client):
 
     except Exception as e:
         logger.error(f"Failed to upsert LLM providers: {e}")
+
+def get_llm_model_provider(llm_model: str) -> str | None:
+    """
+    Get the provider for a given LLM model
+
+    Args:
+        llm_model: The LLM model
+
+    Returns:
+        The provider for the given LLM model
+    """
+    if llm_model is None:
+        return None
+
+    for litellm_provider, litellm_models in litellm.models_by_provider.items():
+        if llm_model in litellm_models:
+            return litellm_provider
+
+    # If we get here, the model is not supported by litellm
+    return None
