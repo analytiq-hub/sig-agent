@@ -137,6 +137,7 @@ async def setup_admin(analytiq_client):
         
         # Initialize LLM models
         await setup_llm_models(db)
+        await ad.llm.providers.setup_llm_providers(analytiq_client)
         
         users = db.users
         
