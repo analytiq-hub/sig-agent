@@ -104,13 +104,6 @@ class SetLLMProviderConfigRequest(BaseModel):
     enabled: bool | None = None
     token: str | None = None
 
-class CreateLLMTokenRequest(BaseModel):
-    llm_vendor: Literal["OpenAI", "Anthropic", "Gemini", "Groq", "Mistral"]
-    token: str
-
-class ListLLMTokensResponse(BaseModel):
-    llm_tokens: List[LLMToken]
-
 class AWSCredentials(BaseModel):
     access_key_id: str
     secret_access_key: str
