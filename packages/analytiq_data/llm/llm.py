@@ -268,7 +268,7 @@ async def run_llm_for_prompt_rev_ids(analytiq_client, document_id: str, prompt_r
 
     return results
 
-async def update_llm_result(analytiq_client,
+async def update_llm_result(analytiq_client: ad.common.AnalytiqClient,
                             document_id: str,
                             prompt_rev_id: str,
                             updated_llm_result: dict,
