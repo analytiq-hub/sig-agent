@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Edit as EditIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
 import { getLLMTokensApi, createLLMTokenApi, deleteLLMTokenApi } from '@/utils/api';
 import { LLMToken } from '@/types/index';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+
 const LLMTokenManager: React.FC = () => {
   const [llmTokens, setLLMTokens] = useState<LLMToken[]>([]);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
   const [editTokenValue, setEditTokenValue] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
 
   useEffect(() => {
     const getLLMTokensData = async () => {
@@ -58,6 +63,16 @@ const LLMTokenManager: React.FC = () => {
     }
   };
 
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, provider: string) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedProvider(provider);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedProvider(null);
+  };
+
   return (
     <div>
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -73,11 +88,8 @@ const LLMTokenManager: React.FC = () => {
               <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Created At
               </th>
-              <th className="w-[7.5%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Edit
-              </th>
-              <th className="w-[7.5%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Delete
+              <th className="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
               </th>
             </tr>
           </thead>
@@ -104,21 +116,11 @@ const LLMTokenManager: React.FC = () => {
                   </td>
                   <td className="px-6 py-2 whitespace-nowrap text-sm">
                     <button
-                      onClick={() => handleEditLLMToken(provider)}
+                      onClick={(e) => handleMenuOpen(e, provider)}
                       className="p-1 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100"
                     >
-                      <EditIcon className="w-4 h-4" />
+                      <MoreVertIcon className="w-4 h-4" />
                     </button>
-                  </td>
-                  <td className="px-6 py-2 whitespace-nowrap text-sm">
-                    {token && (
-                      <button
-                        onClick={() => handleDeleteLLMToken(token.id)}
-                        className="p-1 text-gray-600 hover:text-red-600 rounded-full hover:bg-gray-100"
-                      >
-                        <DeleteIcon className="w-4 h-4" />
-                      </button>
-                    )}
                   </td>
                 </tr>
               );
@@ -175,6 +177,36 @@ const LLMTokenManager: React.FC = () => {
           </div>
         </div>
       )}
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem
+          onClick={() => {
+            if (selectedProvider) handleEditLLMToken(selectedProvider);
+            handleMenuClose();
+          }}
+          className="flex items-center gap-2"
+        >
+          <EditIcon fontSize="small" className="text-blue-600" />
+          <span>Edit</span>
+        </MenuItem>
+        {selectedProvider && llmTokens.find(t => t.llm_vendor === selectedProvider) && (
+          <MenuItem
+            onClick={() => {
+              const token = llmTokens.find(t => t.llm_vendor === selectedProvider);
+              if (token) handleDeleteLLMToken(token.id);
+              handleMenuClose();
+            }}
+            className="flex items-center gap-2"
+          >
+            <DeleteIcon fontSize="small" className="text-red-600" />
+            <span>Delete</span>
+          </MenuItem>
+        )}
+      </Menu>
 
       {/* Error Toast */}
       {error && (
