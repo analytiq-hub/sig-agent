@@ -92,8 +92,9 @@ class LLMProvider(BaseModel):
     litellm_model_default: str
     litellm_models: List[str]
     litellm_available_models: List[str]
-    token: str | None
-    token_created_at: datetime | None
+    enabled: bool = False
+    token: str | None = None
+    token_created_at: datetime | None = None
 
 class ListLLMProvidersResponse(BaseModel):
     providers: List[LLMProvider]

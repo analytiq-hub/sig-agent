@@ -2243,6 +2243,7 @@ async def list_llm_providers(
             litellm_model_default=provider["litellm_model_default"],
             litellm_models=provider["litellm_models"],
             litellm_available_models=provider["litellm_available_models"],
+            enabled=provider["enabled"],
             token=token,
             token_created_at=provider["token_created_at"]
         ))
