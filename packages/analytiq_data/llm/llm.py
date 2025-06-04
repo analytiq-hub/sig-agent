@@ -218,14 +218,14 @@ async def save_llm_result(analytiq_client,
 
 async def delete_llm_result(analytiq_client,
                             document_id: str,
-                            prompt_id: str | None = None) -> bool:
+                            prompt_rev_id: str | None = None) -> bool:
     """
     Delete an LLM result from MongoDB.
     
     Args:
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
-        prompt_id: The prompt ID. If None, delete all LLM results for the document.
+        prompt_rev_id: The prompt revision ID. If None, delete all LLM results for the document.
     
     Returns:
         bool: True if deleted, False if not found
@@ -238,8 +238,8 @@ async def delete_llm_result(analytiq_client,
         "document_id": document_id
     }
 
-    if prompt_id is not None:
-        delete_filter["prompt_id"] = prompt_id
+    if prompt_rev_id is not None:
+        delete_filter["prompt_id"] = prompt_rev_id
 
     result = await collection.delete_many(delete_filter)
     
