@@ -12,101 +12,6 @@ import analytiq_data as ad
 
 logger = logging.getLogger(__name__)
 
-async def setup_llm_models(db):
-    """Set up default LLM models by upserting based on model name"""
-    # Default LLM models
-    default_models = [
-        {
-            "name": "gpt-4o-mini",
-            "provider": "openai",
-            "description": "Smaller, faster version of GPT-4",
-            "max_tokens": 128000,
-            "cost_per_1m_input_tokens": 0.15,
-            "cost_per_1m_output_tokens": 0.6
-        },
-        {
-            "name": "gpt-4o-2024-08-06",
-            "provider": "openai",
-            "description": "Latest version of GPT-4 with improved performance",
-            "max_tokens": 128000,
-            "cost_per_1m_input_tokens": 2.5,
-            "cost_per_1m_output_tokens": 10
-        },
-        {
-            "name": "o1-mini",
-            "provider": "openai",
-            "description": "OpenAI O1 Mini",
-            "max_tokens": 200000,
-            "cost_per_1m_input_tokens": 15,
-            "cost_per_1m_output_tokens": 60
-        },
-        {
-            "name": "o3-mini",
-            "provider": "openai",
-            "description": "OpenAI O3 Mini",
-            "max_tokens": 200000,
-            "cost_per_1m_input_tokens": 1.10,
-            "cost_per_1m_output_tokens": 4.4
-        },
-        {
-            "name": "claude-3-5-sonnet",
-            "provider": "anthropic",
-            "description": "Latest Claude Sonnet model optimized for reliability and safety",
-            "max_tokens": 200000,
-            "cost_per_1m_input_tokens": 3,
-            "cost_per_1m_output_tokens": 15
-        },
-        # {
-        #     "name": "gemini/gemini-2.0-pro",
-        #     "provider": "google",
-        #     "description": "Gemini 2.0 Pro",
-        #     "max_tokens": 200000,
-        #     "cost_per_1m_input_tokens": 0.1, # For now, model is free
-        #     "cost_per_1m_output_tokens": 0.4 # For now, model is free
-        # },
-        {
-            "name": "gemini/gemini-2.0-flash",
-            "provider": "google",
-            "description": "Gemini 2.0 Flash",
-            "max_tokens": 1000000,
-            "cost_per_1m_input_tokens": 0.1,
-            "cost_per_1m_output_tokens": 0.4
-        },
-        {
-            "name": "groq/deepseek-r1-distill-llama-70b",
-            "provider": "groq",
-            "description": "High performance open source model optimized for Groq",
-            "max_tokens": 128000,
-            "cost_per_1m_input_tokens": 0.59,
-            "cost_per_1m_output_tokens": 0.79
-        },
-        {
-            "name": "mistral/open-mixtral-8x22b",
-            "provider": "mistral",
-            "description": "Open Mixtral 8x22B",
-            "max_tokens": 131000,
-            "cost_per_1m_input_tokens": 2.0,
-            "cost_per_1m_output_tokens": 6.0
-        }
-    ]
-
-    try:
-        # Upsert each model individually using the name as the unique identifier
-        for model in default_models:
-            await db.llm_models.update_one(
-                {"name": model["name"]},  # filter by name
-                {"$set": model},  # update/insert the entire model document
-                upsert=True  # create if doesn't exist, update if exists
-            )
-        logger.info("LLM models upserted successfully")
-    except Exception as e:
-        logger.error(f"Failed to upsert LLM models: {e}")
-
-    # Remove any models that are not in the default_models list
-    await db.llm_models.delete_many({
-        "name": {"$nin": [model["name"] for model in default_models]}
-    })
-
 async def setup_database(analytiq_client):
     """Set up database and run migrations"""
     try:
@@ -136,7 +41,6 @@ async def setup_admin(analytiq_client):
         db = analytiq_client.mongodb_async[env]
         
         # Initialize LLM models
-        await setup_llm_models(db)
         await ad.llm.providers.setup_llm_providers(analytiq_client)
         
         users = db.users
