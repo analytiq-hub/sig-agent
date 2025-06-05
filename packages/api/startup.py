@@ -123,56 +123,5 @@ async def setup_api_creds(analytiq_client):
             )
             logger.info("AWS credentials configured for admin user")
             
-        # LLM API Keys
-        llm_credentials = []
-        
-        # OpenAI
-        openai_key = os.getenv("OPENAI_API_KEY", "")
-        if openai_key != "":
-            llm_credentials.append(("OpenAI", openai_key))
-            
-        # Anthropic
-        anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
-        if anthropic_key != "":
-            llm_credentials.append(("Anthropic", anthropic_key))
-
-        # Gemini
-        gemini_key = os.getenv("GEMINI_API_KEY", "")
-        if gemini_key != "":
-            llm_credentials.append(("Gemini", gemini_key))
-            
-        # Groq
-        groq_key = os.getenv("GROQ_API_KEY", "")
-        if groq_key != "":
-            llm_credentials.append(("Groq", groq_key))
-
-        # Mistral
-        mistral_key = os.getenv("MISTRAL_API_KEY", "")
-        if mistral_key != "":
-            llm_credentials.append(("Mistral", mistral_key))
-            
-        # Store LLM credentials
-        for vendor, api_key in llm_credentials:
-            # Only store credentials if they don't already exist
-            existing_llm_creds = await db.llm_tokens.find_one({"user_id": admin_id, "llm_vendor": vendor})
-            if existing_llm_creds:
-                continue
-                
-            encrypted_key = ad.crypto.encrypt_token(api_key)
-            await db.llm_tokens.update_one(
-                {
-                    "user_id": admin_id,
-                    "llm_vendor": vendor
-                },
-                {
-                    "$set": {
-                        "token": encrypted_key,
-                        "created_at": datetime.now(UTC)
-                    }
-                },
-                upsert=True
-            )
-            logger.info(f"{vendor} API key configured for admin user")
-            
     except Exception as e:
         logger.error(f"Failed to set up API credentials: {e}")

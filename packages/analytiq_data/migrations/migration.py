@@ -1397,6 +1397,39 @@ class RenameLlmRunsCollection(Migration):
             logger.error(f"Collection rename migration revert failed: {e}")
             return False
 
+# Add this new migration class before the MIGRATIONS list
+class RemoveLlmModelsAndTokens(Migration):
+    def __init__(self):
+        super().__init__(description="Remove llm_models and llm_tokens collections")
+        
+    async def up(self, db) -> bool:
+        """Remove llm_models and llm_tokens collections"""
+        try:
+            # Drop the collections if they exist
+            collections = await db.list_collection_names()
+            
+            if "llm_models" in collections:
+                await db.llm_models.drop()
+                logger.info("Dropped llm_models collection")
+                
+            if "llm_tokens" in collections:
+                await db.llm_tokens.drop()
+                logger.info("Dropped llm_tokens collection")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to remove collections: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """
+        Cannot restore the collections as we don't have the original data.
+        This is a one-way migration.
+        """
+        logger.warning("Cannot restore llm_models and llm_tokens collections as original data is not preserved")
+        return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -1416,6 +1449,7 @@ MIGRATIONS = [
     AddPdfIdToDocuments(),
     RenamePromptIdToPromptRevId(),
     RenameLlmRunsCollection(),
+    RemoveLlmModelsAndTokens(),
     # Add more migrations here
 ]
 
