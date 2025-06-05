@@ -71,21 +71,19 @@ async def run_llm(analytiq_client,
     )
 
     response_format = None
-    if llm_provider in ["anthropic", "gemini", "groq", "mistral","openai"]:
-        # Initialize response_format
-        response_format = None
-
-        # Most but not all models support response_format
-        # See https://platform.openai.com/docs/guides/structured-outputs?format=without-parse
-        if litellm.supports_response_schema(model=llm_model) and prompt_rev_id != "default":
-            # Get the prompt response format, if any
-            response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_rev_id)
-            logger.info(f"Response format: {response_format}")
-        
-        if response_format is None:
-            logger.info(f"No response format found for prompt {prompt_rev_id}")
-            # Use a default response format
-            response_format = {"type": "json_object"}
+    
+    # Most but not all models support response_format
+    # See https://platform.openai.com/docs/guides/structured-outputs?format=without-parse
+    if prompt_rev_id == "default":
+        # Use a default response format
+        response_format = {"type": "json_object"}
+    elif litellm.supports_response_schema(model=llm_model):
+        # Get the prompt response format, if any
+        response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_rev_id)
+        logger.info(f"Response format: {response_format}")
+    
+    if response_format is None:
+        logger.info(f"No response format found for prompt {prompt_rev_id}")
 
     response = await litellm.acompletion(
         model=llm_model,
