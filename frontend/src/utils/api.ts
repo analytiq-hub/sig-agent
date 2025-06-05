@@ -46,7 +46,6 @@ import {
   AcceptInvitationRequest 
 } from '@/types/index';
 import { CreateTokenRequest } from '@/types/index';
-import { CreateLLMTokenRequest } from '@/types/index';
 import { AWSCredentials } from '@/types/index';
 import {
   ListLLMModelsResponse,
@@ -521,21 +520,6 @@ export const deleteTokenApi = async (tokenId: string, organizationId?: string) =
     ? `/v0/orgs/${organizationId}/access_tokens/${tokenId}`
     : `/v0/account/access_tokens/${tokenId}`;
   const response = await api.delete(endpoint);
-  return response.data;
-};
-
-export const createLLMTokenApi = async (tokenRequest: CreateLLMTokenRequest) => {
-  const response = await api.post('/v0/account/llm_tokens', tokenRequest);
-  return response.data;
-};
-
-export const getLLMTokensApi = async () => {
-  const response = await api.get('/v0/account/llm_tokens');
-  return response.data;
-};
-
-export const deleteLLMTokenApi = async (tokenId: string) => {
-  const response = await api.delete(`/v0/account/llm_tokens/${tokenId}`);
   return response.data;
 };
 

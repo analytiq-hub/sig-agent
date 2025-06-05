@@ -46,7 +46,6 @@ from api.models import (
     DocumentUpdate,
     LLMModel, ListLLMModelsResponse,
     LLMProvider, ListLLMProvidersResponse, SetLLMProviderConfigRequest,
-    LLMToken, CreateLLMTokenRequest, ListLLMTokensResponse,
     AWSCredentials,
     GetOCRMetadataResponse,
     LLMRunResponse,
@@ -1306,8 +1305,12 @@ async def create_prompt(
             )
 
     # Validate model exists
-    model = await db.llm_models.find_one({"name": prompt.model})
-    if not model:
+    found = False
+    for provider in await db.llm_providers.find({}).to_list(None):
+        if prompt.model in provider["litellm_models"]:
+            found = True
+            break
+    if not found:
         raise HTTPException(
             status_code=400,
             detail=f"Invalid model: {prompt.model}"
@@ -1541,8 +1544,12 @@ async def update_prompt(
             )
 
     # Validate model exists
-    model = await db.llm_models.find_one({"name": prompt.model})
-    if not model:
+    found = False
+    for provider in await db.llm_providers.find({}).to_list(None):
+        if prompt.model in provider["litellm_models"]:
+            found = True
+            break
+    if not found:
         raise HTTPException(
             status_code=400,
             detail=f"Invalid model: {prompt.model}"
@@ -2319,78 +2326,6 @@ async def set_llm_provider_config(
     )
 
     return {"message": "LLM provider config updated successfully"}
-
-@app.post("/v0/account/llm_tokens", response_model=LLMToken, tags=["account/llm"])
-async def llm_token_create(
-    request: CreateLLMTokenRequest,
-    current_user: User = Depends(get_admin_user)
-):
-    """Create or update an LLM token (admin only)"""
-    logger.debug(f"Creating/Updating LLM token for user: {current_user} request: {request}")
-    db = ad.common.get_async_db()
-
-    # Check if a token for this vendor already exists
-    existing_token = await db.llm_tokens.find_one({
-        "user_id": current_user.user_id,
-        "llm_vendor": request.llm_vendor
-    })
-
-    new_token = {
-        "user_id": current_user.user_id,
-        "llm_vendor": request.llm_vendor,
-        "token": ad.crypto.encrypt_token(request.token),
-        "created_at": datetime.now(UTC),
-    }
-
-    if existing_token:
-        # Update the existing token
-        result = await db.llm_tokens.replace_one(
-            {"_id": existing_token["_id"]},
-            new_token
-        )
-        new_token["id"] = str(existing_token["_id"])
-        logger.debug(f"Updated existing LLM token for {request.llm_vendor}")
-    else:
-        # Insert a new token
-        result = await db.llm_tokens.insert_one(new_token)
-        new_token["id"] = str(result.inserted_id)
-        new_token["token"] = ad.crypto.decrypt_token(new_token["token"])
-        logger.debug(f"Created new LLM token for {request.llm_vendor}")
-
-    return new_token
-
-@app.get("/v0/account/llm_tokens", response_model=ListLLMTokensResponse, tags=["account/llm"])
-async def llm_token_list(current_user: User = Depends(get_admin_user)):
-    """List LLM tokens (admin only)"""
-    db = ad.common.get_async_db()
-    cursor = db.llm_tokens.find({"user_id": current_user.user_id})
-    tokens = await cursor.to_list(length=None)
-    llm_tokens = [
-        {
-            "id": str(token["_id"]),
-            "user_id": token["user_id"],
-            "llm_vendor": token["llm_vendor"],
-            "token": ad.crypto.decrypt_token(token["token"]),
-            "created_at": token["created_at"],
-        }
-        for token in tokens
-    ]
-    return ListLLMTokensResponse(llm_tokens=llm_tokens)
-
-@app.delete("/v0/account/llm_tokens/{token_id}", tags=["account/llm"])
-async def llm_token_delete(
-    token_id: str,
-    current_user: User = Depends(get_admin_user)
-):
-    """Delete an LLM token (admin only)"""
-    db = ad.common.get_async_db()
-    result = await db.llm_tokens.delete_one({
-        "_id": ObjectId(token_id),
-        "user_id": current_user.user_id
-    })
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Token not found")
-    return {"message": "Token deleted successfully"}
 
 @app.post("/v0/account/aws_credentials", tags=["account/aws_credentials"])
 async def create_aws_credentials(
