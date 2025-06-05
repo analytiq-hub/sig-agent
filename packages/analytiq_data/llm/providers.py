@@ -78,7 +78,7 @@ async def setup_llm_providers(analytiq_client):
         "gemini": {
             "display_name": "Gemini",
             "litellm_provider": "gemini",
-            "litellm_models": ["gemini/gemini-2.0-flash", "gemini/gemini-2.5-flash-preview-tts"],
+            "litellm_models": ["gemini/gemini-2.0-flash", "gemini/gemini-2.5-flash-preview-05-20"],
             "litellm_model_default": "gemini/gemini-2.0-flash",
             "enabled": True,
             "token" : "",
