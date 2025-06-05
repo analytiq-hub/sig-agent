@@ -108,7 +108,7 @@ async def setup_llm_providers(analytiq_client):
         "openai": {
             "display_name": "OpenAI",
             "litellm_provider": "openai",
-            "litellm_models": ["gpt-4o-mini", "gpt-4o-2024-08-06", "o4-mini"],
+            "litellm_models": ["gpt-4o-mini", "gpt-4.1-2025-04-14", "gpt-4.5-preview", "o4-mini"],
             "litellm_model_default": "gpt-4o-mini",
             "enabled": True,
             "token" : "",
