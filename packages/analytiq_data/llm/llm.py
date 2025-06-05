@@ -1,7 +1,6 @@
 import asyncio
 import analytiq_data as ad
-from litellm.main import acompletion  # Changed import path
-from litellm.utils import supports_response_schema
+import litellm
 import json
 from datetime import datetime, UTC
 from pydantic import BaseModel, create_model
@@ -78,7 +77,7 @@ async def run_llm(analytiq_client,
 
         # Most but not all models support response_format
         # See https://platform.openai.com/docs/guides/structured-outputs?format=without-parse
-        if supports_response_schema(model=llm_model) and prompt_rev_id != "default":
+        if litellm.supports_response_schema(model=llm_model) and prompt_rev_id != "default":
             # Get the prompt response format, if any
             response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_rev_id)
             logger.info(f"Response format: {response_format}")
@@ -88,7 +87,7 @@ async def run_llm(analytiq_client,
             # Use a default response format
             response_format = {"type": "json_object"}
 
-    response = await acompletion(
+    response = await litellm.acompletion(
         model=llm_model,
         messages=[
             {"role": "system", "content": system_prompt},
