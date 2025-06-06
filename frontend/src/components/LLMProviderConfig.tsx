@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import Switch from '@mui/material/Switch';
-import { listLLMProvidersApi, setLLMProviderConfigApi } from '@/utils/api';
-import { LLMProvider } from '@/types/index';
+import { listLLMProvidersApi, setLLMProviderConfigApi, listLLMModelsApi } from '@/utils/api';
+import { LLMProvider, LLMModel } from '@/types/index';
 
 interface LLMProviderConfigProps {
   providerName: string;
@@ -10,29 +10,37 @@ interface LLMProviderConfigProps {
 
 const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) => {
   const [provider, setProvider] = useState<LLMProvider | null>(null);
+  const [models, setModels] = useState<LLMModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProviderData = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await listLLMProvidersApi();
-        const foundProvider = response.providers.find(p => p.name === providerName);
+        // Fetch provider data
+        const providerResponse = await listLLMProvidersApi();
+        const foundProvider = providerResponse.providers.find(p => p.name === providerName);
         if (foundProvider) {
           setProvider(foundProvider);
+          // Fetch model data for this provider
+          const modelsResponse = await listLLMModelsApi({
+            providerName: providerName,
+            enabled: null
+          });
+          setModels(modelsResponse.models);
         } else {
           setError('Provider not found');
         }
       } catch (error) {
-        console.error('Error fetching provider data:', error);
-        setError('An error occurred while fetching provider data.');
+        console.error('Error fetching data:', error);
+        setError('An error occurred while fetching data.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProviderData();
+    fetchData();
   }, [providerName]);
 
   const handleToggleModel = async (model: string, enabled: boolean) => {
@@ -69,8 +77,8 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
       width: 120,
       renderCell: (params: GridRenderCellParams) => (
         <Switch
-          checked={provider?.litellm_models.includes(params.row.name)}
-          onChange={(e) => handleToggleModel(params.row.name, e.target.checked)}
+          checked={provider?.litellm_models.includes(params.row.litellm_model)}
+          onChange={(e) => handleToggleModel(params.row.litellm_model, e.target.checked)}
           size="small"
           color="primary"
         />
@@ -96,14 +104,7 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
       </div>
       <h3 className="text-lg font-semibold mb-2">Models</h3>
       <DataGrid
-        rows={provider.litellm_available_models.map(model => ({
-          id: model,
-          name: model,
-          max_input_tokens: provider.max_input_tokens,
-          max_output_tokens: provider.max_output_tokens,
-          input_cost_per_token: provider.input_cost_per_token,
-          output_cost_per_token: provider.output_cost_per_token,
-        }))}
+        rows={models}
         columns={columns}
         autoHeight
         disableRowSelectionOnClick
