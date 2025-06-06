@@ -7,6 +7,7 @@ import MenuItem from '@mui/material/MenuItem';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import colors from 'tailwindcss/colors';
 import Checkbox from '@mui/material/Checkbox';
+import Switch from '@mui/material/Switch';
 
 const LLMTokenManager: React.FC = () => {
   const [llmProviders, setLLMProviders] = useState<LLMProvider[]>([]);
@@ -146,13 +147,21 @@ const LLMTokenManager: React.FC = () => {
     {
       field: 'enabled',
       headerName: 'Status',
-      width: 100,
+      width: 120,
       renderCell: (params: GridRenderCellParams) => (
-        <span className={`px-2 py-1 rounded-full text-xs ${
-          params.value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {params.value ? 'Enabled' : 'Disabled'}
-        </span>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={params.value}
+            onChange={(e) => handleToggleProvider(params.row.name, e.target.checked)}
+            size="small"
+            color="primary"
+          />
+          <span className={`text-xs ${
+            params.value ? 'text-green-800' : 'text-red-800'
+          }`}>
+            {params.value ? 'Enabled' : 'Disabled'}
+          </span>
+        </div>
       ),
     },
     {
@@ -294,30 +303,6 @@ const LLMTokenManager: React.FC = () => {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        <MenuItem
-          onClick={() => {
-            if (selectedProvider) {
-              const provider = llmProviders.find(p => p.name === selectedProvider);
-              if (provider) {
-                handleToggleProvider(provider.name, !provider.enabled);
-              }
-            }
-            handleMenuClose();
-          }}
-          className="flex items-center gap-2"
-        >
-          {selectedProvider && llmProviders.find(p => p.name === selectedProvider)?.enabled ? (
-            <>
-              <BlockIcon fontSize="small" className="text-red-600" />
-              <span>Disable Provider</span>
-            </>
-          ) : (
-            <>
-              <CheckCircleIcon fontSize="small" className="text-green-600" />
-              <span>Enable Provider</span>
-            </>
-          )}
-        </MenuItem>
         <MenuItem
           onClick={() => {
             if (selectedProvider) {
