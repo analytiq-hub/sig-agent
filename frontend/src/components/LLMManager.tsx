@@ -141,12 +141,12 @@ const LLMTokenManager: React.FC = () => {
     {
       field: 'name',
       headerName: 'Provider',
-      flex: 1,
+      flex: .5,
       minWidth: 150,
     },
     {
       field: 'enabled',
-      headerName: 'Status',
+      headerName: 'Enabled',
       width: 120,
       renderCell: (params: GridRenderCellParams) => (
         <div className="flex items-center gap-2">
@@ -156,11 +156,6 @@ const LLMTokenManager: React.FC = () => {
             size="small"
             color="primary"
           />
-          <span className={`text-xs ${
-            params.value ? 'text-green-800' : 'text-red-800'
-          }`}>
-            {params.value ? 'Enabled' : 'Disabled'}
-          </span>
         </div>
       ),
     },
