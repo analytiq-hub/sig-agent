@@ -48,6 +48,10 @@ def is_chat_model(llm_model: str) -> bool:
     Returns:
         True if the LLM model is a chat model, False otherwise
     """
+    # Some litellmmodels have the mode set to chat, but are not chat models
+    if llm_model in ["gemini/gemini-2.5-flash-preview-tts"]:
+        return False
+    
     try:
         model_info = litellm.get_model_info(llm_model)
         if model_info.get('mode') == 'chat':

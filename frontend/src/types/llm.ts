@@ -15,7 +15,6 @@ export interface LLMProvider {
   name: string;
   display_name: string;
   litellm_provider: string;
-  litellm_model_default: string;
   litellm_models: string[];
   litellm_available_models: string[];
   enabled: boolean;
@@ -28,7 +27,6 @@ export interface ListLLMProvidersResponse {
 }
 
 export interface SetLLMProviderConfigRequest {
-  litellm_model_default: string | null;
   litellm_models: string[] | null;
   enabled: boolean | null;
   token: string | null;

@@ -2260,7 +2260,6 @@ async def list_llm_providers(
             name=provider["name"],
             display_name=provider["display_name"],
             litellm_provider=provider["litellm_provider"],
-            litellm_model_default=provider["litellm_model_default"],
             litellm_models=provider["litellm_models"],
             litellm_available_models=provider["litellm_available_models"],
             enabled=provider["enabled"],
@@ -2289,21 +2288,13 @@ async def set_llm_provider_config(
         raise HTTPException(status_code=400, detail=f"Provider '{provider_name}' not found")
     litellm_provider = elem["litellm_provider"]
 
-    if request.litellm_model_default is not None:
-        if request.litellm_model_default not in litellm.models_by_provider[litellm_provider]:
-            raise HTTPException(status_code=400, detail=f"Model '{request.litellm_model_default}' is not available for provider '{provider_name}'")
-
     if request.litellm_models not in [None, []]:
         for model in request.litellm_models:
             if model not in litellm.models_by_provider[litellm_provider]:
                 raise HTTPException(status_code=400, detail=f"Model '{model}' is not available for provider '{provider_name}'")
     
-    if request.litellm_model_default is not None:
-        elem["litellm_model_default"] = request.litellm_model_default
+
     if request.litellm_models not in [None, []]:
-        # Ensure the default model is in the list
-        if elem["litellm_model_default"] not in request.litellm_models:
-            request.litellm_models.append(elem["litellm_model_default"])
         # Reorder the list
         litellm_models_ordered = sorted(request.litellm_models, 
                                         key=lambda x: litellm.models_by_provider[litellm_provider].index(x))

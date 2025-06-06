@@ -44,6 +44,10 @@ async def run_llm(analytiq_client,
     if llm_model is None:
         llm_model = await ad.llm.get_llm_model(analytiq_client, prompt_rev_id)
 
+    if not ad.llm.is_chat_model(llm_model):
+        logger.info(f"LLM model {llm_model} is not a chat model, falling back to default llm_model")
+        llm_model = "gpt-4o-mini"
+
     # Get the provider for the given LLM model
     llm_provider = ad.llm.get_llm_model_provider(llm_model)
     if llm_provider is None:

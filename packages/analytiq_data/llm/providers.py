@@ -29,7 +29,6 @@ async def setup_llm_providers(analytiq_client):
             "display_name": "AI21",
             "litellm_provider": "ai21",
             "litellm_models": ["j2-light"],
-            "litellm_model_default": "j2-light",
             "enabled": False,
             "token" : "",
             "token_created_at": None,
@@ -39,7 +38,6 @@ async def setup_llm_providers(analytiq_client):
             "display_name": "Anthropic",
             "litellm_provider": "anthropic",
             "litellm_models": ["claude-3-5-sonnet-latest", "claude-3-7-sonnet-latest"],
-            "litellm_model_default": "claude-3-7-sonnet-latest",
             "enabled": True,
             "token" : "",
             "token_created_at": None,
@@ -49,7 +47,6 @@ async def setup_llm_providers(analytiq_client):
             "display_name": "Azure OpenAI",
             "litellm_provider": "azure",
             "litellm_models": ["azure/gpt-4.1-nano"],
-            "litellm_model_default": "azure/gpt-4.1-nano",
             "enabled": False,
             "token" : "",
             "token_created_at": None,
@@ -59,7 +56,6 @@ async def setup_llm_providers(analytiq_client):
             "display_name": "Azure AI Studio",
             "litellm_provider": "azure_ai",
             "litellm_models": ["azure_ai/deepseek-v3"],
-            "litellm_model_default": "azure_ai/deepseek-v3",
             "enabled": False,
             "token" : "",
             "token_created_at": None,
@@ -69,7 +65,6 @@ async def setup_llm_providers(analytiq_client):
             "display_name": "AWS Bedrock",
             "litellm_provider": "bedrock",
             "litellm_models": ["anthropic.claude-3-7-sonnet-20250219-v1:0"],
-            "litellm_model_default": "anthropic.claude-3-7-sonnet-20250219-v1:0",
             "enabled": False,
             "token" : "",
             "token_created_at": None,
@@ -79,7 +74,6 @@ async def setup_llm_providers(analytiq_client):
             "display_name": "Gemini",
             "litellm_provider": "gemini",
             "litellm_models": ["gemini/gemini-2.0-flash", "gemini/gemini-2.5-flash-preview-05-20"],
-            "litellm_model_default": "gemini/gemini-2.0-flash",
             "enabled": True,
             "token" : "",
             "token_created_at": None,
@@ -89,7 +83,6 @@ async def setup_llm_providers(analytiq_client):
             "display_name": "Groq",
             "litellm_provider": "groq",
             "litellm_models": ["groq/deepseek-r1-distill-llama-70b"],
-            "litellm_model_default": "groq/deepseek-r1-distill-llama-70b",
             "enabled": True,
             "token" : "",
             "token_created_at": None,
@@ -99,7 +92,6 @@ async def setup_llm_providers(analytiq_client):
             "display_name": "Mistral",
             "litellm_provider": "mistral",
             "litellm_models": ["mistral/mistral-tiny"],
-            "litellm_model_default": "mistral/mistral-tiny",
             "enabled": True,
             "token" : "",
             "token_created_at": None,
@@ -109,7 +101,6 @@ async def setup_llm_providers(analytiq_client):
             "display_name": "OpenAI",
             "litellm_provider": "openai",
             "litellm_models": ["gpt-4o-mini", "gpt-4.1-2025-04-14", "gpt-4.5-preview", "o4-mini"],
-            "litellm_model_default": "gpt-4o-mini",
             "enabled": True,
             "token" : "",
             "token_created_at": None,
@@ -119,7 +110,6 @@ async def setup_llm_providers(analytiq_client):
             "display_name": "Google Vertex AI",
             "litellm_provider": "vertex_ai",
             "litellm_models": ["gemini-1.5-flash"],
-            "litellm_model_default": "gemini-1.5-flash",
             "enabled": False,
             "token" : "",
             "token_created_at": None,
@@ -156,9 +146,6 @@ async def setup_llm_providers(analytiq_client):
                     provider_config["token_created_at"] = datetime.now()
                     update = True
 
-            # Update the litellm_model_default
-            provider_config["litellm_model_default"] = config["litellm_model_default"]
-
             # Get the litellm_models for the provider
             litellm_models = litellm.models_by_provider[provider]
             models = provider_config.get("litellm_models", [])
@@ -176,18 +163,6 @@ async def setup_llm_providers(analytiq_client):
                     logger.info(f"Model {model} is not supported by {provider}, removing from provider config")
                     provider_config["litellm_models"].remove(model)
                     update = True
-
-            # Ensure default model is supported
-            if provider_config["litellm_model_default"] not in litellm_models:
-                logger.error(f"Default model {provider_config['litellm_model_default']} is not supported by {provider}, setting to first model")
-                provider_config["litellm_model_default"] = litellm_models[0]
-                update = True
-
-            # Ensure the default model is in the list of models
-            if provider_config["litellm_model_default"] not in provider_config["litellm_models"]:
-                logger.info(f"Default model {provider_config['litellm_model_default']} is not in the list of models, adding it")
-                provider_config["litellm_models"].append(provider_config["litellm_model_default"])
-                update = True
 
             # Order the litellm_models using same order from litellm.models_by_provider. If order changes, set the update flag
             litellm_models_ordered = sorted(provider_config["litellm_models"], 

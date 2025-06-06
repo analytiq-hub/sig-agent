@@ -88,7 +88,6 @@ class LLMProvider(BaseModel):
     name: str
     display_name: str
     litellm_provider: str
-    litellm_model_default: str
     litellm_models: List[str]
     litellm_available_models: List[str]
     enabled: bool = False
@@ -99,7 +98,6 @@ class ListLLMProvidersResponse(BaseModel):
     providers: List[LLMProvider]
 
 class SetLLMProviderConfigRequest(BaseModel):
-    litellm_model_default: str | None = None
     litellm_models: List[str] | None = None
     enabled: bool | None = None
     token: str | None = None

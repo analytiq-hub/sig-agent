@@ -47,7 +47,6 @@ const LLMTokenManager: React.FC = () => {
       await setLLMProviderConfigApi(editingProvider, {
         token: editTokenValue,
         enabled: true,
-        litellm_model_default: null,
         litellm_models: null
       });
       setEditModalOpen(false);
@@ -65,7 +64,6 @@ const LLMTokenManager: React.FC = () => {
       await setLLMProviderConfigApi(providerName, {
         token: null,
         enabled: false,
-        litellm_model_default: null,
         litellm_models: null
       });
       // Refresh the LLM providers list
