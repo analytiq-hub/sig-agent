@@ -4,7 +4,7 @@ import React from 'react';
 import SettingsLayout from '@/components/SettingsLayout';
 import LLMManager from '@/components/LLMManager';
 
-const LLMTokensPage: React.FC = () => {
+const LLMManagerPage: React.FC = () => {
   return (
     <SettingsLayout selectedMenu="system_development">
       <div>
@@ -15,4 +15,4 @@ const LLMTokensPage: React.FC = () => {
   );
 };
 
-export default LLMTokensPage;
+export default LLMManagerPage;

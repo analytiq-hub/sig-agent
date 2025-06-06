@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Delete as DeleteIcon, Edit as EditIcon, MoreVert as MoreVertIcon, Block as BlockIcon, CheckCircle as CheckCircleIcon, Settings as SettingsIcon, Close as CloseIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Edit as EditIcon, MoreVert as MoreVertIcon, Settings as SettingsIcon, Close as CloseIcon } from '@mui/icons-material';
 import { listLLMProvidersApi, setLLMProviderConfigApi } from '@/utils/api';
 import { LLMProvider } from '@/types/index';
 import Menu from '@mui/material/Menu';
@@ -9,7 +9,7 @@ import colors from 'tailwindcss/colors';
 import Checkbox from '@mui/material/Checkbox';
 import Switch from '@mui/material/Switch';
 
-const LLMTokenManager: React.FC = () => {
+const LLMManager: React.FC = () => {
   const [llmProviders, setLLMProviders] = useState<LLMProvider[]>([]);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
@@ -396,4 +396,4 @@ const LLMTokenManager: React.FC = () => {
   );
 };
 
-export default LLMTokenManager;
+export default LLMManager;
