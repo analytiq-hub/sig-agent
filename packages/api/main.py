@@ -2244,7 +2244,10 @@ async def list_llm_providers(
         logger.info(f"provider: {provider}")
 
         # Add all available models to the provider
-        provider["litellm_available_models"] = litellm.models_by_provider[provider["litellm_provider"]]
+        available_models = litellm.models_by_provider[provider["litellm_provider"]]
+
+        # Eliminate non-chat models
+        provider["litellm_available_models"] = [model for model in available_models if ad.llm.is_chat_model(model)]
 
         token = provider["token"]
         if len(token) > 0:
@@ -2298,6 +2301,10 @@ async def set_llm_provider_config(
         # Reorder the list
         litellm_models_ordered = sorted(request.litellm_models, 
                                         key=lambda x: litellm.models_by_provider[litellm_provider].index(x))
+        
+        # Eliminate non-chat models
+        litellm_models_ordered = [model for model in litellm_models_ordered if ad.llm.is_chat_model(model)]
+        
         # Save the reordered list
         elem["litellm_models"] = litellm_models_ordered
 
