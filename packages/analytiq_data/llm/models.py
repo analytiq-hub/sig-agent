@@ -63,6 +63,22 @@ def is_chat_model(llm_model: str) -> bool:
 
     return False
 
+def supported_models() -> list[str]:
+    """
+    Get the list of supported models
+    """
+    return [ 
+        "claude-3-5-sonnet-latest", "claude-3-7-sonnet-latest",
+        "azure/gpt-4.1-nano",
+        "azure_ai/deepseek-v3",
+        "anthropic.claude-3-7-sonnet-20250219-v1:0",
+        "gemini/gemini-2.0-flash", "gemini/gemini-2.5-flash-preview-05-20",
+        "groq/deepseek-r1-distill-llama-70b",
+        "mistral/mistral-tiny",
+        "gpt-4o-mini", "gpt-4.1-2025-04-14", "gpt-4.5-preview", "o4-mini",
+        "gemini-1.5-flash"
+    ]
+
 def is_supported_model(llm_model: str) -> bool:
     """
     Check if the LLM model is supported by litellm
@@ -73,10 +89,8 @@ def is_supported_model(llm_model: str) -> bool:
     Returns:
         True if the LLM model is supported by litellm, False otherwise
     """
-    if llm_model not in litellm.models_by_provider.keys():
-        return False
-    
     if llm_model not in litellm.model_cost.keys():
+        logger.info(f"Model {llm_model} is not supported by litellm (2)")
         return False
 
     max_input_tokens = litellm.model_cost[llm_model].get("max_input_tokens", 0)
@@ -85,6 +99,12 @@ def is_supported_model(llm_model: str) -> bool:
     output_cost_per_token = litellm.model_cost[llm_model].get("output_cost_per_token", 0)
 
     if max_input_tokens == 0 or max_output_tokens == 0 or input_cost_per_token == 0 or output_cost_per_token == 0:
+        logger.info(f"Model {llm_model} is not supported by litellm (3)")
+        return False
+
+    # List of supported models
+    if llm_model not in supported_models():
+        logger.info(f"Model {llm_model} is not supported by litellm (4)")
         return False
     
     return True
