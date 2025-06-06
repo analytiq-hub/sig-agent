@@ -25,15 +25,6 @@ async def setup_llm_providers(analytiq_client):
     db = analytiq_client.mongodb_async[env]
 
     providers = {
-        "ai21": {
-            "display_name": "AI21",
-            "litellm_provider": "ai21",
-            "litellm_models": ["j2-light"],
-            "enabled": False,
-            "token" : "",
-            "token_created_at": None,
-            "token_env": "AI21_API_KEY",
-        },
         "anthropic": {
             "display_name": "Anthropic",
             "litellm_provider": "anthropic",

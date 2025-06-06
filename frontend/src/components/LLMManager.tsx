@@ -206,7 +206,7 @@ const LLMTokenManager: React.FC = () => {
   ];
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
+    <div className="bg-white p-6 rounded-lg shadow h-[calc(100vh-184px)] flex flex-col">
       <div className="mb-4">
         <input
           type="text"
@@ -217,7 +217,7 @@ const LLMTokenManager: React.FC = () => {
         />
       </div>
 
-      <div style={{ height: 400, width: '100%' }}>
+      <div className="flex-1">
         <DataGrid
           rows={filteredProviders}
           columns={columns}
@@ -239,7 +239,8 @@ const LLMTokenManager: React.FC = () => {
             },
             '& .MuiDataGrid-row:hover': {
               backgroundColor: `${colors.gray[200]} !important`,
-            }
+            },
+            height: '100%'
           }}
         />
       </div>
