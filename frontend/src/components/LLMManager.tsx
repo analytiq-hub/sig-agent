@@ -144,6 +144,14 @@ const LLMManager: React.FC = () => {
       headerName: 'Provider',
       flex: .5,
       minWidth: 150,
+      renderCell: (params: GridRenderCellParams) => (
+        <Link
+          href={`/settings/account/development/llm-manager/providers/${params.row.name}`}
+          className="text-blue-600 hover:text-blue-800"
+        >
+          {params.value}
+        </Link>
+      ),
     },
     {
       field: 'enabled',
@@ -192,15 +200,9 @@ const LLMManager: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 80,
       renderCell: (params) => (
         <div className="flex items-center gap-2">
-          <Link
-            href={`/settings/account/development/llm-manager/providers/${params.row.name}`}
-            className="text-blue-600 hover:text-blue-800"
-          >
-            <SettingsIcon className="w-4 h-4" />
-          </Link>
           <button
             onClick={(e) => handleMenuOpen(e, params.row.name)}
             className="p-1 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100"
