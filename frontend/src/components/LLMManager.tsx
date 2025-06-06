@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Delete as DeleteIcon, Edit as EditIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Edit as EditIcon, MoreVert as MoreVertIcon, Block as BlockIcon, CheckCircle as CheckCircleIcon, Settings as SettingsIcon, Close as CloseIcon } from '@mui/icons-material';
 import { listLLMProvidersApi, setLLMProviderConfigApi } from '@/utils/api';
 import { LLMProvider } from '@/types/index';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import colors from 'tailwindcss/colors';
+import Checkbox from '@mui/material/Checkbox';
 
 const LLMTokenManager: React.FC = () => {
   const [llmProviders, setLLMProviders] = useState<LLMProvider[]>([]);
@@ -17,6 +18,7 @@ const LLMTokenManager: React.FC = () => {
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [modelSelectionOpen, setModelSelectionOpen] = useState(false);
 
   useEffect(() => {
     const getLLMProvidersData = async () => {
@@ -82,7 +84,50 @@ const LLMTokenManager: React.FC = () => {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleCloseModelSelection = () => {
+    setModelSelectionOpen(false);
     setSelectedProvider(null);
+  };
+
+  const handleToggleProvider = async (providerName: string, enabled: boolean) => {
+    try {
+      await setLLMProviderConfigApi(providerName, {
+        enabled,
+        token: null,
+        litellm_models: null
+      });
+      // Refresh the LLM providers list
+      const response = await listLLMProvidersApi();
+      setLLMProviders(response.providers);
+    } catch (error) {
+      console.error('Error toggling provider:', error);
+      setError('An error occurred while updating the provider. Please try again.');
+    }
+  };
+
+  const handleToggleModel = async (providerName: string, model: string, enabled: boolean) => {
+    try {
+      const provider = llmProviders.find(p => p.name === providerName);
+      if (!provider) return;
+
+      const updatedModels = enabled
+        ? [...provider.litellm_models, model]
+        : provider.litellm_models.filter(m => m !== model);
+
+      await setLLMProviderConfigApi(providerName, {
+        enabled: provider.enabled,
+        token: provider.token,
+        litellm_models: updatedModels
+      });
+      // Refresh the LLM providers list
+      const response = await listLLMProvidersApi();
+      setLLMProviders(response.providers);
+    } catch (error) {
+      console.error('Error toggling model:', error);
+      setError('An error occurred while updating the models. Please try again.');
+    }
   };
 
   // Filter providers based on search
@@ -97,6 +142,29 @@ const LLMTokenManager: React.FC = () => {
       headerName: 'Provider',
       flex: 1,
       minWidth: 150,
+    },
+    {
+      field: 'enabled',
+      headerName: 'Status',
+      width: 100,
+      renderCell: (params: GridRenderCellParams) => (
+        <span className={`px-2 py-1 rounded-full text-xs ${
+          params.value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`}>
+          {params.value ? 'Enabled' : 'Disabled'}
+        </span>
+      ),
+    },
+    {
+      field: 'litellm_models',
+      headerName: 'Enabled Models',
+      flex: 1,
+      minWidth: 200,
+      renderCell: (params: GridRenderCellParams) => (
+        <span className="text-sm text-gray-600">
+          {params.value?.length || 0} models enabled
+        </span>
+      ),
     },
     {
       field: 'token',
@@ -228,6 +296,42 @@ const LLMTokenManager: React.FC = () => {
       >
         <MenuItem
           onClick={() => {
+            if (selectedProvider) {
+              const provider = llmProviders.find(p => p.name === selectedProvider);
+              if (provider) {
+                handleToggleProvider(provider.name, !provider.enabled);
+              }
+            }
+            handleMenuClose();
+          }}
+          className="flex items-center gap-2"
+        >
+          {selectedProvider && llmProviders.find(p => p.name === selectedProvider)?.enabled ? (
+            <>
+              <BlockIcon fontSize="small" className="text-red-600" />
+              <span>Disable Provider</span>
+            </>
+          ) : (
+            <>
+              <CheckCircleIcon fontSize="small" className="text-green-600" />
+              <span>Enable Provider</span>
+            </>
+          )}
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (selectedProvider) {
+              setModelSelectionOpen(true);
+            }
+            handleMenuClose();
+          }}
+          className="flex items-center gap-2"
+        >
+          <SettingsIcon fontSize="small" className="text-blue-600" />
+          <span>Configure Models</span>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
             if (selectedProvider) handleEditLLMToken(selectedProvider);
             handleMenuClose();
           }}
@@ -250,6 +354,39 @@ const LLMTokenManager: React.FC = () => {
           </MenuItem>
         )}
       </Menu>
+
+      {/* Add Model Selection Dialog */}
+      {modelSelectionOpen && selectedProvider && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Configure Models for {selectedProvider}</h2>
+              <button onClick={handleCloseModelSelection} className="text-gray-500 hover:text-gray-700">
+                <CloseIcon />
+              </button>
+            </div>
+            <div className="max-h-96 overflow-y-auto">
+              {llmProviders.find(p => p.name === selectedProvider)?.litellm_available_models.map(model => (
+                <div key={model} className="flex items-center gap-2 py-2 border-b">
+                  <Checkbox
+                    checked={llmProviders.find(p => p.name === selectedProvider)?.litellm_models.includes(model)}
+                    onChange={(e) => handleToggleModel(selectedProvider, model, e.target.checked)}
+                  />
+                  <span>{model}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={handleCloseModelSelection}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Error Toast */}
       {error && (
