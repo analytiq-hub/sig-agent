@@ -48,6 +48,7 @@ import {
 import { CreateTokenRequest } from '@/types/index';
 import { AWSCredentials } from '@/types/index';
 import {
+  ListLLMModelsParams,
   ListLLMModelsResponse,
   ListLLMProvidersResponse,
   SetLLMProviderConfigRequest,
@@ -276,8 +277,13 @@ export const getOCRMetadataApi = async (params: GetOCRMetadataParams) => {
 };
 
 // LLM APIs
-export const listLLMModelsApi = async (): Promise<ListLLMModelsResponse> => {
-  const response = await api.get<ListLLMModelsResponse>('/v0/account/llm_models');
+export const listLLMModelsApi = async (params: ListLLMModelsParams): Promise<ListLLMModelsResponse> => {
+  const response = await api.get<ListLLMModelsResponse>('/v0/account/llm_models', {
+    params: {
+      provider_name: params.providerName,
+      enabled: params.enabled
+    }
+  });
   return response.data;
 };
 

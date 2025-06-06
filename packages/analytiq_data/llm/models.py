@@ -53,6 +53,7 @@ def is_chat_model(llm_model: str) -> bool:
         return False
     
     try:
+        logger.info(f"Checking if {llm_model} is a chat model")
         model_info = litellm.get_model_info(llm_model)
         if model_info.get('mode') == 'chat':
             return True
@@ -61,3 +62,29 @@ def is_chat_model(llm_model: str) -> bool:
         logger.error(f"Error checking if {llm_model} is a chat model: {e}")
 
     return False
+
+def is_supported_model(llm_model: str) -> bool:
+    """
+    Check if the LLM model is supported by litellm
+
+    Args:
+        llm_model: The LLM model
+
+    Returns:
+        True if the LLM model is supported by litellm, False otherwise
+    """
+    if llm_model not in litellm.models_by_provider.keys():
+        return False
+    
+    if llm_model not in litellm.model_cost.keys():
+        return False
+
+    max_input_tokens = litellm.model_cost[llm_model].get("max_input_tokens", 0)
+    max_output_tokens = litellm.model_cost[llm_model].get("max_output_tokens", 0)
+    input_cost_per_token = litellm.model_cost[llm_model].get("input_cost_per_token", 0)
+    output_cost_per_token = litellm.model_cost[llm_model].get("output_cost_per_token", 0)
+
+    if max_input_tokens == 0 or max_output_tokens == 0 or input_cost_per_token == 0 or output_cost_per_token == 0:
+        return False
+    
+    return True

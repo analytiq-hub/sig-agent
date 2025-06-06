@@ -1,29 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import Switch from '@mui/material/Switch';
-import { listLLMProvidersApi, setLLMProviderConfigApi } from '@/utils/api';
-import { LLMProvider } from '@/types/index';
+import { listLLMModelsApi, listLLMProvidersApi, setLLMProviderConfigApi } from '@/utils/api';
+import { LLMProvider, LLMModel } from '@/types/index';
 
 const LLMModelsConfig: React.FC = () => {
   const [providers, setProviders] = useState<LLMProvider[]>([]);
+  const [models, setModels] = useState<LLMModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProvidersData = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await listLLMProvidersApi();
-        setProviders(response.providers);
+        const [providersResponse, modelsResponse] = await Promise.all([
+          listLLMProvidersApi(),
+          listLLMModelsApi({providerName: null, enabled: false})
+        ]);
+        setProviders(providersResponse.providers);
+        setModels(modelsResponse.models);
       } catch (error) {
-        console.error('Error fetching providers data:', error);
-        setError('An error occurred while fetching providers data.');
+        console.error('Error fetching data:', error);
+        setError('An error occurred while fetching data.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProvidersData();
+    fetchData();
   }, []);
 
   const handleToggleModel = async (providerName: string, model: string, enabled: boolean) => {
@@ -76,16 +81,28 @@ const LLMModelsConfig: React.FC = () => {
   if (error) return <div className="text-red-500">{error}</div>;
 
   const rows = providers.flatMap(provider =>
-    provider.litellm_available_models.map(model => ({
-      id: `${provider.name}-${model}`,
-      provider: provider.name,
-      name: model,
-      enabled: provider.litellm_models.includes(model),
-      max_input_tokens: provider.max_input_tokens,
-      max_output_tokens: provider.max_output_tokens,
-      input_cost_per_token: provider.input_cost_per_token,
-      output_cost_per_token: provider.output_cost_per_token,
-    }))
+    provider.litellm_available_models.map(modelName => {
+      // Find the model info by matching both provider and model name
+      const modelInfo = models.find(m => 
+        m.litellm_model === modelName && 
+        m.litellm_provider === provider.litellm_provider
+      );
+      
+      if (!modelInfo) {
+        console.warn(`No model info found for ${provider.litellm_provider}/${modelName}`);
+      }
+      
+      return {
+        id: `${provider.name}-${modelName}`,
+        provider: provider.name,
+        name: modelName,
+        enabled: provider.litellm_models.includes(modelName),
+        max_input_tokens: modelInfo?.max_input_tokens ?? 0,
+        max_output_tokens: modelInfo?.max_output_tokens ?? 0,
+        input_cost_per_token: modelInfo?.input_cost_per_token ?? 0,
+        output_cost_per_token: modelInfo?.output_cost_per_token ?? 0,
+      };
+    })
   );
 
   return (

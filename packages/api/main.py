@@ -2192,7 +2192,11 @@ async def access_token_delete(
     return {"message": "Token deleted successfully"}
 
 @app.get("/v0/account/llm_models", response_model=ListLLMModelsResponse, tags=["account/llm"])
-async def list_llm_models():
+async def list_llm_models(
+    current_user: User = Depends(get_current_user),
+    provider_name: str | None = Query(None, description="Filter models by provider name"),
+    enabled: bool | None = Query(True, description="Filter models by enabled status"),
+):
     """List all supported LLM models"""
     db = ad.common.get_async_db()
 
@@ -2208,20 +2212,41 @@ async def list_llm_models():
         # Skip disabled providers
         if not provider["enabled"]:
             continue
+
+        if provider_name and provider_name != provider["litellm_provider"]:
+            continue
         
         # Get all enabled models for the provider
         all_models = litellm.models_by_provider[provider["litellm_provider"]]
         enabled_models = [model for model in all_models if model in provider["litellm_models"]]
 
+        # Which models to return?
+        if enabled:
+            models = enabled_models
+        else:
+            models = all_models
+
         # Get the max input and output tokens for each model
-        for model in enabled_models:
+        for model in models:
+            if model not in litellm.model_cost or litellm.model_cost[model] is None:
+                continue
+
+            max_input_tokens = litellm.model_cost[model].get("max_input_tokens", 0)
+            max_output_tokens = litellm.model_cost[model].get("max_output_tokens", 0)
+            input_cost_per_token = litellm.model_cost[model].get("input_cost_per_token", 0)
+            output_cost_per_token = litellm.model_cost[model].get("output_cost_per_token", 0)
+
+            if max_input_tokens == 0 or max_output_tokens == 0 or input_cost_per_token == 0 or output_cost_per_token == 0:
+                logger.info(f"Skipping model {model}, no cost information found")
+                continue
+
             llm_model = LLMModel(
                 litellm_model=model,
                 litellm_provider=provider["litellm_provider"],
-                max_input_tokens=litellm.model_cost[model]["max_input_tokens"],
-                max_output_tokens=litellm.model_cost[model]["max_output_tokens"],
-                input_cost_per_token=litellm.model_cost[model]["input_cost_per_token"],
-                output_cost_per_token=litellm.model_cost[model]["output_cost_per_token"],
+                max_input_tokens=max_input_tokens,
+                max_output_tokens=max_output_tokens,
+                input_cost_per_token=input_cost_per_token,
+                output_cost_per_token=output_cost_per_token,
             )
             llm_models.append(llm_model)
 

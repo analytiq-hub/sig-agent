@@ -7,6 +7,11 @@ export interface LLMModel {
   output_cost_per_token: number;
 }
 
+export interface ListLLMModelsParams {
+  providerName: string | null;
+  enabled: boolean | null;
+}
+
 export interface ListLLMModelsResponse {
   models: LLMModel[];
 }
