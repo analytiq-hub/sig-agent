@@ -8,6 +8,7 @@ import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import colors from 'tailwindcss/colors';
 import Checkbox from '@mui/material/Checkbox';
 import Switch from '@mui/material/Switch';
+import Link from 'next/link';
 
 const LLMManager: React.FC = () => {
   const [llmProviders, setLLMProviders] = useState<LLMProvider[]>([]);
@@ -191,9 +192,15 @@ const LLMManager: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 80,
+      width: 120,
       renderCell: (params) => (
-        <div>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/settings/account/development/llm-manager/providers/${params.row.name}`}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            <SettingsIcon className="w-4 h-4" />
+          </Link>
           <button
             onClick={(e) => handleMenuOpen(e, params.row.name)}
             className="p-1 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100"
