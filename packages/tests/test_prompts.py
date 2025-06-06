@@ -18,33 +18,25 @@ assert os.environ["ENV"] == "pytest"
 
 async def setup_test_models(db):
     """Set up test LLM models in the database"""
-    # Check if the models already exist
-    models = await db.llm_models.find({}).to_list(None)
-    if models:
-        return  # Models already set up
+    # Check if the providers already exist
+    providers = await db.llm_providers.find({}).to_list(None)
+    if providers:
+        return  # Providers already set up
         
-    # Add test models
-    test_models = [
-        {
-            "name": "gpt-4o-mini",
-            "provider": "OpenAI",
-            "description": "GPT-4o Mini - efficient model for testing",
-            "max_tokens": 4096,
-            "cost_per_1m_input_tokens": 0.5,
-            "cost_per_1m_output_tokens": 1.5
-        },
-        {
-            "name": "gpt-4o",
-            "provider": "OpenAI",
-            "description": "GPT-4o - powerful model for testing",
-            "max_tokens": 8192,
-            "cost_per_1m_input_tokens": 5.0,
-            "cost_per_1m_output_tokens": 15.0
-        }
-    ]
+    # Add test provider
+    test_provider = {
+        "name": "OpenAI",
+        "display_name": "OpenAI",
+        "litellm_provider": "openai",
+        "litellm_models": ["gpt-4o-mini", "gpt-4o"],
+        "litellm_available_models": ["gpt-4o-mini", "gpt-4o"],
+        "enabled": True,
+        "token": "test-token",
+        "token_created_at": datetime.now(UTC)
+    }
     
-    await db.llm_models.insert_many(test_models)
-    logger.info(f"Added {len(test_models)} test LLM models to database")
+    await db.llm_providers.insert_one(test_provider)
+    logger.info("Added test LLM provider to database")
 
 @pytest.mark.asyncio
 async def test_prompt_lifecycle(test_db, mock_auth):
