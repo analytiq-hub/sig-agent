@@ -24,6 +24,95 @@ async def setup_llm_providers(analytiq_client):
     env = analytiq_client.env
     db = analytiq_client.mongodb_async[env]
 
+    providers = get_llm_providers()
+    try:
+        # Upsert each provider individually using the name as the unique identifier
+        for provider, config in providers.items():
+            # Skip if the provider is not supported by litellm
+            if config["litellm_provider"] not in litellm.models_by_provider.keys():
+                logger.error(f"Provider {config['litellm_provider']} is not supported by litellm, skipping")
+                continue
+            
+            # Get the current provider config from MongoDB
+            provider_config = await db.llm_providers.find_one({"name": provider})
+            update = False
+
+            # If the provider is not in MongoDB, create it
+            if provider_config is None:
+                logger.info(f"Creating provider config for {provider}")
+                provider_config = {**config}
+                update = True
+
+            # Should we update the token?
+            if provider_config.get("token") in [None, ""]:
+                # If the token is available in the environment, set it in the config
+                if os.getenv(config["token_env"]):
+                    logger.info(f"Updating token for {provider}")
+                    token = os.getenv(config["token_env"])
+                    if len(token) > 0:
+                        provider_config["token"] = ad.crypto.encrypt_token(token)
+                    provider_config["token_created_at"] = datetime.now()
+                    update = True
+
+            # Get the litellm_models for the provider
+            litellm_models = litellm.models_by_provider[provider]
+            models = provider_config.get("litellm_models", [])
+            if models is None:
+                provider_config["litellm_models"] = []
+                models = []
+                update = True
+
+            logger.info(f"Litellm models: {litellm_models}")
+            logger.info(f"Models: {models}")
+
+            # Eliminate unsupported models
+            for model in models:
+                if model not in litellm_models:
+                    logger.info(f"Model {model} is not supported by {provider}, removing from provider config")
+                    provider_config["litellm_models"].remove(model)
+                    update = True
+
+            # Order the litellm_models using same order from litellm.models_by_provider. If order changes, set the update flag
+            litellm_models_ordered = sorted(provider_config["litellm_models"], 
+                                          key=lambda x: litellm.models_by_provider[provider].index(x))
+            if litellm_models_ordered != provider_config["litellm_models"]:
+                logger.info(f"Litellm models ordered: {litellm_models_ordered}")
+                logger.info(f"Provider config litellm_models: {provider_config['litellm_models']}")
+                provider_config["litellm_models"] = litellm_models_ordered
+                update = True
+
+            if update:
+                logger.info(f"Updating provider config for {provider}")
+                logger.info(f"Provider config: {provider_config}")
+                await db.llm_providers.update_one(
+                    {"name": provider},
+                    {"$set": provider_config},
+                    upsert=True
+                )
+
+        # Remove any unsupported providers
+        litellm_provider_list = list(litellm.models_by_provider.keys())
+        # Get the list of provider litellm_provider from MongoDB    
+        provider_list = []
+        for provider in await db.llm_providers.find().to_list(length=None):
+            provider_list.append(provider["litellm_provider"])
+
+        logger.info(f"Provider list: {provider_list}")
+        logger.info(f"Litellm provider list: {litellm_provider_list}")
+
+        # Remove any unsupported providers
+        for provider_name in provider_list:
+            if provider_name not in litellm_provider_list:
+                logger.info(f"Removing unsupported provider {provider_name}")
+                await db.llm_providers.delete_one({"litellm_provider": provider_name})
+
+    except Exception as e:
+        logger.error(f"Failed to upsert LLM providers: {e}")
+
+def get_llm_providers() -> dict:
+    """
+    Get the LLM providers
+    """
     providers = {
         "anthropic": {
             "display_name": "Anthropic",
@@ -108,89 +197,18 @@ async def setup_llm_providers(analytiq_client):
         },
     }
 
-    try:
-        # Upsert each provider individually using the name as the unique identifier
-        for provider, config in providers.items():
-            # Skip if the provider is not supported by litellm
-            if config["litellm_provider"] not in litellm.models_by_provider.keys():
-                logger.error(f"Provider {config['litellm_provider']} is not supported by litellm, skipping")
-                continue
-            
-            # Get the current provider config from MongoDB
-            provider_config = await db.llm_providers.find_one({"name": provider})
-            update = False
+    return providers
 
-            # If the provider is not in MongoDB, create it
-            if provider_config is None:
-                logger.info(f"Creating provider config for {provider}")
-                provider_config = {**config}
-                update = True
+def supported_models() -> list[str]:
+    """
+    Get the list of supported models
+    """
+    llm_providers = get_llm_providers()
+    llm_models = []
+    for provider, config in llm_providers.items():
+        llm_models.extend(config["litellm_models"])
 
-            # Should we update the token?
-            if provider_config.get("token") in [None, ""]:
-                # If the token is available in the environment, set it in the config
-                if os.getenv(config["token_env"]):
-                    logger.info(f"Updating token for {provider}")
-                    token = os.getenv(config["token_env"])
-                    if len(token) > 0:
-                        provider_config["token"] = ad.crypto.encrypt_token(token)
-                    provider_config["token_created_at"] = datetime.now()
-                    update = True
-
-            # Get the litellm_models for the provider
-            litellm_models = litellm.models_by_provider[provider]
-            models = provider_config.get("litellm_models", [])
-            if models is None:
-                provider_config["litellm_models"] = []
-                models = []
-                update = True
-
-            logger.info(f"Litellm models: {litellm_models}")
-            logger.info(f"Models: {models}")
-
-            # Eliminate unsupported models
-            for model in models:
-                if model not in litellm_models:
-                    logger.info(f"Model {model} is not supported by {provider}, removing from provider config")
-                    provider_config["litellm_models"].remove(model)
-                    update = True
-
-            # Order the litellm_models using same order from litellm.models_by_provider. If order changes, set the update flag
-            litellm_models_ordered = sorted(provider_config["litellm_models"], 
-                                          key=lambda x: litellm.models_by_provider[provider].index(x))
-            if litellm_models_ordered != provider_config["litellm_models"]:
-                logger.info(f"Litellm models ordered: {litellm_models_ordered}")
-                logger.info(f"Provider config litellm_models: {provider_config['litellm_models']}")
-                provider_config["litellm_models"] = litellm_models_ordered
-                update = True
-
-            if update:
-                logger.info(f"Updating provider config for {provider}")
-                logger.info(f"Provider config: {provider_config}")
-                await db.llm_providers.update_one(
-                    {"name": provider},
-                    {"$set": provider_config},
-                    upsert=True
-                )
-
-        # Remove any unsupported providers
-        litellm_provider_list = list(litellm.models_by_provider.keys())
-        # Get the list of provider litellm_provider from MongoDB    
-        provider_list = []
-        for provider in await db.llm_providers.find().to_list(length=None):
-            provider_list.append(provider["litellm_provider"])
-
-        logger.info(f"Provider list: {provider_list}")
-        logger.info(f"Litellm provider list: {litellm_provider_list}")
-
-        # Remove any unsupported providers
-        for provider_name in provider_list:
-            if provider_name not in litellm_provider_list:
-                logger.info(f"Removing unsupported provider {provider_name}")
-                await db.llm_providers.delete_one({"litellm_provider": provider_name})
-
-    except Exception as e:
-        logger.error(f"Failed to upsert LLM providers: {e}")
+    return llm_models
 
 def get_llm_model_provider(llm_model: str) -> str | None:
     """

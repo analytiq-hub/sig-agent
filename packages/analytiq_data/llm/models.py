@@ -63,22 +63,6 @@ def is_chat_model(llm_model: str) -> bool:
 
     return False
 
-def supported_models() -> list[str]:
-    """
-    Get the list of supported models
-    """
-    return [ 
-        "claude-3-5-sonnet-latest", "claude-3-7-sonnet-latest",
-        "azure/gpt-4.1-nano",
-        "azure_ai/deepseek-v3",
-        "anthropic.claude-3-7-sonnet-20250219-v1:0",
-        "gemini/gemini-2.0-flash", "gemini/gemini-2.5-flash-preview-05-20",
-        "groq/deepseek-r1-distill-llama-70b",
-        "mistral/mistral-tiny",
-        "gpt-4o-mini", "gpt-4.1-2025-04-14", "gpt-4.5-preview", "o4-mini",
-        "gemini-1.5-flash"
-    ]
-
 def is_supported_model(llm_model: str) -> bool:
     """
     Check if the LLM model is supported by litellm
@@ -103,7 +87,7 @@ def is_supported_model(llm_model: str) -> bool:
         return False
 
     # List of supported models
-    if llm_model not in supported_models():
+    if llm_model not in ad.llm.supported_models():
         logger.info(f"Model {llm_model} is not supported by litellm (4)")
         return False
     
