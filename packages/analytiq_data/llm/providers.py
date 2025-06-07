@@ -199,7 +199,7 @@ def get_llm_providers() -> dict:
 
     return providers
 
-def supported_models() -> list[str]:
+def get_supported_models() -> list[str]:
     """
     Get the list of supported models
     """

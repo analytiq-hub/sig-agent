@@ -87,7 +87,7 @@ def is_supported_model(llm_model: str) -> bool:
         return False
 
     # List of supported models
-    if llm_model not in ad.llm.supported_models():
+    if llm_model not in ad.llm.get_supported_models():
         logger.info(f"Model {llm_model} is not supported by litellm (4)")
         return False
     
