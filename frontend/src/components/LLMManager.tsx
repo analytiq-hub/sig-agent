@@ -309,12 +309,9 @@ const LLMManager: React.FC = () => {
         onClose={handleMenuClose}
       >
         <MenuItem
-          onClick={() => {
-            if (selectedProvider) {
-              setModelSelectionOpen(true);
-            }
-            handleMenuClose();
-          }}
+          component={Link}
+          href={`/settings/account/development/llm-manager/providers/${selectedProvider}`}
+          onClick={handleMenuClose}
           className="flex items-center gap-2"
         >
           <SettingsIcon fontSize="small" className="text-blue-600" />
