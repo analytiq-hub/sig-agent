@@ -26,7 +26,8 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
           // Fetch model data for this provider
           const modelsResponse = await listLLMModelsApi({
             providerName: providerName,
-            enabled: null
+            providerEnabled: null,
+            llmEnabled: null
           });
           setModels(modelsResponse.models);
         } else {
