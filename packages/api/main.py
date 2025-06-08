@@ -1307,7 +1307,7 @@ async def create_prompt(
     # Validate model exists
     found = False
     for provider in await db.llm_providers.find({}).to_list(None):
-        if prompt.model in provider["litellm_models"]:
+        if prompt.model in provider["litellm_models_enabled"]:
             found = True
             break
     if not found:
@@ -1546,7 +1546,7 @@ async def update_prompt(
     # Validate model exists
     found = False
     for provider in await db.llm_providers.find({}).to_list(None):
-        if prompt.model in provider["litellm_models"]:
+        if prompt.model in provider["litellm_models_enabled"]:
             found = True
             break
     if not found:
@@ -2215,16 +2215,12 @@ async def list_llm_models(
 
         if provider_name and provider_name != provider["litellm_provider"]:
             continue
-        
-        # Get all enabled models for the provider
-        all_models = litellm.models_by_provider[provider["litellm_provider"]]
-        enabled_models = [model for model in all_models if model in provider["litellm_models"]]
 
         # Which models to return?
         if enabled:
-            models = enabled_models
+            models = provider["litellm_models_enabled"]
         else:
-            models = all_models
+            models = provider["litellm_models_available"]
 
         # Get the max input and output tokens for each model
         for model in models:
@@ -2268,12 +2264,6 @@ async def list_llm_providers(
     for provider in providers:
         logger.info(f"provider: {provider}")
 
-        # Add all available models to the provider
-        available_models = litellm.models_by_provider[provider["litellm_provider"]]
-
-        # Eliminate non-chat models
-        provider["litellm_available_models"] = available_models
-
         token = provider["token"]
         if len(token) > 0:
             token = ad.crypto.decrypt_token(token)
@@ -2288,8 +2278,8 @@ async def list_llm_providers(
             name=provider["name"],
             display_name=provider["display_name"],
             litellm_provider=provider["litellm_provider"],
-            litellm_models=provider["litellm_models"],
-            litellm_available_models=provider["litellm_available_models"],
+            litellm_models_enabled=provider["litellm_models_enabled"],
+            litellm_models_available=provider["litellm_models_available"],
             enabled=provider["enabled"],
             token=token,
             token_created_at=provider["token_created_at"]
@@ -2316,19 +2306,20 @@ async def set_llm_provider_config(
         raise HTTPException(status_code=400, detail=f"Provider '{provider_name}' not found")
     litellm_provider = elem["litellm_provider"]
 
-    if request.litellm_models not in [None, []]:
-        for model in request.litellm_models:
-            if model not in litellm.models_by_provider[litellm_provider]:
+    if request.litellm_models_enabled is None:
+        request.litellm_models_enabled = []
+    
+    if request.litellm_models_enabled is not None and len(request.litellm_models_enabled) > 0:
+        for model in request.litellm_models_enabled:
+            if model not in elem["litellm_models_available"]:
                 raise HTTPException(status_code=400, detail=f"Model '{model}' is not available for provider '{provider_name}'")
     
-
-    if request.litellm_models not in [None, []]:
         # Reorder the list
-        litellm_models_ordered = sorted(request.litellm_models, 
-                                        key=lambda x: litellm.models_by_provider[litellm_provider].index(x))
-        
+        litellm_models_enabled_ordered = sorted(request.litellm_models_enabled,
+                                                key=lambda x: elem["litellm_models_available"].index(x))
+    
         # Save the reordered list
-        elem["litellm_models"] = litellm_models_ordered
+        elem["litellm_models_enabled"] = litellm_models_enabled_ordered
 
     if request.enabled is not None:
         elem["enabled"] = request.enabled

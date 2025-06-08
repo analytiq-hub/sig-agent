@@ -51,7 +51,7 @@ const LLMManager: React.FC = () => {
       await setLLMProviderConfigApi(editingProvider, {
         token: editTokenValue,
         enabled: true,
-        litellm_models: null
+        litellm_models_enabled: null
       });
       setEditModalOpen(false);
       // Refresh the LLM providers list
@@ -68,7 +68,7 @@ const LLMManager: React.FC = () => {
       await setLLMProviderConfigApi(providerName, {
         token: null,
         enabled: false,
-        litellm_models: null
+        litellm_models_enabled: null
       });
       // Refresh the LLM providers list
       const response = await listLLMProvidersApi();
@@ -98,7 +98,7 @@ const LLMManager: React.FC = () => {
       await setLLMProviderConfigApi(providerName, {
         enabled,
         token: null,
-        litellm_models: null
+        litellm_models_enabled: null
       });
       // Refresh the LLM providers list
       const response = await listLLMProvidersApi();
@@ -115,13 +115,13 @@ const LLMManager: React.FC = () => {
       if (!provider) return;
 
       const updatedModels = enabled
-        ? [...provider.litellm_models, model]
-        : provider.litellm_models.filter(m => m !== model);
+        ? [...provider.litellm_models_enabled, model]
+        : provider.litellm_models_enabled.filter(m => m !== model);
 
       await setLLMProviderConfigApi(providerName, {
         enabled: provider.enabled,
         token: provider.token,
-        litellm_models: updatedModels
+        litellm_models_enabled: updatedModels
       });
       // Refresh the LLM providers list
       const response = await listLLMProvidersApi();
@@ -169,7 +169,7 @@ const LLMManager: React.FC = () => {
       ),
     },
     {
-      field: 'litellm_models',
+      field: 'litellm_models_enabled',
       headerName: 'Enabled Models',
       flex: 1,
       minWidth: 200,
@@ -356,10 +356,10 @@ const LLMManager: React.FC = () => {
               </button>
             </div>
             <div className="max-h-96 overflow-y-auto">
-              {llmProviders.find(p => p.name === selectedProvider)?.litellm_available_models.map(model => (
+              {llmProviders.find(p => p.name === selectedProvider)?.litellm_models_available.map(model => (
                 <div key={model} className="flex items-center gap-2 py-2 border-b">
                   <Checkbox
-                    checked={llmProviders.find(p => p.name === selectedProvider)?.litellm_models.includes(model)}
+                    checked={llmProviders.find(p => p.name === selectedProvider)?.litellm_models_enabled.includes(model)}
                     onChange={(e) => handleToggleModel(selectedProvider, model, e.target.checked)}
                   />
                   <span>{model}</span>

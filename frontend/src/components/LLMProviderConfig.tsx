@@ -48,13 +48,13 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
 
     try {
       const updatedModels = enabled
-        ? [...provider.litellm_models, model]
-        : provider.litellm_models.filter(m => m !== model);
+        ? [...provider.litellm_models_enabled, model]
+        : provider.litellm_models_enabled.filter(m => m !== model);
 
       await setLLMProviderConfigApi(providerName, {
         enabled: provider.enabled,
         token: provider.token,
-        litellm_models: updatedModels
+        litellm_models_enabled: updatedModels
       });
 
       // Refresh provider data
@@ -70,14 +70,14 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
   };
 
   const columns: GridColDef[] = [
-    { field: 'name', headerName: 'Model Name', flex: 1 },
+    { field: 'litellm_model', headerName: 'Model Name', flex: 1 },
     {
       field: 'enabled',
       headerName: 'Enabled',
       width: 120,
       renderCell: (params: GridRenderCellParams) => (
         <Switch
-          checked={provider?.litellm_models.includes(params.row.litellm_model)}
+          checked={provider?.litellm_models_enabled.includes(params.row.litellm_model)}
           onChange={(e) => handleToggleModel(params.row.litellm_model, e.target.checked)}
           size="small"
           color="primary"
@@ -108,6 +108,7 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
         columns={columns}
         autoHeight
         disableRowSelectionOnClick
+        getRowId={(row) => row.litellm_model}
       />
     </div>
   );

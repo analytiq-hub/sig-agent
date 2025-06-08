@@ -28,8 +28,8 @@ async def setup_test_models(db):
         "name": "OpenAI",
         "display_name": "OpenAI",
         "litellm_provider": "openai",
-        "litellm_models": ["gpt-4o-mini", "gpt-4o"],
-        "litellm_available_models": ["gpt-4o-mini", "gpt-4o"],
+        "litellm_models_available": ["gpt-4o-mini", "gpt-4o"],
+        "litellm_models_enabled": ["gpt-4o-mini", "gpt-4o"],
         "enabled": True,
         "token": "test-token",
         "token_created_at": datetime.now(UTC)

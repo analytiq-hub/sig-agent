@@ -17,7 +17,8 @@ async def list_llm_providers(analytiq_client) -> dict:
     Returns:
         The LLM model for the prompt
     """
-    return list(litellm.models_by_provider.keys())
+    providers = ad.llm.get_llm_providers()
+    return list(providers.keys())
 
 async def setup_llm_providers(analytiq_client):
     """Set up default LLM providers by upserting based on provider name"""
@@ -25,7 +26,7 @@ async def setup_llm_providers(analytiq_client):
     db = analytiq_client.mongodb_async[env]
 
     providers = get_llm_providers()
-    try:
+    try:        
         # Upsert each provider individually using the name as the unique identifier
         for provider, config in providers.items():
             # Skip if the provider is not supported by litellm
@@ -56,29 +57,56 @@ async def setup_llm_providers(analytiq_client):
 
             # Get the litellm_models for the provider
             litellm_models = litellm.models_by_provider[provider]
-            models = provider_config.get("litellm_models", [])
-            if models is None:
-                provider_config["litellm_models"] = []
-                models = []
+            
+            # Get the available models for the provider
+            models_available = provider_config.get("litellm_models_available", [])
+            if models_available != config["litellm_models_available"]:
+                logger.info(f"Updating litellm_models_available for {provider} from {models_available} to {config['litellm_models_available']}")
+                provider_config["litellm_models_available"] = config["litellm_models_available"]
+                models_available = config["litellm_models_available"]
+                update = True
+            
+            # Get the models for the provider
+            models_enabled = provider_config.get("litellm_models_enabled", [])
+            if len(models_enabled) == 0:
+                provider_config["litellm_models_enabled"] = []
+                models_enabled = []
                 update = True
 
             logger.info(f"Litellm models: {litellm_models}")
-            logger.info(f"Models: {models}")
+            logger.info(f"Models available: {models_available}")
+            logger.info(f"Models enabled: {models_enabled}")
 
-            # Eliminate unsupported models
-            for model in models:
+            # Avaliable models should be a subset of litellm_models
+            for model in models_available:
                 if model not in litellm_models:
                     logger.info(f"Model {model} is not supported by {provider}, removing from provider config")
-                    provider_config["litellm_models"].remove(model)
+                    provider_config["litellm_models_available"].remove(model)
+                    update = True
+            
+            # Enabled models should be a subset of litellm_models_available
+            for model in models_enabled:
+                if model not in provider_config["litellm_models_available"]:
+                    logger.info(f"Model {model} is not supported by {provider}, removing from provider config")
+                    provider_config["litellm_models_enabled"].remove(model)
                     update = True
 
-            # Order the litellm_models using same order from litellm.models_by_provider. If order changes, set the update flag
-            litellm_models_ordered = sorted(provider_config["litellm_models"], 
-                                          key=lambda x: litellm.models_by_provider[provider].index(x))
-            if litellm_models_ordered != provider_config["litellm_models"]:
-                logger.info(f"Litellm models ordered: {litellm_models_ordered}")
-                logger.info(f"Provider config litellm_models: {provider_config['litellm_models']}")
-                provider_config["litellm_models"] = litellm_models_ordered
+            # Order the litellm_models_available using same order from litellm.models_by_provider. If order changes, set the update flag
+            models_available_ordered = sorted(provider_config["litellm_models_available"], 
+                                              key=lambda x: litellm.models_by_provider[provider].index(x))
+            if models_available_ordered != provider_config["litellm_models_available"]:
+                logger.info(f"Litellm models available ordered: {models_available_ordered}")
+                logger.info(f"Provider config litellm_models_available: {provider_config['litellm_models_available']}")
+                provider_config["litellm_models_available"] = models_available_ordered
+                update = True
+            
+            # Order the litellm_models_enabled using same order from litellm.models_by_provider. If order changes, set the update flag
+            models_ordered = sorted(provider_config["litellm_models_enabled"], 
+                                    key=lambda x: litellm.models_by_provider[provider].index(x))
+            if models_ordered != provider_config["litellm_models_enabled"]:
+                logger.info(f"Litellm models ordered: {models_ordered}")
+                logger.info(f"Provider config litellm_models_enabled: {provider_config['litellm_models_enabled']}")
+                provider_config["litellm_models_enabled"] = models_ordered
                 update = True
 
             if update:
@@ -117,7 +145,8 @@ def get_llm_providers() -> dict:
         "anthropic": {
             "display_name": "Anthropic",
             "litellm_provider": "anthropic",
-            "litellm_models": ["claude-3-5-sonnet-latest", "claude-3-7-sonnet-latest"],
+            "litellm_models_available": ["claude-3-5-sonnet-latest", "claude-3-7-sonnet-latest"],
+            "litellm_models_enabled": ["claude-3-5-sonnet-latest", "claude-3-7-sonnet-latest"],
             "enabled": True,
             "token" : "",
             "token_created_at": None,
@@ -126,7 +155,8 @@ def get_llm_providers() -> dict:
         "azure": {
             "display_name": "Azure OpenAI",
             "litellm_provider": "azure",
-            "litellm_models": ["azure/gpt-4.1-nano"],
+            "litellm_models_available": ["azure/gpt-4.1-nano"],
+            "litellm_models_enabled": ["azure/gpt-4.1-nano"],
             "enabled": False,
             "token" : "",
             "token_created_at": None,
@@ -135,7 +165,8 @@ def get_llm_providers() -> dict:
         "azure_ai": {
             "display_name": "Azure AI Studio",
             "litellm_provider": "azure_ai",
-            "litellm_models": ["azure_ai/deepseek-v3"],
+            "litellm_models_available": ["azure_ai/deepseek-v3"],
+            "litellm_models_enabled": ["azure_ai/deepseek-v3"],
             "enabled": False,
             "token" : "",
             "token_created_at": None,
@@ -144,7 +175,8 @@ def get_llm_providers() -> dict:
         "bedrock": {
             "display_name": "AWS Bedrock",
             "litellm_provider": "bedrock",
-            "litellm_models": ["anthropic.claude-3-7-sonnet-20250219-v1:0"],
+            "litellm_models_available": ["anthropic.claude-3-7-sonnet-20250219-v1:0"],
+            "litellm_models_enabled": ["anthropic.claude-3-7-sonnet-20250219-v1:0"],
             "enabled": False,
             "token" : "",
             "token_created_at": None,
@@ -153,7 +185,8 @@ def get_llm_providers() -> dict:
         "gemini": {
             "display_name": "Gemini",
             "litellm_provider": "gemini",
-            "litellm_models": ["gemini/gemini-2.0-flash", "gemini/gemini-2.5-flash-preview-05-20"],
+            "litellm_models_available": ["gemini/gemini-2.0-flash", "gemini/gemini-2.5-flash-preview-05-20"],
+            "litellm_models_enabled": ["gemini/gemini-2.0-flash", "gemini/gemini-2.5-flash-preview-05-20"],
             "enabled": True,
             "token" : "",
             "token_created_at": None,
@@ -162,7 +195,8 @@ def get_llm_providers() -> dict:
         "groq": {
             "display_name": "Groq",
             "litellm_provider": "groq",
-            "litellm_models": ["groq/deepseek-r1-distill-llama-70b"],
+            "litellm_models_available": ["groq/deepseek-r1-distill-llama-70b"],
+            "litellm_models_enabled": ["groq/deepseek-r1-distill-llama-70b"],
             "enabled": True,
             "token" : "",
             "token_created_at": None,
@@ -171,7 +205,8 @@ def get_llm_providers() -> dict:
         "mistral": {
             "display_name": "Mistral",
             "litellm_provider": "mistral",
-            "litellm_models": ["mistral/mistral-tiny"],
+            "litellm_models_available": ["mistral/mistral-tiny"],
+            "litellm_models_enabled": ["mistral/mistral-tiny"],
             "enabled": True,
             "token" : "",
             "token_created_at": None,
@@ -180,7 +215,8 @@ def get_llm_providers() -> dict:
         "openai": {
             "display_name": "OpenAI",
             "litellm_provider": "openai",
-            "litellm_models": ["gpt-4o-mini", "gpt-4.1-2025-04-14", "gpt-4.5-preview", "o4-mini"],
+            "litellm_models_available": ["gpt-4o-mini", "gpt-4.1-2025-04-14", "gpt-4.5-preview", "o4-mini"],
+            "litellm_models_enabled": ["gpt-4o-mini", "gpt-4.1-2025-04-14", "gpt-4.5-preview", "o4-mini"],
             "enabled": True,
             "token" : "",
             "token_created_at": None,
@@ -189,7 +225,8 @@ def get_llm_providers() -> dict:
         "vertex_ai": {
             "display_name": "Google Vertex AI",
             "litellm_provider": "vertex_ai",
-            "litellm_models": ["gemini-1.5-flash"],
+            "litellm_models_available": ["gemini-1.5-flash"],
+            "litellm_models_enabled": ["gemini-1.5-flash"],
             "enabled": False,
             "token" : "",
             "token_created_at": None,
@@ -207,6 +244,17 @@ def get_supported_models() -> list[str]:
     llm_models = []
     for provider, config in llm_providers.items():
         llm_models.extend(config["litellm_models"])
+
+    return llm_models
+
+def get_available_models() -> list[str]:
+    """
+    Get the list of available models
+    """
+    llm_providers = get_llm_providers()
+    llm_models = []
+    for provider, config in llm_providers.items():
+        llm_models.extend(config["litellm_models_available"])
 
     return llm_models
 
