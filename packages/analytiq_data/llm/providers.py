@@ -243,7 +243,7 @@ def get_supported_models() -> list[str]:
     llm_providers = get_llm_providers()
     llm_models = []
     for provider, config in llm_providers.items():
-        llm_models.extend(config["litellm_models"])
+        llm_models.extend(config["litellm_models_enabled"])
 
     return llm_models
 
