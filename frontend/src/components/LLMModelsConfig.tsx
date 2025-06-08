@@ -3,6 +3,7 @@ import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import Switch from '@mui/material/Switch';
 import { listLLMModelsApi, listLLMProvidersApi, setLLMProviderConfigApi } from '@/utils/api';
 import { LLMProvider, LLMModel } from '@/types/index';
+import colors from 'tailwindcss/colors';
 
 const LLMModelsConfig: React.FC = () => {
   const [providers, setProviders] = useState<LLMProvider[]>([]);
@@ -113,6 +114,23 @@ const LLMModelsConfig: React.FC = () => {
         columns={columns}
         autoHeight
         disableRowSelectionOnClick
+        sx={{
+          '& .MuiDataGrid-cell': {
+            padding: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            height: '100%',
+          },
+          '& .MuiDataGrid-row': {
+            height: '48px !important',
+          },
+          '& .MuiDataGrid-row:nth-of-type(odd)': {
+            backgroundColor: colors.gray[100],
+          },
+          '& .MuiDataGrid-row:hover': {
+            backgroundColor: `${colors.gray[200]} !important`,
+          },
+        }}
       />
     </div>
   );
