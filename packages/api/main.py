@@ -2305,15 +2305,13 @@ async def set_llm_provider_config(
     if elem is None:
         raise HTTPException(status_code=400, detail=f"Provider '{provider_name}' not found")
     litellm_provider = elem["litellm_provider"]
-
-    if request.litellm_models_enabled is None:
-        request.litellm_models_enabled = []
     
-    if request.litellm_models_enabled is not None and len(request.litellm_models_enabled) > 0:
-        for model in request.litellm_models_enabled:
-            if model not in elem["litellm_models_available"]:
-                raise HTTPException(status_code=400, detail=f"Model '{model}' is not available for provider '{provider_name}'")
-    
+    if request.litellm_models_enabled is not None:
+        if len(request.litellm_models_enabled) > 0:
+            for model in request.litellm_models_enabled:
+                if model not in elem["litellm_models_available"]:
+                    raise HTTPException(status_code=400, detail=f"Model '{model}' is not available for provider '{provider_name}'")
+        
         # Reorder the list
         litellm_models_enabled_ordered = sorted(request.litellm_models_enabled,
                                                 key=lambda x: elem["litellm_models_available"].index(x))
