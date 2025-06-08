@@ -9,7 +9,8 @@ export interface LLMModel {
 
 export interface ListLLMModelsParams {
   providerName: string | null;
-  enabled: boolean | null;
+  providerEnabled: boolean | null;
+  llmEnabled: boolean | null;
 }
 
 export interface ListLLMModelsResponse {

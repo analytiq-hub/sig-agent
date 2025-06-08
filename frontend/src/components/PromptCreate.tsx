@@ -203,7 +203,11 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   const loadLLMModels = useCallback(async () => {
     try {
-      const response = await listLLMModelsApi({providerName: null, enabled: true});
+      const response = await listLLMModelsApi({
+        providerName: null,
+        providerEnabled: true,
+        llmEnabled: true
+      });
       setLLMModels(response.models);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading LLM models';

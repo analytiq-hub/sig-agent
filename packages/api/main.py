@@ -2195,7 +2195,8 @@ async def access_token_delete(
 async def list_llm_models(
     current_user: User = Depends(get_current_user),
     provider_name: str | None = Query(None, description="Filter models by provider name"),
-    enabled: bool | None = Query(True, description="Filter models by enabled status"),
+    provider_enabled: bool | None = Query(None, description="Filter models by provider enabled status"),
+    llm_enabled: bool | None = Query(True, description="Filter models by enabled status"),
 ):
     """List all supported LLM models"""
     db = ad.common.get_async_db()
@@ -2210,14 +2211,14 @@ async def list_llm_models(
     llm_models = []
     for provider in providers:
         # Skip disabled providers
-        if not provider["enabled"]:
+        if provider_enabled and not provider["enabled"]:
             continue
 
         if provider_name and provider_name != provider["litellm_provider"]:
             continue
 
         # Which models to return?
-        if enabled:
+        if llm_enabled:
             models = provider["litellm_models_enabled"]
         else:
             models = provider["litellm_models_available"]

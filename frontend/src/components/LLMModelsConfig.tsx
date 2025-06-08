@@ -17,7 +17,7 @@ const LLMModelsConfig: React.FC = () => {
         setLoading(true);
         const [providersResponse, modelsResponse] = await Promise.all([
           listLLMProvidersApi(),
-          listLLMModelsApi({providerName: null, enabled: false})
+          listLLMModelsApi({providerName: null, providerEnabled: null, llmEnabled: null})
         ]);
         setProviders(providersResponse.providers);
         setModels(modelsResponse.models);

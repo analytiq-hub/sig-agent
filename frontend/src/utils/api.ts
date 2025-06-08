@@ -281,7 +281,8 @@ export const listLLMModelsApi = async (params: ListLLMModelsParams): Promise<Lis
   const response = await api.get<ListLLMModelsResponse>('/v0/account/llm_models', {
     params: {
       provider_name: params.providerName,
-      enabled: params.enabled
+      provider_enabled: params.providerEnabled,
+      llm_enabled: params.llmEnabled,
     }
   });
   return response.data;

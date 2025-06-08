@@ -96,7 +96,7 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
-      <h2 className="text-2xl font-bold mb-4">Provider: {provider.name}</h2>
+      <h2 className="text-2xl font-bold mb-4">Provider: {provider.display_name}</h2>
       <div className="mb-4">
         <h3 className="text-lg font-semibold">Provider Details</h3>
         <p>Token: {provider.token ? `${provider.token.slice(0, 16)}••••••••` : 'Not set'}</p>
