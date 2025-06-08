@@ -149,7 +149,7 @@ const LLMManager: React.FC = () => {
           href={`/settings/account/development/llm-manager/providers/${params.row.name}`}
           className="text-blue-600 hover:text-blue-800"
         >
-          {params.value}
+          {params.row.display_name}
         </Link>
       ),
     },
@@ -175,7 +175,7 @@ const LLMManager: React.FC = () => {
       minWidth: 200,
       renderCell: (params: GridRenderCellParams) => (
         <span className="text-sm text-gray-600">
-          {params.value?.length || 0} models enabled
+          {params.value?.length || 0} {params.value?.length === 1 ? 'model' : 'models'} enabled
         </span>
       ),
     },
