@@ -328,7 +328,7 @@ const LLMManager: React.FC = () => {
           className="flex items-center gap-2"
         >
           <EditIcon fontSize="small" className="text-blue-600" />
-          <span>Edit</span>
+          <span>Edit Token</span>
         </MenuItem>
         {selectedProvider && llmProviders.find(p => p.name === selectedProvider) && (
           <MenuItem
@@ -340,7 +340,7 @@ const LLMManager: React.FC = () => {
             className="flex items-center gap-2"
           >
             <DeleteIcon fontSize="small" className="text-red-600" />
-            <span>Delete</span>
+            <span>Delete Token</span>
           </MenuItem>
         )}
       </Menu>
