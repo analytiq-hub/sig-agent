@@ -2225,17 +2225,16 @@ async def list_llm_models(
 
         # Get the max input and output tokens for each model
         for model in models:
-            if model not in litellm.model_cost or litellm.model_cost[model] is None:
-                continue
-
-            max_input_tokens = litellm.model_cost[model].get("max_input_tokens", 0)
-            max_output_tokens = litellm.model_cost[model].get("max_output_tokens", 0)
-            input_cost_per_token = litellm.model_cost[model].get("input_cost_per_token", 0)
-            output_cost_per_token = litellm.model_cost[model].get("output_cost_per_token", 0)
-
-            if max_input_tokens == 0 or max_output_tokens == 0 or input_cost_per_token == 0 or output_cost_per_token == 0:
-                logger.info(f"Skipping model {model}, no cost information found")
-                continue
+            max_input_tokens = 0
+            max_output_tokens = 0
+            input_cost_per_token = 0
+            output_cost_per_token = 0
+            
+            if model in litellm.model_cost:
+                max_input_tokens = litellm.model_cost[model].get("max_input_tokens", 0)
+                max_output_tokens = litellm.model_cost[model].get("max_output_tokens", 0)
+                input_cost_per_token = litellm.model_cost[model].get("input_cost_per_token", 0)
+                output_cost_per_token = litellm.model_cost[model].get("output_cost_per_token", 0)
 
             llm_model = LLMModel(
                 litellm_model=model,
