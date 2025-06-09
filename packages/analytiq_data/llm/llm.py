@@ -89,6 +89,17 @@ async def run_llm(analytiq_client,
     if response_format is None:
         logger.info(f"No response format found for prompt {prompt_rev_id}")
 
+    # Bedrock models require aws_access_key_id, aws_secret_access_key, aws_region_name
+    if llm_provider == "bedrock":
+        aws_keys = ad.aws.get_aws_keys(analytiq_client)
+        aws_access_key_id = aws_keys["aws_access_key_id"]
+        aws_secret_access_key = aws_keys["aws_secret_access_key"]
+        aws_region_name = "us-east-1"
+    else:
+        aws_access_key_id = None
+        aws_secret_access_key = None
+        aws_region_name = None
+
     response = await litellm.acompletion(
         model=llm_model,
         messages=[
@@ -97,7 +108,10 @@ async def run_llm(analytiq_client,
         ],
         api_key=api_key,
         temperature=0.1,
-        response_format=response_format
+        response_format=response_format,
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        aws_region_name=aws_region_name
     )
 
     resp_dict = json.loads(response.choices[0].message.content)
