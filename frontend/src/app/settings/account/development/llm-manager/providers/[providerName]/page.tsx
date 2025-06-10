@@ -25,7 +25,6 @@ const ProviderConfigPage: React.FC = () => {
         </div>
         
         <div>
-          <h2 className="text-xl font-semibold mb-4">Provider Configuration</h2>
           <LLMProviderConfig providerName={providerName} />
         </div>
       </div>
