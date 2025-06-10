@@ -148,8 +148,11 @@ CORS_ORIGINS_DEF = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://host.docker.internal:3000",
-    NEXTAUTH_URL
 ]
+
+# Only add NEXTAUTH_URL if it's not None
+if NEXTAUTH_URL:
+    CORS_ORIGINS_DEF.append(NEXTAUTH_URL)
 
 cors_origins = os.getenv("CORS_ORIGINS", ",".join(CORS_ORIGINS_DEF)).split(",")
 logger.info(f"CORS allowed origins: {cors_origins}")
