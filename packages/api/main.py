@@ -143,16 +143,20 @@ app = FastAPI(
 )
 security = HTTPBearer()
 
-# CORS configuration
-origins = [
-    "*"
+# CORS allowed origins
+CORS_ORIGINS_DEF = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://host.docker.internal:3000",
+    NEXTAUTH_URL
 ]
 
-logger.info(f"CORS allowed origins: {origins}")
+cors_origins = os.getenv("CORS_ORIGINS", ",".join(CORS_ORIGINS_DEF)).split(",")
+logger.info(f"CORS allowed origins: {cors_origins}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
