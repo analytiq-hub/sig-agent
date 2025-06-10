@@ -13,6 +13,10 @@ import api.payments
 
 # %%
 
+ad.common.setup()
+
+# %%
+
 # Source the .env file
 load_dotenv(dotenv_path="../../.env", override=True)
 
