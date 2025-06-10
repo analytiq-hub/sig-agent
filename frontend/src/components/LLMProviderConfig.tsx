@@ -97,7 +97,9 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
-      <h2 className="text-2xl font-bold mb-4">Provider: {provider.display_name}{!provider.enabled && ' (disabled)'}</h2>      <div className="mb-4">
+      <h2 className="text-2xl font-bold mb-4">Provider: {provider.display_name}{!provider.enabled && <span className="text-gray-500 italic"> (disabled)</span>}</h2>      
+      <div className="mb-4">
+      <p><b>Enabled:</b> {provider.enabled ? 'Yes' : 'No'}</p>
       <p><b>Token:</b> {provider.token ? `${provider.token.slice(0, 16)}••••••••` : 'Not set'}</p>
       </div>
       <h3 className="text-lg font-semibold mb-2">Models</h3>
