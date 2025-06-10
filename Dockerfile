@@ -30,6 +30,9 @@ FROM python:3.12-slim AS backend
 # Set the working directory in the container
 WORKDIR /app
 
+# Copy the packages
+COPY packages/ ./packages/
+
 # Install system dependencies and uv
 RUN apt-get update && \
     apt-get install -y --no-install-recommends libreoffice curl && \
@@ -40,8 +43,5 @@ RUN apt-get update && \
 # Copy only packages requirements first
 COPY packages/requirements.txt ./packages/
 RUN uv pip install --system --no-cache-dir -r packages/requirements.txt
-
-# Then copy the rest of the packages
-COPY packages/ ./packages/
 
 EXPOSE 8000

@@ -16,11 +16,16 @@ setup:
 	uv pip install -r packages/requirements.txt ; \
 	uv pip install -e packages/docrouter_sdk ; \
 	uv pip install -e packages/docrouter_mcp ; \
+	# Ensure test dependencies are installed
+	uv pip install pytest-asyncio pytest-cov pytest-xdist
 
 dev: setup
 	./start-all.sh
 
 tests: setup
 	. .venv/bin/activate && pytest -s packages/tests/
+
+clean:
+	rm -rf .venv
 
 .PHONY: dev tests setup
