@@ -30,15 +30,16 @@ FROM python:3.12-slim AS backend
 # Set the working directory in the container
 WORKDIR /app
 
-# Install system dependencies (add this before pip install)
+# Install system dependencies and uv
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libreoffice && \
+    apt-get install -y --no-install-recommends libreoffice curl && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    pip install --no-cache-dir uv
 
 # Copy only packages requirements first
 COPY packages/requirements.txt ./packages/
-RUN pip install --no-cache-dir -r packages/requirements.txt
+RUN uv pip install --system --no-cache-dir -r packages/requirements.txt
 
 # Then copy the rest of the packages
 COPY packages/ ./packages/
