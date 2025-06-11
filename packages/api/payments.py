@@ -1086,10 +1086,8 @@ async def get_subscription_plans(
             price_id=TIER_TO_PRICE["basic"],
             price=9.99,
             included_usage=100,
-            overage_price=0.10,
+            overage_price=0.01,
             features=[
-                "100 pages included per month",
-                "$0.10 per page after included usage",
                 "Basic document processing",
                 "Email support"
             ]
@@ -1100,10 +1098,8 @@ async def get_subscription_plans(
             price_id=TIER_TO_PRICE["team"],
             price=29.99,
             included_usage=500,
-            overage_price=0.08,
+            overage_price=0.02,
             features=[
-                "500 pages included per month",
-                "$0.08 per page after included usage",
                 "Advanced document processing",
                 "Priority support",
                 "Team collaboration"
@@ -1117,12 +1113,10 @@ async def get_subscription_plans(
             included_usage=2000,
             overage_price=0.05,
             features=[
-                "2000 pages included per month",
-                "$0.05 per page after included usage",
                 "Custom document processing",
-                "24/7 support",
-                "Dedicated account manager",
-                "Custom integrations"
+                "Gold support",
+                "Team collaboration",
+                "Custom integrations",
             ]
         )
     ]

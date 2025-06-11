@@ -71,10 +71,14 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ userId }) => {
           <div className="flex-grow">
             <h3 className="text-xl font-bold mb-4">{plan.name}</h3>
             <div className="text-3xl font-bold mb-4">
-              ${plan.price_per_page}
+              ${plan.price}
               <span className="text-sm font-normal text-gray-500">
-                /page
+                /{plan.interval}
               </span>
+            </div>
+            <div className="mb-4 text-sm text-gray-600">
+              <p>{plan.included_usage} pages included per month</p>
+              <p>${plan.overage_price} per page after included usage</p>
             </div>
             <ul className="space-y-2 mb-6">
               {plan.features.map((feature, index) => (

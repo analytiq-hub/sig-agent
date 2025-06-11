@@ -11,8 +11,12 @@ export interface SubscriptionPlan {
   plan_id: string;
   name: string;
   price_id: string;
-  price_per_page: number;
+  price: number;
+  currency: string;
+  interval: string;
   features: string[];
+  included_usage: number;
+  overage_price: number;
 }
 
 export interface SubscriptionPlanResponse {
