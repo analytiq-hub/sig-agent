@@ -79,6 +79,10 @@ class SubscriptionPlanResponse(BaseModel):
     plans: List[SubscriptionPlan]
     current_plan: Optional[str] = None
 
+class ChangePlanRequest(BaseModel):
+    user_id: str
+    plan_id: str
+
 async def init_payments_env():
     global MONGO_URI, ENV
     global TIER_TO_PRICE
@@ -1139,20 +1143,19 @@ async def get_subscription_plans(
 
 @payments_router.post("/change-plan")
 async def change_subscription_plan(
-    user_id: str,
-    plan_id: str,
+    data: ChangePlanRequest,
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """Change user's subscription plan"""
     
     # Get customer record
-    customer = await stripe_customers.find_one({"user_id": user_id})
+    customer = await stripe_customers.find_one({"user_id": data.user_id})
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
     # Find the selected plan
-    plans = await get_subscription_plans(user_id, db)
-    selected_plan = next((p for p in plans.plans if p.plan_id == plan_id), None)
+    plans = await get_subscription_plans(data.user_id, db)
+    selected_plan = next((p for p in plans.plans if p.plan_id == data.plan_id), None)
     if not selected_plan:
         raise HTTPException(status_code=400, detail="Invalid plan selected")
 
@@ -1183,7 +1186,7 @@ async def change_subscription_plan(
             
             # Store the subscription in our database
             subscription_doc = {
-                "user_id": user_id,
+                "user_id": data.user_id,
                 "stripe_customer_id": customer["stripe_customer_id"],
                 "subscription_id": subscription.id,
                 "subscription_item_id": subscription["items"]["data"][0]["id"],
