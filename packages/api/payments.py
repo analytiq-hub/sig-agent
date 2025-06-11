@@ -668,7 +668,7 @@ async def customer_portal(
     try:
         session = stripe.billing_portal.Session.create(
             customer=customer["stripe_customer_id"],
-            return_url=f"{NEXTAUTH_URL}/settings",
+            return_url=f"{NEXTAUTH_URL}/settings/user/subscription",
         )
         logger.info(f"Stripe customer portal URL: {session.url}")
         return PortalSessionResponse(url=session.url)
