@@ -12,6 +12,7 @@ interface SubscriptionPlansProps {
 const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ userId }) => {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -21,6 +22,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ userId }) => {
         const data = await getSubscriptionPlansApi(userId);
         setPlans(data.plans);
         setCurrentPlan(data.current_plan);
+        setSelectedPlan(data.current_plan || 'basic');
       } catch (error) {
         console.error('Error fetching subscription plans:', error);
         toast.error('Failed to load subscription plans');
@@ -35,14 +37,15 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ userId }) => {
   const handlePlanChange = async (planId: string) => {
     try {
       setLoading(true);
+      setSelectedPlan(planId);
       await changeSubscriptionPlanApi(userId, planId);
 
-      // Redirect to Stripe portal to handle payment
       const portalResponse = await getCustomerPortalApi(userId);
       window.location.href = portalResponse.url;
     } catch (error) {
       console.error('Error changing plan:', error);
       toast.error('Failed to change subscription plan');
+      setSelectedPlan(currentPlan || 'basic');
     } finally {
       setLoading(false);
     }
@@ -62,7 +65,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ userId }) => {
         <div
           key={plan.plan_id}
           className={`bg-white rounded-lg shadow-lg p-6 flex flex-col ${
-            currentPlan === plan.plan_id ? 'ring-2 ring-blue-500' : ''
+            selectedPlan === plan.plan_id ? 'ring-2 ring-blue-500' : ''
           }`}
         >
           <div className="flex-grow">
@@ -98,10 +101,16 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ userId }) => {
             className={`w-full py-2 px-4 rounded-md ${
               currentPlan === plan.plan_id
                 ? 'bg-gray-300 cursor-not-allowed'
+                : selectedPlan === plan.plan_id
+                ? 'bg-green-600 hover:bg-green-700 text-white'
                 : 'bg-blue-600 hover:bg-blue-700 text-white'
             }`}
           >
-            {currentPlan === plan.plan_id ? 'Current Plan' : 'Select Plan'}
+            {currentPlan === plan.plan_id 
+              ? 'Current Plan' 
+              : selectedPlan === plan.plan_id 
+              ? 'Selected Plan' 
+              : 'Select Plan'}
           </button>
         </div>
       ))}
