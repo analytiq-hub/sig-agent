@@ -75,7 +75,7 @@ async def init_payments_env():
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     ENV = os.getenv("ENV", "dev")
     TIER_TO_PRICE = {
-        "individual": os.getenv("STRIPE_PRICE_ID_INDIVIDUAL", ""),
+        "basic": os.getenv("STRIPE_PRICE_ID_BASIC", ""),
         "team": os.getenv("STRIPE_PRICE_ID_TEAM", ""),
         "enterprise": os.getenv("STRIPE_PRICE_ID_ENTERPRISE", "")
     }
@@ -597,7 +597,7 @@ async def create_subscription(
             raise HTTPException(status_code=404, detail="Customer not found")
         
         # Use default price ID if not provided
-        price_id = data.price_id or TIER_TO_PRICE["individual"]
+        price_id = data.price_id or TIER_TO_PRICE["basic"]
         if not price_id:
             raise HTTPException(status_code=400, detail="No price ID provided or configured")
         
