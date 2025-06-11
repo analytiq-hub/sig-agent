@@ -1160,6 +1160,7 @@ async def change_subscription_plan(
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """Change user's subscription plan"""
+    logger.info(f"Changing subscription plan for user_id: {data.user_id} to plan_id: {data.plan_id}")
     
     # Get customer record
     customer = await stripe_customers.find_one({"user_id": data.user_id})
@@ -1186,8 +1187,9 @@ async def change_subscription_plan(
                     }],
                     proration_behavior='always_invoice'
                 )
+                logger.info(f"Updated subscription {subscription_id} with new price {selected_plan.price_id}")
         else:
-            # Create new subscription with metered usage
+            # Create new subscription
             subscription = stripe.Subscription.create(
                 customer=customer["stripe_customer_id"],
                 items=[{
@@ -1197,23 +1199,24 @@ async def change_subscription_plan(
                 expand=['latest_invoice.payment_intent'],
             )
             
-            # Store the subscription in our database
-            subscription_doc = {
-                "user_id": data.user_id,
-                "stripe_customer_id": customer["stripe_customer_id"],
-                "subscription_id": subscription.id,
-                "subscription_item_id": subscription["items"]["data"][0]["id"],
-                "price_id": selected_plan.price_id,
-                "status": subscription.status,
-                "current_period_start": datetime.fromtimestamp(subscription.current_period_start),
-                "current_period_end": datetime.fromtimestamp(subscription.current_period_end),
-                "included_usage": selected_plan.included_usage,
-                "overage_price": selected_plan.overage_price,
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
-            }
-            
-            await stripe_subscriptions.insert_one(subscription_doc)
+            # Update customer record with basic subscription info
+            await stripe_customers.update_one(
+                {"user_id": data.user_id},
+                {
+                    "$set": {
+                        "stripe_subscription": {
+                            "is_active": subscription.status == "active",
+                            "subscription_id": subscription.id,
+                            "subscription_item_id": subscription["items"]["data"][0]["id"],
+                            "price_id": selected_plan.price_id,
+                            "status": subscription.status,
+                            "current_period_start": datetime.fromtimestamp(subscription.current_period_start),
+                            "current_period_end": datetime.fromtimestamp(subscription.current_period_end)
+                        },
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
 
         return {"status": "success", "message": "Subscription plan updated successfully"}
 
