@@ -83,6 +83,22 @@ class ChangePlanRequest(BaseModel):
     user_id: str
     plan_id: str
 
+# Add this new function near the top of the file with other helper functions
+def get_subscription_type(price_id: str) -> str:
+    """
+    Determine the subscription type (basic, team, enterprise) based on the price_id
+    
+    Args:
+        price_id: The Stripe price ID to look up
+        
+    Returns:
+        str: The subscription type (basic, team, enterprise) or None if not found
+    """
+    for tier, tier_price_id in TIER_TO_PRICE.items():
+        if tier_price_id == price_id:
+            return tier
+    return None
+
 async def init_payments_env():
     global MONGO_URI, ENV
     global TIER_TO_PRICE
@@ -204,11 +220,17 @@ def parse_stripe_subscription(subscription):
         # Check if this is a metered plan
         if plan.get('usage_type') == 'metered':
             item_id = item.get('id')
+            price_id = price.get('id')
+            
+            # Use the new subroutine
+            subscription_type = get_subscription_type(price_id)
+            
             metered_usage[item_id] = {
                 'subscription_item_id': item_id,
                 'meter_id': plan.get('meter'),
                 'product_id': plan.get('product'),
-                'price_id': price.get('id'),
+                'price_id': price_id,
+                'subscription_type': subscription_type,
                 'current_period_start': item.get('current_period_start'),
                 'current_period_end': item.get('current_period_end')
             }
@@ -230,6 +252,7 @@ def parse_stripe_usage(parsed_subscription, stripe_customer_id):
                 # Get the current billing period's usage
                 if "subscription_item_id" in item_data:
                     subscription_item_id = item_data["subscription_item_id"]
+                    subscription_type = item_data.get("subscription_type")  # Get subscription type
 
                     meter_event_summaries = stripe.billing.Meter.list_event_summaries(
                         item_data["meter_id"],
@@ -243,19 +266,9 @@ def parse_stripe_usage(parsed_subscription, stripe_customer_id):
                     # Extract relevant usage information
                     current_usage = {
                         "total_usage": 0,
+                        "subscription_type": subscription_type,  # Add subscription type
                         "period_details": []
                     }
-                    
-                    # for record in usage_records.get("data", []):
-                    #     period_info = {
-                    #         "period_start": datetime.fromtimestamp(record.get("period", {}).get("start", 0)),
-                    #         "period_end": datetime.fromtimestamp(record.get("period", {}).get("end", 0)),
-                    #         "total_usage": record.get("total_usage", 0)
-                    #     }
-                    #     current_usage["period_details"].append(period_info)
-                        
-                    #     # Add to total usage
-                    #     current_usage["total_usage"] += record.get("total_usage", 0)
                     
                     # Store usage for this subscription item
                     usage[subscription_item_id] = current_usage
@@ -620,6 +633,9 @@ async def create_subscription(
         if not price_id:
             raise HTTPException(status_code=400, detail="No price ID provided or configured")
         
+        # Use the new subroutine
+        subscription_type = get_subscription_type(price_id)
+        
         # Create the subscription
         subscription = stripe.Subscription.create(
             customer=data.customer_id,
@@ -640,6 +656,7 @@ async def create_subscription(
             "subscription_id": subscription.id,
             "subscription_item_id": subscription_item_id,
             "price_id": price_id,
+            "subscription_type": subscription_type,
             "status": subscription.status,
             "current_period_start": datetime.fromtimestamp(subscription.current_period_start),
             "current_period_end": datetime.fromtimestamp(subscription.current_period_end),
@@ -657,6 +674,7 @@ async def create_subscription(
                     "stripe_subscription_id": subscription.id,
                     "usage_tier": "paid",
                     "payment_status": subscription.status,
+                    "subscription_type": subscription_type,
                     "updated_at": datetime.utcnow()
                 }
             }
@@ -665,6 +683,7 @@ async def create_subscription(
         return {
             "subscription_id": subscription.id,
             "status": subscription.status,
+            "subscription_type": subscription_type,
             "client_secret": subscription.latest_invoice.payment_intent.client_secret if hasattr(subscription, "latest_invoice") and hasattr(subscription.latest_invoice, "payment_intent") else None
         }
     except Exception as e:
