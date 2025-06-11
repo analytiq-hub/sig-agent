@@ -242,11 +242,10 @@ def parse_stripe_subscription(subscription):
             subscription_type = get_subscription_type(price_id)
             
             metered_usage[item_id] = {
-                'subscription_item_id': item_id,
-                'meter_id': plan.get('meter'),
+                'subscription_type': subscription_type,
                 'product_id': plan.get('product'),
                 'price_id': price_id,
-                'subscription_type': subscription_type,
+                'meter_id': plan.get('meter'),
                 'current_period_start': item.get('current_period_start'),
                 'current_period_end': item.get('current_period_end')
             }
@@ -281,8 +280,8 @@ def parse_stripe_usage(parsed_subscription, stripe_customer_id):
                     
                     # Extract relevant usage information
                     current_usage = {
-                        "total_usage": 0,
-                        "subscription_type": subscription_type,  # Add subscription type
+                        "subscription_type": subscription_type,
+                        "total_usage": meter_event_summaries.get('total_usage', 0),
                         "period_details": []
                     }
                     
