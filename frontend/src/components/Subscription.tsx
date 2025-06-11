@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getCustomerPortalApi } from '@/utils/api';
-import { toast } from 'react-toastify';
+import SubscriptionPlans from './SubscriptionPlans';
 
 interface SubscriptionProps {
   userId: string;
@@ -40,6 +40,10 @@ const Subscription: React.FC<SubscriptionProps> = ({ userId }) => {
     <div className="bg-white p-6 rounded-lg shadow">
       {customerPortalUrl ? (
         <div className="space-y-4">
+          <div>
+            {/* <h2 className="text-lg font-semibold mb-4">Available Plans</h2> */}
+            <SubscriptionPlans userId={userId} />
+          </div>
           <p className="text-gray-700">
             Use the Stripe customer portal to manage your subscription, view invoices, 
             update payment methods, and more.
@@ -54,36 +58,10 @@ const Subscription: React.FC<SubscriptionProps> = ({ userId }) => {
           </a>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-8">
           <p className="text-gray-700">
-            You don&apos;t have an active subscription. Subscribe to access premium features.
+            Stripe is not configured.
           </p>
-          <button
-            onClick={async () => {
-              try {
-                setLoading(true);
-                const response = await getCustomerPortalApi(userId);
-                window.open(response.url, '_blank');
-              } catch (error: unknown) {
-                let errorMsg = '';
-                if (error instanceof Error) {
-                  errorMsg = error.message;
-                } else {
-                  errorMsg = String(error);
-                }
-                if (errorMsg.startsWith('Not Found')) {
-                  toast.error('Subscription not implemented.');
-                } else {
-                  toast.error(`Failed to access subscription portal: ${errorMsg}`);
-                }
-              } finally {
-                setLoading(false);
-              }
-            }}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Subscribe Now
-          </button>
         </div>
       )}
     </div>

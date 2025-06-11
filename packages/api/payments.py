@@ -64,6 +64,21 @@ class PortalSessionCreate(BaseModel):
 class PortalSessionResponse(BaseModel):
     url: str
 
+class SubscriptionPlan(BaseModel):
+    plan_id: str
+    name: str
+    price_id: str
+    price: float
+    currency: str = "usd"
+    interval: str = "month"
+    features: List[str]
+    included_usage: int
+    overage_price: float
+
+class SubscriptionPlanResponse(BaseModel):
+    plans: List[SubscriptionPlan]
+    current_plan: Optional[str] = None
+
 async def init_payments_env():
     global MONGO_URI, ENV
     global TIER_TO_PRICE
@@ -1051,3 +1066,141 @@ async def delete_all_stripe_customers(dryrun: bool = True) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error during bulk deletion: {e}")
         return {"success": False, "error": str(e)}
+
+@payments_router.get("/plans")
+async def get_subscription_plans(
+    user_id: str,
+    db: AsyncIOMotorDatabase = Depends(get_db)
+) -> SubscriptionPlanResponse:
+    """Get available subscription plans and user's current plan"""
+    
+    # Define the available plans with metered usage details
+    plans = [
+        SubscriptionPlan(
+            plan_id="basic",
+            name="Basic",
+            price_id=TIER_TO_PRICE["basic"],
+            price=9.99,
+            included_usage=100,
+            overage_price=0.10,
+            features=[
+                "100 pages included per month",
+                "$0.10 per page after included usage",
+                "Basic document processing",
+                "Email support"
+            ]
+        ),
+        SubscriptionPlan(
+            plan_id="team",
+            name="Team",
+            price_id=TIER_TO_PRICE["team"],
+            price=29.99,
+            included_usage=500,
+            overage_price=0.08,
+            features=[
+                "500 pages included per month",
+                "$0.08 per page after included usage",
+                "Advanced document processing",
+                "Priority support",
+                "Team collaboration"
+            ]
+        ),
+        SubscriptionPlan(
+            plan_id="enterprise",
+            name="Enterprise",
+            price_id=TIER_TO_PRICE["enterprise"],
+            price=99.99,
+            included_usage=2000,
+            overage_price=0.05,
+            features=[
+                "2000 pages included per month",
+                "$0.05 per page after included usage",
+                "Custom document processing",
+                "24/7 support",
+                "Dedicated account manager",
+                "Custom integrations"
+            ]
+        )
+    ]
+
+    # Get user's current plan
+    customer = await stripe_customers.find_one({"user_id": user_id})
+    current_plan = None
+    if customer and customer.get("stripe_subscription"):
+        subscription = customer["stripe_subscription"]
+        if subscription.get("is_active"):
+            # Find the plan ID based on the price ID
+            for plan in plans:
+                if plan.price_id == subscription.get("price_id"):
+                    current_plan = plan.plan_id
+                    break
+
+    return SubscriptionPlanResponse(plans=plans, current_plan=current_plan)
+
+@payments_router.post("/change-plan")
+async def change_subscription_plan(
+    user_id: str,
+    plan_id: str,
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    """Change user's subscription plan"""
+    
+    # Get customer record
+    customer = await stripe_customers.find_one({"user_id": user_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    # Find the selected plan
+    plans = await get_subscription_plans(user_id, db)
+    selected_plan = next((p for p in plans.plans if p.plan_id == plan_id), None)
+    if not selected_plan:
+        raise HTTPException(status_code=400, detail="Invalid plan selected")
+
+    try:
+        # If user has an active subscription, update it
+        if customer.get("stripe_subscription") and customer["stripe_subscription"].get("is_active"):
+            subscription_id = customer["stripe_subscription"].get("subscription_id")
+            if subscription_id:
+                # Update the subscription with the new price
+                stripe.Subscription.modify(
+                    subscription_id,
+                    items=[{
+                        'id': customer["stripe_subscription"].get("subscription_item_id"),
+                        'price': selected_plan.price_id,
+                    }],
+                    proration_behavior='always_invoice'
+                )
+        else:
+            # Create new subscription with metered usage
+            subscription = stripe.Subscription.create(
+                customer=customer["stripe_customer_id"],
+                items=[{
+                    'price': selected_plan.price_id,
+                }],
+                payment_behavior='default_incomplete',
+                expand=['latest_invoice.payment_intent'],
+            )
+            
+            # Store the subscription in our database
+            subscription_doc = {
+                "user_id": user_id,
+                "stripe_customer_id": customer["stripe_customer_id"],
+                "subscription_id": subscription.id,
+                "subscription_item_id": subscription["items"]["data"][0]["id"],
+                "price_id": selected_plan.price_id,
+                "status": subscription.status,
+                "current_period_start": datetime.fromtimestamp(subscription.current_period_start),
+                "current_period_end": datetime.fromtimestamp(subscription.current_period_end),
+                "included_usage": selected_plan.included_usage,
+                "overage_price": selected_plan.overage_price,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            await stripe_subscriptions.insert_one(subscription_doc)
+
+        return {"status": "success", "message": "Subscription plan updated successfully"}
+
+    except Exception as e:
+        logger.error(f"Error changing subscription plan: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

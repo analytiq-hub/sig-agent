@@ -1,0 +1,110 @@
+'use client'
+
+import React, { useEffect, useState } from 'react';
+import { getCustomerPortalApi, getSubscriptionPlansApi, changeSubscriptionPlanApi } from '@/utils/api';
+import { toast } from 'react-toastify';
+import type { SubscriptionPlan } from '@/types/payments';
+
+interface SubscriptionPlansProps {
+  userId: string;
+}
+
+const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ userId }) => {
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        setLoading(true);
+        const data = await getSubscriptionPlansApi(userId);
+        setPlans(data.plans);
+        setCurrentPlan(data.current_plan);
+      } catch (error) {
+        console.error('Error fetching subscription plans:', error);
+        toast.error('Failed to load subscription plans');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlans();
+  }, [userId]);
+
+  const handlePlanChange = async (planId: string) => {
+    try {
+      setLoading(true);
+      await changeSubscriptionPlanApi(userId, planId);
+
+      // Redirect to Stripe portal to handle payment
+      const portalResponse = await getCustomerPortalApi(userId);
+      window.location.href = portalResponse.url;
+    } catch (error) {
+      console.error('Error changing plan:', error);
+      toast.error('Failed to change subscription plan');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-40">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      {plans.map((plan) => (
+        <div
+          key={plan.plan_id}
+          className={`bg-white rounded-lg shadow-lg p-6 ${
+            currentPlan === plan.plan_id ? 'ring-2 ring-blue-500' : ''
+          }`}
+        >
+          <h3 className="text-xl font-bold mb-4">{plan.name}</h3>
+          <div className="text-3xl font-bold mb-4">
+            ${plan.price_per_page}
+            <span className="text-sm font-normal text-gray-500">
+              /page
+            </span>
+          </div>
+          <ul className="space-y-2 mb-6">
+            {plan.features.map((feature, index) => (
+              <li key={index} className="flex items-center">
+                <svg
+                  className="h-5 w-5 text-green-500 mr-2"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path d="M5 13l4 4L19 7"></path>
+                </svg>
+                {feature}
+              </li>
+            ))}
+          </ul>
+          <button
+            onClick={() => handlePlanChange(plan.plan_id)}
+            disabled={currentPlan === plan.plan_id}
+            className={`w-full py-2 px-4 rounded-md ${
+              currentPlan === plan.plan_id
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+          >
+            {currentPlan === plan.plan_id ? 'Current Plan' : 'Select Plan'}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default SubscriptionPlans; 

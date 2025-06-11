@@ -86,7 +86,8 @@ import {
 } from '@/types/index';
 import { 
   PortalSessionCreate,
-  PortalSessionResponse
+  PortalSessionResponse,
+  SubscriptionPlanResponse, 
 } from '@/types/index';
 import { toast } from 'react-toastify';
 import { JsonValue } from 'type-fest';
@@ -693,5 +694,21 @@ export const getCustomerPortalApi = async (userId: string): Promise<PortalSessio
     user_id: userId
   };
   const response = await api.post<PortalSessionResponse>(`/v0/account/payments/customer-portal`, portalSessionCreate);
+  return response.data;
+};
+
+// Add these new API functions
+export const getSubscriptionPlansApi = async (userId: string): Promise<SubscriptionPlanResponse> => {
+  const response = await api.get<SubscriptionPlanResponse>(`/v0/account/payments/plans`, {
+    params: { user_id: userId }
+  });
+  return response.data;
+};
+
+export const changeSubscriptionPlanApi = async (userId: string, planId: string): Promise<{ status: string; message: string }> => {
+  const response = await api.post<{ status: string; message: string }>(`/v0/account/payments/change-plan`, {
+    user_id: userId,
+    plan_id: planId
+  });
   return response.data;
 };
