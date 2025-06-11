@@ -87,7 +87,8 @@ import {
 import { 
   PortalSessionCreate,
   PortalSessionResponse,
-  SubscriptionPlanResponse, 
+  SubscriptionPlanResponse,
+  SubscriptionHistoryResponse 
 } from '@/types/index';
 import { toast } from 'react-toastify';
 import { JsonValue } from 'type-fest';
@@ -710,5 +711,11 @@ export const changeSubscriptionPlanApi = async (userId: string, planId: string):
     user_id: userId,
     plan_id: planId
   });
+  return response.data;
+};
+
+// Add this new API function
+export const getSubscriptionHistoryApi = async (userId: string): Promise<SubscriptionHistoryResponse> => {
+  const response = await api.get<SubscriptionHistoryResponse>(`/v0/account/payments/subscription-history/${userId}`);
   return response.data;
 };

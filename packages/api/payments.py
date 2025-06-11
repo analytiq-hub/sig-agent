@@ -29,6 +29,7 @@ stripe_customers = None
 stripe_subscriptions = None
 stripe_usage = None
 stripe_events = None
+stripe_subscription_history = None
 
 # Stripe configuration constants
 FREE_TIER_LIMIT = 50  # Number of free pages
@@ -83,6 +84,20 @@ class ChangePlanRequest(BaseModel):
     user_id: str
     plan_id: str
 
+class SubscriptionHistory(BaseModel):
+    user_id: str
+    stripe_customer_id: str
+    subscription_id: str
+    subscription_item_id: str
+    price_id: str
+    subscription_type: str
+    status: str
+    start_date: datetime
+    end_date: Optional[datetime] = None
+    usage_during_period: int = 0
+    created_at: datetime
+    updated_at: datetime
+
 # Add this new function near the top of the file with other helper functions
 def get_subscription_type(price_id: str) -> str:
     """
@@ -104,7 +119,7 @@ async def init_payments_env():
     global TIER_TO_PRICE
     global NEXTAUTH_URL
     global client, db
-    global stripe_customers, stripe_subscriptions, stripe_usage, stripe_events
+    global stripe_customers, stripe_subscriptions, stripe_usage, stripe_events, stripe_subscription_history
     global stripe_webhook_secret
 
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
@@ -123,6 +138,7 @@ async def init_payments_env():
     stripe_subscriptions = db["stripe.subscriptions"]
     stripe_usage = db["stripe.usage"]
     stripe_events = db["stripe.events"]
+    stripe_subscription_history = db["stripe.subscription_history"]
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
@@ -390,11 +406,11 @@ async def record_usage(user_id: str, pages_processed: int, operation: str, sourc
     logger.info(f"Operation: {operation}")
     logger.info(f"Source: {source}")
 
-    # Get customer record
+    # Get current active subscription
     customer = await stripe_customers.find_one({"user_id": user_id})
     if not customer:
         raise ValueError(f"No customer found for user_id: {user_id}")
-    
+
     # Create usage record
     usage_record = {
         "user_id": user_id,
@@ -409,46 +425,20 @@ async def record_usage(user_id: str, pages_processed: int, operation: str, sourc
     # Insert usage record
     result = await stripe_usage.insert_one(usage_record)
     usage_id = result.inserted_id
-    
-    # Update customer usage stats
-    await stripe_customers.update_one(
-        {"user_id": user_id},
-        {
-            "$inc": {"current_month_usage": pages_processed},
-            "$set": {"updated_at": datetime.utcnow()}
-        }
-    )
-    
-    # Check if customer has an active subscription with metered usage
-    if customer.get("stripe_subscription") and customer["stripe_subscription"].get("is_active"):
-        try:
-            # Get metered usage items from the subscription
-            metered_usage = customer["stripe_subscription"].get("metered_usage", {})
-            if metered_usage:
-                # Report usage to Stripe for each metered subscription item
-                for item_id, item_data in metered_usage.items():
-                    if "subscription_item_id" in item_data:
-                        subscription_item_id = item_data["subscription_item_id"]
 
-                        meter_event = stripe.billing.MeterEvent.create(
-                            event_name="docrouterpages",
-                            payload={"stripe_customer_id": customer["stripe_customer_id"], "value": pages_processed},
-                        )
-                        logger.info(f"Reported usage to Stripe for user_id: {customer['user_id']}")
-                        logger.info(f"Meter event: {meter_event}")
-                        
-                # Mark usage as reported to Stripe
-                await stripe_usage.update_one(
-                    {"_id": usage_id},
-                    {"$set": {"reported_to_stripe": True}}
-                )
-                
-                logger.info(f"Reported {pages_processed} pages of usage to Stripe for user_id: {user_id}")
-        except Exception as e:
-            logger.error(f"Error reporting usage to Stripe: {e}")
-    else:
-        logger.info(f"User {user_id} has no active subscription with metered usage - skipping Stripe reporting")
-    
+    # Update usage in current subscription period if there is an active subscription
+    if customer.get("current_subscription"):
+        await stripe_subscription_history.update_one(
+            {
+                "subscription_id": customer["current_subscription"]["subscription_id"],
+                "end_date": None  # Active subscription
+            },
+            {
+                "$inc": {"usage_during_period": pages_processed},
+                "$set": {"updated_at": datetime.utcnow()}
+            }
+        )
+
     # Check if user needs to upgrade (has reached free tier limit)
     if not customer.get("stripe_subscription") or customer["stripe_subscription"].get("is_active") == False:
         # Only check limits for free tier users
@@ -838,97 +828,111 @@ async def get_usage_stats(
 # Helper functions for webhook handlers
 async def handle_subscription_updated(subscription: Dict[str, Any]):
     """Handle subscription created or updated event"""
-
     logger.info(f"Handling subscription updated event for subscription_id: {subscription['id']}")
     try:
-        # Find the subscription in our database
-        sub_doc = await stripe_subscriptions.find_one({"subscription_id": subscription["id"]})
-        
-        if sub_doc:
-            # Update existing subscription
-            await stripe_subscriptions.update_one(
-                {"subscription_id": subscription["id"]},
+        # Find the customer
+        customer = await stripe_customers.find_one({"stripe_customer_id": subscription["customer"]})
+        if not customer:
+            logger.warning(f"Received subscription update for unknown customer: {subscription['customer']}")
+            return
+
+        # Get subscription details
+        subscription_item_id = subscription["items"]["data"][0]["id"] if "items" in subscription and "data" in subscription["items"] else None
+        price_id = subscription["items"]["data"][0]["price"]["id"] if "items" in subscription and "data" in subscription["items"] else None
+        subscription_type = get_subscription_type(price_id)
+
+        # Check if this is a new subscription or an update
+        existing_history = await stripe_subscription_history.find_one({
+            "subscription_id": subscription["id"],
+            "end_date": None  # Active subscription
+        })
+
+        if existing_history:
+            # Update existing subscription history
+            await stripe_subscription_history.update_one(
+                {"_id": existing_history["_id"]},
                 {
                     "$set": {
                         "status": subscription["status"],
-                        "current_period_start": datetime.fromtimestamp(subscription["current_period_start"]),
-                        "current_period_end": datetime.fromtimestamp(subscription["current_period_end"]),
                         "updated_at": datetime.utcnow()
                     }
                 }
             )
         else:
-            # This is a new subscription or one we don't have - find the customer
-            customer = await stripe_customers.find_one({"stripe_customer_id": subscription["customer"]})
-            if not customer:
-                print(f"Warning: Received subscription update for unknown customer: {subscription['customer']}")
-                return
-                
-            # Find the subscription item ID
-            subscription_item_id = subscription["items"]["data"][0]["id"] if "items" in subscription and "data" in subscription["items"] else None
-            
-            # Create new subscription document
-            new_sub = {
+            # Create new subscription history entry
+            new_history = {
                 "user_id": customer["user_id"],
                 "stripe_customer_id": subscription["customer"],
                 "subscription_id": subscription["id"],
                 "subscription_item_id": subscription_item_id,
-                "price_id": subscription["items"]["data"][0]["price"]["id"] if "items" in subscription and "data" in subscription["items"] else None,
+                "price_id": price_id,
+                "subscription_type": subscription_type,
                 "status": subscription["status"],
-                "current_period_start": datetime.fromtimestamp(subscription["current_period_start"]),
-                "current_period_end": datetime.fromtimestamp(subscription["current_period_end"]),
+                "start_date": datetime.fromtimestamp(subscription["current_period_start"]),
+                "end_date": None,  # Will be set when subscription ends
+                "usage_during_period": 0,
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
             }
-            
-            await stripe_subscriptions.insert_one(new_sub)
-        
-        # Update customer status
+            await stripe_subscription_history.insert_one(new_history)
+
+        # Update customer's current subscription info
         await stripe_customers.update_one(
             {"stripe_customer_id": subscription["customer"]},
             {
                 "$set": {
-                    "stripe_subscription_id": subscription["id"],
-                    "usage_tier": "paid" if subscription["status"] == "active" else "free",
-                    "payment_status": subscription["status"],
+                    "current_subscription": {
+                        "subscription_id": subscription["id"],
+                        "subscription_type": subscription_type,
+                        "status": subscription["status"],
+                        "price_id": price_id,
+                        "current_period_start": datetime.fromtimestamp(subscription["current_period_start"]),
+                        "current_period_end": datetime.fromtimestamp(subscription["current_period_end"])
+                    },
                     "updated_at": datetime.utcnow()
                 }
             }
         )
+
     except Exception as e:
-        print(f"Error processing subscription update: {e}")
+        logger.error(f"Error processing subscription update: {e}")
 
 async def handle_subscription_deleted(subscription: Dict[str, Any]):
     """Handle subscription deleted event"""
-
     logger.info(f"Handling subscription deleted event for subscription_id: {subscription['id']}")
-
     try:
-        # Update subscription in our database
-        await stripe_subscriptions.update_one(
-            {"subscription_id": subscription["id"]},
-            {
-                "$set": {
-                    "status": "canceled",
-                    "updated_at": datetime.utcnow()
-                }
-            }
-        )
+        # Find the active subscription history
+        history = await stripe_subscription_history.find_one({
+            "subscription_id": subscription["id"],
+            "end_date": None
+        })
         
-        # Update customer status
+        if history:
+            # Update the subscription history with end date
+            await stripe_subscription_history.update_one(
+                {"_id": history["_id"]},
+                {
+                    "$set": {
+                        "status": "canceled",
+                        "end_date": datetime.utcnow(),
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+
+        # Update customer's current subscription info
         await stripe_customers.update_one(
-            {"stripe_subscription_id": subscription["id"]},
+            {"stripe_customer_id": subscription["customer"]},
             {
                 "$set": {
-                    "usage_tier": "free",
-                    "payment_status": "none",
-                    "free_usage_remaining": 0,  # They've used their free tier
+                    "current_subscription": None,
                     "updated_at": datetime.utcnow()
                 }
             }
         )
+
     except Exception as e:
-        print(f"Error processing subscription deletion: {e}")
+        logger.error(f"Error processing subscription deletion: {e}")
 
 async def handle_invoice_paid(invoice: Dict[str, Any]):
     """Handle invoice paid event"""
@@ -1230,4 +1234,21 @@ async def change_subscription_plan(
 
     except Exception as e:
         logger.error(f"Error changing subscription plan: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@payments_router.get("/subscription-history/{user_id}")
+async def get_subscription_history(
+    user_id: str,
+    db: AsyncIOMotorDatabase = Depends(get_db)
+):
+    """Get subscription history for a user"""
+    try:
+        history = await stripe_subscription_history.find(
+            {"user_id": user_id}
+        ).sort("start_date", -1).to_list(length=None)
+        
+        return {
+            "subscription_history": history
+        }
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
