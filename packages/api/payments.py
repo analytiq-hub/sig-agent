@@ -1175,17 +1175,30 @@ async def change_subscription_plan(
 
     try:
         # If user has an active subscription, update it
-        if customer.get("stripe_subscription") and customer["stripe_subscription"].get("is_active"):
+        if customer.get("stripe_subscription") and customer["stripe_subscription"].get("subscription_item_id"):
             subscription_id = customer["stripe_subscription"].get("subscription_id")
             if subscription_id:
                 # Update the subscription with the new price
-                stripe.Subscription.modify(
+                updated_subscription = stripe.Subscription.modify(
                     subscription_id,
                     items=[{
                         'id': customer["stripe_subscription"].get("subscription_item_id"),
                         'price': selected_plan.price_id,
                     }],
                     proration_behavior='always_invoice'
+                )
+                # Update minimal info in customer record
+                await stripe_customers.update_one(
+                    {"user_id": data.user_id},
+                    {
+                        "$set": {
+                            "stripe_subscription": {
+                                "subscription_type": selected_plan.plan_id,
+                                "subscription_item_id": customer["stripe_subscription"].get("subscription_item_id")
+                            },
+                            "updated_at": datetime.utcnow()
+                        }
+                    }
                 )
                 logger.info(f"Updated subscription {subscription_id} with new price {selected_plan.price_id}")
         else:
@@ -1199,19 +1212,14 @@ async def change_subscription_plan(
                 expand=['latest_invoice.payment_intent'],
             )
             
-            # Update customer record with basic subscription info
+            # Store only minimal info in customer record
             await stripe_customers.update_one(
                 {"user_id": data.user_id},
                 {
                     "$set": {
                         "stripe_subscription": {
-                            "is_active": subscription.status == "active",
-                            "subscription_id": subscription.id,
-                            "subscription_item_id": subscription["items"]["data"][0]["id"],
-                            "price_id": selected_plan.price_id,
-                            "status": subscription.status,
-                            "current_period_start": datetime.fromtimestamp(subscription.current_period_start),
-                            "current_period_end": datetime.fromtimestamp(subscription.current_period_end)
+                            "subscription_type": selected_plan.plan_id,
+                            "subscription_item_id": subscription["items"]["data"][0]["id"]
                         },
                         "updated_at": datetime.utcnow()
                     }
