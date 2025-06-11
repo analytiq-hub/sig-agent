@@ -61,35 +61,37 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ userId }) => {
       {plans.map((plan) => (
         <div
           key={plan.plan_id}
-          className={`bg-white rounded-lg shadow-lg p-6 ${
+          className={`bg-white rounded-lg shadow-lg p-6 flex flex-col ${
             currentPlan === plan.plan_id ? 'ring-2 ring-blue-500' : ''
           }`}
         >
-          <h3 className="text-xl font-bold mb-4">{plan.name}</h3>
-          <div className="text-3xl font-bold mb-4">
-            ${plan.price_per_page}
-            <span className="text-sm font-normal text-gray-500">
-              /page
-            </span>
+          <div className="flex-grow">
+            <h3 className="text-xl font-bold mb-4">{plan.name}</h3>
+            <div className="text-3xl font-bold mb-4">
+              ${plan.price_per_page}
+              <span className="text-sm font-normal text-gray-500">
+                /page
+              </span>
+            </div>
+            <ul className="space-y-2 mb-6">
+              {plan.features.map((feature, index) => (
+                <li key={index} className="flex items-center">
+                  <svg
+                    className="h-5 w-5 text-green-500 mr-2"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  {feature}
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="space-y-2 mb-6">
-            {plan.features.map((feature, index) => (
-              <li key={index} className="flex items-center">
-                <svg
-                  className="h-5 w-5 text-green-500 mr-2"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path d="M5 13l4 4L19 7"></path>
-                </svg>
-                {feature}
-              </li>
-            ))}
-          </ul>
           <button
             onClick={() => handlePlanChange(plan.plan_id)}
             disabled={currentPlan === plan.plan_id}
