@@ -41,21 +41,32 @@ const Subscription: React.FC<SubscriptionProps> = ({ userId }) => {
       {customerPortalUrl ? (
         <div className="space-y-4">
           <div>
-            {/* <h2 className="text-lg font-semibold mb-4">Available Plans</h2> */}
             <SubscriptionPlans userId={userId} />
           </div>
-          <p className="text-gray-700">
-            Use the Stripe customer portal to manage your subscription, view invoices, 
-            update payment methods, and more.
-          </p>
-          <a 
-            href={customerPortalUrl} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Manage Subscription
-          </a>
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
+            <svg 
+              className="h-5 w-5 text-gray-400" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" 
+              />
+            </svg>
+            <span>Need to update your payment information?</span>
+            <a 
+              href={customerPortalUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="ml-2 inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Manage Payment Methods
+            </a>
+          </div>
         </div>
       ) : (
         <div className="space-y-8">
