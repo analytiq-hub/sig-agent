@@ -76,12 +76,35 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ userId }) => {
                 /{plan.interval}
               </span>
             </div>
-            <div className="text-sm text-gray-500 mb-4">
-              {plan.included_usage} pages included
-              <br />
-              ${plan.overage_price} per page after limit
-            </div>
             <ul className="space-y-2 mb-6">
+              <li className="flex items-center">
+                <svg
+                  className="h-5 w-5 text-green-500 mr-2"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path d="M5 13l4 4L19 7"></path>
+                </svg>
+                {plan.included_usage} pages included
+              </li>
+              <li className="flex items-center">
+                <svg
+                  className="h-5 w-5 text-green-500 mr-2"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path d="M5 13l4 4L19 7"></path>
+                </svg>
+                ${plan.overage_price} per page after limit
+              </li>
               {plan.features.map((feature, index) => (
                 <li key={index} className="flex items-center">
                   <svg
