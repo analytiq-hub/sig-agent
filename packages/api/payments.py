@@ -10,6 +10,12 @@ from bson import ObjectId
 
 import analytiq_data as ad
 
+from api.auth import (
+    get_current_user,
+    get_admin_user
+)
+from api.models import User
+
 # Configure logger
 logger = logging.getLogger(__name__)
 
@@ -1024,9 +1030,10 @@ async def delete_all_stripe_customers(dryrun: bool = True) -> Dict[str, Any]:
         logger.error(f"Error during bulk deletion: {e}")
         return {"success": False, "error": str(e)}
 
-@payments_router.get("/plans")
+@payments_router.get("/plans/{user_id}")
 async def get_subscription_plans(
-    user_id: str,
+    user_id: str = None,
+    current_user: User = Depends(get_current_user)
 ) -> SubscriptionPlanResponse:
     """Get available subscription plans and user's current plan"""
 
