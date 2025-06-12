@@ -26,7 +26,6 @@ db = None
 
 # Define Stripe-specific collections with prefix
 stripe_customers = None
-stripe_subscriptions = None
 stripe_usage = None
 stripe_events = None
 stripe_subscription_history = None
@@ -119,7 +118,7 @@ async def init_payments_env():
     global TIER_TO_PRICE
     global NEXTAUTH_URL
     global client, db
-    global stripe_customers, stripe_subscriptions, stripe_usage, stripe_events, stripe_subscription_history
+    global stripe_customers, stripe_usage, stripe_events, stripe_subscription_history
     global stripe_webhook_secret
 
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
@@ -135,7 +134,6 @@ async def init_payments_env():
     db = client[ENV]
 
     stripe_customers = db["stripe.customers"]
-    stripe_subscriptions = db["stripe.subscriptions"]
     stripe_usage = db["stripe.usage"]
     stripe_events = db["stripe.events"]
     stripe_subscription_history = db["stripe.subscription_history"]
@@ -638,23 +636,6 @@ async def create_subscription(
         # Find the subscription item ID for usage reporting later
         subscription_item_id = subscription["items"]["data"][0]["id"]
         
-        # Store the subscription in our database
-        subscription_doc = {
-            "user_id": customer["user_id"],
-            "stripe_customer_id": data.customer_id,
-            "subscription_id": subscription.id,
-            "subscription_item_id": subscription_item_id,
-            "price_id": price_id,
-            "subscription_type": subscription_type,
-            "status": subscription.status,
-            "current_period_start": datetime.fromtimestamp(subscription.current_period_start),
-            "current_period_end": datetime.fromtimestamp(subscription.current_period_end),
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        }
-        
-        await stripe_subscriptions.insert_one(subscription_doc)
-        
         # Update customer status
         await stripe_customers.update_one(
             {"stripe_customer_id": data.customer_id},
@@ -803,13 +784,8 @@ async def get_usage_stats(
         # Get subscription status if available
         subscription_status = None
         if customer.get("stripe_subscription_id"):
-            subscription = await stripe_subscriptions.find_one({"subscription_id": customer["stripe_subscription_id"]})
-            if subscription:
-                subscription_status = {
-                    "status": subscription["status"],
-                    "current_period_start": subscription["current_period_start"],
-                    "current_period_end": subscription["current_period_end"],
-                }
+            # TODO: Get subscription status from Stripe
+            pass
         
         return {
             "user_id": user_id,
@@ -873,7 +849,6 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
             }
-            await stripe_subscription_history.insert_one(new_history)
 
         # Update customer's current subscription info
         await stripe_customers.update_one(
@@ -900,25 +875,6 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
     """Handle subscription deleted event"""
     logger.info(f"Handling subscription deleted event for subscription_id: {subscription['id']}")
     try:
-        # Find the active subscription history
-        history = await stripe_subscription_history.find_one({
-            "subscription_id": subscription["id"],
-            "end_date": None
-        })
-        
-        if history:
-            # Update the subscription history with end date
-            await stripe_subscription_history.update_one(
-                {"_id": history["_id"]},
-                {
-                    "$set": {
-                        "status": "canceled",
-                        "end_date": datetime.utcnow(),
-                        "updated_at": datetime.utcnow()
-                    }
-                }
-            )
-
         # Update customer's current subscription info
         await stripe_customers.update_one(
             {"stripe_customer_id": subscription["customer"]},
@@ -941,15 +897,6 @@ async def handle_invoice_paid(invoice: Dict[str, Any]):
     try:
         # Update subscription status if needed
         if invoice.get("subscription"):
-            await stripe_subscriptions.update_one(
-                {"subscription_id": invoice["subscription"]},
-                {
-                    "$set": {
-                        "status": "active",
-                        "updated_at": datetime.utcnow()
-                    }
-                }
-            )
             
             # Update customer payment status
             customer = await stripe_customers.find_one({"stripe_customer_id": invoice["customer"]})
@@ -981,18 +928,6 @@ async def handle_invoice_payment_failed(invoice: Dict[str, Any]):
                 }
             }
         )
-        
-        if invoice.get("subscription"):
-            # Update subscription status
-            await stripe_subscriptions.update_one(
-                {"subscription_id": invoice["subscription"]},
-                {
-                    "$set": {
-                        "status": "past_due",
-                        "updated_at": datetime.utcnow()
-                    }
-                }
-            )
     except Exception as e:
         print(f"Error processing invoice payment failure: {e}")
 
@@ -1070,7 +1005,6 @@ async def delete_all_stripe_customers(dryrun: bool = True) -> Dict[str, Any]:
         try:
             if not dryrun:
                 # Delete all local records
-                await stripe_subscriptions.delete_many({})
                 await stripe_usage.delete_many({})
                 await stripe_customers.delete_many({})
                 logger.info("Deleted all local Stripe customer records")
