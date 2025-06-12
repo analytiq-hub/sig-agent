@@ -18,6 +18,75 @@ from api.auth import (
 )
 from api.models import User
 
+import asyncio
+import stripe
+from functools import partial
+from typing import Any, Dict, List, Optional
+
+class StripeAsync:
+    @staticmethod
+    async def _run_in_threadpool(func, *args, **kwargs):
+        """Run a Stripe API call in a thread pool to make it non-blocking"""
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, partial(func, *args, **kwargs))
+
+    @staticmethod
+    async def customer_create(*args, **kwargs) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(stripe.Customer.create, *args, **kwargs)
+
+    @staticmethod
+    async def customer_modify(customer_id: str, *args, **kwargs) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(stripe.Customer.modify, customer_id, *args, **kwargs)
+
+    @staticmethod
+    async def customer_list(*args, **kwargs) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(stripe.Customer.list, *args, **kwargs)
+
+    @staticmethod
+    async def customer_delete(customer_id: str) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(stripe.Customer.delete, customer_id)
+
+    @staticmethod
+    async def subscription_create(*args, **kwargs) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(stripe.Subscription.create, *args, **kwargs)
+
+    @staticmethod
+    async def subscription_modify(subscription_id: str, *args, **kwargs) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(stripe.Subscription.modify, subscription_id, *args, **kwargs)
+
+    @staticmethod
+    async def subscription_list(*args, **kwargs) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(stripe.Subscription.list, *args, **kwargs)
+
+    @staticmethod
+    async def subscription_delete(subscription_id: str) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(stripe.Subscription.delete, subscription_id)
+
+    @staticmethod
+    async def setup_intent_create(*args, **kwargs) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(stripe.SetupIntent.create, *args, **kwargs)
+
+    @staticmethod
+    async def billing_portal_session_create(*args, **kwargs) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(stripe.billing_portal.Session.create, *args, **kwargs)
+
+    @staticmethod
+    async def webhook_construct_event(payload: bytes, sig_header: str, secret: str) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(
+            stripe.Webhook.construct_event,
+            payload,
+            sig_header,
+            secret
+        )
+
+    @staticmethod
+    async def billing_meter_list_event_summaries(*args, **kwargs) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(
+            stripe.billing.Meter.list_event_summaries,
+            *args,
+            **kwargs
+        )
+
 # Configure logger
 logger = logging.getLogger(__name__)
 
@@ -247,12 +316,12 @@ async def sync_payments_customer(user_id: str, email: str, name: Optional[str] =
     logger.info(f"Sync stripe customer for user_id: {user_id} email: {email} name: {name}")
 
     try:
-        # Check if customer already exists in our DB. We will reconcilie this with Stripe.
+        # Check if customer already exists in our DB
         customer = await stripe_customers.find_one({"user_id": user_id})
     
         # Search for customers in Stripe with the given email
         stripe_customer = None
-        stripe_customer_list = stripe.Customer.list(email=email)
+        stripe_customer_list = await StripeAsync.customer_list(email=email)
         
         if stripe_customer_list and stripe_customer_list.data:
             if len(stripe_customer_list.data) > 1:
@@ -264,23 +333,20 @@ async def sync_payments_customer(user_id: str, email: str, name: Optional[str] =
             # Get the metadata from the Stripe customer
             stripe_customer_metadata = stripe_customer.metadata
             if stripe_customer.name != name or stripe_customer_metadata.get("user_id") != user_id:
-
                 # Update the customer in Stripe with additional metadata
-                stripe.Customer.modify(
+                await StripeAsync.customer_modify(
                     stripe_customer.id,
-                    name=name,  # Update name if provided
+                    name=name,
                     metadata={"user_id": user_id, "updated_at": datetime.utcnow().isoformat()}
                 )
-
                 logger.info(f"Updated Stripe customer name {name} and user_id {user_id}")
         else:
             # Create new customer in Stripe
-            stripe_customer = stripe.Customer.create(
+            stripe_customer = await StripeAsync.customer_create(
                 email=email,
                 name=name,
                 metadata={"user_id": user_id}
             )
-            
             logger.info(f"Created new Stripe customer with id: {stripe_customer.id}")
 
         # Check if the customer has a default payment method
@@ -290,7 +356,7 @@ async def sync_payments_customer(user_id: str, email: str, name: Optional[str] =
         
         # Check if the customer has an active subscription
         stripe_subscription = None
-        stripe_subscription_list = stripe.Subscription.list(customer=stripe_customer.id)
+        stripe_subscription_list = await StripeAsync.subscription_list(customer=stripe_customer.id)
         if stripe_subscription_list.data:
             if len(stripe_subscription_list.data) > 1:
                 logger.error(f"Multiple subscriptions found for customer {user_id}, just parsing the first one")
@@ -305,7 +371,7 @@ async def sync_payments_customer(user_id: str, email: str, name: Optional[str] =
         logger.info(f"Parsed subscriptions: {subscriptions}")
         
         # Get metered usage information
-        usage = parse_stripe_usage(subscriptions, stripe_customer.id)
+        usage = await parse_stripe_usage(subscriptions, stripe_customer.id)
         logger.info(f"Parsed usage: {usage}")
 
         if customer:
@@ -400,7 +466,7 @@ def parse_stripe_subscription(subscription):
         'metered_usage': metered_usage
     }
 
-def parse_stripe_usage(parsed_subscription, stripe_customer_id):
+async def parse_stripe_usage(parsed_subscription, stripe_customer_id):
     # Get metered usage information
     usage = {}
     if parsed_subscription and parsed_subscription.get("metered_usage"):
@@ -412,7 +478,7 @@ def parse_stripe_usage(parsed_subscription, stripe_customer_id):
                     subscription_item_id = item_data["subscription_item_id"]
                     subscription_type = item_data.get("subscription_type")  # Get subscription type
 
-                    meter_event_summaries = stripe.billing.Meter.list_event_summaries(
+                    meter_event_summaries = await StripeAsync.billing_meter_list_event_summaries(
                         item_data["meter_id"],
                         customer=stripe_customer_id,
                         start_time=item_data["current_period_start"],
@@ -626,10 +692,8 @@ async def create_setup_intent(
 
     logger.info(f"Creating setup intent for customer_id: {data.customer_id}")
 
-    db = ad.common.get_async_db()
-
     try:
-        setup_intent = stripe.SetupIntent.create(
+        setup_intent = await StripeAsync.setup_intent_create(
             customer=data.customer_id,
             payment_method_types=["card"],
         )
@@ -644,8 +708,6 @@ async def create_subscription(
     """Create a metered subscription for a customer"""
 
     logger.info(f"Creating subscription for customer_id: {data.customer_id}")
-
-    db = ad.common.get_async_db()
 
     try:
         # Find the customer in our database
@@ -662,7 +724,7 @@ async def create_subscription(
         subscription_type = get_subscription_type(price_id)
         
         # Create the subscription
-        subscription = stripe.Subscription.create(
+        subscription = await StripeAsync.subscription_create(
             customer=data.customer_id,
             items=[{
                 "price": price_id,
@@ -705,16 +767,9 @@ async def customer_portal(
 
     logger.info(f"Generating Stripe customer portal for user_id: {data.user_id}")
 
-    db = ad.common.get_async_db()
-
-    user_id = data.user_id
-    customer = await stripe_customers.find_one({"user_id": user_id})
-    if not customer:
-        raise HTTPException(status_code=404, detail="Customer not found for user_id: {user_id}")
-
     try:
-        session = stripe.billing_portal.Session.create(
-            customer=customer["stripe_customer_id"],
+        session = await StripeAsync.billing_portal_session_create(
+            customer=await stripe_customers.find_one({"user_id": data.user_id})["stripe_customer_id"],
             return_url=f"{NEXTAUTH_URL}/settings/user/subscription",
         )
         logger.info(f"Stripe customer portal URL: {session.url}")
@@ -729,17 +784,11 @@ async def webhook_received(
 ):
     """Handle Stripe webhook events"""
 
-    db = ad.common.get_async_db()
-
-    logger.info("Received Stripe webhook event")
-    payload = await request.body()
-    sig_header = request.headers.get("stripe-signature")
-
-    stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
-    
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, stripe_webhook_secret
+        event = await StripeAsync.webhook_construct_event(
+            await request.body(),
+            request.headers.get("stripe-signature"),
+            stripe_webhook_secret
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail="Invalid payload")
@@ -787,13 +836,6 @@ async def api_record_usage(
 ):
     """Record usage for a user"""
 
-    db = ad.common.get_async_db()
-
-    logger.info(f"Recording usage for user_id: {usage.user_id}")
-    logger.info(f"Pages processed: {usage.pages_processed}")
-    logger.info(f"Operation: {usage.operation}")
-    logger.info(f"Source: {usage.source}")
-
     try:
         result = await record_usage(
             usage.user_id,
@@ -813,8 +855,6 @@ async def get_usage_stats(
     """Get current usage statistics for a user"""
 
     logger.info(f"Getting usage stats for user_id: {user_id}")
-
-    db = ad.common.get_async_db()
 
     try:
         customer = await stripe_customers.find_one({"user_id": user_id})
@@ -1065,8 +1105,6 @@ async def get_subscription_plans(
 ) -> SubscriptionPlanResponse:
     """Get available subscription plans and user's current plan"""
 
-    db = ad.common.get_async_db()
-
     # Regular users can only read their own subscription. Admins can read any subscription
     if user_id != current_user.user_id:
         if not await is_admin(current_user.user_id):
@@ -1142,26 +1180,24 @@ async def change_subscription_plan(
     """Change user's subscription plan"""
     logger.info(f"Changing subscription plan for user_id: {data.user_id} to plan_id: {data.plan_id}")
     
-    db = ad.common.get_async_db()
-
-    # Get customer record
-    customer = await stripe_customers.find_one({"user_id": data.user_id})
-    if not customer:
-        raise HTTPException(status_code=404, detail="Customer not found")
-
-    # Find the selected plan
-    plans = await get_subscription_plans(data.user_id, db)
-    selected_plan = next((p for p in plans.plans if p.plan_id == data.plan_id), None)
-    if not selected_plan:
-        raise HTTPException(status_code=400, detail="Invalid plan selected")
-
     try:
+        # Get customer record
+        customer = await stripe_customers.find_one({"user_id": data.user_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+
+        # Find the selected plan
+        plans = await get_subscription_plans(data.user_id)
+        selected_plan = next((p for p in plans.plans if p.plan_id == data.plan_id), None)
+        if not selected_plan:
+            raise HTTPException(status_code=400, detail="Invalid plan selected")
+
         # If user has an active subscription, update it
         if customer.get("stripe_subscription") and customer["stripe_subscription"].get("subscription_item_id"):
             subscription_id = customer["stripe_subscription"].get("subscription_id")
             if subscription_id:
                 # Update the subscription with the new price
-                updated_subscription = stripe.Subscription.modify(
+                updated_subscription = await StripeAsync.subscription_modify(
                     subscription_id,
                     items=[{
                         'id': customer["stripe_subscription"].get("subscription_item_id"),
@@ -1185,7 +1221,7 @@ async def change_subscription_plan(
                 logger.info(f"Updated subscription {subscription_id} with new price {selected_plan.price_id}")
         else:
             # Create new subscription
-            subscription = stripe.Subscription.create(
+            subscription = await StripeAsync.subscription_create(
                 customer=customer["stripe_customer_id"],
                 items=[{
                     'price': selected_plan.price_id,
@@ -1220,7 +1256,6 @@ async def get_subscription_history(
 ):
     """Get subscription history for a user"""
 
-    db = ad.common.get_async_db()
     try:
         history = None # TODO: Get subscription history from Stripe
         
