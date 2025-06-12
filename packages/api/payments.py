@@ -26,7 +26,6 @@ db = None
 
 # Define Stripe-specific collections with prefix
 stripe_customers = None
-stripe_usage = None
 stripe_events = None
 
 # Stripe configuration constants
@@ -117,7 +116,7 @@ async def init_payments_env():
     global TIER_TO_PRICE
     global NEXTAUTH_URL
     global client, db
-    global stripe_customers, stripe_usage, stripe_events
+    global stripe_customers, stripe_events
     global stripe_webhook_secret
 
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
@@ -133,7 +132,6 @@ async def init_payments_env():
     db = client[ENV]
 
     stripe_customers = db["stripe.customers"]
-    stripe_usage = db["stripe.usage"]
     stripe_events = db["stripe.events"]
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
@@ -416,10 +414,6 @@ async def record_usage(user_id: str, pages_processed: int, operation: str, sourc
         "timestamp": datetime.utcnow(),
         "reported_to_stripe": False
     }
-    
-    # Insert usage record
-    result = await stripe_usage.insert_one(usage_record)
-    usage_id = result.inserted_id
 
     # Update usage in current subscription period if there is an active subscription
     if customer.get("current_subscription"):
@@ -983,7 +977,6 @@ async def delete_all_stripe_customers(dryrun: bool = True) -> Dict[str, Any]:
         try:
             if not dryrun:
                 # Delete all local records
-                await stripe_usage.delete_many({})
                 await stripe_customers.delete_many({})
                 logger.info("Deleted all local Stripe customer records")
             else:
