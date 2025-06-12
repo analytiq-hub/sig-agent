@@ -253,6 +253,11 @@ async def sync_payments_customer(user_id: str, email: str, name: Optional[str] =
             )
             
             logger.info(f"Created new Stripe customer with id: {stripe_customer.id}")
+
+        # Check if the customer has a default payment method
+        stripe_payment_method = False
+        if stripe_customer.get("invoice_settings", {}).get("default_payment_method"):
+            stripe_payment_method = True
         
         # Check if the customer has an active subscription
         stripe_subscription = None
@@ -290,6 +295,8 @@ async def sync_payments_customer(user_id: str, email: str, name: Optional[str] =
             await stripe_customers.update_one(
                 {"user_id": user_id},
                 {"$set": {
+                    "name": name,
+                    "stripe_payment_method": stripe_payment_method,
                     "subscriptions": subscriptions,
                     "usage": usage,
                     "updated_at": datetime.utcnow()
@@ -306,6 +313,7 @@ async def sync_payments_customer(user_id: str, email: str, name: Optional[str] =
                 "stripe_customer_id": stripe_customer.id,
                 "email": email,
                 "name": name,
+                "stripe_payment_method": stripe_payment_method,
                 "subscriptions": subscriptions,
                 "usage": usage,
                 "created_at": datetime.utcnow(),
