@@ -200,10 +200,6 @@ async def sync_all_payments_customers() -> Tuple[int, int, List[str]]:
         logger.error(f"Error during customer sync with Stripe: {e}")
         return 0, 0, [f"Global error: {str(e)}"]
 
-# Dependency to get database
-async def get_db() -> AsyncIOMotorDatabase:
-    return db
-
 # Helper functions
 async def sync_payments_customer(user_id: str, email: str, name: Optional[str] = None) -> Dict[str, Any]:
     """Create or retrieve a Stripe customer for the given user"""
@@ -594,11 +590,12 @@ async def delete_payments_customer(user_id: str) -> Dict[str, Any]:
 @payments_router.post("/setup-intent")
 async def create_setup_intent(
     data: SetupIntentCreate,
-    db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """Create a setup intent for collecting payment method"""
 
     logger.info(f"Creating setup intent for customer_id: {data.customer_id}")
+
+    db = ad.common.get_async_db()
 
     try:
         setup_intent = stripe.SetupIntent.create(
@@ -612,11 +609,12 @@ async def create_setup_intent(
 @payments_router.post("/create-subscription")
 async def create_subscription(
     data: SubscriptionCreate,
-    db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """Create a metered subscription for a customer"""
 
     logger.info(f"Creating subscription for customer_id: {data.customer_id}")
+
+    db = ad.common.get_async_db()
 
     try:
         # Find the customer in our database
@@ -671,11 +669,12 @@ async def create_subscription(
 @payments_router.post("/customer-portal")
 async def customer_portal(
     data: PortalSessionCreate,
-    db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> PortalSessionResponse:
     """Generate a Stripe Customer Portal link"""
 
     logger.info(f"Generating Stripe customer portal for user_id: {data.user_id}")
+
+    db = ad.common.get_async_db()
 
     user_id = data.user_id
     customer = await stripe_customers.find_one({"user_id": user_id})
@@ -696,9 +695,10 @@ async def customer_portal(
 @payments_router.post("/webhook", status_code=200)
 async def webhook_received(
     request: Request,
-    db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """Handle Stripe webhook events"""
+
+    db = ad.common.get_async_db()
 
     logger.info("Received Stripe webhook event")
     payload = await request.body()
@@ -753,9 +753,10 @@ async def webhook_received(
 @payments_router.post("/record-usage")
 async def api_record_usage(
     usage: UsageRecord,
-    db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """Record usage for a user"""
+
+    db = ad.common.get_async_db()
 
     logger.info(f"Recording usage for user_id: {usage.user_id}")
     logger.info(f"Pages processed: {usage.pages_processed}")
@@ -777,11 +778,13 @@ async def api_record_usage(
 @payments_router.get("/usage-stats/{user_id}")
 async def get_usage_stats(
     user_id: str,
-    db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """Get current usage statistics for a user"""
 
     logger.info(f"Getting usage stats for user_id: {user_id}")
+
+    db = ad.common.get_async_db()
+
     try:
         customer = await stripe_customers.find_one({"user_id": user_id})
         if not customer:
@@ -1027,9 +1030,10 @@ async def delete_all_stripe_customers(dryrun: bool = True) -> Dict[str, Any]:
 @payments_router.get("/plans")
 async def get_subscription_plans(
     user_id: str,
-    db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> SubscriptionPlanResponse:
     """Get available subscription plans and user's current plan"""
+
+    db = ad.common.get_async_db()
     
     # Define the available plans with metered usage details
     plans = [
@@ -1091,11 +1095,12 @@ async def get_subscription_plans(
 @payments_router.post("/change-plan")
 async def change_subscription_plan(
     data: ChangePlanRequest,
-    db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """Change user's subscription plan"""
     logger.info(f"Changing subscription plan for user_id: {data.user_id} to plan_id: {data.plan_id}")
     
+    db = ad.common.get_async_db()
+
     # Get customer record
     customer = await stripe_customers.find_one({"user_id": data.user_id})
     if not customer:
@@ -1169,9 +1174,10 @@ async def change_subscription_plan(
 @payments_router.get("/subscription-history/{user_id}")
 async def get_subscription_history(
     user_id: str,
-    db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """Get subscription history for a user"""
+
+    db = ad.common.get_async_db()
     try:
         history = None # TODO: Get subscription history from Stripe
         
