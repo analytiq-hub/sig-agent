@@ -226,10 +226,7 @@ async def sync_payments_customer(user_id: str, email: str, name: Optional[str] =
             
             stripe_customer = stripe_customer_list.data[0]
 
-        if stripe_customer:
-            # Log the Stripe customer
-            logger.info(f"Stripe customer: {stripe_customer}")
-            
+        if stripe_customer:            
             # Get the metadata from the Stripe customer
             stripe_customer_metadata = stripe_customer.metadata
             if stripe_customer.name != name or stripe_customer_metadata.get("user_id") != user_id:
@@ -269,8 +266,6 @@ async def sync_payments_customer(user_id: str, email: str, name: Optional[str] =
                 logger.info(f"Customer {user_id} has an active subscription")
         else:
             logger.info(f"Customer {user_id} has no active subscriptions")
-
-        logger.info(f"Parsing Stripe subscription: {stripe_subscription}")
         
         subscriptions = parse_stripe_subscription(stripe_subscription) if stripe_subscription else None
         logger.info(f"Parsed subscriptions: {subscriptions}")
