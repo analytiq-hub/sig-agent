@@ -131,8 +131,8 @@ async def init_payments_env():
     client = AsyncIOMotorClient(MONGO_URI)
     db = client[ENV]
 
-    stripe_customers = db["stripe.customers"]
-    stripe_events = db["stripe.events"]
+    stripe_customers = db.stripe_customers
+    stripe_events = db.stripe_events
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
