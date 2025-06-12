@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 import stripe
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from bson import ObjectId
+import asyncio
 
 import analytiq_data as ad
 
@@ -156,6 +157,7 @@ async def init_payments():
 async def sync_all_payments_customers() -> Tuple[int, int, List[str]]:
     """
     Synchronize all users in the database with Stripe by creating customer records
+    in parallel batches of 10 customers at a time.
     
     Returns:
         Tuple containing (total_users, successful_syncs, error_messages)
@@ -174,33 +176,58 @@ async def sync_all_payments_customers() -> Tuple[int, int, List[str]]:
         successful = 0
         errors = []
         
-        for user in users:
-            try:
-                # Extract required fields
-                user_id = str(user.get("_id"))
-                email = user.get("email")
-                name = user.get("name")
-                
-                if not email:
-                    errors.append(f"User {user_id} has no email address")
-                    continue
-                
-                # Create or get customer
-                customer = await sync_payments_customer(
-                    user_id=user_id,
-                    email=email,
-                    name=name
-                )
-                
-                if customer:
-                    successful += 1
-                else:
-                    errors.append(f"Failed to create/get customer for {user_id}")
+        # Process users in batches of 10
+        batch_size = 10
+        for i in range(0, total_users, batch_size):
+            batch = users[i:i + batch_size]
             
-            except Exception as e:
-                error_msg = f"Error syncing user {user.get('_id', 'unknown')} with Stripe: {str(e)}"
-                logger.error(error_msg)
-                errors.append(error_msg)
+            # Create tasks for each user in the batch
+            tasks = []
+            for user in batch:
+                try:
+                    user_id = str(user.get("_id"))
+                    email = user.get("email")
+                    name = user.get("name")
+                    
+                    if not email:
+                        errors.append(f"User {user_id} has no email address")
+                        continue
+                    
+                    # Create task for syncing customer
+                    task = sync_payments_customer(
+                        user_id=user_id,
+                        email=email,
+                        name=name
+                    )
+                    tasks.append(task)
+                
+                except Exception as e:
+                    error_msg = f"Error preparing sync for user {user.get('_id', 'unknown')}: {str(e)}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+            
+            # Execute batch of tasks in parallel
+            if tasks:
+                try:
+                    results = await asyncio.gather(*tasks, return_exceptions=True)
+                    
+                    # Process results
+                    for result in results:
+                        if isinstance(result, Exception):
+                            error_msg = f"Error syncing customer: {str(result)}"
+                            logger.error(error_msg)
+                            errors.append(error_msg)
+                        elif result:
+                            successful += 1
+                        else:
+                            errors.append("Failed to create/get customer")
+                
+                except Exception as e:
+                    error_msg = f"Error processing batch: {str(e)}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+            
+            logger.info(f"Processed batch {i//batch_size + 1}/{(total_users + batch_size - 1)//batch_size}")
         
         logger.info(f"{successful}/{total_users} customers synchronized with Stripe")
         return total_users, successful, errors
