@@ -8,6 +8,8 @@ import stripe
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from bson import ObjectId
 
+import analytiq_data as ad
+
 # Configure logger
 logger = logging.getLogger(__name__)
 
