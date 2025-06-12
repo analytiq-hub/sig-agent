@@ -7,6 +7,8 @@ from typing import List
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import APIRouter, Depends, HTTPException, Request, Body, BackgroundTasks, Security
 
+from api.models import User
+
 import analytiq_data as ad
 
 # Configure logger

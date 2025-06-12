@@ -8,6 +8,13 @@ import stripe
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from bson import ObjectId
 
+from api.users import (
+    get_current_user,
+    get_admin_user
+)
+
+from api.models import User
+
 import analytiq_data as ad
 
 # Configure logger
@@ -1027,6 +1034,7 @@ async def delete_all_stripe_customers(dryrun: bool = True) -> Dict[str, Any]:
 @payments_router.get("/plans")
 async def get_subscription_plans(
     user_id: str,
+    current_user: User = Depends(get_current_user)
 ) -> SubscriptionPlanResponse:
     """Get available subscription plans and user's current plan"""
 
