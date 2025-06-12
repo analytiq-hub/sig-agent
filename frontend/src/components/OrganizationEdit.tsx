@@ -315,8 +315,8 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   }
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-6">
-      <div className="flex flex-col h-[calc(100vh-240px)]">
+    <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-6 min-h-[calc(100vh-80px)] flex flex-col">
+      <div className="flex flex-col flex-1 h-0">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">Edit Organization</h2>
           <div className="flex gap-4">
@@ -410,7 +410,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
             </div>
 
             {/* Update the DataGrid container height */}
-            <div className="flex-1 bg-white rounded-lg">
+            <div className="flex-1 bg-white rounded-lg flex flex-col">
               <DataGrid
                 rows={getGridRows()}
                 columns={columns}
@@ -424,6 +424,8 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
                 disableColumnMenu
                 density="standard"
                 sx={{
+                  flex: 1,
+                  minHeight: 100,
                   height: '100%',
                   '& .MuiDataGrid-row': {
                     height: '60px'
