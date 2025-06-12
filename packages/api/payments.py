@@ -28,7 +28,6 @@ db = None
 stripe_customers = None
 stripe_usage = None
 stripe_events = None
-stripe_subscription_history = None
 
 # Stripe configuration constants
 FREE_TIER_LIMIT = 50  # Number of free pages
@@ -118,7 +117,7 @@ async def init_payments_env():
     global TIER_TO_PRICE
     global NEXTAUTH_URL
     global client, db
-    global stripe_customers, stripe_usage, stripe_events, stripe_subscription_history
+    global stripe_customers, stripe_usage, stripe_events
     global stripe_webhook_secret
 
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
@@ -136,7 +135,6 @@ async def init_payments_env():
     stripe_customers = db["stripe.customers"]
     stripe_usage = db["stripe.usage"]
     stripe_events = db["stripe.events"]
-    stripe_subscription_history = db["stripe.subscription_history"]
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
@@ -425,16 +423,7 @@ async def record_usage(user_id: str, pages_processed: int, operation: str, sourc
 
     # Update usage in current subscription period if there is an active subscription
     if customer.get("current_subscription"):
-        await stripe_subscription_history.update_one(
-            {
-                "subscription_id": customer["current_subscription"]["subscription_id"],
-                "end_date": None  # Active subscription
-            },
-            {
-                "$inc": {"usage_during_period": pages_processed},
-                "$set": {"updated_at": datetime.utcnow()}
-            }
-        )
+        pass
 
     # Check if user needs to upgrade (has reached free tier limit)
     if not customer.get("stripe_subscription") or customer["stripe_subscription"].get("is_active") == False:
@@ -817,22 +806,11 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
         subscription_type = get_subscription_type(price_id)
 
         # Check if this is a new subscription or an update
-        existing_history = await stripe_subscription_history.find_one({
-            "subscription_id": subscription["id"],
-            "end_date": None  # Active subscription
-        })
+        existing_history = None # TODO: Get subscription history from Stripe
 
         if existing_history:
-            # Update existing subscription history
-            await stripe_subscription_history.update_one(
-                {"_id": existing_history["_id"]},
-                {
-                    "$set": {
-                        "status": subscription["status"],
-                        "updated_at": datetime.utcnow()
-                    }
-                }
-            )
+            # TODO: Update existing subscription history
+            pass
         else:
             # Create new subscription history entry
             new_history = {
@@ -1176,9 +1154,7 @@ async def get_subscription_history(
 ):
     """Get subscription history for a user"""
     try:
-        history = await stripe_subscription_history.find(
-            {"user_id": user_id}
-        ).sort("start_date", -1).to_list(length=None)
+        history = None # TODO: Get subscription history from Stripe
         
         return {
             "subscription_history": history
