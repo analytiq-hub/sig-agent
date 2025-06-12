@@ -12,7 +12,8 @@ import analytiq_data as ad
 
 from api.auth import (
     get_current_user,
-    get_admin_user
+    get_admin_user,
+    is_admin
 )
 from api.models import User
 
@@ -1038,6 +1039,14 @@ async def get_subscription_plans(
     """Get available subscription plans and user's current plan"""
 
     db = ad.common.get_async_db()
+
+    # Regular users can only read their own subscription. Admins can read any subscription
+    if user_id != current_user.user_id:
+        if not await is_admin(current_user.user_id):
+            raise HTTPException(
+                status_code=403,
+                detail="Admin access required"
+            )
     
     # Define the available plans with metered usage details
     plans = [
@@ -1084,6 +1093,9 @@ async def get_subscription_plans(
 
     # Get user's current plan
     customer = await stripe_customers.find_one({"user_id": user_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail=f"Customer not found for user_id '{user_id}'")
+    
     current_plan = None
     if customer and customer.get("stripe_subscription"):
         subscription = customer["stripe_subscription"]

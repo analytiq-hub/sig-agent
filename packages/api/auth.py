@@ -131,13 +131,25 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
 # Add this helper function to check admin status
 async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(security), request: Request = None):
     user = await get_current_user(credentials, request)
-    db = ad.common.get_async_db()
 
-    # Check if user has admin role in database
-    db_user = await db.users.find_one({"_id": ObjectId(user.user_id)})
-    if not db_user or db_user.get("role") != "admin":
+    if not await is_admin(user.user_id):
         raise HTTPException(
             status_code=403,
             detail="Admin access required"
         )
-    return user
+
+async def is_admin(user_id: str):
+    """
+    Check if a user is an admin
+
+    Args:
+        user_id: The ID of the user to check
+
+    Returns:
+        True if the user is an admin, False otherwise
+    """
+    db = ad.common.get_async_db()
+    db_user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not db_user or db_user.get("role") != "admin":
+        return False
+    return True
