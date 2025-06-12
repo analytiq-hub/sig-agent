@@ -141,25 +141,3 @@ async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(se
             detail="Admin access required"
         )
     return user
-
-async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(security), request: Request = None):
-    """Get the current authenticated admin user from JWT token."""
-    try:
-        token = credentials.credentials
-        payload = jwt.decode(token, FASTAPI_SECRET, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        is_admin = payload.get("is_admin", False)
-        
-        if user_id is None or not is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough permissions",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        return user_id
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
