@@ -358,6 +358,15 @@ async def sync_payments_customer(user_id: str, email: str, name: Optional[str] =
         # Get metered usage information
         usage = parse_stripe_usage(subscriptions, stripe_customer.id)
         logger.info(f"Parsed usage: {usage}")
+
+        if customer:
+            # Check if the customer_id changed
+            if customer.get("stripe_customer_id") != stripe_customer.id:
+                logger.info(f"Stripe customer_id changed from {customer.get('stripe_customer_id')} to {stripe_customer.id}")
+                
+                # Delete the old customer
+                await stripe_customers.delete_one({"user_id": user_id})
+                customer = None
         
         if customer:
             # Update the customer document with the new subscription and usage data
