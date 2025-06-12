@@ -31,7 +31,7 @@ email = "iubica2@yahoo.com"
 name = "Andrei Radulescu-Banu"
 
 # %%
-await api.payments.get_or_create_payments_customer(user_id=user_id, email=email, name=name)
+await api.payments.sync_payments_customer(user_id=user_id, email=email, name=name)
 
 # %%
 await api.payments.record_usage(user_id=user_id, pages_processed=10, operation="test")

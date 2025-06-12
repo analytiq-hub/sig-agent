@@ -72,7 +72,7 @@ from api.models import (
 from api.payments import payments_router
 from api.payments import (
     init_payments,
-    get_or_create_payments_customer,
+    sync_payments_customer,
     update_payments_customer,
     delete_payments_customer
 )
@@ -2836,7 +2836,7 @@ async def create_user(
     })
     
     # Create corresponding payments customer
-    await get_or_create_payments_customer(
+    await sync_payments_customer(
         user_id=str(user_doc["_id"]),
         email=user.email,
         name=user.name
@@ -3443,7 +3443,7 @@ async def accept_invitation(
         )
         
         # Create corresponding payments customer
-        await get_or_create_payments_customer(
+        await sync_payments_customer(
             user_id=user_id,
             email=invitation["email"],
             name=data.name

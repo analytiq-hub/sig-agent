@@ -141,10 +141,10 @@ async def init_payments():
 
     logger.info("Stripe initialized")
 
-    await sync_customers()
+    await sync_all_payments_customers()
     logger.info("Stripe customers synced")
 
-async def sync_customers() -> Tuple[int, int, List[str]]:
+async def sync_all_payments_customers() -> Tuple[int, int, List[str]]:
     """
     Synchronize all users in the database with Stripe by creating customer records
     
@@ -153,10 +153,10 @@ async def sync_customers() -> Tuple[int, int, List[str]]:
     """
     if not stripe.api_key:
         # No-op if Stripe is not configured
-        logger.warning("Stripe API key not configured - sync_customers aborted")
+        logger.warning("Stripe API key not configured - sync_all_payments_customers aborted")
         return 0, 0, ["Stripe API key not configured"]
 
-    logger.info("Starting sync of all users with Stripe")
+    logger.info("Starting sync of all customers with Stripe")
     
     try:
         # Get all users from the database
@@ -177,7 +177,7 @@ async def sync_customers() -> Tuple[int, int, List[str]]:
                     continue
                 
                 # Create or get customer
-                customer = await get_or_create_payments_customer(
+                customer = await sync_payments_customer(
                     user_id=user_id,
                     email=email,
                     name=name
@@ -189,15 +189,15 @@ async def sync_customers() -> Tuple[int, int, List[str]]:
                     errors.append(f"Failed to create/get customer for {user_id}")
             
             except Exception as e:
-                error_msg = f"Error syncing user {user.get('_id', 'unknown')}: {str(e)}"
+                error_msg = f"Error syncing user {user.get('_id', 'unknown')} with Stripe: {str(e)}"
                 logger.error(error_msg)
                 errors.append(error_msg)
         
-        logger.info(f"Completed sync: {successful}/{total_users} users synchronized with Stripe")
+        logger.info(f"{successful}/{total_users} customers synchronized with Stripe")
         return total_users, successful, errors
     
     except Exception as e:
-        logger.error(f"Error during customer sync: {e}")
+        logger.error(f"Error during customer sync with Stripe: {e}")
         return 0, 0, [f"Global error: {str(e)}"]
 
 # Dependency to get database
@@ -289,40 +289,42 @@ def parse_stripe_usage(parsed_subscription, stripe_customer_id):
     return usage
 
 # Helper functions
-async def get_or_create_payments_customer(user_id: str, email: str, name: Optional[str] = None) -> Dict[str, Any]:
+async def sync_payments_customer(user_id: str, email: str, name: Optional[str] = None) -> Dict[str, Any]:
     """Create or retrieve a Stripe customer for the given user"""
 
     if not stripe.api_key:
         # No-op if Stripe is not configured
         return None
 
-    logger.info(f"Getting or creating Stripe customer for user_id: {user_id}")
-    logger.info(f"Email: {email}")
-    logger.info(f"Name: {name}")
+    logger.info(f"Sync stripe customer for user_id: {user_id} email: {email} name: {name}")
 
-    # Check if customer already exists in our DB. We will reconcilie this with Stripe.
-    customer_doc = await stripe_customers.find_one({"user_id": user_id})
-
-    # Check if customer exists in Stripe by email
     try:
+        # Check if customer already exists in our DB. We will reconcilie this with Stripe.
+        customer = await stripe_customers.find_one({"user_id": user_id})
+    
         # Search for customers in Stripe with the given email
-        existing_customers = stripe.Customer.list(email=email)
+        stripe_customer = None
+        stripe_customer_list = stripe.Customer.list(email=email)
         
-        if existing_customers and existing_customers.data:
-            # Customer exists in Stripe but not in our DB
-            stripe_customer = existing_customers.data[0]
+        if stripe_customer_list and stripe_customer_list.data:
+            if len(stripe_customer_list.data) > 1:
+                logger.warning(f"Multiple Stripe customers found for email: {email}")
+            
+            stripe_customer = stripe_customer_list.data[0]
 
-            # Has name changed?
-            if name and name != stripe_customer.name:
+        if stripe_customer:
+            # Get the metadata from the Stripe customer
+            stripe_customer_metadata = stripe_customer.metadata
+            if stripe_customer.name != name or stripe_customer_metadata.get("user_id") != user_id:
+
                 # Update the customer in Stripe with additional metadata
                 stripe.Customer.modify(
                     stripe_customer.id,
                     name=name,  # Update name if provided
                     metadata={"user_id": user_id, "updated_at": datetime.utcnow().isoformat()}
                 )
-                logger.info(f"Updated Stripe customer name for user_id: {user_id}")
-            else:          
-                logger.info(f"Found existing Stripe customer with id: {stripe_customer.id}")
+
+                logger.info(f"Updated Stripe customer name {name} and user_id {user_id}")
         else:
             # Create new customer in Stripe
             stripe_customer = stripe.Customer.create(
@@ -334,54 +336,54 @@ async def get_or_create_payments_customer(user_id: str, email: str, name: Option
             logger.info(f"Created new Stripe customer with id: {stripe_customer.id}")
         
         # Check if the customer has an active subscription
-        subscription = None
-        subscriptions = stripe.Subscription.list(customer=stripe_customer.id)
-        if subscriptions.data:
-            subscription = subscriptions.data[0]
-            if subscription.status == "active":
+        stripe_subscription = None
+        stripe_subscription_list = stripe.Subscription.list(customer=stripe_customer.id)
+        if stripe_subscription_list.data:
+            stripe_subscription = stripe_subscription_list.data[0]
+            if stripe_subscription.status == "active":
                 logger.info(f"Customer {user_id} has an active subscription")
         else:
             logger.info(f"Customer {user_id} has no active subscriptions")
         
-        parsed_subscription = parse_stripe_subscription(subscription) if subscription else None
-        logger.info(f"Parsed subscription: {parsed_subscription}")
+        subscriptions = parse_stripe_subscription(stripe_subscription) if stripe_subscription else None
+        logger.info(f"Parsed subscriptions: {subscriptions}")
         
         # Get metered usage information
-        usage = parse_stripe_usage(parsed_subscription, stripe_customer.id)
+        usage = parse_stripe_usage(subscriptions, stripe_customer.id)
         logger.info(f"Parsed usage: {usage}")
         
-        if customer_doc:
+        if customer:
             # Update the customer document with the new subscription and usage data
             await stripe_customers.update_one(
                 {"user_id": user_id},
                 {"$set": {
-                    "stripe_subscription": parsed_subscription,
-                    "stripe_usage": usage,
+                    "subscriptions": subscriptions,
+                    "usage": usage,
                     "updated_at": datetime.utcnow()
                 }}
             )
-            customer_doc = await stripe_customers.find_one({"user_id": user_id})
-            logger.info(f"Updated customer document for user_id: {user_id}")
+            customer = await stripe_customers.find_one({"user_id": user_id})
+            logger.info(f"Updated customer for user_id: {user_id}")
         else:
-            logger.info(f"Customer {user_id} has no customer document")
+            logger.info(f"Customer {user_id} not found in MongoDB, creating")
         
             # Store in our database
-            customer_doc = {
+            customer = {
                 "user_id": user_id,
                 "stripe_customer_id": stripe_customer.id,
                 "email": email,
                 "name": name,
-                "stripe_subscription": parsed_subscription,
-                "stripe_usage": usage,
+                "subscriptions": subscriptions,
+                "usage": usage,
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
             }
 
-            await stripe_customers.insert_one(customer_doc)
-        return customer_doc
+            await stripe_customers.insert_one(customer)
+        return customer
     
     except Exception as e:
-        logger.error(f"Error in get_or_create_payments_customer: {e}")
+        logger.error(f"Error in sync_payments_customer: {e}")
         raise e
 
 async def record_usage(user_id: str, pages_processed: int, operation: str, source: str = "backend") -> Dict[str, Any]:
