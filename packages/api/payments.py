@@ -204,89 +204,6 @@ async def sync_all_payments_customers() -> Tuple[int, int, List[str]]:
 async def get_db() -> AsyncIOMotorDatabase:
     return db
 
-def parse_stripe_subscription(subscription):    
-    # 1. Check if subscription is active
-    is_active = subscription.get('status') == 'active'
-    
-    # 2. Check if payment method is on file
-    # This can be determined by checking for default_payment_method or default_source
-    has_payment_method = bool(subscription.get('default_payment_method') or subscription.get('default_source'))
-    
-    # 3. Check if payments are current
-    # In Stripe, if a subscription is 'active', it generally means payments are current
-    # You might also want to check if there are any past_due invoices related to this subscription
-    payments_current = is_active  # For basic check
-    
-    # 4. Get metered usage information
-    metered_usage = {}
-    
-    # Check subscription items for metered plans
-    items = subscription.get('items', {}).get('data', [])
-    for item in items:
-        plan = item.get('plan', {})
-        price = item.get('price', {})
-        
-        # Check if this is a metered plan
-        if plan.get('usage_type') == 'metered':
-            item_id = item.get('id')
-            price_id = price.get('id')
-            
-            # Use the new subroutine
-            subscription_type = get_subscription_type(price_id)
-            
-            metered_usage[item_id] = {
-                'subscription_type': subscription_type,
-                'product_id': plan.get('product'),
-                'price_id': price_id,
-                'meter_id': plan.get('meter'),
-                'current_period_start': item.get('current_period_start'),
-                'current_period_end': item.get('current_period_end')
-            }
-    
-    return {
-        'is_active': is_active,
-        'has_payment_method': has_payment_method,
-        'payments_current': payments_current,
-        'metered_usage': metered_usage
-    }
-
-def parse_stripe_usage(parsed_subscription, stripe_customer_id):
-    # Get metered usage information
-    usage = {}
-    if parsed_subscription and parsed_subscription.get("metered_usage"):
-        try:
-            # Get usage for each subscription item that has metered billing
-            for item_id, item_data in parsed_subscription["metered_usage"].items():
-                # Get the current billing period's usage
-                if "subscription_item_id" in item_data:
-                    subscription_item_id = item_data["subscription_item_id"]
-                    subscription_type = item_data.get("subscription_type")  # Get subscription type
-
-                    meter_event_summaries = stripe.billing.Meter.list_event_summaries(
-                        item_data["meter_id"],
-                        customer=stripe_customer_id,
-                        start_time=item_data["current_period_start"],
-                        end_time=item_data["current_period_end"],
-                    )
-
-                    logger.info(f"Meter event summaries: {meter_event_summaries}")
-                    
-                    # Extract relevant usage information
-                    current_usage = {
-                        "subscription_type": subscription_type,
-                        "total_usage": meter_event_summaries.get('total_usage', 0),
-                        "period_details": []
-                    }
-                    
-                    # Store usage for this subscription item
-                    usage[subscription_item_id] = current_usage
-        
-        except Exception as e:
-            logger.error(f"Error retrieving Stripe usage information: {e}")
-            # Continue with empty usage object rather than failing
-    
-    return usage
-
 # Helper functions
 async def sync_payments_customer(user_id: str, email: str, name: Optional[str] = None) -> Dict[str, Any]:
     """Create or retrieve a Stripe customer for the given user"""
@@ -401,6 +318,89 @@ async def sync_payments_customer(user_id: str, email: str, name: Optional[str] =
     except Exception as e:
         logger.error(f"Error in sync_payments_customer: {e}")
         raise e
+
+def parse_stripe_subscription(subscription):    
+    # 1. Check if subscription is active
+    is_active = subscription.get('status') == 'active'
+    
+    # 2. Check if payment method is on file
+    # This can be determined by checking for default_payment_method or default_source
+    has_payment_method = bool(subscription.get('default_payment_method') or subscription.get('default_source'))
+    
+    # 3. Check if payments are current
+    # In Stripe, if a subscription is 'active', it generally means payments are current
+    # You might also want to check if there are any past_due invoices related to this subscription
+    payments_current = is_active  # For basic check
+    
+    # 4. Get metered usage information
+    metered_usage = {}
+    
+    # Check subscription items for metered plans
+    items = subscription.get('items', {}).get('data', [])
+    for item in items:
+        plan = item.get('plan', {})
+        price = item.get('price', {})
+        
+        # Check if this is a metered plan
+        if plan.get('usage_type') == 'metered':
+            item_id = item.get('id')
+            price_id = price.get('id')
+            
+            # Use the new subroutine
+            subscription_type = get_subscription_type(price_id)
+            
+            metered_usage[item_id] = {
+                'subscription_type': subscription_type,
+                'product_id': plan.get('product'),
+                'price_id': price_id,
+                'meter_id': plan.get('meter'),
+                'current_period_start': item.get('current_period_start'),
+                'current_period_end': item.get('current_period_end')
+            }
+    
+    return {
+        'is_active': is_active,
+        'has_payment_method': has_payment_method,
+        'payments_current': payments_current,
+        'metered_usage': metered_usage
+    }
+
+def parse_stripe_usage(parsed_subscription, stripe_customer_id):
+    # Get metered usage information
+    usage = {}
+    if parsed_subscription and parsed_subscription.get("metered_usage"):
+        try:
+            # Get usage for each subscription item that has metered billing
+            for item_id, item_data in parsed_subscription["metered_usage"].items():
+                # Get the current billing period's usage
+                if "subscription_item_id" in item_data:
+                    subscription_item_id = item_data["subscription_item_id"]
+                    subscription_type = item_data.get("subscription_type")  # Get subscription type
+
+                    meter_event_summaries = stripe.billing.Meter.list_event_summaries(
+                        item_data["meter_id"],
+                        customer=stripe_customer_id,
+                        start_time=item_data["current_period_start"],
+                        end_time=item_data["current_period_end"],
+                    )
+
+                    logger.info(f"Meter event summaries: {meter_event_summaries}")
+                    
+                    # Extract relevant usage information
+                    current_usage = {
+                        "subscription_type": subscription_type,
+                        "total_usage": meter_event_summaries.get('total_usage', 0),
+                        "period_details": []
+                    }
+                    
+                    # Store usage for this subscription item
+                    usage[subscription_item_id] = current_usage
+        
+        except Exception as e:
+            logger.error(f"Error retrieving Stripe usage information: {e}")
+            # Continue with empty usage object rather than failing
+    
+    return usage
 
 async def record_usage(user_id: str, pages_processed: int, operation: str, source: str = "backend") -> Dict[str, Any]:
     """Record usage for a user and report to Stripe if on paid tier"""
