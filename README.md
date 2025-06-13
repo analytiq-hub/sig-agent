@@ -26,7 +26,7 @@ The Document Router is designed to work with a human-in-the-loop and can process
 ![Smart Document Router](./docs/assets/doc-router-arch.png)
 
 # Project Slides
-[Smart Document Router Slides](https://docs.google.com/presentation/d/10NPy_kRrVfhWHY-No1GAEeNSAr0C-DCpZL2whSzZH9c/edit#slide=id.g302dd857fb2_0_30)
+[Smart Document Router Slides](https://docs.google.com/presentation/d/1wU0jtcXnqCu5nxaRRCp7D37Q63i4gr-4ASdUhO__tM8))
 
 # Docs
 * Installation
