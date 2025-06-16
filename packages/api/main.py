@@ -2837,6 +2837,41 @@ async def delete_user(
             status_code=403,
             detail="Not authorized to delete this user"
         )
+
+    # Is the user an admin of any organization?
+    orgs = await db.organizations.find({"members.user_id": user_id}).to_list(None)
+    if orgs:
+        for org in orgs:
+            # Is this a single-user organization?
+            members = org["members"]
+            if len(members) == 1:
+                # Delete the organization
+                await db.organizations.delete_one({"_id": org["_id"]})
+                await delete_payments_customer(org_id=org["_id"])
+                continue
+            
+            # Is this the last admin of the organization?
+            admin_count = 0
+            is_org_admin = False
+            for member in members:
+                if member["role"] == "admin":
+                    admin_count += 1
+                    if member["user_id"] == user_id:
+                        is_org_admin = True
+            if is_org_admin and admin_count == 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail="User is the last admin of an organization and cannot be deleted"
+                )
+            
+            # Remove the user from the organization
+            await db.organizations.update_one(
+                {"_id": org["_id"]},
+                {"$pull": {"members": {"user_id": user_id}}}
+            )
+
+            # Update the payments customer
+            await sync_payments_customer(org_id=org["_id"])
     
     # Don't allow deleting the last admin user
     target_user = await db.users.find_one({"_id": ObjectId(user_id)})

@@ -256,13 +256,15 @@ async def sync_all_payments_customers() -> Tuple[int, int, List[str]]:
             
             # Create tasks for each user in the batch
             tasks = []
-            for org in batch:
+            org_map = {}  # Map to store task index to org mapping
+            for idx, org in enumerate(batch):
                 try:
                     org_id = str(org.get("_id"))
                     
                     # Create task for syncing customer
                     task = sync_payments_customer(org_id=org_id)
                     tasks.append(task)
+                    org_map[idx] = org  # Store org reference with task index
                 
                 except Exception as e:
                     error_msg = f"Error preparing sync for organization {org_id}: {str(e)}"
@@ -275,9 +277,10 @@ async def sync_all_payments_customers() -> Tuple[int, int, List[str]]:
                     results = await asyncio.gather(*tasks, return_exceptions=True)
                     
                     # Process results
-                    for result in results:
+                    for idx, result in enumerate(results):
                         if isinstance(result, Exception):
-                            error_msg = f"Error syncing customer: {str(result)}"
+                            org = org_map.get(idx)
+                            error_msg = f"Error syncing customer for org {org.get('name', 'unknown')}: {str(result)}"
                             logger.error(error_msg)
                             errors.append(error_msg)
                         elif result:
