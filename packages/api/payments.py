@@ -1049,7 +1049,7 @@ async def handle_invoice_payment_failed(invoice: Dict[str, Any]):
     except Exception as e:
         print(f"Error processing invoice payment failure: {e}")
 
-async def delete_all_stripe_customers(dryrun: bool = True) -> Dict[str, Any]:
+async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
     """
     Permanently delete all customers from Stripe
     
