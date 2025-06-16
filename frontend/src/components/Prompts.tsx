@@ -505,7 +505,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           </MenuItem>
           <MenuItem 
             onClick={() => {
-              if (selectedPrompt) handleDelete(selectedPrompt.prompt_revid);
+              if (selectedPrompt) handleDelete(selectedPrompt.prompt_id);
             }}
             className="flex items-center gap-2"
           >
