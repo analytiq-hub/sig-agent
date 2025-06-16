@@ -111,7 +111,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     setEditingPrompt(prompt);
     
     // Navigate to the create-prompt tab
-    router.push(`/orgs/${organizationId}/prompts?tab=prompt-create`);
+    router.push(`/orgs/${organizationId}/prompts?tab=prompt-create&prompt-id=${prompt.prompt_id}`);
     handleMenuClose();
   };
 

@@ -76,7 +76,7 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     setEditingSchema(schema);
     
     // Navigate to the create-schema tab
-    router.push(`/orgs/${organizationId}/schemas?tab=schema-create`);
+    router.push(`/orgs/${organizationId}/schemas?tab=schema-create&schema-id=${schema.schema_id}`);
     handleMenuClose();
   };
 
