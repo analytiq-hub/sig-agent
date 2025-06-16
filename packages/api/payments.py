@@ -293,10 +293,10 @@ async def sync_all_payments_customers() -> Tuple[int, int, List[str]]:
                     logger.error(error_msg)
                     errors.append(error_msg)
             
-            logger.info(f"Processed batch {i//batch_size + 1}/{(total_users + batch_size - 1)//batch_size}")
+            logger.info(f"Processed batch {i//batch_size + 1}/{(total_orgs + batch_size - 1)//batch_size}")
         
-        logger.info(f"{successful}/{total_users} customers synchronized with Stripe")
-        return total_users, successful, errors
+        logger.info(f"{successful}/{total_orgs} customers synchronized with Stripe")
+        return total_orgs, successful, errors
     
     except Exception as e:
         logger.error(f"Error during customer sync with Stripe: {e}")
@@ -328,6 +328,10 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
 
     # Get the user_name from the user_id
     user = await db["users"].find_one({"_id": ObjectId(user_id)})
+    if not user:
+        logger.error(f"No user found for user_id: {user_id} in org_id: {org_id}")
+        return None
+    
     user_name = user.get("name")
     user_email = user.get("email")
 
