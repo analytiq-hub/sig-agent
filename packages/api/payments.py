@@ -683,12 +683,12 @@ async def update_payments_customer(user_id: str, email: Optional[str] = None, na
         # Return the original customer info even if update failed
         return stripe_customer
 
-async def delete_payments_customer(user_id: str) -> Dict[str, Any]:
+async def delete_payments_customer(org_id: str) -> Dict[str, Any]:
     """
     Mark a Stripe customer as deleted without actually removing them from Stripe
     
     Args:
-        user_id: The user ID of the Stripe customer to mark as deleted
+        org_id: The org ID of the Stripe customer to mark as deleted
         
     Returns:
         Dictionary with status information about the operation
@@ -698,13 +698,13 @@ async def delete_payments_customer(user_id: str) -> Dict[str, Any]:
         # No-op if Stripe is not configured
         return None
 
-    logger.info(f"Marking Stripe customer as deleted for user_id: {user_id}")
+    logger.info(f"Marking Stripe customer as deleted for org_id: {org_id}")
     
     try:
         # Find Stripe customer
-        stripe_customer = await stripe_customers.find_one({"user_id": user_id})
+        stripe_customer = await stripe_customers.find_one({"org_id": org_id})
         if not stripe_customer:
-            logger.warning(f"No Stripe customer found for user_id: {user_id}")
+            logger.warning(f"No Stripe customer found for org_id: {org_id}")
             return {"success": False, "reason": "Customer not found"}
             
         # In Stripe, we typically don't delete customers but mark them as deleted
@@ -716,7 +716,7 @@ async def delete_payments_customer(user_id: str) -> Dict[str, Any]:
         
         # Update our database record
         await stripe_customers.update_one(
-            {"user_id": user_id},
+            {"org_id": org_id},
             {"$set": {"deleted": True, "deleted_at": datetime.utcnow()}}
         )
         

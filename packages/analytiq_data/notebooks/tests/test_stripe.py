@@ -22,7 +22,7 @@ await api.payments.init_payments_env()
 
 # %%
 
-await api.payments.delete_all_stripe_customers(dryrun=False)
+await api.payments.delete_all_stripe_customers(dryrun=True)
 # %%
 org_id = "6795345439604beca2b2808d"
 

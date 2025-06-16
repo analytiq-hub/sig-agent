@@ -77,7 +77,6 @@ from api.payments import payments_router
 from api.payments import (
     init_payments,
     sync_payments_customer,
-    update_payments_customer,
     delete_payments_customer
 )
 import analytiq_data as ad
@@ -2431,9 +2430,14 @@ async def create_organization(
     }
     
     result = await db.organizations.insert_one(organization_doc)
+    org_id = str(result.inserted_id)
+
+    # Create corresponding payments customer
+    await sync_payments_customer(org_id=org_id)
+
     return Organization(**{
         **organization_doc,
-        "id": str(result.inserted_id)
+        "id": org_id
     })
 
 @app.put("/v0/account/organizations/{organization_id}", response_model=Organization, tags=["account/organizations"])
@@ -2500,6 +2504,9 @@ async def update_organization(
     else:
         # If no updates were needed, just return the current organization
         updated_organization = organization
+
+    # Update the payments customer
+    await sync_payments_customer(org_id=organization_id)
 
     return Organization(**{
         "id": str(updated_organization["_id"]),
@@ -2732,13 +2739,6 @@ async def create_user(
         "updated_at": datetime.now(UTC)
     })
     
-    # Create corresponding payments customer
-    await sync_payments_customer(
-        user_id=str(user_doc["_id"]),
-        email=user.email,
-        name=user.name
-    )
-    
     return UserResponse(**user_doc)
 
 @app.put("/v0/account/users/{user_id}", response_model=UserResponse, tags=["account/users"])
@@ -2808,13 +2808,6 @@ async def update_user(
             detail="User not found"
         )
     
-    # Update payments customer if email or name changed
-    if (user.name):
-        await update_payments_customer(
-            user_id=user_id,
-            name=user.name,
-        )
-    
     return UserResponse(
         id=str(result["_id"]),
         email=result["email"],
@@ -2860,9 +2853,6 @@ async def delete_user(
                 status_code=400,
                 detail="Cannot delete the last admin user"
             )
-    
-    # Handle payments customer before deleting user
-    await delete_payments_customer(user_id)
     
     try:
         await users.delete_user(db, user_id)
@@ -3338,13 +3328,6 @@ async def accept_invitation(
             {"_id": invitation["_id"]},
             {"$set": {"status": "accepted"}}
         )
-        
-        # Create corresponding payments customer
-        await sync_payments_customer(
-            user_id=user_id,
-            email=invitation["email"],
-            name=data.name
-        )  
         
         return {"message": "Account created successfully"}
     except Exception as e:
