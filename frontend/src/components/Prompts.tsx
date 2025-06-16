@@ -177,7 +177,7 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     try {
       setIsLoading(true);
       await deletePromptApi({organizationId: organizationId, promptId: promptId});
-      setPrompts(prompts.filter(prompt => prompt.prompt_revid !== promptId));
+      setPrompts(prompts.filter(prompt => prompt.prompt_id !== promptId));
       handleMenuClose();
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error deleting prompt';
