@@ -467,7 +467,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
                         <PencilIcon className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleArrayItemDelete(promptId, arrayItemKey, index)}
+                        onClick={() => handleArrayItemDelete(promptId, arrayItemKey)}
                         className="p-1 text-red-600 hover:bg-gray-100 rounded"
                         title="Delete item"
                       >
@@ -507,7 +507,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
                   <span className="font-medium text-sm text-gray-700">Item {index}</span>
                   {editMode && (
                     <button
-                      onClick={() => handleArrayItemDelete(promptId, arrayItemKey, index)}
+                      onClick={() => handleArrayItemDelete(promptId, arrayItemKey)}
                       className="p-1 text-red-600 hover:bg-gray-100 rounded"
                       title="Delete item"
                     >
@@ -592,7 +592,7 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   };
 
   // Add these new handler functions to the component
-  const handleArrayItemDelete = async (promptId: string, arrayKey: string, index: number) => {
+  const handleArrayItemDelete = async (promptId: string, arrayKey: string) => {
     // Only allow array item deletion when edit mode is enabled
     if (!editMode) return;
     
