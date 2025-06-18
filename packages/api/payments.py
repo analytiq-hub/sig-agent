@@ -1245,9 +1245,17 @@ async def get_subscription_plans(
 @payments_router.post("/change-plan")
 async def change_subscription_plan(
     data: ChangePlanRequest,
+    current_user: User = Depends(get_current_user)
 ):
     """Change user's subscription plan"""
     logger.info(f"Changing subscription plan for org_id: {data.org_id} to plan_id: {data.plan_id}")
+
+    # Is the current user an org admin? Or a system admin?
+    if not await is_org_admin(org_id=data.org_id, user_id=current_user.user_id):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Org admin access required for org_id: {data.org_id} user_id: {current_user.user_id}"
+        )
 
     try:
         # Get customer record
@@ -1256,7 +1264,7 @@ async def change_subscription_plan(
             raise HTTPException(status_code=404, detail="Customer not found")
 
         # Find the selected plan
-        plans = await get_subscription_plans(data.org_id)
+        plans = await get_subscription_plans(data.org_id, current_user)
         selected_plan = next((p for p in plans.plans if p.plan_id == data.plan_id), None)
         if not selected_plan:
             raise HTTPException(status_code=400, detail="Invalid plan selected")
