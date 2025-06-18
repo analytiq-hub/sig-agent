@@ -823,8 +823,12 @@ async def customer_portal(
     logger.info(f"Generating Stripe customer portal for org_id: {data.org_id}")
 
     try:
+        customer = await stripe_customers.find_one({"org_id": data.org_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        logger.info(f"Stripe customer found for org_id: {data.org_id}: {customer['stripe_customer_id']}")
         session = await StripeAsync.billing_portal_session_create(
-            customer=await stripe_customers.find_one({"org_id": data.org_id})["stripe_customer_id"],
+            customer=customer["stripe_customer_id"],
             return_url=f"{NEXTAUTH_URL}/settings/user/subscription",
         )
         logger.info(f"Stripe customer portal URL: {session.url}")
