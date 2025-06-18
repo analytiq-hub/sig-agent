@@ -5,10 +5,10 @@ import { getCustomerPortalApi } from '@/utils/api';
 import SubscriptionPlans from './SubscriptionPlans';
 
 interface SubscriptionProps {
-  userId: string;
+  organizationId: string;
 }
 
-const Subscription: React.FC<SubscriptionProps> = ({ userId }) => {
+const Subscription: React.FC<SubscriptionProps> = ({ organizationId }) => {
   const [customerPortalUrl, setCustomerPortalUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -16,7 +16,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ userId }) => {
     const fetchPortalUrl = async () => {
       try {
         setLoading(true);
-        const response = await getCustomerPortalApi(userId);
+        const response = await getCustomerPortalApi(organizationId);
         setCustomerPortalUrl(response.url);
       } catch (error) {
         console.info('Could not fetch customer portal URL:', error);
@@ -26,7 +26,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ userId }) => {
     };
 
     fetchPortalUrl();
-  }, [userId]);
+  }, [organizationId]);
 
   if (loading) {
     return (
@@ -41,7 +41,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ userId }) => {
       {customerPortalUrl ? (
         <div className="space-y-4">
           <div>
-            <SubscriptionPlans userId={userId} />
+            <SubscriptionPlans organizationId={organizationId} />
           </div>
           <div className="flex flex-col items-center justify-center gap-2 text-sm text-gray-600">
             <div className="flex items-center gap-2">

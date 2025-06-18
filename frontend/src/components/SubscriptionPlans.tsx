@@ -6,10 +6,10 @@ import { toast } from 'react-toastify';
 import type { SubscriptionPlan } from '@/types/payments';
 
 interface SubscriptionPlansProps {
-  userId: string;
+  organizationId: string;
 }
 
-const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ userId }) => {
+const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId }) => {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -19,7 +19,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ userId }) => {
     const fetchPlans = async () => {
       try {
         setLoading(true);
-        const data = await getSubscriptionPlansApi(userId);
+        const data = await getSubscriptionPlansApi(organizationId);
         setPlans(data.plans);
         setCurrentPlan(data.current_plan);
         setSelectedPlan(data.current_plan || 'basic');
@@ -32,15 +32,15 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ userId }) => {
     };
 
     fetchPlans();
-  }, [userId]);
+  }, [organizationId]);
 
   const handlePlanChange = async (planId: string) => {
     try {
       setLoading(true);
       setSelectedPlan(planId);
-      await changeSubscriptionPlanApi(userId, planId);
+      await changeSubscriptionPlanApi(organizationId, planId);
 
-      const portalResponse = await getCustomerPortalApi(userId);
+      const portalResponse = await getCustomerPortalApi(organizationId);
       window.location.href = portalResponse.url;
     } catch (error) {
       console.error('Error changing plan:', error);

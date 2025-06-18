@@ -140,7 +140,7 @@ class UsageRecord(BaseModel):
     source: str = "backend"
 
 class PortalSessionCreate(BaseModel):
-    user_id: str
+    org_id: str
 
 class PortalSessionResponse(BaseModel):
     url: str
@@ -820,11 +820,11 @@ async def customer_portal(
 ) -> PortalSessionResponse:
     """Generate a Stripe Customer Portal link"""
 
-    logger.info(f"Generating Stripe customer portal for user_id: {data.user_id}")
+    logger.info(f"Generating Stripe customer portal for org_id: {data.org_id}")
 
     try:
         session = await StripeAsync.billing_portal_session_create(
-            customer=await stripe_customers.find_one({"user_id": data.user_id})["stripe_customer_id"],
+            customer=await stripe_customers.find_one({"org_id": data.org_id})["stripe_customer_id"],
             return_url=f"{NEXTAUTH_URL}/settings/user/subscription",
         )
         logger.info(f"Stripe customer portal URL: {session.url}")

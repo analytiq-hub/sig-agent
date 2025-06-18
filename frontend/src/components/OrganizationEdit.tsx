@@ -20,6 +20,7 @@ import { toast } from 'react-toastify'
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Subscription from './Subscription'
 
 interface OrganizationEditProps {
   organizationId: string
@@ -379,6 +380,12 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
                 </select>
               </div>
             </div>
+          </div>
+
+          {/* Subscription Section */}
+          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Subscription</h3>
+            <Subscription organizationId={organizationId} />
           </div>
 
           {/* Members Section - adjust the height calculation */}
