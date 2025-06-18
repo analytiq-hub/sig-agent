@@ -1269,8 +1269,11 @@ async def change_subscription_plan(
         if not selected_plan:
             raise HTTPException(status_code=400, detail="Invalid plan selected")
 
+        logger.info(f"Selected plan: {selected_plan}")
+
         # If user has an active subscription, update it
         if customer.get("stripe_subscription") and customer["stripe_subscription"].get("subscription_item_id"):
+            logger.info(f"Customer has an active subscription: {customer['stripe_subscription']}")
             subscription_id = customer["stripe_subscription"].get("subscription_id")
             if subscription_id:
                 # Update the subscription with the new price
@@ -1282,6 +1285,7 @@ async def change_subscription_plan(
                     }],
                     proration_behavior='always_invoice'
                 )
+                logger.info(f"Updated subscription: {updated_subscription}")
                 # Update minimal info in customer record
                 await stripe_customers.update_one(
                     {"org_id": data.org_id},
@@ -1298,6 +1302,7 @@ async def change_subscription_plan(
                 logger.info(f"Updated subscription {subscription_id} with new price {selected_plan.price_id}")
         else:
             # Create new subscription
+            logger.info(f"Creating new subscription for customer: {customer['stripe_customer_id']}")
             subscription = await StripeAsync.subscription_create(
                 customer=customer["stripe_customer_id"],
                 items=[{
@@ -1306,7 +1311,7 @@ async def change_subscription_plan(
                 payment_behavior='default_incomplete',
                 expand=['latest_invoice.payment_intent'],
             )
-            
+            logger.info(f"Created new subscription: {subscription}")
             # Store only minimal info in customer record
             await stripe_customers.update_one(
                 {"org_id": data.org_id},
@@ -1320,6 +1325,7 @@ async def change_subscription_plan(
                     }
                 }
             )
+            logger.info(f"Updated customer record with new subscription: {customer['stripe_subscription']}")
 
         return {"status": "success", "message": "Subscription plan updated successfully"}
 
