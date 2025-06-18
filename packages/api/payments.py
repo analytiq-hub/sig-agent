@@ -14,7 +14,8 @@ import analytiq_data as ad
 from api.auth import (
     get_current_user,
     get_admin_user,
-    is_admin
+    is_admin,
+    is_org_admin
 )
 from api.models import User
 
@@ -1157,20 +1158,29 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
         logger.error(f"Error during bulk deletion: {e}")
         return {"success": False, "error": str(e)}
 
-@payments_router.get("/plans/{user_id}")
+@payments_router.get("/plans/{org_id}")
 async def get_subscription_plans(
-    user_id: str = None,
+    org_id: str = None,
     current_user: User = Depends(get_current_user)
 ) -> SubscriptionPlanResponse:
     """Get available subscription plans and user's current plan"""
 
-    # Regular users can only read their own subscription. Admins can read any subscription
-    if user_id != current_user.user_id:
-        if not await is_admin(current_user.user_id):
-            raise HTTPException(
-                status_code=403,
-                detail="Admin access required"
-            )
+    logger.info(f"Getting subscription plans for org_id: {org_id} user_id: {current_user.user_id}")
+
+    # Is the current user an org admin? Or a system admin?
+    if not await is_org_admin(org_id=org_id, user_id=current_user.user_id):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Org admin access required for org_id: {org_id} user_id: {current_user.user_id}"
+        )
+
+    # Get the customer
+    customer = await stripe_customers.find_one({"org_id": org_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail=f"Customer not found for org_id: {org_id}")
+    
+    # Get the subscription
+    subscription = await stripe_customers.find_one({"stripe_customer_id": customer["stripe_customer_id"]})
     
     # Define the available plans with metered usage details
     plans = [
@@ -1216,9 +1226,9 @@ async def get_subscription_plans(
     ]
 
     # Get user's current plan
-    customer = await stripe_customers.find_one({"user_id": user_id})
+    customer = await stripe_customers.find_one({"org_id": org_id})
     if not customer:
-        raise HTTPException(status_code=404, detail=f"Customer not found for user_id '{user_id}'")
+        raise HTTPException(status_code=404, detail=f"Customer not found for org_id: {org_id}")
     
     current_plan = None
     if customer and customer.get("stripe_subscription"):

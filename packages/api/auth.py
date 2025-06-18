@@ -94,10 +94,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
     except JWTError:
         # If JWT validation fails, check if it's an API token
         encrypted_token = ad.crypto.encrypt_token(token)
-        logger.info(f"token: {token}")
-        logger.info(f"encrypted_token: {encrypted_token}")
-        logger.info(f"context_type: {context_type}")
-        logger.info(f"org_id: {org_id}")
         
         # Build query based on context
         token_query = {"token": encrypted_token}
@@ -112,7 +108,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
             raise HTTPException(status_code=401, detail="Invalid API context")
             
         stored_token = await db.access_tokens.find_one(token_query)
-        logger.info(f"stored_token: {stored_token}")
         
         if stored_token:
             # Validate that user_id from stored token exists in database
@@ -153,3 +148,29 @@ async def is_admin(user_id: str):
     if not db_user or db_user.get("role") != "admin":
         return False
     return True
+
+async def is_org_admin(org_id: str, user_id: str):
+    """
+    Check if a user is an org admin
+
+    Args:
+        org_id: The ID of the organization to check
+        user_id: The ID of the user to check
+
+    Returns:
+        True if the user is an org admin, False otherwise
+    """
+    logger.info(f"Checking if user_id: {user_id} is an org admin for org_id: {org_id}")
+    db = ad.common.get_async_db()
+    org = await db.organizations.find_one({"_id": ObjectId(org_id)})
+    if not org:
+        logger.info(f"Org not found for org_id: {org_id}")
+        return False
+
+    for member in org.get("members", []):
+        logger.info(f"Checking member: {member}")
+        if member.get("user_id") == user_id and member.get("role") == "admin":
+            return True
+
+    logger.info(f"User_id: {user_id} is not an org admin for org_id: {org_id}")
+    return False
