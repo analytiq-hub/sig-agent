@@ -603,24 +603,36 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       // Create a deep copy of the current result
       const updatedResult = JSON.parse(JSON.stringify(result.updated_llm_result));
       
-      // Find the array to modify
-      const pathParts = arrayKey.split('.');
-      let current = updatedResult;
+      // Extract the array path and index from the arrayKey
+      const arrayItemRegex = /(.*?)\[(\d+)\](\..*)?$/;
+      const matches = arrayKey.match(arrayItemRegex);
       
-      // Navigate to the containing object
-      for (let i = 0; i < pathParts.length; i++) {
-        const part = pathParts[i];
+      if (!matches) {
+        console.error('Invalid array key format:', arrayKey);
+        return;
+      }
+      
+      const arrayPath = matches[1];      // e.g., "items"
+      const arrayIndex = parseInt(matches[2], 10); // e.g., 2
+      
+      // Navigate to the array
+      let current = updatedResult;
+      const pathParts = arrayPath.split('.');
+      
+      // Navigate to the containing array
+      for (const part of pathParts) {
         if (current[part] !== undefined) {
           current = current[part];
         } else {
-          console.error('Path not found:', arrayKey);
+          console.error('Array path not found:', arrayPath);
           return;
         }
       }
       
-      // Remove the specified index if it's an array
-      if (Array.isArray(current)) {
-        current.splice(index, 1);
+      // Make sure we found the array and the index is valid
+      if (Array.isArray(current) && arrayIndex >= 0 && arrayIndex < current.length) {
+        // Remove the item at the specified index
+        current.splice(arrayIndex, 1);
         
         // Update the result with API
         const apiResult = await updateLLMResultApi({
