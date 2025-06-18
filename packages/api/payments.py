@@ -830,7 +830,7 @@ async def customer_portal(
         logger.info(f"Stripe customer found for org_id: {data.org_id}: {customer['stripe_customer_id']}")
         session = await StripeAsync.billing_portal_session_create(
             customer=customer["stripe_customer_id"],
-            return_url=f"{NEXTAUTH_URL}/settings/user/subscription",
+            return_url=f"{NEXTAUTH_URL}/settings/organizations/{data.org_id}",
         )
         logger.info(f"Stripe customer portal URL: {session.url}")
         return PortalSessionResponse(url=session.url)
