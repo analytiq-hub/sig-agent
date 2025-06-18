@@ -162,7 +162,7 @@ class SubscriptionPlanResponse(BaseModel):
     current_plan: Optional[str] = None
 
 class ChangePlanRequest(BaseModel):
-    user_id: str
+    org_id: str
     plan_id: str
 
 class SubscriptionHistory(BaseModel):
@@ -1247,16 +1247,16 @@ async def change_subscription_plan(
     data: ChangePlanRequest,
 ):
     """Change user's subscription plan"""
-    logger.info(f"Changing subscription plan for user_id: {data.user_id} to plan_id: {data.plan_id}")
-    
+    logger.info(f"Changing subscription plan for org_id: {data.org_id} to plan_id: {data.plan_id}")
+
     try:
         # Get customer record
-        customer = await stripe_customers.find_one({"user_id": data.user_id})
+        customer = await stripe_customers.find_one({"org_id": data.org_id})
         if not customer:
             raise HTTPException(status_code=404, detail="Customer not found")
 
         # Find the selected plan
-        plans = await get_subscription_plans(data.user_id)
+        plans = await get_subscription_plans(data.org_id)
         selected_plan = next((p for p in plans.plans if p.plan_id == data.plan_id), None)
         if not selected_plan:
             raise HTTPException(status_code=400, detail="Invalid plan selected")
@@ -1276,7 +1276,7 @@ async def change_subscription_plan(
                 )
                 # Update minimal info in customer record
                 await stripe_customers.update_one(
-                    {"user_id": data.user_id},
+                    {"org_id": data.org_id},
                     {
                         "$set": {
                             "stripe_subscription": {
@@ -1301,7 +1301,7 @@ async def change_subscription_plan(
             
             # Store only minimal info in customer record
             await stripe_customers.update_one(
-                {"user_id": data.user_id},
+                {"org_id": data.org_id},
                 {
                     "$set": {
                         "stripe_subscription": {

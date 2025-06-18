@@ -699,23 +699,21 @@ export const getCustomerPortalApi = async (orgId: string): Promise<PortalSession
 };
 
 // Add these new API functions
-export const getSubscriptionPlansApi = async (userId: string): Promise<SubscriptionPlanResponse> => {
-  const response = await api.get<SubscriptionPlanResponse>(`/v0/account/payments/plans`, {
-    params: { user_id: userId }
-  });
+export const getSubscriptionPlansApi = async (orgId: string): Promise<SubscriptionPlanResponse> => {
+  const response = await api.get<SubscriptionPlanResponse>(`/v0/account/payments/plans/${orgId}`);
   return response.data;
 };
 
-export const changeSubscriptionPlanApi = async (userId: string, planId: string): Promise<{ status: string; message: string }> => {
+export const changeSubscriptionPlanApi = async (orgId: string, planId: string): Promise<{ status: string; message: string }> => {
   const response = await api.post<{ status: string; message: string }>(`/v0/account/payments/change-plan`, {
-    user_id: userId,
+    org_id: orgId,
     plan_id: planId
   });
   return response.data;
 };
 
 // Add this new API function
-export const getSubscriptionHistoryApi = async (userId: string): Promise<SubscriptionHistoryResponse> => {
-  const response = await api.get<SubscriptionHistoryResponse>(`/v0/account/payments/subscription-history/${userId}`);
+export const getSubscriptionHistoryApi = async (orgId: string): Promise<SubscriptionHistoryResponse> => {
+  const response = await api.get<SubscriptionHistoryResponse>(`/v0/account/payments/subscription-history/${orgId}`);
   return response.data;
 };
