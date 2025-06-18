@@ -382,12 +382,6 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
             </div>
           </div>
 
-          {/* Subscription Section */}
-          <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Subscription</h3>
-            <Subscription organizationId={organizationId} />
-          </div>
-
           {/* Members Section - adjust the height calculation */}
           <div className="flex-1 bg-gray-50 p-4 rounded-lg flex flex-col">
             <div className="flex justify-between items-center mb-4">
@@ -498,6 +492,12 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
                 </MenuItem>
               </Menu>
             </div>
+          </div>
+
+          {/* Subscription Section */}
+          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Subscription</h3>
+            <Subscription organizationId={organizationId} />
           </div>
         </form>
       </div>
