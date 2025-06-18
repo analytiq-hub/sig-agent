@@ -25,6 +25,7 @@ await api.payments.init_payments_env()
 await api.payments.delete_all_payments_customers(dryrun=True)
 # %%
 org_id = "6795345439604beca2b2808d"
+#org_id = "67b00800e1dd3da6cb64f77d"
 
 # %%
 await api.payments.sync_payments_customer(org_id=org_id)

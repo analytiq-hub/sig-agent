@@ -357,7 +357,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
         # Check if customer already exists in our DB
         customer = await stripe_customers.find_one({"org_id": org_id})
     
-        # Search for customers in Stripe with the given email
+        # Search for customers in Stripe with the given org_id
         stripe_customer = None
         stripe_customer_list = await StripeAsync.customer_search(query=f"metadata['org_id']:'{org_id}'")
         
@@ -366,6 +366,8 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                 logger.warning(f"Multiple Stripe customers found for org_id: {org_id}")
             
             stripe_customer = stripe_customer_list.data[0]
+        else:
+            logger.info(f"No Stripe customers found for org_id: {org_id}")
 
         if stripe_customer:            
             # Get the metadata from the Stripe customer
