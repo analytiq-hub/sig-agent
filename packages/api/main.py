@@ -1315,6 +1315,24 @@ async def list_prompts(
         }
     ]
 
+    pipeline.extend([
+        {
+            "$sort": {"_id": -1}
+        },
+        {
+            "$group": {
+                "_id": "$prompt_id",
+                "doc": {"$first": "$$ROOT"}
+            }
+        },
+        {
+            "$replaceRoot": {"newRoot": "$doc"}
+        },
+        {
+            "$sort": {"_id": -1}
+        }
+    ])
+
     # Add document tag filtering if document_id is provided
     if document_id:
         document = await db.docs.find_one({
@@ -1335,29 +1353,13 @@ async def list_prompts(
                 "$match": {"name": "Default Prompt"}
             })
     # Add direct tag filtering if tag_ids are provided
-    elif tag_ids:
-        tag_id_list = [tid.strip() for tid in tag_ids.split(",")]
+    if tag_ids:
+        document_tag_ids = [tid.strip() for tid in tag_ids.split(",")]
         pipeline.append({
-            "$match": {"tag_ids": {"$all": tag_id_list}}
+            "$match": {"tag_ids": {"$all": document_tag_ids}}
         })
-    
-    # Add the rest of the pipeline stages
+
     pipeline.extend([
-        {
-            "$sort": {"_id": -1}
-        },
-        {
-            "$group": {
-                "_id": "$prompt_id",
-                "doc": {"$first": "$$ROOT"}
-            }
-        },
-        {
-            "$replaceRoot": {"newRoot": "$doc"}
-        },
-        {
-            "$sort": {"_id": -1}
-        },
         {
             "$facet": {
                 "total": [{"$count": "count"}],
@@ -1375,17 +1377,17 @@ async def list_prompts(
     total_count = result["total"][0]["count"] if result["total"] else 0
     prompts = result["prompts"]
 
-    
     # Convert _id to id in each prompt and add name from prompts collection
     for prompt in prompts:
         prompt['prompt_revid'] = str(prompt.pop('_id'))
         prompt['name'] = prompt_id_to_name.get(prompt['prompt_id'], "Unknown")
     
-    return ListPromptsResponse(
+    ret = ListPromptsResponse(
         prompts=prompts,
         total_count=total_count,
         skip=skip
     )
+    return ret
 
 @app.get("/v0/orgs/{organization_id}/prompts/{prompt_id}", response_model=Prompt, tags=["prompts"])
 async def get_prompt(
