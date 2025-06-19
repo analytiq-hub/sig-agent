@@ -771,11 +771,8 @@ async def get_subscription(customer_id: str) -> Dict[str, Any]:
     
     return stripe_subscription_list.get("data")[0]
 
-async def get_subscription_type(customer_id: str) -> str:
+def get_subscription_type(subscription: Dict[str, Any]) -> str:
     """Get the subscription type for a subscription"""
-    subscription = await get_subscription(customer_id)
-    if not subscription:
-        raise ValueError(f"No subscription found for customer_id: {customer_id}")
     price_id = subscription.get("items").get("data")[0].get("price").get("id")
     return get_subscription_type_from_price_id(price_id)
     
@@ -788,22 +785,33 @@ async def set_subscription_type(customer_id: str, subscription_type: str):
 
     price_id = TIER_TO_PRICE[subscription_type]
 
-    # Get the current subscription
-    current_subscription = await get_subscription(customer_id)
-    if not current_subscription:
-        raise ValueError(f"No subscription found for customer_id: {customer_id}")
-    
-    # Check if the current subscription is the same as the requested subscription type
-    
+    # Get the current subscription type
+    subscription = await get_subscription(customer_id)
+    if subscription:
+        current_subscription_type = get_subscription_type(subscription)
+        if current_subscription_type == subscription_type:
+            logger.info(f"Subscription type already set to {subscription_type} for customer_id: {customer_id}")
+            return True
 
-    # Check if customer has a subscription
-    customer = await stripe_customers.find_one({"stripe_customer_id": customer_id})
-    if not customer:
-        raise ValueError(f"Customer not found for customer_id: {customer_id}")
+        # Delete the current subscription
+        await StripeAsync.subscription_delete(subscription.id)
 
-    if customer.get("stripe_subscription_id"):
-        raise ValueError(f"Customer already has a subscription: {customer.get('stripe_subscription_id')}")
+    price_id = TIER_TO_PRICE[subscription_type]
 
+    # Create a new subscription
+    subscription = await StripeAsync.subscription_create(
+        customer=customer_id,
+        items=[{
+            'price': price_id,
+        }],
+        payment_behavior='default_incomplete',
+        expand=['latest_invoice.payment_intent'],
+    )
+
+    if subscription:
+        return True
+    else:
+        return False
 
 @payments_router.post("/setup-intent")
 async def create_setup_intent(
@@ -1022,7 +1030,7 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
         # Get subscription details
         subscription_item_id = subscription["items"]["data"][0]["id"] if "items" in subscription and "data" in subscription["items"] else None
         price_id = subscription["items"]["data"][0]["price"]["id"] if "items" in subscription and "data" in subscription["items"] else None
-        subscription_type = get_subscription_type(price_id)
+        subscription_type = get_subscription_type_from_price_id(price_id)
 
         # Check if this is a new subscription or an update
         existing_history = None # TODO: Get subscription history from Stripe
