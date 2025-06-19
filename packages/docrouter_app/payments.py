@@ -11,12 +11,12 @@ import asyncio
 
 import analytiq_data as ad
 
-from api.auth import (
+from docrouter_app.auth import (
     get_current_user,
     get_admin_user,
     is_admin
 )
-from api.models import User
+from docrouter_app.models import User
 
 import asyncio
 import stripe

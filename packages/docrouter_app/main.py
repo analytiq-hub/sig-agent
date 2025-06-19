@@ -38,12 +38,12 @@ from dotenv import load_dotenv
 from jsonschema import validate, ValidationError, Draft7Validator
 
 # Local imports
-from api import email_utils, startup, organizations, users, limits
-from api.auth import (
+from docrouter_app import email_utils, startup, organizations, users, limits
+from docrouter_app.auth import (
     get_current_user,
     get_admin_user
 )
-from api.models import (
+from docrouter_app.models import (
     User, AccessToken, ListAccessTokensResponse,
     CreateAccessTokenRequest, ListDocumentsResponse,
     DocumentMetadata, DocumentUpload, DocumentsUpload,
@@ -73,8 +73,8 @@ from api.models import (
     Flow,
     ListFlowsResponse, FlowMetadata
 )
-from api.payments import payments_router
-from api.payments import (
+from docrouter_app.payments import payments_router
+from docrouter_app.payments import (
     init_payments,
     sync_payments_customer,
     update_payments_customer,
