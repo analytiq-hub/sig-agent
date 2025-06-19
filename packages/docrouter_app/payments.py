@@ -115,7 +115,7 @@ stripe_events = None
 # Stripe configuration constants
 FREE_TIER_LIMIT = 50  # Number of free pages
 TIER_TO_PRICE = {
-    "individual": None,
+    "basic": None,
     "team": None,
     "enterprise": None
 }
@@ -181,7 +181,7 @@ class SubscriptionHistory(BaseModel):
     updated_at: datetime
 
 # Add this new function near the top of the file with other helper functions
-def get_subscription_type(price_id: str) -> str:
+def get_subscription_type_from_price_id(price_id: str) -> str:
     """
     Determine the subscription type (basic, team, enterprise) based on the price_id
     
@@ -510,7 +510,7 @@ def parse_stripe_subscription(subscription):
             price_id = price.get('id')
             
             # Use the new subroutine
-            subscription_type = get_subscription_type(price_id)
+            subscription_type = get_subscription_type_from_price_id(price_id)
             
             metered_usage[item_id] = {
                 'subscription_type': subscription_type,
@@ -757,6 +757,54 @@ def payment_method_exists(stripe_customer: Dict[str, Any]) -> bool:
     else:
         return False
 
+async def get_subscription(customer_id: str) -> Dict[str, Any]:
+    """Get a subscription for a customer"""
+    stripe_subscription_list = await StripeAsync.subscription_list(customer=customer_id)
+    if not stripe_subscription_list or not stripe_subscription_list.get("data"):
+        return None
+
+    n_subscriptions =  len(stripe_subscription_list.get("data"))
+    if n_subscriptions > 1:
+        raise ValueError(f"{n_subscriptions} subscriptions found for customer_id: {customer_id}")
+    elif n_subscriptions == 0:
+        return None
+    
+    return stripe_subscription_list.get("data")[0]
+
+async def get_subscription_type(customer_id: str) -> str:
+    """Get the subscription type for a subscription"""
+    subscription = await get_subscription(customer_id)
+    if not subscription:
+        raise ValueError(f"No subscription found for customer_id: {customer_id}")
+    price_id = subscription.get("items").get("data")[0].get("price").get("id")
+    return get_subscription_type_from_price_id(price_id)
+    
+
+async def set_subscription_type(customer_id: str, subscription_type: str):
+    """Enable a subscription for a customer"""
+
+    if subscription_type not in TIER_TO_PRICE.keys():
+        raise ValueError(f"Invalid subscription type: {subscription_type}, not in {TIER_TO_PRICE.keys()}")
+
+    price_id = TIER_TO_PRICE[subscription_type]
+
+    # Get the current subscription
+    current_subscription = await get_subscription(customer_id)
+    if not current_subscription:
+        raise ValueError(f"No subscription found for customer_id: {customer_id}")
+    
+    # Check if the current subscription is the same as the requested subscription type
+    
+
+    # Check if customer has a subscription
+    customer = await stripe_customers.find_one({"stripe_customer_id": customer_id})
+    if not customer:
+        raise ValueError(f"Customer not found for customer_id: {customer_id}")
+
+    if customer.get("stripe_subscription_id"):
+        raise ValueError(f"Customer already has a subscription: {customer.get('stripe_subscription_id')}")
+
+
 @payments_router.post("/setup-intent")
 async def create_setup_intent(
     data: SetupIntentCreate,
@@ -794,7 +842,7 @@ async def create_subscription(
             raise HTTPException(status_code=400, detail="No price ID provided or configured")
         
         # Use the new subroutine
-        subscription_type = get_subscription_type(price_id)
+        subscription_type = get_subscription_type_from_price_id(price_id)
         
         # Create the subscription
         subscription = await StripeAsync.subscription_create(
