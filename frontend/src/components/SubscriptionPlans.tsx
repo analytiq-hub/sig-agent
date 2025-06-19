@@ -40,8 +40,13 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
       setSelectedPlan(planId);
       await changeSubscriptionPlanApi(organizationId, planId);
 
-      // const portalResponse = await getCustomerPortalApi(organizationId);
-      // window.location.href = portalResponse.url;
+      const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
+      
+      // Redirect to the customer portal only if no payment method is set up
+      if (!subscriptionPlansResponse.has_payment_method) {
+        const portalResponse = await getCustomerPortalApi(organizationId);
+        window.location.href = portalResponse.url;
+      }
     } catch (error) {
       console.error('Error changing plan:', error);
       toast.error('Failed to change subscription plan');

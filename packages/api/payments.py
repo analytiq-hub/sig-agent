@@ -160,6 +160,7 @@ class SubscriptionPlan(BaseModel):
 class SubscriptionPlanResponse(BaseModel):
     plans: List[SubscriptionPlan]
     current_plan: Optional[str] = None
+    has_payment_method: bool = False
 
 class ChangePlanRequest(BaseModel):
     org_id: str
@@ -303,6 +304,25 @@ async def sync_all_payments_customers() -> Tuple[int, int, List[str]]:
         logger.error(f"Error during customer sync with Stripe: {e}")
         return 0, 0, [f"Global error: {str(e)}"]
 
+async def get_payments_customer(org_id: str) -> Dict[str, Any]:
+    """
+    Get the Stripe customer for the given org_id
+    """
+    if not stripe.api_key:
+        # No-op if Stripe is not configured
+        return None
+
+    stripe_customer_list = await StripeAsync.customer_search(query=f"metadata['org_id']:'{org_id}'")
+        
+    if stripe_customer_list and stripe_customer_list.data:
+        if len(stripe_customer_list.data) > 1:
+            logger.warning(f"Multiple Stripe customers found for org_id: {org_id}")
+        
+        return stripe_customer_list.data[0]
+    else:
+        logger.info(f"No Stripe customers found for org_id: {org_id}")
+        return None
+
 # Helper functions
 async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
     """Create or retrieve a Stripe customer for the given user"""
@@ -359,16 +379,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
         customer = await stripe_customers.find_one({"org_id": org_id})
     
         # Search for customers in Stripe with the given org_id
-        stripe_customer = None
-        stripe_customer_list = await StripeAsync.customer_search(query=f"metadata['org_id']:'{org_id}'")
-        
-        if stripe_customer_list and stripe_customer_list.data:
-            if len(stripe_customer_list.data) > 1:
-                logger.warning(f"Multiple Stripe customers found for org_id: {org_id}")
-            
-            stripe_customer = stripe_customer_list.data[0]
-        else:
-            logger.info(f"No Stripe customers found for org_id: {org_id}")
+        stripe_customer = await get_payments_customer(org_id)
 
         if stripe_customer:            
             # Get the metadata from the Stripe customer
@@ -739,6 +750,17 @@ async def delete_payments_customer(org_id: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error handling Stripe customer deletion: {e}")
         return {"success": False, "error": str(e)}
+
+async def has_payment_method(stripe_customer: Dict[str, Any]) -> bool:
+    """
+    Check if customer has a payment method
+    """
+    # Check if the customer has a default payment method
+        
+    if stripe_customer.get("invoice_settings", {}).get("default_payment_method"):
+        return True
+    else:
+        return False
 
 @payments_router.post("/setup-intent")
 async def create_setup_intent(
@@ -1239,8 +1261,15 @@ async def get_subscription_plans(
                 if plan.price_id == subscription.get("price_id"):
                     current_plan = plan.plan_id
                     break
+    
+    # Get the stripe customer
+    stripe_customer = await get_payments_customer(org_id)
+    if not stripe_customer:
+        raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {org_id}")
 
-    return SubscriptionPlanResponse(plans=plans, current_plan=current_plan)
+    return SubscriptionPlanResponse(plans=plans, 
+                                    current_plan=current_plan,
+                                    has_payment_method=await has_payment_method(stripe_customer))
 
 @payments_router.post("/change-plan")
 async def change_subscription_plan(

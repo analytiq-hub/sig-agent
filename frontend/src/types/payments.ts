@@ -22,6 +22,7 @@ export interface SubscriptionPlan {
 export interface SubscriptionPlanResponse {
   plans: SubscriptionPlan[];
   current_plan: string | null;
+  has_payment_method: boolean;
 }
 
 export interface SubscriptionHistory {
