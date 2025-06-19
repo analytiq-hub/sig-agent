@@ -411,11 +411,6 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                 metadata=customer_metadata
             )
             logger.info(f"Created new Stripe customer {stripe_customer.id} email {user_email} user_name {user_name} metadata {customer_metadata}")
-
-        # Check if the customer has a default payment method
-        stripe_payment_method = False
-        if stripe_customer.get("invoice_settings", {}).get("default_payment_method"):
-            stripe_payment_method = True
         
         # Check if the customer has an active subscription
         stripe_subscription = None
@@ -455,7 +450,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                     "user_id": user_id,
                     "user_name": user_name,
                     "user_email": user_email,
-                    "stripe_payment_method": stripe_payment_method,
+                    "has_payment_method": payment_method_exists(stripe_customer),
                     "subscriptions": subscriptions,
                     "usage": usage,
                     "updated_at": datetime.utcnow()
@@ -473,7 +468,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                 "stripe_customer_id": stripe_customer.id,
                 "user_name": user_name,
                 "user_email": user_email,
-                "stripe_payment_method": stripe_payment_method,
+                "has_payment_method": payment_method_exists(stripe_customer),
                 "subscriptions": subscriptions,
                 "usage": usage,
                 "created_at": datetime.utcnow(),
@@ -751,7 +746,7 @@ async def delete_payments_customer(org_id: str) -> Dict[str, Any]:
         logger.error(f"Error handling Stripe customer deletion: {e}")
         return {"success": False, "error": str(e)}
 
-async def has_payment_method(stripe_customer: Dict[str, Any]) -> bool:
+def payment_method_exists(stripe_customer: Dict[str, Any]) -> bool:
     """
     Check if customer has a payment method
     """
@@ -1269,7 +1264,7 @@ async def get_subscription_plans(
 
     return SubscriptionPlanResponse(plans=plans, 
                                     current_plan=current_plan,
-                                    has_payment_method=await has_payment_method(stripe_customer))
+                                    has_payment_method=payment_method_exists(stripe_customer))
 
 @payments_router.post("/change-plan")
 async def change_subscription_plan(
