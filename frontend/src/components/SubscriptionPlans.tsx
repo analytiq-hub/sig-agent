@@ -42,6 +42,9 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
 
       const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
       
+      // Update the current plan to reflect the change
+      setCurrentPlan(planId);
+      
       // Redirect to the customer portal only if no payment method is set up
       if (!subscriptionPlansResponse.has_payment_method) {
         const portalResponse = await getCustomerPortalApi(organizationId);
