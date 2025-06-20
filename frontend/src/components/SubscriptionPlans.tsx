@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getCustomerPortalApi, getSubscriptionPlansApi, changeSubscriptionPlanApi } from '@/utils/api';
+import { getCustomerPortalApi, getSubscriptionPlansApi, changeSubscriptionPlanApi, updateOrganizationApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import type { SubscriptionPlan } from '@/types/payments';
 
@@ -23,7 +23,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
         const data = await getSubscriptionPlansApi(organizationId);
         setPlans(data.plans);
         setCurrentPlan(data.current_plan);
-        setSelectedPlan(data.current_plan || 'basic');
+        setSelectedPlan(data.current_plan || 'individual');
         setHasPaymentMethod(data.has_payment_method);
       } catch (error) {
         console.error('Error fetching subscription plans:', error);
@@ -50,11 +50,14 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
     try {
       setLoading(true);
       setSelectedPlan(planId);
+      
+      // Change the subscription plan
       await changeSubscriptionPlanApi(organizationId, planId);
 
+      // Also update the organization type to match (they're now the same)
+      await updateOrganizationApi(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
+
       const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
-      
-      // Update the current plan to reflect the change
       setCurrentPlan(planId);
       
       // Redirect to the customer portal only if no payment method is set up
@@ -65,7 +68,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
     } catch (error) {
       console.error('Error changing plan:', error);
       toast.error('Failed to change subscription plan');
-      setSelectedPlan(currentPlan || 'basic');
+      setSelectedPlan(currentPlan || 'individual');
     } finally {
       setLoading(false);
     }

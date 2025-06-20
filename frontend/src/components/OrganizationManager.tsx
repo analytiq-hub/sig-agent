@@ -104,6 +104,9 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClo
                 <option value="team">Team</option>
                 <option value="enterprise">Enterprise</option>
               </select>
+              <p className="text-sm text-gray-500 mt-1">
+                This will automatically set up the corresponding subscription plan
+              </p>
             </div>
           </div>
         </DialogContent>

@@ -717,3 +717,8 @@ export const getSubscriptionHistoryApi = async (orgId: string): Promise<Subscrip
   const response = await api.get<SubscriptionHistoryResponse>(`/v0/account/payments/subscription-history/${orgId}`);
   return response.data;
 };
+
+export const getSubscriptionStatusApi = async (orgId: string) => {
+  const response = await api.get(`/v0/account/payments/subscription-status/${orgId}`);
+  return response.data;
+};

@@ -115,7 +115,7 @@ stripe_events = None
 # Stripe configuration constants
 FREE_TIER_LIMIT = 50  # Number of free pages
 TIER_TO_PRICE = {
-    "basic": None,
+    "individual": None,
     "team": None,
     "enterprise": None
 }
@@ -183,13 +183,13 @@ class SubscriptionHistory(BaseModel):
 # Add this new function near the top of the file with other helper functions
 def get_subscription_type_from_price_id(price_id: str) -> str:
     """
-    Determine the subscription type (basic, team, enterprise) based on the price_id
+    Determine the subscription type (individual, team, enterprise) based on the price_id
     
     Args:
         price_id: The Stripe price ID to look up
         
     Returns:
-        str: The subscription type (basic, team, enterprise) or None if not found
+        str: The subscription type (individual, team, enterprise) or None if not found
     """
     for tier, tier_price_id in TIER_TO_PRICE.items():
         if tier_price_id == price_id:
@@ -207,7 +207,7 @@ async def init_payments_env():
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     ENV = os.getenv("ENV", "dev")
     TIER_TO_PRICE = {
-        "basic": os.getenv("STRIPE_PRICE_ID_BASIC", ""),
+        "individual": os.getenv("STRIPE_PRICE_ID_INDIVIDUAL", ""),
         "team": os.getenv("STRIPE_PRICE_ID_TEAM", ""),
         "enterprise": os.getenv("STRIPE_PRICE_ID_ENTERPRISE", "")
     }
@@ -845,7 +845,7 @@ async def create_subscription(
             raise HTTPException(status_code=404, detail="Customer not found")
         
         # Use default price ID if not provided
-        price_id = data.price_id or TIER_TO_PRICE["basic"]
+        price_id = data.price_id or TIER_TO_PRICE["individual"]
         if not price_id:
             raise HTTPException(status_code=400, detail="No price ID provided or configured")
         
@@ -1258,9 +1258,9 @@ async def get_subscription_plans(
     # Define the available plans with metered usage details
     plans = [
         SubscriptionPlan(
-            plan_id="basic",
-            name="Basic",
-            price_id=TIER_TO_PRICE["basic"],
+            plan_id="individual",
+            name="Individual",
+            price_id=TIER_TO_PRICE["individual"],
             price=9.99,
             included_usage=100,
             overage_price=0.01,
@@ -1361,3 +1361,96 @@ async def get_subscription_history(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+async def sync_organization_subscription(org_id: str, organization_type: str) -> bool:
+    """
+    Sync organization type with subscription type in Stripe
+    """
+    if not stripe.api_key:
+        logger.info(f"Stripe not configured - skipping subscription sync for org {org_id}")
+        return True
+
+    try:
+        # Organization type is now the same as subscription type
+        subscription_type = organization_type
+
+        # Get the Stripe customer
+        stripe_customer = await get_payments_customer(org_id)
+        if not stripe_customer:
+            logger.warning(f"No Stripe customer found for org {org_id}")
+            return False
+
+        # Set the subscription type in Stripe
+        success = await set_subscription_type(stripe_customer.id, subscription_type)
+        if success:
+            logger.info(f"Synced org {org_id} type {organization_type} to subscription {subscription_type}")
+        
+        return success
+
+    except Exception as e:
+        logger.error(f"Error syncing organization subscription: {e}")
+        return False
+
+async def get_organization_subscription_status(org_id: str) -> dict:
+    """
+    Get the current subscription status for an organization
+    """
+    if not stripe.api_key:
+        return {
+            "stripe_enabled": False,
+            "subscription_type": None,
+            "has_payment_method": False,
+            "status": "no_stripe"
+        }
+
+    try:
+        stripe_customer = await get_payments_customer(org_id)
+        if not stripe_customer:
+            return {
+                "stripe_enabled": True,
+                "subscription_type": None,
+                "has_payment_method": False,
+                "status": "no_customer"
+            }
+
+        subscription = await get_subscription(stripe_customer.id)
+        if not subscription:
+            return {
+                "stripe_enabled": True,
+                "subscription_type": None,
+                "has_payment_method": payment_method_exists(stripe_customer),
+                "status": "no_subscription"
+            }
+
+        subscription_type = get_subscription_type(subscription)
+        return {
+            "stripe_enabled": True,
+            "subscription_type": subscription_type,
+            "has_payment_method": payment_method_exists(stripe_customer),
+            "status": subscription.status
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting subscription status: {e}")
+        return {
+            "stripe_enabled": True,
+            "subscription_type": None,
+            "has_payment_method": False,
+            "status": "error"
+        }
+
+@payments_router.get("/subscription-status/{org_id}")
+async def get_subscription_status(
+    org_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get subscription status for an organization"""
+    
+    # Check if user has access to this organization
+    if not await is_org_admin(org_id=org_id, user_id=current_user.user_id):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Org admin access required for org_id: {org_id}"
+        )
+
+    return await get_organization_subscription_status(org_id)
