@@ -1303,13 +1303,14 @@ async def get_subscription_plans(
     if not stripe_customer:
         raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {org_id}")
 
+    has_payment_method = payment_method_exists(stripe_customer)
+
     # Get the subscription
     subscription = await get_subscription(stripe_customer.id)
-    if not subscription:
-        raise HTTPException(status_code=404, detail=f"Subscription not found for org_id: {org_id}")
-    
-    current_subscription_type = get_subscription_type(subscription)
-    has_payment_method = payment_method_exists(stripe_customer)
+    if subscription:
+        current_subscription_type = get_subscription_type(subscription)
+    else:
+        current_subscription_type = None
     
     return SubscriptionPlanResponse(plans=plans, 
                                     current_plan=current_subscription_type,

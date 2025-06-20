@@ -14,6 +14,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -23,6 +24,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
         setPlans(data.plans);
         setCurrentPlan(data.current_plan);
         setSelectedPlan(data.current_plan || 'basic');
+        setHasPaymentMethod(data.has_payment_method);
       } catch (error) {
         console.error('Error fetching subscription plans:', error);
         toast.error('Failed to load subscription plans');
@@ -35,6 +37,16 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
   }, [organizationId]);
 
   const handlePlanChange = async (planId: string) => {
+    // Check if payment method is set up
+    if (!hasPaymentMethod) {
+      const confirmed = window.confirm(
+        'No payment method is set up. You will be redirected to set up payment before your plan change takes effect. Continue?'
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
     try {
       setLoading(true);
       setSelectedPlan(planId);
