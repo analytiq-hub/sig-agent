@@ -1298,29 +1298,22 @@ async def get_subscription_plans(
         )
     ]
 
-    # Get user's current plan
-    customer = await stripe_customers.find_one({"org_id": org_id})
-    if not customer:
-        raise HTTPException(status_code=404, detail=f"Customer not found for org_id: {org_id}")
-    
-    current_plan = None
-    if customer and customer.get("stripe_subscription"):
-        subscription = customer["stripe_subscription"]
-        if subscription.get("is_active"):
-            # Find the plan ID based on the price ID
-            for plan in plans:
-                if plan.price_id == subscription.get("price_id"):
-                    current_plan = plan.plan_id
-                    break
-    
-    # Get the stripe customer
+    # Get the customer
     stripe_customer = await get_payments_customer(org_id)
     if not stripe_customer:
         raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {org_id}")
 
+    # Get the subscription
+    subscription = await get_subscription(stripe_customer.id)
+    if not subscription:
+        raise HTTPException(status_code=404, detail=f"Subscription not found for org_id: {org_id}")
+    
+    current_subscription_type = get_subscription_type(subscription)
+    has_payment_method = payment_method_exists(stripe_customer)
+    
     return SubscriptionPlanResponse(plans=plans, 
-                                    current_plan=current_plan,
-                                    has_payment_method=payment_method_exists(stripe_customer))
+                                    current_plan=current_subscription_type,
+                                    has_payment_method=has_payment_method)
 
 @payments_router.post("/change-plan")
 async def change_subscription_plan(
@@ -1338,74 +1331,14 @@ async def change_subscription_plan(
         )
 
     try:
-        # Get customer record
-        customer = await stripe_customers.find_one({"org_id": data.org_id})
-        if not customer:
-            raise HTTPException(status_code=404, detail="Customer not found")
+        # Get the customer
+        stripe_customer = await get_payments_customer(data.org_id)
+        if not stripe_customer:
+            raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {data.org_id}")
 
-        # Find the selected plan
-        plans = await get_subscription_plans(data.org_id, current_user)
-        selected_plan = next((p for p in plans.plans if p.plan_id == data.plan_id), None)
-        if not selected_plan:
-            raise HTTPException(status_code=400, detail="Invalid plan selected")
-
-        logger.info(f"Selected plan: {selected_plan}")
-
-        # If user has an active subscription, update it
-        if customer.get("stripe_subscription") and customer["stripe_subscription"].get("subscription_item_id"):
-            logger.info(f"Customer has an active subscription: {customer['stripe_subscription']}")
-            subscription_id = customer["stripe_subscription"].get("subscription_id")
-            if subscription_id:
-                # Update the subscription with the new price
-                updated_subscription = await StripeAsync.subscription_modify(
-                    subscription_id,
-                    items=[{
-                        'id': customer["stripe_subscription"].get("subscription_item_id"),
-                        'price': selected_plan.price_id,
-                    }],
-                    proration_behavior='always_invoice'
-                )
-                logger.info(f"Updated subscription: {updated_subscription}")
-                # Update minimal info in customer record
-                await stripe_customers.update_one(
-                    {"org_id": data.org_id},
-                    {
-                        "$set": {
-                            "stripe_subscription": {
-                                "subscription_type": selected_plan.plan_id,
-                                "subscription_item_id": customer["stripe_subscription"].get("subscription_item_id")
-                            },
-                            "updated_at": datetime.utcnow()
-                        }
-                    }
-                )
-                logger.info(f"Updated subscription {subscription_id} with new price {selected_plan.price_id}")
-        else:
-            # Create new subscription
-            logger.info(f"Creating new subscription for customer: {customer['stripe_customer_id']}")
-            subscription = await StripeAsync.subscription_create(
-                customer=customer["stripe_customer_id"],
-                items=[{
-                    'price': selected_plan.price_id,
-                }],
-                payment_behavior='default_incomplete',
-                expand=['latest_invoice.payment_intent'],
-            )
-            logger.info(f"Created new subscription: {subscription}")
-            # Store only minimal info in customer record
-            await stripe_customers.update_one(
-                {"org_id": data.org_id},
-                {
-                    "$set": {
-                        "stripe_subscription": {
-                            "subscription_type": selected_plan.plan_id,
-                            "subscription_item_id": subscription["items"]["data"][0]["id"]
-                        },
-                        "updated_at": datetime.utcnow()
-                    }
-                }
-            )
-            logger.info(f"Updated customer record with new subscription: {customer['stripe_subscription']}")
+        ret = await set_subscription_type(stripe_customer.id, data.plan_id)
+        if not ret:
+            raise HTTPException(status_code=500, detail=f"Failed to set subscription type for org_id: {data.org_id}")
 
         return {"status": "success", "message": "Subscription plan updated successfully"}
 
