@@ -1307,10 +1307,10 @@ async def get_subscription_plans(
 
     # Get the subscription
     subscription = await get_subscription(stripe_customer.id)
-    if subscription:
-        current_subscription_type = get_subscription_type(subscription)
+    if not subscription:
+        raise HTTPException(status_code=404, detail=f"Subscription not found for org_id: {org_id}")
     else:
-        current_subscription_type = None
+        current_subscription_type = get_subscription_type(subscription)
     
     return SubscriptionPlanResponse(plans=plans, 
                                     current_plan=current_subscription_type,
