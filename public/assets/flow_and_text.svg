@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="800" height="400" fill="#f8feff" rx="15" ry="15"/>
+  
+  <!-- Title -->
+  <text x="400" y="40" font-family="Arial" font-size="28" text-anchor="middle" fill="#1e40af" font-weight="bold">Stop Manual Document Processing</text>
+  <text x="400" y="70" font-family="Arial" font-size="18" text-anchor="middle" fill="#64748b">AI + Human Review = 90% Time Savings</text>
+  
+  <!-- Step 1: Messy Documents -->
+  <g transform="translate(50, 120)">
+    <circle cx="60" cy="60" r="50" fill="#fef3c7" stroke="#f59e0b" stroke-width="3"/>
+    <text x="60" y="45" font-family="Arial" font-size="24" text-anchor="middle">📄</text>
+    <text x="60" y="65" font-family="Arial" font-size="24" text-anchor="middle">📧</text>
+    <text x="60" y="85" font-family="Arial" font-size="24" text-anchor="middle">📠</text>
+    
+    <text x="60" y="135" font-family="Arial" font-size="16" text-anchor="middle" fill="#374151" font-weight="bold">Unstructured</text>
+    <text x="60" y="155" font-family="Arial" font-size="16" text-anchor="middle" fill="#374151" font-weight="bold">Documents</text>
+    <text x="60" y="180" font-family="Arial" font-size="12" text-anchor="middle" fill="#6b7280">Invoices, forms, reports</text>
+    <text x="60" y="195" font-family="Arial" font-size="12" text-anchor="middle" fill="#6b7280">from any source</text>
+  </g>
+  
+  <!-- Arrow 1 -->
+  <g transform="translate(170, 180)">
+    <line x1="0" y1="0" x2="80" y2="0" stroke="#3b82f6" stroke-width="3" marker-end="url(#arrowhead)"/>
+    <text x="30" y="-8" font-family="Arial" font-size="12" text-anchor="middle" fill="#3b82f6" font-weight="bold">Upload</text>
+  </g>
+  
+  <!-- Step 2: DocRouter AI -->
+  <g transform="translate(270, 120)">
+    <rect x="0" y="10" width="120" height="100" fill="#dbeafe" stroke="#3b82f6" stroke-width="3" rx="15" ry="15"/>
+    <text x="60" y="35" font-family="Arial" font-size="20" text-anchor="middle">🤖</text>
+    <text x="60" y="55" font-family="Arial" font-size="14" text-anchor="middle" fill="#1e40af" font-weight="bold">DocRouter AI</text>
+    <text x="60" y="75" font-family="Arial" font-size="11" text-anchor="middle" fill="#1e40af">OCR + LLM</text>
+    <text x="60" y="90" font-family="Arial" font-size="11" text-anchor="middle" fill="#1e40af">Extraction</text>
+    
+    <text x="60" y="135" font-family="Arial" font-size="16" text-anchor="middle" fill="#374151" font-weight="bold">AI Processing</text>
+    <text x="60" y="180" font-family="Arial" font-size="12" text-anchor="middle" fill="#6b7280">Configurable prompts</text>
+    <text x="60" y="195" font-family="Arial" font-size="12" text-anchor="middle" fill="#6b7280">&amp; extraction schemas</text>
+  </g>
+  
+  <!-- Arrow 2 -->
+  <g transform="translate(410, 180)">
+    <line x1="0" y1="0" x2="80" y2="0" stroke="#f59e0b" stroke-width="3" marker-end="url(#arrowhead-orange)"/>
+    <text x="30" y="-8" font-family="Arial" font-size="12" text-anchor="middle" fill="#f59e0b" font-weight="bold">Review</text>
+  </g>
+  
+  <!-- Step 3: Human Review -->
+  <g transform="translate(500, 120)">
+    <circle cx="60" cy="60" r="50" fill="#fef3c7" stroke="#f59e0b" stroke-width="3"/>
+    <text x="60" y="70" font-family="Arial" font-size="30" text-anchor="middle">👤</text>
+    
+    <text x="60" y="135" font-family="Arial" font-size="16" text-anchor="middle" fill="#374151" font-weight="bold">Human</text>
+    <text x="60" y="155" font-family="Arial" font-size="16" text-anchor="middle" fill="#374151" font-weight="bold">Validation</text>
+    <text x="60" y="180" font-family="Arial" font-size="12" text-anchor="middle" fill="#6b7280">Verify &amp; correct</text>
+    <text x="60" y="195" font-family="Arial" font-size="12" text-anchor="middle" fill="#6b7280">AI output</text>
+  </g>
+  
+  <!-- Arrow 3 -->
+  <g transform="translate(620, 180)">
+    <line x1="0" y1="0" x2="80" y2="0" stroke="#10b981" stroke-width="3" marker-end="url(#arrowhead-green)"/>
+    <text x="30" y="-8" font-family="Arial" font-size="12" text-anchor="middle" fill="#10b981" font-weight="bold">Export</text>
+  </g>
+  
+  <!-- Step 4: Structured Data -->
+  <g transform="translate(730, 120)">
+    <rect x="-20" y="10" width="80" height="100" fill="#d1fae5" stroke="#10b981" stroke-width="3" rx="15" ry="15"/>
+    <text x="20" y="40" font-family="Arial" font-size="24" text-anchor="middle">📊</text>
+    <text x="20" y="65" font-family="Arial" font-size="14" text-anchor="middle" fill="#047857" font-weight="bold">Structured</text>
+    <text x="20" y="85" font-family="Arial" font-size="14" text-anchor="middle" fill="#047857" font-weight="bold">Data</text>
+    
+    <text x="20" y="135" font-family="Arial" font-size="16" text-anchor="middle" fill="#374151" font-weight="bold">Ready for</text>
+    <text x="20" y="155" font-family="Arial" font-size="16" text-anchor="middle" fill="#374151" font-weight="bold">Your ERP</text>
+    <text x="20" y="180" font-family="Arial" font-size="12" text-anchor="middle" fill="#6b7280">JSON, Excel, API</text>
+    <text x="20" y="195" font-family="Arial" font-size="12" text-anchor="middle" fill="#6b7280">Database ready</text>
+  </g>
+  
+  <!-- Bottom Results Banner -->
+  <rect x="50" y="320" width="700" height="60" fill="#1e40af" rx="15" ry="15"/>
+  
+  <!-- Results -->
+  <g transform="translate(100, 340)">
+    <text x="0" y="20" font-family="Arial" font-size="16" text-anchor="start" fill="white" font-weight="bold">Results:</text>
+    <text x="80" y="20" font-family="Arial" font-size="16" text-anchor="start" fill="#fbbf24" font-weight="bold">90% Faster</text>
+    <text x="190" y="20" font-family="Arial" font-size="16" text-anchor="start" fill="#34d399" font-weight="bold">100% Accurate</text>
+    <text x="340" y="20" font-family="Arial" font-size="16" text-anchor="start" fill="#a78bfa" font-weight="bold">$50K+ Saved/Year</text>
+    <text x="500" y="20" font-family="Arial" font-size="16" text-anchor="start" fill="#f87171" font-weight="bold">Open Source</text>
+  </g>
+  
+  <!-- Arrowhead definitions -->
+  <defs>
+    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrowhead-orange" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#f59e0b"/>
+    </marker>
+    <marker id="arrowhead-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#10b981"/>
+    </marker>
+  </defs>
+</svg>
