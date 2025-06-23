@@ -699,7 +699,7 @@ async def update_payments_customer(user_id: str, email: Optional[str] = None, na
         # Return the original customer info even if update failed
         return stripe_customer
 
-async def delete_payments_customer(org_id: str) -> Dict[str, Any]:
+async def delete_payments_customer(org_id: str, force: bool = False) -> Dict[str, Any]:
     """
     Mark a Stripe customer as deleted without actually removing them from Stripe
     
@@ -722,19 +722,28 @@ async def delete_payments_customer(org_id: str) -> Dict[str, Any]:
         if not stripe_customer:
             logger.warning(f"No Stripe customer found for org_id: {org_id}")
             return {"success": False, "reason": "Customer not found"}
+
+        # Delete the Stripe subscription
+        await StripeAsync.subscription_delete(stripe_customer["stripe_subscription_id"])
             
-        # In Stripe, we typically don't delete customers but mark them as deleted
-        # or disassociate them from your application
-        stripe.Customer.modify(
-            stripe_customer["stripe_customer_id"],
-            metadata={"deleted": "true", "deleted_at": datetime.utcnow().isoformat()}
-        )
+        if not force:
+            # In Stripe, we typically don't delete customers but mark them as deleted
+            await StripeAsync.customer_modify(
+                stripe_customer["stripe_customer_id"],
+                metadata={"deleted": "true", "deleted_at": datetime.utcnow().isoformat()}
+            )
         
-        # Update our database record
-        await stripe_customers.update_one(
-            {"org_id": org_id},
-            {"$set": {"deleted": True, "deleted_at": datetime.utcnow()}}
-        )
+            # Update our database record
+            await stripe_customers.update_one(
+                {"org_id": org_id},
+                {"$set": {"deleted": True, "deleted_at": datetime.utcnow()}}
+            )
+        else:
+            # Delete the Stripe customer
+            await StripeAsync.customer_delete(stripe_customer["stripe_customer_id"])
+        
+            # Delete the Stripe customer from our database
+            await stripe_customers.delete_one({"org_id": org_id})
         
         return {
             "success": True, 
@@ -1170,17 +1179,17 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
             if starting_after:
                 params["starting_after"] = starting_after
                 
-            customers = stripe.Customer.list(**params)
+            customers = await StripeAsync.customer_list(**params)
             
             # Process each customer in the batch
             for customer in customers.data:
                 try:
                     # First cancel any active subscriptions
-                    subscriptions = stripe.Subscription.list(customer=customer.id)
+                    subscriptions = await StripeAsync.subscription_list(customer=customer.id)
                     for subscription in subscriptions.data:
                         try:
                             if not dryrun:
-                                stripe.Subscription.delete(subscription.id)
+                                await StripeAsync.subscription_delete(subscription.id)
                                 logger.info(f"Deleted subscription {subscription.id} for customer {customer.id}")
                             else:
                                 logger.info(f"Would have deleted subscription {subscription.id} for customer {customer.id}")
@@ -1189,7 +1198,7 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
                     
                     # Delete the customer
                     if not dryrun:
-                        stripe.Customer.delete(customer.id)
+                        await StripeAsync.customer_delete(customer.id)
                         deleted_count += 1
                         logger.info(f"Deleted Stripe customer: {customer.id}")
                     else:

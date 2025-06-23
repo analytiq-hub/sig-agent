@@ -2850,6 +2850,7 @@ async def delete_user(
             # Is this a single-user organization?
             members = org["members"]
             if len(members) == 1:
+                logger.info(f"Deleting single-user organization {org['_id']}")
                 # Delete the organization
                 await db.organizations.delete_one({"_id": org["_id"]})
                 await delete_payments_customer(org_id=org["_id"])
@@ -2870,6 +2871,7 @@ async def delete_user(
                 )
             
             # Remove the user from the organization
+            logger.info(f"Removing user {user_id} from organization {org['_id']}")
             await db.organizations.update_one(
                 {"_id": org["_id"]},
                 {"$pull": {"members": {"user_id": user_id}}}
@@ -2891,7 +2893,7 @@ async def delete_user(
         if admin_count == 1:
             raise HTTPException(
                 status_code=400,
-                detail="Cannot delete the last admin user"
+                detail="Cannot delete the last system admin user"
             )
     
     try:
@@ -3085,7 +3087,7 @@ async def create_invitation(
     if await db.users.find_one({"email": invitation.email}):
         raise HTTPException(
             status_code=400,
-            detail="Email already registered"
+            detail="Email already registered for invitation"
         )
         
     # If there's an existing pending invitation for the same organization, invalidate it
