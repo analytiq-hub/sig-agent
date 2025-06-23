@@ -43,11 +43,6 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
           id: 'user_profile',
         },
         {
-          name: 'Subscription',
-          href: '/settings/user/subscription',
-          id: 'user_subscription',
-        },
-        {
           name: 'Developer',
           href: '/settings/user/developer',
           id: 'user_developer',
