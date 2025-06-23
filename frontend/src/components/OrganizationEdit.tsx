@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Organization, OrganizationMember, OrganizationType } from '@/types/index'
-import { updateOrganizationApi, getUsersApi, getOrganizationApi } from '@/utils/api'
+import { OrganizationMember, OrganizationType } from '@/types/index'
+import { updateOrganizationApi, getUsersApi } from '@/utils/api'
 import { isAxiosError } from 'axios'
-import { useOrganization } from '@/contexts/OrganizationContext'
 import { UserResponse } from '@/types/index'
 import { 
   DataGrid, 
@@ -21,6 +20,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Subscription from './Subscription'
+import { useOrganizationData } from '@/hooks/useOrganizationData'
 
 interface OrganizationEditProps {
   organizationId: string
@@ -41,13 +41,11 @@ const getAvailableOrganizationTypes = (currentType: OrganizationType): Organizat
 
 const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) => {
   const router = useRouter()
-  const { refreshOrganizations } = useOrganization()
-  const [organization, setOrganization] = useState<Organization | null>(null)
+  const { organization, loading, refreshData } = useOrganizationData(organizationId)
   const [name, setName] = useState('')
   const [type, setType] = useState<OrganizationType>('individual')
   const [members, setMembers] = useState<OrganizationMember[]>([])
   const [allUsers, setAllUsers] = useState<UserResponse[]>([])
-  const [loading, setLoading] = useState(true)
   const [memberSearch, setMemberSearch] = useState('');
   const [originalName, setOriginalName] = useState('')
   const [originalType, setOriginalType] = useState<OrganizationType>('individual')
@@ -58,6 +56,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedMember, setSelectedMember] = useState<{ id: string, isAdmin: boolean } | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Filter current organization members
   const filteredMembers = members.filter(member => {
@@ -68,40 +67,30 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     );
   });
 
+  // Update local state when organization data changes
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const organization = await getOrganizationApi(organizationId);
-        setOrganization(organization);
-        setName(organization.name);
-        setType(organization.type);
-        setMembers(organization.members);
+    if (organization) {
+      setName(organization.name);
+      setType(organization.type);
+      setMembers(organization.members);
 
-        // Check if current user is system admin or organization admin
-        if (session?.user?.id) {
-          const isSystemAdmin = session.user.role === 'admin';
-          setIsSysAdmin(isSystemAdmin);
+      // Check if current user is system admin or organization admin
+      if (session?.user?.id) {
+        const isSystemAdmin = session.user.role === 'admin';
+        setIsSysAdmin(isSystemAdmin);
 
-          const currentUserMember = organization.members.find(
-            member => member.user_id === session.user.id
-          );
-          setIsOrgAdmin(currentUserMember?.role === 'admin');
-        }
-
-        // Store original values
-        setOriginalName(organization.name);
-        setOriginalType(organization.type);
-        setOriginalMembers(organization.members);
-      } catch (err) {
-        toast.error('Failed to load organization data');
-        console.error(err);
-      } finally {
-        setLoading(false);
+        const currentUserMember = organization.members.find(
+          member => member.user_id === session.user.id
+        );
+        setIsOrgAdmin(currentUserMember?.role === 'admin');
       }
-    };
 
-    fetchData();
-  }, [organizationId, session?.user?.id, session?.user?.role]);
+      // Store original values
+      setOriginalName(organization.name);
+      setOriginalType(organization.type);
+      setOriginalMembers(organization.members);
+    }
+  }, [organization, session?.user?.id, session?.user?.role]);
 
   // Separate useEffect for fetching users
   useEffect(() => {
@@ -146,12 +135,15 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         type,
         members 
       });
-      await refreshOrganizations();
+      await refreshData();
       
       // Update original values after successful save
       setOriginalName(name);
       setOriginalType(type);
       setOriginalMembers(members);
+      
+      // Trigger refresh of subscription component
+      setRefreshKey(prev => prev + 1);
     } catch (err) {
       if (isAxiosError(err)) {
         toast.error(err.response?.data?.detail || 'Failed to update organization');
@@ -497,7 +489,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
           {/* Subscription Section */}
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Subscription</h3>
-            <Subscription organizationId={organizationId} />
+            <Subscription organizationId={organizationId} key={refreshKey} />
           </div>
         </form>
       </div>

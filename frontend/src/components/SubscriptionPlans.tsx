@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { getCustomerPortalApi, getSubscriptionPlansApi, updateOrganizationApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import type { SubscriptionPlan } from '@/types/payments';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface SubscriptionPlansProps {
   organizationId: string;
@@ -15,6 +16,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
+  const { refreshOrganizations } = useOrganization();
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -69,6 +71,9 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
       
       // Just update the organization type to match the new plan
       await updateOrganizationApi(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
+
+      // Refresh the organization context to update parent component
+      await refreshOrganizations();
 
       // Refresh the subscription plans data
       const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
