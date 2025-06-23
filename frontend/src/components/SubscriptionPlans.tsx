@@ -36,6 +36,22 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
     fetchPlans();
   }, [organizationId]);
 
+  const canChangeToPlan = (currentPlan: string | null, targetPlan: string): boolean => {
+    if (!currentPlan) return true; // No current plan, can select any
+    
+    const planHierarchy = ['individual', 'team', 'enterprise'];
+    const currentIndex = planHierarchy.indexOf(currentPlan);
+    const targetIndex = planHierarchy.indexOf(targetPlan);
+    
+    return targetIndex >= currentIndex; // Can only upgrade or stay same
+  };
+
+  const getPlanChangeReason = (currentPlan: string | null, targetPlan: string): string | null => {
+    if (canChangeToPlan(currentPlan, targetPlan)) return null;
+    
+    return `Cannot downgrade from ${currentPlan} to ${targetPlan}. Contact support if you need to downgrade.`;
+  };
+
   const handlePlanChange = async (planId: string) => {
     // Check if payment method is set up
     if (!hasPaymentMethod) {
@@ -148,10 +164,13 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
           </div>
           <button
             onClick={() => handlePlanChange(plan.plan_id)}
-            disabled={currentPlan === plan.plan_id}
+            disabled={currentPlan === plan.plan_id || !canChangeToPlan(currentPlan, plan.plan_id)}
+            title={getPlanChangeReason(currentPlan, plan.plan_id) || ''}
             className={`w-full py-2 px-4 rounded-md ${
               currentPlan === plan.plan_id
                 ? 'bg-gray-300 cursor-not-allowed'
+                : !canChangeToPlan(currentPlan, plan.plan_id)
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 : selectedPlan === plan.plan_id
                 ? 'bg-green-600 hover:bg-green-700 text-white'
                 : 'bg-blue-600 hover:bg-blue-700 text-white'
@@ -159,6 +178,8 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
           >
             {currentPlan === plan.plan_id 
               ? 'Current Plan' 
+              : !canChangeToPlan(currentPlan, plan.plan_id)
+              ? 'Not Available'
               : selectedPlan === plan.plan_id 
               ? 'Selected Plan' 
               : 'Select Plan'}
