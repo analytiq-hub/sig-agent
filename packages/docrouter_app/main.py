@@ -2730,10 +2730,11 @@ async def create_user(
     result = await db.users.insert_one(user_doc)
     user_doc["id"] = str(result.inserted_id)
     user_doc["hasPassword"] = True
+
+    logger.info(f"Created new user {user.email} with id {user_doc['id']}")
     
     # Create default individual organization for new user
-    await db.organizations.insert_one({
-        "_id": result.inserted_id,
+    result = await db.organizations.insert_one({
         "name": user.email,
         "members": [{
             "user_id": str(result.inserted_id),
@@ -2743,6 +2744,12 @@ async def create_user(
         "created_at": datetime.now(UTC),
         "updated_at": datetime.now(UTC)
     })
+
+    org_id = str(result.inserted_id)
+    logger.info(f"Created new organization {user.email} with id {org_id}")
+
+    # Sync the organization
+    await sync_payments_customer(org_id=org_id)
     
     return UserResponse(**user_doc)
 
@@ -3340,8 +3347,9 @@ async def accept_invitation(
         
         # If organization invitation, add to organization
         if invitation.get("organization_id"):
+            org_id = invitation["organization_id"]
             await db.organizations.update_one(
-                {"_id": ObjectId(invitation["organization_id"])},
+                {"_id": ObjectId(org_id)},
                 {
                     "$push": {
                         "members": {
@@ -3353,8 +3361,7 @@ async def accept_invitation(
             )
         else:
             # Create default individual organization
-            await db.organizations.insert_one({
-                "_id": result.inserted_id,
+            result = await db.organizations.insert_one({
                 "name": invitation["email"],
                 "members": [{
                     "user_id": user_id,
@@ -3364,6 +3371,11 @@ async def accept_invitation(
                 "created_at": datetime.now(UTC),
                 "updated_at": datetime.now(UTC)
             })
+
+            org_id = str(result.inserted_id)
+
+        # Sync the organization
+        await sync_payments_customer(org_id=org_id)
         
         # Mark invitation as accepted
         await db.invitations.update_one(
