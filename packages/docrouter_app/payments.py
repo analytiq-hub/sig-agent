@@ -412,25 +412,29 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
             )
             logger.info(f"Created new Stripe customer {stripe_customer.id} email {user_email} user_name {user_name} metadata {customer_metadata}")
         
-        # Check if the customer has an active subscription
-        stripe_subscription = None
-        stripe_subscription_list = await StripeAsync.subscription_list(customer=stripe_customer.id)
-        if stripe_subscription_list.data:
-            if len(stripe_subscription_list.data) > 1:
-                logger.error(f"Multiple subscriptions found for customer {user_id}, just parsing the first one")
+        # Ensure the customer is subscribed by default to the plan matching the org type
+        org_type = org.get("type")
+        await set_subscription_type(stripe_customer.id, org_type)
+
+        # # Check if the customer has an active subscription
+        # stripe_subscription = None
+        # stripe_subscription_list = await StripeAsync.subscription_list(customer=stripe_customer.id)
+        # if stripe_subscription_list.data:
+        #     if len(stripe_subscription_list.data) > 1:
+        #         logger.error(f"Multiple subscriptions found for customer {user_id}, just parsing the first one")
             
-            stripe_subscription = stripe_subscription_list.data[0]
-            if stripe_subscription.status == "active":
-                logger.info(f"Customer {user_id} has an active subscription")
-        else:
-            logger.info(f"Customer {user_id} has no active subscriptions")
+        #     stripe_subscription = stripe_subscription_list.data[0]
+        #     if stripe_subscription.status == "active":
+        #         logger.info(f"Customer {user_id} has an active subscription")
+        # else:
+        #     logger.info(f"Customer {user_id} has no active subscriptions")
         
-        subscriptions = parse_stripe_subscription(stripe_subscription) if stripe_subscription else None
-        logger.info(f"Parsed subscriptions: {subscriptions}")
+        # subscriptions = parse_stripe_subscription(stripe_subscription) if stripe_subscription else None
+        # logger.info(f"Parsed subscriptions: {subscriptions}")
         
-        # Get metered usage information
-        usage = await parse_stripe_usage(subscriptions, stripe_customer.id)
-        logger.info(f"Parsed usage: {usage}")
+        # # Get metered usage information
+        # usage = await parse_stripe_usage(subscriptions, stripe_customer.id)
+        # logger.info(f"Parsed usage: {usage}")
 
         if customer:
             # Check if the customer_id changed
@@ -451,8 +455,6 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                     "user_name": user_name,
                     "user_email": user_email,
                     "has_payment_method": payment_method_exists(stripe_customer),
-                    "subscriptions": subscriptions,
-                    "usage": usage,
                     "updated_at": datetime.utcnow()
                 }}
             )
@@ -469,13 +471,12 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                 "user_name": user_name,
                 "user_email": user_email,
                 "has_payment_method": payment_method_exists(stripe_customer),
-                "subscriptions": subscriptions,
-                "usage": usage,
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
             }
 
             await stripe_customers.insert_one(customer)
+
         return customer
     
     except Exception as e:
