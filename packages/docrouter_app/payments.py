@@ -1276,8 +1276,7 @@ async def get_subscription_plans(
             included_usage=100,
             overage_price=0.01,
             features=[
-                "Basic document processing",
-                "Email support"
+                "Basic document processing"
             ]
         ),
         SubscriptionPlan(
@@ -1288,9 +1287,7 @@ async def get_subscription_plans(
             included_usage=500,
             overage_price=0.02,
             features=[
-                "Advanced document processing",
-                "Priority support",
-                "Team collaboration"
+                "Advanced document processing"
             ]
         ),
         SubscriptionPlan(
@@ -1301,10 +1298,7 @@ async def get_subscription_plans(
             included_usage=2000,
             overage_price=0.05,
             features=[
-                "Custom document processing",
-                "Gold support",
-                "Team collaboration",
-                "Custom integrations",
+                "Custom document processing"
             ]
         )
     ]
