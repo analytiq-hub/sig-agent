@@ -67,25 +67,27 @@ async def update_organization_type(
     if not first_admin:
         raise HTTPException(status_code=400, detail="Organization must have at least one admin")
 
+    update_data = {}
+
     # Validate parameters based on new type
     if update.type in ["team", "enterprise"]:
-        if not update.members:
-            raise HTTPException(status_code=400, detail="members required for team/enterprise organizations")
-        if not any(m.role == "admin" for m in update.members):
-            raise HTTPException(status_code=400, detail="Organization must have at least one admin")
-  
-        # Set up team/enterprise organization data
-        update_data = {
-            "type": update.type,
-            "members": [m.dict() for m in update.members]
-        }
+        update_data["type"] = update.type
+        if update.members:
+            if not any(m.role == "admin" for m in update.members):
+                raise HTTPException(status_code=400, detail="Organization must have at least one admin")
+            update_data["members"] = [m.dict() for m in update.members]
 
     # Validate individual organization member count
-    if update.type == "individual" and len(update.members) > 1:
-        raise HTTPException(
-            status_code=400, 
-            detail="Individual organizations cannot have multiple members"
-        )
+    if update.type == "individual":
+        if update.members:
+            if len(update.members) > 1:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Individual organizations cannot have multiple members"
+                )
+            if not any(m.role == "admin" for m in update.members):
+                raise HTTPException(status_code=400, detail="Organization must have at least one admin")
+            update_data["members"] = [m.dict() for m in update.members]
 
     # Update the organization
     update_data["updated_at"] = datetime.now(UTC)

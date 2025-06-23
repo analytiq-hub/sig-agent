@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getCustomerPortalApi, getSubscriptionPlansApi, changeSubscriptionPlanApi, updateOrganizationApi } from '@/utils/api';
+import { getCustomerPortalApi, getSubscriptionPlansApi, updateOrganizationApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import type { SubscriptionPlan } from '@/types/payments';
 
@@ -67,12 +67,10 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
       setLoading(true);
       setSelectedPlan(planId);
       
-      // Change the subscription plan
-      await changeSubscriptionPlanApi(organizationId, planId);
-
-      // Also update the organization type to match (they're now the same)
+      // Just update the organization type to match the new plan
       await updateOrganizationApi(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
 
+      // Refresh the subscription plans data
       const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
       setCurrentPlan(planId);
       
