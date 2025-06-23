@@ -1183,41 +1183,34 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
                 
             customers = await StripeAsync.customer_list(**params)
 
-            tasks_subscriptions = []
-            tasks_customers = []
+            tasks = []
             
             # Process each customer in the batch
             for customer in customers.data:
-                try:
-                    # First cancel any active subscriptions
-                    subscriptions = await StripeAsync.subscription_list(customer=customer.id)
-                    for subscription in subscriptions.data:
-                        try:
-                            if not dryrun:
-                                tasks_subscriptions.append(StripeAsync.subscription_delete(subscription.id))
-                                logger.info(f"Deleted subscription {subscription.id} for customer {customer.id}")
-                            else:
-                                logger.info(f"Would have deleted subscription {subscription.id} for customer {customer.id}")
-                        except Exception as e:
-                            logger.error(f"Error deleting subscription {subscription.id}: {e}")
-                    
-                    # Delete the customer
+                # First cancel any active subscriptions
+                subscriptions = await StripeAsync.subscription_list(customer=customer.id)
+                for subscription in subscriptions.data:
                     if not dryrun:
-                        tasks_customers.append(StripeAsync.customer_delete(customer.id))
-                        deleted_count += 1
-                        logger.info(f"Deleted Stripe customer: {customer.id}")
+                        tasks.append(StripeAsync.subscription_delete(subscription.id))
+                        logger.info(f"Deleting subscription {subscription.id} for customer {customer.id}")
                     else:
-                        logger.info(f"Would have deleted Stripe customer: {customer.id}")
-                    
-                except Exception as e:
-                    error_msg = f"Error deleting Stripe customer {customer.id}: {str(e)}"
-                    logger.error(error_msg)
-                    error_messages.append(error_msg)
-                    failed_count += 1
+                        logger.info(f"Would have deleted subscription {subscription.id} for customer {customer.id}")
+            
+            await asyncio.gather(*tasks)
 
-            if not dryrun:
-                await asyncio.gather(*tasks_subscriptions)
-                await asyncio.gather(*tasks_customers)
+            tasks = []
+             # Process each customer in the batch
+            for customer in customers.data:
+                # Delete the customer
+                if not dryrun:
+                    tasks.append(StripeAsync.customer_delete(customer.id))
+                    deleted_count += 1
+                    logger.info(f"Deleted Stripe customer: {customer.id}")
+                else:
+                    logger.info(f"Would have deleted Stripe customer: {customer.id}")
+               
+
+            await asyncio.gather(*tasks)
             
             # Check if there are more customers to process
             has_more = customers.has_more
