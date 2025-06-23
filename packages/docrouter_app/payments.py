@@ -1171,7 +1171,7 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
         # First get all customers from Stripe
         has_more = True
         starting_after = None
-        batch_size = 100
+        batch_size = 10
         
         while has_more:
             # Fetch customers in batches
@@ -1180,6 +1180,9 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
                 params["starting_after"] = starting_after
                 
             customers = await StripeAsync.customer_list(**params)
+
+            tasks_subscriptions = []
+            tasks_customers = []
             
             # Process each customer in the batch
             for customer in customers.data:
@@ -1189,7 +1192,7 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
                     for subscription in subscriptions.data:
                         try:
                             if not dryrun:
-                                await StripeAsync.subscription_delete(subscription.id)
+                                tasks_subscriptions.append(StripeAsync.subscription_delete(subscription.id))
                                 logger.info(f"Deleted subscription {subscription.id} for customer {customer.id}")
                             else:
                                 logger.info(f"Would have deleted subscription {subscription.id} for customer {customer.id}")
@@ -1198,7 +1201,7 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
                     
                     # Delete the customer
                     if not dryrun:
-                        await StripeAsync.customer_delete(customer.id)
+                        tasks_customers.append(StripeAsync.customer_delete(customer.id))
                         deleted_count += 1
                         logger.info(f"Deleted Stripe customer: {customer.id}")
                     else:
@@ -1209,6 +1212,10 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
                     logger.error(error_msg)
                     error_messages.append(error_msg)
                     failed_count += 1
+
+            if not dryrun:
+                await asyncio.gather(*tasks_subscriptions)
+                await asyncio.gather(*tasks_customers)
             
             # Check if there are more customers to process
             has_more = customers.has_more
