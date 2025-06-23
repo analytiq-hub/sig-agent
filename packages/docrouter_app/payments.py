@@ -13,9 +13,8 @@ import analytiq_data as ad
 
 from docrouter_app.auth import (
     get_current_user,
-    get_admin_user,
-    is_admin,
-    is_org_admin
+    is_org_admin,
+    is_sys_admin
 )
 from docrouter_app.models import User
 
@@ -1242,10 +1241,10 @@ async def get_subscription_plans(
     logger.info(f"Getting subscription plans for org_id: {org_id} user_id: {current_user.user_id}")
 
     # Is the current user an org admin? Or a system admin?
-    if not await is_org_admin(org_id=org_id, user_id=current_user.user_id):
+    if not await is_org_admin(org_id=org_id, user_id=current_user.user_id) and not await is_sys_admin(user_id=current_user.user_id):
         raise HTTPException(
             status_code=403,
-            detail=f"Org admin access required for org_id: {org_id} user_id: {current_user.user_id}"
+            detail=f"Access denied, user {current_user.user_id} is not an org admin for org_id {org_id}, or a sys admin"
         )
 
     # Get the customer

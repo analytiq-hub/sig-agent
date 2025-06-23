@@ -127,13 +127,13 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
 async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(security), request: Request = None):
     user = await get_current_user(credentials, request)
 
-    if not await is_admin(user.user_id):
+    if not await is_sys_admin(user.user_id):
         raise HTTPException(
             status_code=403,
             detail="Admin access required"
         )
 
-async def is_admin(user_id: str):
+async def is_sys_admin(user_id: str):
     """
     Check if a user is an admin
 

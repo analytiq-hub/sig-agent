@@ -78,7 +78,6 @@ from docrouter_app.payments import (
     init_payments,
     sync_payments_customer,
     delete_payments_customer,
-    sync_organization_subscription
 )
 import analytiq_data as ad
 from analytiq_data.common.doc import get_mime_type
@@ -2511,18 +2510,6 @@ async def update_organization(
     # Update the payments customer
     await sync_payments_customer(org_id=organization_id)
 
-    # If organization type is being updated, sync with Stripe
-    if organization_update.type:
-        # Update the organization first
-        result = await db["organizations"].update_one(
-            {"_id": ObjectId(organization_id)},
-            {"$set": update_data}
-        )
-        
-        if result.modified_count > 0:
-            # Sync the subscription type in Stripe
-            await sync_organization_subscription(organization_id, organization_update.type)
-    
     return Organization(**{
         "id": str(updated_organization["_id"]),
         "name": updated_organization["name"],
@@ -2554,6 +2541,9 @@ async def delete_organization(
             status_code=403,
             detail="Not authorized to delete this organization"
         )
+
+    # Delete the payments customer
+    await delete_payments_customer(org_id=organization_id)
         
     await db.organizations.delete_one({"_id": ObjectId(organization_id)})
     return {"status": "success"}
