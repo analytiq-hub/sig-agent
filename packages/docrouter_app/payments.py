@@ -722,11 +722,13 @@ async def delete_payments_customer(org_id: str, force: bool = False) -> Dict[str
         if not stripe_customer:
             logger.warning(f"No Stripe customer found for org_id: {org_id}")
             return {"success": False, "reason": "Customer not found"}
-
-        # Delete the Stripe subscription
-        await StripeAsync.subscription_delete(stripe_customer["stripe_subscription_id"])
             
         if not force:
+            # Delete the Stripe subscription
+            stripe_subscription = await get_subscription(stripe_customer["stripe_customer_id"])
+            if stripe_subscription:
+                await StripeAsync.subscription_delete(stripe_subscription.id)
+
             # In Stripe, we typically don't delete customers but mark them as deleted
             await StripeAsync.customer_modify(
                 stripe_customer["stripe_customer_id"],
