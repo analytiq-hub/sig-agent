@@ -93,6 +93,20 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
     }
   };
 
+  // Filter plans based on current plan tier
+  const getVisiblePlans = (allPlans: SubscriptionPlan[], currentPlanType: string | null): SubscriptionPlan[] => {
+    if (!currentPlanType) return allPlans; // Show all plans if no current plan
+    
+    const planHierarchy = ['individual', 'team', 'enterprise'];
+    const currentIndex = planHierarchy.indexOf(currentPlanType);
+    
+    // Only show plans at or above the current tier
+    return allPlans.filter(plan => {
+      const planIndex = planHierarchy.indexOf(plan.plan_id);
+      return planIndex >= currentIndex;
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-40">
@@ -101,54 +115,28 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
     );
   }
 
+  const visiblePlans = getVisiblePlans(plans, currentPlan);
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      {plans.map((plan) => (
-        <div
-          key={plan.plan_id}
-          className={`bg-white rounded-lg shadow-lg p-6 flex flex-col ${
-            selectedPlan === plan.plan_id ? 'ring-2 ring-blue-500' : ''
-          }`}
-        >
-          <div className="flex-grow">
-            <h3 className="text-xl font-bold mb-4">{plan.name}</h3>
-            <div className="text-3xl font-bold mb-4">
-              ${plan.price}
-              <span className="text-sm font-normal text-gray-500">
-                /{plan.interval}
-              </span>
-            </div>
-            <ul className="space-y-2 mb-6">
-              <li className="flex items-center">
-                <svg
-                  className="h-5 w-5 text-green-500 mr-2"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path d="M5 13l4 4L19 7"></path>
-                </svg>
-                {plan.included_usage} pages included
-              </li>
-              <li className="flex items-center">
-                <svg
-                  className="h-5 w-5 text-green-500 mr-2"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path d="M5 13l4 4L19 7"></path>
-                </svg>
-                ${plan.overage_price} per page after limit
-              </li>
-              {plan.features.map((feature, index) => (
-                <li key={index} className="flex items-center">
+    <div className="w-full flex justify-center">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {visiblePlans.map((plan) => (
+          <div
+            key={plan.plan_id}
+            className={`bg-white rounded-lg shadow-lg p-6 flex flex-col max-w-xs mx-auto ${
+              selectedPlan === plan.plan_id ? 'ring-2 ring-blue-500' : ''
+            }`}
+          >
+            <div className="flex-grow">
+              <h3 className="text-xl font-bold mb-4">{plan.name}</h3>
+              <div className="text-3xl font-bold mb-4">
+                ${plan.price}
+                <span className="text-sm font-normal text-gray-500">
+                  /{plan.interval}
+                </span>
+              </div>
+              <ul className="space-y-2 mb-6">
+                <li className="flex items-center">
                   <svg
                     className="h-5 w-5 text-green-500 mr-2"
                     fill="none"
@@ -160,35 +148,65 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
                   >
                     <path d="M5 13l4 4L19 7"></path>
                   </svg>
-                  {feature}
+                  {plan.included_usage} pages included
                 </li>
-              ))}
-            </ul>
-          </div>
-          <button
-            onClick={() => handlePlanChange(plan.plan_id)}
-            disabled={currentPlan === plan.plan_id || !canChangeToPlan(currentPlan, plan.plan_id)}
-            title={getPlanChangeReason(currentPlan, plan.plan_id) || ''}
-            className={`w-full py-2 px-4 rounded-md ${
-              currentPlan === plan.plan_id
-                ? 'bg-gray-300 cursor-not-allowed'
+                <li className="flex items-center">
+                  <svg
+                    className="h-5 w-5 text-green-500 mr-2"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  ${plan.overage_price} per page after limit
+                </li>
+                {plan.features.map((feature, index) => (
+                  <li key={index} className="flex items-center">
+                    <svg
+                      className="h-5 w-5 text-green-500 mr-2"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <button
+              onClick={() => handlePlanChange(plan.plan_id)}
+              disabled={currentPlan === plan.plan_id || !canChangeToPlan(currentPlan, plan.plan_id)}
+              title={getPlanChangeReason(currentPlan, plan.plan_id) || ''}
+              className={`w-full py-2 px-4 rounded-md ${
+                currentPlan === plan.plan_id
+                  ? 'bg-gray-300 cursor-not-allowed'
+                  : !canChangeToPlan(currentPlan, plan.plan_id)
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : selectedPlan === plan.plan_id
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+            >
+              {currentPlan === plan.plan_id 
+                ? 'Current Plan' 
                 : !canChangeToPlan(currentPlan, plan.plan_id)
-                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                : selectedPlan === plan.plan_id
-                ? 'bg-green-600 hover:bg-green-700 text-white'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
-          >
-            {currentPlan === plan.plan_id 
-              ? 'Current Plan' 
-              : !canChangeToPlan(currentPlan, plan.plan_id)
-              ? 'Not Available'
-              : selectedPlan === plan.plan_id 
-              ? 'Selected Plan' 
-              : 'Select Plan'}
-          </button>
-        </div>
-      ))}
+                ? 'Not Available'
+                : selectedPlan === plan.plan_id 
+                ? 'Selected Plan' 
+                : 'Select Plan'}
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
