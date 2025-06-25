@@ -25,9 +25,8 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   const [loading, setLoading] = useState(false);
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
-  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState<boolean>(false);
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<number | null>(null);
-  const { refreshOrganizations } = useOrganization();
+  const { refreshOrganizations, currentOrganization } = useOrganization();
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -39,7 +38,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         setSelectedPlan(data.current_plan || 'individual');
         setHasPaymentMethod(data.has_payment_method);
         setSubscriptionStatus(data.subscription_status);
-        setCancelAtPeriodEnd(data.cancel_at_period_end);
         setCurrentPeriodEnd(data.current_period_end);
         
         // Notify parent component about payment method status
@@ -95,7 +93,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         // Refresh the subscription plans data
         const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
         setSubscriptionStatus(subscriptionPlansResponse.subscription_status);
-        setCancelAtPeriodEnd(subscriptionPlansResponse.cancel_at_period_end);
         setCurrentPeriodEnd(subscriptionPlansResponse.current_period_end);
         
         // Notify parent components
@@ -141,7 +138,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
       setCurrentPlan(planId);
       setSubscriptionStatus(subscriptionPlansResponse.subscription_status);
-      setCancelAtPeriodEnd(subscriptionPlansResponse.cancel_at_period_end);
       setCurrentPeriodEnd(subscriptionPlansResponse.current_period_end);
       
       // Notify parent components
@@ -166,17 +162,28 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     }
   };
 
-  // Filter plans based on current plan tier
+  // Filter plans based on organization type (minimum tier) and current plan tier
   const getVisiblePlans = (allPlans: SubscriptionPlan[], currentPlanType: string | null): SubscriptionPlan[] => {
-    if (!currentPlanType) return allPlans; // Show all plans if no current plan
-    
     const planHierarchy = ['individual', 'team', 'enterprise'];
-    const currentIndex = planHierarchy.indexOf(currentPlanType);
     
-    // Only show plans at or above the current tier
+    // Get the organization type from the current organization context
+    const organizationType = currentOrganization?.type || 'individual';
+    
+    // Determine the minimum tier based on organization type
+    const orgTypeIndex = planHierarchy.indexOf(organizationType);
+    const minTierIndex = Math.max(orgTypeIndex, 0); // Ensure we don't go below individual
+    
+    // If there's a current plan, use the higher of organization type or current plan
+    let effectiveMinIndex = minTierIndex;
+    if (currentPlanType) {
+      const currentIndex = planHierarchy.indexOf(currentPlanType);
+      effectiveMinIndex = Math.max(minTierIndex, currentIndex);
+    }
+    
+    // Only show plans at or above the effective minimum tier
     return allPlans.filter(plan => {
       const planIndex = planHierarchy.indexOf(plan.plan_id);
-      return planIndex >= currentIndex;
+      return planIndex >= effectiveMinIndex;
     });
   };
 
