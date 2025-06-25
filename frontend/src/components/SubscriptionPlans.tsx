@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getCustomerPortalApi, getSubscriptionPlansApi, updateOrganizationApi, reactivateSubscriptionApi } from '@/utils/api';
+import { getCustomerPortalApi, getSubscriptionPlansApi, updateOrganizationApi, reactivateSubscriptionApi, cancelSubscriptionApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import type { SubscriptionPlan } from '@/types/payments';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -103,11 +103,10 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
           onCancellationInfoChange(subscriptionPlansResponse.cancel_at_period_end, subscriptionPlansResponse.current_period_end);
         }
         
-        toast.success('Subscription reactivated successfully!');
         return;
       } catch (error) {
         console.error('Error reactivating subscription:', error);
-        toast.error('Failed to reactivate subscription');
+        toast.error(`Failed to reactivate subscription: ${error}`);
         return;
       } finally {
         setLoading(false);
@@ -157,6 +156,41 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       console.error('Error changing plan:', error);
       toast.error('Failed to change subscription plan');
       setSelectedPlan(currentPlan || 'individual');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to cancel your subscription? You will continue to have access until the end of your current billing period.'
+    );
+    
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Call the cancel subscription API
+      await cancelSubscriptionApi(organizationId);
+      
+      // Refresh the subscription plans data
+      const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
+      setSubscriptionStatus(subscriptionPlansResponse.subscription_status);
+      setCurrentPeriodEnd(subscriptionPlansResponse.current_period_end);
+      
+      // Notify parent components
+      if (onSubscriptionStatusChange) {
+        onSubscriptionStatusChange(subscriptionPlansResponse.subscription_status);
+      }
+      if (onCancellationInfoChange) {
+        onCancellationInfoChange(subscriptionPlansResponse.cancel_at_period_end, subscriptionPlansResponse.current_period_end);
+      }
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      toast.error('Failed to cancel subscription');
     } finally {
       setLoading(false);
     }
@@ -263,6 +297,24 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                   </svg>
                 )}
                 Reactivate Now
+              </button>
+            </div>
+          )}
+          {subscriptionStatus === 'active' && (
+            <div className="mt-2">
+              <button
+                onClick={handleCancelSubscription}
+                disabled={loading}
+                className="inline-flex items-center px-3 py-1.5 border border-red-300 text-xs font-medium rounded-md shadow-sm text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600 mr-1"></div>
+                ) : (
+                  <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+                Cancel Subscription
               </button>
             </div>
           )}

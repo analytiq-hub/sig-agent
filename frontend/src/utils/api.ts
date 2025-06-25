@@ -729,3 +729,10 @@ export const reactivateSubscriptionApi = async (orgId: string): Promise<{ status
   });
   return response.data;
 };
+
+export const cancelSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
+  const response = await api.post<{ status: string; message: string }>(`/v0/account/payments/cancel-subscription`, {
+    org_id: orgId
+  });
+  return response.data;
+};

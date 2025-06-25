@@ -1560,3 +1560,43 @@ async def reactivate_subscription_endpoint(
     except Exception as e:
         logger.error(f"Error reactivating subscription: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@payments_router.post("/cancel-subscription")
+async def cancel_subscription_endpoint(
+    data: PortalSessionCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Cancel a subscription at the end of the current period"""
+    
+    logger.info(f"Cancelling subscription for org_id: {data.org_id}")
+
+    # Is the current user an org admin? Or a system admin?
+    if not await is_org_admin(org_id=data.org_id, user_id=current_user.user_id) and not await is_sys_admin(user_id=current_user.user_id):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Org admin access required for org_id: {data.org_id}"
+        )
+
+    try:
+        # Get the customer
+        stripe_customer = await get_payments_customer(data.org_id)
+        if not stripe_customer:
+            raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {data.org_id}")
+
+        # Get the current subscription
+        subscription = await get_subscription(stripe_customer.id)
+        if not subscription:
+            raise HTTPException(status_code=404, detail=f"No active subscription found for org_id: {data.org_id}")
+
+        # Cancel the subscription at period end
+        await StripeAsync.subscription_modify(
+            subscription.id,
+            cancel_at_period_end=True
+        )
+        
+        logger.info(f"Cancelled subscription {subscription.id} for customer_id: {stripe_customer.id}")
+        return {"status": "success", "message": "Subscription cancelled successfully"}
+
+    except Exception as e:
+        logger.error(f"Error cancelling subscription: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
