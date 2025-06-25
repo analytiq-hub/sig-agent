@@ -83,7 +83,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ organizationId }) => {
       await import('@/utils/api').then(api => api.cancelSubscriptionApi(organizationId));
       setSubscriptionStatus('cancelling');
     } catch (e) {
-      // handle error, e.g. toast
+      console.error('Error cancelling subscription:', e);
     } finally {
       setLoading(false);
     }
@@ -97,6 +97,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ organizationId }) => {
       setSubscriptionStatus('active');
     } catch (e) {
       // handle error, e.g. toast
+      console.error('Error reactivating subscription:', e);
     } finally {
       setLoading(false);
     }
