@@ -1342,6 +1342,38 @@ async def get_subscription_plans(
         current_period_end=current_period_end
     )
 
+async def reactivate_subscription(customer_id: str) -> bool:
+    """Reactivate a subscription that is set to cancel at period end"""
+    
+    if not stripe.api_key:
+        logger.warning("Stripe API key not configured - reactivate_subscription aborted")
+        return False
+
+    try:
+        # Get the current subscription
+        subscription = await get_subscription(customer_id)
+        if not subscription:
+            logger.error(f"No subscription found for customer_id: {customer_id}")
+            return False
+        
+        # Check if subscription is set to cancel at period end
+        if not subscription.get('cancel_at_period_end', False):
+            logger.info(f"Subscription for customer_id: {customer_id} is not set to cancel at period end")
+            return True  # Already active
+        
+        # Reactivate the subscription by removing cancel_at_period_end
+        await StripeAsync.subscription_modify(
+            subscription.id,
+            cancel_at_period_end=False
+        )
+        
+        logger.info(f"Reactivated subscription {subscription.id} for customer_id: {customer_id}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error reactivating subscription: {e}")
+        return False
+
 @payments_router.post("/change-plan")
 async def change_subscription_plan(
     data: ChangePlanRequest,
@@ -1363,6 +1395,22 @@ async def change_subscription_plan(
         if not stripe_customer:
             raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {data.org_id}")
 
+        # Get current subscription to check if it's cancelling
+        subscription = await get_subscription(stripe_customer.id)
+        is_reactivating = False
+        
+        if subscription and subscription.get('cancel_at_period_end', False):
+            # If subscription is cancelling and user selects the same plan, reactivate it
+            current_plan_type = get_subscription_type(subscription)
+            if current_plan_type == data.plan_id:
+                is_reactivating = True
+                success = await reactivate_subscription(stripe_customer.id)
+                if success:
+                    return {"status": "success", "message": "Subscription reactivated successfully"}
+                else:
+                    raise HTTPException(status_code=500, detail="Failed to reactivate subscription")
+
+        # Otherwise, proceed with normal plan change
         ret = await set_subscription_type(stripe_customer.id, data.plan_id)
         if not ret:
             raise HTTPException(status_code=500, detail=f"Failed to set subscription type for org_id: {data.org_id}")
@@ -1480,3 +1528,35 @@ async def get_subscription_status(
         )
 
     return await get_organization_subscription_status(org_id)
+
+@payments_router.post("/reactivate-subscription")
+async def reactivate_subscription_endpoint(
+    data: PortalSessionCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Reactivate a subscription that is set to cancel at period end"""
+    
+    logger.info(f"Reactivating subscription for org_id: {data.org_id}")
+
+    # Is the current user an org admin? Or a system admin?
+    if not await is_org_admin(org_id=data.org_id, user_id=current_user.user_id) and not await is_sys_admin(user_id=current_user.user_id):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Org admin access required for org_id: {data.org_id}"
+        )
+
+    try:
+        # Get the customer
+        stripe_customer = await get_payments_customer(data.org_id)
+        if not stripe_customer:
+            raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {data.org_id}")
+
+        success = await reactivate_subscription(stripe_customer.id)
+        if success:
+            return {"status": "success", "message": "Subscription reactivated successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to reactivate subscription")
+
+    except Exception as e:
+        logger.error(f"Error reactivating subscription: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

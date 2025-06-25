@@ -722,3 +722,10 @@ export const getSubscriptionStatusApi = async (orgId: string) => {
   const response = await api.get(`/v0/account/payments/subscription-status/${orgId}`);
   return response.data;
 };
+
+export const reactivateSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
+  const response = await api.post<{ status: string; message: string }>(`/v0/account/payments/reactivate-subscription`, {
+    org_id: orgId
+  });
+  return response.data;
+};

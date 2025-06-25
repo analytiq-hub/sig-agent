@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getCustomerPortalApi, getSubscriptionPlansApi, updateOrganizationApi } from '@/utils/api';
+import { getCustomerPortalApi, getSubscriptionPlansApi, updateOrganizationApi, reactivateSubscriptionApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import type { SubscriptionPlan } from '@/types/payments';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -84,6 +84,39 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   };
 
   const handlePlanChange = async (planId: string) => {
+    // Check if this is a reactivation (same plan, cancelling status)
+    if (currentPlan === planId && subscriptionStatus === 'cancelling') {
+      try {
+        setLoading(true);
+        
+        // Reactivate the subscription
+        await reactivateSubscriptionApi(organizationId);
+        
+        // Refresh the subscription plans data
+        const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
+        setSubscriptionStatus(subscriptionPlansResponse.subscription_status);
+        setCancelAtPeriodEnd(subscriptionPlansResponse.cancel_at_period_end);
+        setCurrentPeriodEnd(subscriptionPlansResponse.current_period_end);
+        
+        // Notify parent components
+        if (onSubscriptionStatusChange) {
+          onSubscriptionStatusChange(subscriptionPlansResponse.subscription_status);
+        }
+        if (onCancellationInfoChange) {
+          onCancellationInfoChange(subscriptionPlansResponse.cancel_at_period_end, subscriptionPlansResponse.current_period_end);
+        }
+        
+        toast.success('Subscription reactivated successfully!');
+        return;
+      } catch (error) {
+        console.error('Error reactivating subscription:', error);
+        toast.error('Failed to reactivate subscription');
+        return;
+      } finally {
+        setLoading(false);
+      }
+    }
+
     // Check if payment method is set up
     if (!hasPaymentMethod) {
       const confirmed = window.confirm(
@@ -107,6 +140,17 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       // Refresh the subscription plans data
       const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
       setCurrentPlan(planId);
+      setSubscriptionStatus(subscriptionPlansResponse.subscription_status);
+      setCancelAtPeriodEnd(subscriptionPlansResponse.cancel_at_period_end);
+      setCurrentPeriodEnd(subscriptionPlansResponse.current_period_end);
+      
+      // Notify parent components
+      if (onSubscriptionStatusChange) {
+        onSubscriptionStatusChange(subscriptionPlansResponse.subscription_status);
+      }
+      if (onCancellationInfoChange) {
+        onCancellationInfoChange(subscriptionPlansResponse.cancel_at_period_end, subscriptionPlansResponse.current_period_end);
+      }
       
       // Redirect to the customer portal only if no payment method is set up
       if (!subscriptionPlansResponse.has_payment_method) {
@@ -195,9 +239,25 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
             {getSubscriptionStatusBadge(subscriptionStatus)}
           </div>
           {subscriptionStatus === 'cancelling' && currentPeriodEnd && (
-            <p className="mt-2 text-sm text-orange-600">
-              Your subscription will be cancelled on {formatDate(currentPeriodEnd)}. You can reactivate it anytime before then.
-            </p>
+            <div className="mt-2">
+              <p className="text-sm text-orange-600 mb-2">
+                Your subscription will be cancelled on {formatDate(currentPeriodEnd)}. You can reactivate it anytime before then.
+              </p>
+              <button
+                onClick={() => handlePlanChange(currentPlan || 'individual')}
+                disabled={loading}
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                ) : (
+                  <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+                Reactivate Now
+              </button>
+            </div>
           )}
           {subscriptionStatus === 'canceled' && (
             <p className="mt-2 text-sm text-gray-500">
