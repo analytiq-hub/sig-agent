@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getCustomerPortalApi, getSubscriptionPlansApi, updateOrganizationApi, reactivateSubscriptionApi, cancelSubscriptionApi } from '@/utils/api';
+import { getCustomerPortalApi, getSubscriptionPlansApi, updateOrganizationApi, reactivateSubscriptionApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import type { SubscriptionPlan } from '@/types/payments';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -25,7 +25,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   const [loading, setLoading] = useState(false);
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
-  const [currentPeriodEnd, setCurrentPeriodEnd] = useState<number | null>(null);
   const { refreshOrganizations, currentOrganization } = useOrganization();
 
   useEffect(() => {
@@ -38,7 +37,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         setSelectedPlan(data.current_plan || 'individual');
         setHasPaymentMethod(data.has_payment_method);
         setSubscriptionStatus(data.subscription_status);
-        setCurrentPeriodEnd(data.current_period_end);
         
         // Notify parent component about payment method status
         if (onPaymentMethodStatusChange) {
@@ -56,7 +54,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         }
       } catch (error) {
         console.error('Error fetching subscription plans:', error);
-        toast.error('Failed to load subscription plans');
+        toast.error(`Failed to load subscription plans: ${error}`);
       } finally {
         setLoading(false);
       }
@@ -93,7 +91,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         // Refresh the subscription plans data
         const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
         setSubscriptionStatus(subscriptionPlansResponse.subscription_status);
-        setCurrentPeriodEnd(subscriptionPlansResponse.current_period_end);
         
         // Notify parent components
         if (onSubscriptionStatusChange) {
@@ -137,7 +134,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
       setCurrentPlan(planId);
       setSubscriptionStatus(subscriptionPlansResponse.subscription_status);
-      setCurrentPeriodEnd(subscriptionPlansResponse.current_period_end);
       
       // Notify parent components
       if (onSubscriptionStatusChange) {
@@ -161,41 +157,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     }
   };
 
-  const handleCancelSubscription = async () => {
-    const confirmed = window.confirm(
-      'Are you sure you want to cancel your subscription? You will continue to have access until the end of your current billing period.'
-    );
-    
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      
-      // Call the cancel subscription API
-      await cancelSubscriptionApi(organizationId);
-      
-      // Refresh the subscription plans data
-      const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
-      setSubscriptionStatus(subscriptionPlansResponse.subscription_status);
-      setCurrentPeriodEnd(subscriptionPlansResponse.current_period_end);
-      
-      // Notify parent components
-      if (onSubscriptionStatusChange) {
-        onSubscriptionStatusChange(subscriptionPlansResponse.subscription_status);
-      }
-      if (onCancellationInfoChange) {
-        onCancellationInfoChange(subscriptionPlansResponse.cancel_at_period_end, subscriptionPlansResponse.current_period_end);
-      }
-    } catch (error) {
-      console.error('Error cancelling subscription:', error);
-      toast.error('Failed to cancel subscription');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Filter plans based on organization type (minimum tier) and current plan tier
   const getVisiblePlans = (allPlans: SubscriptionPlan[], currentPlanType: string | null): SubscriptionPlan[] => {
     const planHierarchy = ['individual', 'team', 'enterprise'];
@@ -214,9 +175,17 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       effectiveMinIndex = Math.max(minTierIndex, currentIndex);
     }
     
-    // Only show plans at or above the effective minimum tier
+    // Always show the current plan and plans above it, regardless of organization type
+    // This allows users to see their current plan even if it's below the organization's minimum tier
     return allPlans.filter(plan => {
       const planIndex = planHierarchy.indexOf(plan.plan_id);
+      
+      // Always include the current plan
+      if (currentPlanType && plan.plan_id === currentPlanType) {
+        return true;
+      }
+      
+      // Include plans at or above the effective minimum tier
       return planIndex >= effectiveMinIndex;
     });
   };
@@ -226,38 +195,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     if (num === 2) return 'md:grid-cols-2';
     if (num >= 3) return 'md:grid-cols-3';
     return 'md:grid-cols-1';
-  };
-
-  const getSubscriptionStatusBadge = (status: string | null) => {
-    if (!status) return null;
-    
-    const statusConfig = {
-      'active': { color: 'bg-green-100 text-green-800', text: 'Active' },
-      'cancelling': { color: 'bg-orange-100 text-orange-800', text: 'Cancelling' },
-      'canceled': { color: 'bg-red-100 text-red-800', text: 'Cancelled' },
-      'past_due': { color: 'bg-yellow-100 text-yellow-800', text: 'Past Due' },
-      'unpaid': { color: 'bg-red-100 text-red-800', text: 'Unpaid' },
-      'incomplete': { color: 'bg-blue-100 text-blue-800', text: 'Incomplete' },
-      'incomplete_expired': { color: 'bg-gray-100 text-gray-800', text: 'Expired' },
-      'trialing': { color: 'bg-purple-100 text-purple-800', text: 'Trial' },
-      'no_subscription': { color: 'bg-gray-100 text-gray-800', text: 'No Subscription' }
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['no_subscription'];
-    
-    return (
-      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
-        {config.text}
-      </div>
-    );
-  };
-
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
   };
 
   if (loading) {
