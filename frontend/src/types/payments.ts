@@ -23,6 +23,9 @@ export interface SubscriptionPlanResponse {
   plans: SubscriptionPlan[];
   current_plan: string | null;
   has_payment_method: boolean;
+  subscription_status: string | null;
+  cancel_at_period_end: boolean;
+  current_period_end: number | null;  // Unix timestamp
 }
 
 export interface SubscriptionHistory {

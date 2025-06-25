@@ -160,6 +160,9 @@ class SubscriptionPlanResponse(BaseModel):
     plans: List[SubscriptionPlan]
     current_plan: Optional[str] = None
     has_payment_method: bool = False
+    subscription_status: Optional[str] = None
+    cancel_at_period_end: bool = False
+    current_period_end: Optional[int] = None  # Unix timestamp
 
 class ChangePlanRequest(BaseModel):
     org_id: str
@@ -1263,9 +1266,6 @@ async def get_subscription_plans(
     if not customer:
         raise HTTPException(status_code=404, detail=f"Customer not found for org_id: {org_id}")
     
-    # Get the subscription
-    subscription = await stripe_customers.find_one({"stripe_customer_id": customer["stripe_customer_id"]})
-    
     # Define the available plans with metered usage details
     plans = [
         SubscriptionPlan(
@@ -1312,14 +1312,35 @@ async def get_subscription_plans(
 
     # Get the subscription
     subscription = await get_subscription(stripe_customer.id)
+    current_subscription_type = None
+    subscription_status = None
+    cancel_at_period_end = False
+    current_period_end = None
+    
     if not subscription:
-        raise HTTPException(status_code=404, detail=f"Subscription not found for org_id: {org_id}")
+        # No subscription found
+        current_subscription_type = None
+        subscription_status = "no_subscription"
     else:
         current_subscription_type = get_subscription_type(subscription)
+        subscription_status = subscription.status
+        
+        # Check if subscription is set to cancel at period end
+        cancel_at_period_end = subscription.get('cancel_at_period_end', False)
+        current_period_end = subscription.get('current_period_end')
+        
+        # If subscription is active but set to cancel at period end, show as "cancelling"
+        if subscription_status == 'active' and cancel_at_period_end:
+            subscription_status = 'cancelling'
     
-    return SubscriptionPlanResponse(plans=plans, 
-                                    current_plan=current_subscription_type,
-                                    has_payment_method=has_payment_method)
+    return SubscriptionPlanResponse(
+        plans=plans, 
+        current_plan=current_subscription_type,
+        has_payment_method=has_payment_method,
+        subscription_status=subscription_status,
+        cancel_at_period_end=cancel_at_period_end,
+        current_period_end=current_period_end
+    )
 
 @payments_router.post("/change-plan")
 async def change_subscription_plan(
