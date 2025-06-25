@@ -13,7 +13,6 @@ const Subscription: React.FC<SubscriptionProps> = ({ organizationId }) => {
   const [loading, setLoading] = useState(false);
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
-  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState<boolean>(false);
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<number | null>(null);
 
   useEffect(() => {
@@ -41,7 +40,6 @@ const Subscription: React.FC<SubscriptionProps> = ({ organizationId }) => {
   };
 
   const handleCancellationInfoChange = (cancelAtPeriodEnd: boolean, currentPeriodEnd: number | null) => {
-    setCancelAtPeriodEnd(cancelAtPeriodEnd);
     setCurrentPeriodEnd(currentPeriodEnd);
   };
 
