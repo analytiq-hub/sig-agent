@@ -8,9 +8,10 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface SubscriptionPlansProps {
   organizationId: string;
+  onPaymentMethodStatusChange?: (hasPaymentMethod: boolean) => void;
 }
 
-const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId }) => {
+const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId, onPaymentMethodStatusChange }) => {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -27,6 +28,11 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
         setCurrentPlan(data.current_plan);
         setSelectedPlan(data.current_plan || 'individual');
         setHasPaymentMethod(data.has_payment_method);
+        
+        // Notify parent component about payment method status
+        if (onPaymentMethodStatusChange) {
+          onPaymentMethodStatusChange(data.has_payment_method);
+        }
       } catch (error) {
         console.error('Error fetching subscription plans:', error);
         toast.error('Failed to load subscription plans');
@@ -36,7 +42,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
     };
 
     fetchPlans();
-  }, [organizationId]);
+  }, [organizationId, onPaymentMethodStatusChange]);
 
   const canChangeToPlan = (currentPlan: string | null, targetPlan: string): boolean => {
     if (!currentPlan) return true; // No current plan, can select any
@@ -107,6 +113,13 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
     });
   };
 
+  const getGridColsClass = (num: number) => {
+    if (num === 1) return 'md:grid-cols-1';
+    if (num === 2) return 'md:grid-cols-2';
+    if (num >= 3) return 'md:grid-cols-3';
+    return 'md:grid-cols-1';
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-40">
@@ -119,7 +132,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ organizationId })
 
   return (
     <div className="w-full flex justify-center">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className={`grid grid-cols-1 ${getGridColsClass(visiblePlans.length)} gap-8`}>
         {visiblePlans.map((plan) => (
           <div
             key={plan.plan_id}
