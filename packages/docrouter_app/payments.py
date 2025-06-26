@@ -804,12 +804,6 @@ async def webhook_received(
     elif event["type"] == "customer.subscription.deleted":
         subscription = event["data"]["object"]
         await handle_subscription_deleted(subscription)
-    elif event["type"] == "invoice.paid":
-        invoice = event["data"]["object"]
-        await handle_invoice_paid(invoice)
-    elif event["type"] == "invoice.payment_failed":
-        invoice = event["data"]["object"]
-        await handle_invoice_payment_failed(invoice)
     
     # Mark event as processed
     await stripe_events.update_one(
@@ -949,48 +943,6 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
 
     except Exception as e:
         logger.error(f"Error processing subscription deletion: {e}")
-
-async def handle_invoice_paid(invoice: Dict[str, Any]):
-    """Handle invoice paid event"""
-    
-    logger.info(f"Handling invoice paid event for invoice_id: {invoice['id']}")
-
-    try:
-        # Update subscription status if needed
-        if invoice.get("subscription"):
-            
-            # Update customer payment status
-            customer = await stripe_customers.find_one({"stripe_customer_id": invoice["customer"]})
-            if customer:
-                await stripe_customers.update_one(
-                    {"stripe_customer_id": invoice["customer"]},
-                    {
-                        "$set": {
-                            "payment_status": "active",
-                            "updated_at": datetime.utcnow()
-                        }
-                    }
-                )
-    except Exception as e:
-        print(f"Error processing invoice payment: {e}")
-
-async def handle_invoice_payment_failed(invoice: Dict[str, Any]):
-    """Handle invoice payment failed event"""
-
-    logger.info(f"Handling invoice payment failed event for invoice_id: {invoice['id']}")
-    try:
-        # Update customer payment status
-        await stripe_customers.update_one(
-            {"stripe_customer_id": invoice["customer"]},
-            {
-                "$set": {
-                    "payment_status": "pastDue",
-                    "updated_at": datetime.utcnow()
-                }
-            }
-        )
-    except Exception as e:
-        print(f"Error processing invoice payment failure: {e}")
 
 async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
     """
