@@ -121,11 +121,6 @@ TIER_TO_PRICE = {
 NEXTAUTH_URL = None
 
 # Pydantic models for request/response validation
-class CustomerCreate(BaseModel):
-    user_id: str
-    email: str
-    name: Optional[str] = None
-
 class SetupIntentCreate(BaseModel):
     customer_id: str
 
@@ -748,81 +743,6 @@ async def set_subscription_type(customer_id: str, subscription_type: str):
         return True
     else:
         return False
-
-@payments_router.post("/setup-intent")
-async def create_setup_intent(
-    data: SetupIntentCreate,
-):
-    """Create a setup intent for collecting payment method"""
-
-    logger.info(f"Creating setup intent for customer_id: {data.customer_id}")
-
-    try:
-        setup_intent = await StripeAsync.setup_intent_create(
-            customer=data.customer_id,
-            payment_method_types=["card"],
-        )
-        return {"client_secret": setup_intent.client_secret}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@payments_router.post("/create-subscription")
-async def create_subscription(
-    data: SubscriptionCreate,
-):
-    """Create a metered subscription for a customer"""
-
-    logger.info(f"Creating subscription for customer_id: {data.customer_id}")
-
-    try:
-        # Find the customer in our database
-        customer = await stripe_customers.find_one({"stripe_customer_id": data.customer_id})
-        if not customer:
-            raise HTTPException(status_code=404, detail="Customer not found")
-        
-        # Use default price ID if not provided
-        price_id = data.price_id or TIER_TO_PRICE["individual"]
-        if not price_id:
-            raise HTTPException(status_code=400, detail="No price ID provided or configured")
-        
-        # Use the new subroutine
-        subscription_type = get_subscription_type_from_price_id(price_id)
-        
-        # Create the subscription
-        subscription = await StripeAsync.subscription_create(
-            customer=data.customer_id,
-            items=[{
-                "price": price_id,
-            }],
-            payment_behavior="default_incomplete",
-            expand=["latest_invoice.payment_intent"],
-        )
-        
-        # Find the subscription item ID for usage reporting later
-        subscription_item_id = subscription["items"]["data"][0]["id"]
-        
-        # Update customer status
-        await stripe_customers.update_one(
-            {"stripe_customer_id": data.customer_id},
-            {
-                "$set": {
-                    "stripe_subscription_id": subscription.id,
-                    "usage_tier": "paid",
-                    "payment_status": subscription.status,
-                    "subscription_type": subscription_type,
-                    "updated_at": datetime.utcnow()
-                }
-            }
-        )
-        
-        return {
-            "subscription_id": subscription.id,
-            "status": subscription.status,
-            "subscription_type": subscription_type,
-            "client_secret": subscription.latest_invoice.payment_intent.client_secret if hasattr(subscription, "latest_invoice") and hasattr(subscription.latest_invoice, "payment_intent") else None
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @payments_router.post("/customer-portal")
 async def customer_portal(
