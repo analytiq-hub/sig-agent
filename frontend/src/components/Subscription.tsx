@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getCustomerPortalApi } from '@/utils/api';
 import SubscriptionPlans from './SubscriptionPlans';
+import UsageDisplay from './UsageDisplay';
 
 interface SubscriptionProps {
   organizationId: string;
@@ -113,7 +114,8 @@ const Subscription: React.FC<SubscriptionProps> = ({ organizationId }) => {
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       {customerPortalUrl ? (
-        <div className="space-y-4">
+        <div className="space-y-6">
+          <UsageDisplay organizationId={organizationId} />
           <div>
             <SubscriptionPlans 
               organizationId={organizationId} 

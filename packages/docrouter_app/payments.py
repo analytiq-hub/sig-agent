@@ -91,6 +91,23 @@ class StripeAsync:
             **kwargs
         )
 
+    @staticmethod
+    async def usage_record_create(subscription_item_id: str, *args, **kwargs) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(
+            stripe.SubscriptionItem.create_usage_record,
+            subscription_item_id,
+            *args,
+            **kwargs
+        )
+
+    @staticmethod
+    async def subscription_item_list(*args, **kwargs) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(
+            stripe.SubscriptionItem.list,
+            *args,
+            **kwargs
+        )
+
 # Configure logger
 logger = logging.getLogger(__name__)
 
@@ -113,10 +130,28 @@ stripe_events = None
 
 # Stripe configuration constants
 FREE_TIER_LIMIT = 50  # Number of free pages
-TIER_TO_PRICE = {
-    "individual": None,
-    "team": None,
-    "enterprise": None
+TIER_CONFIG = {
+    "individual": {
+        "price_id": None,  # Set from env
+        "base_price": 9.99,
+        "included_usage": 100,  # Free pages included
+        "overage_price": 0.01,  # Price per page after limit
+        "meter_id": None  # Set from env
+    },
+    "team": {
+        "price_id": None,  # Set from env
+        "base_price": 29.99,
+        "included_usage": 500,
+        "overage_price": 0.02,
+        "meter_id": None  # Set from env
+    },
+    "enterprise": {
+        "price_id": None,  # Set from env
+        "base_price": 99.99,
+        "included_usage": 2000,
+        "overage_price": 0.05,
+        "meter_id": None  # Set from env
+    }
 }
 NEXTAUTH_URL = None
 
@@ -188,14 +223,14 @@ def get_subscription_type_from_price_id(price_id: str) -> str:
     Returns:
         str: The subscription type (individual, team, enterprise) or None if not found
     """
-    for tier, tier_price_id in TIER_TO_PRICE.items():
-        if tier_price_id == price_id:
+    for tier, tier_price_id in TIER_CONFIG.items():
+        if tier_price_id["price_id"] == price_id:
             return tier
     return None
 
 async def init_payments_env():
     global MONGO_URI, ENV
-    global TIER_TO_PRICE
+    global TIER_CONFIG
     global NEXTAUTH_URL
     global client, db
     global stripe_customers, stripe_events
@@ -203,10 +238,28 @@ async def init_payments_env():
 
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     ENV = os.getenv("ENV", "dev")
-    TIER_TO_PRICE = {
-        "individual": os.getenv("STRIPE_PRICE_ID_INDIVIDUAL", ""),
-        "team": os.getenv("STRIPE_PRICE_ID_TEAM", ""),
-        "enterprise": os.getenv("STRIPE_PRICE_ID_ENTERPRISE", "")
+    TIER_CONFIG = {
+        "individual": {
+            "price_id": os.getenv("STRIPE_PRICE_ID_INDIVIDUAL", ""),
+            "base_price": 9.99,
+            "included_usage": 100,  # Free pages included
+            "overage_price": 0.01,  # Price per page after limit
+            "meter_id": None  # Set from env
+        },
+        "team": {
+            "price_id": os.getenv("STRIPE_PRICE_ID_TEAM", ""),
+            "base_price": 29.99,
+            "included_usage": 500,
+            "overage_price": 0.02,
+            "meter_id": None  # Set from env
+        },
+        "enterprise": {
+            "price_id": os.getenv("STRIPE_PRICE_ID_ENTERPRISE", ""),
+            "base_price": 99.99,
+            "included_usage": 2000,
+            "overage_price": 0.05,
+            "meter_id": None  # Set from env
+        }
     }
     NEXTAUTH_URL = os.getenv("NEXTAUTH_URL", "http://localhost:3000")
 
@@ -549,21 +602,35 @@ async def record_usage(user_id: str, pages_processed: int, operation: str, sourc
     logger.info(f"record_usage called with user_id: {user_id}, pages_processed: {pages_processed}, operation: {operation}, source: {source}")
 
     if not stripe.api_key:
-        # No-op if Stripe is not configured
         logger.warning("Stripe API key not configured - record_usage aborted")
         return None
 
-    logger.info(f"Recording usage for user_id: {user_id}")
-    logger.info(f"Pages processed: {pages_processed}")
-    logger.info(f"Operation: {operation}")
-    logger.info(f"Source: {source}")
-
-    # Get current active subscription
+    # Get customer and subscription info
     customer = await stripe_customers.find_one({"user_id": user_id})
     if not customer:
         raise ValueError(f"No customer found for user_id: {user_id}")
 
-    # Create usage record
+    # Get current subscription
+    subscription = await get_subscription(customer["stripe_customer_id"])
+    
+    if subscription and subscription.get("status") == "active":
+        # User has an active subscription - report usage to Stripe
+        subscription_item_id = subscription["items"]["data"][0]["id"]
+        
+        try:
+            # Report usage to Stripe's metered billing
+            await StripeAsync.usage_record_create(
+                subscription_item_id,
+                quantity=pages_processed,
+                timestamp=int(datetime.utcnow().timestamp()),
+                action="increment"
+            )
+            logger.info(f"Reported {pages_processed} pages to Stripe for user {user_id}")
+        except Exception as e:
+            logger.error(f"Failed to report usage to Stripe: {e}")
+            # Continue with local tracking as fallback
+    
+    # Always store usage locally for analytics
     usage_record = {
         "user_id": user_id,
         "stripe_customer_id": customer["stripe_customer_id"],
@@ -571,23 +638,11 @@ async def record_usage(user_id: str, pages_processed: int, operation: str, sourc
         "operation": operation,
         "source": source,
         "timestamp": datetime.utcnow(),
-        "reported_to_stripe": False
+        "reported_to_stripe": bool(subscription and subscription.get("status") == "active")
     }
-
-    # Update usage in current subscription period if there is an active subscription
-    if customer.get("current_subscription"):
-        pass
-
-    # Check if user needs to upgrade (has reached free tier limit)
-    if not customer.get("stripe_subscription") or customer["stripe_subscription"].get("is_active") == False:
-        # Only check limits for free tier users
-        current_usage = customer.get("current_month_usage", 0) + pages_processed
-        if current_usage >= FREE_TIER_LIMIT:
-            await stripe_customers.update_one(
-                {"user_id": user_id},
-                {"$set": {"free_usage_remaining": 0}}
-            )
-            logger.info(f"User {user_id} has reached free usage limit")
+    
+    # Store in local database for analytics
+    await db.usage_records.insert_one(usage_record)
     
     return usage_record
 
@@ -711,10 +766,10 @@ def get_subscription_type(subscription: Dict[str, Any]) -> str:
 async def set_subscription_type(customer_id: str, subscription_type: str):
     """Enable a subscription for a customer"""
 
-    if subscription_type not in TIER_TO_PRICE.keys():
-        raise ValueError(f"Invalid subscription type: {subscription_type}, not in {TIER_TO_PRICE.keys()}")
+    if subscription_type not in TIER_CONFIG.keys():
+        raise ValueError(f"Invalid subscription type: {subscription_type}, not in {TIER_CONFIG.keys()}")
 
-    price_id = TIER_TO_PRICE[subscription_type]
+    price_id = TIER_CONFIG[subscription_type]["price_id"]
 
     # Get the current subscription type
     subscription = await get_subscription(customer_id)
@@ -727,7 +782,7 @@ async def set_subscription_type(customer_id: str, subscription_type: str):
         # Delete the current subscription
         await StripeAsync.subscription_delete(subscription.id)
 
-    price_id = TIER_TO_PRICE[subscription_type]
+    price_id = TIER_CONFIG[subscription_type]["price_id"]
 
     # Create a new subscription
     subscription = await StripeAsync.subscription_create(
@@ -831,40 +886,6 @@ async def api_record_usage(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@payments_router.get("/usage-stats/{user_id}")
-async def get_usage_stats(
-    user_id: str,
-):
-    """Get current usage statistics for a user"""
-
-    logger.info(f"Getting usage stats for user_id: {user_id}")
-
-    try:
-        customer = await stripe_customers.find_one({"user_id": user_id})
-        if not customer:
-            raise HTTPException(status_code=404, detail="Customer not found")
-        
-        # Get usage data
-        limits = await check_usage_limits(user_id)
-        
-        # Get subscription status if available
-        subscription_status = None
-        if customer.get("stripe_subscription_id"):
-            # TODO: Get subscription status from Stripe
-            pass
-        
-        return {
-            "user_id": user_id,
-            "usage_tier": customer["usage_tier"],
-            "current_usage": customer["current_month_usage"],
-            "free_limit": FREE_TIER_LIMIT,
-            "free_remaining": customer.get("free_usage_remaining", 0) if customer["usage_tier"] == "free" else 0,
-            "limit_reached": limits["limit_reached"],
-            "needs_upgrade": limits["needs_upgrade"],
-            "subscription": subscription_status
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 # Helper functions for webhook handlers
 async def handle_subscription_updated(subscription: Dict[str, Any]):
@@ -1065,10 +1086,10 @@ async def get_subscription_plans(
         SubscriptionPlan(
             plan_id="individual",
             name="Individual",
-            price_id=TIER_TO_PRICE["individual"],
-            price=9.99,
-            included_usage=100,
-            overage_price=0.01,
+            price_id=TIER_CONFIG["individual"]["price_id"],
+            price=TIER_CONFIG["individual"]["base_price"],
+            included_usage=TIER_CONFIG["individual"]["included_usage"],
+            overage_price=TIER_CONFIG["individual"]["overage_price"],
             features=[
                 "Basic document processing"
             ]
@@ -1076,10 +1097,10 @@ async def get_subscription_plans(
         SubscriptionPlan(
             plan_id="team",
             name="Team",
-            price_id=TIER_TO_PRICE["team"],
-            price=29.99,
-            included_usage=500,
-            overage_price=0.02,
+            price_id=TIER_CONFIG["team"]["price_id"],
+            price=TIER_CONFIG["team"]["base_price"],
+            included_usage=TIER_CONFIG["team"]["included_usage"],
+            overage_price=TIER_CONFIG["team"]["overage_price"],
             features=[
                 "Advanced document processing"
             ]
@@ -1087,10 +1108,10 @@ async def get_subscription_plans(
         SubscriptionPlan(
             plan_id="enterprise",
             name="Enterprise",
-            price_id=TIER_TO_PRICE["enterprise"],
-            price=99.99,
-            included_usage=2000,
-            overage_price=0.05,
+            price_id=TIER_CONFIG["enterprise"]["price_id"],
+            price=TIER_CONFIG["enterprise"]["base_price"],
+            included_usage=TIER_CONFIG["enterprise"]["included_usage"],
+            overage_price=TIER_CONFIG["enterprise"]["overage_price"],
             features=[
                 "Custom document processing"
             ]
@@ -1393,4 +1414,98 @@ async def cancel_subscription_endpoint(
 
     except Exception as e:
         logger.error(f"Error cancelling subscription: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+async def get_stripe_usage(org_id: str) -> Dict[str, Any]:
+    """Get current usage information from Stripe"""
+    
+    if not stripe.api_key:
+        return None
+    
+    try:
+        stripe_customer = await get_payments_customer(org_id)
+        if not stripe_customer:
+            return None
+            
+        subscription = await get_subscription(stripe_customer.id)
+        if not subscription or subscription.get("status") != "active":
+            return None
+            
+        subscription_item = subscription["items"]["data"][0]
+        subscription_item_id = subscription_item["id"]
+        
+        # Get current period usage from Stripe
+        current_period_start = subscription_item.get("current_period_start")
+        current_period_end = subscription_item.get("current_period_end")
+        
+        # Get usage for the current billing period
+        usage_records = await StripeAsync.subscription_item_list(
+            subscription_item=subscription_item_id,
+            created={"gte": current_period_start, "lt": current_period_end}
+        )
+        
+        total_usage = sum(record.get("quantity", 0) for record in usage_records.get("data", []))
+        
+        # Get plan configuration
+        subscription_type = get_subscription_type(subscription)
+        plan_config = TIER_CONFIG.get(subscription_type, {})
+        included_usage = plan_config.get("included_usage", 0)
+        
+        return {
+            "total_usage": total_usage,
+            "included_usage": included_usage,
+            "overage_usage": max(0, total_usage - included_usage),
+            "remaining_included": max(0, included_usage - total_usage),
+            "current_period_start": current_period_start,
+            "current_period_end": current_period_end,
+            "subscription_type": subscription_type
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting Stripe usage: {e}")
+        return None
+
+@payments_router.get("/usage/{org_id}")
+async def get_current_usage(
+    org_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get current usage information for an organization"""
+    
+    # Check if user has access to this organization
+    if not await is_org_admin(org_id=org_id, user_id=current_user.user_id) and not await is_sys_admin(user_id=current_user.user_id):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Org admin access required for org_id: {org_id}"
+        )
+
+    try:
+        # Get usage from Stripe
+        stripe_usage = await get_stripe_usage(org_id)
+        
+        if stripe_usage:
+            return {
+                "usage_source": "stripe",
+                "data": stripe_usage
+            }
+        else:
+            # Fallback to local usage tracking for free tier
+            customer = await stripe_customers.find_one({"org_id": org_id})
+            if customer:
+                current_usage = customer.get("current_month_usage", 0)
+                return {
+                    "usage_source": "local",
+                    "data": {
+                        "total_usage": current_usage,
+                        "included_usage": FREE_TIER_LIMIT,
+                        "overage_usage": 0,
+                        "remaining_included": max(0, FREE_TIER_LIMIT - current_usage),
+                        "subscription_type": "free"
+                    }
+                }
+        
+        return {"usage_source": "none", "data": None}
+        
+    except Exception as e:
+        logger.error(f"Error getting usage: {e}")
         raise HTTPException(status_code=500, detail=str(e))
