@@ -46,3 +46,20 @@ export interface SubscriptionHistory {
 export interface SubscriptionHistoryResponse {
   subscription_history: SubscriptionHistory[];
 }
+
+// New interface for usage data with SPU support
+export interface UsageData {
+  total_usage: number;
+  included_usage: number;
+  overage_usage: number;
+  remaining_included: number;
+  subscription_type: string;
+  usage_unit?: string; // 'spu' or 'pages'
+  current_period_start?: number;
+  current_period_end?: number;
+}
+
+export interface UsageResponse {
+  usage_source: 'stripe' | 'local' | 'none';
+  data: UsageData | null;
+}

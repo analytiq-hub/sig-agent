@@ -129,13 +129,13 @@ stripe_customers = None
 stripe_events = None
 
 # Stripe configuration constants
-FREE_TIER_LIMIT = 50  # Number of free pages
+FREE_TIER_LIMIT = 50  # Number of free SPUs
 TIER_CONFIG = {
     "individual": {
         "price_id": None,  # Set from env
         "base_price": 9.99,
-        "included_usage": 100,  # Free pages included
-        "overage_price": 0.01,  # Price per page after limit
+        "included_usage": 100,  # Free SPUs included
+        "overage_price": 0.01,  # Price per SPU after limit
         "meter_id": None  # Set from env
     },
     "team": {
@@ -164,8 +164,9 @@ class SubscriptionCreate(BaseModel):
     price_id: Optional[str] = None
 
 class UsageRecord(BaseModel):
-    user_id: str
+    org_id: str  # Changed from user_id to org_id
     pages_processed: int
+    spu_consumed: int = Field(default=0)  # New field for SPU tracking
     operation: str
     source: str = "backend"
 
@@ -596,45 +597,50 @@ async def parse_stripe_usage(parsed_subscription, stripe_customer_id):
     
     return usage
 
-async def record_usage(user_id: str, pages_processed: int, operation: str, source: str = "backend") -> Dict[str, Any]:
-    """Record usage for a user and report to Stripe if on paid tier"""
+async def record_usage(org_id: str, pages_processed: int, operation: str, source: str = "backend", spu_consumed: int = None) -> Dict[str, Any]:
+    """Record usage for an organization and report to Stripe if on paid tier"""
 
-    logger.info(f"record_usage called with user_id: {user_id}, pages_processed: {pages_processed}, operation: {operation}, source: {source}")
+    # Calculate SPU consumed (1 SPU per page for now, can be customized later)
+    if spu_consumed is None:
+        spu_consumed = pages_processed
+
+    logger.info(f"record_usage called with org_id: {org_id}, pages_processed: {pages_processed}, spu_consumed: {spu_consumed}, operation: {operation}, source: {source}")
 
     if not stripe.api_key:
         logger.warning("Stripe API key not configured - record_usage aborted")
         return None
 
     # Get customer and subscription info
-    customer = await stripe_customers.find_one({"user_id": user_id})
+    customer = await stripe_customers.find_one({"org_id": org_id})
     if not customer:
-        raise ValueError(f"No customer found for user_id: {user_id}")
+        raise ValueError(f"No customer found for org_id: {org_id}")
 
     # Get current subscription
     subscription = await get_subscription(customer["stripe_customer_id"])
     
     if subscription and subscription.get("status") == "active":
-        # User has an active subscription - report usage to Stripe
+        # Organization has an active subscription - report usage to Stripe
         subscription_item_id = subscription["items"]["data"][0]["id"]
         
         try:
-            # Report usage to Stripe's metered billing
+            # Report usage to Stripe's metered billing (using SPU instead of pages)
             await StripeAsync.usage_record_create(
                 subscription_item_id,
-                quantity=pages_processed,
+                quantity=spu_consumed,
                 timestamp=int(datetime.utcnow().timestamp()),
                 action="increment"
             )
-            logger.info(f"Reported {pages_processed} pages to Stripe for user {user_id}")
+            logger.info(f"Reported {spu_consumed} SPUs to Stripe for org {org_id}")
         except Exception as e:
             logger.error(f"Failed to report usage to Stripe: {e}")
             # Continue with local tracking as fallback
     
     # Always store usage locally for analytics
     usage_record = {
-        "user_id": user_id,
+        "org_id": org_id,
         "stripe_customer_id": customer["stripe_customer_id"],
         "pages_processed": pages_processed,
+        "spu_consumed": spu_consumed,
         "operation": operation,
         "source": source,
         "timestamp": datetime.utcnow(),
@@ -646,18 +652,18 @@ async def record_usage(user_id: str, pages_processed: int, operation: str, sourc
     
     return usage_record
 
-async def check_usage_limits(user_id: str) -> Dict[str, Any]:
-    """Check if user has hit usage limits and needs to upgrade"""
+async def check_usage_limits(org_id: str) -> Dict[str, Any]:
+    """Check if organization has hit usage limits and needs to upgrade"""
 
     if not stripe.api_key:
         # No-op if Stripe is not configured
         return None
 
-    logger.info(f"Checking usage limits for user_id: {user_id}")
+    logger.info(f"Checking usage limits for org_id: {org_id}")
 
-    customer = await stripe_customers.find_one({"user_id": user_id})
+    customer = await stripe_customers.find_one({"org_id": org_id})
     if not customer:
-        raise ValueError(f"No customer found for user_id: {user_id}")
+        raise ValueError(f"No customer found for org_id: {org_id}")
     
     if customer["usage_tier"] == "free" and customer["current_month_usage"] >= FREE_TIER_LIMIT:
         return {
@@ -872,16 +878,17 @@ async def webhook_received(
 async def api_record_usage(
     usage: UsageRecord,
 ):
-    """Record usage for a user"""
+    """Record usage for an organization"""
 
     try:
         result = await record_usage(
-            usage.user_id,
+            usage.org_id,
             usage.pages_processed,
             usage.operation,
-            usage.source
+            usage.source,
+            usage.spu_consumed
         )
-        limits = await check_usage_limits(usage.user_id)
+        limits = await check_usage_limits(usage.org_id)
         return {"success": True, "usage": result, "limits": limits}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1458,7 +1465,8 @@ async def get_stripe_usage(org_id: str) -> Dict[str, Any]:
             "remaining_included": max(0, included_usage - total_usage),
             "current_period_start": current_period_start,
             "current_period_end": current_period_end,
-            "subscription_type": subscription_type
+            "subscription_type": subscription_type,
+            "usage_unit": "spu"  # New field to indicate we're tracking SPUs
         }
         
     except Exception as e:
@@ -1500,7 +1508,8 @@ async def get_current_usage(
                         "included_usage": FREE_TIER_LIMIT,
                         "overage_usage": 0,
                         "remaining_included": max(0, FREE_TIER_LIMIT - current_usage),
-                        "subscription_type": "free"
+                        "subscription_type": "free",
+                        "usage_unit": "spu"  # New field to indicate we're tracking SPUs
                     }
                 }
         

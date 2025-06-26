@@ -240,7 +240,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                     >
                       <path d="M5 13l4 4L19 7"></path>
                     </svg>
-                    {plan.included_usage} pages included
+                    {plan.included_usage} SPUs included
                   </li>
                   <li className="flex items-center">
                     <svg
@@ -254,7 +254,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                     >
                       <path d="M5 13l4 4L19 7"></path>
                     </svg>
-                    ${plan.overage_price} per page after limit
+                    ${plan.overage_price} per SPU after limit
                   </li>
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-center">
@@ -299,6 +299,16 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
             </div>
           ))}
         </div>
+      </div>
+      
+      {/* SPU Information */}
+      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+        <h4 className="text-sm font-medium text-blue-900 mb-2">About SPU (Service Processing Unit)</h4>
+        <p className="text-sm text-blue-800">
+          SPU is our flexible billing unit that allows for different pricing based on the complexity of document processing. 
+          Currently, 1 page = 1 SPU. In the future, different LLM models may consume different SPU amounts per page, 
+          allowing for more granular and fair pricing based on actual processing costs.
+        </p>
       </div>
     </div>
   );

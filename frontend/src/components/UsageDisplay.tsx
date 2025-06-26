@@ -13,6 +13,7 @@ interface UsageData {
   overage_usage: number;
   remaining_included: number;
   subscription_type: string;
+  usage_unit?: string; // New field to indicate usage unit
 }
 
 const UsageDisplay: React.FC<UsageDisplayProps> = ({ organizationId }) => {
@@ -55,6 +56,8 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ organizationId }) => {
 
   const usagePercentage = (usageData.total_usage / usageData.included_usage) * 100;
   const isOverLimit = usageData.total_usage > usageData.included_usage;
+  const usageUnit = usageData.usage_unit || 'pages'; // Default to pages for backward compatibility
+  const usageUnitDisplay = usageUnit === 'spu' ? 'SPUs' : 'pages';
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
@@ -64,7 +67,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ organizationId }) => {
         {/* Usage Progress Bar */}
         <div>
           <div className="flex justify-between text-sm text-gray-600 mb-2">
-            <span>{usageData.total_usage} / {usageData.included_usage} pages used</span>
+            <span>{usageData.total_usage} / {usageData.included_usage} {usageUnitDisplay} used</span>
             <span>{Math.round(usagePercentage)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -85,18 +88,18 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ organizationId }) => {
           </div>
           <div>
             <span className="text-gray-600">Included:</span>
-            <span className="ml-2 font-medium">{usageData.included_usage} pages</span>
+            <span className="ml-2 font-medium">{usageData.included_usage} {usageUnitDisplay}</span>
           </div>
           <div>
             <span className="text-gray-600">Remaining:</span>
             <span className={`ml-2 font-medium ${usageData.remaining_included <= 10 ? 'text-red-600' : 'text-green-600'}`}>
-              {usageData.remaining_included} pages
+              {usageData.remaining_included} {usageUnitDisplay}
             </span>
           </div>
           {usageData.overage_usage > 0 && (
             <div>
               <span className="text-gray-600">Overage:</span>
-              <span className="ml-2 font-medium text-red-600">{usageData.overage_usage} pages</span>
+              <span className="ml-2 font-medium text-red-600">{usageData.overage_usage} {usageUnitDisplay}</span>
             </div>
           )}
         </div>
@@ -105,7 +108,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ organizationId }) => {
         {usageData.remaining_included <= 10 && usageData.remaining_included > 0 && (
           <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
             <p className="text-yellow-800 text-sm">
-              ⚠️ You're running low on included pages. Consider upgrading your plan.
+              ⚠️ You're running low on included {usageUnitDisplay}. Consider upgrading your plan.
             </p>
           </div>
         )}
@@ -113,7 +116,17 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ organizationId }) => {
         {isOverLimit && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-md">
             <p className="text-red-800 text-sm">
-              ⚠️ You've exceeded your included usage. Additional pages will be charged at the overage rate.
+              ⚠️ You've exceeded your included usage. Additional {usageUnitDisplay} will be charged at the overage rate.
+            </p>
+          </div>
+        )}
+
+        {/* SPU Information */}
+        {usageUnit === 'spu' && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-blue-800 text-sm">
+              💡 SPU (Service Processing Unit) is our flexible billing unit. Currently, 1 page = 1 SPU. 
+              Different LLM models may consume different SPU amounts per page in the future.
             </p>
           </div>
         )}
