@@ -624,64 +624,6 @@ async def check_usage_limits(user_id: str) -> Dict[str, Any]:
         "needs_upgrade": False
     }
 
-async def update_payments_customer(user_id: str, email: Optional[str] = None, name: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Update a Stripe customer for the given user with new information
-    
-    Args:
-        user_id: The user ID to update the Stripe customer for
-        email: Optional new email address
-        name: Optional new name
-        
-    Returns:
-        The updated customer document or None if not found
-    """
-
-    if not stripe.api_key:
-        # No-op if Stripe is not configured
-        return None
-
-    logger.info(f"Updating Stripe customer for user_id: {user_id}")
-    
-    try:
-        # Check if customer exists in our DB
-        stripe_customer = await stripe_customers.find_one({"user_id": user_id})
-        if not stripe_customer:
-            logger.warning(f"No Stripe customer found for user_id: {user_id}")
-            return None
-            
-        # Only update if we have data to update
-        if not any([email, name]):
-            return stripe_customer
-            
-        # Update customer in Stripe
-        stripe.Customer.modify(
-            stripe_customer["stripe_customer_id"],
-            email=email,
-            name=name,
-            metadata={"updated_at": datetime.utcnow().isoformat()}
-        )
-        
-        # Update our local record
-        update_data = {"updated_at": datetime.utcnow()}
-        if email:
-            update_data["email"] = email
-        if name:
-            update_data["name"] = name
-            
-        await stripe_customers.update_one(
-            {"user_id": user_id},
-            {"$set": update_data}
-        )
-        
-        # Return the updated customer
-        return await stripe_customers.find_one({"user_id": user_id})
-        
-    except Exception as e:
-        logger.error(f"Error updating Stripe customer: {e}")
-        # Return the original customer info even if update failed
-        return stripe_customer
-
 async def delete_payments_customer(org_id: str, force: bool = False) -> Dict[str, Any]:
     """
     Mark a Stripe customer as deleted without actually removing them from Stripe
