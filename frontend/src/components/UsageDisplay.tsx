@@ -108,7 +108,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ organizationId }) => {
         {usageData.remaining_included <= 10 && usageData.remaining_included > 0 && (
           <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
             <p className="text-yellow-800 text-sm">
-              ⚠️ You're running low on included {usageUnitDisplay}. Consider upgrading your plan.
+              ⚠️ You&apos;re running low on included {usageUnitDisplay}. Consider upgrading your plan.
             </p>
           </div>
         )}
@@ -116,7 +116,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ organizationId }) => {
         {isOverLimit && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-md">
             <p className="text-red-800 text-sm">
-              ⚠️ You've exceeded your included usage. Additional {usageUnitDisplay} will be charged at the overage rate.
+              ⚠️ You&apos;ve exceeded your included usage. Additional {usageUnitDisplay} will be charged at the overage rate.
             </p>
           </div>
         )}
