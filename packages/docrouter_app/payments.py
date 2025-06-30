@@ -107,15 +107,6 @@ class StripeAsync:
             **kwargs
         )
 
-    @staticmethod
-    async def subscription_item_list_usage_records(subscription_item_id: str, *args, **kwargs) -> Dict[str, Any]:
-        return await StripeAsync._run_in_threadpool(
-            stripe.SubscriptionItem.list_usage_records,
-            subscription_item_id,
-            *args,
-            **kwargs
-        )
-
 # Configure logger
 logger = logging.getLogger(__name__)
 
