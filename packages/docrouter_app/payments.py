@@ -1403,6 +1403,9 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         # Get current period boundaries
         current_period_start = subscription_item.get("current_period_start")
         current_period_end = subscription_item.get("current_period_end")
+
+        logger.info(f"Current period start: {current_period_start}")
+        logger.info(f"Current period end: {current_period_end}")
         
         # Use provided timeframe or default to current billing period
         period_start = start_time if start_time is not None else current_period_start
@@ -1418,6 +1421,8 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
             start_time=period_start,
             end_time=period_end
         )
+
+        logger.info(f"Usage summary: {usage_summary}")
         
         # Extract total usage from the summary
         total_usage = 0
@@ -1474,30 +1479,14 @@ async def get_current_usage(
     try:
         # Get usage from Stripe
         stripe_usage = await get_stripe_usage(org_id)
+        if not stripe_usage:
+            raise HTTPException(status_code=404, detail=f"No Stripe usage found for org_id: {org_id}")
         
-        if stripe_usage:
-            return {
-                "usage_source": "stripe",
-                "data": stripe_usage
-            }
-        else:
-            # Fallback to local usage tracking for free tier
-            customer = await stripe_customers.find_one({"org_id": org_id})
-            if customer:
-                current_usage = customer.get("current_month_usage", 0)
-                return {
-                    "usage_source": "local",
-                    "data": {
-                        "total_usage": current_usage,
-                        "included_usage": FREE_TIER_LIMIT,
-                        "overage_usage": 0,
-                        "remaining_included": max(0, FREE_TIER_LIMIT - current_usage),
-                        "subscription_type": "free",
-                        "usage_unit": "spu"  # New field to indicate we're tracking SPUs
-                    }
-                }
         
-        return {"usage_source": "none", "data": None}
+        return {
+            "usage_source": "stripe",
+            "data": stripe_usage
+        }
         
     except Exception as e:
         logger.error(f"Error getting usage: {e}")
