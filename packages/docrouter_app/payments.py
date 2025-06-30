@@ -84,7 +84,15 @@ class StripeAsync:
         )
 
     @staticmethod
-    async def billing_meter_list_event_summaries(*args, **kwargs) -> Dict[str, Any]:
+    async def billing_meter_event_list(*args, **kwargs) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(
+            stripe.billing.Meter.list_events,
+            *args,
+            **kwargs
+        )
+
+    @staticmethod
+    async def billing_meter_event_summary_list(*args, **kwargs) -> Dict[str, Any]:
         return await StripeAsync._run_in_threadpool(
             stripe.billing.Meter.list_event_summaries,
             *args,
@@ -131,30 +139,7 @@ stripe_events = None
 
 # Stripe configuration constants
 FREE_TIER_LIMIT = 50  # Number of free SPUs
-TIER_CONFIG = {
-    "individual": {
-        "price_id": None,  # Set from env
-        "base_price": 9.99,
-        "included_usage": 100,  # Free SPUs included
-        "overage_price": 0.01,  # Price per SPU after limit
-        "meter_id": None  # Set from env
-    },
-    "team": {
-        "price_id": None,  # Set from env
-        "base_price": 29.99,
-        "included_usage": 500,
-        "overage_price": 0.02,
-        "meter_id": None  # Set from env
-    },
-    "enterprise": {
-        "price_id": None,  # Set from env
-        "base_price": 99.99,
-        "included_usage": 2000,
-        "overage_price": 0.05,
-        "meter_id": None  # Set from env
-    }
-}
-NEXTAUTH_URL = None
+TIER_CONFIG = {}  # Initialize as empty dict, will be populated in init_payments_env
 
 # Pydantic models for request/response validation
 class SetupIntentCreate(BaseModel):
@@ -240,27 +225,31 @@ async def init_payments_env():
 
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     ENV = os.getenv("ENV", "dev")
+    
+    # Shared meter ID for all subscription types
+    shared_meter_id = os.getenv("STRIPE_METER_ID", "")
+    
     TIER_CONFIG = {
         "individual": {
             "price_id": os.getenv("STRIPE_PRICE_ID_INDIVIDUAL", ""),
             "base_price": 9.99,
             "included_usage": 100,  # Free pages included
             "overage_price": 0.01,  # Price per page after limit
-            "meter_id": None  # Set from env
+            "meter_id": shared_meter_id  # Shared meter for all tiers
         },
         "team": {
             "price_id": os.getenv("STRIPE_PRICE_ID_TEAM", ""),
             "base_price": 29.99,
             "included_usage": 500,
             "overage_price": 0.02,
-            "meter_id": None  # Set from env
+            "meter_id": shared_meter_id  # Shared meter for all tiers
         },
         "enterprise": {
             "price_id": os.getenv("STRIPE_PRICE_ID_ENTERPRISE", ""),
             "base_price": 99.99,
             "included_usage": 2000,
             "overage_price": 0.05,
-            "meter_id": None  # Set from env
+            "meter_id": shared_meter_id  # Shared meter for all tiers
         }
     }
     NEXTAUTH_URL = os.getenv("NEXTAUTH_URL", "http://localhost:3000")
@@ -561,43 +550,6 @@ def parse_stripe_subscription(subscription):
         'metered_usage': metered_usage
     }
 
-async def parse_stripe_usage(parsed_subscription, stripe_customer_id):
-    # Get metered usage information
-    usage = {}
-    if parsed_subscription and parsed_subscription.get("metered_usage"):
-        try:
-            # Get usage for each subscription item that has metered billing
-            for item_id, item_data in parsed_subscription["metered_usage"].items():
-                # Get the current billing period's usage
-                if "subscription_item_id" in item_data:
-                    subscription_item_id = item_data["subscription_item_id"]
-                    subscription_type = item_data.get("subscription_type")  # Get subscription type
-
-                    meter_event_summaries = await StripeAsync.billing_meter_list_event_summaries(
-                        item_data["meter_id"],
-                        customer=stripe_customer_id,
-                        start_time=item_data["current_period_start"],
-                        end_time=item_data["current_period_end"],
-                    )
-
-                    logger.info(f"Meter event summaries: {meter_event_summaries}")
-                    
-                    # Extract relevant usage information
-                    current_usage = {
-                        "subscription_type": subscription_type,
-                        "total_usage": meter_event_summaries.get('total_usage', 0),
-                        "period_details": []
-                    }
-                    
-                    # Store usage for this subscription item
-                    usage[subscription_item_id] = current_usage
-        
-        except Exception as e:
-            logger.error(f"Error retrieving Stripe usage information: {e}")
-            # Continue with empty usage object rather than failing
-    
-    return usage
-
 async def record_usage(org_id: str, pages_processed: int, operation: str, source: str = "backend", spu_consumed: int = None) -> Dict[str, Any]:
     """Record usage for an organization and report to Stripe if on paid tier"""
 
@@ -649,7 +601,7 @@ async def record_usage(org_id: str, pages_processed: int, operation: str, source
     }
     
     # Store in local database for analytics
-    await db.usage_records.insert_one(usage_record)
+    await db.stripe_usage.insert_one(usage_record)
     
     return usage_record
 
@@ -1424,8 +1376,15 @@ async def cancel_subscription_endpoint(
         logger.error(f"Error cancelling subscription: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-async def get_stripe_usage(org_id: str) -> Dict[str, Any]:
-    """Get current usage information from Stripe"""
+async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_time: Optional[int] = None) -> Dict[str, Any]:
+    """
+    Get usage information from Stripe for a specified timeframe
+    
+    Args:
+        org_id: Organization ID
+        start_time: Unix timestamp for start of period (optional, defaults to current billing period start)
+        end_time: Unix timestamp for end of period (optional, defaults to current billing period end)
+    """
     
     if not stripe.api_key:
         return None
@@ -1442,22 +1401,63 @@ async def get_stripe_usage(org_id: str) -> Dict[str, Any]:
         subscription_item = subscription["items"]["data"][0]
         subscription_item_id = subscription_item["id"]
         
-        # Get current period usage from Stripe
+        # Get current period boundaries
         current_period_start = subscription_item.get("current_period_start")
         current_period_end = subscription_item.get("current_period_end")
         
-        # Get usage for the current billing period
-        usage_records = await StripeAsync.subscription_item_list_usage_records(
-            subscription_item_id,
-            created={"gte": current_period_start, "lt": current_period_end}
+        # Use provided timeframe or default to current billing period
+        period_start = start_time if start_time is not None else current_period_start
+        period_end = end_time if end_time is not None else current_period_end
+        
+        # Get the meter ID from the subscription item's price
+        price_id = subscription_item["price"]["id"]
+        subscription_type = get_subscription_type(subscription)
+        meter_id = TIER_CONFIG[subscription_type]["meter_id"]
+        
+        if not meter_id:
+            logger.warning(f"No meter_id configured for subscription type: {subscription_type}")
+            return {
+                "total_usage": 0,
+                "included_usage": 0,
+                "overage_usage": 0,
+                "remaining_included": 0,
+                "current_period_start": current_period_start,
+                "current_period_end": current_period_end,
+                "period_start": period_start,
+                "period_end": period_end,
+                "subscription_type": subscription_type,
+                "usage_unit": "spu",
+                "note": "Meter not configured - usage tracking disabled"
+            }
+        
+        # Get usage summary for the specified period using billing meter events
+        usage_summary = await StripeAsync.billing_meter_event_summary_list(
+            meter_id,
+            customer=stripe_customer.id,
+            start_time=period_start,
+            end_time=period_end
         )
         
-        total_usage = sum(record.get("quantity", 0) for record in usage_records.get("data", []))
+        # Extract total usage from the summary
+        total_usage = 0
+        if usage_summary and usage_summary.get("data"):
+            for summary in usage_summary["data"]:
+                total_usage += summary.get("aggregated_value", 0)
         
         # Get plan configuration
-        subscription_type = get_subscription_type(subscription)
         plan_config = TIER_CONFIG.get(subscription_type, {})
         included_usage = plan_config.get("included_usage", 0)
+        
+        # For custom timeframes, we need to calculate prorated included usage
+        if start_time is not None and end_time is not None:
+            # Calculate what portion of the billing period this timeframe represents
+            billing_period_duration = current_period_end - current_period_start
+            timeframe_duration = end_time - start_time
+            
+            # Prorate the included usage based on the timeframe
+            if billing_period_duration > 0:
+                proration_factor = timeframe_duration / billing_period_duration
+                included_usage = int(included_usage * proration_factor)
         
         return {
             "total_usage": total_usage,
@@ -1466,8 +1466,10 @@ async def get_stripe_usage(org_id: str) -> Dict[str, Any]:
             "remaining_included": max(0, included_usage - total_usage),
             "current_period_start": current_period_start,
             "current_period_end": current_period_end,
+            "period_start": period_start,
+            "period_end": period_end,
             "subscription_type": subscription_type,
-            "usage_unit": "spu"  # New field to indicate we're tracking SPUs
+            "usage_unit": "spu"
         }
         
     except Exception as e:
