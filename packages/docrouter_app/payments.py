@@ -100,10 +100,9 @@ class StripeAsync:
         )
 
     @staticmethod
-    async def usage_record_create(subscription_item_id: str, *args, **kwargs) -> Dict[str, Any]:
+    async def usage_record_create(*args, **kwargs) -> Dict[str, Any]:
         return await StripeAsync._run_in_threadpool(
-            stripe.SubscriptionItem.create_usage_record,
-            subscription_item_id,
+            stripe.billing.MeterEvent.create,
             *args,
             **kwargs
         )
@@ -152,8 +151,7 @@ class SubscriptionCreate(BaseModel):
 
 class UsageRecord(BaseModel):
     org_id: str  # Changed from user_id to org_id
-    pages_processed: int
-    spu_consumed: int = Field(default=0)  # New field for SPU tracking
+    spus: int = Field(default=0)  # New field for SPU tracking
     operation: str
     source: str = "backend"
 
@@ -549,58 +547,58 @@ def parse_stripe_subscription(subscription):
         'metered_usage': metered_usage
     }
 
-async def record_usage(org_id: str, pages_processed: int, operation: str, source: str = "backend", spu_consumed: int = None) -> Dict[str, Any]:
+async def record_usage(org_id: str, spus: int, operation: str, source: str = "backend", spu_consumed: int = None) -> Dict[str, Any]:
     """Record usage for an organization and report to Stripe if on paid tier"""
 
-    # Calculate SPU consumed (1 SPU per page for now, can be customized later)
-    if spu_consumed is None:
-        spu_consumed = pages_processed
-
-    logger.info(f"record_usage called with org_id: {org_id}, pages_processed: {pages_processed}, spu_consumed: {spu_consumed}, operation: {operation}, source: {source}")
+    logger.info(f"record_usage called with org_id: {org_id}, spus: {spus}, operation: {operation}, source: {source}")
 
     if not stripe.api_key:
         logger.warning("Stripe API key not configured - record_usage aborted")
         return None
 
-    # Get customer and subscription info
-    customer = await stripe_customers.find_one({"org_id": org_id})
-    if not customer:
+    # Get the stripe customer
+    stripe_customer = await get_payments_customer(org_id)
+    if not stripe_customer:
         raise ValueError(f"No customer found for org_id: {org_id}")
 
+    logger.info(f"Stripe customer found for org_id: {org_id}: {stripe_customer.id}")
+
     # Get current subscription
-    subscription = await get_subscription(customer["stripe_customer_id"])
+    subscription = await get_subscription(stripe_customer.id)
+
+    if not subscription or not subscription.get("status") == "active":
+        logger.info(f"No active subscription found for org_id: {org_id}")
+        return None
     
-    if subscription and subscription.get("status") == "active":
-        # Organization has an active subscription - report usage to Stripe
-        subscription_item_id = subscription["items"]["data"][0]["id"]
-        
-        try:
-            # Report usage to Stripe's metered billing (using SPU instead of pages)
-            await StripeAsync.usage_record_create(
-                subscription_item_id,
-                quantity=spu_consumed,
-                timestamp=int(datetime.utcnow().timestamp()),
-                action="increment"
-            )
-            logger.info(f"Reported {spu_consumed} SPUs to Stripe for org {org_id}")
-        except Exception as e:
-            logger.error(f"Failed to report usage to Stripe: {e}")
-            # Continue with local tracking as fallback
+    # Organization has an active subscription - report usage to Stripe
+    subscription_item_id = subscription["items"]["data"][0]["id"]
+
+    logger.info(f"Subscription item id found for org_id: {org_id}: {subscription_item_id}")
+    
+    try:
+        # Report usage to Stripe's metered billing (using SPU instead of pages)
+        await StripeAsync.usage_record_create(
+            event_name="docrouterspu",
+            payload={
+                "value": spus,
+                "stripe_customer_id": stripe_customer.id,
+            }
+        )
+        logger.info(f"Reported {spus} SPUs to Stripe for org {org_id}")
+    except Exception as e:
+        logger.error(f"Failed to report usage to Stripe: {e}")
+        # Continue with local tracking as fallback
     
     # Always store usage locally for analytics
     usage_record = {
         "org_id": org_id,
-        "stripe_customer_id": customer["stripe_customer_id"],
-        "pages_processed": pages_processed,
-        "spu_consumed": spu_consumed,
+        "stripe_customer_id": stripe_customer.id,
+        "spus": spus,
         "operation": operation,
         "source": source,
         "timestamp": datetime.utcnow(),
         "reported_to_stripe": bool(subscription and subscription.get("status") == "active")
     }
-    
-    # Store in local database for analytics
-    await db.stripe_usage.insert_one(usage_record)
     
     return usage_record
 
@@ -829,16 +827,18 @@ async def webhook_received(
 @payments_router.post("/record-usage")
 async def api_record_usage(
     usage: UsageRecord,
+    current_user: User = Depends(get_current_user)
 ):
     """Record usage for an organization"""
+
+    logger.info(f"api_record_usage called with org_id: {usage.org_id}, spus: {usage.spus}, operation: {usage.operation}, source: {usage.source}")
 
     try:
         result = await record_usage(
             usage.org_id,
-            usage.pages_processed,
+            usage.spus,
             usage.operation,
             usage.source,
-            usage.spu_consumed
         )
         limits = await check_usage_limits(usage.org_id)
         return {"success": True, "usage": result, "limits": limits}
