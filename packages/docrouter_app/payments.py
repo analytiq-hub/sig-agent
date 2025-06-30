@@ -1404,8 +1404,12 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         current_period_start = subscription_item.get("current_period_start")
         current_period_end = subscription_item.get("current_period_end")
 
-        logger.info(f"Current period start: {current_period_start}")
-        logger.info(f"Current period end: {current_period_end}")
+        # Convert to datetime
+        current_period_start = datetime.fromtimestamp(current_period_start)
+        current_period_end = datetime.fromtimestamp(current_period_end)
+
+        logger.info(f"Current period start: {current_period_start.isoformat()}")
+        logger.info(f"Current period end: {current_period_end.isoformat()}")
         
         # Use provided timeframe or default to current billing period
         period_start = start_time if start_time is not None else current_period_start
