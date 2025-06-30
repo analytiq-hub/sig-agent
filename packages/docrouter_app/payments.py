@@ -1481,7 +1481,8 @@ async def get_current_usage(
         stripe_usage = await get_stripe_usage(org_id)
         if not stripe_usage:
             raise HTTPException(status_code=404, detail=f"No Stripe usage found for org_id: {org_id}")
-        
+
+        logger.info(f"Stripe usage: {stripe_usage}")
         
         return {
             "usage_source": "stripe",
