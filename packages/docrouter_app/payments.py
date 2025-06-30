@@ -139,7 +139,8 @@ stripe_events = None
 
 # Stripe configuration constants
 FREE_TIER_LIMIT = 50  # Number of free SPUs
-TIER_CONFIG = {}  # Initialize as empty dict, will be populated in init_payments_env
+TIER_CONFIG = {}
+STRIPE_METER_ID = None
 
 # Pydantic models for request/response validation
 class SetupIntentCreate(BaseModel):
@@ -219,6 +220,7 @@ async def init_payments_env():
     global MONGO_URI, ENV
     global TIER_CONFIG
     global NEXTAUTH_URL
+    global STRIPE_METER_ID
     global client, db
     global stripe_customers, stripe_events
     global stripe_webhook_secret
@@ -226,30 +228,27 @@ async def init_payments_env():
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     ENV = os.getenv("ENV", "dev")
     
-    # Shared meter ID for all subscription types
-    shared_meter_id = os.getenv("STRIPE_METER_ID", "")
-    
+    # Single shared meter for all SPU consumption
+    STRIPE_METER_ID = os.getenv("STRIPE_METER_ID", "")
+
     TIER_CONFIG = {
         "individual": {
             "price_id": os.getenv("STRIPE_PRICE_ID_INDIVIDUAL", ""),
             "base_price": 9.99,
-            "included_usage": 100,  # Free pages included
-            "overage_price": 0.01,  # Price per page after limit
-            "meter_id": shared_meter_id  # Shared meter for all tiers
+            "included_usage": 100,  # Included SPUs
+            "overage_price": 0.01,  # Price per SPU after limit
         },
         "team": {
             "price_id": os.getenv("STRIPE_PRICE_ID_TEAM", ""),
             "base_price": 29.99,
-            "included_usage": 500,
-            "overage_price": 0.02,
-            "meter_id": shared_meter_id  # Shared meter for all tiers
+            "included_usage": 500,  # Included SPUs
+            "overage_price": 0.02,  # Price per SPU after limit
         },
         "enterprise": {
             "price_id": os.getenv("STRIPE_PRICE_ID_ENTERPRISE", ""),
             "base_price": 99.99,
-            "included_usage": 2000,
-            "overage_price": 0.05,
-            "meter_id": shared_meter_id  # Shared meter for all tiers
+            "included_usage": 2000,  # Included SPUs
+            "overage_price": 0.05,  # Price per SPU after limit
         }
     }
     NEXTAUTH_URL = os.getenv("NEXTAUTH_URL", "http://localhost:3000")
@@ -538,7 +537,7 @@ def parse_stripe_subscription(subscription):
                 'subscription_type': subscription_type,
                 'product_id': plan.get('product'),
                 'price_id': price_id,
-                'meter_id': plan.get('meter'),
+                'meter_id': STRIPE_METER_ID,
                 'current_period_start': item.get('current_period_start'),
                 'current_period_end': item.get('current_period_end')
             }
@@ -1412,27 +1411,10 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         # Get the meter ID from the subscription item's price
         price_id = subscription_item["price"]["id"]
         subscription_type = get_subscription_type(subscription)
-        meter_id = TIER_CONFIG[subscription_type]["meter_id"]
-        
-        if not meter_id:
-            logger.warning(f"No meter_id configured for subscription type: {subscription_type}")
-            return {
-                "total_usage": 0,
-                "included_usage": 0,
-                "overage_usage": 0,
-                "remaining_included": 0,
-                "current_period_start": current_period_start,
-                "current_period_end": current_period_end,
-                "period_start": period_start,
-                "period_end": period_end,
-                "subscription_type": subscription_type,
-                "usage_unit": "spu",
-                "note": "Meter not configured - usage tracking disabled"
-            }
         
         # Get usage summary for the specified period using billing meter events
         usage_summary = await StripeAsync.billing_meter_event_summary_list(
-            meter_id,
+            STRIPE_METER_ID,
             customer=stripe_customer.id,
             start_time=period_start,
             end_time=period_end
