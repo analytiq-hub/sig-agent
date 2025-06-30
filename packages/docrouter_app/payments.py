@@ -1409,7 +1409,6 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         period_end = end_time if end_time is not None else current_period_end
         
         # Get the meter ID from the subscription item's price
-        price_id = subscription_item["price"]["id"]
         subscription_type = get_subscription_type(subscription)
         
         # Get usage summary for the specified period using billing meter events
