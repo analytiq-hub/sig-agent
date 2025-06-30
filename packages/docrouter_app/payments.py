@@ -101,9 +101,10 @@ class StripeAsync:
         )
 
     @staticmethod
-    async def subscription_item_list(*args, **kwargs) -> Dict[str, Any]:
+    async def subscription_item_list_usage_records(subscription_item_id: str, *args, **kwargs) -> Dict[str, Any]:
         return await StripeAsync._run_in_threadpool(
-            stripe.SubscriptionItem.list,
+            stripe.SubscriptionItem.list_usage_records,
+            subscription_item_id,
             *args,
             **kwargs
         )
@@ -1446,8 +1447,8 @@ async def get_stripe_usage(org_id: str) -> Dict[str, Any]:
         current_period_end = subscription_item.get("current_period_end")
         
         # Get usage for the current billing period
-        usage_records = await StripeAsync.subscription_item_list(
-            subscription_item=subscription_item_id,
+        usage_records = await StripeAsync.subscription_item_list_usage_records(
+            subscription_item_id,
             created={"gte": current_period_start, "lt": current_period_end}
         )
         
