@@ -23,8 +23,8 @@ dev: setup
 	./start-all.sh
 
 deploy:
-	docker-compose down
-	docker-compose up -d --build
+	docker compose down
+	docker compose up -d --build
 
 tests: setup
 	. .venv/bin/activate && pytest -s packages/tests/
