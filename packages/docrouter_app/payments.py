@@ -492,52 +492,6 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
         logger.error(f"Error in sync_payments_customer: {e}")
         raise e
 
-def parse_stripe_subscription(subscription):    
-    # 1. Check if subscription is active
-    is_active = subscription.get('status') == 'active'
-    
-    # 2. Check if payment method is on file
-    # This can be determined by checking for default_payment_method or default_source
-    has_payment_method = bool(subscription.get('default_payment_method') or subscription.get('default_source'))
-    
-    # 3. Check if payments are current
-    # In Stripe, if a subscription is 'active', it generally means payments are current
-    # You might also want to check if there are any past_due invoices related to this subscription
-    payments_current = is_active  # For basic check
-    
-    # 4. Get metered usage information
-    metered_usage = {}
-    
-    # Check subscription items for metered plans
-    items = subscription.get('items', {}).get('data', [])
-    for item in items:
-        plan = item.get('plan', {})
-        price = item.get('price', {})
-        
-        # Check if this is a metered plan
-        if plan.get('usage_type') == 'metered':
-            item_id = item.get('id')
-            price_id = price.get('id')
-            
-            # Use the new subroutine
-            subscription_type = get_subscription_type_from_price_id(price_id)
-            
-            metered_usage[item_id] = {
-                'subscription_type': subscription_type,
-                'product_id': plan.get('product'),
-                'price_id': price_id,
-                'meter_id': STRIPE_METER_ID,
-                'current_period_start': item.get('current_period_start'),
-                'current_period_end': item.get('current_period_end')
-            }
-    
-    return {
-        'is_active': is_active,
-        'has_payment_method': has_payment_method,
-        'payments_current': payments_current,
-        'metered_usage': metered_usage
-    }
-
 async def record_usage(org_id: str, spus: int, operation: str, source: str = "backend", spu_consumed: int = None) -> Dict[str, Any]:
     """Record usage for an organization and report to Stripe if on paid tier"""
 
