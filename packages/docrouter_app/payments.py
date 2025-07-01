@@ -175,20 +175,6 @@ class ChangePlanRequest(BaseModel):
     org_id: str
     plan_id: str
 
-class SubscriptionHistory(BaseModel):
-    user_id: str
-    stripe_customer_id: str
-    subscription_id: str
-    subscription_item_id: str
-    price_id: str
-    subscription_type: str
-    status: str
-    start_date: datetime
-    end_date: Optional[datetime] = None
-    usage_during_period: int = 0
-    created_at: datetime
-    updated_at: datetime
-
 # Add this new function near the top of the file with other helper functions
 def get_subscription_type_from_price_id(price_id: str) -> str:
     """
@@ -514,12 +500,7 @@ async def record_usage(org_id: str, spus: int, operation: str, source: str = "ba
     if not subscription or not subscription.get("status") == "active":
         logger.info(f"No active subscription found for org_id: {org_id}")
         return None
-    
-    # Organization has an active subscription - report usage to Stripe
-    subscription_item_id = subscription["items"]["data"][0]["id"]
-
-    logger.info(f"Subscription item id found for org_id: {org_id}: {subscription_item_id}")
-    
+  
     try:
         # Report usage to Stripe's metered billing (using SPU instead of pages)
         await StripeAsync.usage_record_create(
@@ -803,32 +784,8 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
             return
 
         # Get subscription details
-        subscription_item_id = subscription["items"]["data"][0]["id"] if "items" in subscription and "data" in subscription["items"] else None
         price_id = subscription["items"]["data"][0]["price"]["id"] if "items" in subscription and "data" in subscription["items"] else None
         subscription_type = get_subscription_type_from_price_id(price_id)
-
-        # Check if this is a new subscription or an update
-        existing_history = None # TODO: Get subscription history from Stripe
-
-        if existing_history:
-            # TODO: Update existing subscription history
-            pass
-        else:
-            # Create new subscription history entry
-            new_history = {
-                "user_id": customer["user_id"],
-                "stripe_customer_id": subscription["customer"],
-                "subscription_id": subscription["id"],
-                "subscription_item_id": subscription_item_id,
-                "price_id": price_id,
-                "subscription_type": subscription_type,
-                "status": subscription["status"],
-                "start_date": datetime.fromtimestamp(subscription["current_period_start"]),
-                "end_date": None,  # Will be set when subscription ends
-                "usage_during_period": 0,
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
-            }
 
         # Update customer's current subscription info
         await stripe_customers.update_one(
@@ -1343,7 +1300,6 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
             return None
             
         subscription_item = subscription["items"]["data"][0]
-        subscription_item_id = subscription_item["id"]
         
         # Get current period boundaries
         current_period_start = subscription_item.get("current_period_start")
