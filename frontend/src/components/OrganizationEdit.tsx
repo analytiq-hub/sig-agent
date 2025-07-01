@@ -19,7 +19,7 @@ import { toast } from 'react-toastify'
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import Subscription from './SubscriptionManager'
+import SubscriptionManager from './SubscriptionManager'
 import { useOrganizationData } from '@/hooks/useOrganizationData'
 
 interface OrganizationEditProps {
@@ -489,7 +489,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
           {/* Subscription Section */}
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Subscription</h3>
-            <Subscription organizationId={organizationId} key={refreshKey} />
+            <SubscriptionManager organizationId={organizationId} key={refreshKey} />
           </div>
         </form>
       </div>

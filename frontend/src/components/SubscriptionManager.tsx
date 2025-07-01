@@ -9,7 +9,7 @@ interface SubscriptionProps {
   organizationId: string;
 }
 
-const Subscription: React.FC<SubscriptionProps> = ({ organizationId }) => {
+const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) => {
   const [customerPortalUrl, setCustomerPortalUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
@@ -229,4 +229,4 @@ const Subscription: React.FC<SubscriptionProps> = ({ organizationId }) => {
   );
 };
 
-export default Subscription; 
+export default SubscriptionManager; 
