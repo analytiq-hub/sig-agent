@@ -55,8 +55,8 @@ export interface UsageData {
   remaining_included: number;
   subscription_type: string;
   usage_unit?: string; // 'spu' or 'pages'
-  current_period_start?: number;
-  current_period_end?: number;
+  period_start?: number;
+  period_end?: number;
 }
 
 export interface UsageResponse {

@@ -1355,8 +1355,6 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
             "included_usage": included_usage,
             "overage_usage": max(0, total_usage - included_usage),
             "remaining_included": max(0, included_usage - total_usage),
-            "current_period_start": current_period_start,
-            "current_period_end": current_period_end,
             "period_start": period_start,
             "period_end": period_end,
             "subscription_type": subscription_type,
