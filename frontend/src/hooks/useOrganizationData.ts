@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Organization } from '@/types/index';
 import { getOrganizationApi } from '@/utils/api';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -8,7 +8,7 @@ export const useOrganizationData = (organizationId: string) => {
   const [loading, setLoading] = useState(true);
   const { refreshOrganizations } = useOrganization();
 
-  const fetchOrganization = async () => {
+  const fetchOrganization = useCallback(async () => {
     try {
       setLoading(true);
       const org = await getOrganizationApi(organizationId);
@@ -18,7 +18,7 @@ export const useOrganizationData = (organizationId: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [organizationId]);
 
   const refreshData = async () => {
     await refreshOrganizations();
@@ -27,7 +27,7 @@ export const useOrganizationData = (organizationId: string) => {
 
   useEffect(() => {
     fetchOrganization();
-  }, [organizationId]);
+  }, [fetchOrganization]);
 
   return {
     organization,
