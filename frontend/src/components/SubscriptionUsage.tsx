@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getCurrentUsageApi } from '@/utils/api';
 
-interface UsageDisplayProps {
+interface SubscriptionUsageProps {
   organizationId: string;
 }
 
@@ -16,7 +16,7 @@ interface UsageData {
   usage_unit?: string; // New field to indicate usage unit
 }
 
-const UsageDisplay: React.FC<UsageDisplayProps> = ({ organizationId }) => {
+const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId }) => {
   const [usageData, setUsageData] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -135,4 +135,4 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ organizationId }) => {
   );
 };
 
-export default UsageDisplay; 
+export default SubscriptionUsage; 
