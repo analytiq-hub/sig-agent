@@ -1,7 +1,7 @@
 import os
 import logging
 from typing import Optional, Dict, Any, List, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request, Body, BackgroundTasks
 from pydantic import BaseModel, Field
 import stripe
@@ -84,25 +84,18 @@ class StripeAsync:
         )
 
     @staticmethod
-    async def billing_meter_event_list(*args, **kwargs) -> Dict[str, Any]:
+    async def usage_record_create(subscription_item_id: str, *args, **kwargs) -> Dict[str, Any]:
         return await StripeAsync._run_in_threadpool(
-            stripe.billing.Meter.list_events,
+            stripe.SubscriptionItem.create_usage_record,
+            subscription_item_id,
             *args,
             **kwargs
         )
 
     @staticmethod
-    async def billing_meter_event_summary_list(*args, **kwargs) -> Dict[str, Any]:
+    async def subscription_item_list(*args, **kwargs) -> Dict[str, Any]:
         return await StripeAsync._run_in_threadpool(
-            stripe.billing.Meter.list_event_summaries,
-            *args,
-            **kwargs
-        )
-
-    @staticmethod
-    async def usage_record_create(*args, **kwargs) -> Dict[str, Any]:
-        return await StripeAsync._run_in_threadpool(
-            stripe.billing.MeterEvent.create,
+            stripe.SubscriptionItem.list,
             *args,
             **kwargs
         )
@@ -126,11 +119,12 @@ db = None
 # Define Stripe-specific collections with prefix
 stripe_customers = None
 stripe_events = None
+stripe_usage_records = None
+stripe_billing_periods = None
 
 # Stripe configuration constants
 FREE_TIER_LIMIT = 50  # Number of free SPUs
 TIER_CONFIG = {}
-STRIPE_METER_ID = None
 
 # Pydantic models for request/response validation
 class SetupIntentCreate(BaseModel):
@@ -175,6 +169,19 @@ class ChangePlanRequest(BaseModel):
     org_id: str
     plan_id: str
 
+class BillingPeriod(BaseModel):
+    org_id: str
+    subscription_id: str
+    subscription_item_id: str
+    period_start: datetime
+    period_end: datetime
+    total_usage: int = 0
+    included_usage: int
+    overage_usage: int = 0
+    billed: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
 # Add this new function near the top of the file with other helper functions
 def get_subscription_type_from_price_id(price_id: str) -> str:
     """
@@ -195,17 +202,13 @@ async def init_payments_env():
     global MONGO_URI, ENV
     global TIER_CONFIG
     global NEXTAUTH_URL
-    global STRIPE_METER_ID
     global client, db
-    global stripe_customers, stripe_events
+    global stripe_customers, stripe_events, stripe_usage_records, stripe_billing_periods
     global stripe_webhook_secret
 
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     ENV = os.getenv("ENV", "dev")
     
-    # Single shared meter for all SPU consumption
-    STRIPE_METER_ID = os.getenv("STRIPE_METER_ID", "")
-
     TIER_CONFIG = {
         "individual": {
             "price_id": os.getenv("STRIPE_PRICE_ID_INDIVIDUAL", ""),
@@ -233,6 +236,8 @@ async def init_payments_env():
 
     stripe_customers = db.stripe_customers
     stripe_events = db.stripe_events
+    stripe_usage_records = db.stripe_usage_records
+    stripe_billing_periods = db.stripe_billing_periods
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
@@ -243,6 +248,10 @@ async def init_payments():
 
     await sync_all_payments_customers()
     logger.info("Stripe customers synced")
+    
+    # Start background billing task
+    asyncio.create_task(billing_background_task())
+    logger.info("Background billing task started")
 
 async def sync_all_payments_customers() -> Tuple[int, int, List[str]]:
     """
@@ -479,7 +488,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
         raise e
 
 async def record_usage(org_id: str, spus: int, operation: str, source: str = "backend", spu_consumed: int = None) -> Dict[str, Any]:
-    """Record usage for an organization and report to Stripe if on paid tier"""
+    """Record usage for an organization locally (no longer reports to Stripe immediately)"""
 
     logger.info(f"record_usage called with org_id: {org_id}, spus: {spus}, operation: {operation}, source: {source}")
 
@@ -500,22 +509,8 @@ async def record_usage(org_id: str, spus: int, operation: str, source: str = "ba
     if not subscription or not subscription.get("status") == "active":
         logger.info(f"No active subscription found for org_id: {org_id}")
         return None
-  
-    try:
-        # Report usage to Stripe's metered billing (using SPU instead of pages)
-        await StripeAsync.usage_record_create(
-            event_name="docrouterspu",
-            payload={
-                "value": spus,
-                "stripe_customer_id": stripe_customer.id,
-            }
-        )
-        logger.info(f"Reported {spus} SPUs to Stripe for org {org_id}")
-    except Exception as e:
-        logger.error(f"Failed to report usage to Stripe: {e}")
-        # Continue with local tracking as fallback
-    
-    # Always store usage locally for analytics
+
+    # Always store usage locally for analytics and billing
     usage_record = {
         "org_id": org_id,
         "stripe_customer_id": stripe_customer.id,
@@ -523,10 +518,160 @@ async def record_usage(org_id: str, spus: int, operation: str, source: str = "ba
         "operation": operation,
         "source": source,
         "timestamp": datetime.utcnow(),
-        "reported_to_stripe": bool(subscription and subscription.get("status") == "active")
+        "billing_period_id": None  # Will be set when billing period is created
     }
     
+    # Store the usage record
+    await stripe_usage_records.insert_one(usage_record)
+    
+    # Update or create billing period
+    await update_billing_period(org_id, subscription, spus)
+    
     return usage_record
+
+async def update_billing_period(org_id: str, subscription: Dict[str, Any], spus: int):
+    """Update or create a billing period for the organization"""
+    
+    subscription_item = subscription["items"]["data"][0]
+    subscription_item_id = subscription_item["id"]
+    
+    # Get current billing period boundaries
+    current_period_start = datetime.fromtimestamp(subscription_item.get("current_period_start"))
+    current_period_end = datetime.fromtimestamp(subscription_item.get("current_period_end"))
+    
+    # Find or create billing period
+    billing_period = await stripe_billing_periods.find_one({
+        "org_id": org_id,
+        "subscription_id": subscription["id"],
+        "period_start": current_period_start,
+        "period_end": current_period_end
+    })
+    
+    if billing_period:
+        # Update existing billing period
+        await stripe_billing_periods.update_one(
+            {"_id": billing_period["_id"]},
+            {
+                "$inc": {"total_usage": spus},
+                "$set": {"updated_at": datetime.utcnow()}
+            }
+        )
+    else:
+        # Create new billing period
+        subscription_type = get_subscription_type(subscription)
+        plan_config = TIER_CONFIG.get(subscription_type, {})
+        included_usage = plan_config.get("included_usage", 0)
+        
+        billing_period = {
+            "org_id": org_id,
+            "subscription_id": subscription["id"],
+            "subscription_item_id": subscription_item_id,
+            "period_start": current_period_start,
+            "period_end": current_period_end,
+            "total_usage": spus,
+            "included_usage": included_usage,
+            "overage_usage": max(0, spus - included_usage),
+            "billed": False,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        await stripe_billing_periods.insert_one(billing_period)
+        
+        # Update usage records with billing period ID
+        await stripe_usage_records.update_many(
+            {
+                "org_id": org_id,
+                "billing_period_id": None,
+                "timestamp": {"$gte": current_period_start, "$lte": current_period_end}
+            },
+            {"$set": {"billing_period_id": str(billing_period["_id"])}}
+        )
+
+async def process_billing_periods():
+    """Process billing periods and create usage records in Stripe"""
+    
+    logger.info("Starting billing period processing")
+    
+    if not stripe.api_key:
+        logger.warning("Stripe API key not configured - billing processing aborted")
+        return
+    
+    try:
+        # Find billing periods that need to be processed
+        # Process periods that ended yesterday or earlier and haven't been billed yet
+        yesterday = datetime.utcnow() - timedelta(days=1)
+        
+        billing_periods = await stripe_billing_periods.find({
+            "period_end": {"$lte": yesterday},
+            "billed": False
+        }).to_list(length=None)
+        
+        logger.info(f"Found {len(billing_periods)} billing periods to process")
+        
+        for billing_period in billing_periods:
+            try:
+                await process_single_billing_period(billing_period)
+            except Exception as e:
+                logger.error(f"Error processing billing period {billing_period['_id']}: {e}")
+                continue
+        
+        logger.info("Billing period processing completed")
+        
+    except Exception as e:
+        logger.error(f"Error in billing period processing: {e}")
+
+async def process_single_billing_period(billing_period: Dict[str, Any]):
+    """Process a single billing period and create usage record in Stripe"""
+    
+    org_id = billing_period["org_id"]
+    subscription_item_id = billing_period["subscription_item_id"]
+    total_usage = billing_period["total_usage"]
+    included_usage = billing_period["included_usage"]
+    overage_usage = billing_period["overage_usage"]
+    
+    logger.info(f"Processing billing period for org {org_id}: {total_usage} SPUs used, {overage_usage} SPUs overage")
+    
+    try:
+        # Use find_one_and_update to atomically check and mark as processing
+        result = await stripe_billing_periods.find_one_and_update(
+            {
+                "_id": billing_period["_id"],
+                "billed": False  # Only process if not already billed
+            },
+            {
+                "$set": {
+                    "billed": True,
+                    "billing_processed_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                }
+            },
+            return_document=True
+        )
+        
+        # If no document was updated, it was already processed
+        if not result:
+            logger.info(f"Billing period {billing_period['_id']} was already processed")
+            return
+        
+        # Only create usage record if there's overage
+        if overage_usage > 0:
+            await StripeAsync.usage_record_create(
+                subscription_item_id,
+                quantity=overage_usage,
+                timestamp=int(billing_period["period_end"].timestamp()),
+                action="increment"
+            )
+            logger.info(f"Created usage record for {overage_usage} SPUs overage for org {org_id}")
+        
+    except Exception as e:
+        logger.error(f"Error creating usage record for org {org_id}: {e}")
+        # Revert the billed status on error
+        await stripe_billing_periods.update_one(
+            {"_id": billing_period["_id"]},
+            {"$set": {"billed": False, "updated_at": datetime.utcnow()}}
+        )
+        raise
 
 async def check_usage_limits(org_id: str) -> Dict[str, Any]:
     """Check if organization has hit usage limits and needs to upgrade"""
@@ -1279,7 +1424,7 @@ async def cancel_subscription_endpoint(
 
 async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_time: Optional[int] = None) -> Dict[str, Any]:
     """
-    Get usage information from Stripe for a specified timeframe
+    Get usage information from local database for a specified timeframe
     
     Args:
         org_id: Organization ID
@@ -1313,27 +1458,29 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         logger.info(f"Current period end: {current_period_end.isoformat()}")
         
         # Use provided timeframe or default to current billing period
-        period_start = start_time if start_time is not None else current_period_start
-        period_end = end_time if end_time is not None else current_period_end
+        period_start = datetime.fromtimestamp(start_time) if start_time is not None else current_period_start
+        period_end = datetime.fromtimestamp(end_time) if end_time is not None else current_period_end
         
-        # Get the meter ID from the subscription item's price
         subscription_type = get_subscription_type(subscription)
         
-        # Get usage summary for the specified period using billing meter events
-        usage_summary = await StripeAsync.billing_meter_event_summary_list(
-            STRIPE_METER_ID,
-            customer=stripe_customer.id,
-            start_time=period_start,
-            end_time=period_end
-        )
-
-        logger.info(f"Usage summary: {usage_summary}")
+        # Get usage from local database
+        usage_pipeline = [
+            {
+                "$match": {
+                    "org_id": org_id,
+                    "timestamp": {"$gte": period_start, "$lte": period_end}
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "total_usage": {"$sum": "$spus"}
+                }
+            }
+        ]
         
-        # Extract total usage from the summary
-        total_usage = 0
-        if usage_summary and usage_summary.get("data"):
-            for summary in usage_summary["data"]:
-                total_usage += summary.get("aggregated_value", 0)
+        usage_result = await stripe_usage_records.aggregate(usage_pipeline).to_list(length=1)
+        total_usage = usage_result[0]["total_usage"] if usage_result else 0
         
         # Get plan configuration
         plan_config = TIER_CONFIG.get(subscription_type, {})
@@ -1343,7 +1490,7 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         if start_time is not None and end_time is not None:
             # Calculate what portion of the billing period this timeframe represents
             billing_period_duration = current_period_end - current_period_start
-            timeframe_duration = end_time - start_time
+            timeframe_duration = period_end - period_start
             
             # Prorate the included usage based on the timeframe
             if billing_period_duration > 0:
@@ -1395,3 +1542,14 @@ async def get_current_usage(
     except Exception as e:
         logger.error(f"Error getting usage: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+async def billing_background_task():
+    """Background task that runs billing processing every hour"""
+    while True:
+        try:
+            await process_billing_periods()
+        except Exception as e:
+            logger.error(f"Error in background billing task: {e}")
+        
+        # Sleep for 1 hour
+        await asyncio.sleep(3600)  # 3600 seconds = 1 hour
