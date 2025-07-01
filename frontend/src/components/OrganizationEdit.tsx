@@ -19,7 +19,7 @@ import { toast } from 'react-toastify'
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import Subscription from './Subscription'
+import Subscription from './SubscriptionManager'
 import { useOrganizationData } from '@/hooks/useOrganizationData'
 
 interface OrganizationEditProps {
