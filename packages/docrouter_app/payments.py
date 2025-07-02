@@ -14,7 +14,8 @@ import analytiq_data as ad
 from docrouter_app.auth import (
     get_current_user,
     is_org_admin,
-    is_sys_admin
+    is_sys_admin,
+    is_org_member
 )
 from docrouter_app.models import User
 
@@ -135,7 +136,6 @@ class SubscriptionCreate(BaseModel):
     price_id: Optional[str] = None
 
 class UsageRecord(BaseModel):
-    org_id: str  # Changed from user_id to org_id
     spus: int = Field(default=0)  # New field for SPU tracking
     operation: str
     source: str = "backend"
@@ -895,23 +895,31 @@ async def webhook_received(
     
     return {"status": "success"}
 
-@payments_router.post("/record-usage")
+@payments_router.post("/usage/{org_id}")
 async def api_record_usage(
+    org_id: str,
     usage: UsageRecord,
     current_user: User = Depends(get_current_user)
 ):
     """Record usage for an organization"""
 
-    logger.info(f"api_record_usage called with org_id: {usage.org_id}, spus: {usage.spus}, operation: {usage.operation}, source: {usage.source}")
+    logger.info(f"api_record_usage called with org_id: {org_id}, spus: {usage.spus}, operation: {usage.operation}, source: {usage.source}")
+
+    # Check if the current user is a member of the organization
+    if not await is_org_member(org_id=org_id, user_id=current_user.user_id):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Access denied, user {current_user.user_id} is not a member of organization {org_id}"
+        )
 
     try:
         result = await record_usage(
-            usage.org_id,
+            org_id,
             usage.spus,
             usage.operation,
             usage.source,
         )
-        limits = await check_usage_limits(usage.org_id)
+        limits = await check_usage_limits(org_id)
         return {"success": True, "usage": result, "limits": limits}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

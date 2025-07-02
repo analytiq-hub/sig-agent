@@ -174,3 +174,19 @@ async def is_org_admin(org_id: str, user_id: str):
 
     logger.info(f"User_id: {user_id} is not an org admin for org_id: {org_id}")
     return False
+
+async def is_org_member(org_id: str, user_id: str):
+    """
+    Check if a user is a member of an organization
+    """
+    db = ad.common.get_async_db()
+    org = await db.organizations.find_one({"_id": ObjectId(org_id)})
+    if not org:
+        logger.info(f"Org not found for org_id: {org_id}")
+        return False
+    
+    for member in org.get("members", []):
+        if member.get("user_id") == user_id:
+            return True
+
+    return False
