@@ -67,7 +67,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
     };
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['no_subscription'];
     return (
-      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+      <div className={`inline-flex items-center px-2.5 pb-1 pt-1.5 rounded-full text-xs font-medium leading-tight ${config.color}`}>
         {config.text}
       </div>
     );
