@@ -211,19 +211,19 @@ async def init_payments_env():
     
     TIER_CONFIG = {
         "individual": {
-            "price_id": os.getenv("STRIPE_PRICE_ID_INDIVIDUAL", ""),
+            "price_id": os.getenv("STRIPE_PRICE_ID_OVERAGE_INDIVIDUAL", ""),
             "base_price": 10.00,
             "included_usage": 100,  # Included SPUs
             "overage_price": 0.01,  # Price per SPU after limit
         },
         "team": {
-            "price_id": os.getenv("STRIPE_PRICE_ID_TEAM", ""),
+            "price_id": os.getenv("STRIPE_PRICE_ID_OVERAGE_TEAM", ""),
             "base_price": 30.00,
             "included_usage": 500,  # Included SPUs
             "overage_price": 0.02,  # Price per SPU after limit
         },
         "enterprise": {
-            "price_id": os.getenv("STRIPE_PRICE_ID_ENTERPRISE", ""),
+            "price_id": os.getenv("STRIPE_PRICE_ID_OVERAGE_ENTERPRISE", ""),
             "base_price": 100.00,
             "included_usage": 2000,  # Included SPUs
             "overage_price": 0.05,  # Price per SPU after limit
