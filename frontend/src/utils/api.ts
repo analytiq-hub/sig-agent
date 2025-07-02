@@ -85,7 +85,6 @@ import {
   DeleteFlowParams,
 } from '@/types/index';
 import { 
-  PortalSessionCreate,
   PortalSessionResponse,
   SubscriptionPlanResponse,
   SubscriptionHistoryResponse 
@@ -701,10 +700,7 @@ export const getInvitationApi = async (token: string): Promise<InvitationRespons
 
 // Subscription APIs
 export const getCustomerPortalApi = async (orgId: string): Promise<PortalSessionResponse> => {
-  const portalSessionCreate: PortalSessionCreate = {
-    org_id: orgId
-  };
-  const response = await api.post<PortalSessionResponse>(`/v0/account/payments/customer-portal`, portalSessionCreate);
+  const response = await api.post<PortalSessionResponse>(`/v0/account/payments/${orgId}/customer-portal`);
   return response.data;
 };
 
@@ -734,16 +730,12 @@ export const getSubscriptionStatusApi = async (orgId: string) => {
 };
 
 export const reactivateSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
-  const response = await api.post<{ status: string; message: string }>(`/v0/account/payments/reactivate-subscription`, {
-    org_id: orgId
-  });
+  const response = await api.post<{ status: string; message: string }>(`/v0/account/payments/${orgId}/reactivate-subscription`);
   return response.data;
 };
 
 export const cancelSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
-  const response = await api.post<{ status: string; message: string }>(`/v0/account/payments/cancel-subscription`, {
-    org_id: orgId
-  });
+  const response = await api.post<{ status: string; message: string }>(`/v0/account/payments/${orgId}/cancel-subscription`);
   return response.data;
 };
 

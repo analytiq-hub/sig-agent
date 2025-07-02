@@ -132,9 +132,6 @@ class UsageRecord(BaseModel):
     operation: str
     source: str = "backend"
 
-class PortalSessionCreate(BaseModel):
-    org_id: str
-
 class PortalSessionResponse(BaseModel):
     url: str
 
@@ -827,22 +824,29 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
 
     return True
 
-@payments_router.post("/customer-portal")
+@payments_router.post("/{organization_id}/customer-portal")
 async def customer_portal(
-    data: PortalSessionCreate,
+    organization_id: str,
+    current_user: User = Depends(get_current_user)
 ) -> PortalSessionResponse:
     """Generate a Stripe Customer Portal link"""
 
-    logger.info(f"Generating Stripe customer portal for org_id: {data.org_id}")
+    logger.info(f"Generating Stripe customer portal for org_id: {organization_id}")
+
+    is_sys_admin = await is_system_admin(current_user.user_id)
+    is_org_member = await is_organization_member(organization_id, current_user.user_id)
+
+    if not is_sys_admin and not is_org_member:
+        raise HTTPException(status_code=403, detail="You are not authorized to generate a customer portal")
 
     try:
-        customer = await stripe_customers.find_one({"org_id": data.org_id})
+        customer = await stripe_customers.find_one({"org_id": organization_id})
         if not customer:
             raise HTTPException(status_code=404, detail="Customer not found")
-        logger.info(f"Stripe customer found for org_id: {data.org_id}: {customer['stripe_customer_id']}")
+        logger.info(f"Stripe customer found for org_id: {organization_id}: {customer['stripe_customer_id']}")
         session = await StripeAsync.billing_portal_session_create(
             customer=customer["stripe_customer_id"],
-            return_url=f"{NEXTAUTH_URL}/settings/organizations/{data.org_id}",
+            return_url=f"{NEXTAUTH_URL}/settings/organizations/{organization_id}",
         )
         logger.info(f"Stripe customer portal URL: {session.url}")
         return PortalSessionResponse(url=session.url)
@@ -1360,27 +1364,26 @@ async def get_subscription_status(
 
     return await get_organization_subscription_status(org_id)
 
-@payments_router.post("/reactivate-subscription")
+@payments_router.post("/{organization_id}/reactivate-subscription")
 async def reactivate_subscription_endpoint(
-    data: PortalSessionCreate,
+    organization_id: str,
     current_user: User = Depends(get_current_user)
 ):
     """Reactivate a subscription that is set to cancel at period end"""
     
-    logger.info(f"Reactivating subscription for org_id: {data.org_id}")
+    logger.info(f"Reactivating subscription for org_id: {organization_id}")
 
-    # Is the current user an org admin? Or a system admin?
-    if not await is_organization_admin(org_id=data.org_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Org admin access required for org_id: {data.org_id}"
-        )
+    is_sys_admin = await is_system_admin(current_user.user_id)
+    is_org_admin = await is_organization_admin(org_id=organization_id, user_id=current_user.user_id)
+
+    if not is_sys_admin and not is_org_admin:
+        raise HTTPException(status_code=403, detail="You are not authorized to reactivate a subscription")
 
     try:
         # Get the customer
-        stripe_customer = await get_payments_customer(data.org_id)
+        stripe_customer = await get_payments_customer(organization_id)
         if not stripe_customer:
-            raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {data.org_id}")
+            raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
 
         success = await reactivate_subscription(stripe_customer.id)
         if success:
@@ -1392,27 +1395,26 @@ async def reactivate_subscription_endpoint(
         logger.error(f"Error reactivating subscription: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@payments_router.post("/cancel-subscription")
+@payments_router.post("/{organization_id}/cancel-subscription")
 async def cancel_subscription_endpoint(
-    data: PortalSessionCreate,
+    organization_id: str,
     current_user: User = Depends(get_current_user)
 ):
     """Cancel a subscription at the end of the current period"""
     
-    logger.info(f"Cancelling subscription for org_id: {data.org_id}")
+    logger.info(f"Cancelling subscription for org_id: {organization_id}")
 
-    # Is the current user an org admin? Or a system admin?
-    if not await is_organization_admin(org_id=data.org_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Org admin access required for org_id: {data.org_id}"
-        )
+    is_sys_admin = await is_system_admin(current_user.user_id)
+    is_org_admin = await is_organization_admin(org_id=organization_id, user_id=current_user.user_id)
+
+    if not is_sys_admin and not is_org_admin:
+        raise HTTPException(status_code=403, detail="You are not authorized to cancel a subscription")
 
     try:
         # Get the customer
-        stripe_customer = await get_payments_customer(data.org_id)
+        stripe_customer = await get_payments_customer(organization_id)
         if not stripe_customer:
-            raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {data.org_id}")
+            raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
 
         # Get the current subscription
         subscription = await get_subscription(stripe_customer.id)
