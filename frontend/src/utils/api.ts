@@ -741,6 +741,6 @@ export const cancelSubscriptionApi = async (orgId: string): Promise<{ status: st
 
 // Add new API function to get current usage
 export const getCurrentUsageApi = async (orgId: string) => {
-  const response = await api.get(`/v0/payments/usage/${orgId}`);
+  const response = await api.get(`/v0/payments/${orgId}/usage`);
   return response.data;
 };

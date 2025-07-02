@@ -854,31 +854,31 @@ async def customer_portal(
         logger.error(f"Error generating Stripe customer portal: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@payments_router.post("/usage/{org_id}")
+@payments_router.post("/{organization_id}/usage")
 async def record_usage(
-    org_id: str,
+    organization_id: str,
     usage: UsageRecord,
     current_user: User = Depends(get_current_user)
 ):
     """Record usage for an organization"""
 
-    logger.info(f"api_record_usage called with org_id: {org_id}, spus: {usage.spus}, operation: {usage.operation}, source: {usage.source}")
+    logger.info(f"api_record_usage called with org_id: {organization_id}, spus: {usage.spus}, operation: {usage.operation}, source: {usage.source}")
 
     # Check if the current user is a member of the organization
-    if not await is_organization_member(org_id=org_id, user_id=current_user.user_id):
+    if not await is_organization_member(org_id=organization_id, user_id=current_user.user_id):
         raise HTTPException(
             status_code=403,
-            detail=f"Access denied, user {current_user.user_id} is not a member of organization {org_id}"
+            detail=f"Access denied, user {current_user.user_id} is not a member of organization {organization_id}"
         )
 
     try:
         result = await handle_usage_record(
-            org_id,
+            organization_id,
             usage.spus,
             usage.operation,
             usage.source,
         )
-        limits = await check_usage_limits(org_id)
+        limits = await check_usage_limits(organization_id)
         return {"success": True, "usage": result, "limits": limits}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1479,25 +1479,25 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         logger.error(f"Error getting Stripe usage: {e}")
         return None
 
-@payments_router.get("/usage/{org_id}")
+@payments_router.get("/{organization_id}/usage")
 async def get_current_usage(
-    org_id: str,
+    organization_id: str,
     current_user: User = Depends(get_current_user)
 ):
     """Get current usage information for an organization"""
     
     # Check if user has access to this organization
-    if not await is_organization_admin(org_id=org_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
+    if not await is_organization_admin(org_id=organization_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
         raise HTTPException(
             status_code=403,
-            detail=f"Org admin access required for org_id: {org_id}"
+            detail=f"Org admin access required for org_id: {organization_id}"
         )
 
     try:
         # Get usage from Stripe
-        stripe_usage = await get_stripe_usage(org_id)
+        stripe_usage = await get_stripe_usage(organization_id)
         if not stripe_usage:
-            raise HTTPException(status_code=404, detail=f"No Stripe usage found for org_id: {org_id}")
+            raise HTTPException(status_code=404, detail=f"No Stripe usage found for org_id: {organization_id}")
 
         logger.info(f"Stripe usage: {stripe_usage}")
         

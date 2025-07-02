@@ -1,7 +1,3 @@
-export interface PortalSessionCreate {
-  org_id: string;
-}
-
 export interface PortalSessionResponse {
   url: string;
 }
