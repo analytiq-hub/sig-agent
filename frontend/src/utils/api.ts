@@ -86,7 +86,7 @@ import {
 } from '@/types/index';
 import { 
   PortalSessionResponse,
-  SubscriptionPlanResponse
+  SubscriptionResponse
 } from '@/types/index';
 import { toast } from 'react-toastify';
 import { JsonValue } from 'type-fest';
@@ -704,8 +704,8 @@ export const getCustomerPortalApi = async (orgId: string): Promise<PortalSession
 };
 
 // Add these new API functions
-export const getSubscriptionPlansApi = async (orgId: string): Promise<SubscriptionPlanResponse> => {
-  const response = await api.get<SubscriptionPlanResponse>(`/v0/payments/${orgId}/plans`);
+export const getSubscriptionApi = async (orgId: string): Promise<SubscriptionResponse> => {
+  const response = await api.get<SubscriptionResponse>(`/v0/payments/${orgId}/subscription`);
   return response.data;
 };
 

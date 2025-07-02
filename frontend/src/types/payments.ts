@@ -14,7 +14,7 @@ export interface SubscriptionPlan {
   interval: string;
 }
 
-export interface SubscriptionPlanResponse {
+export interface SubscriptionResponse {
   plans: SubscriptionPlan[];
   current_plan: string | null;
   has_payment_method: boolean;

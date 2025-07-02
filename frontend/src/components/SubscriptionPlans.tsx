@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getCustomerPortalApi, getSubscriptionPlansApi, updateOrganizationApi, reactivateSubscriptionApi } from '@/utils/api';
+import { getCustomerPortalApi, getSubscriptionApi, updateOrganizationApi, reactivateSubscriptionApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import type { SubscriptionPlan } from '@/types/payments';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -31,7 +31,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     const fetchPlans = async () => {
       try {
         setLoading(true);
-        const data = await getSubscriptionPlansApi(organizationId);
+        const data = await getSubscriptionApi(organizationId);
         setPlans(data.plans);
         setCurrentPlan(data.current_plan);
         setSelectedPlan(data.current_plan || 'individual');
@@ -89,15 +89,15 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         await reactivateSubscriptionApi(organizationId);
         
         // Refresh the subscription plans data
-        const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
-        setSubscriptionStatus(subscriptionPlansResponse.subscription_status);
+        const subscriptionResponse = await getSubscriptionApi(organizationId);
+        setSubscriptionStatus(subscriptionResponse.subscription_status);
         
         // Notify parent components
         if (onSubscriptionStatusChange) {
-          onSubscriptionStatusChange(subscriptionPlansResponse.subscription_status);
+          onSubscriptionStatusChange(subscriptionResponse.subscription_status);
         }
         if (onCancellationInfoChange) {
-          onCancellationInfoChange(subscriptionPlansResponse.cancel_at_period_end, subscriptionPlansResponse.current_period_end);
+          onCancellationInfoChange(subscriptionResponse.cancel_at_period_end, subscriptionResponse.current_period_end);
         }
         
         return;
@@ -131,20 +131,20 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       await refreshOrganizations();
 
       // Refresh the subscription plans data
-      const subscriptionPlansResponse = await getSubscriptionPlansApi(organizationId);
+      const subscriptionResponse = await getSubscriptionApi(organizationId);
       setCurrentPlan(planId);
-      setSubscriptionStatus(subscriptionPlansResponse.subscription_status);
+      setSubscriptionStatus(subscriptionResponse.subscription_status);
       
       // Notify parent components
       if (onSubscriptionStatusChange) {
-        onSubscriptionStatusChange(subscriptionPlansResponse.subscription_status);
+        onSubscriptionStatusChange(subscriptionResponse.subscription_status);
       }
       if (onCancellationInfoChange) {
-        onCancellationInfoChange(subscriptionPlansResponse.cancel_at_period_end, subscriptionPlansResponse.current_period_end);
+        onCancellationInfoChange(subscriptionResponse.cancel_at_period_end, subscriptionResponse.current_period_end);
       }
       
       // Redirect to the customer portal only if no payment method is set up
-      if (!subscriptionPlansResponse.has_payment_method) {
+      if (!subscriptionResponse.has_payment_method) {
         const portalResponse = await getCustomerPortalApi(organizationId);
         window.location.href = portalResponse.url;
       }

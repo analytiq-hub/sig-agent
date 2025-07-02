@@ -145,7 +145,7 @@ class SubscriptionPlan(BaseModel):
     currency: str = "usd"
     interval: str = "month"
 
-class SubscriptionPlanResponse(BaseModel):
+class SubscriptionResponse(BaseModel):
     plans: List[SubscriptionPlan]
     current_plan: Optional[str] = None
     has_payment_method: bool = False
@@ -1033,11 +1033,11 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
         logger.error(f"Error during bulk deletion: {e}")
         return {"success": False, "error": str(e)}
 
-@payments_router.get("/{organization_id}/plans")
+@payments_router.get("/{organization_id}/subscription")
 async def get_subscription_plans(
     organization_id: str = None,
     current_user: User = Depends(get_current_user)
-) -> SubscriptionPlanResponse:
+) -> SubscriptionResponse:
     """Get available subscription plans and user's current plan"""
 
     logger.info(f"Getting subscription plans for org_id: {organization_id} user_id: {current_user.user_id}")
@@ -1120,7 +1120,7 @@ async def get_subscription_plans(
         if subscription_status == 'active' and cancel_at_period_end:
             subscription_status = 'cancelling'
     
-    return SubscriptionPlanResponse(
+    return SubscriptionResponse(
         plans=plans, 
         current_plan=current_subscription_type,
         has_payment_method=has_payment_method,
