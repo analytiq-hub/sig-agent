@@ -1033,28 +1033,28 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
         logger.error(f"Error during bulk deletion: {e}")
         return {"success": False, "error": str(e)}
 
-@payments_router.get("/plans/{org_id}")
+@payments_router.get("/{organization_id}/plans")
 async def get_subscription_plans(
-    org_id: str = None,
+    organization_id: str = None,
     current_user: User = Depends(get_current_user)
 ) -> SubscriptionPlanResponse:
     """Get available subscription plans and user's current plan"""
 
-    logger.info(f"Getting subscription plans for org_id: {org_id} user_id: {current_user.user_id}")
+    logger.info(f"Getting subscription plans for org_id: {organization_id} user_id: {current_user.user_id}")
 
     # Is the current user an org admin? Or a system admin?
-    if not await is_organization_admin(org_id=org_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
+    if not await is_organization_admin(org_id=organization_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
         raise HTTPException(
             status_code=403,
-            detail=f"Access denied, user {current_user.user_id} is not an org admin for org_id {org_id}, or a sys admin"
+            detail=f"Access denied, user {current_user.user_id} is not an org admin for org_id {organization_id}, or a sys admin"
         )
 
     # Get the customer
-    customer = await stripe_customers.find_one({"org_id": org_id})
+    customer = await stripe_customers.find_one({"org_id": organization_id})
     if not customer:
-        raise HTTPException(status_code=404, detail=f"Customer not found for org_id: {org_id}")
+        raise HTTPException(status_code=404, detail=f"Customer not found for org_id: {organization_id}")
     
-    tier_config = await get_tier_config(org_id)
+    tier_config = await get_tier_config(organization_id)
     
     # Define the available plans with metered usage details
     plans = [
@@ -1091,9 +1091,9 @@ async def get_subscription_plans(
     ]
 
     # Get the customer
-    stripe_customer = await get_payments_customer(org_id)
+    stripe_customer = await get_payments_customer(organization_id)
     if not stripe_customer:
-        raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {org_id}")
+        raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
 
     has_payment_method = payment_method_exists(stripe_customer)
 
