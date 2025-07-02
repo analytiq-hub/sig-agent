@@ -41,7 +41,9 @@ from jsonschema import validate, ValidationError, Draft7Validator
 from docrouter_app import email_utils, startup, organizations, users, limits
 from docrouter_app.auth import (
     get_current_user,
-    get_admin_user
+    get_admin_user,
+    is_system_admin,
+    is_organization_admin
 )
 from docrouter_app.models import (
     User, AccessToken, ListAccessTokensResponse,
@@ -2316,8 +2318,7 @@ async def list_organizations(
     """
     logger.debug(f"list_organizations(): user_id: {user_id} organization_id: {organization_id} current_user: {current_user}")
     db = ad.common.get_async_db()
-    db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_sys_admin = db_user and db_user.get("role") == "admin"
+    is_sys_admin = await is_system_admin(current_user.user_id)
 
     # user_id and organization_id are mutually exclusive
     if user_id and organization_id:
@@ -2337,10 +2338,7 @@ async def list_organizations(
             raise HTTPException(status_code=404, detail="Organization not found")
 
         # Check permissions
-        is_org_admin = any(
-            m["user_id"] == current_user.user_id and m["role"] == "admin" 
-            for m in organization["members"]
-        )
+        is_org_admin = await is_organization_admin(organization_id, current_user.user_id)
 
         if not (is_sys_admin or is_org_admin):
             raise HTTPException(
@@ -2458,11 +2456,10 @@ async def update_organization(
         raise HTTPException(status_code=404, detail="Organization not found")
 
     # Check if user has permission (account admin or organization admin)
-    db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_account_admin = db_user and db_user.get("role") == "admin"
-    is_organization_admin = any(member["role"] == "admin" and member["user_id"] == current_user.user_id for member in organization["members"])
+    is_sys_admin = await is_system_admin(current_user.user_id)
+    is_org_admin = await is_organization_admin(organization_id, current_user.user_id)
     
-    if not (is_account_admin or is_organization_admin):
+    if not (is_sys_admin or is_org_admin):
         raise HTTPException(
             status_code=403,
             detail="Not authorized to update this organization"
@@ -2532,11 +2529,10 @@ async def delete_organization(
         raise HTTPException(404, "Organization not found")
     
     # Check if user has permission (account admin or organization admin)
-    db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_account_admin = db_user and db_user.get("role") == "admin"
-    is_organization_admin = any(member["role"] == "admin" and member["user_id"] == current_user.user_id for member in organization["members"])
+    is_sys_admin = await is_system_admin(current_user.user_id)
+    is_org_admin = await is_organization_admin(organization_id, current_user.user_id)
     
-    if not (is_account_admin or is_organization_admin):
+    if not (is_sys_admin or is_org_admin):
         raise HTTPException(
             status_code=403,
             detail="Not authorized to delete this organization"
@@ -2567,8 +2563,7 @@ async def list_users(
     logger.debug(f"list_users(): organization_id: {organization_id} user_id: {user_id} current_user: {current_user} skip: {skip} limit: {limit}")
     
     db = ad.common.get_async_db()
-    db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_sys_admin = db_user and db_user.get("role") == "admin"
+    is_sys_admin = await is_system_admin(current_user.user_id)
 
     # user_id and organization_id are mutually exclusive
     if user_id and organization_id:
@@ -2762,11 +2757,10 @@ async def update_user(
     """Update a user's details (admin or self)"""
     db = ad.common.get_async_db()
     # Check if user has permission (admin or self)
-    db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_admin = db_current_user.get("role") == "admin"
+    is_sys_admin = await is_system_admin(current_user.user_id)
     is_self = current_user.user_id == user_id
     
-    if not (is_admin or is_self):
+    if not (is_sys_admin or is_self):
         raise HTTPException(
             status_code=403,
             detail="Not authorized to update this user"
@@ -2774,7 +2768,7 @@ async def update_user(
     
     # For self-updates, only allow name changes
     update_data = {}
-    if is_self and not is_admin:
+    if is_self and not is_sys_admin:
         if user.name is not None:
             update_data["name"] = user.name
         if user.password is not None:
@@ -2840,11 +2834,10 @@ async def delete_user(
     db = ad.common.get_async_db()
 
     # Check if user has permission (admin or self)
-    db_current_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_admin = db_current_user.get("role") == "admin"
+    is_sys_admin = await is_system_admin(current_user.user_id)
     is_self = current_user.user_id == user_id
     
-    if not (is_admin or is_self):
+    if not (is_sys_admin or is_self):
         raise HTTPException(
             status_code=403,
             detail="Not authorized to delete this user"
