@@ -276,11 +276,16 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
               </div>
               <button
                 onClick={() => handlePlanChange(plan.plan_id)}
-                disabled={currentPlan === plan.plan_id || !canChangeToPlan(currentPlan, plan.plan_id)}
+                disabled={
+                  (currentPlan === plan.plan_id && subscriptionStatus !== 'cancelling') || 
+                  !canChangeToPlan(currentPlan, plan.plan_id)
+                }
                 title={getPlanChangeReason(currentPlan, plan.plan_id) || ''}
                 className={`w-full py-2 px-4 rounded-md ${
                   currentPlan === plan.plan_id
-                    ? 'bg-gray-300 cursor-not-allowed'
+                    ? subscriptionStatus === 'cancelling' 
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-gray-300 cursor-not-allowed'
                     : !canChangeToPlan(currentPlan, plan.plan_id)
                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     : selectedPlan === plan.plan_id
