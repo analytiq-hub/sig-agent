@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getCustomerPortalApi, getSubscriptionApi, updateOrganizationApi, reactivateSubscriptionApi } from '@/utils/api';
+import { getCustomerPortalApi, getSubscriptionApi, updateOrganizationApi, reactivateSubscriptionApi, getOrganizationApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import type { SubscriptionPlan } from '@/types/payments';
+import type { Organization } from '@/types/organizations';
 import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface SubscriptionPlansProps {
@@ -25,32 +26,40 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   const [loading, setLoading] = useState(false);
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
-  const { refreshOrganizations, currentOrganization } = useOrganization();
+  const [reviewedOrganization, setReviewedOrganization] = useState<Organization | null>(null);
+  const { refreshOrganizations } = useOrganization();
 
   useEffect(() => {
-    const fetchPlans = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await getSubscriptionApi(organizationId);
-        setPlans(data.plans);
-        setCurrentPlan(data.current_plan);
-        setSelectedPlan(data.current_plan || 'individual');
-        setHasPaymentMethod(data.has_payment_method);
-        setSubscriptionStatus(data.subscription_status);
+        
+        // Fetch both subscription data and organization data
+        const [subscriptionData, orgData] = await Promise.all([
+          getSubscriptionApi(organizationId),
+          getOrganizationApi(organizationId)
+        ]);
+        
+        setPlans(subscriptionData.plans);
+        setCurrentPlan(subscriptionData.current_plan);
+        setSelectedPlan(subscriptionData.current_plan || 'individual');
+        setHasPaymentMethod(subscriptionData.has_payment_method);
+        setSubscriptionStatus(subscriptionData.subscription_status);
+        setReviewedOrganization(orgData);
         
         // Notify parent component about payment method status
         if (onPaymentMethodStatusChange) {
-          onPaymentMethodStatusChange(data.has_payment_method);
+          onPaymentMethodStatusChange(subscriptionData.has_payment_method);
         }
         
         // Notify parent component about subscription status
         if (onSubscriptionStatusChange) {
-          onSubscriptionStatusChange(data.subscription_status);
+          onSubscriptionStatusChange(subscriptionData.subscription_status);
         }
         
         // Notify parent component about cancellation info
         if (onCancellationInfoChange) {
-          onCancellationInfoChange(data.cancel_at_period_end, data.current_period_end);
+          onCancellationInfoChange(subscriptionData.cancel_at_period_end, subscriptionData.current_period_end);
         }
       } catch (error) {
         console.error('Error fetching subscription plans:', error);
@@ -60,7 +69,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       }
     };
 
-    fetchPlans();
+    fetchData();
   }, [organizationId, onPaymentMethodStatusChange, onSubscriptionStatusChange, onCancellationInfoChange]);
 
   const canChangeToPlan = (currentPlan: string | null, targetPlan: string): boolean => {
@@ -161,8 +170,8 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   const getVisiblePlans = (allPlans: SubscriptionPlan[], currentPlanType: string | null): SubscriptionPlan[] => {
     const planHierarchy = ['individual', 'team', 'enterprise'];
     
-    // Get the organization type from the current organization context
-    const organizationType = currentOrganization?.type || 'individual';
+    // Get the organization type from the reviewed organization, not the current organization context
+    const organizationType = reviewedOrganization?.type || 'individual';
     
     // Determine the minimum tier based on organization type
     const orgTypeIndex = planHierarchy.indexOf(organizationType);
