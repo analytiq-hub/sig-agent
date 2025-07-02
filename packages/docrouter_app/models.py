@@ -24,7 +24,6 @@ class ListAccessTokensResponse(BaseModel):
 class CreateAccountAccessTokenRequest(BaseModel):
     name: str
     lifetime: int
-    organization_id: Optional[str] = None
 
 class CreateOrganizationAccessTokenRequest(BaseModel):
     name: str

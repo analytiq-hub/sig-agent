@@ -15,6 +15,13 @@ logger = logging.getLogger(__name__)
 # Check that ENV is set to pytest
 assert os.environ["ENV"] == "pytest"
 
+def get_token_headers(token):
+    """Get authentication headers for a specific token"""
+    return {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
 @pytest.mark.asyncio
 async def test_access_tokens(test_db, mock_auth):
     """Test the complete access token lifecycle"""
@@ -41,6 +48,7 @@ async def test_access_tokens(test_db, mock_auth):
         assert "token" in token_result  # The actual token value
         
         token_id = token_result["id"]
+        api_token = token_result["token"]  # Store the actual token value
         
         # Step 2: List access tokens to verify it was created
         list_response = client.get(
@@ -58,7 +66,33 @@ async def test_access_tokens(test_db, mock_auth):
         assert created_token["name"] == "Test API Token"
         assert created_token["lifetime"] == 30
         
-        # Step 3: Delete the access token
+        # Step 3: Test the token functionality by calling the list documents API
+        # Temporarily clear the mock authentication to test real token authentication
+        from docrouter_app.main import app
+        original_overrides = app.dependency_overrides.copy()
+        app.dependency_overrides.clear()
+        
+        try:
+            # Create headers using the actual API token
+            token_headers = get_token_headers(api_token)
+            
+            # Call the list documents API using the token
+            docs_response = client.get(
+                f"/v0/orgs/{TEST_ORG_ID}/documents",
+                headers=token_headers
+            )
+            
+            # The API should return 200 even if there are no documents
+            assert docs_response.status_code == 200
+            docs_data = docs_response.json()
+            assert "documents" in docs_data
+            assert "total_count" in docs_data
+            assert "skip" in docs_data
+        finally:
+            # Restore the mock authentication
+            app.dependency_overrides = original_overrides
+        
+        # Step 4: Delete the access token
         delete_response = client.delete(
             f"/v0/orgs/{TEST_ORG_ID}/access_tokens/{token_id}",
             headers=get_auth_headers()
@@ -66,7 +100,7 @@ async def test_access_tokens(test_db, mock_auth):
         
         assert delete_response.status_code == 200
         
-        # Step 4: List access tokens again to verify it was deleted
+        # Step 5: List access tokens again to verify it was deleted
         list_after_delete_response = client.get(
             f"/v0/orgs/{TEST_ORG_ID}/access_tokens",
             headers=get_auth_headers()
@@ -78,6 +112,31 @@ async def test_access_tokens(test_db, mock_auth):
         # Verify the token is no longer in the list
         deleted_token = next((token for token in list_after_delete_data["access_tokens"] if token["id"] == token_id), None)
         assert deleted_token is None, "Token should have been deleted"
+        
+        # Step 6: Negative test - verify the deleted token no longer works
+        # Temporarily clear the mock authentication to test real token authentication
+        app.dependency_overrides.clear()
+        
+        try:
+            # Try to use the deleted token to call the list documents API
+            deleted_token_headers = get_token_headers(api_token)
+            
+            # This should fail with 401 Unauthorized since the token was deleted
+            docs_response_with_deleted_token = client.get(
+                f"/v0/orgs/{TEST_ORG_ID}/documents",
+                headers=deleted_token_headers
+            )
+            
+            # Verify that the API call fails with 401 Unauthorized
+            assert docs_response_with_deleted_token.status_code == 401, "Deleted token should not be accepted"
+            
+            # Optionally check the error message
+            error_data = docs_response_with_deleted_token.json()
+            assert "detail" in error_data
+            assert "Invalid authentication credentials" in error_data["detail"]
+        finally:
+            # Restore the mock authentication
+            app.dependency_overrides = original_overrides
         
     finally:
         pass  # mock_auth fixture handles cleanup
