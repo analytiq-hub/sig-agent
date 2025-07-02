@@ -127,13 +127,13 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
 async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(security), request: Request = None):
     user = await get_current_user(credentials, request)
 
-    if not await is_sys_admin(user.user_id):
+    if not await is_system_admin(user.user_id):
         raise HTTPException(
             status_code=403,
             detail="Admin access required"
         )
 
-async def is_sys_admin(user_id: str):
+async def is_system_admin(user_id: str):
     """
     Check if a user is an admin
 
@@ -149,7 +149,7 @@ async def is_sys_admin(user_id: str):
         return False
     return True
 
-async def is_org_admin(org_id: str, user_id: str):
+async def is_organization_admin(org_id: str, user_id: str):
     """
     Check if a user is an org admin
 
@@ -172,7 +172,7 @@ async def is_org_admin(org_id: str, user_id: str):
 
     return False
 
-async def is_org_member(org_id: str, user_id: str):
+async def is_organization_member(org_id: str, user_id: str):
     """
     Check if a user is a member of an organization
     """

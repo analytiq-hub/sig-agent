@@ -13,9 +13,9 @@ import analytiq_data as ad
 
 from docrouter_app.auth import (
     get_current_user,
-    is_org_admin,
-    is_sys_admin,
-    is_org_member
+    is_organization_admin,
+    is_system_admin,
+    is_organization_member
 )
 from docrouter_app.models import User
 
@@ -906,7 +906,7 @@ async def record_usage(
     logger.info(f"api_record_usage called with org_id: {org_id}, spus: {usage.spus}, operation: {usage.operation}, source: {usage.source}")
 
     # Check if the current user is a member of the organization
-    if not await is_org_member(org_id=org_id, user_id=current_user.user_id):
+    if not await is_organization_member(org_id=org_id, user_id=current_user.user_id):
         raise HTTPException(
             status_code=403,
             detail=f"Access denied, user {current_user.user_id} is not a member of organization {org_id}"
@@ -1084,7 +1084,7 @@ async def get_subscription_plans(
     logger.info(f"Getting subscription plans for org_id: {org_id} user_id: {current_user.user_id}")
 
     # Is the current user an org admin? Or a system admin?
-    if not await is_org_admin(org_id=org_id, user_id=current_user.user_id) and not await is_sys_admin(user_id=current_user.user_id):
+    if not await is_organization_admin(org_id=org_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
         raise HTTPException(
             status_code=403,
             detail=f"Access denied, user {current_user.user_id} is not an org admin for org_id {org_id}, or a sys admin"
@@ -1212,7 +1212,7 @@ async def change_subscription_plan(
     logger.info(f"Changing subscription plan for org_id: {data.org_id} to plan_id: {data.plan_id}")
 
     # Is the current user an org admin? Or a system admin?
-    if not await is_org_admin(org_id=data.org_id, user_id=current_user.user_id):
+    if not await is_organization_admin(org_id=data.org_id, user_id=current_user.user_id):
         raise HTTPException(
             status_code=403,
             detail=f"Org admin access required for org_id: {data.org_id} user_id: {current_user.user_id}"
@@ -1350,7 +1350,7 @@ async def get_subscription_status(
     """Get subscription status for an organization"""
     
     # Check if user has access to this organization
-    if not await is_org_admin(org_id=org_id, user_id=current_user.user_id):
+    if not await is_organization_admin(org_id=org_id, user_id=current_user.user_id):
         raise HTTPException(
             status_code=403,
             detail=f"Org admin access required for org_id: {org_id}"
@@ -1368,7 +1368,7 @@ async def reactivate_subscription_endpoint(
     logger.info(f"Reactivating subscription for org_id: {data.org_id}")
 
     # Is the current user an org admin? Or a system admin?
-    if not await is_org_admin(org_id=data.org_id, user_id=current_user.user_id) and not await is_sys_admin(user_id=current_user.user_id):
+    if not await is_organization_admin(org_id=data.org_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
         raise HTTPException(
             status_code=403,
             detail=f"Org admin access required for org_id: {data.org_id}"
@@ -1400,7 +1400,7 @@ async def cancel_subscription_endpoint(
     logger.info(f"Cancelling subscription for org_id: {data.org_id}")
 
     # Is the current user an org admin? Or a system admin?
-    if not await is_org_admin(org_id=data.org_id, user_id=current_user.user_id) and not await is_sys_admin(user_id=current_user.user_id):
+    if not await is_organization_admin(org_id=data.org_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
         raise HTTPException(
             status_code=403,
             detail=f"Org admin access required for org_id: {data.org_id}"
@@ -1528,7 +1528,7 @@ async def get_current_usage(
     """Get current usage information for an organization"""
     
     # Check if user has access to this organization
-    if not await is_org_admin(org_id=org_id, user_id=current_user.user_id) and not await is_sys_admin(user_id=current_user.user_id):
+    if not await is_organization_admin(org_id=org_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
         raise HTTPException(
             status_code=403,
             detail=f"Org admin access required for org_id: {org_id}"

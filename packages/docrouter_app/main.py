@@ -2317,7 +2317,7 @@ async def list_organizations(
     logger.debug(f"list_organizations(): user_id: {user_id} organization_id: {organization_id} current_user: {current_user}")
     db = ad.common.get_async_db()
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_system_admin = db_user and db_user.get("role") == "admin"
+    is_sys_admin = db_user and db_user.get("role") == "admin"
 
     # user_id and organization_id are mutually exclusive
     if user_id and organization_id:
@@ -2342,7 +2342,7 @@ async def list_organizations(
             for m in organization["members"]
         )
 
-        if not (is_system_admin or is_org_admin):
+        if not (is_sys_admin or is_org_admin):
             raise HTTPException(
                 status_code=403,
                 detail="Not authorized to view this organization"
@@ -2358,14 +2358,14 @@ async def list_organizations(
 
     # Handle user filter
     if user_id:
-        if not is_system_admin and user_id != current_user.user_id:
+        if not is_sys_admin and user_id != current_user.user_id:
             raise HTTPException(
                 status_code=403,
                 detail="Not authorized to view other users' organizations"
             )
         filter_user_id = user_id
     else:
-        filter_user_id = None if is_system_admin else current_user.user_id
+        filter_user_id = None if is_sys_admin else current_user.user_id
 
     # Build query for list request
     query = {}
@@ -2568,7 +2568,7 @@ async def list_users(
     
     db = ad.common.get_async_db()
     db_user = await db.users.find_one({"_id": ObjectId(current_user.user_id)})
-    is_system_admin = db_user and db_user.get("role") == "admin"
+    is_sys_admin = db_user and db_user.get("role") == "admin"
 
     # user_id and organization_id are mutually exclusive
     if user_id and organization_id:
@@ -2593,7 +2593,7 @@ async def list_users(
         # Check permissions
         is_self = current_user.user_id == user_id
         
-        if not (is_system_admin or is_self):
+        if not (is_sys_admin or is_self):
             # Check if user is an org admin for any org the target user is in
             user_orgs = await db.organizations.find({
                 "members.user_id": user_id
@@ -2637,7 +2637,7 @@ async def list_users(
             for m in org["members"]
         )
         
-        if not (is_system_admin or is_org_admin):
+        if not (is_sys_admin or is_org_admin):
             raise HTTPException(
                 status_code=403, 
                 detail="Not authorized to view organization users"
@@ -2645,7 +2645,7 @@ async def list_users(
             
         member_ids = [m["user_id"] for m in org["members"]]
         query["_id"] = {"$in": [ObjectId(uid) for uid in member_ids]}
-    elif not is_system_admin:
+    elif not is_sys_admin:
         # List all users in organizations the current user is an admin of
         orgs = await db.organizations.find({
             "members.user_id": current_user.user_id,
