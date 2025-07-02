@@ -1234,8 +1234,8 @@ async def get_organization_subscription_status(org_id: str) -> dict:
             "status": "error"
         }
 
-@payments_router.post("/{organization_id}/reactivate-subscription")
-async def reactivate_subscription_endpoint(
+@payments_router.put("/{organization_id}/subscription")
+async def activate_subscription(
     organization_id: str,
     current_user: User = Depends(get_current_user)
 ):
@@ -1265,8 +1265,8 @@ async def reactivate_subscription_endpoint(
         logger.error(f"Error reactivating subscription: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@payments_router.post("/{organization_id}/cancel-subscription")
-async def cancel_subscription_endpoint(
+@payments_router.delete("/{organization_id}/subscription")
+async def deactivate_subscription(
     organization_id: str,
     current_user: User = Depends(get_current_user)
 ):

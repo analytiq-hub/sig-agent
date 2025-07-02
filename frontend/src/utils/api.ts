@@ -710,12 +710,12 @@ export const getSubscriptionApi = async (orgId: string): Promise<SubscriptionRes
 };
 
 export const reactivateSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
-  const response = await api.post<{ status: string; message: string }>(`/v0/payments/${orgId}/reactivate-subscription`);
+  const response = await api.put<{ status: string; message: string }>(`/v0/payments/${orgId}/subscription`);
   return response.data;
 };
 
 export const cancelSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
-  const response = await api.post<{ status: string; message: string }>(`/v0/payments/${orgId}/cancel-subscription`);
+  const response = await api.delete<{ status: string; message: string }>(`/v0/payments/${orgId}/subscription`);
   return response.data;
 };
 
