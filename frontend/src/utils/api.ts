@@ -718,7 +718,7 @@ export const changeSubscriptionPlanApi = async (orgId: string, planId: string): 
 };
 
 export const getSubscriptionStatusApi = async (orgId: string) => {
-  const response = await api.get(`/v0/payments/subscription-status/${orgId}`);
+  const response = await api.get(`/v0/payments/${orgId}/subscription-status`);
   return response.data;
 };
 
