@@ -791,40 +791,41 @@ def get_subscription_type(subscription: Dict[str, Any]) -> str:
     
 
 async def set_subscription_type(customer_id: str, subscription_type: str):
-    """Enable a subscription for a customer"""
-
+    """Enable a subscription for a customer with proper proration"""
+    
     if subscription_type not in TIER_CONFIG.keys():
-        raise ValueError(f"Invalid subscription type: {subscription_type}, not in {TIER_CONFIG.keys()}")
+        raise ValueError(f"Invalid subscription type: {subscription_type}")
 
     price_id = TIER_CONFIG[subscription_type]["price_id"]
 
-    # Get the current subscription type
+    # Get the current subscription
     subscription = await get_subscription(customer_id)
+    
     if subscription:
         current_subscription_type = get_subscription_type(subscription)
         if current_subscription_type == subscription_type:
-            logger.info(f"Subscription type already set to {subscription_type} for customer_id: {customer_id}")
+            logger.info(f"Subscription type already set to {subscription_type}")
             return True
 
-        # Delete the current subscription
-        await StripeAsync.subscription_delete(subscription.id)
-
-    price_id = TIER_CONFIG[subscription_type]["price_id"]
-
-    # Create a new subscription
-    subscription = await StripeAsync.subscription_create(
-        customer=customer_id,
-        items=[{
-            'price': price_id,
-        }],
-        payment_behavior='default_incomplete',
-        expand=['latest_invoice.payment_intent'],
-    )
-
-    if subscription:
-        return True
+        # Modify existing subscription with proration
+        await StripeAsync.subscription_modify(
+            subscription.id,
+            items=[{
+                'id': subscription['items']['data'][0]['id'],
+                'price': price_id,
+            }],
+            proration_behavior='create_prorations',  # This handles the proration
+        )
     else:
-        return False
+        # Create new subscription for customers without one
+        await StripeAsync.subscription_create(
+            customer=customer_id,
+            items=[{'price': price_id}],
+            payment_behavior='default_incomplete',
+            expand=['latest_invoice.payment_intent'],
+        )
+
+    return True
 
 @payments_router.post("/customer-portal")
 async def customer_portal(
