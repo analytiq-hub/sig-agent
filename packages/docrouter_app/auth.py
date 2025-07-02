@@ -160,7 +160,6 @@ async def is_org_admin(org_id: str, user_id: str):
     Returns:
         True if the user is an org admin, False otherwise
     """
-    logger.info(f"Checking if user_id: {user_id} is an org admin for org_id: {org_id}")
     db = ad.common.get_async_db()
     org = await db.organizations.find_one({"_id": ObjectId(org_id)})
     if not org:
@@ -168,11 +167,9 @@ async def is_org_admin(org_id: str, user_id: str):
         return False
 
     for member in org.get("members", []):
-        logger.info(f"Checking member: {member}")
         if member.get("user_id") == user_id and member.get("role") == "admin":
             return True
 
-    logger.info(f"User_id: {user_id} is not an org admin for org_id: {org_id}")
     return False
 
 async def is_org_member(org_id: str, user_id: str):
