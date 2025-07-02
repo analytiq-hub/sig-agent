@@ -306,9 +306,10 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                   ? subscriptionStatus === 'cancelling' ? 'Reactivate Plan' : 'Current Plan'
                   : !canChangeToPlan(currentPlan, plan.plan_id)
                   ? 'Not Available'
-                  : selectedPlan === plan.plan_id 
-                  ? 'Selected Plan' 
-                  : 'Select Plan'}
+                  : (selectedPlan === plan.plan_id && subscriptionStatus !== 'canceled' && subscriptionStatus !== 'no_subscription')
+                    ? 'Selected Plan'
+                    : 'Select Plan'
+                }
               </button>
             </div>
           ))}

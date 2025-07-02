@@ -724,3 +724,8 @@ export const getCurrentUsageApi = async (orgId: string) => {
   const response = await api.get(`/v0/payments/${orgId}/usage`);
   return response.data;
 };
+
+export const createSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
+  const response = await api.post<{ status: string; message: string }>(`/v0/payments/${orgId}/subscription`);
+  return response.data;
+};

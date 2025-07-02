@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getCustomerPortalApi } from '@/utils/api';
+import { getCustomerPortalApi, createSubscriptionApi } from '@/utils/api';
 import SubscriptionPlans from './SubscriptionPlans';
 import SubscriptionUsage from './SubscriptionUsage';
 
@@ -103,6 +103,19 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
     }
   };
 
+  const handleSubscribe = async () => {
+    if (!organizationId) return;
+    setLoading(true);
+    try {
+      await import('@/utils/api').then(api => api.createSubscriptionApi(organizationId));
+      setSubscriptionStatus('active');
+    } catch (e) {
+      console.error('Error creating subscription:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-40">
@@ -176,6 +189,22 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
                       </svg>
                     )}
                     Reactivate Now
+                  </button>
+                )}
+                {(subscriptionStatus === 'canceled' || subscriptionStatus === 'no_subscription') && (
+                  <button
+                    onClick={handleSubscribe}
+                    disabled={loading}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+                    ) : (
+                      <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                    )}
+                    Subscribe
                   </button>
                 )}
                 <a 
