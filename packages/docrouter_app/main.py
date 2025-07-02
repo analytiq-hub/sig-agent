@@ -47,8 +47,7 @@ from docrouter_app.auth import (
 )
 from docrouter_app.models import (
     User, AccessToken, ListAccessTokensResponse,
-    CreateAccountAccessTokenRequest, 
-    CreateOrganizationAccessTokenRequest,
+    CreateAccessTokenRequest, 
     ListDocumentsResponse,
     DocumentMetadata, DocumentUpload, DocumentsUpload,
     DocumentUpdate,
@@ -177,7 +176,7 @@ app.add_middleware(
 @app.post("/v0/orgs/{organization_id}/access_tokens", response_model=AccessToken, tags=["access_tokens"])
 async def create_org_token(
     organization_id: str,
-    request: CreateOrganizationAccessTokenRequest,
+    request: CreateAccessTokenRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Create an organization-level API token"""
@@ -2018,7 +2017,7 @@ async def get_current_org(
 # Update the access token endpoints to use organization context
 @app.post("/v0/account/access_tokens", response_model=AccessToken, tags=["account/access_tokens"])
 async def access_token_create(
-    request: CreateAccountAccessTokenRequest,
+    request: CreateAccessTokenRequest,
     current_user: User = Depends(get_current_user),
     organization_id: Optional[str] = Depends(get_current_org)
 ):
@@ -3388,7 +3387,7 @@ async def accept_invitation(
 # Account-level access tokens
 @app.post("/v0/account/access_tokens", response_model=AccessToken, tags=["account/access_tokens"])
 async def create_account_token(
-    request: CreateAccountAccessTokenRequest,
+    request: CreateAccessTokenRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Create an account-level API token"""

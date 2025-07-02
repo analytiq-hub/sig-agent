@@ -21,11 +21,7 @@ class AccessToken(BaseModel):
 class ListAccessTokensResponse(BaseModel):
     access_tokens: List[AccessToken]
     
-class CreateAccountAccessTokenRequest(BaseModel):
-    name: str
-    lifetime: int
-
-class CreateOrganizationAccessTokenRequest(BaseModel):
+class CreateAccessTokenRequest(BaseModel):
     name: str
     lifetime: int
 
