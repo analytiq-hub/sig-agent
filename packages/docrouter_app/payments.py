@@ -125,7 +125,6 @@ stripe_billing_periods = None
 
 # Stripe configuration constants
 FREE_TIER_LIMIT = 50  # Number of free SPUs
-TIER_CONFIG = {}
 
 # Pydantic models for request/response validation
 class UsageRecord(BaseModel):
@@ -161,24 +160,8 @@ class ChangePlanRequest(BaseModel):
     org_id: str
     plan_id: str
 
-# Add this new function near the top of the file with other helper functions
-def get_subscription_type_from_price_id(price_id: str) -> str:
-    """
-    Determine the subscription type (individual, team, enterprise) based on the price_id
-    
-    Args:
-        price_id: The Stripe price ID to look up
-        
-    Returns:
-        str: The subscription type (individual, team, enterprise) or None if not found
-    """
-    for tier, tier_price_id in TIER_CONFIG.items():
-        if tier_price_id["price_id"] == price_id:
-            return tier
-    return None
-
 # Add this new function to fetch pricing from Stripe
-async def get_dynamic_tier_config() -> Dict[str, Any]:
+async def get_tier_config() -> Dict[str, Any]:
     """
     Fetch tier configuration dynamically from Stripe prices
     """
@@ -250,9 +233,6 @@ async def init_payments_env():
     stripe_billing_periods = db.stripe_billing_periods
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
-
-    # Load dynamic tier config from Stripe
-    TIER_CONFIG = await get_dynamic_tier_config()
     
 async def init_payments():
     await init_payments_env()
@@ -572,7 +552,8 @@ async def update_billing_period(org_id: str, subscription: Dict[str, Any], spus:
     else:
         # Create new billing period
         subscription_type = get_subscription_type(subscription)
-        plan_config = TIER_CONFIG.get(subscription_type, {})
+        tier_config = await get_tier_config()
+        plan_config = tier_config.get(subscription_type, {})
         included_usage = plan_config.get("included_usage", 0)
         
         billing_period = {
@@ -807,11 +788,13 @@ def get_subscription_type(subscription: Dict[str, Any]) -> str:
 
 async def set_subscription_type(customer_id: str, subscription_type: str):
     """Enable a subscription for a customer with proper proration"""
+
+    tier_config = await get_tier_config()
     
-    if subscription_type not in TIER_CONFIG.keys():
+    if subscription_type not in tier_config.keys():
         raise ValueError(f"Invalid subscription type: {subscription_type}")
 
-    price_id = TIER_CONFIG[subscription_type]["price_id"]
+    price_id = tier_config[subscription_type]["price_id"]
 
     # Get the current subscription
     subscription = await get_subscription(customer_id)
@@ -1113,14 +1096,16 @@ async def get_subscription_plans(
     if not customer:
         raise HTTPException(status_code=404, detail=f"Customer not found for org_id: {org_id}")
     
+    tier_config = await get_tier_config()
+    
     # Define the available plans with metered usage details
     plans = [
         SubscriptionPlan(
             plan_id="individual",
             name="Individual",
-            base_price=TIER_CONFIG["individual"]["base_price"],
-            included_usage=TIER_CONFIG["individual"]["included_usage"],
-            overage_price=TIER_CONFIG["individual"]["overage_price"],
+            base_price=tier_config["individual"]["base_price"],
+            included_usage=tier_config["individual"]["included_usage"],
+            overage_price=tier_config["individual"]["overage_price"],
             features=[
                 "Basic document processing"
             ]
@@ -1128,9 +1113,9 @@ async def get_subscription_plans(
         SubscriptionPlan(
             plan_id="team",
             name="Team",
-            base_price=TIER_CONFIG["team"]["base_price"],
-            included_usage=TIER_CONFIG["team"]["included_usage"],
-            overage_price=TIER_CONFIG["team"]["overage_price"],
+            base_price=tier_config["team"]["base_price"],
+            included_usage=tier_config["team"]["included_usage"],
+            overage_price=tier_config["team"]["overage_price"],
             features=[
                 "Advanced document processing"
             ]
@@ -1138,9 +1123,9 @@ async def get_subscription_plans(
         SubscriptionPlan(
             plan_id="enterprise",
             name="Enterprise",
-            base_price=TIER_CONFIG["enterprise"]["base_price"],
-            included_usage=TIER_CONFIG["enterprise"]["included_usage"],
-            overage_price=TIER_CONFIG["enterprise"]["overage_price"],
+            base_price=tier_config["enterprise"]["base_price"],
+            included_usage=tier_config["enterprise"]["included_usage"],
+            overage_price=tier_config["enterprise"]["overage_price"],
             features=[
                 "Custom document processing"
             ]
@@ -1506,7 +1491,8 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         total_usage = usage_result[0]["total_usage"] if usage_result else 0
         
         # Get plan configuration
-        plan_config = TIER_CONFIG.get(subscription_type, {})
+        tier_config = await get_tier_config()
+        plan_config = tier_config.get(subscription_type, {})
         included_usage = plan_config.get("included_usage", 0)
         
         # For custom timeframes, we need to calculate prorated included usage
