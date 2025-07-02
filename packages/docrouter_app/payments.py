@@ -161,7 +161,7 @@ class ChangePlanRequest(BaseModel):
     plan_id: str
 
 # Add this new function to fetch pricing from Stripe
-async def get_tier_config() -> Dict[str, Any]:
+async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
     """
     Fetch tier configuration dynamically from Stripe prices
     """
@@ -431,7 +431,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
         
         # Ensure the customer is subscribed by default to the plan matching the org type
         org_type = org.get("type")
-        await set_subscription_type(stripe_customer.id, org_type)
+        await set_subscription_type(org_id, stripe_customer.id, org_type)
 
         if customer:
             # Check if the customer_id changed
@@ -552,7 +552,7 @@ async def update_billing_period(org_id: str, subscription: Dict[str, Any], spus:
     else:
         # Create new billing period
         subscription_type = get_subscription_type(subscription)
-        tier_config = await get_tier_config()
+        tier_config = await get_tier_config(org_id)
         plan_config = tier_config.get(subscription_type, {})
         included_usage = plan_config.get("included_usage", 0)
         
@@ -786,10 +786,10 @@ def get_subscription_type(subscription: Dict[str, Any]) -> str:
         return subscription_type
 
 
-async def set_subscription_type(customer_id: str, subscription_type: str):
+async def set_subscription_type(org_id: str, customer_id: str, subscription_type: str):
     """Enable a subscription for a customer with proper proration"""
 
-    tier_config = await get_tier_config()
+    tier_config = await get_tier_config(org_id)
     
     if subscription_type not in tier_config.keys():
         raise ValueError(f"Invalid subscription type: {subscription_type}")
@@ -1096,7 +1096,7 @@ async def get_subscription_plans(
     if not customer:
         raise HTTPException(status_code=404, detail=f"Customer not found for org_id: {org_id}")
     
-    tier_config = await get_tier_config()
+    tier_config = await get_tier_config(org_id)
     
     # Define the available plans with metered usage details
     plans = [
@@ -1211,18 +1211,20 @@ async def change_subscription_plan(
     """Change user's subscription plan"""
     logger.info(f"Changing subscription plan for org_id: {data.org_id} to plan_id: {data.plan_id}")
 
+    org_id = data.org_id
+
     # Is the current user an org admin? Or a system admin?
-    if not await is_organization_admin(org_id=data.org_id, user_id=current_user.user_id):
+    if not await is_organization_admin(org_id=org_id, user_id=current_user.user_id):
         raise HTTPException(
             status_code=403,
-            detail=f"Org admin access required for org_id: {data.org_id} user_id: {current_user.user_id}"
+            detail=f"Org admin access required for org_id: {org_id} user_id: {current_user.user_id}"
         )
 
     try:
         # Get the customer
-        stripe_customer = await get_payments_customer(data.org_id)
+        stripe_customer = await get_payments_customer(org_id)
         if not stripe_customer:
-            raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {data.org_id}")
+            raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {org_id}")
 
         # Get current subscription to check if it's cancelling
         subscription = await get_subscription(stripe_customer.id)
@@ -1240,7 +1242,7 @@ async def change_subscription_plan(
                     raise HTTPException(status_code=500, detail="Failed to reactivate subscription")
 
         # Otherwise, proceed with normal plan change
-        ret = await set_subscription_type(stripe_customer.id, data.plan_id)
+        ret = await set_subscription_type(org_id, stripe_customer.id, data.plan_id)
         if not ret:
             raise HTTPException(status_code=500, detail=f"Failed to set subscription type for org_id: {data.org_id}")
 
@@ -1284,7 +1286,7 @@ async def sync_organization_subscription(org_id: str, organization_type: str) ->
             return False
 
         # Set the subscription type in Stripe (this will now include metadata)
-        success = await set_subscription_type(stripe_customer.id, subscription_type)
+        success = await set_subscription_type(org_id, stripe_customer.id, subscription_type)
         if success:
             logger.info(f"Synced org {org_id} type {organization_type} to subscription {subscription_type}")
         
@@ -1491,7 +1493,7 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         total_usage = usage_result[0]["total_usage"] if usage_result else 0
         
         # Get plan configuration
-        tier_config = await get_tier_config()
+        tier_config = await get_tier_config(org_id)
         plan_config = tier_config.get(subscription_type, {})
         included_usage = plan_config.get("included_usage", 0)
         
