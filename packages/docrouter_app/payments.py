@@ -143,11 +143,11 @@ class SubscriptionPlan(BaseModel):
     plan_id: str
     name: str
     base_price: float
-    currency: str = "usd"
-    interval: str = "month"
+    overage_price: float
     features: List[str]
     included_usage: int
-    overage_price: float
+    currency: str = "usd"
+    interval: str = "month"
 
 class SubscriptionPlanResponse(BaseModel):
     plans: List[SubscriptionPlan]
