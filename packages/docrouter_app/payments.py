@@ -1172,7 +1172,10 @@ async def change_subscription_plan(
     org_id = data.org_id
 
     # Is the current user an org admin? Or a system admin?
-    if not await is_organization_admin(org_id=org_id, user_id=current_user.user_id):
+    is_sys_admin = await is_system_admin(current_user.user_id)
+    is_org_admin = await is_organization_admin(org_id=org_id, user_id=current_user.user_id)
+
+    if not is_sys_admin and not is_org_admin:
         raise HTTPException(
             status_code=403,
             detail=f"Org admin access required for org_id: {org_id} user_id: {current_user.user_id}"
