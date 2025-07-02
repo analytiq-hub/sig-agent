@@ -43,7 +43,8 @@ from docrouter_app.auth import (
     get_current_user,
     get_admin_user,
     is_system_admin,
-    is_organization_admin
+    is_organization_admin,
+    is_organization_member
 )
 from docrouter_app.models import (
     User, AccessToken, ListAccessTokensResponse,
@@ -180,14 +181,18 @@ async def create_org_token(
     current_user: User = Depends(get_current_user)
 ):
     """Create an organization-level API token"""
-    # First verify organization membership
-    org_id = await get_current_org(current_user, organization_id)
+    # Verify organization membership
+    is_sys_admin = await is_system_admin(current_user.user_id)
+    is_org_member = await is_organization_member(organization_id, current_user.user_id)
+
+    if not is_sys_admin and not is_org_member:
+        raise HTTPException(status_code=403, detail="You are not authorized to create an organization-level API token")
     
     db = ad.common.get_async_db()
     token = secrets.token_urlsafe(32)
     new_token = {
         "user_id": current_user.user_id,
-        "organization_id": org_id,
+        "organization_id": organization_id,
         "name": request.name,
         "token": ad.crypto.encrypt_token(token),
         "created_at": datetime.now(UTC),
@@ -205,13 +210,17 @@ async def list_org_tokens(
     current_user: User = Depends(get_current_user)
 ):
     """List organization-level API tokens"""
-    # First verify organization membership
-    org_id = await get_current_org(current_user, organization_id)
+    # Verify organization membership
+    is_sys_admin = await is_system_admin(current_user.user_id)
+    is_org_member = await is_organization_member(organization_id, current_user.user_id)
+
+    if not is_sys_admin and not is_org_member:
+        raise HTTPException(status_code=403, detail="You are not authorized to list organization-level API tokens")
     
     db = ad.common.get_async_db()
     cursor = db.access_tokens.find({
         "user_id": current_user.user_id,
-        "organization_id": org_id
+        "organization_id": organization_id
     })
     tokens = await cursor.to_list(length=None)
     ret = [
@@ -235,14 +244,18 @@ async def delete_org_token(
     current_user: User = Depends(get_current_user)
 ):
     """Delete an organization-level API token"""
-    # First verify organization membership
-    org_id = await get_current_org(current_user, organization_id)
+    # Verify organization membership
+    is_sys_admin = await is_system_admin(current_user.user_id)
+    is_org_member = await is_organization_member(organization_id, current_user.user_id)
+
+    if not is_sys_admin and not is_org_member:
+        raise HTTPException(status_code=403, detail="You are not authorized to delete an organization-level API token")
     
     db = ad.common.get_async_db()
     result = await db.access_tokens.delete_one({
         "_id": ObjectId(token_id),
         "user_id": current_user.user_id,
-        "organization_id": org_id
+        "organization_id": organization_id
     })
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Token not found")
@@ -1981,38 +1994,6 @@ async def create_auth_token(user_data: dict = Body(...)):
         algorithm=ALGORITHM
     )
     return {"token": token}
-
-async def get_current_org(
-    current_user: User = Depends(get_current_user),
-    organization_id: Optional[str] = None
-) -> Optional[str]:
-    """
-    Get the current organization ID if valid for the user.
-    Returns None for account-level access.
-    Raises HTTPException if organization_id is provided but invalid.
-    """
-    if not organization_id:
-        return None
-        
-    db = ad.common.get_async_db()
-    
-    # Check if user is member of the organization
-    org = await db.organizations.find_one({
-        "_id": ObjectId(organization_id),
-        "members": {
-            "$elemMatch": {
-                "user_id": current_user.user_id
-            }
-        }
-    })
-    
-    if not org:
-        raise HTTPException(
-            status_code=403,
-            detail="User is not a member of this organization"
-        )
-    
-    return organization_id
 
 @app.get("/v0/account/llm_models", response_model=ListLLMModelsResponse, tags=["account/llm"])
 async def list_llm_models(
