@@ -177,6 +177,57 @@ def get_subscription_type_from_price_id(price_id: str) -> str:
             return tier
     return None
 
+# Add this new function to fetch pricing from Stripe
+async def get_dynamic_tier_config() -> Dict[str, Any]:
+    """
+    Fetch tier configuration dynamically from Stripe prices
+    """
+    if not stripe.api_key:
+        logger.warning("Stripe API key not configured - using fallback tier config")
+        return TIER_CONFIG
+
+    try:
+        # Get all prices for our product
+        prices = await StripeAsync._run_in_threadpool(
+            stripe.Price.list,
+            active=True,
+            expand=['data.product']
+        )
+        
+        dynamic_config = {}
+        
+        for price in prices.data:
+            metadata = price.metadata
+            tier = metadata.get('tier')
+            price_type = metadata.get('price_type')
+            
+            if not tier or not price_type:
+                continue
+                
+            if tier not in dynamic_config:
+                dynamic_config[tier] = {
+                    'price_id': None,
+                    'base_price': 0.0,
+                    'included_usage': 0,
+                    'overage_price': 0.0
+                }
+            
+            if price_type == 'base':
+                dynamic_config[tier]['price_id'] = price.id
+                dynamic_config[tier]['base_price'] = price.unit_amount / 100  # Convert from cents
+                dynamic_config[tier]['included_usage'] = int(metadata.get('included_usage', 0))
+            elif price_type == 'overage':
+                dynamic_config[tier]['overage_price'] = price.unit_amount / 100  # Convert from cents
+        
+        logger.info(f"Dynamic tier config loaded: {dynamic_config}")
+        return dynamic_config
+        
+    except Exception as e:
+        logger.error(f"Error fetching dynamic tier config: {e}")
+        logger.warning("Falling back to static tier config")
+        return TIER_CONFIG
+
+# Modify the init_payments_env function
 async def init_payments_env():
     global MONGO_URI, ENV
     global TIER_CONFIG
@@ -188,26 +239,6 @@ async def init_payments_env():
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     ENV = os.getenv("ENV", "dev")
     
-    TIER_CONFIG = {
-        "individual": {
-            "price_id": os.getenv("STRIPE_PRICE_ID_OVERAGE_INDIVIDUAL", ""),
-            "base_price": 10.00,
-            "included_usage": 100,  # Included SPUs
-            "overage_price": 0.01,  # Price per SPU after limit
-        },
-        "team": {
-            "price_id": os.getenv("STRIPE_PRICE_ID_OVERAGE_TEAM", ""),
-            "base_price": 30.00,
-            "included_usage": 500,  # Included SPUs
-            "overage_price": 0.02,  # Price per SPU after limit
-        },
-        "enterprise": {
-            "price_id": os.getenv("STRIPE_PRICE_ID_OVERAGE_ENTERPRISE", ""),
-            "base_price": 100.00,
-            "included_usage": 2000,  # Included SPUs
-            "overage_price": 0.05,  # Price per SPU after limit
-        }
-    }
     NEXTAUTH_URL = os.getenv("NEXTAUTH_URL", "http://localhost:3000")
 
     client = AsyncIOMotorClient(MONGO_URI)
@@ -220,6 +251,9 @@ async def init_payments_env():
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
+    # Load dynamic tier config from Stripe
+    TIER_CONFIG = await get_dynamic_tier_config()
+    
 async def init_payments():
     await init_payments_env()
 
@@ -769,11 +803,7 @@ def get_subscription_type(subscription: Dict[str, Any]) -> str:
     subscription_type = subscription.get("metadata", {}).get("subscription_type")
     if subscription_type:
         return subscription_type
-    
-    # Fallback to price_id mapping for backward compatibility
-    price_id = subscription.get("items").get("data")[0].get("price").get("id")
-    return get_subscription_type_from_price_id(price_id)
-    
+
 
 async def set_subscription_type(customer_id: str, subscription_type: str):
     """Enable a subscription for a customer with proper proration"""
