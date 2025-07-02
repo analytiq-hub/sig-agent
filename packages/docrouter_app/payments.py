@@ -128,13 +128,6 @@ FREE_TIER_LIMIT = 50  # Number of free SPUs
 TIER_CONFIG = {}
 
 # Pydantic models for request/response validation
-class SetupIntentCreate(BaseModel):
-    customer_id: str
-
-class SubscriptionCreate(BaseModel):
-    customer_id: str
-    price_id: Optional[str] = None
-
 class UsageRecord(BaseModel):
     spus: int = Field(default=0)  # New field for SPU tracking
     operation: str
@@ -168,19 +161,6 @@ class SubscriptionPlanResponse(BaseModel):
 class ChangePlanRequest(BaseModel):
     org_id: str
     plan_id: str
-
-class BillingPeriod(BaseModel):
-    org_id: str
-    subscription_id: str
-    subscription_item_id: str
-    period_start: datetime
-    period_end: datetime
-    total_usage: int = 0
-    included_usage: int
-    overage_usage: int = 0
-    billed: bool = False
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 # Add this new function near the top of the file with other helper functions
 def get_subscription_type_from_price_id(price_id: str) -> str:
