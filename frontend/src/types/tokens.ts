@@ -1,9 +1,4 @@
-export interface CreateAccountTokenRequest {
-    name: string;
-    lifetime: number;
-}
-
-export interface CreateOrganizationTokenRequest {
+export interface CreateTokenRequest {
     name: string;
     lifetime: number;
 }

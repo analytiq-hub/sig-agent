@@ -45,7 +45,7 @@ import {
   ListInvitationsResponse, 
   AcceptInvitationRequest 
 } from '@/types/index';
-import { CreateAccountTokenRequest, CreateOrganizationTokenRequest } from '@/types/index';
+import { CreateTokenRequest } from '@/types/index';
 import { AWSCredentials } from '@/types/index';
 import {
   ListLLMModelsParams,
@@ -508,7 +508,7 @@ export const deleteFlowApi = async (params: DeleteFlowParams): Promise<void> => 
 };
 
 // Account Token APIs
-export const createAccountTokenApi = async (token: CreateAccountTokenRequest) => {
+export const createAccountTokenApi = async (token: CreateTokenRequest) => {
   const response = await api.post('/v0/account/access_tokens', token);
   return response.data;
 };
@@ -524,7 +524,7 @@ export const deleteAccountTokenApi = async (tokenId: string) => {
 };
 
 // Organization Token APIs
-export const createOrganizationTokenApi = async (token: CreateOrganizationTokenRequest, organizationId: string) => {
+export const createOrganizationTokenApi = async (token: CreateTokenRequest, organizationId: string) => {
   const endpoint = `/v0/orgs/${organizationId}/access_tokens`;
   const response = await api.post(endpoint, token);
   return response.data;

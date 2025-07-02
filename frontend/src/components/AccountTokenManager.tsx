@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { createAccountTokenApi, getAccountTokensApi, deleteAccountTokenApi } from '@/utils/api';
-import { CreateAccountTokenRequest } from '@/types/index';
+import { CreateTokenRequest } from '@/types/index';
 
 export interface AccessToken {
   id: string;
@@ -44,7 +44,7 @@ const AccountTokenManager: React.FC = () => {
 
       const lifetime = tokenLifetime.trim() === '' ? 0 : parseInt(tokenLifetime);
 
-      const request: CreateAccountTokenRequest = {
+      const request: CreateTokenRequest = {
         name: trimmedName,
         lifetime: lifetime
       }

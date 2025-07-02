@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { createOrganizationTokenApi, getOrganizationTokensApi, deleteOrganizationTokenApi } from '@/utils/api';
-import { CreateOrganizationTokenRequest } from '@/types/index';
+import { CreateTokenRequest } from '@/types/index';
 import { useOrganization } from '@/contexts/OrganizationContext';
 
 export interface AccessToken {
@@ -53,7 +53,7 @@ const OrganizationTokenManager: React.FC = () => {
 
       const lifetime = tokenLifetime.trim() === '' ? 0 : parseInt(tokenLifetime);
 
-      const request: CreateOrganizationTokenRequest = {
+      const request: CreateTokenRequest = {
         name: trimmedName,
         lifetime: lifetime
       };
