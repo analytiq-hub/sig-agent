@@ -170,6 +170,7 @@ async def test_account_access_tokens(test_db, mock_auth):
         assert token_result["organization_id"] is None  # Should be None for account tokens
         
         token_id = token_result["id"]
+        api_token = token_result["token"]  # Store the actual token value
         
         # Step 2: List account access tokens to verify it was created
         list_response = client.get(
@@ -188,7 +189,35 @@ async def test_account_access_tokens(test_db, mock_auth):
         assert created_token["lifetime"] == 60
         assert created_token["organization_id"] is None
         
-        # Step 3: Delete the access token
+        # Step 3: Test the token functionality by calling the list organizations API
+        # Temporarily clear the mock authentication to test real token authentication
+        from docrouter_app.main import app
+        original_overrides = app.dependency_overrides.copy()
+        app.dependency_overrides.clear()
+        
+        try:
+            # Create headers using the actual API token
+            token_headers = get_token_headers(api_token)
+            
+            # Call the list organizations API using the token
+            orgs_response = client.get(
+                f"/v0/account/organizations",
+                headers=token_headers
+            )
+            
+            # The API should return 200 and show organizations for the user
+            assert orgs_response.status_code == 200
+            orgs_data = orgs_response.json()
+            assert "organizations" in orgs_data
+            
+            # Verify that the test organization is in the list
+            test_org_found = any(org["id"] == TEST_ORG_ID for org in orgs_data["organizations"])
+            assert test_org_found, "Test organization should be visible with account token"
+        finally:
+            # Restore the mock authentication
+            app.dependency_overrides = original_overrides
+        
+        # Step 4: Delete the access token
         delete_response = client.delete(
             f"/v0/account/access_tokens/{token_id}",
             headers=get_auth_headers()
@@ -196,7 +225,7 @@ async def test_account_access_tokens(test_db, mock_auth):
         
         assert delete_response.status_code == 200
         
-        # Step 4: List access tokens again to verify it was deleted
+        # Step 5: List access tokens again to verify it was deleted
         list_after_delete_response = client.get(
             f"/v0/account/access_tokens",
             headers=get_auth_headers()
@@ -208,6 +237,31 @@ async def test_account_access_tokens(test_db, mock_auth):
         # Verify the token is no longer in the list
         deleted_token = next((token for token in list_after_delete_data["access_tokens"] if token["id"] == token_id), None)
         assert deleted_token is None, "Token should have been deleted"
+        
+        # Step 6: Negative test - verify the deleted token no longer works
+        # Temporarily clear the mock authentication to test real token authentication
+        app.dependency_overrides.clear()
+        
+        try:
+            # Try to use the deleted token to call the list organizations API
+            deleted_token_headers = get_token_headers(api_token)
+            
+            # This should fail with 401 Unauthorized since the token was deleted
+            orgs_response_with_deleted_token = client.get(
+                f"/v0/account/organizations",
+                headers=deleted_token_headers
+            )
+            
+            # Verify that the API call fails with 401 Unauthorized
+            assert orgs_response_with_deleted_token.status_code == 401, "Deleted token should not be accepted"
+            
+            # Optionally check the error message
+            error_data = orgs_response_with_deleted_token.json()
+            assert "detail" in error_data
+            assert "Invalid authentication credentials" in error_data["detail"]
+        finally:
+            # Restore the mock authentication
+            app.dependency_overrides = original_overrides
         
     finally:
         pass  # mock_auth fixture handles cleanup
