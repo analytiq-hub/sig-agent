@@ -105,7 +105,7 @@ class StripeAsync:
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI router
-payments_router = APIRouter(prefix="/v0/account/payments", tags=["payments"])
+payments_router = APIRouter(prefix="/v0/payments", tags=["payments"])
 
 stripe_webhook_secret = None
 

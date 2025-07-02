@@ -700,18 +700,18 @@ export const getInvitationApi = async (token: string): Promise<InvitationRespons
 
 // Subscription APIs
 export const getCustomerPortalApi = async (orgId: string): Promise<PortalSessionResponse> => {
-  const response = await api.post<PortalSessionResponse>(`/v0/account/payments/${orgId}/customer-portal`);
+  const response = await api.post<PortalSessionResponse>(`/v0/payments/${orgId}/customer-portal`);
   return response.data;
 };
 
 // Add these new API functions
 export const getSubscriptionPlansApi = async (orgId: string): Promise<SubscriptionPlanResponse> => {
-  const response = await api.get<SubscriptionPlanResponse>(`/v0/account/payments/plans/${orgId}`);
+  const response = await api.get<SubscriptionPlanResponse>(`/v0/payments/plans/${orgId}`);
   return response.data;
 };
 
 export const changeSubscriptionPlanApi = async (orgId: string, planId: string): Promise<{ status: string; message: string }> => {
-  const response = await api.post<{ status: string; message: string }>(`/v0/account/payments/change-plan`, {
+  const response = await api.post<{ status: string; message: string }>(`/v0/payments/change-plan`, {
     org_id: orgId,
     plan_id: planId
   });
@@ -720,27 +720,27 @@ export const changeSubscriptionPlanApi = async (orgId: string, planId: string): 
 
 // Add this new API function
 export const getSubscriptionHistoryApi = async (orgId: string): Promise<SubscriptionHistoryResponse> => {
-  const response = await api.get<SubscriptionHistoryResponse>(`/v0/account/payments/subscription-history/${orgId}`);
+  const response = await api.get<SubscriptionHistoryResponse>(`/v0/payments/subscription-history/${orgId}`);
   return response.data;
 };
 
 export const getSubscriptionStatusApi = async (orgId: string) => {
-  const response = await api.get(`/v0/account/payments/subscription-status/${orgId}`);
+  const response = await api.get(`/v0/payments/subscription-status/${orgId}`);
   return response.data;
 };
 
 export const reactivateSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
-  const response = await api.post<{ status: string; message: string }>(`/v0/account/payments/${orgId}/reactivate-subscription`);
+  const response = await api.post<{ status: string; message: string }>(`/v0/payments/${orgId}/reactivate-subscription`);
   return response.data;
 };
 
 export const cancelSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
-  const response = await api.post<{ status: string; message: string }>(`/v0/account/payments/${orgId}/cancel-subscription`);
+  const response = await api.post<{ status: string; message: string }>(`/v0/payments/${orgId}/cancel-subscription`);
   return response.data;
 };
 
 // Add new API function to get current usage
 export const getCurrentUsageApi = async (orgId: string) => {
-  const response = await api.get(`/v0/account/payments/usage/${orgId}`);
+  const response = await api.get(`/v0/payments/usage/${orgId}`);
   return response.data;
 };
