@@ -2018,8 +2018,7 @@ async def get_current_org(
 @app.post("/v0/account/access_tokens", response_model=AccessToken, tags=["account/access_tokens"])
 async def access_token_create(
     request: CreateAccessTokenRequest,
-    current_user: User = Depends(get_current_user),
-    organization_id: Optional[str] = Depends(get_current_org)
+    current_user: User = Depends(get_current_user)
 ):
     """Create an API token"""
     logger.debug(f"Creating API token for user: {current_user} request: {request}")
@@ -2028,7 +2027,7 @@ async def access_token_create(
     token = secrets.token_urlsafe(32)
     new_token = {
         "user_id": current_user.user_id,
-        "organization_id": organization_id,  # This will be None for account-level tokens
+        "organization_id": None,  # Explicitly set to None for account-level tokens
         "name": request.name,
         "token": ad.crypto.encrypt_token(token),
         "created_at": datetime.now(UTC),
@@ -2044,7 +2043,6 @@ async def access_token_create(
 @app.get("/v0/account/access_tokens", response_model=ListAccessTokensResponse, tags=["account/access_tokens"])
 async def access_token_list(
     current_user: User = Depends(get_current_user),
-    organization_id: Optional[str] = Depends(get_current_org)
 ):
     """List API tokens"""
     db = ad.common.get_async_db()
@@ -2052,12 +2050,8 @@ async def access_token_list(
     # Build query for either org-specific or account-level tokens
     query = {
         "user_id": current_user.user_id,
+        "organization_id": None
     }
-    if organization_id:
-        query["organization_id"] = organization_id
-    else:
-        # For account-level listing, only show tokens without organization_id
-        query["organization_id"] = None
         
     cursor = db.access_tokens.find(query)
     tokens = await cursor.to_list(length=None)
@@ -2079,7 +2073,6 @@ async def access_token_list(
 async def access_token_delete(
     token_id: str,
     current_user: User = Depends(get_current_user),
-    organization_id: Optional[str] = Depends(get_current_org)
 ):
     """Delete an API token"""
     db = ad.common.get_async_db()
@@ -2088,11 +2081,8 @@ async def access_token_delete(
     query = {
         "_id": ObjectId(token_id),
         "user_id": current_user.user_id,
+        "organization_id": None
     }
-    if organization_id:
-        query["organization_id"] = organization_id
-    else:
-        query["organization_id"] = None
         
     result = await db.access_tokens.delete_one(query)
     if result.deleted_count == 0:
