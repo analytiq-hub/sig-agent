@@ -765,7 +765,13 @@ async def get_subscription(customer_id: str) -> Dict[str, Any]:
     return stripe_subscription_list.get("data")[0]
 
 def get_subscription_type(subscription: Dict[str, Any]) -> str:
-    """Get the subscription type for a subscription"""
+    """Get the subscription type from subscription metadata"""
+    # First try to get from metadata
+    subscription_type = subscription.get("metadata", {}).get("subscription_type")
+    if subscription_type:
+        return subscription_type
+    
+    # Fallback to price_id mapping for backward compatibility
     price_id = subscription.get("items").get("data")[0].get("price").get("id")
     return get_subscription_type_from_price_id(price_id)
     
@@ -787,7 +793,7 @@ async def set_subscription_type(customer_id: str, subscription_type: str):
             logger.info(f"Subscription type already set to {subscription_type}")
             return True
 
-        # Modify existing subscription with proration
+        # Modify existing subscription with proration and metadata
         await StripeAsync.subscription_modify(
             subscription.id,
             items=[{
@@ -795,6 +801,7 @@ async def set_subscription_type(customer_id: str, subscription_type: str):
                 'price': price_id,
             }],
             proration_behavior='create_prorations',  # This handles the proration
+            metadata={'subscription_type': subscription_type}  # Add metadata
         )
     else:
         # Create new subscription for customers without one
@@ -803,6 +810,7 @@ async def set_subscription_type(customer_id: str, subscription_type: str):
             items=[{'price': price_id}],
             payment_behavior='default_incomplete',
             expand=['latest_invoice.payment_intent'],
+            metadata={'subscription_type': subscription_type}  # Add metadata
         )
 
     return True
@@ -917,9 +925,9 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
             logger.warning(f"Received subscription update for unknown customer: {subscription['customer']}")
             return
 
-        # Get subscription details
+        # Get subscription details from metadata first, then fallback to price_id
+        subscription_type = get_subscription_type(subscription)
         price_id = subscription["items"]["data"][0]["price"]["id"] if "items" in subscription and "data" in subscription["items"] else None
-        subscription_type = get_subscription_type_from_price_id(price_id)
 
         # Update customer's current subscription info
         await stripe_customers.update_one(
@@ -1264,7 +1272,7 @@ async def sync_organization_subscription(org_id: str, organization_type: str) ->
             logger.warning(f"No Stripe customer found for org {org_id}")
             return False
 
-        # Set the subscription type in Stripe
+        # Set the subscription type in Stripe (this will now include metadata)
         success = await set_subscription_type(stripe_customer.id, subscription_type)
         if success:
             logger.info(f"Synced org {org_id} type {organization_type} to subscription {subscription_type}")
