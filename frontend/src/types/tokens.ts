@@ -1,7 +1,11 @@
-export interface CreateTokenRequest {
+export interface CreateAccountTokenRequest {
     name: string;
     lifetime: number;
-    organization_id?: string;
+}
+
+export interface CreateOrganizationTokenRequest {
+    name: string;
+    lifetime: number;
 }
 
 export interface AccessToken {

@@ -21,10 +21,14 @@ class AccessToken(BaseModel):
 class ListAccessTokensResponse(BaseModel):
     access_tokens: List[AccessToken]
     
-class CreateAccessTokenRequest(BaseModel):
+class CreateAccountAccessTokenRequest(BaseModel):
     name: str
     lifetime: int
     organization_id: Optional[str] = None
+
+class CreateOrganizationAccessTokenRequest(BaseModel):
+    name: str
+    lifetime: int
 
 class DocumentUpload(BaseModel):
     name: str

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
-import { createTokenApi, getTokensApi, deleteTokenApi } from '@/utils/api';
-import { CreateTokenRequest } from '@/types/index';
+import { createOrganizationTokenApi, getOrganizationTokensApi, deleteOrganizationTokenApi } from '@/utils/api';
+import { CreateOrganizationTokenRequest } from '@/types/index';
 import { useOrganization } from '@/contexts/OrganizationContext';
 
 export interface AccessToken {
@@ -28,7 +28,7 @@ const OrganizationTokenManager: React.FC = () => {
       if (!currentOrganization?.id) return;
       
       try {
-        const tokensData = await getTokensApi(currentOrganization.id);
+        const tokensData = await getOrganizationTokensApi(currentOrganization.id);
         setTokens(tokensData.access_tokens);
       } catch (error) {
         console.error('Error fetching tokens:', error);
@@ -53,11 +53,11 @@ const OrganizationTokenManager: React.FC = () => {
 
       const lifetime = tokenLifetime.trim() === '' ? 0 : parseInt(tokenLifetime);
 
-      const request: CreateTokenRequest = {
+      const request: CreateOrganizationTokenRequest = {
         name: trimmedName,
         lifetime: lifetime
       };
-      const response = await createTokenApi(request, currentOrganization.id);
+      const response = await createOrganizationTokenApi(request, currentOrganization.id);
 
       setNewToken(response);
       setShowTokenModal(true);
@@ -88,7 +88,7 @@ const OrganizationTokenManager: React.FC = () => {
     if (!currentOrganization?.id) return;
     
     try {
-      await deleteTokenApi(tokenId, currentOrganization.id);
+      await deleteOrganizationTokenApi(tokenId, currentOrganization.id);
       setTokens(tokens.filter(token => token.id !== tokenId));
     } catch (error) {
       console.error('Error deleting token:', error);

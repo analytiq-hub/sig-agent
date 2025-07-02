@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
-import { createTokenApi, getTokensApi, deleteTokenApi } from '@/utils/api';
-import { CreateTokenRequest } from '@/types/index';
+import { createAccountTokenApi, getAccountTokensApi, deleteAccountTokenApi } from '@/utils/api';
+import { CreateAccountTokenRequest } from '@/types/index';
 
 export interface AccessToken {
   id: string;
@@ -24,7 +24,7 @@ const AccountTokenManager: React.FC = () => {
   useEffect(() => {
     const getTokensData = async () => {
       try {
-        const tokensData = await getTokensApi();
+        const tokensData = await getAccountTokensApi();
         setTokens(tokensData.access_tokens);
       } catch (error) {
         console.error('Error fetching tokens:', error);
@@ -44,11 +44,11 @@ const AccountTokenManager: React.FC = () => {
 
       const lifetime = tokenLifetime.trim() === '' ? 0 : parseInt(tokenLifetime);
 
-      const request: CreateTokenRequest = {
+      const request: CreateAccountTokenRequest = {
         name: trimmedName,
         lifetime: lifetime
       }
-      const response = await createTokenApi(request)
+      const response = await createAccountTokenApi(request)
 
       setNewToken(response);
       setShowTokenModal(true);
@@ -76,7 +76,7 @@ const AccountTokenManager: React.FC = () => {
   };
 
   const handleDeleteToken = (tokenId: string) => {
-    deleteTokenApi(tokenId);
+    deleteAccountTokenApi(tokenId);
     setTokens(tokens.filter(token => token.id !== tokenId));
   };
 
