@@ -1034,7 +1034,7 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 @payments_router.get("/{organization_id}/subscription")
-async def get_subscription_plans(
+async def get_subscription_info(
     organization_id: str = None,
     current_user: User = Depends(get_current_user)
 ) -> SubscriptionResponse:
@@ -1286,25 +1286,6 @@ async def get_organization_subscription_status(org_id: str) -> dict:
             "has_payment_method": False,
             "status": "error"
         }
-
-@payments_router.get("/{organization_id}/subscription-status")
-async def get_subscription_status(
-    organization_id: str,
-    current_user: User = Depends(get_current_user)
-):
-    """Get subscription status for an organization"""
-    
-    # Check if user has access to this organization
-    is_sys_admin = await is_system_admin(current_user.user_id)
-    is_org_admin = await is_organization_admin(org_id=organization_id, user_id=current_user.user_id)
-
-    if not is_sys_admin and not is_org_admin:
-        raise HTTPException(
-            status_code=403,
-            detail=f"Org admin access required for org_id: {organization_id}"
-        )
-
-    return await get_organization_subscription_status(organization_id)
 
 @payments_router.post("/{organization_id}/reactivate-subscription")
 async def reactivate_subscription_endpoint(
