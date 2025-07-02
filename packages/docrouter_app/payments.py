@@ -487,13 +487,13 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
         logger.error(f"Error in sync_payments_customer: {e}")
         raise e
 
-async def record_usage(org_id: str, spus: int, operation: str, source: str = "backend", spu_consumed: int = None) -> Dict[str, Any]:
+async def handle_usage_record(org_id: str, spus: int, operation: str, source: str = "backend", spu_consumed: int = None) -> Dict[str, Any]:
     """Record usage for an organization locally (no longer reports to Stripe immediately)"""
 
-    logger.info(f"record_usage called with org_id: {org_id}, spus: {spus}, operation: {operation}, source: {source}")
+    logger.info(f"handle_usage_record() called with org_id: {org_id}, spus: {spus}, operation: {operation}, source: {source}")
 
     if not stripe.api_key:
-        logger.warning("Stripe API key not configured - record_usage aborted")
+        logger.warning("Stripe API key not configured - handle_usage_record() aborted")
         return None
 
     # Get the stripe customer
@@ -896,7 +896,7 @@ async def webhook_received(
     return {"status": "success"}
 
 @payments_router.post("/usage/{org_id}")
-async def api_record_usage(
+async def record_usage(
     org_id: str,
     usage: UsageRecord,
     current_user: User = Depends(get_current_user)
@@ -913,7 +913,7 @@ async def api_record_usage(
         )
 
     try:
-        result = await record_usage(
+        result = await handle_usage_record(
             org_id,
             usage.spus,
             usage.operation,
