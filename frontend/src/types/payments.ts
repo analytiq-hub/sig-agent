@@ -10,8 +10,7 @@ export interface PortalSessionResponse {
 export interface SubscriptionPlan {
   plan_id: string;
   name: string;
-  price_id: string;
-  price: number;
+  base_price: number;
   currency: string;
   interval: string;
   features: string[];

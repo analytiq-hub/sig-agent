@@ -142,8 +142,7 @@ class PortalSessionResponse(BaseModel):
 class SubscriptionPlan(BaseModel):
     plan_id: str
     name: str
-    price_id: str
-    price: float
+    base_price: float
     currency: str = "usd"
     interval: str = "month"
     features: List[str]
@@ -1089,8 +1088,7 @@ async def get_subscription_plans(
         SubscriptionPlan(
             plan_id="individual",
             name="Individual",
-            price_id=TIER_CONFIG["individual"]["price_id"],
-            price=TIER_CONFIG["individual"]["base_price"],
+            base_price=TIER_CONFIG["individual"]["base_price"],
             included_usage=TIER_CONFIG["individual"]["included_usage"],
             overage_price=TIER_CONFIG["individual"]["overage_price"],
             features=[
@@ -1100,8 +1098,7 @@ async def get_subscription_plans(
         SubscriptionPlan(
             plan_id="team",
             name="Team",
-            price_id=TIER_CONFIG["team"]["price_id"],
-            price=TIER_CONFIG["team"]["base_price"],
+            base_price=TIER_CONFIG["team"]["base_price"],
             included_usage=TIER_CONFIG["team"]["included_usage"],
             overage_price=TIER_CONFIG["team"]["overage_price"],
             features=[
@@ -1111,8 +1108,7 @@ async def get_subscription_plans(
         SubscriptionPlan(
             plan_id="enterprise",
             name="Enterprise",
-            price_id=TIER_CONFIG["enterprise"]["price_id"],
-            price=TIER_CONFIG["enterprise"]["base_price"],
+            base_price=TIER_CONFIG["enterprise"]["base_price"],
             included_usage=TIER_CONFIG["enterprise"]["included_usage"],
             overage_price=TIER_CONFIG["enterprise"]["overage_price"],
             features=[

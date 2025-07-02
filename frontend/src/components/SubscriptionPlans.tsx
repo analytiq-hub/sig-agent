@@ -222,7 +222,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
               <div className="flex-grow">
                 <h3 className="text-xl font-bold mb-4">{plan.name}</h3>
                 <div className="text-3xl font-bold mb-4">
-                  ${plan.price}
+                  ${plan.base_price}
                   <span className="text-sm font-normal text-gray-500">
                     /{plan.interval}
                   </span>
