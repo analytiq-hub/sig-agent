@@ -718,12 +718,6 @@ export const changeSubscriptionPlanApi = async (orgId: string, planId: string): 
   return response.data;
 };
 
-// Add this new API function
-export const getSubscriptionHistoryApi = async (orgId: string): Promise<SubscriptionHistoryResponse> => {
-  const response = await api.get<SubscriptionHistoryResponse>(`/v0/payments/subscription-history/${orgId}`);
-  return response.data;
-};
-
 export const getSubscriptionStatusApi = async (orgId: string) => {
   const response = await api.get(`/v0/payments/subscription-status/${orgId}`);
   return response.data;

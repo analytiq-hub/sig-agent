@@ -1210,21 +1210,6 @@ async def change_subscription_plan(
         logger.error(f"Error changing subscription plan: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@payments_router.get("/subscription-history/{user_id}")
-async def get_subscription_history(
-    user_id: str,
-):
-    """Get subscription history for a user"""
-
-    try:
-        history = None # TODO: Get subscription history from Stripe
-        
-        return {
-            "subscription_history": history
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 async def sync_organization_subscription(org_id: str, organization_type: str) -> bool:
     """
     Sync organization type with subscription type in Stripe
