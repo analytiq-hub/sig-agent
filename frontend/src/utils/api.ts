@@ -86,8 +86,7 @@ import {
 } from '@/types/index';
 import { 
   PortalSessionResponse,
-  SubscriptionPlanResponse,
-  SubscriptionHistoryResponse 
+  SubscriptionPlanResponse
 } from '@/types/index';
 import { toast } from 'react-toastify';
 import { JsonValue } from 'type-fest';
