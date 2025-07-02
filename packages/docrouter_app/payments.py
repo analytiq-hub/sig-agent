@@ -854,52 +854,6 @@ async def customer_portal(
         logger.error(f"Error generating Stripe customer portal: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@payments_router.post("/webhook", status_code=200)
-async def webhook_received(
-    request: Request,
-):
-    """Handle Stripe webhook events"""
-
-    try:
-        event = await StripeAsync.webhook_construct_event(
-            await request.body(),
-            request.headers.get("stripe-signature"),
-            stripe_webhook_secret
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.error.SignatureVerificationError as e:
-        raise HTTPException(status_code=400, detail="Invalid signature")
-    
-    logger.info(f"Stripe webhook event received: {event['type']}")
-
-    # Store event in database for audit
-    event_doc = {
-        "stripe_event_id": event["id"],
-        "type": event["type"],
-        "data": event["data"],
-        "created": datetime.fromtimestamp(event["created"]),
-        "processed": False,
-        "created_at": datetime.utcnow()
-    }
-    await stripe_events.insert_one(event_doc)
-    
-    # Process different event types
-    if event["type"] == "customer.subscription.created" or event["type"] == "customer.subscription.updated":
-        subscription = event["data"]["object"]
-        await handle_subscription_updated(subscription)
-    elif event["type"] == "customer.subscription.deleted":
-        subscription = event["data"]["object"]
-        await handle_subscription_deleted(subscription)
-    
-    # Mark event as processed
-    await stripe_events.update_one(
-        {"stripe_event_id": event["id"]},
-        {"$set": {"processed": True, "processed_at": datetime.utcnow()}}
-    )
-    
-    return {"status": "success"}
-
 @payments_router.post("/usage/{org_id}")
 async def record_usage(
     org_id: str,
@@ -1566,3 +1520,49 @@ async def billing_background_task():
         
         # Sleep for 1 hour
         await asyncio.sleep(3600)  # 3600 seconds = 1 hour
+
+@payments_router.post("/webhook", status_code=200)
+async def webhook_received(
+    request: Request,
+):
+    """Handle Stripe webhook events"""
+
+    try:
+        event = await StripeAsync.webhook_construct_event(
+            await request.body(),
+            request.headers.get("stripe-signature"),
+            stripe_webhook_secret
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError as e:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+    
+    logger.info(f"Stripe webhook event received: {event['type']}")
+
+    # Store event in database for audit
+    event_doc = {
+        "stripe_event_id": event["id"],
+        "type": event["type"],
+        "data": event["data"],
+        "created": datetime.fromtimestamp(event["created"]),
+        "processed": False,
+        "created_at": datetime.utcnow()
+    }
+    await stripe_events.insert_one(event_doc)
+    
+    # Process different event types
+    if event["type"] == "customer.subscription.created" or event["type"] == "customer.subscription.updated":
+        subscription = event["data"]["object"]
+        await handle_subscription_updated(subscription)
+    elif event["type"] == "customer.subscription.deleted":
+        subscription = event["data"]["object"]
+        await handle_subscription_deleted(subscription)
+    
+    # Mark event as processed
+    await stripe_events.update_one(
+        {"stripe_event_id": event["id"]},
+        {"$set": {"processed": True, "processed_at": datetime.utcnow()}}
+    )
+    
+    return {"status": "success"}
