@@ -598,12 +598,12 @@ async def process_billing_periods():
         return
     
     try:
-        # Find billing periods that need to be processed
-        # Process periods that ended yesterday or earlier and haven't been billed yet
-        yesterday = datetime.utcnow() - timedelta(days=1)
+        # Process periods that ended in the last 24 hours
+        # This gives us a buffer to ensure periods are complete
+        cutoff_time = datetime.utcnow() - timedelta(hours=24)
         
         billing_periods = await stripe_billing_periods.find({
-            "period_end": {"$lte": yesterday},
+            "period_end": {"$lte": cutoff_time},
             "billed": False
         }).to_list(length=None)
         
