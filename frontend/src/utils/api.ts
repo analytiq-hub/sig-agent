@@ -709,14 +709,6 @@ export const getSubscriptionApi = async (orgId: string): Promise<SubscriptionRes
   return response.data;
 };
 
-export const changeSubscriptionPlanApi = async (orgId: string, planId: string): Promise<{ status: string; message: string }> => {
-  const response = await api.post<{ status: string; message: string }>(`/v0/payments/change-plan`, {
-    org_id: orgId,
-    plan_id: planId
-  });
-  return response.data;
-};
-
 export const reactivateSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
   const response = await api.post<{ status: string; message: string }>(`/v0/payments/${orgId}/reactivate-subscription`);
   return response.data;

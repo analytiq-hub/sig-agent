@@ -153,10 +153,6 @@ class SubscriptionResponse(BaseModel):
     cancel_at_period_end: bool = False
     current_period_end: Optional[int] = None  # Unix timestamp
 
-class ChangePlanRequest(BaseModel):
-    org_id: str
-    plan_id: str
-
 # Add this new function to fetch pricing from Stripe
 async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
     """
@@ -1160,58 +1156,6 @@ async def reactivate_subscription(customer_id: str) -> bool:
     except Exception as e:
         logger.error(f"Error reactivating subscription: {e}")
         return False
-
-@payments_router.post("/change-plan")
-async def change_subscription_plan(
-    data: ChangePlanRequest,
-    current_user: User = Depends(get_current_user)
-):
-    """Change user's subscription plan"""
-    logger.info(f"Changing subscription plan for org_id: {data.org_id} to plan_id: {data.plan_id}")
-
-    org_id = data.org_id
-
-    # Is the current user an org admin? Or a system admin?
-    is_sys_admin = await is_system_admin(current_user.user_id)
-    is_org_admin = await is_organization_admin(org_id=org_id, user_id=current_user.user_id)
-
-    if not is_sys_admin and not is_org_admin:
-        raise HTTPException(
-            status_code=403,
-            detail=f"Org admin access required for org_id: {org_id} user_id: {current_user.user_id}"
-        )
-
-    try:
-        # Get the customer
-        stripe_customer = await get_payments_customer(org_id)
-        if not stripe_customer:
-            raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {org_id}")
-
-        # Get current subscription to check if it's cancelling
-        subscription = await get_subscription(stripe_customer.id)
-        is_reactivating = False
-        
-        if subscription and subscription.get('cancel_at_period_end', False):
-            # If subscription is cancelling and user selects the same plan, reactivate it
-            current_plan_type = get_subscription_type(subscription)
-            if current_plan_type == data.plan_id:
-                is_reactivating = True
-                success = await reactivate_subscription(stripe_customer.id)
-                if success:
-                    return {"status": "success", "message": "Subscription reactivated successfully"}
-                else:
-                    raise HTTPException(status_code=500, detail="Failed to reactivate subscription")
-
-        # Otherwise, proceed with normal plan change
-        ret = await set_subscription_type(org_id, stripe_customer.id, data.plan_id)
-        if not ret:
-            raise HTTPException(status_code=500, detail=f"Failed to set subscription type for org_id: {data.org_id}")
-
-        return {"status": "success", "message": "Subscription plan updated successfully"}
-
-    except Exception as e:
-        logger.error(f"Error changing subscription plan: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 async def sync_organization_subscription(org_id: str, organization_type: str) -> bool:
     """
