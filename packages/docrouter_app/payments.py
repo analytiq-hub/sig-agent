@@ -803,31 +803,59 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
     
     if subscription:
         update_subscription = False
-
-        subscription_data = subscription.get("items", {}).get("data", [])
-        if len(subscription_data) != 2:
-            update_subscription = True
-        else:
-            current_base_price_id = subscription_data[0].get("price", {}).get("id")
-            current_overage_price_id = subscription_data[1].get("price", {}).get("id")
-
-            if current_base_price_id != base_price_id or current_overage_price_id != overage_price_id:
-                update_subscription = True
+        subscription_items = subscription.get("items", {}).get("data", [])
         
+        # Check if we need to update the subscription
         current_subscription_type = get_subscription_type(subscription)
         if current_subscription_type != subscription_type:
             update_subscription = True
+        
+        # Check if the subscription items match the expected configuration
+        if len(subscription_items) != 2:
+            update_subscription = True
+        else:
+            current_base_price_id = subscription_items[0].get("price", {}).get("id")
+            current_overage_price_id = subscription_items[1].get("price", {}).get("id")
+
+            if current_base_price_id != base_price_id or current_overage_price_id != overage_price_id:
+                update_subscription = True
 
         if update_subscription:
             logger.info(f"Updating subscription to {subscription_type} base_price_id {base_price_id} overage_price_id {overage_price_id}")
 
+            # Build the items array for subscription modification
+            items = []
+            
+            # If we have existing subscription items, we need to update them by ID
+            if len(subscription_items) >= 1:
+                # Update the first item (base price)
+                items.append({
+                    'id': subscription_items[0]['id'],
+                    'price': base_price_id,
+                })
+                
+                # If we have a second item, update it (overage price)
+                if len(subscription_items) >= 2:
+                    items.append({
+                        'id': subscription_items[1]['id'],
+                        'price': overage_price_id,
+                    })
+                else:
+                    # Add the overage price item
+                    items.append({
+                        'price': overage_price_id,
+                    })
+            else:
+                # No existing items, add both new items
+                items = [
+                    {'price': base_price_id},
+                    {'price': overage_price_id},
+                ]
+
             # Modify existing subscription with proration and metadata
             await StripeAsync.subscription_modify(
                 subscription.id,
-                items=[{
-                    'id': subscription['items']['data'][0]['id'],
-                    'price': base_price_id,
-                }],
+                items=items,
                 proration_behavior='create_prorations',  # This handles the proration
                 metadata={'subscription_type': subscription_type}  # Add metadata
             )
@@ -835,7 +863,7 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
         # Create new subscription for customers without one
         await StripeAsync.subscription_create(
             customer=customer_id,
-            items=[{'price': base_price_id}],
+            items=[{'price': base_price_id}, {'price': overage_price_id}],
             payment_behavior='default_incomplete',
             expand=['latest_invoice.payment_intent'],
             metadata={'subscription_type': subscription_type}  # Add metadata
