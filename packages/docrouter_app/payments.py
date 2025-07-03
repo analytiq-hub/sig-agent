@@ -526,8 +526,10 @@ async def handle_usage_record(org_id: str, spus: int, operation: str, source: st
 async def update_billing_period(org_id: str, subscription: Dict[str, Any], spus: int):
     """Update or create a billing period for the organization"""
     
-    subscription_item = subscription["items"]["data"][0]
+    subscription_item = subscription["items"]["data"][1]
     subscription_item_id = subscription_item["id"]
+
+    logger.info(f"Updating billing period for org_id: {org_id} subscription_item_id: {subscription_item_id} spus: {spus}")
     
     # Get current billing period boundaries
     current_period_start = datetime.fromtimestamp(subscription_item.get("current_period_start"))
@@ -537,12 +539,14 @@ async def update_billing_period(org_id: str, subscription: Dict[str, Any], spus:
     billing_period = await stripe_billing_periods.find_one({
         "org_id": org_id,
         "subscription_id": subscription["id"],
+        "subscription_item_id": subscription_item_id,
         "period_start": current_period_start,
         "period_end": current_period_end
     })
     
     if billing_period:
         # Update existing billing period
+        logger.info(f"Updating existing billing period for org_id: {org_id} subscription_item_id: {subscription_item_id} spus: {spus}")
         await stripe_billing_periods.update_one(
             {"_id": billing_period["_id"]},
             {
@@ -552,6 +556,7 @@ async def update_billing_period(org_id: str, subscription: Dict[str, Any], spus:
         )
     else:
         # Create new billing period
+        logger.info(f"Creating new billing period for org_id: {org_id} subscription_item_id: {subscription_item_id} spus: {spus}")
         subscription_type = get_subscription_type(subscription)
         tier_config = await get_tier_config(org_id)
         plan_config = tier_config.get(subscription_type, {})
