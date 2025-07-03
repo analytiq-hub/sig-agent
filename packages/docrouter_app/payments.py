@@ -886,56 +886,11 @@ async def record_usage(
 # Helper functions for webhook handlers
 async def handle_subscription_updated(subscription: Dict[str, Any]):
     """Handle subscription created or updated event"""
-    logger.info(f"Handling subscription updated event for subscription_id: {subscription['id']}")
-    try:
-        # Find the customer
-        customer = await stripe_customers.find_one({"stripe_customer_id": subscription["customer"]})
-        if not customer:
-            logger.warning(f"Received subscription update for unknown customer: {subscription['customer']}")
-            return
-
-        # Get subscription details from metadata first, then fallback to price_id
-        subscription_type = get_subscription_type(subscription)
-        price_id = subscription["items"]["data"][0]["price"]["id"] if "items" in subscription and "data" in subscription["items"] else None
-
-        # Update customer's current subscription info
-        await stripe_customers.update_one(
-            {"stripe_customer_id": subscription["customer"]},
-            {
-                "$set": {
-                    "current_subscription": {
-                        "subscription_id": subscription["id"],
-                        "subscription_type": subscription_type,
-                        "status": subscription["status"],
-                        "price_id": price_id,
-                        "current_period_start": datetime.fromtimestamp(subscription["current_period_start"]),
-                        "current_period_end": datetime.fromtimestamp(subscription["current_period_end"])
-                    },
-                    "updated_at": datetime.utcnow()
-                }
-            }
-        )
-
-    except Exception as e:
-        logger.error(f"Error processing subscription update: {e}")
+    logger.info(f"Handling subscription updated event for subscription_id {subscription['id']}: no-op")
 
 async def handle_subscription_deleted(subscription: Dict[str, Any]):
     """Handle subscription deleted event"""
-    logger.info(f"Handling subscription deleted event for subscription_id: {subscription['id']}")
-    try:
-        # Update customer's current subscription info
-        await stripe_customers.update_one(
-            {"stripe_customer_id": subscription["customer"]},
-            {
-                "$set": {
-                    "current_subscription": None,
-                    "updated_at": datetime.utcnow()
-                }
-            }
-        )
-
-    except Exception as e:
-        logger.error(f"Error processing subscription deletion: {e}")
+    logger.info(f"Handling subscription deleted event for subscription_id: {subscription['id']}: no-op")
 
 async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
     """
