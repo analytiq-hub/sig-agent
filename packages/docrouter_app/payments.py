@@ -558,21 +558,24 @@ async def update_billing_period(org_id: str, subscription: Dict[str, Any], spus:
         full_included_usage = plan_config.get("included_usage", 0)
         
         # Calculate prorated included usage based on subscription start date
+        # For monthly subscriptions, we need to determine if this is a partial month
         subscription_start = datetime.fromtimestamp(subscription.get("current_period_start"))
         subscription_end = datetime.fromtimestamp(subscription.get("current_period_end"))
         
-        # Calculate what portion of the billing period the subscription is active
-        billing_period_duration = subscription_end - subscription_start
-        if billing_period_duration.total_seconds() > 0:
-            # For monthly subscriptions, calculate days in the month
-            days_in_month = (subscription_end - subscription_start).days
-            days_active = (subscription_end - subscription_start).days
-            
-            # Prorate the included usage
-            proration_factor = days_active / days_in_month
+        # Check if this is a full month or partial month
+        # A full month typically has 28-31 days, so if the period is less than 25 days, 
+        # it's likely a partial month (prorated)
+        days_in_period = (subscription_end - subscription_start).days
+        
+        if days_in_period < 25:  # Likely a partial month
+            # Calculate proration based on days in the period vs typical month (30 days)
+            proration_factor = days_in_period / 30.0
             included_usage = int(full_included_usage * proration_factor)
+            logger.info(f"Prorated included usage for {org_id}: {full_included_usage} -> {included_usage} ({proration_factor:.2f} factor, {days_in_period} days)")
         else:
+            # Full month
             included_usage = full_included_usage
+            logger.info(f"Full month included usage for {org_id}: {included_usage}")
         
         billing_period = {
             "org_id": org_id,
@@ -1387,33 +1390,42 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         usage_result = await stripe_usage_records.aggregate(usage_pipeline).to_list(length=1)
         total_usage = usage_result[0]["total_usage"] if usage_result else 0
         
-        # Get plan configuration
-        tier_config = await get_tier_config(org_id)
-        plan_config = tier_config.get(subscription_type, {})
-        full_included_usage = plan_config.get("included_usage", 0)
-        
-        # Always calculate prorated included usage for the current period
-        billing_period_duration = current_period_end - current_period_start
-        if billing_period_duration.total_seconds() > 0:
-            # For monthly subscriptions, calculate days in the month
-            days_in_month = (current_period_end - current_period_start).days
-            days_active = (current_period_end - current_period_start).days
+        # For the current billing period, get the prorated included usage from the billing period record
+        if start_time is None and end_time is None:
+            # This is the current billing period - get the stored prorated value
+            billing_period = await stripe_billing_periods.find_one({
+                "org_id": org_id,
+                "subscription_id": subscription["id"],
+                "period_start": current_period_start,
+                "period_end": current_period_end
+            })
             
-            # Prorate the included usage
-            proration_factor = days_active / days_in_month
-            included_usage = int(full_included_usage * proration_factor)
+            if billing_period:
+                included_usage = billing_period.get("included_usage", 0)
+                logger.info(f"Using stored prorated included usage for {org_id}: {included_usage}")
+            else:
+                # Fallback to full usage if no billing period found
+                tier_config = await get_tier_config(org_id)
+                plan_config = tier_config.get(subscription_type, {})
+                included_usage = plan_config.get("included_usage", 0)
+                logger.warning(f"No billing period found for {org_id}, using full included usage: {included_usage}")
         else:
-            included_usage = full_included_usage
-        
-        # For custom timeframes, apply additional proration
-        if start_time is not None and end_time is not None:
+            # Custom timeframe - calculate prorated usage
+            tier_config = await get_tier_config(org_id)
+            plan_config = tier_config.get(subscription_type, {})
+            full_included_usage = plan_config.get("included_usage", 0)
+            
             # Calculate what portion of the billing period this timeframe represents
+            billing_period_duration = current_period_end - current_period_start
             timeframe_duration = period_end - period_start
             
-            # Apply additional proration for the custom timeframe
+            # Apply proration for the custom timeframe
             if billing_period_duration.total_seconds() > 0:
                 timeframe_proration_factor = timeframe_duration / billing_period_duration
-                included_usage = int(included_usage * timeframe_proration_factor)
+                included_usage = int(full_included_usage * timeframe_proration_factor)
+                logger.info(f"Custom timeframe prorated usage for {org_id}: {full_included_usage} -> {included_usage} ({timeframe_proration_factor:.2f} factor)")
+            else:
+                included_usage = full_included_usage
         
         return {
             "total_usage": total_usage,
