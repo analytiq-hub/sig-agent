@@ -160,7 +160,7 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
     """
     if not stripe.api_key:
         logger.warning("Stripe API key not configured - using fallback tier config")
-        return TIER_CONFIG
+        return {}
 
     try:
         # Get all prices for our product
@@ -203,12 +203,11 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error fetching dynamic tier config: {e}")
         logger.warning("Falling back to static tier config")
-        return TIER_CONFIG
+        return {}
 
 # Modify the init_payments_env function
 async def init_payments_env():
     global MONGO_URI, ENV
-    global TIER_CONFIG
     global NEXTAUTH_URL
     global client, db
     global stripe_customers, stripe_events, stripe_usage_records, stripe_billing_periods
