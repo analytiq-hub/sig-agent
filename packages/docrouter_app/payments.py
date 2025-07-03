@@ -603,19 +603,24 @@ async def update_billing_period(org_id: str, subscription: Dict[str, Any], spus:
             {"$set": {"billing_period_id": str(billing_period["_id"])}}
         )
 
-async def process_billing_periods():
-    """Process billing periods and create usage records in Stripe"""
+async def process_billing_periods(delay_hours: int = 0):
+    """Process billing periods and create usage records in Stripe
     
-    logger.info("Starting billing period processing")
+    Args:
+        delay_hours: Number of hours to wait after a billing period ends before processing.
+                     Default is 0 hours to process immediately.
+    """
+    
+    logger.info(f"Starting billing period processing with {delay_hours} hour delay")
     
     if not stripe.api_key:
         logger.warning("Stripe API key not configured - billing processing aborted")
         return
     
     try:
-        # Process periods that ended in the last 24 hours
+        # Process periods that ended in the last buffer_hours
         # This gives us a buffer to ensure periods are complete
-        cutoff_time = datetime.utcnow() - timedelta(hours=24)
+        cutoff_time = datetime.utcnow() - timedelta(hours=delay_hours)
         
         billing_periods = await stripe_billing_periods.find({
             "period_end": {"$lte": cutoff_time},
@@ -1477,7 +1482,7 @@ async def billing_background_task():
     """Background task that runs billing processing every hour"""
     while True:
         try:
-            await process_billing_periods()
+            await process_billing_periods(delay_hours=24)
         except Exception as e:
             logger.error(f"Error in background billing task: {e}")
         
