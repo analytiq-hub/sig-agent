@@ -9,7 +9,6 @@ interface SubscriptionUsageProps {
 
 interface UsageData {
   total_usage: number;
-  included_usage: number;
   overage_usage: number;
   remaining_included: number;
   subscription_type: string;
