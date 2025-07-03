@@ -182,17 +182,19 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
                 
             if tier not in dynamic_config:
                 dynamic_config[tier] = {
-                    'price_id': None,
+                    'base_price_id': None,
+                    'overage_price_id': None,
                     'base_price': 0.0,
+                    'overage_price': 0.0,
                     'included_usage': 0,
-                    'overage_price': 0.0
                 }
             
             if price_type == 'base':
-                dynamic_config[tier]['price_id'] = price.id
+                dynamic_config[tier]['base_price_id'] = price.id
                 dynamic_config[tier]['base_price'] = price.unit_amount / 100  # Convert from cents
                 dynamic_config[tier]['included_usage'] = int(metadata.get('included_usage', 0))
             elif price_type == 'overage':
+                dynamic_config[tier]['overage_price_id'] = price.id
                 dynamic_config[tier]['overage_price'] = price.unit_amount / 100  # Convert from cents
         
         logger.info(f"Dynamic tier config loaded: {dynamic_config}")
@@ -232,14 +234,14 @@ async def init_payments():
 
     logger.info("Stripe initialized")
 
-    await sync_all_payments_customers()
+    await sync_all_customers()
     logger.info("Stripe customers synced")
     
     # Start background billing task
     asyncio.create_task(billing_background_task())
     logger.info("Background billing task started")
 
-async def sync_all_payments_customers() -> Tuple[int, int, List[str]]:
+async def sync_all_customers() -> Tuple[int, int, List[str]]:
     """
     Synchronize all organizations in the database with Stripe by creating customer records
     in parallel batches of 10 customers at a time.
@@ -469,6 +471,9 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
             }
 
             await stripe_customers.insert_one(customer)
+
+        # Sync the subscription
+        await sync_subscription(org_id, org_type)
 
         return customer
     
@@ -790,7 +795,8 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
     if subscription_type not in tier_config.keys():
         raise ValueError(f"Invalid subscription type: {subscription_type}")
 
-    price_id = tier_config[subscription_type]["price_id"]
+    base_price_id = tier_config[subscription_type]["base_price_id"]
+    overage_price_id = tier_config[subscription_type]["overage_price_id"]
 
     # Get the current subscription
     subscription = await get_subscription(customer_id)
@@ -806,7 +812,7 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
             subscription.id,
             items=[{
                 'id': subscription['items']['data'][0]['id'],
-                'price': price_id,
+                'price': base_price_id,
             }],
             proration_behavior='create_prorations',  # This handles the proration
             metadata={'subscription_type': subscription_type}  # Add metadata
@@ -815,7 +821,7 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
         # Create new subscription for customers without one
         await StripeAsync.subscription_create(
             customer=customer_id,
-            items=[{'price': price_id}],
+            items=[{'price': base_price_id}],
             payment_behavior='default_incomplete',
             expand=['latest_invoice.payment_intent'],
             metadata={'subscription_type': subscription_type}  # Add metadata
@@ -1115,7 +1121,7 @@ async def reactivate_subscription(customer_id: str) -> bool:
         logger.error(f"Error reactivating subscription: {e}")
         return False
 
-async def sync_organization_subscription(org_id: str, organization_type: str) -> bool:
+async def sync_subscription(org_id: str, org_type: str) -> bool:
     """
     Sync organization type with subscription type in Stripe
     """
@@ -1125,7 +1131,7 @@ async def sync_organization_subscription(org_id: str, organization_type: str) ->
 
     try:
         # Organization type is now the same as subscription type
-        subscription_type = organization_type
+        subscription_type = org_type
 
         # Get the Stripe customer
         stripe_customer = await get_payments_customer(org_id)
@@ -1136,7 +1142,7 @@ async def sync_organization_subscription(org_id: str, organization_type: str) ->
         # Set the subscription type in Stripe (this will now include metadata)
         success = await set_subscription_type(org_id, stripe_customer.id, subscription_type)
         if success:
-            logger.info(f"Synced org {org_id} type {organization_type} to subscription {subscription_type}")
+            logger.info(f"Synced org {org_id} type {org_type} to subscription {subscription_type}")
         
         return success
 
