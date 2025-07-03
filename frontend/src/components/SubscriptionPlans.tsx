@@ -249,21 +249,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                     >
                       <path d="M5 13l4 4L19 7"></path>
                     </svg>
-                    {plan.included_usage} SPUs included
-                  </li>
-                  <li className="flex items-center">
-                    <svg
-                      className="h-5 w-5 text-green-500 mr-2"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    ${plan.overage_price} per SPU after limit
+                    ${plan.overage_price} per SPU
                   </li>
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-center">

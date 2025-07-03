@@ -186,13 +186,14 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
                     'overage_price_id': None,
                     'base_price': 0.0,
                     'overage_price': 0.0,
-                    'included_usage': 0,
+                    'included_usage': 0,  # Always 0 - no included usage
                 }
             
             if price_type == 'base':
                 dynamic_config[tier]['base_price_id'] = price.id
                 dynamic_config[tier]['base_price'] = price.unit_amount / 100  # Convert from cents
-                dynamic_config[tier]['included_usage'] = int(metadata.get('included_usage', 0))
+                # Always set included_usage to 0 - no included usage
+                dynamic_config[tier]['included_usage'] = 0
             elif price_type == 'overage':
                 dynamic_config[tier]['overage_price_id'] = price.id
                 dynamic_config[tier]['overage_price'] = price.unit_amount / 100  # Convert from cents
@@ -554,32 +555,8 @@ async def update_billing_period(org_id: str, subscription: Dict[str, Any], spus:
             }
         )
     else:
-        # Create new billing period
+        # Create new billing period - no included usage, all SPUs are overage
         logger.info(f"Creating new billing period for org_id: {org_id} subscription_item_id: {subscription_item_id} spus: {spus}")
-        subscription_type = get_subscription_type(subscription)
-        tier_config = await get_tier_config(org_id)
-        plan_config = tier_config.get(subscription_type, {})
-        full_included_usage = plan_config.get("included_usage", 0)
-        
-        # Calculate prorated included usage based on subscription start date
-        # For monthly subscriptions, we need to determine if this is a partial month
-        subscription_start = datetime.fromtimestamp(subscription.get("current_period_start"))
-        subscription_end = datetime.fromtimestamp(subscription.get("current_period_end"))
-        
-        # Check if this is a full month or partial month
-        # A full month typically has 28-31 days, so if the period is less than 25 days, 
-        # it's likely a partial month (prorated)
-        days_in_period = (subscription_end - subscription_start).days
-        
-        if days_in_period < 25:  # Likely a partial month
-            # Calculate proration based on days in the period vs typical month (30 days)
-            proration_factor = days_in_period / 30.0
-            included_usage = int(full_included_usage * proration_factor)
-            logger.info(f"Prorated included usage for {org_id}: {full_included_usage} -> {included_usage} ({proration_factor:.2f} factor, {days_in_period} days)")
-        else:
-            # Full month
-            included_usage = full_included_usage
-            logger.info(f"Full month included usage for {org_id}: {included_usage}")
         
         billing_period = {
             "org_id": org_id,
@@ -588,8 +565,8 @@ async def update_billing_period(org_id: str, subscription: Dict[str, Any], spus:
             "period_start": current_period_start,
             "period_end": current_period_end,
             "total_usage": spus,
-            "included_usage": included_usage,
-            "overage_usage": max(0, spus - included_usage),
+            "included_usage": 0,  # No included usage
+            "overage_usage": spus,  # All usage is overage
             "billed": False,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
@@ -651,10 +628,8 @@ async def process_single_billing_period(billing_period: Dict[str, Any]):
     org_id = billing_period["org_id"]
     subscription_item_id = billing_period["subscription_item_id"]
     total_usage = billing_period["total_usage"]
-    included_usage = billing_period["included_usage"]
-    overage_usage = billing_period["overage_usage"]
     
-    logger.info(f"Processing billing period for org {org_id}: {total_usage} SPUs used, {overage_usage} SPUs overage")
+    logger.info(f"Processing billing period for org {org_id}: {total_usage} SPUs used (all overage)")
     
     try:
         # Use find_one_and_update to atomically check and mark as processing
@@ -678,15 +653,15 @@ async def process_single_billing_period(billing_period: Dict[str, Any]):
             logger.info(f"Billing period {billing_period['_id']} was already processed")
             return
         
-        # Only create usage record if there's overage
-        if overage_usage > 0:
+        # Create usage record for all SPUs (all are overage)
+        if total_usage > 0:
             await StripeAsync.usage_record_create(
                 subscription_item_id,
-                quantity=overage_usage,
+                quantity=total_usage,
                 timestamp=int(billing_period["period_end"].timestamp()),
                 action="increment"
             )
-            logger.info(f"Created usage record for {overage_usage} SPUs overage for org {org_id}")
+            logger.info(f"Created usage record for {total_usage} SPUs (all overage) for org {org_id}")
         
     except Exception as e:
         logger.error(f"Error creating usage record for org {org_id}: {e}")
@@ -1399,48 +1374,14 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         usage_result = await stripe_usage_records.aggregate(usage_pipeline).to_list(length=1)
         total_usage = usage_result[0]["total_usage"] if usage_result else 0
         
-        # For the current billing period, get the prorated included usage from the billing period record
-        if start_time is None and end_time is None:
-            # This is the current billing period - get the stored prorated value
-            billing_period = await stripe_billing_periods.find_one({
-                "org_id": org_id,
-                "subscription_id": subscription["id"],
-                "period_start": current_period_start,
-                "period_end": current_period_end
-            })
-            
-            if billing_period:
-                included_usage = billing_period.get("included_usage", 0)
-                logger.info(f"Using stored prorated included usage for {org_id}: {included_usage}")
-            else:
-                # Fallback to full usage if no billing period found
-                tier_config = await get_tier_config(org_id)
-                plan_config = tier_config.get(subscription_type, {})
-                included_usage = plan_config.get("included_usage", 0)
-                logger.warning(f"No billing period found for {org_id}, using full included usage: {included_usage}")
-        else:
-            # Custom timeframe - calculate prorated usage
-            tier_config = await get_tier_config(org_id)
-            plan_config = tier_config.get(subscription_type, {})
-            full_included_usage = plan_config.get("included_usage", 0)
-            
-            # Calculate what portion of the billing period this timeframe represents
-            billing_period_duration = current_period_end - current_period_start
-            timeframe_duration = period_end - period_start
-            
-            # Apply proration for the custom timeframe
-            if billing_period_duration.total_seconds() > 0:
-                timeframe_proration_factor = timeframe_duration / billing_period_duration
-                included_usage = int(full_included_usage * timeframe_proration_factor)
-                logger.info(f"Custom timeframe prorated usage for {org_id}: {full_included_usage} -> {included_usage} ({timeframe_proration_factor:.2f} factor)")
-            else:
-                included_usage = full_included_usage
+        # No included usage - all SPUs are overage
+        included_usage = 0
         
         return {
             "total_usage": total_usage,
             "included_usage": included_usage,
-            "overage_usage": max(0, total_usage - included_usage),
-            "remaining_included": max(0, included_usage - total_usage),
+            "overage_usage": total_usage,  # All usage is overage
+            "remaining_included": 0,  # No remaining included usage
             "period_start": period_start,
             "period_end": period_end,
             "subscription_type": subscription_type,
