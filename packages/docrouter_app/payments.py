@@ -365,6 +365,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
     
     user_name = user.get("name")
     user_email = user.get("email")
+    user_description = f"{org_name} org admin"
 
     customer_metadata = {
         "org_id": org_id,
@@ -396,7 +397,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
             stripe_customer_metadata = stripe_customer.metadata
 
             update_customer = False
-            if stripe_customer.name != user_name or stripe_customer.email != user_email:
+            if stripe_customer.name != user_name or stripe_customer.email != user_email or stripe_customer.description != user_description:
                 update_customer = True
 
             for key in ["org_id", "org_name", "user_id"]:
@@ -410,6 +411,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                     stripe_customer.id,
                     name=user_name,
                     email=user_email,
+                    description=user_description,
                     metadata=customer_metadata
                 )
                 logger.info(f"Updated Stripe customer {stripe_customer.id} email {user_email} user_name {user_name} metadata {customer_metadata}")
@@ -418,6 +420,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
             stripe_customer = await StripeAsync.customer_create(
                 name=user_name,
                 email=user_email,
+                description=user_description,
                 metadata=customer_metadata
             )
             logger.info(f"Created new Stripe customer {stripe_customer.id} email {user_email} user_name {user_name} metadata {customer_metadata}")
