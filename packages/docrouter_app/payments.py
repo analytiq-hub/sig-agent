@@ -141,7 +141,6 @@ class SubscriptionPlan(BaseModel):
     base_price: float
     overage_price: float
     features: List[str]
-    included_usage: int
     currency: str = "usd"
     interval: str = "month"
 
@@ -186,14 +185,11 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
                     'overage_price_id': None,
                     'base_price': 0.0,
                     'overage_price': 0.0,
-                    'included_usage': 0,  # Always 0 - no included usage
                 }
             
             if price_type == 'base':
                 dynamic_config[tier]['base_price_id'] = price.id
                 dynamic_config[tier]['base_price'] = price.unit_amount / 100  # Convert from cents
-                # Always set included_usage to 0 - no included usage
-                dynamic_config[tier]['included_usage'] = 0
             elif price_type == 'overage':
                 dynamic_config[tier]['overage_price_id'] = price.id
                 dynamic_config[tier]['overage_price'] = price.unit_amount / 100  # Convert from cents
@@ -565,7 +561,6 @@ async def update_billing_period(org_id: str, subscription: Dict[str, Any], spus:
             "period_start": current_period_start,
             "period_end": current_period_end,
             "total_usage": spus,
-            "included_usage": 0,  # No included usage
             "overage_usage": spus,  # All usage is overage
             "billed": False,
             "created_at": datetime.utcnow(),
@@ -1068,7 +1063,6 @@ async def get_subscription_info(
             plan_id="individual",
             name="Individual",
             base_price=tier_config["individual"]["base_price"],
-            included_usage=tier_config["individual"]["included_usage"],
             overage_price=tier_config["individual"]["overage_price"],
             features=[
                 "Basic document processing"
@@ -1078,7 +1072,6 @@ async def get_subscription_info(
             plan_id="team",
             name="Team",
             base_price=tier_config["team"]["base_price"],
-            included_usage=tier_config["team"]["included_usage"],
             overage_price=tier_config["team"]["overage_price"],
             features=[
                 "Advanced document processing"
@@ -1088,7 +1081,6 @@ async def get_subscription_info(
             plan_id="enterprise",
             name="Enterprise",
             base_price=tier_config["enterprise"]["base_price"],
-            included_usage=tier_config["enterprise"]["included_usage"],
             overage_price=tier_config["enterprise"]["overage_price"],
             features=[
                 "Custom document processing"
@@ -1374,14 +1366,9 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         usage_result = await stripe_usage_records.aggregate(usage_pipeline).to_list(length=1)
         total_usage = usage_result[0]["total_usage"] if usage_result else 0
         
-        # No included usage - all SPUs are overage
-        included_usage = 0
-        
         return {
             "total_usage": total_usage,
-            "included_usage": included_usage,
             "overage_usage": total_usage,  # All usage is overage
-            "remaining_included": 0,  # No remaining included usage
             "period_start": period_start,
             "period_end": period_end,
             "subscription_type": subscription_type,
