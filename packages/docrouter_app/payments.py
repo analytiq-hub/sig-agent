@@ -802,21 +802,35 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
     subscription = await get_subscription(customer_id)
     
     if subscription:
-        current_subscription_type = get_subscription_type(subscription)
-        if current_subscription_type == subscription_type:
-            logger.info(f"Subscription type already set to {subscription_type}")
-            return True
+        update_subscription = False
 
-        # Modify existing subscription with proration and metadata
-        await StripeAsync.subscription_modify(
-            subscription.id,
-            items=[{
-                'id': subscription['items']['data'][0]['id'],
-                'price': base_price_id,
-            }],
-            proration_behavior='create_prorations',  # This handles the proration
-            metadata={'subscription_type': subscription_type}  # Add metadata
-        )
+        subscription_data = subscription.get("items", {}).get("data", [])
+        if len(subscription_data) != 2:
+            update_subscription = True
+        else:
+            current_base_price_id = subscription_data[0].get("price", {}).get("id")
+            current_overage_price_id = subscription_data[1].get("price", {}).get("id")
+
+            if current_base_price_id != base_price_id or current_overage_price_id != overage_price_id:
+                update_subscription = True
+        
+        current_subscription_type = get_subscription_type(subscription)
+        if current_subscription_type != subscription_type:
+            update_subscription = True
+
+        if update_subscription:
+            logger.info(f"Updating subscription to {subscription_type} base_price_id {base_price_id} overage_price_id {overage_price_id}")
+
+            # Modify existing subscription with proration and metadata
+            await StripeAsync.subscription_modify(
+                subscription.id,
+                items=[{
+                    'id': subscription['items']['data'][0]['id'],
+                    'price': base_price_id,
+                }],
+                proration_behavior='create_prorations',  # This handles the proration
+                metadata={'subscription_type': subscription_type}  # Add metadata
+            )
     else:
         # Create new subscription for customers without one
         await StripeAsync.subscription_create(
