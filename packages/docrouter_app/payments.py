@@ -555,7 +555,24 @@ async def update_billing_period(org_id: str, subscription: Dict[str, Any], spus:
         subscription_type = get_subscription_type(subscription)
         tier_config = await get_tier_config(org_id)
         plan_config = tier_config.get(subscription_type, {})
-        included_usage = plan_config.get("included_usage", 0)
+        full_included_usage = plan_config.get("included_usage", 0)
+        
+        # Calculate prorated included usage based on subscription start date
+        subscription_start = datetime.fromtimestamp(subscription.get("current_period_start"))
+        subscription_end = datetime.fromtimestamp(subscription.get("current_period_end"))
+        
+        # Calculate what portion of the billing period the subscription is active
+        billing_period_duration = subscription_end - subscription_start
+        if billing_period_duration.total_seconds() > 0:
+            # For monthly subscriptions, calculate days in the month
+            days_in_month = (subscription_end - subscription_start).days
+            days_active = (subscription_end - subscription_start).days
+            
+            # Prorate the included usage
+            proration_factor = days_active / days_in_month
+            included_usage = int(full_included_usage * proration_factor)
+        else:
+            included_usage = full_included_usage
         
         billing_period = {
             "org_id": org_id,
@@ -1373,18 +1390,30 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         # Get plan configuration
         tier_config = await get_tier_config(org_id)
         plan_config = tier_config.get(subscription_type, {})
-        included_usage = plan_config.get("included_usage", 0)
+        full_included_usage = plan_config.get("included_usage", 0)
         
-        # For custom timeframes, we need to calculate prorated included usage
+        # Always calculate prorated included usage for the current period
+        billing_period_duration = current_period_end - current_period_start
+        if billing_period_duration.total_seconds() > 0:
+            # For monthly subscriptions, calculate days in the month
+            days_in_month = (current_period_end - current_period_start).days
+            days_active = (current_period_end - current_period_start).days
+            
+            # Prorate the included usage
+            proration_factor = days_active / days_in_month
+            included_usage = int(full_included_usage * proration_factor)
+        else:
+            included_usage = full_included_usage
+        
+        # For custom timeframes, apply additional proration
         if start_time is not None and end_time is not None:
             # Calculate what portion of the billing period this timeframe represents
-            billing_period_duration = current_period_end - current_period_start
             timeframe_duration = period_end - period_start
             
-            # Prorate the included usage based on the timeframe
-            if billing_period_duration > 0:
-                proration_factor = timeframe_duration / billing_period_duration
-                included_usage = int(included_usage * proration_factor)
+            # Apply additional proration for the custom timeframe
+            if billing_period_duration.total_seconds() > 0:
+                timeframe_proration_factor = timeframe_duration / billing_period_duration
+                included_usage = int(included_usage * timeframe_proration_factor)
         
         return {
             "total_usage": total_usage,
