@@ -9,7 +9,7 @@ interface SubscriptionUsageProps {
 
 interface UsageData {
   total_usage: number;
-  overage_usage: number;
+  metered_usage: number;
   remaining_included: number;
   subscription_type: string;
   usage_unit?: string; // New field to indicate usage unit

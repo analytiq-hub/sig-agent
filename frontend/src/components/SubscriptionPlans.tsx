@@ -249,7 +249,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                     >
                       <path d="M5 13l4 4L19 7"></path>
                     </svg>
-                    ${plan.overage_price} per SPU
+                    ${plan.metered_price} per SPU
                   </li>
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-center">

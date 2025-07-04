@@ -7,7 +7,7 @@ export interface SubscriptionPlan {
   plan_id: string;
   name: string;
   base_price: number;
-  overage_price: number;
+  metered_price: number;
   features: string[];
   currency: string;
   interval: string;
@@ -44,7 +44,7 @@ export interface SubscriptionHistoryResponse {
 // New interface for usage data with SPU support
 export interface UsageData {
   total_usage: number;
-  overage_usage: number;
+  metered_usage: number;
   remaining_included: number;
   subscription_type: string;
   usage_unit?: string; // 'spu' or 'pages'

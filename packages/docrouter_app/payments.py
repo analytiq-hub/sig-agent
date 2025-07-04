@@ -139,7 +139,7 @@ class SubscriptionPlan(BaseModel):
     plan_id: str
     name: str
     base_price: float
-    overage_price: float
+    metered_price: float
     features: List[str]
     currency: str = "usd"
     interval: str = "month"
@@ -182,17 +182,17 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
             if tier not in dynamic_config:
                 dynamic_config[tier] = {
                     'base_price_id': None,
-                    'overage_price_id': None,
+                    'metered_price_id': None,
                     'base_price': 0.0,
-                    'overage_price': 0.0,
+                    'metered_price': 0.0,
                 }
             
             if price_type == 'base':
                 dynamic_config[tier]['base_price_id'] = price.id
                 dynamic_config[tier]['base_price'] = price.unit_amount / 100  # Convert from cents
-            elif price_type == 'overage':
-                dynamic_config[tier]['overage_price_id'] = price.id
-                dynamic_config[tier]['overage_price'] = price.unit_amount / 100  # Convert from cents
+            elif price_type == 'metered':
+                dynamic_config[tier]['metered_price_id'] = price.id
+                dynamic_config[tier]['metered_price'] = price.unit_amount / 100  # Convert from cents
         
         logger.info(f"Dynamic tier config loaded: {dynamic_config}")
         return dynamic_config
@@ -727,7 +727,7 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
         raise ValueError(f"Invalid subscription type: {subscription_type}")
 
     base_price_id = tier_config[subscription_type]["base_price_id"]
-    overage_price_id = tier_config[subscription_type]["overage_price_id"]
+    metered_price_id = tier_config[subscription_type]["metered_price_id"]
 
     # Get the current subscription
     subscription = await get_subscription(customer_id)
@@ -746,13 +746,13 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
             update_subscription = True
         else:
             current_base_price_id = subscription_items[0].get("price", {}).get("id")
-            current_overage_price_id = subscription_items[1].get("price", {}).get("id")
+            current_metered_price_id = subscription_items[1].get("price", {}).get("id")
 
-            if current_base_price_id != base_price_id or current_overage_price_id != overage_price_id:
+            if current_base_price_id != base_price_id or current_metered_price_id != metered_price_id:
                 update_subscription = True
 
         if update_subscription:
-            logger.info(f"Updating subscription to {subscription_type} base_price_id {base_price_id} overage_price_id {overage_price_id}")
+            logger.info(f"Updating subscription to {subscription_type} base_price_id {base_price_id} metered_price_id {metered_price_id}")
 
             # Build the items array for subscription modification
             items = []
@@ -765,22 +765,22 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
                     'price': base_price_id,
                 })
                 
-                # If we have a second item, update it (overage price)
+                # If we have a second item, update it (metered price)
                 if len(subscription_items) >= 2:
                     items.append({
                         'id': subscription_items[1]['id'],
-                        'price': overage_price_id,
+                        'price': metered_price_id,
                     })
                 else:
-                    # Add the overage price item
+                    # Add the metered price item
                     items.append({
-                        'price': overage_price_id,
+                        'price': metered_price_id,
                     })
             else:
                 # No existing items, add both new items
                 items = [
                     {'price': base_price_id},
-                    {'price': overage_price_id},
+                    {'price': metered_price_id},
                 ]
 
             # Modify existing subscription with proration and metadata
@@ -794,7 +794,7 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
         # Create new subscription for customers without one
         await StripeAsync.subscription_create(
             customer=customer_id,
-            items=[{'price': base_price_id}, {'price': overage_price_id}],
+            items=[{'price': base_price_id}, {'price': metered_price_id}],
             payment_behavior='default_incomplete',
             expand=['latest_invoice.payment_intent'],
             metadata={'subscription_type': subscription_type}  # Add metadata
@@ -995,7 +995,7 @@ async def get_subscription_info(
             plan_id="individual",
             name="Individual",
             base_price=tier_config["individual"]["base_price"],
-            overage_price=tier_config["individual"]["overage_price"],
+            metered_price=tier_config["individual"]["metered_price"],
             features=[
                 "Basic document processing"
             ]
@@ -1004,7 +1004,7 @@ async def get_subscription_info(
             plan_id="team",
             name="Team",
             base_price=tier_config["team"]["base_price"],
-            overage_price=tier_config["team"]["overage_price"],
+            metered_price=tier_config["team"]["metered_price"],
             features=[
                 "Advanced document processing"
             ]
@@ -1013,7 +1013,7 @@ async def get_subscription_info(
             plan_id="enterprise",
             name="Enterprise",
             base_price=tier_config["enterprise"]["base_price"],
-            overage_price=tier_config["enterprise"]["overage_price"],
+            metered_price=tier_config["enterprise"]["metered_price"],
             features=[
                 "Custom document processing"
             ]
@@ -1300,7 +1300,7 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         
         return {
             "total_usage": total_usage,
-            "overage_usage": total_usage,  # All usage is overage
+            "metered_usage": total_usage,  # All usage is metered
             "period_start": period_start,
             "period_end": period_end,
             "subscription_type": subscription_type,
