@@ -41,7 +41,7 @@ export interface SubscriptionHistoryResponse {
   subscription_history: SubscriptionHistory[];
 }
 
-// New interface for usage data with SPU support
+// New interface for usage data with credits support
 export interface UsageData {
   total_usage: number;
   metered_usage: number;
@@ -50,9 +50,19 @@ export interface UsageData {
   usage_unit?: string; // 'spu' or 'pages'
   period_start?: number;
   period_end?: number;
+  // New credit fields
+  credits_total: number;
+  credits_used: number;
+  credits_remaining: number;
+  paid_usage: number;
 }
 
 export interface UsageResponse {
   usage_source: 'stripe' | 'local' | 'none';
   data: UsageData | null;
+}
+
+export interface CreditUpdateResponse {
+  success: boolean;
+  added: number;
 }

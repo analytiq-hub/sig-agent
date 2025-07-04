@@ -125,6 +125,7 @@ stripe_billing_periods = None
 
 # Stripe configuration constants
 FREE_TIER_LIMIT = 50  # Number of free SPUs
+DEFAULT_SPU_CREDITS = 500
 
 # Pydantic models for request/response validation
 class UsageRecord(BaseModel):
@@ -151,6 +152,9 @@ class SubscriptionResponse(BaseModel):
     subscription_status: Optional[str] = None
     cancel_at_period_end: bool = False
     current_period_end: Optional[int] = None  # Unix timestamp
+
+class CreditUpdate(BaseModel):
+    amount: int
 
 # Add this new function to fetch pricing from Stripe
 async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
@@ -469,6 +473,9 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
 
         # Sync the subscription
         await sync_subscription(org_id, org_type)
+
+        # Ensure credits are initialized for a stripe_customer
+        await ensure_spu_credits(customer)
 
         return customer
     
@@ -850,11 +857,9 @@ async def record_usage(
         )
 
     try:
-        result = await handle_usage_record(
+        result = await record_spu_usage_with_credits(
             organization_id,
             usage.spus,
-            usage.operation,
-            usage.source,
         )
         limits = await check_usage_limits(organization_id)
         return {"success": True, "usage": result, "limits": limits}
@@ -1317,8 +1322,6 @@ async def get_current_usage(
     organization_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Get current usage information for an organization"""
-    
     # Check if user has access to this organization
     if not await is_organization_admin(org_id=organization_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
         raise HTTPException(
@@ -1327,16 +1330,40 @@ async def get_current_usage(
         )
 
     try:
-        # Get usage from Stripe
-        stripe_usage = await get_stripe_usage(organization_id)
-        if not stripe_usage:
-            raise HTTPException(status_code=404, detail=f"No Stripe usage found for org_id: {organization_id}")
-
-        logger.info(f"Stripe usage: {stripe_usage}")
+        stripe_customer = await stripe_customers.find_one({"org_id": organization_id})
+        if not stripe_customer:
+            raise HTTPException(status_code=404, detail=f"No stripe_customer found for org_id: {organization_id}")
         
+        await ensure_spu_credits(stripe_customer)
+        credits = stripe_customer.get("spu_credits", DEFAULT_SPU_CREDITS)
+        used = stripe_customer.get("spu_credits_used", 0)
+        credits_left = max(credits - used, 0)
+        
+        # Get paid usage
+        paid_usage = 0
+        agg = await stripe_usage_records.aggregate([
+            {"$match": {"org_id": organization_id, "operation": "paid_usage"}},
+            {"$group": {"_id": None, "total": {"$sum": "$spus"}}}
+        ]).to_list(1)
+        if agg and agg[0].get("total"):
+            paid_usage = agg[0]["total"]
+
+        # Get total usage (credits + paid)
+        total_usage = used + paid_usage
+
         return {
             "usage_source": "stripe",
-            "data": stripe_usage
+            "data": {
+                "total_usage": total_usage,
+                "metered_usage": total_usage,
+                "remaining_included": 0,  # Not applicable with credits
+                "subscription_type": "individual",  # Default
+                "usage_unit": "spu",
+                "credits_total": credits,
+                "credits_used": used,
+                "credits_remaining": credits_left,
+                "paid_usage": paid_usage
+            }
         }
         
     except Exception as e:
@@ -1399,3 +1426,58 @@ async def webhook_received(
     )
     
     return {"status": "success"}
+
+# Ensure credits are initialized for a stripe_customer
+async def ensure_spu_credits(stripe_customer_doc):
+    update = {}
+    if "spu_credits" not in stripe_customer_doc:
+        update["spu_credits"] = DEFAULT_SPU_CREDITS
+    if "spu_credits_used" not in stripe_customer_doc:
+        update["spu_credits_used"] = 0
+    if update:
+        await stripe_customers.update_one(
+            {"_id": stripe_customer_doc["_id"]},
+            {"$set": update}
+        )
+
+# Draw down credits first when recording usage
+async def record_spu_usage_with_credits(org_id: str, spus: int):
+    stripe_customer = await stripe_customers.find_one({"org_id": org_id})
+    if not stripe_customer:
+        raise Exception("No stripe_customer for org")
+    await ensure_spu_credits(stripe_customer)
+    credits = stripe_customer.get("spu_credits", DEFAULT_SPU_CREDITS)
+    used = stripe_customer.get("spu_credits_used", 0)
+    credits_left = max(credits - used, 0)
+    from_credits = min(spus, credits_left)
+    from_paid = spus - from_credits
+
+    # Update credits used
+    if from_credits > 0:
+        await stripe_customers.update_one(
+            {"_id": stripe_customer["_id"]},
+            {"$inc": {"spu_credits_used": from_credits}}
+        )
+    # Record paid usage as before
+    if from_paid > 0:
+        await handle_usage_record(org_id, from_paid, operation="paid_usage", source="backend")
+    return {"from_credits": from_credits, "from_paid": from_paid}
+
+# Admin API to add credits
+@payments_router.post("/{organization_id}/credits/add")
+async def add_spu_credits(
+    organization_id: str,
+    update: CreditUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    if not await is_system_admin(current_user.user_id):
+        raise HTTPException(status_code=403, detail="Admin only")
+    stripe_customer = await stripe_customers.find_one({"org_id": organization_id})
+    if not stripe_customer:
+        raise HTTPException(status_code=404, detail="No stripe_customer for org")
+    await ensure_spu_credits(stripe_customer)
+    await stripe_customers.update_one(
+        {"_id": stripe_customer["_id"]},
+        {"$inc": {"spu_credits": update.amount}}
+    )
+    return {"success": True, "added": update.amount}

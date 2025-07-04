@@ -21,6 +21,7 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import SubscriptionManager from './SubscriptionManager'
 import { useOrganizationData } from '@/hooks/useOrganizationData'
+import AdminCreditWidget from './AdminCreditWidget'
 
 interface OrganizationEditProps {
   organizationId: string
@@ -57,6 +58,8 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedMember, setSelectedMember] = useState<{ id: string, isAdmin: boolean } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const isSystemAdmin = session?.user?.role === 'admin';
 
   // Filter current organization members
   const filteredMembers = members.filter(member => {
@@ -485,6 +488,17 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
               </Menu>
             </div>
           </div>
+
+          {/* Admin Credit Widget - System Admin Only */}
+          {isSystemAdmin && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Admin Tools</h3>
+              <AdminCreditWidget 
+                organizationId={organizationId} 
+                onCreditsAdded={() => setRefreshKey(prev => prev + 1)}
+              />
+            </div>
+          )}
 
           {/* Subscription Section */}
           <div className="bg-gray-50 p-4 rounded-lg mb-6">

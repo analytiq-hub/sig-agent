@@ -12,9 +12,14 @@ interface UsageData {
   metered_usage: number;
   remaining_included: number;
   subscription_type: string;
-  usage_unit?: string; // New field to indicate usage unit
-  period_start?: number; // New field for billing period start
-  period_end?: number; // New field for billing period end
+  usage_unit?: string;
+  period_start?: number;
+  period_end?: number;
+  // New credit fields
+  credits_total: number;
+  credits_used: number;
+  credits_remaining: number;
+  paid_usage: number;
 }
 
 const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId }) => {
@@ -63,14 +68,56 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
     );
   }
 
-  const usageUnit = usageData.usage_unit || 'pages'; // Default to pages for backward compatibility
+  const usageUnit = usageData.usage_unit || 'pages';
   const usageUnitDisplay = usageUnit === 'spu' ? 'SPUs' : 'pages';
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <h3 className="text-lg font-semibold mb-4">Current Usage</h3>
       
-      {/* Compact Grid */}
+      {/* Credits Section */}
+      <div className="mb-6">
+        <h4 className="text-md font-medium text-gray-700 mb-3">SPU Credits</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+          <div className="bg-green-50 border border-green-200 rounded-md p-3">
+            <div className="text-green-600 font-medium">Total Credits</div>
+            <div className="text-2xl font-bold text-green-700">{usageData.credits_total} {usageUnitDisplay}</div>
+          </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+            <div className="text-blue-600 font-medium">Credits Used</div>
+            <div className="text-2xl font-bold text-blue-700">{usageData.credits_used} {usageUnitDisplay}</div>
+          </div>
+          <div className="bg-orange-50 border border-orange-200 rounded-md p-3">
+            <div className="text-orange-600 font-medium">Credits Remaining</div>
+            <div className="text-2xl font-bold text-orange-700">{usageData.credits_remaining} {usageUnitDisplay}</div>
+          </div>
+        </div>
+        
+        {/* Credits Progress Bar */}
+        <div className="mt-3">
+          <div className="flex justify-between text-sm text-gray-600 mb-1">
+            <span>{usageData.credits_used} of {usageData.credits_total} credits used</span>
+            <span>{Math.round((usageData.credits_used / usageData.credits_total) * 100)}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="h-2 rounded-full transition-all duration-300 bg-green-500"
+              style={{ width: `${Math.min((usageData.credits_used / usageData.credits_total) * 100, 100)}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Paid Usage Section */}
+      <div className="mb-6">
+        <h4 className="text-md font-medium text-gray-700 mb-3">Paid Usage</h4>
+        <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+          <div className="text-gray-600 font-medium">Paid SPUs</div>
+          <div className="text-2xl font-bold text-gray-700">{usageData.paid_usage} {usageUnitDisplay}</div>
+        </div>
+      </div>
+
+      {/* Compact Grid - Original Info */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-700 bg-gray-50 border border-gray-100 rounded-md px-4 py-2 mb-4">
         <div>
           <div className="text-gray-500">Plan</div>
@@ -85,22 +132,6 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
           {usageData.period_start && usageData.period_end && (
             <div className="font-medium">{formatDate(usageData.period_start)} - {formatDate(usageData.period_end)}</div>
           )}
-        </div>
-      </div>
-
-      {/* Usage Bar and Details */}
-      <div className="space-y-4">
-        {/* Usage Display */}
-        <div>
-          <div className="flex justify-between text-sm text-gray-600 mb-2">
-            <span>{usageData.total_usage} {usageUnitDisplay} used</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="h-2 rounded-full transition-all duration-300 bg-blue-500"
-              style={{ width: '100%' }}
-            ></div>
-          </div>
         </div>
       </div>
     </div>

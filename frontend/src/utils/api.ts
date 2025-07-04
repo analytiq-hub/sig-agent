@@ -86,7 +86,8 @@ import {
 } from '@/types/index';
 import { 
   PortalSessionResponse,
-  SubscriptionResponse
+  SubscriptionResponse,
+  CreditUpdateResponse
 } from '@/types/index';
 import { toast } from 'react-toastify';
 import { JsonValue } from 'type-fest';
@@ -727,5 +728,11 @@ export const getCurrentUsageApi = async (orgId: string) => {
 
 export const createSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
   const response = await api.post<{ status: string; message: string }>(`/v0/payments/${orgId}/subscription`);
+  return response.data;
+};
+
+// Add new API function to add credits (admin only)
+export const addCreditsApi = async (orgId: string, amount: number): Promise<CreditUpdateResponse> => {
+  const response = await api.post<CreditUpdateResponse>(`/v0/payments/${orgId}/credits/add`, { amount });
   return response.data;
 };
