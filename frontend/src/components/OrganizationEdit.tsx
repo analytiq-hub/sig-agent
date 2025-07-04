@@ -489,23 +489,23 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
             </div>
           </div>
 
-          {/* Admin Credit Widget - System Admin Only */}
-          {isSystemAdmin && (
-            <div className="bg-gray-50 p-4 rounded-lg mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Admin Tools</h3>
-              <AdminCreditWidget 
-                organizationId={organizationId} 
-                onCreditsAdded={() => setRefreshKey(prev => prev + 1)}
-              />
-            </div>
-          )}
-
           {/* Subscription Section */}
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Subscription</h3>
             <SubscriptionManager organizationId={organizationId} key={refreshKey} />
           </div>
         </form>
+
+        {/* Admin Credit Widget - System Admin Only - MOVED OUTSIDE THE FORM */}
+        {isSystemAdmin && (
+          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Admin Tools</h3>
+            <AdminCreditWidget 
+              organizationId={organizationId} 
+              onCreditsAdded={() => setRefreshKey(prev => prev + 1)}
+            />
+          </div>
+        )}
       </div>
 
       <UserAddToOrgModal

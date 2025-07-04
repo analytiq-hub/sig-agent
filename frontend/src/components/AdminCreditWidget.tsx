@@ -27,14 +27,13 @@ const AdminCreditWidget: React.FC<AdminCreditWidgetProps> = ({
     setLoading(true);
     try {
       await addCreditsApi(organizationId, amount);
-      toast.success(`Successfully added ${amount} SPU credits`);
       setAmount(100); // Reset to default
       if (onCreditsAdded) {
         onCreditsAdded();
       }
     } catch (error) {
       console.error('Error adding credits:', error);
-      toast.error('Failed to add credits');
+      toast.error(`Failed to add credits: ${error}`);
     } finally {
       setLoading(false);
     }

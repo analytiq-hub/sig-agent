@@ -1500,6 +1500,8 @@ async def add_spu_credits(
     update: CreditUpdate,
     current_user: User = Depends(get_current_user)
 ):
+    logger.info(f"Adding {update.amount} credits to org {organization_id}")
+
     if not await is_system_admin(current_user.user_id):
         raise HTTPException(status_code=403, detail="Admin only")
     stripe_customer = await stripe_customers.find_one({"org_id": organization_id})
