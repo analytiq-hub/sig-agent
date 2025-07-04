@@ -102,16 +102,6 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
             ></div>
           </div>
         </div>
-
-        {/* SPU Information */}
-        {usageUnit === 'spu' && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-blue-800 text-sm">
-              💡 SPU (Service Processing Unit) is our flexible billing unit. Currently, 1 page = 1 SPU. 
-              Different LLM models may consume different SPU amounts per page in the future.
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );
