@@ -85,7 +85,7 @@ const AdminCreditWidget: React.FC<AdminCreditWidgetProps> = ({
       </form>
       
       <p className="text-xs text-yellow-600 mt-2">
-        This will add SPU credits to the organization's account. Credits are used before paid usage.
+        This will add SPU credits to the organization&apos;s account. Credits are used before paid usage.
       </p>
     </div>
   );
