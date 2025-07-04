@@ -482,10 +482,10 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
         logger.error(f"Error in sync_payments_customer: {e}")
         raise e
 
-async def handle_usage_record(org_id: str, spus: int, operation: str, source: str = "backend") -> Dict[str, Any]:
+async def save_usage_record(org_id: str, spus: int, operation: str, source: str = "backend") -> Dict[str, Any]:
     """Record usage for an organization locally"""
     
-    logger.info(f"handle_usage_record() called with org_id: {org_id}, spus: {spus}, operation: {operation}, source: {source}")
+    logger.info(f"save_usage_record() called with org_id: {org_id}, spus: {spus}, operation: {operation}, source: {source}")
 
     # Store usage record (no Stripe dependencies)
     usage_record = {
@@ -887,7 +887,7 @@ async def record_usage(
         )
 
     try:
-        result = await record_spu_usage_with_credits(
+        result = await record_spu_usage(
             organization_id,
             usage.spus,
         )
@@ -1471,7 +1471,7 @@ async def ensure_spu_credits(stripe_customer_doc):
         )
 
 # Draw down credits first when recording usage
-async def record_spu_usage_with_credits(org_id: str, spus: int):
+async def record_spu_usage(org_id: str, spus: int):
     stripe_customer = await stripe_customers.find_one({"org_id": org_id})
     if not stripe_customer:
         raise Exception("No stripe_customer for org")
@@ -1490,7 +1490,7 @@ async def record_spu_usage_with_credits(org_id: str, spus: int):
         )
     # Record paid usage as before
     if from_paid > 0:
-        await handle_usage_record(org_id, from_paid, operation="paid_usage", source="backend")
+        await save_usage_record(org_id, from_paid, operation="paid_usage", source="backend")
     return {"from_credits": from_credits, "from_paid": from_paid}
 
 # Admin API to add credits
