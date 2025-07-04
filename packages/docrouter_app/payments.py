@@ -1369,14 +1369,52 @@ async def get_current_usage(
         used = stripe_customer.get("spu_credits_used", 0)
         credits_left = max(credits - used, 0)
         
-        # Get paid usage
+        # --- NEW: Get period_start and period_end from Stripe subscription ---
+        period_start = None
+        period_end = None
+        subscription_type = "individual"
+        usage_unit = "spu"
+        try:
+            stripe_api_customer = await get_payments_customer(organization_id)
+            if stripe_api_customer:
+                subscription = await get_subscription(stripe_api_customer.id)
+                if subscription:
+                    # Use the first subscription item for period boundaries
+                    if subscription["items"]["data"]:
+                        item = subscription["items"]["data"][0]
+                        period_start = item.get("current_period_start")
+                        period_end = item.get("current_period_end")
+                    # Get subscription type if available
+                    subscription_type = get_subscription_type(subscription) or subscription_type
+        except Exception as e:
+            logger.warning(f"Could not fetch subscription period: {e}")
+
+        # --- Only count paid usage for the current period ---
         paid_usage = 0
-        agg = await stripe_usage_records.aggregate([
-            {"$match": {"org_id": organization_id, "operation": "paid_usage"}},
-            {"$group": {"_id": None, "total": {"$sum": "$spus"}}}
-        ]).to_list(1)
-        if agg and agg[0].get("total"):
-            paid_usage = agg[0]["total"]
+        if period_start and period_end:
+            agg = await stripe_usage_records.aggregate([
+                {
+                    "$match": {
+                        "org_id": organization_id,
+                        "operation": "paid_usage",
+                        "timestamp": {
+                            "$gte": datetime.fromtimestamp(period_start),
+                            "$lte": datetime.fromtimestamp(period_end)
+                        }
+                    }
+                },
+                {"$group": {"_id": None, "total": {"$sum": "$spus"}}}
+            ]).to_list(1)
+            if agg and agg[0].get("total"):
+                paid_usage = agg[0]["total"]
+        else:
+            # fallback: all paid usage (should be rare)
+            agg = await stripe_usage_records.aggregate([
+                {"$match": {"org_id": organization_id, "operation": "paid_usage"}},
+                {"$group": {"_id": None, "total": {"$sum": "$spus"}}}
+            ]).to_list(1)
+            if agg and agg[0].get("total"):
+                paid_usage = agg[0]["total"]
 
         # Get total usage (credits + paid)
         total_usage = used + paid_usage
@@ -1387,12 +1425,14 @@ async def get_current_usage(
                 "total_usage": total_usage,
                 "metered_usage": total_usage,
                 "remaining_included": 0,  # Not applicable with credits
-                "subscription_type": "individual",  # Default
-                "usage_unit": "spu",
+                "subscription_type": subscription_type,
+                "usage_unit": usage_unit,
                 "credits_total": credits,
                 "credits_used": used,
                 "credits_remaining": credits_left,
-                "paid_usage": paid_usage
+                "paid_usage": paid_usage,
+                "period_start": period_start,
+                "period_end": period_end,
             }
         }
         
