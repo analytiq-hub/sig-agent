@@ -70,19 +70,26 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
     <div className="bg-white p-6 rounded-lg shadow">
       <h3 className="text-lg font-semibold mb-4">Current Usage</h3>
       
-      <div className="space-y-4">
-        {/* Billing Period */}
-        {usageData.period_start && usageData.period_end && (
-          <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-600">Billing Period:</span>
-              <span className="font-medium">
-                {formatDate(usageData.period_start)} - {formatDate(usageData.period_end)}
-              </span>
-            </div>
-          </div>
-        )}
+      {/* Compact Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-700 bg-gray-50 border border-gray-100 rounded-md px-4 py-2 mb-4">
+        <div>
+          <div className="text-gray-500">Plan</div>
+          <div className="font-medium capitalize">{usageData.subscription_type}</div>
+        </div>
+        <div>
+          <div className="text-gray-500">Total Usage</div>
+          <div className="font-medium">{usageData.total_usage} {usageUnitDisplay}</div>
+        </div>
+        <div>
+          <div className="text-gray-500">Billing Period</div>
+          {usageData.period_start && usageData.period_end && (
+            <div className="font-medium">{formatDate(usageData.period_start)} - {formatDate(usageData.period_end)}</div>
+          )}
+        </div>
+      </div>
 
+      {/* Usage Bar and Details */}
+      <div className="space-y-4">
         {/* Usage Display */}
         <div>
           <div className="flex justify-between text-sm text-gray-600 mb-2">
@@ -93,18 +100,6 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
               className="h-2 rounded-full transition-all duration-300 bg-blue-500"
               style={{ width: '100%' }}
             ></div>
-          </div>
-        </div>
-
-        {/* Usage Details */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-600">Plan:</span>
-            <span className="ml-2 font-medium capitalize">{usageData.subscription_type}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">Total Usage:</span>
-            <span className="ml-2 font-medium">{usageData.total_usage} {usageUnitDisplay}</span>
           </div>
         </div>
 
