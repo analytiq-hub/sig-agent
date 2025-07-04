@@ -1279,7 +1279,8 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         
         subscription_type = get_subscription_type(subscription)
         
-        # Get usage from local database
+        # Get usage from local database for the current subscription only
+        # If subscription changed mid-period, only show usage for the latest subscription
         usage_pipeline = [
             {
                 "$match": {
@@ -1301,8 +1302,8 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         return {
             "total_usage": total_usage,
             "metered_usage": total_usage,  # All usage is metered
-            "period_start": period_start,
-            "period_end": period_end,
+            "period_start": int(period_start.timestamp()),
+            "period_end": int(period_end.timestamp()),
             "subscription_type": subscription_type,
             "usage_unit": "spu"
         }

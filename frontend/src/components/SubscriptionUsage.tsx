@@ -13,6 +13,8 @@ interface UsageData {
   remaining_included: number;
   subscription_type: string;
   usage_unit?: string; // New field to indicate usage unit
+  period_start?: number; // New field for billing period start
+  period_end?: number; // New field for billing period end
 }
 
 const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId }) => {
@@ -36,6 +38,14 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
 
     fetchUsage();
   }, [organizationId]);
+
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   if (loading) {
     return (
@@ -61,6 +71,18 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
       <h3 className="text-lg font-semibold mb-4">Current Usage</h3>
       
       <div className="space-y-4">
+        {/* Billing Period */}
+        {usageData.period_start && usageData.period_end && (
+          <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600">Billing Period:</span>
+              <span className="font-medium">
+                {formatDate(usageData.period_start)} - {formatDate(usageData.period_end)}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Usage Display */}
         <div>
           <div className="flex justify-between text-sm text-gray-600 mb-2">
