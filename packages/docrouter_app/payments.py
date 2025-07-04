@@ -85,10 +85,10 @@ class StripeAsync:
         )
 
     @staticmethod
-    async def usage_record_create(subscription_item_id: str, *args, **kwargs) -> Dict[str, Any]:
+    async def meter_event_create(*args, **kwargs) -> Dict[str, Any]:
+        """Create a meter event using the new Stripe metered billing system"""
         return await StripeAsync._run_in_threadpool(
-            stripe.SubscriptionItem.create_usage_record,
-            subscription_item_id,
+            stripe.billing.MeterEvent.create,
             *args,
             **kwargs
         )
@@ -573,12 +573,14 @@ async def process_org_billing(org_id: str):
     logger.info(f"Processing {total_usage} SPUs from {usage_count} usage records for org {org_id}")
     
     try:
-        # Report usage to Stripe
-        await StripeAsync.usage_record_create(
-            subscription_item_id,
-            quantity=total_usage,
-            timestamp=int(current_period_end.timestamp()),
-            action="increment"
+        # Report usage to Stripe using the new metered billing system
+        await StripeAsync.meter_event_create(
+            event_name="docrouterspu",
+            payload={
+                "stripe_customer_id": stripe_customer.id,
+                "value": total_usage
+            },
+            timestamp=int(datetime.now().timestamp())
         )
         
         # Mark usage records as reported
