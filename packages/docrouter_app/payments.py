@@ -124,7 +124,6 @@ stripe_usage_records = None
 stripe_billing_periods = None
 
 # Stripe configuration constants
-FREE_TIER_LIMIT = 50  # Number of free SPUs
 DEFAULT_SPU_CREDITS = 500
 
 # Pydantic models for request/response validation
@@ -619,19 +618,50 @@ async def check_usage_limits(org_id: str) -> Dict[str, Any]:
     if not customer:
         raise ValueError(f"No customer found for org_id: {org_id}")
     
-    if customer["usage_tier"] == "free" and customer["current_month_usage"] >= FREE_TIER_LIMIT:
+    # Ensure credits are initialized
+    await ensure_spu_credits(customer)
+    
+    # Get current usage info
+    credits_total = customer.get("spu_credits", DEFAULT_SPU_CREDITS)
+    credits_used = customer.get("spu_credits_used", 0)
+    credits_remaining = max(credits_total - credits_used, 0)
+    
+    # Check if they have an active subscription
+    stripe_customer = await get_payments_customer(org_id)
+    subscription = None
+    if stripe_customer:
+        subscription = await get_subscription(stripe_customer.id)
+    
+    has_active_subscription = subscription and subscription.get("status") == "active"
+    has_payment_method = stripe_customer and payment_method_exists(stripe_customer) if stripe_customer else False
+    
+    # If they have credits remaining, they can continue
+    if credits_remaining > 0:
         return {
-            "limit_reached": True,
-            "current_usage": customer["current_month_usage"],
-            "limit": FREE_TIER_LIMIT,
-            "needs_upgrade": True
+            "limit_reached": False,
+            "current_usage": credits_used,
+            "credits_remaining": credits_remaining,
+            "needs_upgrade": False,
+            "can_use_credits": True
         }
     
+    # If they have an active subscription with payment method, they can continue
+    if has_active_subscription and has_payment_method:
+        return {
+            "limit_reached": False,
+            "current_usage": credits_used,
+            "credits_remaining": 0,
+            "needs_upgrade": False,
+            "can_use_credits": False
+        }
+    
+    # No credits and no active subscription - they need to upgrade
     return {
-        "limit_reached": False,
-        "current_usage": customer["current_month_usage"],
-        "remaining": FREE_TIER_LIMIT - customer["current_month_usage"] if customer["usage_tier"] == "free" else "unlimited",
-        "needs_upgrade": False
+        "limit_reached": True,
+        "current_usage": credits_used,
+        "credits_remaining": 0,
+        "needs_upgrade": True,
+        "can_use_credits": False
     }
 
 async def delete_payments_customer(org_id: str, force: bool = False) -> Dict[str, Any]:
