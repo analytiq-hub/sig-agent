@@ -78,20 +78,6 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
       {/* Credits Section */}
       <div className="mb-6">
         <h4 className="text-md font-medium text-gray-700 mb-3">SPU Credits</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-          <div className="bg-green-50 border border-green-200 rounded-md p-3">
-            <div className="text-green-600 font-medium">Total Credits</div>
-            <div className="text-2xl font-bold text-green-700">{usageData.credits_total} {usageUnitDisplay}</div>
-          </div>
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-            <div className="text-blue-600 font-medium">Credits Used</div>
-            <div className="text-2xl font-bold text-blue-700">{usageData.credits_used} {usageUnitDisplay}</div>
-          </div>
-          <div className="bg-orange-50 border border-orange-200 rounded-md p-3">
-            <div className="text-orange-600 font-medium">Credits Remaining</div>
-            <div className="text-2xl font-bold text-orange-700">{usageData.credits_remaining} {usageUnitDisplay}</div>
-          </div>
-        </div>
         
         {/* Credits Progress Bar */}
         <div className="mt-3">
