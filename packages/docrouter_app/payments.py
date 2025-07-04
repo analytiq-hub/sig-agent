@@ -476,44 +476,28 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
         logger.error(f"Error in sync_payments_customer: {e}")
         raise e
 
-async def handle_usage_record(org_id: str, spus: int, operation: str, source: str = "backend", spu_consumed: int = None) -> Dict[str, Any]:
+async def handle_usage_record(org_id: str, spus: int, operation: str, source: str = "backend") -> Dict[str, Any]:
     """Record usage for an organization locally"""
     
     logger.info(f"handle_usage_record() called with org_id: {org_id}, spus: {spus}, operation: {operation}, source: {source}")
 
-    if not stripe.api_key:
-        logger.warning("Stripe API key not configured - handle_usage_record() aborted")
-        return None
-
-    # Get the stripe customer
-    stripe_customer = await get_payments_customer(org_id)
-    if not stripe_customer:
-        raise ValueError(f"No customer found for org_id: {org_id}")
-
-    # Get current subscription
-    subscription = await get_subscription(stripe_customer.id)
-    if not subscription or not subscription.get("status") == "active":
-        logger.info(f"No active subscription found for org_id: {org_id}")
-        return None
-
-    # Store usage record
+    # Store usage record (no Stripe dependencies)
     usage_record = {
         "org_id": org_id,
-        "stripe_customer_id": stripe_customer.id,
         "spus": spus,
         "operation": operation,
         "source": source,
         "timestamp": datetime.utcnow(),
-        "reported_to_stripe": False  # Track if this usage has been reported
+        "reported_to_stripe": False
     }
     
     await stripe_usage_records.insert_one(usage_record)
     return usage_record
 
-async def process_billing_periods(delay_hours: int = 0):
+async def process_all_billing():
     """Process billing periods and create usage records in Stripe directly from usage records"""
     
-    logger.info(f"Starting billing period processing with {delay_hours} hour delay")
+    logger.info(f"Starting billing processing")
     
     if not stripe.api_key:
         logger.warning("Stripe API key not configured - billing processing aborted")
@@ -526,7 +510,7 @@ async def process_billing_periods(delay_hours: int = 0):
         for customer in stripe_customers_list:
             org_id = customer["org_id"]
             try:
-                await process_organization_billing(org_id, delay_hours)
+                await process_org_billing(org_id)
             except Exception as e:
                 logger.error(f"Error processing billing for org {org_id}: {e}")
                 continue
@@ -536,8 +520,12 @@ async def process_billing_periods(delay_hours: int = 0):
     except Exception as e:
         logger.error(f"Error in billing period processing: {e}")
 
-async def process_organization_billing(org_id: str, delay_hours: int):
+async def process_org_billing(org_id: str): 
     """Process billing for a single organization"""
+
+    if not stripe.api_key:
+        logger.warning("Stripe API key not configured - billing processing aborted")
+        return
     
     # Get customer and subscription
     stripe_customer = await get_payments_customer(org_id)
@@ -554,13 +542,6 @@ async def process_organization_billing(org_id: str, delay_hours: int):
     # Get current billing period boundaries
     current_period_start = datetime.fromtimestamp(subscription_item.get("current_period_start"))
     current_period_end = datetime.fromtimestamp(subscription_item.get("current_period_end"))
-    
-    # Calculate cutoff time for processing
-    cutoff_time = datetime.utcnow() - timedelta(hours=delay_hours)
-    
-    # Only process if billing period has ended
-    if current_period_end > cutoff_time:
-        return
     
     # Aggregate unreported usage for this billing period
     usage_pipeline = [
@@ -1363,7 +1344,7 @@ async def billing_background_task():
     """Background task that runs billing processing every hour"""
     while True:
         try:
-            await process_billing_periods(delay_hours=24)
+            await process_all_billing()
         except Exception as e:
             logger.error(f"Error in background billing task: {e}")
         
