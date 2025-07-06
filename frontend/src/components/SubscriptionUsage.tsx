@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getCurrentUsageApi } from '@/utils/api';
+import CreditPurchase from './CreditPurchase';
 
 interface SubscriptionUsageProps {
   organizationId: string;
@@ -25,6 +26,7 @@ interface UsageData {
 const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId }) => {
   const [usageData, setUsageData] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
   useEffect(() => {
     const fetchUsage = async () => {
@@ -77,7 +79,15 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
       
       {/* Credits Section */}
       <div className="mb-6">
-        <h4 className="text-md font-medium text-gray-700 mb-3">SPU Credits</h4>
+        <div className="flex justify-between items-center mb-3">
+          <h4 className="text-md font-medium text-gray-700">SPU Credits</h4>
+          <button
+            onClick={() => setShowPurchaseModal(true)}
+            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Purchase Credits
+          </button>
+        </div>
         
         {/* Credits Progress Bar */}
         <div className="mt-3">
@@ -120,6 +130,15 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
           )}
         </div>
       </div>
+
+      {/* Credit Purchase Modal */}
+      {showPurchaseModal && (
+        <CreditPurchase
+          organizationId={organizationId}
+          currentCredits={usageData?.credits_remaining || 0}
+          onClose={() => setShowPurchaseModal(false)}
+        />
+      )}
     </div>
   );
 };

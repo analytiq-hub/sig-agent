@@ -155,6 +155,33 @@ class SubscriptionResponse(BaseModel):
 class CreditUpdate(BaseModel):
     amount: int
 
+# Add these new models
+class CreditPackage(BaseModel):
+    package_id: str
+    name: str
+    credits: int
+    price: float  # Price in dollars
+    currency: str = "usd"
+    stripe_price_id: str
+
+class PurchaseCreditsRequest(BaseModel):
+    credits: int = Field(ge=10, le=10000)  # Minimum 10, maximum 10000 credits
+    success_url: str
+    cancel_url: str
+
+class PurchaseCreditsResponse(BaseModel):
+    checkout_url: str
+    session_id: str
+
+# Replace the multiple packages with a single credit configuration
+CREDIT_CONFIG = {
+    "price_per_credit": 0.10,  # $0.10 per credit
+    "currency": "usd",
+    "stripe_price_id": "price_single_credit",  # You'll create this in Stripe
+    "min_credits": 10,  # Minimum purchase
+    "max_credits": 10000  # Maximum purchase
+}
+
 # Add this new function to fetch pricing from Stripe
 async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
     """
@@ -1489,6 +1516,11 @@ async def webhook_received(
         subscription = event["data"]["object"]
         await handle_subscription_deleted(subscription)
     
+    # Add new event handler for successful payments
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        await handle_checkout_session_completed(session)
+    
     # Mark event as processed
     await stripe_events.update_one(
         {"stripe_event_id": event["id"]},
@@ -1553,3 +1585,103 @@ async def add_spu_credits(
         {"$inc": {"spu_credits": update.amount}}
     )
     return {"success": True, "added": update.amount}
+
+@payments_router.get("/{organization_id}/credits/config")
+async def get_credit_config(
+    organization_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get credit purchase configuration"""
+    if not await is_organization_member(org_id=organization_id, user_id=current_user.user_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    return {
+        "price_per_credit": CREDIT_CONFIG["price_per_credit"],
+        "currency": CREDIT_CONFIG["currency"],
+        "min_credits": CREDIT_CONFIG["min_credits"],
+        "max_credits": CREDIT_CONFIG["max_credits"]
+    }
+
+@payments_router.post("/{organization_id}/credits/purchase")
+async def purchase_credits(
+    organization_id: str,
+    request: PurchaseCreditsRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a Stripe checkout session for credit purchase"""
+    
+    if not await is_organization_member(org_id=organization_id, user_id=current_user.user_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Validate credit amount
+    if request.credits < CREDIT_CONFIG["min_credits"] or request.credits > CREDIT_CONFIG["max_credits"]:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Credits must be between {CREDIT_CONFIG['min_credits']} and {CREDIT_CONFIG['max_credits']}"
+        )
+    
+    # Get or create Stripe customer
+    stripe_customer = await get_payments_customer(organization_id)
+    if not stripe_customer:
+        await sync_payments_customer(organization_id)
+        stripe_customer = await get_payments_customer(organization_id)
+    
+    if not stripe_customer:
+        raise HTTPException(status_code=500, detail="Failed to create Stripe customer")
+    
+    try:
+        # Create Stripe checkout session with quantity
+        session = await StripeAsync._run_in_threadpool(
+            stripe.checkout.Session.create,
+            customer=stripe_customer.id,
+            payment_method_types=['card'],
+            line_items=[{
+                'price': CREDIT_CONFIG["stripe_price_id"],
+                'quantity': request.credits,
+            }],
+            mode='payment',
+            success_url=request.success_url,
+            cancel_url=request.cancel_url,
+            metadata={
+                'org_id': organization_id,
+                'credits': str(request.credits),
+                'user_id': current_user.user_id
+            }
+        )
+        
+        return PurchaseCreditsResponse(
+            checkout_url=session.url,
+            session_id=session.id
+        )
+        
+    except Exception as e:
+        logger.error(f"Error creating checkout session: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create checkout session")
+
+async def handle_checkout_session_completed(session: Dict[str, Any]):
+    """Handle successful credit purchase"""
+    try:
+        metadata = session.get("metadata", {})
+        org_id = metadata.get("org_id")
+        credits = int(metadata.get("credits", 0))
+        
+        if not org_id or not credits:
+            logger.error(f"Missing metadata in checkout session: {session.id}")
+            return
+        
+        # Add credits to the organization
+        stripe_customer = await stripe_customers.find_one({"org_id": org_id})
+        if not stripe_customer:
+            logger.error(f"No stripe customer found for org: {org_id}")
+            return
+        
+        await ensure_spu_credits(stripe_customer)
+        await stripe_customers.update_one(
+            {"_id": stripe_customer["_id"]},
+            {"$inc": {"spu_credits": credits}}
+        )
+        
+        logger.info(f"Added {credits} credits to organization {org_id} from purchase {session.id}")
+        
+    except Exception as e:
+        logger.error(f"Error processing credit purchase: {e}")

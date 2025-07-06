@@ -736,3 +736,17 @@ export const addCreditsApi = async (orgId: string, amount: number): Promise<Cred
   const response = await api.post<CreditUpdateResponse>(`/v0/payments/${orgId}/credits/add`, { amount });
   return response.data;
 };
+
+export const getCreditConfigApi = async (orgId: string) => {
+  const response = await api.get(`/v0/payments/${orgId}/credits/config`);
+  return response.data;
+};
+
+export const purchaseCreditsApi = async (orgId: string, request: {
+  credits: number;
+  success_url: string;
+  cancel_url: string;
+}) => {
+  const response = await api.post(`/v0/payments/${orgId}/credits/purchase`, request);
+  return response.data;
+};
