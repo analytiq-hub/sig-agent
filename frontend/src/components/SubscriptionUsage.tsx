@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getCurrentUsageApi, getSubscriptionApi } from '@/utils/api';
-import SubscriptionCredits from './SubscriptionCredits';
+import { getCurrentUsageApi, getSubscriptionApi, getCreditConfigApi, purchaseCreditsApi } from '@/utils/api';
+import { toast } from 'react-toastify';
 
 interface SubscriptionUsageProps {
   organizationId: string;
@@ -28,19 +28,29 @@ interface SubscriptionData {
   current_plan: string | null;
 }
 
+interface CreditConfig {
+  price_per_credit: number;
+  currency: string;
+  min_credits: number;
+  max_credits: number;
+}
+
 const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId }) => {
   const [usageData, setUsageData] = useState<UsageData | null>(null);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [creditConfig, setCreditConfig] = useState<CreditConfig | null>(null);
+  const [purchaseAmount, setPurchaseAmount] = useState<number>(100);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [usageResponse, subscriptionResponse] = await Promise.all([
+        const [usageResponse, subscriptionResponse, configResponse] = await Promise.all([
           getCurrentUsageApi(organizationId),
-          getSubscriptionApi(organizationId)
+          getSubscriptionApi(organizationId),
+          getCreditConfigApi(organizationId)
         ]);
         
         if (usageResponse.data) {
@@ -51,6 +61,9 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
           subscription_status: subscriptionResponse.subscription_status,
           current_plan: subscriptionResponse.current_plan
         });
+
+        setCreditConfig(configResponse);
+        setPurchaseAmount(configResponse.min_credits);
       } catch (error) {
         console.error('Error fetching usage and subscription data:', error);
       } finally {
@@ -76,6 +89,39 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
     // Allow purchase if no subscription or subscription is cancelled/expired
     const allowedStatuses = ['no_subscription', 'canceled', 'incomplete_expired'];
     return !subscriptionData.current_plan || allowedStatuses.includes(subscriptionData.subscription_status || '');
+  };
+
+  const handlePurchaseCredits = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!creditConfig) return;
+    
+    if (purchaseAmount < creditConfig.min_credits || purchaseAmount > creditConfig.max_credits) {
+      toast.error(`Amount must be between ${creditConfig.min_credits} and ${creditConfig.max_credits}`);
+      return;
+    }
+
+    setPurchaseLoading(true);
+    try {
+      const success_url = window.location.href;
+      const cancel_url = window.location.href;
+      const response = await purchaseCreditsApi(organizationId, { 
+        credits: purchaseAmount, 
+        success_url, 
+        cancel_url 
+      });
+      
+      if (response.checkout_url) {
+        window.location.href = response.checkout_url;
+      } else {
+        toast.error('Failed to start checkout.');
+      }
+    } catch (err: unknown) {
+      let message = 'Failed to start checkout.';
+      if (err instanceof Error) message = err.message;
+      toast.error(message);
+    } finally {
+      setPurchaseLoading(false);
+    }
   };
 
   if (loading) {
@@ -106,12 +152,9 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
         <div className="flex justify-between items-center mb-3">
           <h4 className="text-md font-medium text-gray-700">SPU Credits</h4>
           {canPurchaseCredits() ? (
-            <button
-              onClick={() => setShowPurchaseModal(true)}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Purchase Credits
-            </button>
+            <div className="text-sm text-gray-500">
+              Credits available for purchase
+            </div>
           ) : (
             <div className="text-sm text-gray-500">
               {subscriptionData?.current_plan ? 
@@ -135,6 +178,51 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
             ></div>
           </div>
         </div>
+
+        {/* Inline Purchase Credits Section */}
+        {canPurchaseCredits() && creditConfig && (
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <h5 className="text-sm font-medium text-blue-900 mb-3">Purchase Additional Credits</h5>
+            <form onSubmit={handlePurchaseCredits} className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <label htmlFor="credit-amount" className="block text-xs font-medium text-blue-700 mb-1">
+                    Amount to Purchase
+                  </label>
+                  <input
+                    type="number"
+                    id="credit-amount"
+                    value={purchaseAmount}
+                    onChange={e => setPurchaseAmount(parseInt(e.target.value) || creditConfig.min_credits)}
+                    min={creditConfig.min_credits}
+                    max={creditConfig.max_credits}
+                    className="w-full px-3 py-2 text-sm border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder={`Min ${creditConfig.min_credits}, Max ${creditConfig.max_credits}`}
+                    disabled={purchaseLoading}
+                  />
+                </div>
+                <div className="text-xs text-blue-600">
+                  <div>Price per credit:</div>
+                  <div className="font-medium">{creditConfig.price_per_credit} {creditConfig.currency.toUpperCase()}</div>
+                </div>
+                <div className="text-xs text-blue-600">
+                  <div>Total:</div>
+                  <div className="font-bold text-blue-800">{(purchaseAmount * creditConfig.price_per_credit).toFixed(2)} {creditConfig.currency.toUpperCase()}</div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={purchaseLoading || purchaseAmount < creditConfig.min_credits || purchaseAmount > creditConfig.max_credits}
+                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-200 disabled:bg-blue-300 disabled:cursor-not-allowed"
+                >
+                  {purchaseLoading ? 'Processing...' : 'Purchase'}
+                </button>
+              </div>
+              <div className="text-xs text-blue-600">
+                Credits are used before paid usage. You currently have <span className="font-semibold">{usageData.credits_remaining}</span> credits remaining.
+              </div>
+            </form>
+          </div>
+        )}
       </div>
 
       {/* Paid Usage Section */}
@@ -163,15 +251,6 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
           )}
         </div>
       </div>
-
-      {/* Credit Purchase Modal */}
-      {showPurchaseModal && canPurchaseCredits() && (
-        <SubscriptionCredits
-          organizationId={organizationId}
-          currentCredits={usageData?.credits_remaining || 0}
-          onClose={() => setShowPurchaseModal(false)}
-        />
-      )}
     </div>
   );
 };
