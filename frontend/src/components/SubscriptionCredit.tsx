@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { getCreditConfigApi, purchaseCreditsApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 
-interface SubscriptionCreditPurchaseProps {
+interface SubscriptionCreditProps {
   organizationId: string;
   currentCredits: number;
   onClose: () => void;
 }
 
-const SubscriptionCreditPurchase: React.FC<SubscriptionCreditPurchaseProps> = ({ organizationId, currentCredits, onClose }) => {
+const SubscriptionCredit: React.FC<SubscriptionCreditProps> = ({ organizationId, currentCredits, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState<{ price_per_credit: number; currency: string; min_credits: number; max_credits: number } | null>(null);
   const [amount, setAmount] = useState<number>(100);
@@ -121,4 +121,4 @@ const SubscriptionCreditPurchase: React.FC<SubscriptionCreditPurchaseProps> = ({
   );
 };
 
-export default SubscriptionCreditPurchase; 
+export default SubscriptionCredit; 
