@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getCurrentUsageApi } from '@/utils/api';
-import CreditPurchase from './CreditPurchase';
+import CreditPurchase from './SubscriptionCreditPurchase';
 
 interface SubscriptionUsageProps {
   organizationId: string;
