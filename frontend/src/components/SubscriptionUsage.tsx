@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getCurrentUsageApi } from '@/utils/api';
-import SubscriptionCredit from './SubscriptionCredit';
+import SubscriptionCredits from './SubscriptionCredit';
 
 interface SubscriptionUsageProps {
   organizationId: string;
@@ -133,7 +133,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
 
       {/* Credit Purchase Modal */}
       {showPurchaseModal && (
-        <SubscriptionCredit
+        <SubscriptionCredits
           organizationId={organizationId}
           currentCredits={usageData?.credits_remaining || 0}
           onClose={() => setShowPurchaseModal(false)}
