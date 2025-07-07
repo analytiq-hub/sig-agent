@@ -465,9 +465,12 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
             )
             logger.info(f"Created new Stripe customer {stripe_customer.id} email {user_email} user_name {user_name} metadata {customer_metadata}")
         
-        # Ensure the customer is subscribed by default to the plan matching the org type
+        # Don't automatically subscribe new customers - let them choose
+        # Only sync subscription if they already have one
         org_type = org.get("type")
-        await set_subscription_type(org_id, stripe_customer.id, org_type)
+        existing_subscription = await get_subscription(stripe_customer.id)
+        if existing_subscription:
+            await set_subscription_type(org_id, stripe_customer.id, org_type)
 
         if customer:
             # Check if the customer_id changed
@@ -509,9 +512,6 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
             }
 
             await stripe_customers.insert_one(customer)
-
-        # Sync the subscription
-        await sync_subscription(org_id, org_type)
 
         # Ensure credits are initialized for a stripe_customer
         await ensure_spu_credits(customer)
@@ -1097,6 +1097,7 @@ async def get_subscription_info(
 
     # Get the customer
     stripe_customer = await get_payments_customer(organization_id)
+
     if not stripe_customer:
         raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
 
@@ -1697,4 +1698,5 @@ async def handle_checkout_session_completed(session: Dict[str, Any]):
         logger.info(f"Added {credits} credits to organization {org_id} from purchase {session.id}")
         
     except Exception as e:
+        logger.error(f"Error processing credit purchase: {e}")
         logger.error(f"Error processing credit purchase: {e}")
