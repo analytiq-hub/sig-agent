@@ -222,12 +222,20 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
                 if not price_type:
                     continue
                 
+                price_amount = price.unit_amount / 100  # Convert from cents
+                
                 if price_type == 'base':
-                    dynamic_config[tier]['base_price_id'] = price.id
-                    dynamic_config[tier]['base_price'] = price.unit_amount / 100  # Convert from cents
+                    # Only update if this is a lower price or if no price is set yet
+                    if (dynamic_config[tier]['base_price'] == 0.0 or 
+                        price_amount < dynamic_config[tier]['base_price']):
+                        dynamic_config[tier]['base_price_id'] = price.id
+                        dynamic_config[tier]['base_price'] = price_amount
                 elif price_type == 'metered':
-                    dynamic_config[tier]['metered_price_id'] = price.id
-                    dynamic_config[tier]['metered_price'] = price.unit_amount / 100  # Convert from cents
+                    # Only update if this is a lower price or if no price is set yet
+                    if (dynamic_config[tier]['metered_price'] == 0.0 or 
+                        price_amount < dynamic_config[tier]['metered_price']):
+                        dynamic_config[tier]['metered_price_id'] = price.id
+                        dynamic_config[tier]['metered_price'] = price_amount
             
         logger.info(f"Dynamic tier config loaded: {dynamic_config}")
         return dynamic_config
