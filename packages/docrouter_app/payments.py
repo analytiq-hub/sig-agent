@@ -200,30 +200,35 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
         )
         
         dynamic_config = {}
+
+        for tier in ["individual", "team", "enterprise"]:
+            dynamic_config[tier] = {
+                'base_price_id': None,
+                'metered_price_id': None,
+                'base_price': 0.0,
+                'metered_price': 0.0,
+            }
         
-        for price in prices.data:
-            metadata = price.metadata
-            tier = metadata.get('tier')
-            price_type = metadata.get('price_type')
-            
-            if not tier or not price_type:
-                continue
+            for price in prices.data:
+                metadata = price.metadata
+                tier_list = metadata.get('tier', "").split(",")
+                # Strip whitespace from each tier
+                tier_list2 = [tier.strip() for tier in tier_list]
+                if tier not in tier_list2:
+                    continue
                 
-            if tier not in dynamic_config:
-                dynamic_config[tier] = {
-                    'base_price_id': None,
-                    'metered_price_id': None,
-                    'base_price': 0.0,
-                    'metered_price': 0.0,
-                }
+                price_type = metadata.get('price_type')
+                
+                if not price_type:
+                    continue
+                
+                if price_type == 'base':
+                    dynamic_config[tier]['base_price_id'] = price.id
+                    dynamic_config[tier]['base_price'] = price.unit_amount / 100  # Convert from cents
+                elif price_type == 'metered':
+                    dynamic_config[tier]['metered_price_id'] = price.id
+                    dynamic_config[tier]['metered_price'] = price.unit_amount / 100  # Convert from cents
             
-            if price_type == 'base':
-                dynamic_config[tier]['base_price_id'] = price.id
-                dynamic_config[tier]['base_price'] = price.unit_amount / 100  # Convert from cents
-            elif price_type == 'metered':
-                dynamic_config[tier]['metered_price_id'] = price.id
-                dynamic_config[tier]['metered_price'] = price.unit_amount / 100  # Convert from cents
-        
         logger.info(f"Dynamic tier config loaded: {dynamic_config}")
         return dynamic_config
         
