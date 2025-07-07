@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getCurrentUsageApi } from '@/utils/api';
+import { getCurrentUsageApi, getSubscriptionApi } from '@/utils/api';
 import SubscriptionCredits from './SubscriptionCredits';
 
 interface SubscriptionUsageProps {
@@ -23,27 +23,42 @@ interface UsageData {
   paid_usage: number;
 }
 
+interface SubscriptionData {
+  subscription_status: string | null;
+  current_plan: string | null;
+}
+
 const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId }) => {
   const [usageData, setUsageData] = useState<UsageData | null>(null);
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
   useEffect(() => {
-    const fetchUsage = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await getCurrentUsageApi(organizationId);
-        if (response.data) {
-          setUsageData(response.data);
+        const [usageResponse, subscriptionResponse] = await Promise.all([
+          getCurrentUsageApi(organizationId),
+          getSubscriptionApi(organizationId)
+        ]);
+        
+        if (usageResponse.data) {
+          setUsageData(usageResponse.data);
         }
+        
+        setSubscriptionData({
+          subscription_status: subscriptionResponse.subscription_status,
+          current_plan: subscriptionResponse.current_plan
+        });
       } catch (error) {
-        console.error('Error fetching usage:', error);
+        console.error('Error fetching usage and subscription data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUsage();
+    fetchData();
   }, [organizationId]);
 
   const formatDate = (timestamp: number) => {
@@ -52,6 +67,15 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  // Check if user can purchase credits (only if not subscribed)
+  const canPurchaseCredits = () => {
+    if (!subscriptionData) return false;
+    
+    // Allow purchase if no subscription or subscription is cancelled/expired
+    const allowedStatuses = ['no_subscription', 'canceled', 'incomplete_expired'];
+    return !subscriptionData.current_plan || allowedStatuses.includes(subscriptionData.subscription_status || '');
   };
 
   if (loading) {
@@ -81,12 +105,21 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
       <div className="mb-6">
         <div className="flex justify-between items-center mb-3">
           <h4 className="text-md font-medium text-gray-700">SPU Credits</h4>
-          <button
-            onClick={() => setShowPurchaseModal(true)}
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Purchase Credits
-          </button>
+          {canPurchaseCredits() ? (
+            <button
+              onClick={() => setShowPurchaseModal(true)}
+              className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Purchase Credits
+            </button>
+          ) : (
+            <div className="text-sm text-gray-500">
+              {subscriptionData?.current_plan ? 
+                `Credits not available with ${subscriptionData.current_plan} plan` : 
+                'Credits not available'
+              }
+            </div>
+          )}
         </div>
         
         {/* Credits Progress Bar */}
@@ -132,7 +165,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
       </div>
 
       {/* Credit Purchase Modal */}
-      {showPurchaseModal && (
+      {showPurchaseModal && canPurchaseCredits() && (
         <SubscriptionCredits
           organizationId={organizationId}
           currentCredits={usageData?.credits_remaining || 0}
