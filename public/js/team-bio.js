@@ -27,10 +27,10 @@ function loadFounderBio() {
         </section>
     `;
     
-    // Insert before the contact section
-    const contactSection = document.querySelector('section:has(a[href*="mailto"])');
-    if (contactSection) {
-        contactSection.insertAdjacentHTML('beforebegin', founderBioHTML);
+    // Find the div with class="team-bio" and insert the content
+    const teamBioDiv = document.querySelector('.team-bio');
+    if (teamBioDiv) {
+        teamBioDiv.innerHTML = founderBioHTML;
     }
 }
 
