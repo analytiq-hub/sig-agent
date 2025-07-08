@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supply Chain - Bills of Lading & Commodity Reports - DocRouter Use Cases</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        .feature-card {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        .process-flow {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+        .process-step {
+            display: flex;
+            align-items: center;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+        .step-number {
+            background: #3b82f6;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <nav>
+                <div class="nav-brand">
+                    <a href="../index.html">DocRouter</a>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="../index.html">Home</a></li>
+                    <li><a href="../architecture/index.html">Architecture</a></li>
+                    <li><a href="index.html" class="active">Use Cases</a></li>
+                    <li><a href="../python-sdk/index.html">Python SDK</a></li>
+                    <li><a href="../mcp/index.html">MCP</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <section class="hero">
+                <h1>Supply Chain - Bills of Lading & Commodity Reports</h1>
+                <p>Automate supply chain document processing for improved visibility and efficiency</p>
+            </section>
+
+            <section class="content">
+                <h2>Challenge</h2>
+                <p>Supply chain operations generate massive volumes of shipping documents, bills of lading, commodity reports, and customs documentation. Manual processing of these documents is time-consuming, error-prone, and creates delays in supply chain visibility and decision-making.</p>
+
+                <h2>Solution</h2>
+                <p>DocRouter automates the extraction and processing of supply chain documents, providing real-time visibility into shipping operations and enabling faster decision-making across the supply chain.</p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h3>Bill of Lading Processing</h3>
+                        <p>Extract shipping details, cargo information, and routing data from bills of lading</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Commodity Report Analysis</h3>
+                        <p>Process commodity reports to track inventory levels and market conditions</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Customs Documentation</h3>
+                        <p>Automate processing of customs forms, declarations, and regulatory documents</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Shipping Manifest Processing</h3>
+                        <p>Extract cargo lists, weights, and container information from shipping manifests</p>
+                    </div>
+                </div>
+
+                <div class="process-flow">
+                    <h3>Supply Chain Document Processing</h3>
+                    <div class="process-step">
+                        <div class="step-number">1</div>
+                        <div>
+                            <strong>Document Intake</strong><br>
+                            Receive shipping documents, bills of lading, and commodity reports
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">2</div>
+                        <div>
+                            <strong>Document Classification</strong><br>
+                            Automatically categorize documents by type and origin
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">3</div>
+                        <div>
+                            <strong>Data Extraction</strong><br>
+                            Extract shipping details, cargo information, and routing data
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">4</div>
+                        <div>
+                            <strong>Validation & Tracking</strong><br>
+                            Validate extracted data and update tracking systems
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">5</div>
+                        <div>
+                            <strong>Integration</strong><br>
+                            Update ERP systems and supply chain management platforms
+                        </div>
+                    </div>
+                </div>
+
+                <h2>Benefits</h2>
+                <ul>
+                    <li><strong>Real-time visibility</strong> - Get instant updates on shipping status and cargo information</li>
+                    <li><strong>Reduced processing time</strong> - Cut document processing time by 80%</li>
+                    <li><strong>Improved accuracy</strong> - Eliminate manual errors in data entry</li>
+                    <li><strong>Better compliance</strong> - Ensure regulatory compliance with automated documentation</li>
+                    <li><strong>Cost savings</strong> - Reduce manual processing costs and improve operational efficiency</li>
+                </ul>
+
+                <h2>Supported Document Types</h2>
+                <ul>
+                    <li>Bills of lading and shipping documents</li>
+                    <li>Commodity reports and market analysis</li>
+                    <li>Customs declarations and forms</li>
+                    <li>Shipping manifests and cargo lists</li>
+                    <li>Container tracking documents</li>
+                    <li>Regulatory compliance documents</li>
+                </ul>
+
+                <h2>Integration Capabilities</h2>
+                <ul>
+                    <li>ERP system integration (SAP, Oracle, etc.)</li>
+                    <li>Transportation Management Systems (TMS)</li>
+                    <li>Warehouse Management Systems (WMS)</li>
+                    <li>Supply chain visibility platforms</li>
+                    <li>Custom API integrations</li>
+                </ul>
+
+                <div class="cta-section">
+                    <h2>Optimize Your Supply Chain Operations</h2>
+                    <p>Transform your supply chain document processing with DocRouter's AI-powered automation.</p>
+                    <a href="../index.html" class="cta-button">Get Started</a>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 DocRouter. Part of the docrouter.ai project.</p>
+        </footer>
+    </div>
+</body>
+</html> 

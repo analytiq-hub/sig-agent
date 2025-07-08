@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Use Cases - DocRouter</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .use-case-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        .use-case-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+        .use-case-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .use-case-card h3 {
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        .use-case-card p {
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+        .use-case-card .cta {
+            color: #3b82f6;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <nav>
+                <div class="nav-brand">
+                    <a href="../index.html">DocRouter</a>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="../index.html">Home</a></li>
+                    <li><a href="../architecture/index.html">Architecture</a></li>
+                    <li><a href="index.html" class="active">Use Cases</a></li>
+                    <li><a href="../python-sdk/index.html">Python SDK</a></li>
+                    <li><a href="../mcp/index.html">MCP</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <section class="hero">
+                <h1>DocRouter Use Cases</h1>
+                <p>Discover how DocRouter transforms document processing across industries</p>
+            </section>
+
+            <section class="content">
+                <div class="use-case-grid">
+                    <a href="insurance.html" class="use-case-card">
+                        <h3>Insurance Applications</h3>
+                        <p>Streamline insurance application processing with automated data extraction from forms, medical records, and supporting documents.</p>
+                        <span class="cta">Learn more →</span>
+                    </a>
+
+                    <a href="banking.html" class="use-case-card">
+                        <h3>Loan Applications in Banking</h3>
+                        <p>Accelerate loan processing by automatically extracting and validating information from loan applications, financial statements, and supporting documents.</p>
+                        <span class="cta">Learn more →</span>
+                    </a>
+
+                    <a href="supply-chain.html" class="use-case-card">
+                        <h3>Supply Chain - Bills of Lading & Commodity Reports</h3>
+                        <p>Automate the processing of shipping documents, bills of lading, and commodity reports to improve supply chain visibility and efficiency.</p>
+                        <span class="cta">Learn more →</span>
+                    </a>
+
+                    <a href="clinical-trials.html" class="use-case-card">
+                        <h3>Clinical Trial Invoices</h3>
+                        <p>Process complex clinical trial invoices and expense reports with high accuracy for pharmaceutical and research organizations.</p>
+                        <span class="cta">Learn more →</span>
+                    </a>
+
+                    <a href="private-equity.html" class="use-case-card">
+                        <h3>Private Equity Reports</h3>
+                        <p>Extract and analyze financial data from private equity reports, investment memos, and due diligence documents.</p>
+                        <span class="cta">Learn more →</span>
+                    </a>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 DocRouter. Part of the docrouter.ai project.</p>
+        </footer>
+    </div>
+</body>
+</html> 
