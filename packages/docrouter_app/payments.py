@@ -175,7 +175,7 @@ class PurchaseCreditsResponse(BaseModel):
 
 # Replace the multiple packages with a single credit configuration
 CREDIT_CONFIG = {
-    "price_per_credit": 0.10,  # $0.10 per credit
+    "price_per_credit": 0.015,  # $0.015 per credit
     "currency": "usd",
     "stripe_price_id": "price_single_credit",  # You'll create this in Stripe
     "min_credits": 10,  # Minimum purchase

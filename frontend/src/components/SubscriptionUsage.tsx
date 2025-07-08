@@ -40,7 +40,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [creditConfig, setCreditConfig] = useState<CreditConfig | null>(null);
-  const [purchaseAmount, setPurchaseAmount] = useState<number>(100);
+  const [purchaseAmount, setPurchaseAmount] = useState<number>(500);
   const [purchaseLoading, setPurchaseLoading] = useState(false);
 
   useEffect(() => {
@@ -63,7 +63,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
         });
 
         setCreditConfig(configResponse);
-        setPurchaseAmount(configResponse.min_credits);
+        setPurchaseAmount(500);
       } catch (error) {
         console.error('Error fetching usage and subscription data:', error);
       } finally {
