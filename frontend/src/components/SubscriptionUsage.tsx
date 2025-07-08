@@ -91,8 +91,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
     return !subscriptionData.current_plan || allowedStatuses.includes(subscriptionData.subscription_status || '');
   };
 
-  const handlePurchaseCredits = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePurchaseCredits = async () => {
     if (!creditConfig) return;
     
     if (purchaseAmount < creditConfig.min_credits || purchaseAmount > creditConfig.max_credits) {
@@ -102,6 +101,8 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
 
     setPurchaseLoading(true);
     try {
+      console.log('Starting credit purchase for:', purchaseAmount, 'credits');
+      
       const success_url = window.location.href;
       const cancel_url = window.location.href;
       const response = await purchaseCreditsApi(organizationId, { 
@@ -110,12 +111,16 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
         cancel_url 
       });
       
+      console.log('Purchase response:', response);
+      
       if (response.checkout_url) {
+        console.log('Redirecting to:', response.checkout_url);
         window.location.href = response.checkout_url;
       } else {
-        toast.error('Failed to start checkout.');
+        toast.error('Failed to start checkout - no URL received');
       }
     } catch (err: unknown) {
+      console.error('Purchase error:', err);
       let message = 'Failed to start checkout.';
       if (err instanceof Error) message = err.message;
       toast.error(message);
@@ -183,7 +188,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
         {canPurchaseCredits() && creditConfig && (
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
             <h5 className="text-sm font-medium text-blue-900 mb-3">Purchase Additional Credits</h5>
-            <form onSubmit={handlePurchaseCredits} className="space-y-3">
+            <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <div className="flex-1">
                   <label htmlFor="credit-amount" className="block text-xs font-medium text-blue-700 mb-1">
@@ -220,7 +225,8 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
                   </div>
                 </div>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handlePurchaseCredits}
                   disabled={
                     purchaseLoading || 
                     !purchaseAmount || 
@@ -236,7 +242,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
               <div className="text-xs text-blue-600">
                 Credits are used before paid usage. You currently have <span className="font-semibold">{usageData.credits_remaining}</span> credits remaining.
               </div>
-            </form>
+            </div>
           </div>
         )}
       </div>

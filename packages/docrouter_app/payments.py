@@ -1619,11 +1619,15 @@ async def purchase_credits(
 ):
     """Create a Stripe checkout session for credit purchase with dynamic pricing"""
     
+    logger.info(f"purchase_credits called for org_id: {organization_id}, credits: {request.credits}")
+    
     if not await is_organization_member(org_id=organization_id, user_id=current_user.user_id):
+        logger.error(f"Access denied for user {current_user.user_id} to org {organization_id}")
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Validate credit amount
     if request.credits < CREDIT_CONFIG["min_credits"] or request.credits > CREDIT_CONFIG["max_credits"]:
+        logger.error(f"Invalid credit amount: {request.credits}")
         raise HTTPException(
             status_code=400, 
             detail=f"Credits must be between {CREDIT_CONFIG['min_credits']} and {CREDIT_CONFIG['max_credits']}"
@@ -1632,23 +1636,25 @@ async def purchase_credits(
     # Get or create Stripe customer
     stripe_customer = await get_payments_customer(organization_id)
     if not stripe_customer:
+        logger.info(f"No existing Stripe customer for org {organization_id}, creating one")
         await sync_payments_customer(organization_id)
         stripe_customer = await get_payments_customer(organization_id)
     
     if not stripe_customer:
+        logger.error(f"Failed to create Stripe customer for org {organization_id}")
         raise HTTPException(status_code=500, detail="Failed to create Stripe customer")
+    
+    logger.info(f"Using Stripe customer: {stripe_customer.id}")
     
     try:
         # Calculate total amount in dollars
         total_amount_usd = request.credits * CREDIT_CONFIG["price_per_credit"]
-        
-        # Convert to cents for Stripe
         amount_cents = int(total_amount_usd * 100)
-
-        tier_config = await get_tier_config(organization_id)
-        product_id = tier_config["product_id"]
         
+        logger.info(f"Calculated amount: ${total_amount_usd} ({amount_cents} cents)")
+
         # Create Stripe checkout session with dynamic pricing
+        # Use product_data instead of product to create a new product on-the-fly
         session = await StripeAsync._run_in_threadpool(
             stripe.checkout.Session.create,
             customer=stripe_customer.id,
@@ -1656,11 +1662,14 @@ async def purchase_credits(
             line_items=[{
                 'price_data': {
                     'currency': CREDIT_CONFIG["currency"],
-                    'product': product_id,
                     'unit_amount': amount_cents,
                     'product_data': {
                         'name': f'{request.credits} SPU Credits',
-                        'description': f'Purchase {request.credits} SPU credits (${total_amount_usd:.2f})'
+                        'description': f'Purchase {request.credits} SPU credits (${total_amount_usd:.2f})',
+                        'metadata': {
+                            'type': 'spu_credits',
+                            'credits': str(request.credits)
+                        }
                     }
                 },
                 'quantity': 1,
@@ -1672,10 +1681,12 @@ async def purchase_credits(
                 'org_id': organization_id,
                 'credits': str(request.credits),
                 'user_id': current_user.user_id,
-                'spu_amount': str(request.credits),  # For consistency with webhook
-                'customer_id': organization_id  # Using org_id as customer_id
+                'spu_amount': str(request.credits),
+                'customer_id': organization_id
             }
         )
+        
+        logger.info(f"Created Stripe checkout session: {session.id}, URL: {session.url}")
         
         return PurchaseCreditsResponse(
             checkout_url=session.url,
@@ -1684,7 +1695,7 @@ async def purchase_credits(
         
     except Exception as e:
         logger.error(f"Error creating checkout session: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create checkout session")
+        raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
 
 async def credit_customer_account_from_session(session: Dict[str, Any]):
     """Credit customer account after successful Checkout session"""
