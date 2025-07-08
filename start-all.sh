@@ -82,7 +82,7 @@ cleanup_uvicorn
 run_with_color "uvicorn docrouter_app.main:app --reload --host 0.0.0.0 --port 8000" "$RED" "FASTAPI" "packages"
 run_with_color "python worker.py" "$GREEN" "WORKER" "packages/worker"
 run_with_color "npm run dev" "$MAGENTA" "NEXTJS" "frontend"
-run_with_color "python -m http.server 8080" "$BLUE" "HTTP_SERVER" "public"
+run_with_color "npx http-server -p 8080 --cors -c-1" "$BLUE" "HTTP_SERVER" "public"
 
 # Wait for any process to exit
 while true; do
