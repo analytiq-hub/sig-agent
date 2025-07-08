@@ -155,15 +155,6 @@ class SubscriptionResponse(BaseModel):
 class CreditUpdate(BaseModel):
     amount: int
 
-# Add these new models
-class CreditPackage(BaseModel):
-    package_id: str
-    name: str
-    credits: int
-    price: float  # Price in dollars
-    currency: str = "usd"
-    stripe_price_id: str
-
 class PurchaseCreditsRequest(BaseModel):
     credits: int = Field(ge=10, le=10000)  # Minimum 10, maximum 10000 credits
     success_url: str
@@ -177,9 +168,8 @@ class PurchaseCreditsResponse(BaseModel):
 CREDIT_CONFIG = {
     "price_per_credit": 0.015,  # $0.015 per credit
     "currency": "usd",
-    "stripe_price_id": "price_single_credit",  # You'll create this in Stripe
     "min_credits": 10,  # Minimum purchase
-    "max_credits": 100000  # Maximum purchase
+    "max_credits": 100000,  # Maximum purchase
 }
 
 # Add this new function to fetch pricing from Stripe
@@ -200,7 +190,8 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
         )
         
         dynamic_config = {}
-
+        product_id = None  # Track the main product ID
+        
         for tier in ["individual", "team", "enterprise"]:
             dynamic_config[tier] = {
                 'base_price_id': None,
@@ -237,7 +228,11 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
                         dynamic_config[tier]['metered_price_id'] = price.id
                         dynamic_config[tier]['metered_price'] = price_amount
             
-        logger.info(f"Dynamic tier config loaded: {dynamic_config}")
+        # Get the main product ID from the first price
+        if prices.data:
+            product_id = prices.data[0].product.id
+        
+        dynamic_config['product_id'] = product_id
         return dynamic_config
         
     except Exception as e:
@@ -255,7 +250,6 @@ async def init_payments_env():
 
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     ENV = os.getenv("ENV", "dev")
-    
     NEXTAUTH_URL = os.getenv("NEXTAUTH_URL", "http://localhost:3000")
 
     client = AsyncIOMotorClient(MONGO_URI)
@@ -1299,7 +1293,7 @@ async def deactivate_subscription(
         # Get the current subscription
         subscription = await get_subscription(stripe_customer.id)
         if not subscription:
-            raise HTTPException(status_code=404, detail=f"No active subscription found for org_id: {data.org_id}")
+            raise HTTPException(status_code=404, detail=f"No active subscription found for org_id: {organization_id}")
 
         # Cancel the subscription at period end
         await StripeAsync.subscription_modify(
@@ -1529,11 +1523,12 @@ async def webhook_received(
     elif event["type"] == "customer.subscription.deleted":
         subscription = event["data"]["object"]
         await handle_subscription_deleted(subscription)
-    
-    # Add new event handler for successful payments
-    if event["type"] == "checkout.session.completed":
+    elif event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
-        await handle_checkout_session_completed(session)
+        await credit_customer_account_from_session(session)
+    elif event["type"] == "payment_intent.succeeded":
+        payment_intent = event["data"]["object"]
+        await credit_customer_account_from_intent(payment_intent)
     
     # Mark event as processed
     await stripe_events.update_one(
@@ -1622,7 +1617,7 @@ async def purchase_credits(
     request: PurchaseCreditsRequest,
     current_user: User = Depends(get_current_user)
 ):
-    """Create a Stripe checkout session for credit purchase"""
+    """Create a Stripe checkout session for credit purchase with dynamic pricing"""
     
     if not await is_organization_member(org_id=organization_id, user_id=current_user.user_id):
         raise HTTPException(status_code=403, detail="Access denied")
@@ -1644,14 +1639,31 @@ async def purchase_credits(
         raise HTTPException(status_code=500, detail="Failed to create Stripe customer")
     
     try:
-        # Create Stripe checkout session with quantity
+        # Calculate total amount in dollars
+        total_amount_usd = request.credits * CREDIT_CONFIG["price_per_credit"]
+        
+        # Convert to cents for Stripe
+        amount_cents = int(total_amount_usd * 100)
+
+        tier_config = await get_tier_config(organization_id)
+        product_id = tier_config["product_id"]
+        
+        # Create Stripe checkout session with dynamic pricing
         session = await StripeAsync._run_in_threadpool(
             stripe.checkout.Session.create,
             customer=stripe_customer.id,
             payment_method_types=['card'],
             line_items=[{
-                'price': CREDIT_CONFIG["stripe_price_id"],
-                'quantity': request.credits,
+                'price_data': {
+                    'currency': CREDIT_CONFIG["currency"],
+                    'product': product_id,
+                    'unit_amount': amount_cents,
+                    'product_data': {
+                        'name': f'{request.credits} SPU Credits',
+                        'description': f'Purchase {request.credits} SPU credits (${total_amount_usd:.2f})'
+                    }
+                },
+                'quantity': 1,
             }],
             mode='payment',
             success_url=request.success_url,
@@ -1659,7 +1671,9 @@ async def purchase_credits(
             metadata={
                 'org_id': organization_id,
                 'credits': str(request.credits),
-                'user_id': current_user.user_id
+                'user_id': current_user.user_id,
+                'spu_amount': str(request.credits),  # For consistency with webhook
+                'customer_id': organization_id  # Using org_id as customer_id
             }
         )
         
@@ -1672,15 +1686,15 @@ async def purchase_credits(
         logger.error(f"Error creating checkout session: {e}")
         raise HTTPException(status_code=500, detail="Failed to create checkout session")
 
-async def handle_checkout_session_completed(session: Dict[str, Any]):
-    """Handle successful credit purchase"""
+async def credit_customer_account_from_session(session: Dict[str, Any]):
+    """Credit customer account after successful Checkout session"""
     try:
         metadata = session.get("metadata", {})
         org_id = metadata.get("org_id")
         credits = int(metadata.get("credits", 0))
         
         if not org_id or not credits:
-            logger.error(f"Missing metadata in checkout session: {session.id}")
+            logger.error(f"Missing metadata in checkout session: {session['id']}")
             return
         
         # Add credits to the organization
@@ -1695,8 +1709,35 @@ async def handle_checkout_session_completed(session: Dict[str, Any]):
             {"$inc": {"spu_credits": credits}}
         )
         
-        logger.info(f"Added {credits} credits to organization {org_id} from purchase {session.id}")
+        logger.info(f"Credited {credits} SPUs to organization {org_id} from checkout session {session['id']}")
         
     except Exception as e:
-        logger.error(f"Error processing credit purchase: {e}")
-        logger.error(f"Error processing credit purchase: {e}")
+        logger.error(f"Error processing checkout session completion: {e}")
+
+async def credit_customer_account_from_intent(payment_intent: Dict[str, Any]):
+    """Credit customer account after successful Payment Intent"""
+    try:
+        metadata = payment_intent.get("metadata", {})
+        org_id = metadata.get("org_id")
+        credits = int(metadata.get("credits", 0))
+        
+        if not org_id or not credits:
+            logger.error(f"Missing metadata in payment intent: {payment_intent['id']}")
+            return
+        
+        # Add credits to the organization
+        stripe_customer = await stripe_customers.find_one({"org_id": org_id})
+        if not stripe_customer:
+            logger.error(f"No stripe customer found for org: {org_id}")
+            return
+        
+        await ensure_spu_credits(stripe_customer)
+        await stripe_customers.update_one(
+            {"_id": stripe_customer["_id"]},
+            {"$inc": {"spu_credits": credits}}
+        )
+        
+        logger.info(f"Credited {credits} SPUs to organization {org_id} from payment intent {payment_intent['id']}")
+        
+    except Exception as e:
+        logger.error(f"Error processing payment intent success: {e}")
