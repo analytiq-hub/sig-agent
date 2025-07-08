@@ -9,6 +9,7 @@ VENV_PATH="${PROJECT_ROOT}/.venv"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 MAGENTA='\033[0;35m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Array to store background PIDs
@@ -81,6 +82,7 @@ cleanup_uvicorn
 run_with_color "uvicorn docrouter_app.main:app --reload --host 0.0.0.0 --port 8000" "$RED" "FASTAPI" "packages"
 run_with_color "python worker.py" "$GREEN" "WORKER" "packages/worker"
 run_with_color "npm run dev" "$MAGENTA" "NEXTJS" "frontend"
+run_with_color "python -m http.server 8080" "$BLUE" "HTTP_SERVER" "public"
 
 # Wait for any process to exit
 while true; do
