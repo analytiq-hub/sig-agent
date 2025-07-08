@@ -21,10 +21,47 @@
                        class="nav-link px-3 py-2 rounded-md text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200">
                         Launch Application
                     </a>
-                    <a href="{{rootPath}}use-cases" 
-                       class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                        Use Cases
-                    </a>
+                    
+                    <!-- Use Cases Dropdown -->
+                    <div class="relative inline-block dropdown-container">
+                        <button type="button" 
+                                class="nav-link dropdown-button px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 inline-flex items-center">
+                            Use Cases
+                            <svg class="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div class="dropdown-menu hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                            <a href="{{rootPath}}use-cases" 
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                Overview
+                            </a>
+                            <a href="{{rootPath}}use-cases/banking" 
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                Banking
+                            </a>
+                            <a href="{{rootPath}}use-cases/clinical-trials" 
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                Clinical Trials
+                            </a>
+                            <a href="{{rootPath}}use-cases/dme" 
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                Durable Medical Equipment
+                            </a>
+                            <a href="{{rootPath}}use-cases/insurance" 
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                Insurance
+                            </a>
+                            <a href="{{rootPath}}use-cases/private-equity" 
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                Private Equity
+                            </a>
+                            <a href="{{rootPath}}use-cases/supply-chain" 
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                Supply Chain
+                            </a>
+                        </div>
+                    </div>
                     
                     <!-- Documentation Dropdown -->
                     <div class="relative inline-block dropdown-container">
@@ -90,10 +127,47 @@
                class="nav-link block px-3 py-2 rounded-md text-base font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200">
                 Launch Application
             </a>
-            <a href="{{rootPath}}use-cases" 
-               class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-                Use Cases
-            </a>
+            
+            <!-- Mobile Use Cases Dropdown -->
+            <div class="mobile-dropdown">
+                <button type="button" 
+                        class="mobile-dropdown-button w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 flex justify-between items-center">
+                    Use Cases
+                    <svg class="h-4 w-4 transform transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div class="mobile-dropdown-content hidden pl-4 space-y-1 mt-1 bg-gray-50 rounded-md">
+                    <a href="{{rootPath}}use-cases" 
+                       class="block px-3 py-2 rounded-md text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        Overview
+                    </a>
+                    <a href="{{rootPath}}use-cases/banking" 
+                       class="block px-3 py-2 rounded-md text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        Banking
+                    </a>
+                    <a href="{{rootPath}}use-cases/clinical-trials" 
+                       class="block px-3 py-2 rounded-md text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        Clinical Trials
+                    </a>
+                    <a href="{{rootPath}}use-cases/dme" 
+                       class="block px-3 py-2 rounded-md text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        Durable Medical Equipment
+                    </a>
+                    <a href="{{rootPath}}use-cases/insurance" 
+                       class="block px-3 py-2 rounded-md text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        Insurance
+                    </a>
+                    <a href="{{rootPath}}use-cases/private-equity" 
+                       class="block px-3 py-2 rounded-md text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        Private Equity
+                    </a>
+                    <a href="{{rootPath}}use-cases/supply-chain" 
+                       class="block px-3 py-2 rounded-md text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                        Supply Chain
+                    </a>
+                </div>
+            </div>
             
             <!-- Mobile Documentation Dropdown -->
             <div class="mobile-dropdown">
