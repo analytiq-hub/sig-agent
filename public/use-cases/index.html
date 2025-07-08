@@ -7,39 +7,6 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="../css/styles.css" rel="stylesheet">
     <script src="../js/load-nav.js"></script>
-    <style>
-        .use-case-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin: 2rem 0;
-        }
-        .use-case-card {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 1.5rem;
-            transition: transform 0.2s, box-shadow 0.2s;
-            text-decoration: none;
-            color: inherit;
-        }
-        .use-case-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-        .use-case-card h3 {
-            color: #1f2937;
-            margin-bottom: 0.5rem;
-        }
-        .use-case-card p {
-            color: #6b7280;
-            margin-bottom: 1rem;
-        }
-        .use-case-card .cta {
-            color: #3b82f6;
-            font-weight: 500;
-        }
-    </style>
 </head>
 <body>
     <div class="container">
@@ -52,36 +19,91 @@
             </section>
 
             <section class="content">
-                <div class="use-case-grid">
-                    <a href="insurance/" class="use-case-card">
-                        <h3>Insurance Applications</h3>
-                        <p>Streamline insurance application processing with automated data extraction from forms, medical records, and supporting documents.</p>
-                        <span class="cta">Learn more →</span>
-                    </a>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Insurance Applications -->
+                    <div class="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mr-4">
+                                <span class="text-xl">📋</span>
+                            </div>
+                            <h3 class="text-xl font-medium text-gray-900">Insurance Applications</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">
+                            Process handwritten and typed insurance applications from email. Extract customer data and integrate with your AMS system.
+                        </p>
+                        <div class="text-sm text-gray-500 mb-4">
+                            <strong>Problem:</strong> 50% handwritten applications, manual data entry into Ellis AMS
+                        </div>
+                        <a href="insurance/" class="text-blue-600 hover:text-blue-800 font-medium">Learn more →</a>
+                    </div>
 
-                    <a href="banking/" class="use-case-card">
-                        <h3>Loan Applications in Banking</h3>
-                        <p>Accelerate loan processing by automatically extracting and validating information from loan applications, financial statements, and supporting documents.</p>
-                        <span class="cta">Learn more →</span>
-                    </a>
+                    <!-- Banking/Loan Applications -->
+                    <div class="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mr-4">
+                                <span class="text-xl">💰</span>
+                            </div>
+                            <h3 class="text-xl font-medium text-gray-900">Loan Applications in Banking</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">
+                            Accelerate loan processing by automatically extracting and validating information from loan applications, financial statements, and supporting documents.
+                        </p>
+                        <div class="text-sm text-gray-500 mb-4">
+                            <strong>Problem:</strong> Manual verification of complex financial documents
+                        </div>
+                        <a href="banking/" class="text-blue-600 hover:text-blue-800 font-medium">Learn more →</a>
+                    </div>
 
-                    <a href="supply-chain/" class="use-case-card">
-                        <h3>Supply Chain - Bills of Lading & Commodity Reports</h3>
-                        <p>Automate the processing of shipping documents, bills of lading, and commodity reports to improve supply chain visibility and efficiency.</p>
-                        <span class="cta">Learn more →</span>
-                    </a>
+                    <!-- Supply Chain -->
+                    <div class="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mr-4">
+                                <span class="text-xl">📦</span>
+                            </div>
+                            <h3 class="text-xl font-medium text-gray-900">Supply Chain - Bills of Lading & Commodity Reports</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">
+                            Automate the processing of shipping documents, bills of lading, and commodity reports to improve supply chain visibility and efficiency.
+                        </p>
+                        <div class="text-sm text-gray-500 mb-4">
+                            <strong>Problem:</strong> Manual verification of manifest data against physical inventory
+                        </div>
+                        <a href="supply-chain/" class="text-blue-600 hover:text-blue-800 font-medium">Learn more →</a>
+                    </div>
 
-                    <a href="clinical-trials/" class="use-case-card">
-                        <h3>Clinical Trial Invoices</h3>
-                        <p>Process complex clinical trial invoices and expense reports with high accuracy for pharmaceutical and research organizations.</p>
-                        <span class="cta">Learn more →</span>
-                    </a>
+                    <!-- Clinical Trials -->
+                    <div class="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mr-4">
+                                <span class="text-xl">🧪</span>
+                            </div>
+                            <h3 class="text-xl font-medium text-gray-900">Clinical Trial Invoices</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">
+                            Process complex clinical trial invoices and expense reports with high accuracy for pharmaceutical and research organizations.
+                        </p>
+                        <div class="text-sm text-gray-500 mb-4">
+                            <strong>Problem:</strong> Manual verification of complex contract terms
+                        </div>
+                        <a href="clinical-trials/" class="text-blue-600 hover:text-blue-800 font-medium">Learn more →</a>
+                    </div>
 
-                    <a href="private-equity/" class="use-case-card">
-                        <h3>Private Equity Reports</h3>
-                        <p>Extract and analyze financial data from private equity reports, investment memos, and due diligence documents.</p>
-                        <span class="cta">Learn more →</span>
-                    </a>
+                    <!-- Private Equity -->
+                    <div class="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mr-4">
+                                <span class="text-xl">📊</span>
+                            </div>
+                            <h3 class="text-xl font-medium text-gray-900">Private Equity Reports</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">
+                            Extract and analyze financial data from private equity reports, investment memos, and due diligence documents.
+                        </p>
+                        <div class="text-sm text-gray-500 mb-4">
+                            <strong>Problem:</strong> Manual extraction consuming 20-40% of team time
+                        </div>
+                        <a href="private-equity/" class="text-blue-600 hover:text-blue-800 font-medium">Learn more →</a>
+                    </div>
                 </div>
             </section>
         </main>
