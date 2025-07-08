@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insurance Applications - DocRouter Use Cases</title>
+    <link rel="stylesheet" href="../../css/styles.css">
+    <style>
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        .feature-card {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        .process-flow {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+        .process-step {
+            display: flex;
+            align-items: center;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+        .step-number {
+            background: #3b82f6;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <nav>
+                <div class="nav-brand">
+                    <a href="../../index.html">DocRouter</a>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="../../index.html">Home</a></li>
+                    <li><a href="../../architecture/index.html">Architecture</a></li>
+                    <li><a href="../index.html" class="active">Use Cases</a></li>
+                    <li><a href="../../python-sdk/index.html">Python SDK</a></li>
+                    <li><a href="../../mcp/index.html">MCP</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <section class="hero">
+                <h1>Insurance Applications</h1>
+                <p>Transform insurance application processing with AI-powered document analysis</p>
+            </section>
+
+            <section class="content">
+                <h2>Challenge</h2>
+                <p>Insurance companies process thousands of applications daily, each requiring manual review of multiple document types including medical records, financial statements, and supporting documentation. This manual process is time-consuming, error-prone, and delays policy issuance.</p>
+
+                <h2>Solution</h2>
+                <p>DocRouter automates the extraction and validation of data from insurance applications, enabling faster processing times and improved accuracy while reducing manual workload.</p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h3>Medical Record Analysis</h3>
+                        <p>Extract key medical information from complex medical records and reports</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Financial Document Processing</h3>
+                        <p>Automatically extract financial data from bank statements, tax returns, and income verification</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Form Data Extraction</h3>
+                        <p>Process structured and unstructured data from various insurance application forms</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Risk Assessment Support</h3>
+                        <p>Provide structured data for underwriting decisions and risk evaluation</p>
+                    </div>
+                </div>
+
+                <div class="process-flow">
+                    <h3>Processing Workflow</h3>
+                    <div class="process-step">
+                        <div class="step-number">1</div>
+                        <div>
+                            <strong>Document Upload</strong><br>
+                            Upload insurance applications, medical records, and supporting documents
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">2</div>
+                        <div>
+                            <strong>OCR Processing</strong><br>
+                            Extract text from scanned documents and images
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">3</div>
+                        <div>
+                            <strong>Data Extraction</strong><br>
+                            Extract structured data using custom schemas and prompts
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">4</div>
+                        <div>
+                            <strong>Validation & Review</strong><br>
+                            Validate extracted data and flag items for human review
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">5</div>
+                        <div>
+                            <strong>Integration</strong><br>
+                            Export structured data to insurance management systems
+                        </div>
+                    </div>
+                </div>
+
+                <h2>Benefits</h2>
+                <ul>
+                    <li><strong>80% faster processing times</strong> - Reduce application review time from days to hours</li>
+                    <li><strong>95% accuracy improvement</strong> - Minimize manual errors in data extraction</li>
+                    <li><strong>Scalable operations</strong> - Handle increased application volumes without additional staff</li>
+                    <li><strong>Compliance ready</strong> - Maintain audit trails and regulatory compliance</li>
+                    <li><strong>Cost reduction</strong> - Lower operational costs through automation</li>
+                </ul>
+
+                <div class="cta-section">
+                    <h2>Ready to Transform Your Insurance Processing?</h2>
+                    <p>Get started with DocRouter today and see the difference AI-powered document processing can make for your insurance operations.</p>
+                    <a href="../../index.html" class="cta-button">Get Started</a>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 DocRouter. Part of the docrouter.ai project.</p>
+        </footer>
+    </div>
+</body>
+</html> 

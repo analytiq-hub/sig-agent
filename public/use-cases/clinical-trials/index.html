@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Trial Invoices - DocRouter Use Cases</title>
+    <link rel="stylesheet" href="../../css/styles.css">
+    <style>
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        .feature-card {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        .process-flow {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+        .process-step {
+            display: flex;
+            align-items: center;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+        .step-number {
+            background: #3b82f6;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <nav>
+                <div class="nav-brand">
+                    <a href="../../index.html">DocRouter</a>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="../../index.html">Home</a></li>
+                    <li><a href="../../architecture/index.html">Architecture</a></li>
+                    <li><a href="../index.html" class="active">Use Cases</a></li>
+                    <li><a href="../../python-sdk/index.html">Python SDK</a></li>
+                    <li><a href="../../mcp/index.html">MCP</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <section class="hero">
+                <h1>Clinical Trial Invoices</h1>
+                <p>Streamline clinical trial expense processing with intelligent document analysis</p>
+            </section>
+
+            <section class="content">
+                <h2>Challenge</h2>
+                <p>Clinical trial operations generate complex invoices and expense reports from multiple vendors, sites, and investigators. Manual processing of these documents is time-consuming, error-prone, and can delay trial timelines and budget management. Pharmaceutical companies and CROs need efficient ways to process and validate clinical trial expenses.</p>
+
+                <h2>Solution</h2>
+                <p>DocRouter automates the processing of clinical trial invoices and expense reports, providing accurate data extraction and validation for better budget management and regulatory compliance.</p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h3>Invoice Processing</h3>
+                        <p>Extract line items, amounts, and vendor information from complex clinical trial invoices</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Expense Report Analysis</h3>
+                        <p>Process investigator and site expense reports with detailed categorization</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Budget Tracking</h3>
+                        <p>Automatically categorize expenses and track against trial budgets</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Regulatory Compliance</h3>
+                        <p>Ensure compliance with clinical trial financial reporting requirements</p>
+                    </div>
+                </div>
+
+                <div class="process-flow">
+                    <h3>Clinical Trial Expense Processing</h3>
+                    <div class="process-step">
+                        <div class="step-number">1</div>
+                        <div>
+                            <strong>Document Receipt</strong><br>
+                            Receive invoices and expense reports from trial sites and vendors
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">2</div>
+                        <div>
+                            <strong>Document Classification</strong><br>
+                            Automatically categorize documents by type and trial site
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">3</div>
+                        <div>
+                            <strong>Data Extraction</strong><br>
+                            Extract expense details, line items, and vendor information
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">4</div>
+                        <div>
+                            <strong>Budget Validation</strong><br>
+                            Validate expenses against trial budgets and approved categories
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">5</div>
+                        <div>
+                            <strong>Approval Workflow</strong><br>
+                            Route validated expenses for approval and payment processing
+                        </div>
+                    </div>
+                </div>
+
+                <h2>Benefits</h2>
+                <ul>
+                    <li><strong>Faster processing</strong> - Reduce invoice processing time by 75%</li>
+                    <li><strong>Improved accuracy</strong> - Minimize manual errors in expense categorization</li>
+                    <li><strong>Better budget control</strong> - Real-time tracking of trial expenses against budgets</li>
+                    <li><strong>Enhanced compliance</strong> - Maintain detailed audit trails for regulatory requirements</li>
+                    <li><strong>Cost savings</strong> - Reduce administrative overhead in clinical trial operations</li>
+                </ul>
+
+                <h2>Supported Document Types</h2>
+                <ul>
+                    <li>Clinical trial invoices and receipts</li>
+                    <li>Investigator expense reports</li>
+                    <li>Site expense documentation</li>
+                    <li>Vendor invoices and statements</li>
+                    <li>Travel and accommodation receipts</li>
+                    <li>Equipment and supply invoices</li>
+                </ul>
+
+                <h2>Integration Capabilities</h2>
+                <ul>
+                    <li>Clinical Trial Management Systems (CTMS)</li>
+                    <li>Financial management systems</li>
+                    <li>ERP and accounting platforms</li>
+                    <li>Regulatory reporting systems</li>
+                    <li>Custom clinical trial platforms</li>
+                </ul>
+
+                <div class="cta-section">
+                    <h2>Optimize Your Clinical Trial Operations</h2>
+                    <p>Join leading pharmaceutical companies and CROs using DocRouter to streamline clinical trial expense processing.</p>
+                    <a href="../../index.html" class="cta-button">Get Started</a>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 DocRouter. Part of the docrouter.ai project.</p>
+        </footer>
+    </div>
+</body>
+</html> 
