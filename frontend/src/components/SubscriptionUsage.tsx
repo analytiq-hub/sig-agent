@@ -192,8 +192,16 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
                   <input
                     type="number"
                     id="credit-amount"
-                    value={purchaseAmount}
-                    onChange={e => setPurchaseAmount(parseInt(e.target.value) || creditConfig.min_credits)}
+                    value={purchaseAmount || ''}
+                    onChange={e => {
+                      const value = e.target.value;
+                      if (value === '') {
+                        setPurchaseAmount(0);
+                      } else {
+                        const numValue = parseInt(value);
+                        setPurchaseAmount(isNaN(numValue) ? 0 : numValue);
+                      }
+                    }}
                     min={creditConfig.min_credits}
                     max={creditConfig.max_credits}
                     className="w-full px-3 py-2 text-sm border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -207,11 +215,19 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
                 </div>
                 <div className="text-xs text-blue-600">
                   <div>Total:</div>
-                  <div className="font-bold text-blue-800">{(purchaseAmount * creditConfig.price_per_credit).toFixed(2)} {creditConfig.currency.toUpperCase()}</div>
+                  <div className="font-bold text-blue-800">
+                    {purchaseAmount > 0 ? (purchaseAmount * creditConfig.price_per_credit).toFixed(2) : '0.00'} {creditConfig.currency.toUpperCase()}
+                  </div>
                 </div>
                 <button
                   type="submit"
-                  disabled={purchaseLoading || purchaseAmount < creditConfig.min_credits || purchaseAmount > creditConfig.max_credits}
+                  disabled={
+                    purchaseLoading || 
+                    !purchaseAmount || 
+                    purchaseAmount <= 0 || 
+                    purchaseAmount < creditConfig.min_credits || 
+                    purchaseAmount > creditConfig.max_credits
+                  }
                   className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-200 disabled:bg-blue-300 disabled:cursor-not-allowed"
                 >
                   {purchaseLoading ? 'Processing...' : 'Purchase'}

@@ -179,7 +179,7 @@ CREDIT_CONFIG = {
     "currency": "usd",
     "stripe_price_id": "price_single_credit",  # You'll create this in Stripe
     "min_credits": 10,  # Minimum purchase
-    "max_credits": 10000  # Maximum purchase
+    "max_credits": 100000  # Maximum purchase
 }
 
 # Add this new function to fetch pricing from Stripe
