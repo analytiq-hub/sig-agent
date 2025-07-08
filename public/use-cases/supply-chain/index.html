@@ -7,165 +7,258 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="../../css/styles.css" rel="stylesheet">
     <script src="../../js/load-nav.js"></script>
-    <style>
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
-        }
-        .feature-card {
-            background: #f8fafc;
-            padding: 1.5rem;
-            border-radius: 8px;
-            border-left: 4px solid #3b82f6;
-        }
-        .process-flow {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 2rem;
-            margin: 2rem 0;
-        }
-        .process-step {
-            display: flex;
-            align-items: center;
-            margin: 1rem 0;
-            padding: 1rem;
-            background: #f9fafb;
-            border-radius: 6px;
-        }
-        .step-number {
-            background: #3b82f6;
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1rem;
-            font-weight: bold;
-        }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div id="nav-container" class="sticky top-0 z-50"></div>
+<body class="bg-gray-50">
+    <div id="nav-container" class="sticky top-0 z-50"></div>
+
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-4 md:py-12">
+        <!-- Hero Section -->
+        <header class="text-center md:mb-12 mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                Supply Chain - Bills of Lading & Commodity Reports
+            </h1>
+            <div class="text-xl md:text-2xl text-gray-600 mb-8">
+                <p>Automate supply chain document processing for improved visibility and efficiency</p>
+            </div>
+        </header>
 
         <main>
-            <section class="hero">
-                <h1>Supply Chain - Bills of Lading & Commodity Reports</h1>
-                <p>Automate supply chain document processing for improved visibility and efficiency</p>
+            <!-- Problem Statement Section -->
+            <section class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-3xl font-semibold text-gray-900 mb-6 text-center">The Challenge</h2>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                            <span class="text-2xl">📦</span>
+                        </div>
+                        <h3 class="text-xl font-medium text-gray-900 mb-2">Document Volume</h3>
+                        <p class="text-gray-600">Massive volumes of shipping documents, bills of lading, and commodity reports</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                            <span class="text-2xl">⏰</span>
+                        </div>
+                        <h3 class="text-xl font-medium text-gray-900 mb-2">Processing Delays</h3>
+                        <p class="text-gray-600">Manual processing creates delays in supply chain visibility and decision-making</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                            <span class="text-2xl">❌</span>
+                        </div>
+                        <h3 class="text-xl font-medium text-gray-900 mb-2">Error-Prone</h3>
+                        <p class="text-gray-600">Manual data entry leads to errors and compliance issues</p>
+                    </div>
+                </div>
             </section>
 
-            <section class="content">
-                <h2>Challenge</h2>
-                <p>Supply chain operations generate massive volumes of shipping documents, bills of lading, commodity reports, and customs documentation. Manual processing of these documents is time-consuming, error-prone, and creates delays in supply chain visibility and decision-making.</p>
-
-                <h2>Solution</h2>
-                <p>DocRouter automates the extraction and processing of supply chain documents, providing real-time visibility into shipping operations and enabling faster decision-making across the supply chain.</p>
-
-                <div class="feature-grid">
-                    <div class="feature-card">
-                        <h3>Bill of Lading Processing</h3>
-                        <p>Extract shipping details, cargo information, and routing data from bills of lading</p>
-                    </div>
-                    <div class="feature-card">
-                        <h3>Commodity Report Analysis</h3>
-                        <p>Process commodity reports to track inventory levels and market conditions</p>
-                    </div>
-                    <div class="feature-card">
-                        <h3>Customs Documentation</h3>
-                        <p>Automate processing of customs forms, declarations, and regulatory documents</p>
-                    </div>
-                    <div class="feature-card">
-                        <h3>Shipping Manifest Processing</h3>
-                        <p>Extract cargo lists, weights, and container information from shipping manifests</p>
-                    </div>
-                </div>
-
-                <div class="process-flow">
-                    <h3>Supply Chain Document Processing</h3>
-                    <div class="process-step">
-                        <div class="step-number">1</div>
-                        <div>
-                            <strong>Document Intake</strong><br>
-                            Receive shipping documents, bills of lading, and commodity reports
+            <!-- Solution Section -->
+            <section class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-lg p-8 mb-12">
+                <div class="text-center">
+                    <h2 class="text-3xl font-semibold text-white mb-6">How DocRouter Solves It</h2>
+                    <p class="text-xl text-blue-100 mb-8">
+                        Automated extraction and processing of supply chain documents for real-time visibility
+                    </p>
+                    <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                        <div class="bg-white bg-opacity-10 rounded-lg p-6">
+                            <h3 class="text-xl font-medium text-white mb-3">Document Processing</h3>
+                            <ul class="text-blue-100 space-y-2 text-left">
+                                <li>• Bills of lading and shipping documents</li>
+                                <li>• Commodity reports and market analysis</li>
+                                <li>• Customs declarations and forms</li>
+                                <li>• Shipping manifests and cargo lists</li>
+                            </ul>
                         </div>
-                    </div>
-                    <div class="process-step">
-                        <div class="step-number">2</div>
-                        <div>
-                            <strong>Document Classification</strong><br>
-                            Automatically categorize documents by type and origin
-                        </div>
-                    </div>
-                    <div class="process-step">
-                        <div class="step-number">3</div>
-                        <div>
-                            <strong>Data Extraction</strong><br>
-                            Extract shipping details, cargo information, and routing data
-                        </div>
-                    </div>
-                    <div class="process-step">
-                        <div class="step-number">4</div>
-                        <div>
-                            <strong>Validation & Tracking</strong><br>
-                            Validate extracted data and update tracking systems
-                        </div>
-                    </div>
-                    <div class="process-step">
-                        <div class="step-number">5</div>
-                        <div>
-                            <strong>Integration</strong><br>
-                            Update ERP systems and supply chain management platforms
+                        <div class="bg-white bg-opacity-10 rounded-lg p-6">
+                            <h3 class="text-xl font-medium text-white mb-3">Automated Workflow</h3>
+                            <ul class="text-blue-100 space-y-2 text-left">
+                                <li>• Real-time data extraction and validation</li>
+                                <li>• Integration with ERP and TMS systems</li>
+                                <li>• Automated tracking and status updates</li>
+                                <li>• Compliance documentation and audit trails</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
+            </section>
 
-                <h2>Benefits</h2>
-                <ul>
-                    <li><strong>Real-time visibility</strong> - Get instant updates on shipping status and cargo information</li>
-                    <li><strong>Reduced processing time</strong> - Cut document processing time by 80%</li>
-                    <li><strong>Improved accuracy</strong> - Eliminate manual errors in data entry</li>
-                    <li><strong>Better compliance</strong> - Ensure regulatory compliance with automated documentation</li>
-                    <li><strong>Cost savings</strong> - Reduce manual processing costs and improve operational efficiency</li>
-                </ul>
+            <!-- Detailed Use Case Section -->
+            <section class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-3xl font-semibold text-gray-900 mb-6 text-center">Detailed Use Case</h2>
+                
+                <div class="space-y-6 max-w-4xl mx-auto">
+                    <div class="border border-gray-200 rounded-lg">
+                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg" 
+                                onclick="toggleUseCase('supply-chain-workflow')">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-medium text-white">Supply Chain Document Processing Workflow</h3>
+                                <svg class="w-5 h-5 transform transition-transform duration-200 text-white" 
+                                     id="supply-chain-workflow-arrow"
+                                     fill="none" 
+                                     viewBox="0 0 24 24" 
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" 
+                                          stroke-linejoin="round" 
+                                          stroke-width="2" 
+                                          d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </button>
+                        <div class="hidden px-6 pb-4 mt-4" id="supply-chain-workflow-content">
+                            <div class="prose prose-blue max-w-none">
+                                <p class="text-gray-600 mb-4">
+                                    A global logistics company receives thousands of shipping documents daily, including bills of lading, 
+                                    commodity reports, and customs documentation. Each document contains critical information about cargo, 
+                                    routing, and compliance requirements that must be processed accurately and quickly.
+                                </p>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Document Processing</h4>
+                                <p class="text-gray-600 mb-4">
+                                    DocRouter.AI processes multiple document types simultaneously, extracting structured data while 
+                                    maintaining document integrity for compliance purposes. The system handles various formats and 
+                                    languages commonly found in international shipping.
+                                </p>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Key Data Extraction</h4>
+                                <ul class="list-disc list-inside text-gray-600 mb-4">
+                                    <li>Container and seal numbers</li>
+                                    <li>Shipping dates and route information</li>
+                                    <li>Item descriptions and quantities</li>
+                                    <li>Weights and dimensions</li>
+                                    <li>Special handling instructions</li>
+                                    <li>Customs classification codes</li>
+                                </ul>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Automated Validation</h4>
+                                <ul class="list-disc list-inside text-gray-600 mb-4">
+                                    <li>Data consistency checks across multiple documents</li>
+                                    <li>Compliance verification with regulatory requirements</li>
+                                    <li>Route optimization and capacity planning</li>
+                                    <li>Real-time tracking integration</li>
+                                </ul>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Integration Benefits</h4>
+                                <ul class="list-disc list-inside text-gray-600">
+                                    <li>Direct integration with ERP systems (SAP, Oracle)</li>
+                                    <li>Transportation Management Systems (TMS) connectivity</li>
+                                    <li>Warehouse Management Systems (WMS) integration</li>
+                                    <li>Real-time supply chain visibility platforms</li>
+                                    <li>Custom API integrations for specialized systems</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
 
-                <h2>Supported Document Types</h2>
-                <ul>
-                    <li>Bills of lading and shipping documents</li>
-                    <li>Commodity reports and market analysis</li>
-                    <li>Customs declarations and forms</li>
-                    <li>Shipping manifests and cargo lists</li>
-                    <li>Container tracking documents</li>
-                    <li>Regulatory compliance documents</li>
-                </ul>
+                    <div class="border border-gray-200 rounded-lg">
+                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg" 
+                                onclick="toggleUseCase('supply-chain-benefits')">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-medium text-white">Business Benefits</h3>
+                                <svg class="w-5 h-5 transform transition-transform duration-200 text-white" 
+                                     id="supply-chain-benefits-arrow"
+                                     fill="none" 
+                                     viewBox="0 0 24 24" 
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" 
+                                          stroke-linejoin="round" 
+                                          stroke-width="2" 
+                                          d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </button>
+                        <div class="hidden px-6 pb-4 mt-4" id="supply-chain-benefits-content">
+                            <div class="prose prose-blue max-w-none">
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Operational Improvements</h4>
+                                <ul class="list-disc list-inside text-gray-600 mb-4">
+                                    <li>80% reduction in document processing time</li>
+                                    <li>Real-time visibility into shipping operations</li>
+                                    <li>Faster decision-making across the supply chain</li>
+                                    <li>Improved accuracy in cargo tracking and documentation</li>
+                                </ul>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Compliance & Risk Management</h4>
+                                <ul class="list-disc list-inside text-gray-600 mb-4">
+                                    <li>Automated regulatory compliance verification</li>
+                                    <li>Reduced risk of customs delays and penalties</li>
+                                    <li>Better tracking of special handling requirements</li>
+                                    <li>Comprehensive audit trails for all transactions</li>
+                                </ul>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Cost Savings</h4>
+                                <ul class="list-disc list-inside text-gray-600">
+                                    <li>Significant reduction in manual processing costs</li>
+                                    <li>Faster order fulfillment leading to increased revenue</li>
+                                    <li>Lower error rates reducing rework and delays</li>
+                                    <li>Improved staff productivity and satisfaction</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-                <h2>Integration Capabilities</h2>
-                <ul>
-                    <li>ERP system integration (SAP, Oracle, etc.)</li>
-                    <li>Transportation Management Systems (TMS)</li>
-                    <li>Warehouse Management Systems (WMS)</li>
-                    <li>Supply chain visibility platforms</li>
-                    <li>Custom API integrations</li>
-                </ul>
+            <!-- Results Section -->
+            <section class="bg-gray-50 rounded-lg p-8 mb-12">
+                <h2 class="text-3xl font-semibold text-gray-900 mb-6 text-center">Expected Results</h2>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-blue-600 mb-2">80%</div>
+                        <div class="text-gray-600">Faster Processing</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-blue-600 mb-2">95%</div>
+                        <div class="text-gray-600">Error Reduction</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-blue-600 mb-2">$40K+</div>
+                        <div class="text-gray-600">Annual Savings</div>
+                    </div>
+                </div>
+            </section>
 
-                <div class="cta-section">
-                    <h2>Optimize Your Supply Chain Operations</h2>
-                    <p>Transform your supply chain document processing with DocRouter's AI-powered automation.</p>
-                    <a href="../../index.html" class="cta-button">Get Started</a>
+            <!-- Contact Section -->
+            <section class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4 text-center">Ready to Optimize Your Supply Chain?</h2>
+                <div class="text-center">
+                    <p class="text-gray-600 mb-6">
+                        Contact us to discuss your specific supply chain processing needs and see how DocRouter can help streamline your operations.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                        <a href="mailto:andrei@analytiqhub.com" 
+                           class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors duration-200">
+                            Contact Us
+                        </a>
+                        <a href="https://app.docrouter.ai" 
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="inline-block border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-lg font-semibold text-lg transition-colors duration-200">
+                            Try It Free
+                        </a>
+                    </div>
                 </div>
             </section>
         </main>
 
-        <footer>
+        <footer class="mt-12 text-center text-gray-600">
             <p>&copy; 2025 DocRouter. Part of the docrouter.ai project.</p>
         </footer>
     </div>
+
     <script>
         loadNavigation("../../");
+    </script>
+    <script>
+        function toggleUseCase(id) {
+            const content = document.getElementById(id + '-content');
+            const arrow = document.getElementById(id + '-arrow');
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                content.classList.add('hidden');
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
     </script>
 </body>
 </html> 

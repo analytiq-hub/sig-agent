@@ -7,166 +7,257 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="../../css/styles.css" rel="stylesheet">
     <script src="../../js/load-nav.js"></script>
-    <style>
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
-        }
-        .feature-card {
-            background: #f8fafc;
-            padding: 1.5rem;
-            border-radius: 8px;
-            border-left: 4px solid #3b82f6;
-        }
-        .process-flow {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 2rem;
-            margin: 2rem 0;
-        }
-        .process-step {
-            display: flex;
-            align-items: center;
-            margin: 1rem 0;
-            padding: 1rem;
-            background: #f9fafb;
-            border-radius: 6px;
-        }
-        .step-number {
-            background: #3b82f6;
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1rem;
-            font-weight: bold;
-        }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div id="nav-container" class="sticky top-0 z-50"></div>
+<body class="bg-gray-50">
+    <div id="nav-container" class="sticky top-0 z-50"></div>
+
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-4 md:py-12">
+        <!-- Hero Section -->
+        <header class="text-center md:mb-12 mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                Private Equity Reports
+            </h1>
+            <div class="text-xl md:text-2xl text-gray-600 mb-8">
+                <p>Extract and analyze financial data from private equity reports and investment documents</p>
+            </div>
+        </header>
 
         <main>
-            <section class="hero">
-                <h1>Private Equity Reports</h1>
-                <p>Extract and analyze financial data from private equity reports and investment documents</p>
+            <!-- Problem Statement Section -->
+            <section class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-3xl font-semibold text-gray-900 mb-6 text-center">The Challenge</h2>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                            <span class="text-2xl">📊</span>
+                        </div>
+                        <h3 class="text-xl font-medium text-gray-900 mb-2">Document Volume</h3>
+                        <p class="text-gray-600">Vast amounts of financial reports, investment memos, and due diligence documents</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                            <span class="text-2xl">⏰</span>
+                        </div>
+                        <h3 class="text-xl font-medium text-gray-900 mb-2">Processing Delays</h3>
+                        <p class="text-gray-600">Manual analysis leads to missed opportunities and delayed investment decisions</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                            <span class="text-2xl">❌</span>
+                        </div>
+                        <h3 class="text-xl font-medium text-gray-900 mb-2">Manual Errors</h3>
+                        <p class="text-gray-600">Time-consuming manual analysis prone to errors and inconsistencies</p>
+                    </div>
+                </div>
             </section>
 
-            <section class="content">
-                <h2>Challenge</h2>
-                <p>Private equity firms process vast amounts of financial reports, investment memos, due diligence documents, and portfolio company updates. Manual analysis of these complex documents is time-consuming and can lead to missed opportunities or delayed investment decisions. Firms need efficient ways to extract and analyze key financial metrics and insights.</p>
-
-                <h2>Solution</h2>
-                <p>DocRouter automates the extraction and analysis of financial data from private equity documents, enabling faster investment decisions and better portfolio management.</p>
-
-                <div class="feature-grid">
-                    <div class="feature-card">
-                        <h3>Financial Report Analysis</h3>
-                        <p>Extract key financial metrics from quarterly reports, annual statements, and performance updates</p>
-                    </div>
-                    <div class="feature-card">
-                        <h3>Investment Memo Processing</h3>
-                        <p>Analyze investment memos to extract deal terms, valuation metrics, and investment rationale</p>
-                    </div>
-                    <div class="feature-card">
-                        <h3>Due Diligence Document Review</h3>
-                        <p>Process due diligence reports to extract key findings and risk assessments</p>
-                    </div>
-                    <div class="feature-card">
-                        <h3>Portfolio Company Updates</h3>
-                        <p>Extract performance metrics and operational updates from portfolio company reports</p>
-                    </div>
-                </div>
-
-                <div class="process-flow">
-                    <h3>Private Equity Document Processing</h3>
-                    <div class="process-step">
-                        <div class="step-number">1</div>
-                        <div>
-                            <strong>Document Intake</strong><br>
-                            Receive financial reports, investment memos, and due diligence documents
+            <!-- Solution Section -->
+            <section class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-lg p-8 mb-12">
+                <div class="text-center">
+                    <h2 class="text-3xl font-semibold text-white mb-6">How DocRouter Solves It</h2>
+                    <p class="text-xl text-blue-100 mb-8">
+                        Automated extraction and analysis of financial data for faster investment decisions
+                    </p>
+                    <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                        <div class="bg-white bg-opacity-10 rounded-lg p-6">
+                            <h3 class="text-xl font-medium text-white mb-3">Document Processing</h3>
+                            <ul class="text-blue-100 space-y-2 text-left">
+                                <li>• Investment memos and deal summaries</li>
+                                <li>• Financial reports and statements</li>
+                                <li>• Due diligence reports and findings</li>
+                                <li>• Portfolio company updates and performance reports</li>
+                            </ul>
                         </div>
-                    </div>
-                    <div class="process-step">
-                        <div class="step-number">2</div>
-                        <div>
-                            <strong>Document Classification</strong><br>
-                            Automatically categorize documents by type and investment stage
-                        </div>
-                    </div>
-                    <div class="process-step">
-                        <div class="step-number">3</div>
-                        <div>
-                            <strong>Data Extraction</strong><br>
-                            Extract financial metrics, deal terms, and performance indicators
-                        </div>
-                    </div>
-                    <div class="process-step">
-                        <div class="step-number">4</div>
-                        <div>
-                            <strong>Analysis & Insights</strong><br>
-                            Generate insights and trend analysis from extracted data
-                        </div>
-                    </div>
-                    <div class="process-step">
-                        <div class="step-number">5</div>
-                        <div>
-                            <strong>Reporting & Decision Support</strong><br>
-                            Provide structured data for investment decisions and portfolio management
+                        <div class="bg-white bg-opacity-10 rounded-lg p-6">
+                            <h3 class="text-xl font-medium text-white mb-3">Automated Analysis</h3>
+                            <ul class="text-blue-100 space-y-2 text-left">
+                                <li>• Financial metrics and performance indicators</li>
+                                <li>• Deal terms and valuation analysis</li>
+                                <li>• Risk assessments and market analysis</li>
+                                <li>• Portfolio optimization insights</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
+            </section>
 
-                <h2>Benefits</h2>
-                <ul>
-                    <li><strong>Faster deal analysis</strong> - Reduce time to analyze potential investments by 60%</li>
-                    <li><strong>Improved accuracy</strong> - Eliminate manual errors in financial data extraction</li>
-                    <li><strong>Better insights</strong> - Generate comprehensive analysis from multiple document sources</li>
-                    <li><strong>Enhanced due diligence</strong> - Process more documents in less time</li>
-                    <li><strong>Portfolio optimization</strong> - Better tracking and analysis of portfolio performance</li>
-                </ul>
+            <!-- Detailed Use Case Section -->
+            <section class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-3xl font-semibold text-gray-900 mb-6 text-center">Detailed Use Case</h2>
+                
+                <div class="space-y-6 max-w-4xl mx-auto">
+                    <div class="border border-gray-200 rounded-lg">
+                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg" 
+                                onclick="toggleUseCase('pe-workflow')">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-medium text-white">Private Equity Document Processing Workflow</h3>
+                                <svg class="w-5 h-5 transform transition-transform duration-200 text-white" 
+                                     id="pe-workflow-arrow"
+                                     fill="none" 
+                                     viewBox="0 0 24 24" 
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" 
+                                          stroke-linejoin="round" 
+                                          stroke-width="2" 
+                                          d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </button>
+                        <div class="hidden px-6 pb-4 mt-4" id="pe-workflow-content">
+                            <div class="prose prose-blue max-w-none">
+                                <p class="text-gray-600 mb-4">
+                                    A private equity firm processes 30-50 quarterly statements per quarter from different fund managers. 
+                                    Each statement contains similar information but in slightly different formats, requiring manual data entry 
+                                    into spreadsheets and PowerPoint presentations for reporting and valuation purposes.
+                                </p>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Document Processing</h4>
+                                <p class="text-gray-600 mb-4">
+                                    DocRouter.AI processes quarterly financial statements, capital statements, and portfolio reviews 
+                                    from multiple fund managers, extracting structured data for Excel and PowerPoint reporting.
+                                </p>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Key Data Extraction</h4>
+                                <ul class="list-disc list-inside text-gray-600 mb-4">
+                                    <li>Financial metrics and performance data</li>
+                                    <li>Portfolio company valuations and metrics</li>
+                                    <li>Capital account information</li>
+                                    <li>Qualitative insights and commentary</li>
+                                    <li>Quarter-over-quarter changes and trends</li>
+                                    <li>Valuation multiples and deal terms</li>
+                                </ul>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Automated Analysis</h4>
+                                <ul class="list-disc list-inside text-gray-600 mb-4">
+                                    <li>Performance benchmarking across funds</li>
+                                    <li>Trend analysis and pattern recognition</li>
+                                    <li>Risk assessment and portfolio optimization</li>
+                                    <li>Automated report generation</li>
+                                </ul>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Integration Benefits</h4>
+                                <ul class="list-disc list-inside text-gray-600">
+                                    <li>Direct output to Excel and PowerPoint formats</li>
+                                    <li>Integration with existing portfolio management systems</li>
+                                    <li>Consistent data structure across all fund managers</li>
+                                    <li>Reduced manual processing time by 80-90%</li>
+                                    <li>Improved accuracy and compliance reporting</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
 
-                <h2>Supported Document Types</h2>
-                <ul>
-                    <li>Investment memos and deal summaries</li>
-                    <li>Financial reports and statements</li>
-                    <li>Due diligence reports and findings</li>
-                    <li>Portfolio company updates and performance reports</li>
-                    <li>Valuation models and analyses</li>
-                    <li>LP reports and investor communications</li>
-                </ul>
+                    <div class="border border-gray-200 rounded-lg">
+                        <button class="w-full text-left px-6 py-4 focus:outline-none bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg" 
+                                onclick="toggleUseCase('pe-benefits')">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-medium text-white">Business Benefits</h3>
+                                <svg class="w-5 h-5 transform transition-transform duration-200 text-white" 
+                                     id="pe-benefits-arrow"
+                                     fill="none" 
+                                     viewBox="0 0 24 24" 
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" 
+                                          stroke-linejoin="round" 
+                                          stroke-width="2" 
+                                          d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </button>
+                        <div class="hidden px-6 pb-4 mt-4" id="pe-benefits-content">
+                            <div class="prose prose-blue max-w-none">
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Operational Improvements</h4>
+                                <ul class="list-disc list-inside text-gray-600 mb-4">
+                                    <li>60% reduction in deal analysis time</li>
+                                    <li>Faster investment decision-making</li>
+                                    <li>Enhanced due diligence capabilities</li>
+                                    <li>Better portfolio tracking and analysis</li>
+                                </ul>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Investment Performance</h4>
+                                <ul class="list-disc list-inside text-gray-600 mb-4">
+                                    <li>Improved deal sourcing and evaluation</li>
+                                    <li>Better risk assessment and mitigation</li>
+                                    <li>Enhanced portfolio optimization</li>
+                                    <li>More comprehensive market analysis</li>
+                                </ul>
+                                
+                                <h4 class="text-gray-900 font-medium mt-4 mb-2">Cost Savings</h4>
+                                <ul class="list-disc list-inside text-gray-600">
+                                    <li>Reduced manual processing costs</li>
+                                    <li>Faster deal execution leading to increased returns</li>
+                                    <li>Lower error rates reducing investment risks</li>
+                                    <li>Improved staff productivity and satisfaction</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-                <h2>Key Metrics Extracted</h2>
-                <ul>
-                    <li>Revenue and growth metrics</li>
-                    <li>EBITDA and profitability measures</li>
-                    <li>Valuation multiples and deal terms</li>
-                    <li>Market analysis and competitive positioning</li>
-                    <li>Risk assessments and mitigation strategies</li>
-                    <li>Operational performance indicators</li>
-                </ul>
+            <!-- Results Section -->
+            <section class="bg-gray-50 rounded-lg p-8 mb-12">
+                <h2 class="text-3xl font-semibold text-gray-900 mb-6 text-center">Expected Results</h2>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-blue-600 mb-2">60%</div>
+                        <div class="text-gray-600">Faster Deal Analysis</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-blue-600 mb-2">90%</div>
+                        <div class="text-gray-600">Error Reduction</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-blue-600 mb-2">$100K+</div>
+                        <div class="text-gray-600">Annual Savings</div>
+                    </div>
+                </div>
+            </section>
 
-                <div class="cta-section">
-                    <h2>Transform Your Investment Analysis</h2>
-                    <p>Join leading private equity firms using DocRouter to accelerate deal analysis and improve investment decisions.</p>
-                    <a href="../../index.html" class="cta-button">Get Started</a>
+            <!-- Contact Section -->
+            <section class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4 text-center">Ready to Transform Your Investment Analysis?</h2>
+                <div class="text-center">
+                    <p class="text-gray-600 mb-6">
+                        Contact us to discuss your specific private equity processing needs and see how DocRouter can help accelerate your investment decisions.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                        <a href="mailto:andrei@analytiqhub.com" 
+                           class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors duration-200">
+                            Contact Us
+                        </a>
+                        <a href="https://app.docrouter.ai" 
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="inline-block border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-lg font-semibold text-lg transition-colors duration-200">
+                            Try It Free
+                        </a>
+                    </div>
                 </div>
             </section>
         </main>
 
-        <footer>
+        <footer class="mt-12 text-center text-gray-600">
             <p>&copy; 2025 DocRouter. Part of the docrouter.ai project.</p>
         </footer>
     </div>
+
     <script>
         loadNavigation("../../");
+    </script>
+    <script>
+        function toggleUseCase(id) {
+            const content = document.getElementById(id + '-content');
+            const arrow = document.getElementById(id + '-arrow');
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                content.classList.add('hidden');
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
     </script>
 </body>
 </html> 
