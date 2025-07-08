@@ -1526,9 +1526,6 @@ async def webhook_received(
     elif event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
         await credit_customer_account_from_session(session)
-    elif event["type"] == "payment_intent.succeeded":
-        payment_intent = event["data"]["object"]
-        await credit_customer_account_from_intent(payment_intent)
     
     # Mark event as processed
     await stripe_events.update_one(
@@ -1724,31 +1721,3 @@ async def credit_customer_account_from_session(session: Dict[str, Any]):
         
     except Exception as e:
         logger.error(f"Error processing checkout session completion: {e}")
-
-async def credit_customer_account_from_intent(payment_intent: Dict[str, Any]):
-    """Credit customer account after successful Payment Intent"""
-    try:
-        metadata = payment_intent.get("metadata", {})
-        org_id = metadata.get("org_id")
-        credits = int(metadata.get("credits", 0))
-        
-        if not org_id or not credits:
-            logger.error(f"Missing metadata in payment intent: {payment_intent['id']}")
-            return
-        
-        # Add credits to the organization
-        stripe_customer = await stripe_customers.find_one({"org_id": org_id})
-        if not stripe_customer:
-            logger.error(f"No stripe customer found for org: {org_id}")
-            return
-        
-        await ensure_spu_credits(stripe_customer)
-        await stripe_customers.update_one(
-            {"_id": stripe_customer["_id"]},
-            {"$inc": {"spu_credits": credits}}
-        )
-        
-        logger.info(f"Credited {credits} SPUs to organization {org_id} from payment intent {payment_intent['id']}")
-        
-    except Exception as e:
-        logger.error(f"Error processing payment intent success: {e}")
