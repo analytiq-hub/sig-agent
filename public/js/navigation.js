@@ -46,10 +46,12 @@ updateActiveNav();
 const mobileMenuButton = document.getElementById('mobile-menu-button');
 const mobileMenu = document.querySelector('.mobile-menu');
 
-mobileMenuButton.addEventListener('click', (e) => {
-    e.stopPropagation(); // Prevent click from bubbling to document
-    mobileMenu.classList.toggle('show');
-});
+if (mobileMenuButton) {
+    mobileMenuButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent click from bubbling to document
+        mobileMenu.classList.toggle('show');
+    });
+}
 
 // Handle all mobile menu link clicks
 document.querySelectorAll('.mobile-menu .nav-link').forEach(link => {
@@ -76,7 +78,9 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Prevent clicks inside mobile menu from closing it
-mobileMenu.addEventListener('click', (e) => {
-    e.stopPropagation();
-}); 
+if (mobileMenu) {
+    // Prevent clicks inside mobile menu from closing it
+    mobileMenu.addEventListener('click', (e) => {
+        e.stopPropagation();
+    }); 
+}
