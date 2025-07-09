@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="../../css/styles.css" rel="stylesheet">
     <script src="../../js/load-nav.js"></script>
+    <script src="../../js/calendly.js"></script>
 </head>
 <body class="bg-gray-50">
     <div id="nav-container" class="sticky top-0 z-50"></div>
@@ -219,10 +220,10 @@
                         Contact us to discuss your specific supply chain processing needs and see how DocRouter can help streamline your global operations.
                     </p>
                     <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                        <a href="../../contact/" 
-                           class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors duration-200">
-                            Contact Us
-                        </a>
+                        <button onclick="openCalendly()" 
+                                class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors duration-200">
+                            Schedule a Meeting
+                        </button>
                         <a href="https://app.docrouter.ai" 
                            target="_blank"
                            rel="noopener noreferrer"

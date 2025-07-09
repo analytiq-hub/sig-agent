@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Open Source - DocRouter.AI</title>
+    <title>Open Source - DocRouter</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="../css/styles.css" rel="stylesheet">
     <script src="../js/load-nav.js"></script>
+    <script src="../js/calendly.js"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Include the navigation component -->
@@ -416,11 +417,18 @@ Use the associated schema to structure the output.
                 <p class="text-gray-600 mb-4">
                     Need help with deployment, customization, or have questions about the open source version?
                 </p>
-                <ul class="text-gray-600 space-y-2">
-                    <li>Email: <a href="mailto:andrei@analytiqhub.com" class="text-blue-600 hover:text-blue-800">andrei@analytiqhub.com</a></li>
-                    <li>Phone: <a href="tel:6172168509" class="text-blue-600 hover:text-blue-800">617.216.8509</a></li>
-                    <li>Website: <a href="https://analytiqhub.com" class="text-blue-600 hover:text-blue-800">analytiqhub.com</a></li>
-                </ul>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <button onclick="openCalendly()" 
+                            class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors duration-200">
+                        Schedule a Meeting
+                    </button>
+                    <a href="https://app.docrouter.ai" 
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="inline-block border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-lg font-semibold text-lg transition-colors duration-200">
+                        Try It Free
+                    </a>
+                </div>
             </section>
         </main>
 
