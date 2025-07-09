@@ -19,9 +19,7 @@ import { toast } from 'react-toastify'
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import SubscriptionManager from './SubscriptionManager'
 import { useOrganizationData } from '@/hooks/useOrganizationData'
-import AdminCreditWidget from './AdminCreditWidget'
 
 interface OrganizationEditProps {
   organizationId: string
@@ -57,9 +55,6 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedMember, setSelectedMember] = useState<{ id: string, isAdmin: boolean } | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const isSystemAdmin = session?.user?.role === 'admin';
 
   // Filter current organization members
   const filteredMembers = members.filter(member => {
@@ -144,9 +139,6 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
       setOriginalName(name);
       setOriginalType(type);
       setOriginalMembers(members);
-      
-      // Trigger refresh of subscription component
-      setRefreshKey(prev => prev + 1);
     } catch (err) {
       if (isAxiosError(err)) {
         toast.error(err.response?.data?.detail || 'Failed to update organization');
@@ -316,6 +308,18 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">Edit Organization</h2>
           <div className="flex gap-4">
+            {/* Subscription Link - Only show for org admins and sys admins */}
+            {(isOrgAdmin || isSysAdmin) && (
+              <a
+                href={`/settings/organizations/${organizationId}/subscription`}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                Manage Subscription
+              </a>
+            )}
             <button
               type="submit"
               form="organization-form"
@@ -488,24 +492,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
               </Menu>
             </div>
           </div>
-
-          {/* Subscription Section */}
-          <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Subscription</h3>
-            <SubscriptionManager organizationId={organizationId} key={refreshKey} />
-          </div>
         </form>
-
-        {/* Admin Credit Widget - System Admin Only - MOVED OUTSIDE THE FORM */}
-        {isSystemAdmin && (
-          <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Admin Tools</h3>
-            <AdminCreditWidget 
-              organizationId={organizationId} 
-              onCreditsAdded={() => setRefreshKey(prev => prev + 1)}
-            />
-          </div>
-        )}
       </div>
 
       <UserAddToOrgModal
