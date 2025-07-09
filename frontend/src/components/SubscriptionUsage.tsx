@@ -148,7 +148,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
           ) : (
             <div className="text-sm text-gray-500">
               {subscriptionData?.current_plan ? 
-                `Credits not available with ${subscriptionData.current_plan} plan` : 
+                `Credits purchase not available with ${subscriptionData.current_plan} plan` : 
                 'Credits not available'
               }
             </div>
@@ -174,7 +174,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
 
         {/* Admin Credits Section */}
         <div className="mt-4">
-          <h5 className="text-sm font-medium text-gray-600 mb-2">Admin-Granted Credits</h5>
+          <h5 className="text-sm font-medium text-gray-600 mb-2">Admin-Granted SPU Credits</h5>
           <div className="flex justify-between text-sm text-gray-600 mb-1">
             <span>{usageData.admin_credits_used} of {usageData.admin_credits} admin credits used</span>
             <span>{usageData.admin_credits > 0 ? Math.round((usageData.admin_credits_used / usageData.admin_credits) * 100) : 0}%</span>
@@ -192,7 +192,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
 
         {/* Total Credits Summary */}
         <div className="mt-4 p-3 bg-gray-50 rounded-md">
-          <div className="text-sm font-medium text-gray-700 mb-1">Total Credits</div>
+          <div className="text-sm font-medium text-gray-700 mb-1">Total SPU Credits</div>
           <div className="text-lg font-bold text-gray-800">
             {totalCreditsRemaining} credits remaining
           </div>
@@ -266,9 +266,9 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
 
       {/* Paid Usage Section */}
       <div className="mb-6">
-        <h4 className="text-md font-medium text-gray-700 mb-3">Paid Usage</h4>
+        <h4 className="text-md font-medium text-gray-700 mb-3">Metered SPU Usage</h4>
         <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
-          <div className="text-gray-600 font-medium">Paid SPUs</div>
+          <div className="text-gray-600 font-medium">Metered SPUs</div>
           <div className="text-2xl font-bold text-gray-700">{usageData.metered_usage} {usageUnitDisplay}</div>
         </div>
       </div>
@@ -280,8 +280,8 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
           <div className="font-medium capitalize">{usageData.subscription_type}</div>
         </div>
         <div>
-          <div className="text-gray-500">Total Usage</div>
-          <div className="font-medium">{usageData.total_usage} {usageUnitDisplay}</div>
+          <div className="text-gray-500">Metered SPUs</div>
+          <div className="font-medium">{usageData.metered_usage} {usageUnitDisplay}</div>
         </div>
         <div>
           <div className="text-gray-500">Billing Period</div>
