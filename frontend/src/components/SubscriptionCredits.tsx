@@ -10,7 +10,7 @@ interface SubscriptionCreditsProps {
 
 const SubscriptionCredits: React.FC<SubscriptionCreditsProps> = ({ organizationId, currentCredits, onClose }) => {
   const [loading, setLoading] = useState(false);
-  const [config, setConfig] = useState<{ price_per_credit: number; currency: string; min_credits: number; max_credits: number } | null>(null);
+  const [config, setConfig] = useState<{ price_per_credit: number; currency: string; min_cost: number; max_cost: number } | null>(null);
   const [amount, setAmount] = useState<number>(100);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +20,7 @@ const SubscriptionCredits: React.FC<SubscriptionCreditsProps> = ({ organizationI
         setLoading(true);
         const response = await getCreditConfigApi(organizationId);
         setConfig(response);
-        setAmount(response.min_credits);
+        setAmount(response.min_cost); // Changed from min_credits to min_cost
       } catch {
         setError('Failed to load credit purchase config.');
       } finally {
@@ -33,10 +33,15 @@ const SubscriptionCredits: React.FC<SubscriptionCreditsProps> = ({ organizationI
   const handlePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!config) return;
-    if (amount < config.min_credits || amount > config.max_credits) {
-      setError(`Amount must be between ${config.min_credits} and ${config.max_credits}`);
+    
+    // Calculate cost for the requested amount
+    const totalCost = amount * config.price_per_credit;
+    
+    if (totalCost < config.min_cost || totalCost > config.max_cost) {
+      setError(`Purchase amount must be between $${config.min_cost} and $${config.max_cost}`);
       return;
     }
+    
     setLoading(true);
     setError(null);
     try {
@@ -85,11 +90,9 @@ const SubscriptionCredits: React.FC<SubscriptionCreditsProps> = ({ organizationI
                 type="number"
                 id="credit-amount"
                 value={amount}
-                onChange={e => setAmount(parseInt(e.target.value) || config.min_credits)}
-                min={config.min_credits}
-                max={config.max_credits}
+                onChange={e => setAmount(parseInt(e.target.value) || 0)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder={`Min ${config.min_credits}, Max ${config.max_credits}`}
+                placeholder="Enter number of credits"
                 disabled={loading}
                 autoFocus
               />
@@ -100,10 +103,13 @@ const SubscriptionCredits: React.FC<SubscriptionCreditsProps> = ({ organizationI
             <div className="text-lg font-bold text-blue-700">
               Total: {(amount * config.price_per_credit).toFixed(2)} {config.currency.toUpperCase()}
             </div>
+            <div className="text-xs text-gray-500">
+              Purchase amount must be between ${config.min_cost} and ${config.max_cost}.
+            </div>
             {error && <div className="text-red-600 text-sm">{error}</div>}
             <button
               type="submit"
-              disabled={loading || amount < config.min_credits || amount > config.max_credits}
+              disabled={loading || amount <= 0 || (amount * config.price_per_credit) < config.min_cost || (amount * config.price_per_credit) > config.max_cost}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 disabled:bg-blue-300 disabled:cursor-not-allowed"
             >
               {loading ? 'Processing...' : `Purchase ${amount} Credits`}

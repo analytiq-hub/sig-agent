@@ -31,8 +31,8 @@ interface SubscriptionData {
 interface CreditConfig {
   price_per_credit: number;
   currency: string;
-  min_credits: number;
-  max_credits: number;
+  min_cost: number;  // Changed from min_credits
+  max_cost: number;  // Changed from max_credits
 }
 
 const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId }) => {
@@ -94,8 +94,11 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
   const handlePurchaseCredits = async () => {
     if (!creditConfig) return;
     
-    if (purchaseAmount < creditConfig.min_credits || purchaseAmount > creditConfig.max_credits) {
-      toast.error(`Amount must be between ${creditConfig.min_credits} and ${creditConfig.max_credits}`);
+    // Calculate cost for the requested amount
+    const totalCost = purchaseAmount * creditConfig.price_per_credit;
+    
+    if (totalCost < creditConfig.min_cost || totalCost > creditConfig.max_cost) {
+      toast.error(`Purchase amount must be between $${creditConfig.min_cost} and $${creditConfig.max_cost}`);
       return;
     }
 
@@ -207,10 +210,8 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
                         setPurchaseAmount(isNaN(numValue) ? 0 : numValue);
                       }
                     }}
-                    min={creditConfig.min_credits}
-                    max={creditConfig.max_credits}
                     className="w-full px-3 py-2 text-sm border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder={`Min ${creditConfig.min_credits}, Max ${creditConfig.max_credits}`}
+                    placeholder="Enter number of credits"
                     disabled={purchaseLoading}
                   />
                 </div>
@@ -231,8 +232,8 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
                     purchaseLoading || 
                     !purchaseAmount || 
                     purchaseAmount <= 0 || 
-                    purchaseAmount < creditConfig.min_credits || 
-                    purchaseAmount > creditConfig.max_credits
+                    (purchaseAmount * creditConfig.price_per_credit) < creditConfig.min_cost || 
+                    (purchaseAmount * creditConfig.price_per_credit) > creditConfig.max_cost
                   }
                   className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-200 disabled:bg-blue-300 disabled:cursor-not-allowed"
                 >
@@ -241,6 +242,8 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
               </div>
               <div className="text-xs text-blue-600">
                 Credits are used before paid usage. You currently have <span className="font-semibold">{usageData.credits_remaining}</span> credits remaining.
+                <br />
+                Purchase amount must be between ${creditConfig.min_cost} and ${creditConfig.max_cost}.
               </div>
             </div>
           </div>

@@ -66,3 +66,10 @@ export interface CreditUpdateResponse {
   success: boolean;
   added: number;
 }
+
+export interface CreditConfig {
+  price_per_credit: number;
+  currency: string;
+  min_cost: number;  // Changed from min_credits
+  max_cost: number;  // Changed from max_credits
+}

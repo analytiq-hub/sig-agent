@@ -168,8 +168,8 @@ class PurchaseCreditsResponse(BaseModel):
 CREDIT_CONFIG = {
     "price_per_credit": 0.015,  # $0.015 per credit
     "currency": "usd",
-    "min_credits": 10,  # Minimum purchase
-    "max_credits": 100000,  # Maximum purchase
+    "min_cost": 5.0,  # Minimum purchase amount in USD
+    "max_cost": 100.0,  # Maximum purchase amount in USD
 }
 
 # Add this new function to fetch pricing from Stripe
@@ -1604,8 +1604,8 @@ async def get_credit_config(
     return {
         "price_per_credit": CREDIT_CONFIG["price_per_credit"],
         "currency": CREDIT_CONFIG["currency"],
-        "min_credits": CREDIT_CONFIG["min_credits"],
-        "max_credits": CREDIT_CONFIG["max_credits"]
+        "min_cost": CREDIT_CONFIG["min_cost"],
+        "max_cost": CREDIT_CONFIG["max_cost"]
     }
 
 @payments_router.post("/{organization_id}/credits/purchase")
@@ -1622,12 +1622,22 @@ async def purchase_credits(
         logger.error(f"Access denied for user {current_user.user_id} to org {organization_id}")
         raise HTTPException(status_code=403, detail="Access denied")
     
-    # Validate credit amount
-    if request.credits < CREDIT_CONFIG["min_credits"] or request.credits > CREDIT_CONFIG["max_credits"]:
-        logger.error(f"Invalid credit amount: {request.credits}")
+    # Calculate total cost for the requested credits
+    total_cost = request.credits * CREDIT_CONFIG["price_per_credit"]
+    
+    # Validate cost limits instead of credit limits
+    if total_cost < CREDIT_CONFIG["min_cost"]:
+        logger.error(f"Purchase cost too low: ${total_cost:.2f} (minimum: ${CREDIT_CONFIG['min_cost']})")
         raise HTTPException(
             status_code=400, 
-            detail=f"Credits must be between {CREDIT_CONFIG['min_credits']} and {CREDIT_CONFIG['max_credits']}"
+            detail=f"Purchase amount must be at least ${CREDIT_CONFIG['min_cost']} (you requested ${total_cost:.2f})"
+        )
+    
+    if total_cost > CREDIT_CONFIG["max_cost"]:
+        logger.error(f"Purchase cost too high: ${total_cost:.2f} (maximum: ${CREDIT_CONFIG['max_cost']})")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Purchase amount cannot exceed ${CREDIT_CONFIG['max_cost']} (you requested ${total_cost:.2f})"
         )
     
     # Get or create Stripe customer
@@ -1696,6 +1706,9 @@ async def purchase_credits(
 
 async def credit_customer_account_from_session(session: Dict[str, Any]):
     """Credit customer account after successful Checkout session"""
+
+    logger.info(f"Credit customer account from session: {session}")
+    
     try:
         metadata = session.get("metadata", {})
         org_id = metadata.get("org_id")
