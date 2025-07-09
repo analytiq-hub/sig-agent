@@ -118,9 +118,8 @@ docker compose --profile with-mongodb up</code></pre>
                     <div class="bg-gray-50 rounded-lg p-4 mb-4">
                         <pre class="text-sm overflow-x-auto"><code># Set up packages/anaytiq_data/.env and frontend/.env_local
 # based on example files in those folders
-pip install -r packages/requirements.txt
 cd frontend; npm install; cd ..
-./start-all.sh</code></pre>
+make dev</code></pre>
                     </div>
                     <p class="text-gray-600 text-sm">This sets up the full development environment with hot reloading.</p>
                 </div>
