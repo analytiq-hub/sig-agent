@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { getOrganizationsApi } from '@/utils/api'
 import { Organization } from '@/types/index'
 import { getSession } from 'next-auth/react'
@@ -32,6 +32,12 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const pathname = usePathname()
+
+  // Extract organization ID from pathname if we're on an organization-specific settings page
+  const getOrganizationIdFromPath = useCallback(() => {
+    const settingsMatch = pathname.match(/^\/settings\/organizations\/([^\/]+)/)
+    return settingsMatch ? settingsMatch[1] : null
+  }, [pathname])
 
   useEffect(() => {
     const fetchOrganizations = async () => {
@@ -75,6 +81,20 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   useEffect(() => {
     const initializeCurrentOrganization = () => {
+      // Check if we're on an organization-specific settings page
+      const orgIdFromPath = getOrganizationIdFromPath()
+      
+      if (orgIdFromPath) {
+        // Find the organization from the path in our organizations list
+        const orgFromPath = organizations.find(org => org.id === orgIdFromPath)
+        if (orgFromPath) {
+          setCurrentOrganization(orgFromPath)
+          localStorage.setItem('currentOrganizationId', orgFromPath.id)
+          return
+        }
+      }
+
+      // Fallback to stored organization or first available
       const storedOrganizationId = localStorage.getItem('currentOrganizationId')
       
       if (storedOrganizationId) {
@@ -92,17 +112,26 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     initializeCurrentOrganization()
-  }, [organizations, currentOrganization])
+  }, [organizations, currentOrganization, getOrganizationIdFromPath])
 
-  const switchOrganization = (organizationId: string) => {
+  const switchOrganization = useCallback((organizationId: string) => {
     const organization = organizations.find(w => w.id === organizationId)
     if (organization) {
       setCurrentOrganization(organization)
       localStorage.setItem('currentOrganizationId', organizationId)
+      
+      // If we're on an organization-specific settings page, update the URL
+      const orgIdFromPath = getOrganizationIdFromPath()
+      if (orgIdFromPath && orgIdFromPath !== organizationId) {
+        // We're switching to a different organization while on a settings page
+        // Redirect to the same settings page for the new organization
+        const newPath = pathname.replace(`/settings/organizations/${orgIdFromPath}`, `/settings/organizations/${organizationId}`)
+        window.location.href = newPath
+      }
     }
-  }
+  }, [organizations, getOrganizationIdFromPath, pathname])
 
-  const refreshOrganizations = async () => {
+  const refreshOrganizations = useCallback(async () => {
     try {
       const session = await getSession() as AppSession | null;
       if (!session?.user?.id) {
@@ -111,10 +140,25 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
 
       const response = await getOrganizationsApi({ userId: session.user.id });
-      setOrganizations(response.organizations);
+      
+      // Re-apply filtering logic
+      let filtered: Organization[] = response.organizations;
+      const isSysAdmin = session.user.role === 'admin';
+      const isSettingsPage = pathname.startsWith('/settings/organizations');
+      
+      if (isSettingsPage) {
+        if (isSysAdmin) {
+          filtered = response.organizations;
+        } else {
+          filtered = response.organizations.filter(org =>
+            org.members.some(m => m.user_id === session.user.id && m.role === 'admin')
+          );
+        }
+      }
+      setOrganizations(filtered);
       
       if (currentOrganization) {
-        const updatedOrganization = response.organizations.find(w => w.id === currentOrganization.id);
+        const updatedOrganization = filtered.find(w => w.id === currentOrganization.id);
         if (updatedOrganization) {
           setCurrentOrganization(updatedOrganization);
         }
@@ -122,7 +166,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch (error) {
       console.error('Failed to refresh organizations:', error);
     }
-  }
+  }, [pathname, currentOrganization])
 
   return (
     <OrganizationContext.Provider value={{
