@@ -235,11 +235,18 @@ make dev</code></pre>
                         <h3 class="text-xl font-medium text-gray-900 mb-4">AI Prompts</h3>
                         <p class="text-gray-600 mb-4">Customize the AI prompts for your specific document types</p>
                         <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                            <pre class="text-sm overflow-x-auto"><code>Extract the following information from this invoice:
-- Invoice number
-- Total amount
-- Vendor details
-- Line items with quantities and prices</code></pre>
+                            <pre class="text-sm overflow-x-auto"><code>
+You are an accounts payable specialist
+processing invoices. 
+
+Extract all relevant information from this invoice
+document with high accuracy and attention to detail. 
+
+Ensure all amounts are correctly calculated
+and vendor information is complete.
+
+Use the associated schema to structure the output.
+</code></pre>
                         </div>
                         <a href="../#documentation" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Learn More →</a>
                     </div>
