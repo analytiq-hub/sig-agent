@@ -1706,8 +1706,6 @@ async def purchase_credits(
 
 async def credit_customer_account_from_session(session: Dict[str, Any]):
     """Credit customer account after successful Checkout session"""
-
-    logger.info(f"Credit customer account from session: {session}")
     
     try:
         metadata = session.get("metadata", {})

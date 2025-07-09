@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getCurrentUsageApi, getSubscriptionApi, getCreditConfigApi, purchaseCreditsApi } from '@/utils/api';
 import { toast } from 'react-toastify';
+import { CreditConfig } from '@/types/index';
 
 interface SubscriptionUsageProps {
   organizationId: string;
@@ -26,13 +27,6 @@ interface UsageData {
 interface SubscriptionData {
   subscription_status: string | null;
   current_plan: string | null;
-}
-
-interface CreditConfig {
-  price_per_credit: number;
-  currency: string;
-  min_cost: number;  // Changed from min_credits
-  max_cost: number;  // Changed from max_credits
 }
 
 const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId }) => {
