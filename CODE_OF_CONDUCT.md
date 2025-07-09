@@ -30,12 +30,6 @@ The following behaviors are not tolerated:
 - **Private Concerns**: Contact project maintainers directly for sensitive matters
 - **Documentation**: Include relevant details, timestamps, and evidence when possible
 
-### Resolution Process
-1. **Review**: Reports are reviewed within 48 hours
-2. **Investigation**: Fair and thorough investigation of all claims
-3. **Action**: Appropriate corrective measures based on severity
-4. **Follow-up**: Monitoring and support for affected parties
-
 ### Consequences
 Violations may result in:
 - Warning and education
