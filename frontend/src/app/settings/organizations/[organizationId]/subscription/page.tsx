@@ -29,7 +29,7 @@ export default function OrganizationSubscriptionPage() {
         <SubscriptionManager organizationId={organizationId} />
         
         {/* Admin credit widget - only show for system admins */}
-        {session.user.role === 'system_admin' && (
+        {session.user.role === 'admin' && (
           <AdminCreditWidget 
             organizationId={organizationId}
             onCreditsAdded={() => {
