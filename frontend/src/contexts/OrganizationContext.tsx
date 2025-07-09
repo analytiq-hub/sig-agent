@@ -5,6 +5,7 @@ import { getOrganizationsApi } from '@/utils/api'
 import { Organization } from '@/types/index'
 import { getSession } from 'next-auth/react'
 import { AppSession } from '@/types/AppSession'
+import { usePathname } from 'next/navigation'
 
 interface OrganizationContextType {
   organizations: Organization[]
@@ -30,6 +31,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const pathname = usePathname()
 
   useEffect(() => {
     const fetchOrganizations = async () => {
@@ -41,8 +43,26 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           return;
         }
 
+        // Fetch all organizations the user is a member of
         const response = await getOrganizationsApi({ userId: session.user.id });
-        setOrganizations(response.organizations);
+
+        // Filtering logic based on page and user role
+        let filtered: Organization[] = response.organizations;
+        const isSysAdmin = session.user.role === 'admin';
+
+        // If on settings/organizations page or a specific org settings page
+        const isSettingsPage = pathname.startsWith('/settings/organizations');
+        if (isSettingsPage) {
+          if (isSysAdmin) {
+            filtered = response.organizations;
+          } else {
+            filtered = response.organizations.filter(org =>
+              org.members.some(m => m.user_id === session.user.id && m.role === 'admin')
+            );
+          }
+        }
+        // Otherwise, show all organizations where user is a member
+        setOrganizations(filtered);
       } catch (error) {
         console.error('Failed to fetch organizations:', error);
       } finally {
@@ -51,7 +71,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     fetchOrganizations();
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     const initializeCurrentOrganization = () => {
