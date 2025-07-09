@@ -2,7 +2,7 @@
 
 ## Professional Standards
 
-Smart Document Router is a professional open-source project focused on enterprise document processing and data extraction. We maintain high standards of professional conduct to ensure a productive and respectful environment for all contributors.
+Smart Document Router is an open-source project focused on enterprise document processing and data extraction. We maintain high standards of professional conduct to ensure a productive and respectful environment for all contributors.
 
 ## Expected Behavior
 
