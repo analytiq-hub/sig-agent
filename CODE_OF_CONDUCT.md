@@ -35,4 +35,3 @@ Violations may result in:
 - Warning
 - Temporary suspension from community participation
 - Permanent removal from the project
-- Reporting to relevant authorities if required by law
