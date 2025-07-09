@@ -198,10 +198,34 @@ make dev</code></pre>
                         <p class="text-gray-600 mb-4">Define the structure of data you want to extract from documents</p>
                         <div class="bg-gray-50 rounded-lg p-4 mb-4">
                             <pre class="text-sm overflow-x-auto"><code>{
-  "invoice_number": "string",
-  "total_amount": "number",
-  "vendor_name": "string",
-  "line_items": "array"
+  "type": "object",
+  "properties": {
+    "invoice_number": {
+      "type": "string",
+      "description": "The invoice number or identifier"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Total invoice amount"
+    },
+    "vendor_name": {
+      "type": "string",
+      "description": "Name of the vendor or supplier"
+    },
+    "line_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {"type": "string"},
+          "quantity": {"type": "number"},
+          "unit_price": {"type": "number"},
+          "total": {"type": "number"}
+        }
+      }
+    }
+  },
+  "required": ["invoice_number", "total_amount", "vendor_name"]
 }</code></pre>
                         </div>
                         <a href="../#documentation" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Learn More →</a>
