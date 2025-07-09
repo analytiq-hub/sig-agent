@@ -50,7 +50,7 @@ const Home = () => {
         </main>
         
         <footer className="mt-12 text-center text-gray-600">
-          <p>&copy; 2024 Analytiq Hub. All rights reserved.</p>
+          <p>&copy; 2024 DocRouter.AI. All rights reserved.</p>
           <div className="mt-4">
             <a 
               href="https://github.com/analytiq-hub/doc-router" 
