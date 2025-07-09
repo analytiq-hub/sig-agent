@@ -27,7 +27,7 @@
             <!-- Problem Statement Section -->
             <section class="bg-white rounded-lg shadow-lg p-8 mb-12">
                 <h2 class="text-3xl font-semibold text-gray-900 mb-6 text-center">The Supply Chain Challenge</h2>
-                <div class="grid md:grid-cols-3 gap-8">
+                <div class="grid md:grid-cols-4 gap-8">
                     <div class="text-center">
                         <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                             <span class="text-2xl">🌍</span>
@@ -49,6 +49,13 @@
                         <h3 class="text-xl font-medium text-gray-900 mb-2">Multi-Modal Transport</h3>
                         <p class="text-gray-600">Documents span ocean, air, rail, and truck transportation networks</p>
                     </div>
+                    <div class="text-center">
+                        <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                            <span class="text-2xl">📄</span>
+                        </div>
+                        <h3 class="text-xl font-medium text-gray-900 mb-2">Contract Complexity</h3>
+                        <p class="text-gray-600">Manual contract reviews delaying invoice verification and operational planning</p>
+                    </div>
                 </div>
             </section>
 
@@ -59,7 +66,7 @@
                     <p class="text-xl text-blue-100 mb-8">
                         Automated extraction and processing of supply chain documents for real-time visibility
                     </p>
-                    <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <div class="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
                         <div class="bg-white bg-opacity-10 rounded-lg p-6">
                             <h3 class="text-xl font-medium text-white mb-3">International Document Processing</h3>
                             <ul class="text-blue-100 space-y-2 text-left">
@@ -70,12 +77,21 @@
                             </ul>
                         </div>
                         <div class="bg-white bg-opacity-10 rounded-lg p-6">
-                            <h3 class="text-xl font-medium text-white mb-3">Automated Workflow</h3>
+                            <h3 class="text-xl font-medium text-white mb-3">Customizable Extraction</h3>
                             <ul class="text-blue-100 space-y-2 text-left">
+                                <li>• Configurable prompts and schemas</li>
                                 <li>• Real-time data extraction and validation</li>
-                                <li>• Integration with ERP and TMS systems</li>
                                 <li>• Automated tracking and status updates</li>
                                 <li>• Compliance documentation and audit trails</li>
+                            </ul>
+                        </div>
+                        <div class="bg-white bg-opacity-10 rounded-lg p-6">
+                            <h3 class="text-xl font-medium text-white mb-3">API-First Architecture</h3>
+                            <ul class="text-blue-100 space-y-2 text-left">
+                                <li>• RESTful APIs for data access</li>
+                                <li>• Structured data export capabilities</li>
+                                <li>• Custom integration development</li>
+                                <li>• Flexible workflow integration</li>
                             </ul>
                         </div>
                     </div>
@@ -139,7 +155,9 @@
                                 
                                 <h4 class="text-gray-900 font-medium mt-4 mb-2">Integration Benefits</h4>
                                 <ul class="list-disc list-inside text-gray-600">
-                                    <li>Integration with ERP systems (SAP, Oracle), TMS, WMS through APIs</li>
+                                    <li>API-based integration with ERP systems (SAP, Oracle), TMS, WMS through custom development</li>
+                                    <li>Structured data export for invoice reconciliation systems</li>
+                                    <li>Custom analytics integration capabilities</li>
                                 </ul>
                             </div>
                         </div>
@@ -193,21 +211,114 @@
                 </div>
             </section>
 
+            <!-- Contract Intelligence & Digitization Section -->
+            <section class="bg-white rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-3xl font-semibold text-gray-900 mb-6 text-center">Contract Intelligence & Digitization</h2>
+                
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-medium text-gray-900">Parcel Contract Intelligence</h3>
+                        <p class="text-gray-600">
+                            DocRouter.AI can be configured to deeply understand logistics contract structure and language, 
+                            extracting critical information such as discounts, rate minimums, service adjustments, surcharges, 
+                            and legal terms with high precision through customizable prompts and schemas.
+                        </p>
+                        <ul class="list-disc list-inside text-gray-600 space-y-2">
+                            <li>15,000+ structured data points per contract (example)</li>
+                            <li>Logistics-specific legalese interpretation</li>
+                            <li>Finance, audit, and operations workflow integration via APIs</li>
+                            <li>90%+ accuracy in key field extraction</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-medium text-gray-900">Human-in-the-Loop Design</h3>
+                        <p class="text-gray-600">
+                            Built with structured review and editing workflows, ensuring users can quickly verify extracted data 
+                            before operational use while building trust in AI outputs that impact financials.
+                        </p>
+                        <ul class="list-disc list-inside text-gray-600 space-y-2">
+                            <li>Structured review workflows</li>
+                            <li>Quick verification processes</li>
+                            <li>Accuracy-focused design</li>
+                            <li>Financial impact consideration</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Add after the Contract Intelligence Section -->
+            <section class="bg-gray-50 rounded-lg p-8 mb-12">
+                <h2 class="text-3xl font-semibold text-gray-900 mb-6 text-center">Integration & Customization</h2>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-xl font-medium text-gray-900 mb-3">API-First Approach</h3>
+                        <p class="text-gray-600 mb-4">
+                            DocRouter provides RESTful APIs that enable custom integrations with your existing systems. 
+                            While specific integrations like invoice reconciliation and analytics connectivity require custom development, 
+                            our APIs provide the structured data foundation needed to build these solutions.
+                        </p>
+                        <ul class="list-disc list-inside text-gray-600">
+                            <li>RESTful APIs for data access and export</li>
+                            <li>Structured JSON responses</li>
+                            <li>Custom integration development support</li>
+                            <li>Flexible data format options</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-medium text-gray-900 mb-3">Customizable Extraction</h3>
+                        <p class="text-gray-600 mb-4">
+                            Configure DocRouter for your specific supply chain needs through prompts and schemas. 
+                            Extract the exact data points that matter to your operations, from contract terms to shipping details.
+                        </p>
+                        <ul class="list-disc list-inside text-gray-600">
+                            <li>Custom prompts for specific document types</li>
+                            <li>Configurable data schemas</li>
+                            <li>Industry-specific terminology handling</li>
+                            <li>Multi-language support</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
             <!-- Results Section -->
             <section class="bg-gray-50 rounded-lg p-8 mb-12">
                 <h2 class="text-3xl font-semibold text-gray-900 mb-6 text-center">Expected Supply Chain Results</h2>
-                <div class="grid md:grid-cols-3 gap-8">
+                <div class="grid md:grid-cols-4 gap-8">
                     <div class="text-center">
-                        <div class="text-4xl font-bold text-blue-600 mb-2">80%</div>
+                        <div class="text-4xl font-bold text-blue-600 mb-2">90%+</div>
+                        <div class="text-gray-600">Accuracy Rate</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-blue-600 mb-2">300%</div>
                         <div class="text-gray-600">Faster Processing</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-4xl font-bold text-blue-600 mb-2">95%</div>
-                        <div class="text-gray-600">Error Reduction</div>
+                        <div class="text-4xl font-bold text-blue-600 mb-2">15K+</div>
+                        <div class="text-gray-600">Data Points per Contract</div>
                     </div>
                     <div class="text-center">
                         <div class="text-4xl font-bold text-blue-600 mb-2">$40K+</div>
                         <div class="text-gray-600">Annual Savings</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Add after the "Results Section" -->
+            <section class="bg-gradient-to-r from-green-600 to-green-800 rounded-lg shadow-lg p-8 mb-12">
+                <h2 class="text-3xl font-semibold text-white mb-6 text-center">Measurable Business Outcomes</h2>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-white mb-2">90%+</div>
+                        <div class="text-green-100">Accuracy in Key Field Extraction</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-white mb-2">300%</div>
+                        <div class="text-green-100">Reduction in Processing Time</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-white mb-2">15K+</div>
+                        <div class="text-green-100">Structured Data Points per Contract</div>
                     </div>
                 </div>
             </section>
@@ -217,7 +328,8 @@
                 <h2 class="text-2xl font-semibold text-gray-900 mb-4 text-center">Ready to Optimize Your Global Supply Chain?</h2>
                 <div class="text-center">
                     <p class="text-gray-600 mb-6">
-                        Contact us to discuss your specific supply chain processing needs and see how DocRouter can help streamline your global operations.
+                        Contact us to discuss your specific supply chain processing needs and see how DocRouter's APIs and 
+                        customizable extraction capabilities can help streamline your global operations.
                     </p>
                     <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
                         <button onclick="openCalendly()" 
