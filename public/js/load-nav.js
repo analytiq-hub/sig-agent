@@ -97,7 +97,15 @@ function initializeDropdowns() {
             e.stopPropagation();
             const dropdownMenu = this.nextElementSibling;
             
-            // Toggle the dropdown menu
+            // Close all other dropdowns first
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                if (menu !== dropdownMenu) {
+                    menu.classList.add('hidden');
+                    menu.classList.remove('show');
+                }
+            });
+            
+            // Toggle the clicked dropdown menu
             dropdownMenu.classList.toggle('hidden');
             dropdownMenu.classList.toggle('show');
         });
@@ -112,7 +120,20 @@ function initializeDropdowns() {
             const content = this.nextElementSibling;
             const arrow = this.querySelector('svg');
             
-            // Toggle the mobile dropdown content
+            // Close all other mobile dropdowns first
+            document.querySelectorAll('.mobile-dropdown-content').forEach(dropdownContent => {
+                if (dropdownContent !== content) {
+                    dropdownContent.classList.add('hidden');
+                    dropdownContent.classList.remove('show');
+                    // Reset arrow rotation for other dropdowns
+                    const otherArrow = dropdownContent.previousElementSibling.querySelector('svg');
+                    if (otherArrow) {
+                        otherArrow.classList.remove('rotate-180');
+                    }
+                }
+            });
+            
+            // Toggle the clicked mobile dropdown content
             content.classList.toggle('hidden');
             content.classList.toggle('show');
             arrow.classList.toggle('rotate-180');
