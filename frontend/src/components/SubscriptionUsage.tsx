@@ -3,25 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { getCurrentUsageApi, getSubscriptionApi, getCreditConfigApi, purchaseCreditsApi } from '@/utils/api';
 import { toast } from 'react-toastify';
-import { CreditConfig } from '@/types/index';
+import { CreditConfig, UsageData } from '@/types/index';
 
 interface SubscriptionUsageProps {
   organizationId: string;
-}
-
-interface UsageData {
-  total_usage: number;
-  metered_usage: number;
-  remaining_included: number;
-  subscription_type: string;
-  usage_unit?: string;
-  period_start?: number;
-  period_end?: number;
-  // New credit fields
-  credits_total: number;
-  credits_used: number;
-  credits_remaining: number;
-  paid_usage: number;
 }
 
 interface SubscriptionData {
@@ -145,6 +130,9 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
   const usageUnit = usageData.usage_unit || 'pages';
   const usageUnitDisplay = usageUnit === 'spu' ? 'SPUs' : 'pages';
 
+  // Calculate total credits for display
+  const totalCreditsRemaining = usageData.purchased_credits_remaining + usageData.admin_credits_remaining;
+
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <h3 className="text-lg font-semibold mb-4">Current Usage</h3>
@@ -167,17 +155,49 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
           )}
         </div>
         
-        {/* Credits Progress Bar */}
+        {/* Purchased Credits Progress Bar */}
         <div className="mt-3">
           <div className="flex justify-between text-sm text-gray-600 mb-1">
-            <span>{usageData.credits_used} of {usageData.credits_total} credits used</span>
-            <span>{Math.round((usageData.credits_used / usageData.credits_total) * 100)}%</span>
+            <span>{usageData.purchased_credits_used} of {usageData.purchased_credits} purchased credits used</span>
+            <span>{usageData.purchased_credits > 0 ? Math.round((usageData.purchased_credits_used / usageData.purchased_credits) * 100) : 0}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="h-2 rounded-full transition-all duration-300 bg-blue-500"
+              style={{ width: `${Math.min((usageData.purchased_credits_used / usageData.purchased_credits) * 100, 100)}%` }}
+            ></div>
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            {usageData.purchased_credits_remaining} purchased credits remaining
+          </div>
+        </div>
+
+        {/* Admin Credits Section */}
+        <div className="mt-4">
+          <h5 className="text-sm font-medium text-gray-600 mb-2">Admin-Granted Credits</h5>
+          <div className="flex justify-between text-sm text-gray-600 mb-1">
+            <span>{usageData.admin_credits_used} of {usageData.admin_credits} admin credits used</span>
+            <span>{usageData.admin_credits > 0 ? Math.round((usageData.admin_credits_used / usageData.admin_credits) * 100) : 0}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
               className="h-2 rounded-full transition-all duration-300 bg-green-500"
-              style={{ width: `${Math.min((usageData.credits_used / usageData.credits_total) * 100, 100)}%` }}
+              style={{ width: `${Math.min((usageData.admin_credits_used / usageData.admin_credits) * 100, 100)}%` }}
             ></div>
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            {usageData.admin_credits_remaining} admin credits remaining
+          </div>
+        </div>
+
+        {/* Total Credits Summary */}
+        <div className="mt-4 p-3 bg-gray-50 rounded-md">
+          <div className="text-sm font-medium text-gray-700 mb-1">Total Credits</div>
+          <div className="text-lg font-bold text-gray-800">
+            {totalCreditsRemaining} credits remaining
+          </div>
+          <div className="text-xs text-gray-500">
+            {usageData.purchased_credits_remaining} purchased + {usageData.admin_credits_remaining} admin
           </div>
         </div>
 
@@ -235,7 +255,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
                 </button>
               </div>
               <div className="text-xs text-blue-600">
-                Credits are used before paid usage. You currently have <span className="font-semibold">{usageData.credits_remaining}</span> credits remaining.
+                Credits are used before paid usage. You currently have <span className="font-semibold">{totalCreditsRemaining}</span> credits remaining.
                 <br />
                 Purchase amount must be between ${creditConfig.min_cost} and ${creditConfig.max_cost}.
               </div>
@@ -249,7 +269,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
         <h4 className="text-md font-medium text-gray-700 mb-3">Paid Usage</h4>
         <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
           <div className="text-gray-600 font-medium">Paid SPUs</div>
-          <div className="text-2xl font-bold text-gray-700">{usageData.paid_usage} {usageUnitDisplay}</div>
+          <div className="text-2xl font-bold text-gray-700">{usageData.metered_usage} {usageUnitDisplay}</div>
         </div>
       </div>
 

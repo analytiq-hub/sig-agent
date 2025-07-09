@@ -655,10 +655,19 @@ async def check_usage_limits(org_id: str) -> Dict[str, Any]:
     # Ensure credits are initialized
     await ensure_spu_credits(customer)
     
-    # Get current usage info
-    credits_total = customer.get("spu_credits", DEFAULT_SPU_CREDITS)
-    credits_used = customer.get("spu_credits_used", 0)
-    credits_remaining = max(credits_total - credits_used, 0)
+    # Get separate credit information
+    purchased_credits = customer.get("purchased_credits", 0)
+    purchased_used = customer.get("purchased_credits_used", 0)
+    purchased_remaining = max(purchased_credits - purchased_used, 0)
+    
+    admin_credits = customer.get("admin_credits", DEFAULT_SPU_CREDITS)
+    admin_used = customer.get("admin_credits_used", 0)
+    admin_remaining = max(admin_credits - admin_used, 0)
+    
+    # Total credits
+    total_credits = purchased_credits + admin_credits
+    total_used = purchased_used + admin_used
+    total_remaining = purchased_remaining + admin_remaining
     
     # Check if they have an active subscription
     stripe_customer = await get_payments_customer(org_id)
@@ -670,11 +679,11 @@ async def check_usage_limits(org_id: str) -> Dict[str, Any]:
     has_payment_method = stripe_customer and payment_method_exists(stripe_customer) if stripe_customer else False
     
     # If they have credits remaining, they can continue
-    if credits_remaining > 0:
+    if total_remaining > 0:
         return {
             "limit_reached": False,
-            "current_usage": credits_used,
-            "credits_remaining": credits_remaining,
+            "current_usage": total_used,
+            "credits_remaining": total_remaining,
             "needs_upgrade": False,
             "can_use_credits": True
         }
@@ -683,7 +692,7 @@ async def check_usage_limits(org_id: str) -> Dict[str, Any]:
     if has_active_subscription and has_payment_method:
         return {
             "limit_reached": False,
-            "current_usage": credits_used,
+            "current_usage": total_used,
             "credits_remaining": 0,
             "needs_upgrade": False,
             "can_use_credits": False
@@ -692,7 +701,7 @@ async def check_usage_limits(org_id: str) -> Dict[str, Any]:
     # No credits and no active subscription - they need to upgrade
     return {
         "limit_reached": True,
-        "current_usage": credits_used,
+        "current_usage": total_used,
         "credits_remaining": 0,
         "needs_upgrade": True,
         "can_use_credits": False
@@ -1400,9 +1409,15 @@ async def get_current_usage(
             raise HTTPException(status_code=404, detail=f"No stripe_customer found for org_id: {organization_id}")
         
         await ensure_spu_credits(stripe_customer)
-        credits = stripe_customer.get("spu_credits", DEFAULT_SPU_CREDITS)
-        used = stripe_customer.get("spu_credits_used", 0)
-        credits_left = max(credits - used, 0)
+        
+        # Get separate credit information
+        purchased_credits = stripe_customer.get("purchased_credits", 0)
+        purchased_used = stripe_customer.get("purchased_credits_used", 0)
+        purchased_remaining = max(purchased_credits - purchased_used, 0)
+        
+        admin_credits = stripe_customer.get("admin_credits", DEFAULT_SPU_CREDITS)
+        admin_used = stripe_customer.get("admin_credits_used", 0)
+        admin_remaining = max(admin_credits - admin_used, 0)
         
         # --- NEW: Get period_start and period_end from Stripe subscription ---
         period_start = None
@@ -1425,7 +1440,7 @@ async def get_current_usage(
             logger.warning(f"Could not fetch subscription period: {e}")
 
         # --- Only count paid usage for the current period ---
-        paid_usage = 0
+        metered_usage = 0
         if period_start and period_end:
             agg = await stripe_usage_records.aggregate([
                 {
@@ -1441,7 +1456,7 @@ async def get_current_usage(
                 {"$group": {"_id": None, "total": {"$sum": "$spus"}}}
             ]).to_list(1)
             if agg and agg[0].get("total"):
-                paid_usage = agg[0]["total"]
+                metered_usage = agg[0]["total"]
         else:
             # fallback: all paid usage (should be rare)
             agg = await stripe_usage_records.aggregate([
@@ -1449,23 +1464,25 @@ async def get_current_usage(
                 {"$group": {"_id": None, "total": {"$sum": "$spus"}}}
             ]).to_list(1)
             if agg and agg[0].get("total"):
-                paid_usage = agg[0]["total"]
+                metered_usage = agg[0]["total"]
 
         # Get total usage (credits + paid)
-        total_usage = used + paid_usage
+        total_usage = purchased_used + admin_used + metered_usage
 
         return {
             "usage_source": "stripe",
             "data": {
                 "total_usage": total_usage,
-                "metered_usage": total_usage,
-                "remaining_included": 0,  # Not applicable with credits
+                "metered_usage": metered_usage,
+                "remaining_included": 0,
                 "subscription_type": subscription_type,
                 "usage_unit": usage_unit,
-                "credits_total": credits,
-                "credits_used": used,
-                "credits_remaining": credits_left,
-                "paid_usage": paid_usage,
+                "purchased_credits": purchased_credits,
+                "purchased_credits_used": purchased_used,
+                "purchased_credits_remaining": purchased_remaining,
+                "admin_credits": admin_credits,
+                "admin_credits_used": admin_used,
+                "admin_credits_remaining": admin_remaining,
                 "period_start": period_start,
                 "period_end": period_end,
             }
@@ -1542,34 +1559,64 @@ async def ensure_spu_credits(stripe_customer_doc):
         update["spu_credits"] = DEFAULT_SPU_CREDITS
     if "spu_credits_used" not in stripe_customer_doc:
         update["spu_credits_used"] = 0
+    # Add new fields for separate tracking
+    if "purchased_credits" not in stripe_customer_doc:
+        update["purchased_credits"] = 0
+    if "purchased_credits_used" not in stripe_customer_doc:
+        update["purchased_credits_used"] = 0
+    if "admin_credits" not in stripe_customer_doc:
+        update["admin_credits"] = DEFAULT_SPU_CREDITS
+    if "admin_credits_used" not in stripe_customer_doc:
+        update["admin_credits_used"] = 0
     if update:
         await stripe_customers.update_one(
             {"_id": stripe_customer_doc["_id"]},
             {"$set": update}
         )
 
-# Draw down credits first when recording usage
+# Modify record_spu_usage to consume purchased credits first
 async def record_spu_usage(org_id: str, spus: int):
     stripe_customer = await stripe_customers.find_one({"org_id": org_id})
     if not stripe_customer:
         raise Exception("No stripe_customer for org")
     await ensure_spu_credits(stripe_customer)
-    credits = stripe_customer.get("spu_credits", DEFAULT_SPU_CREDITS)
-    used = stripe_customer.get("spu_credits_used", 0)
-    credits_left = max(credits - used, 0)
-    from_credits = min(spus, credits_left)
-    from_paid = spus - from_credits
+    
+    # Get available credits
+    purchased_credits = stripe_customer.get("purchased_credits", 0)
+    purchased_used = stripe_customer.get("purchased_credits_used", 0)
+    purchased_remaining = max(purchased_credits - purchased_used, 0)
+    
+    admin_credits = stripe_customer.get("admin_credits", DEFAULT_SPU_CREDITS)
+    admin_used = stripe_customer.get("admin_credits_used", 0)
+    admin_remaining = max(admin_credits - admin_used, 0)
+    
+    # Consume purchased credits first, then admin credits
+    from_purchased = min(spus, purchased_remaining)
+    from_admin = min(spus - from_purchased, admin_remaining)
+    from_paid = spus - from_purchased - from_admin
 
-    # Update credits used
-    if from_credits > 0:
+    # Update credit usage
+    if from_purchased > 0:
         await stripe_customers.update_one(
             {"_id": stripe_customer["_id"]},
-            {"$inc": {"spu_credits_used": from_credits}}
+            {"$inc": {"purchased_credits_used": from_purchased}}
         )
-    # Record paid usage as before
+    
+    if from_admin > 0:
+        await stripe_customers.update_one(
+            {"_id": stripe_customer["_id"]},
+            {"$inc": {"admin_credits_used": from_admin}}
+        )
+    
+    # Record paid usage for the remainder
     if from_paid > 0:
         await save_usage_record(org_id, from_paid, operation="paid_usage", source="backend")
-    return {"from_credits": from_credits, "from_paid": from_paid}
+    
+    return {
+        "from_purchased": from_purchased, 
+        "from_admin": from_admin, 
+        "from_paid": from_paid
+    }
 
 # Admin API to add credits
 @payments_router.post("/{organization_id}/credits/add")
@@ -1578,7 +1625,7 @@ async def add_spu_credits(
     update: CreditUpdate,
     current_user: User = Depends(get_current_user)
 ):
-    logger.info(f"Adding {update.amount} credits to org {organization_id}")
+    logger.info(f"Adding {update.amount} admin credits to org {organization_id}")
 
     if not await is_system_admin(current_user.user_id):
         raise HTTPException(status_code=403, detail="Admin only")
@@ -1588,7 +1635,7 @@ async def add_spu_credits(
     await ensure_spu_credits(stripe_customer)
     await stripe_customers.update_one(
         {"_id": stripe_customer["_id"]},
-        {"$inc": {"spu_credits": update.amount}}
+        {"$inc": {"admin_credits": update.amount}}
     )
     return {"success": True, "added": update.amount}
 
@@ -1725,10 +1772,10 @@ async def credit_customer_account_from_session(session: Dict[str, Any]):
         await ensure_spu_credits(stripe_customer)
         await stripe_customers.update_one(
             {"_id": stripe_customer["_id"]},
-            {"$inc": {"spu_credits": credits}}
+            {"$inc": {"purchased_credits": credits}}
         )
         
-        logger.info(f"Credited {credits} SPUs to organization {org_id} from checkout session {session['id']}")
+        logger.info(f"Credited {credits} purchased SPUs to organization {org_id} from checkout session {session['id']}")
         
     except Exception as e:
         logger.error(f"Error processing checkout session completion: {e}")

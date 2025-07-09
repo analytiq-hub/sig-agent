@@ -41,20 +41,21 @@ export interface SubscriptionHistoryResponse {
   subscription_history: SubscriptionHistory[];
 }
 
-// New interface for usage data with credits support
+// Update UsageData interface to match the backend structure exactly
 export interface UsageData {
   total_usage: number;
   metered_usage: number;
   remaining_included: number;
   subscription_type: string;
-  usage_unit?: string; // 'spu' or 'pages'
-  period_start?: number;
-  period_end?: number;
-  // New credit fields
-  credits_total: number;
-  credits_used: number;
-  credits_remaining: number;
-  paid_usage: number;
+  usage_unit?: string;
+  purchased_credits: number;
+  purchased_credits_used: number;
+  purchased_credits_remaining: number;
+  admin_credits: number;
+  admin_credits_used: number;
+  admin_credits_remaining: number;
+  period_start: number;
+  period_end: number;
 }
 
 export interface UsageResponse {
