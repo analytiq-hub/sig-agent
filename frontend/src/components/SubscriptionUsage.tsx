@@ -139,56 +139,6 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
       
       {/* Credits Section */}
       <div className="mb-6">
-        <div className="flex justify-between items-center mb-3">
-          <h4 className="text-md font-medium text-gray-700">SPU Credits</h4>
-          {canPurchaseCredits() ? (
-            <div className="text-sm text-gray-500">
-              Credits available for purchase
-            </div>
-          ) : (
-            <div className="text-sm text-gray-500">
-              {subscriptionData?.current_plan ? 
-                `Credits purchase not available with ${subscriptionData.current_plan} plan` : 
-                'Credits not available'
-              }
-            </div>
-          )}
-        </div>
-        
-        {/* Purchased Credits Progress Bar */}
-        <div className="mt-3">
-          <div className="flex justify-between text-sm text-gray-600 mb-1">
-            <span>{usageData.purchased_credits_used} of {usageData.purchased_credits} purchased credits used</span>
-            <span>{usageData.purchased_credits > 0 ? Math.round((usageData.purchased_credits_used / usageData.purchased_credits) * 100) : 0}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="h-2 rounded-full transition-all duration-300 bg-blue-500"
-              style={{ width: `${Math.min((usageData.purchased_credits_used / usageData.purchased_credits) * 100, 100)}%` }}
-            ></div>
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            {usageData.purchased_credits_remaining} purchased credits remaining
-          </div>
-        </div>
-
-        {/* Admin Credits Section */}
-        <div className="mt-4">
-          <h5 className="text-sm font-medium text-gray-600 mb-2">Admin-Granted SPU Credits</h5>
-          <div className="flex justify-between text-sm text-gray-600 mb-1">
-            <span>{usageData.admin_credits_used} of {usageData.admin_credits} admin credits used</span>
-            <span>{usageData.admin_credits > 0 ? Math.round((usageData.admin_credits_used / usageData.admin_credits) * 100) : 0}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="h-2 rounded-full transition-all duration-300 bg-green-500"
-              style={{ width: `${Math.min((usageData.admin_credits_used / usageData.admin_credits) * 100, 100)}%` }}
-            ></div>
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            {usageData.admin_credits_remaining} admin credits remaining
-          </div>
-        </div>
 
         {/* Total Credits Summary */}
         <div className="mt-4 p-3 bg-gray-50 rounded-md">
@@ -262,15 +212,6 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
             </div>
           </div>
         )}
-      </div>
-
-      {/* Paid Usage Section */}
-      <div className="mb-6">
-        <h4 className="text-md font-medium text-gray-700 mb-3">Metered SPU Usage</h4>
-        <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
-          <div className="text-gray-600 font-medium">Metered SPUs</div>
-          <div className="text-2xl font-bold text-gray-700">{usageData.metered_usage} {usageUnitDisplay}</div>
-        </div>
       </div>
 
       {/* Compact Grid - Original Info */}
