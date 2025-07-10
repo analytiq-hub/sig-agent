@@ -123,9 +123,6 @@ stripe_events = None
 stripe_usage_records = None
 stripe_billing_periods = None
 
-# Stripe configuration constants
-DEFAULT_SPU_CREDITS = 100
-
 # Pydantic models for request/response validation
 class UsageRecord(BaseModel):
     spus: int = Field(default=0)  # New field for SPU tracking
@@ -166,6 +163,7 @@ class PurchaseCreditsResponse(BaseModel):
 
 # Replace the multiple packages with a single credit configuration
 CREDIT_CONFIG = {
+    "default_spu_credits": 100,
     "price_per_credit": 0.015,  # $0.015 per credit
     "currency": "usd",
     "min_cost": 5.0,  # Minimum purchase amount in USD
@@ -660,7 +658,7 @@ async def check_usage_limits(org_id: str) -> Dict[str, Any]:
     purchased_used = customer.get("purchased_credits_used", 0)
     purchased_remaining = max(purchased_credits - purchased_used, 0)
     
-    admin_credits = customer.get("admin_credits", DEFAULT_SPU_CREDITS)
+    admin_credits = customer.get("admin_credits", CREDIT_CONFIG["default_spu_credits"])
     admin_used = customer.get("admin_credits_used", 0)
     admin_remaining = max(admin_credits - admin_used, 0)
     
@@ -1435,7 +1433,7 @@ async def get_current_usage(
         purchased_used = stripe_customer.get("purchased_credits_used", 0)
         purchased_remaining = max(purchased_credits - purchased_used, 0)
         
-        admin_credits = stripe_customer.get("admin_credits", DEFAULT_SPU_CREDITS)
+        admin_credits = stripe_customer.get("admin_credits", CREDIT_CONFIG["default_spu_credits"])
         admin_used = stripe_customer.get("admin_credits_used", 0)
         admin_remaining = max(admin_credits - admin_used, 0)
         
@@ -1571,17 +1569,13 @@ async def webhook_received(
 # Ensure credits are initialized for a stripe_customer
 async def ensure_spu_credits(stripe_customer_doc):
     update = {}
-    if "spu_credits" not in stripe_customer_doc:
-        update["spu_credits"] = DEFAULT_SPU_CREDITS
-    if "spu_credits_used" not in stripe_customer_doc:
-        update["spu_credits_used"] = 0
     # Add new fields for separate tracking
     if "purchased_credits" not in stripe_customer_doc:
         update["purchased_credits"] = 0
     if "purchased_credits_used" not in stripe_customer_doc:
         update["purchased_credits_used"] = 0
     if "admin_credits" not in stripe_customer_doc:
-        update["admin_credits"] = DEFAULT_SPU_CREDITS
+        update["admin_credits"] = CREDIT_CONFIG["default_spu_credits"]
     if "admin_credits_used" not in stripe_customer_doc:
         update["admin_credits_used"] = 0
     if update:
@@ -1602,7 +1596,7 @@ async def record_spu_usage(org_id: str, spus: int):
     purchased_used = stripe_customer.get("purchased_credits_used", 0)
     purchased_remaining = max(purchased_credits - purchased_used, 0)
     
-    admin_credits = stripe_customer.get("admin_credits", DEFAULT_SPU_CREDITS)
+    admin_credits = stripe_customer.get("admin_credits", CREDIT_CONFIG["default_spu_credits"])
     admin_used = stripe_customer.get("admin_credits_used", 0)
     admin_remaining = max(admin_credits - admin_used, 0)
     
