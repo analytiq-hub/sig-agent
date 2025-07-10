@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, ExitToApp as SignoutIcon, Help as HelpIcon, Info as InfoIcon, Feedback as FeedbackIcon } from '@mui/icons-material';
-import { signOut } from 'next-auth/react';
+import { Settings as SettingsIcon, ExitToApp as SignoutIcon, Help as HelpIcon, Info as InfoIcon, Feedback as FeedbackIcon, Payment as PaymentIcon } from '@mui/icons-material';
+import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useOrganization } from '@/contexts/OrganizationContext';
 
 // Add this interface at the top of your file
 declare global {
@@ -23,6 +24,8 @@ interface UserMenuProps {
 
 const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { data: session } = useSession();
+  const { currentOrganization } = useOrganization();
 
   const handleLogout = () => {
     signOut({
@@ -53,6 +56,18 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  // Check if user is admin (system admin or organization admin)
+  const isAdmin = () => {
+    if (!session?.user || !currentOrganization) return false;
+    
+    const isSystemAdmin = session.user.role === 'admin';
+    const isOrgAdmin = currentOrganization.members.some(
+      member => member.user_id === session.user.id && member.role === 'admin'
+    );
+    
+    return isSystemAdmin || isOrgAdmin;
   };
 
   return (
@@ -99,6 +114,18 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
             </div>
 
             <div className="border-t border-gray-200" />
+
+            {/* Billing Link - Only show for admins */}
+            {isAdmin() && currentOrganization && (
+              <Link
+                href={`/settings/organizations/${currentOrganization.id}/subscription`}
+                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                onClick={() => setIsOpen(false)}
+              >
+                <PaymentIcon className="h-4 w-4 mr-2" />
+                <span className="pt-[3px]">Billing</span>
+              </Link>
+            )}
 
             {/* Settings Link */}
             <Link
