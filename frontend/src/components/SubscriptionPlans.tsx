@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getCustomerPortalApi, getSubscriptionApi, updateOrganizationApi, reactivateSubscriptionApi, getOrganizationApi } from '@/utils/api';
+import { getCustomerPortalApi, getSubscriptionApi, updateOrganizationApi, activateSubscriptionApi, getOrganizationApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import type { SubscriptionPlan } from '@/types/payments';
 import type { Organization } from '@/types/organizations';
@@ -95,7 +95,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         setLoading(true);
         
         // Reactivate the subscription
-        await reactivateSubscriptionApi(organizationId);
+        await activateSubscriptionApi(organizationId);
         
         // Refresh the subscription plans data
         const subscriptionResponse = await getSubscriptionApi(organizationId);
@@ -133,8 +133,11 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       setLoading(true);
       setSelectedPlan(planId);
       
-      // Just update the organization type to match the new plan
+      // Step 1: Update the organization type
       await updateOrganizationApi(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
+
+      // Step 2: Activate the subscription
+      await activateSubscriptionApi(organizationId);
 
       // Refresh the organization context to update parent component
       await refreshOrganizations();

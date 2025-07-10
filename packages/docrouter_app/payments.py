@@ -124,7 +124,7 @@ stripe_usage_records = None
 stripe_billing_periods = None
 
 # Stripe configuration constants
-DEFAULT_SPU_CREDITS = 500
+DEFAULT_SPU_CREDITS = 100
 
 # Pydantic models for request/response validation
 class UsageRecord(BaseModel):
@@ -904,7 +904,7 @@ async def customer_portal(
         logger.info(f"Stripe customer found for org_id: {organization_id}: {customer['stripe_customer_id']}")
         session = await StripeAsync.billing_portal_session_create(
             customer=customer["stripe_customer_id"],
-            return_url=f"{NEXTAUTH_URL}/settings/organizations/{organization_id}",
+            return_url=f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription",
         )
         logger.info(f"Stripe customer portal URL: {session.url}")
         return PortalSessionResponse(url=session.url)
@@ -1118,7 +1118,12 @@ async def get_subscription_info(
         current_subscription_type = None
         subscription_status = "no_subscription"
     else:
-        current_subscription_type = get_subscription_type(subscription)
+        # Only return subscription type if customer has a payment method
+        if has_payment_method:
+            current_subscription_type = get_subscription_type(subscription)
+        else:
+            current_subscription_type = None
+            
         subscription_status = subscription.status
         
         # Check if subscription is set to cancel at period end
@@ -1138,32 +1143,36 @@ async def get_subscription_info(
         current_period_end=current_period_end
     )
 
-async def reactivate_subscription(customer_id: str) -> bool:
-    """Reactivate a subscription that is set to cancel at period end"""
+async def handle_activate_subscription(org_id: str, org_type: str, customer_id: str) -> bool:
+    """Activate a subscription"""
     
     if not stripe.api_key:
-        logger.warning("Stripe API key not configured - reactivate_subscription aborted")
+        logger.warning("Stripe API key not configured - handle_activate_subscription aborted")
         return False
 
     try:
         # Get the current subscription
         subscription = await get_subscription(customer_id)
-        if not subscription:
-            logger.error(f"No subscription found for customer_id: {customer_id}")
-            return False
-        
-        # Check if subscription is set to cancel at period end
-        if not subscription.get('cancel_at_period_end', False):
-            logger.info(f"Subscription for customer_id: {customer_id} is not set to cancel at period end")
-            return True  # Already active
-        
-        # Reactivate the subscription by removing cancel_at_period_end
-        await StripeAsync.subscription_modify(
-            subscription.id,
-            cancel_at_period_end=False
-        )
-        
-        logger.info(f"Reactivated subscription {subscription.id} for customer_id: {customer_id}")
+        if subscription:       
+            # Check if subscription is set to cancel at period end
+            if not subscription.get('cancel_at_period_end', False):
+                logger.info(f"Subscription for customer_id: {customer_id} is not set to cancel at period end")
+                return True  # Already active
+            
+            # Reactivate the subscription by removing cancel_at_period_end
+            await StripeAsync.subscription_modify(
+                subscription.id,
+                cancel_at_period_end=False
+            )
+            
+            logger.info(f"Reactivated subscription {subscription.id} for customer_id: {customer_id}")
+
+        else:
+            # Sync the subscription type with the organization type
+            await sync_subscription(org_id, org_type)
+            
+            logger.info(f"Created new subscription for customer_id: {customer_id}")
+
         return True
         
     except Exception as e:
@@ -1230,11 +1239,17 @@ async def get_organization_subscription_status(org_id: str) -> dict:
                 "status": "no_subscription"
             }
 
-        subscription_type = get_subscription_type(subscription)
+        # Only return subscription type if customer has a payment method
+        has_payment_method = payment_method_exists(stripe_customer)
+        if has_payment_method:
+            subscription_type = get_subscription_type(subscription)
+        else:
+            subscription_type = None
+            
         return {
             "stripe_enabled": True,
             "subscription_type": subscription_type,
-            "has_payment_method": payment_method_exists(stripe_customer),
+            "has_payment_method": has_payment_method,
             "status": subscription.status
         }
 
@@ -1252,7 +1267,7 @@ async def activate_subscription(
     organization_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Reactivate a subscription that is set to cancel at period end"""
+    """Activate a subscription"""
     
     logger.info(f"Reactivating subscription for org_id: {organization_id}")
 
@@ -1262,13 +1277,19 @@ async def activate_subscription(
     if not is_sys_admin and not is_org_admin:
         raise HTTPException(status_code=403, detail="You are not authorized to reactivate a subscription")
 
+    org = await db.organizations.find_one({"_id": ObjectId(organization_id)})
+    if not org:
+        raise HTTPException(status_code=404, detail=f"Organization not found: {organization_id}")
+
+    org_type = org.get("type", "individual")
+
     try:
         # Get the customer
         stripe_customer = await get_payments_customer(organization_id)
         if not stripe_customer:
             raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
 
-        success = await reactivate_subscription(stripe_customer.id)
+        success = await handle_activate_subscription(organization_id, org_type, stripe_customer.id)
         if success:
             return {"status": "success", "message": "Subscription reactivated successfully"}
         else:
@@ -1364,16 +1385,15 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
             {
                 "$match": {
                     "org_id": org_id,
-                    "timestamp": {"$gte": period_start, "$lte": period_end}
-                }
-            },
-            {
-                "$group": {
-                    "_id": None,
-                    "total_usage": {"$sum": "$spus"}
-                }
-            }
-        ]
+                    "operation": "paid_usage",
+                    "timestamp": {
+                            "$gte": datetime.fromtimestamp(period_start),
+                            "$lte": datetime.fromtimestamp(period_end)
+                        }
+                    }
+                },
+                {"$group": {"_id": None, "total": {"$sum": "$spus"}}}
+            ]
         
         usage_result = await stripe_usage_records.aggregate(usage_pipeline).to_list(length=1)
         total_usage = usage_result[0]["total_usage"] if usage_result else 0
@@ -1466,13 +1486,9 @@ async def get_current_usage(
             if agg and agg[0].get("total"):
                 metered_usage = agg[0]["total"]
 
-        # Get total usage (credits + paid)
-        total_usage = purchased_used + admin_used + metered_usage
-
         return {
             "usage_source": "stripe",
             "data": {
-                "total_usage": total_usage,
                 "metered_usage": metered_usage,
                 "remaining_included": 0,
                 "subscription_type": subscription_type,
@@ -1778,4 +1794,5 @@ async def credit_customer_account_from_session(session: Dict[str, Any]):
         logger.info(f"Credited {credits} purchased SPUs to organization {org_id} from checkout session {session['id']}")
         
     except Exception as e:
+        logger.error(f"Error processing checkout session completion: {e}")
         logger.error(f"Error processing checkout session completion: {e}")

@@ -43,7 +43,6 @@ export interface SubscriptionHistoryResponse {
 
 // Update UsageData interface to match the backend structure exactly
 export interface UsageData {
-  total_usage: number;
   metered_usage: number;
   remaining_included: number;
   subscription_type: string;

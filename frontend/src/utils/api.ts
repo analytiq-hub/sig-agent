@@ -710,7 +710,7 @@ export const getSubscriptionApi = async (orgId: string): Promise<SubscriptionRes
   return response.data;
 };
 
-export const reactivateSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
+export const activateSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
   const response = await api.put<{ status: string; message: string }>(`/v0/payments/${orgId}/subscription`);
   return response.data;
 };
