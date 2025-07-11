@@ -137,7 +137,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
         <div className="flex gap-2">
           {view === 'usage' ? (
             <button
-              className="flex items-center px-3 py-1 rounded-md font-medium text-gray-500 hover:text-blue-700 transition-colors"
+              className="flex items-center px-3 py-1 rounded-md font-medium text-blue-700 hover:text-gray-800 transition-colors"
               onClick={() => setView('pricing')}
             >
               <CreditCardIcon className="mr-1 mb-[4px]" fontSize="small" />
@@ -145,7 +145,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
             </button>
           ) : (
             <button
-              className="flex items-center px-3 py-1 rounded-md font-medium text-gray-500 hover:text-blue-700 transition-colors"
+              className="flex items-center px-3 py-1 rounded-md font-medium text-blue-700 hover:text-gray-800 transition-colors"
               onClick={() => setView('usage')}
             >
               <BarChartIcon className="mr-1 mb-[4px]" fontSize="small" />
