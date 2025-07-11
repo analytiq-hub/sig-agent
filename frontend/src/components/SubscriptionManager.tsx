@@ -129,7 +129,9 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
     <div className="bg-white p-6 rounded-lg shadow">
       {/* Top bar: Title + Toggle Links */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold">Billing</h2>
+        <h2 className="text-xl font-bold">
+          {view === 'usage' ? 'Usage' : 'Billing'}
+        </h2>
         <div className="flex gap-2">
           <button
             className={`px-3 py-1 rounded-md font-medium transition-colors ${
@@ -238,7 +240,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
               </button>
             )}
             <a 
-              href={customerPortalUrl} 
+              href={customerPortalUrl || undefined} 
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
