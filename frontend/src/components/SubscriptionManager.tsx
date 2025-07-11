@@ -140,7 +140,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
               className="flex items-center px-3 py-1 rounded-md font-medium text-gray-500 hover:text-blue-700 transition-colors"
               onClick={() => setView('pricing')}
             >
-              <CreditCardIcon className="mr-1" fontSize="small" />
+              <CreditCardIcon className="mr-1 mb-[4px]" fontSize="small" />
               See Pricing
             </button>
           ) : (
@@ -148,7 +148,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
               className="flex items-center px-3 py-1 rounded-md font-medium text-gray-500 hover:text-blue-700 transition-colors"
               onClick={() => setView('usage')}
             >
-              <BarChartIcon className="mr-1" fontSize="small" />
+              <BarChartIcon className="mr-1 mb-[4px]" fontSize="small" />
               View Usage
             </button>
           )}
