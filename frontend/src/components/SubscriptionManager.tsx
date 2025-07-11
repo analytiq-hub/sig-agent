@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { getCustomerPortalApi } from '@/utils/api';
 import SubscriptionPlans from './SubscriptionPlans';
 import SubscriptionUsage from './SubscriptionUsage';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
 
 interface SubscriptionProps {
   organizationId: string;
@@ -133,26 +135,23 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
           {view === 'usage' ? 'Usage' : 'Billing'}
         </h2>
         <div className="flex gap-2">
-          <button
-            className={`px-3 py-1 rounded-md font-medium transition-colors ${
-              view === 'usage'
-                ? 'text-blue-700 underline underline-offset-4'
-                : 'text-gray-500 hover:text-blue-700'
-            }`}
-            onClick={() => setView('usage')}
-          >
-            View Usage
-          </button>
-          <button
-            className={`px-3 py-1 rounded-md font-medium transition-colors ${
-              view === 'pricing'
-                ? 'text-blue-700 underline underline-offset-4'
-                : 'text-gray-500 hover:text-blue-700'
-            }`}
-            onClick={() => setView('pricing')}
-          >
-            See Pricing
-          </button>
+          {view === 'usage' ? (
+            <button
+              className="flex items-center px-3 py-1 rounded-md font-medium text-gray-500 hover:text-blue-700 transition-colors"
+              onClick={() => setView('pricing')}
+            >
+              <CreditCardIcon className="mr-1" fontSize="small" />
+              See Pricing
+            </button>
+          ) : (
+            <button
+              className="flex items-center px-3 py-1 rounded-md font-medium text-gray-500 hover:text-blue-700 transition-colors"
+              onClick={() => setView('usage')}
+            >
+              <BarChartIcon className="mr-1" fontSize="small" />
+              View Usage
+            </button>
+          )}
         </div>
       </div>
 
