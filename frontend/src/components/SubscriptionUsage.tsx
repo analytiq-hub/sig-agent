@@ -134,9 +134,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
   const totalCreditsRemaining = usageData.purchased_credits_remaining + usageData.admin_credits_remaining;
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <h3 className="text-lg font-semibold mb-4">Current Usage</h3>
-      
+    <div className="bg-white p-6 rounded-lg shadow">      
       {/* Credits Section */}
       <div className="mb-6">
 
