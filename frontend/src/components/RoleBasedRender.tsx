@@ -1,6 +1,6 @@
 'use client'
 
-import { useRole } from "@/utils/useRole";
+import { useRole } from "@/utils/roles";
 import { ReactNode } from "react";
 
 interface RoleBasedRenderProps {

@@ -56,7 +56,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { currentOrganization } = useOrganization();
   const [open, setOpen] = useState(true);
   const { data: session, status } = useSession();
-  //const { role } = useRole();
   const router = useRouter();
   const pathname = usePathname();
   const isPDFViewer = pathname.includes('/pdf-viewer/');
