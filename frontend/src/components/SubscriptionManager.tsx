@@ -18,7 +18,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<number | null>(null);
-  const [view, setView] = useState<'usage' | 'pricing'>('usage');
+  const [view, setView] = useState<'usage' | 'pricing'>('pricing');
 
   useEffect(() => {
     const fetchPortalUrl = async () => {
