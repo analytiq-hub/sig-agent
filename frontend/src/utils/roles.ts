@@ -1,6 +1,6 @@
 import { useSession } from "next-auth/react";
-import { AppSession } from "@/types/AppSession";
 import { Organization } from "@/types/organizations";
+import { Session } from "next-auth";
 
 export function useRole() {
   const { data: session } = useSession();
@@ -15,7 +15,7 @@ export function useRole() {
  * @param session - The current session object
  * @returns boolean indicating if user is system admin
  */
-export function isSysAdmin(session: AppSession | null): boolean {
+export function isSysAdmin(session: Session | null): boolean {
   return session?.user?.role === 'admin';
 }
 
@@ -25,7 +25,7 @@ export function isSysAdmin(session: AppSession | null): boolean {
  * @param session - The current session object
  * @returns boolean indicating if user is organization admin
  */
-export function isOrgAdmin(organization: Organization, session: AppSession | null): boolean {
+export function isOrgAdmin(organization: Organization, session: Session | null): boolean {
   return organization.members.some(
     member => member.user_id === session?.user?.id && member.role === 'admin'
   );

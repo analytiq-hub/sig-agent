@@ -20,6 +20,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { useOrganizationData } from '@/hooks/useOrganizationData'
+import { isSysAdmin, isOrgAdmin } from '@/utils/roles'
 
 interface OrganizationEditProps {
   organizationId: string
@@ -50,8 +51,6 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [originalType, setOriginalType] = useState<OrganizationType>('individual')
   const [originalMembers, setOriginalMembers] = useState<OrganizationMember[]>([])
   const { data: session } = useSession();
-  const [isOrgAdmin, setIsOrgAdmin] = useState(false);
-  const [isSysAdmin, setIsSysAdmin] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedMember, setSelectedMember] = useState<{ id: string, isAdmin: boolean } | null>(null);
@@ -72,28 +71,20 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
       setType(organization.type);
       setMembers(organization.members);
 
-      // Check if current user is system admin or organization admin
-      if (session?.user?.id) {
-        const isSystemAdmin = session.user.role === 'admin';
-        setIsSysAdmin(isSystemAdmin);
-
-        const currentUserMember = organization.members.find(
-          member => member.user_id === session.user.id
-        );
-        setIsOrgAdmin(currentUserMember?.role === 'admin');
-      }
-
       // Store original values
       setOriginalName(organization.name);
       setOriginalType(organization.type);
       setOriginalMembers(organization.members);
     }
-  }, [organization, session?.user?.id, session?.user?.role]);
+  }, [organization]);
 
   // Separate useEffect for fetching users
   useEffect(() => {
     const fetchUsers = async () => {
-      if (isOrgAdmin || isSysAdmin) {
+      const isUserOrgAdmin = organization ? isOrgAdmin(organization, session) : false;
+      const isUserSysAdmin = isSysAdmin(session);
+      
+      if (isUserOrgAdmin || isUserSysAdmin) {
         let allUsers: UserResponse[] = [];
         let skip = 0;
         const limit = 100;
@@ -111,7 +102,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     };
 
     fetchUsers();
-  }, [organizationId, isOrgAdmin, isSysAdmin]);
+  }, [organizationId, organization, session]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -278,12 +269,17 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   };
 
   // Replace the permission check block with this:
-  if (!loading && !isOrgAdmin && !isSysAdmin) {
-    return (
-      <div className="flex items-center justify-center p-4">
-        You don&apos;t have permission to edit this organization. Only organization admins and system admins can edit organizations.
-      </div>
-    );
+  if (!loading) {
+    const isUserOrgAdmin = organization ? isOrgAdmin(organization, session) : false;
+    const isUserSysAdmin = isSysAdmin(session);
+    
+    if (!isUserOrgAdmin && !isUserSysAdmin) {
+      return (
+        <div className="flex items-center justify-center p-4">
+          You don&apos;t have permission to edit this organization. Only organization admins and system admins can edit organizations.
+        </div>
+      );
+    }
   }
 
   if (loading) {
@@ -309,17 +305,21 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
           <h2 className="text-xl font-semibold">Edit Organization</h2>
           <div className="flex gap-4">
             {/* Subscription Link - Only show for org admins and sys admins */}
-            {(isOrgAdmin || isSysAdmin) && (
-              <a
-                href={`/settings/organizations/${organizationId}/subscription`}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-                Billing
-              </a>
-            )}
+            {(() => {
+              const isUserOrgAdmin = organization ? isOrgAdmin(organization, session) : false;
+              const isUserSysAdmin = isSysAdmin(session);
+              return (isUserOrgAdmin || isUserSysAdmin) ? (
+                <a
+                  href={`/settings/organizations/${organizationId}/subscription`}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  Billing
+                </a>
+              ) : null;
+            })()}
             <button
               type="submit"
               form="organization-form"
