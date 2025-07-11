@@ -6,7 +6,7 @@ import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useOrganization } from '@/contexts/OrganizationContext';
-
+import { isSysAdmin, isOrgAdmin } from '@/utils/roles';
 // Add this interface at the top of your file
 declare global {
   interface Window {
@@ -62,12 +62,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
   const isAdmin = () => {
     if (!session?.user || !currentOrganization) return false;
     
-    const isSystemAdmin = session.user.role === 'admin';
-    const isOrgAdmin = currentOrganization.members.some(
-      member => member.user_id === session.user.id && member.role === 'admin'
-    );
-    
-    return isSystemAdmin || isOrgAdmin;
+    return isSysAdmin(session) || isOrgAdmin(currentOrganization, session);
   };
 
   return (
