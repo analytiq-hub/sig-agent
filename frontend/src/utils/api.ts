@@ -750,3 +750,9 @@ export const purchaseCreditsApi = async (orgId: string, request: {
   const response = await api.post(`/v0/payments/${orgId}/credits/purchase`, request);
   return response.data;
 };
+
+// Add this new API function after the existing subscription APIs
+export const createCheckoutSessionApi = async (orgId: string, planId: string): Promise<PortalSessionResponse> => {
+  const response = await api.post<PortalSessionResponse>(`/v0/payments/${orgId}/checkout-session`, { plan_id: planId });
+  return response.data;
+};

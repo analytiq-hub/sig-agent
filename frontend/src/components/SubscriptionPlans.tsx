@@ -1,11 +1,10 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getCustomerPortalApi, getSubscriptionApi, updateOrganizationApi, activateSubscriptionApi, getOrganizationApi } from '@/utils/api';
+import { createCheckoutSessionApi, getSubscriptionApi, updateOrganizationApi, activateSubscriptionApi, getOrganizationApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import type { SubscriptionPlan } from '@/types/payments';
 import type { Organization } from '@/types/organizations';
-import { useOrganization } from '@/contexts/OrganizationContext';
 
 interface SubscriptionPlansProps {
   organizationId: string;
@@ -16,7 +15,6 @@ interface SubscriptionPlansProps {
 
 const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ 
   organizationId, 
-  onPaymentMethodStatusChange,
   onSubscriptionStatusChange,
   onCancellationInfoChange
 }) => {
@@ -24,10 +22,8 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [reviewedOrganization, setReviewedOrganization] = useState<Organization | null>(null);
-  const { refreshOrganizations } = useOrganization();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,14 +39,8 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         setPlans(subscriptionData.plans);
         setCurrentPlan(subscriptionData.current_plan);
         setSelectedPlan(subscriptionData.current_plan || 'individual');
-        setHasPaymentMethod(subscriptionData.has_payment_method);
         setSubscriptionStatus(subscriptionData.subscription_status);
         setReviewedOrganization(orgData);
-        
-        // Notify parent component about payment method status
-        if (onPaymentMethodStatusChange) {
-          onPaymentMethodStatusChange(subscriptionData.has_payment_method);
-        }
         
         // Notify parent component about subscription status
         if (onSubscriptionStatusChange) {
@@ -70,7 +60,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     };
 
     fetchData();
-  }, [organizationId, onPaymentMethodStatusChange, onSubscriptionStatusChange, onCancellationInfoChange]);
+  }, [organizationId, onSubscriptionStatusChange, onCancellationInfoChange]);
 
   const canChangeToPlan = (currentPlan: string | null, targetPlan: string): boolean => {
     if (!currentPlan) return true; // No current plan, can select any
@@ -119,16 +109,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       }
     }
 
-    // Check if payment method is set up
-    if (!hasPaymentMethod) {
-      const confirmed = window.confirm(
-        'No payment method is set up. You will be redirected to set up payment before your plan change takes effect. Continue?'
-      );
-      if (!confirmed) {
-        return;
-      }
-    }
-
     try {
       setLoading(true);
       setSelectedPlan(planId);
@@ -136,33 +116,15 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       // Step 1: Update the organization type
       await updateOrganizationApi(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
 
-      // Step 2: Activate the subscription
-      await activateSubscriptionApi(organizationId);
-
-      // Refresh the organization context to update parent component
-      await refreshOrganizations();
-
-      // Refresh the subscription plans data
-      const subscriptionResponse = await getSubscriptionApi(organizationId);
-      setCurrentPlan(planId);
-      setSubscriptionStatus(subscriptionResponse.subscription_status);
+      // Step 2: Create checkout session and redirect
+      const checkoutResponse = await createCheckoutSessionApi(organizationId, planId);
       
-      // Notify parent components
-      if (onSubscriptionStatusChange) {
-        onSubscriptionStatusChange(subscriptionResponse.subscription_status);
-      }
-      if (onCancellationInfoChange) {
-        onCancellationInfoChange(subscriptionResponse.cancel_at_period_end, subscriptionResponse.current_period_end);
-      }
+      // Redirect to Stripe Checkout
+      window.location.href = checkoutResponse.url;
       
-      // Redirect to the customer portal only if no payment method is set up
-      if (!subscriptionResponse.has_payment_method) {
-        const portalResponse = await getCustomerPortalApi(organizationId);
-        window.location.href = portalResponse.url;
-      }
     } catch (error) {
       console.error('Error changing plan:', error);
-      toast.error('Failed to change subscription plan');
+      toast.error('Failed to create checkout session');
       setSelectedPlan(currentPlan || 'individual');
     } finally {
       setLoading(false);

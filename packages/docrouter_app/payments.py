@@ -161,6 +161,9 @@ class PurchaseCreditsResponse(BaseModel):
     checkout_url: str
     session_id: str
 
+class CheckoutSessionRequest(BaseModel):
+    plan_id: str
+
 # Replace the multiple packages with a single credit configuration
 CREDIT_CONFIG = {
     "default_spu_credits": 100,
@@ -910,6 +913,79 @@ async def customer_portal(
         logger.error(f"Error generating Stripe customer portal: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@payments_router.post("/{organization_id}/checkout-session")
+async def create_checkout_session(
+    organization_id: str,
+    request: CheckoutSessionRequest,
+    current_user: User = Depends(get_current_user)
+) -> PortalSessionResponse:
+    """Create a Stripe Checkout session for subscription setup"""
+
+    plan_id = request.plan_id
+    logger.info(f"Creating Stripe checkout session for org_id: {organization_id}, plan: {plan_id}")
+
+    is_sys_admin = await is_system_admin(current_user.user_id)
+    is_org_member = await is_organization_member(organization_id, current_user.user_id)
+
+    if not is_sys_admin and not is_org_member:
+        raise HTTPException(status_code=403, detail="You are not authorized to create a checkout session")
+
+    try:
+        # Get the customer
+        customer = await stripe_customers.find_one({"org_id": organization_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        
+        # Get tier configuration
+        tier_config = await get_tier_config(organization_id)
+        if plan_id not in tier_config:
+            raise HTTPException(status_code=400, detail=f"Invalid plan: {plan_id}")
+        
+        # Get price IDs for the plan
+        base_price_id = tier_config[plan_id]["base_price_id"]
+        metered_price_id = tier_config[plan_id]["metered_price_id"]
+        
+        if not base_price_id or not metered_price_id:
+            raise HTTPException(status_code=500, detail=f"Price configuration not found for plan: {plan_id}")
+        
+        # Create checkout session
+        session = await StripeAsync._run_in_threadpool(
+            stripe.checkout.Session.create,
+            customer=customer["stripe_customer_id"],
+            payment_method_types=['card'],
+            line_items=[
+                {
+                    'price': base_price_id,
+                    'quantity': 1,
+                },
+                {
+                    'price': metered_price_id,
+                    # Remove quantity for metered usage
+                }
+            ],
+            mode='subscription',
+            success_url=f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?success=true",
+            cancel_url=f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?canceled=true",
+            metadata={
+                'org_id': organization_id,
+                'plan_id': plan_id,
+                'user_id': current_user.user_id
+            },
+            subscription_data={
+                'metadata': {
+                    'subscription_type': plan_id,
+                    'org_id': organization_id
+                }
+            }
+        )
+        
+        logger.info(f"Created Stripe checkout session: {session.id}, URL: {session.url}")
+        return PortalSessionResponse(url=session.url)
+        
+    except Exception as e:
+        logger.error(f"Error creating Stripe checkout session: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @payments_router.post("/{organization_id}/usage")
 async def record_usage(
     organization_id: str,
@@ -1556,7 +1632,12 @@ async def webhook_received(
         await handle_subscription_deleted(subscription)
     elif event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
-        await credit_customer_account_from_session(session)
+        # Check if this is a subscription checkout or credit purchase
+        if session.get("mode") == "subscription":
+            await handle_checkout_session_completed(session)
+        else:
+            # Handle credit purchase
+            await credit_customer_account_from_session(session)
     
     # Mark event as processed
     await stripe_events.update_one(
@@ -1789,4 +1870,26 @@ async def credit_customer_account_from_session(session: Dict[str, Any]):
         
     except Exception as e:
         logger.error(f"Error processing checkout session completion: {e}")
+        logger.error(f"Error processing checkout session completion: {e}")
+
+# Update the webhook handler to handle checkout.session.completed for subscriptions
+async def handle_checkout_session_completed(session: Dict[str, Any]):
+    """Handle checkout session completed event"""
+    try:
+        metadata = session.get("metadata", {})
+        org_id = metadata.get("org_id")
+        plan_id = metadata.get("plan_id")
+        
+        if not org_id or not plan_id:
+            logger.error(f"Missing metadata in checkout session: {session['id']}")
+            return
+        
+        # The subscription should already be created by Stripe
+        # We just need to ensure our local state is updated
+        logger.info(f"Checkout session completed for org {org_id}, plan {plan_id}")
+        
+        # Refresh the customer data to ensure we have the latest subscription info
+        await sync_payments_customer(org_id)
+        
+    except Exception as e:
         logger.error(f"Error processing checkout session completion: {e}")

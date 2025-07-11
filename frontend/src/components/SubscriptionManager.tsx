@@ -6,6 +6,7 @@ import SubscriptionPlans from './SubscriptionPlans';
 import SubscriptionUsage from './SubscriptionUsage';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
+import { toast } from 'react-toastify';
 
 interface SubscriptionProps {
   organizationId: string;
@@ -34,6 +35,23 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
 
     fetchPortalUrl();
   }, [organizationId]);
+
+  useEffect(() => {
+    // Check for success/cancel parameters in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const canceled = urlParams.get('canceled');
+    
+    if (success === 'true') {
+      toast.success('Subscription activated successfully!');
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (canceled === 'true') {
+      toast.info('Subscription setup was canceled.');
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   const handlePaymentMethodStatusChange = (hasPaymentMethod: boolean) => {
     setHasPaymentMethod(hasPaymentMethod);
