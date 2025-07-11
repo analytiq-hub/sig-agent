@@ -3,7 +3,6 @@
 import React from 'react';
 import { useParams } from 'next/navigation';
 import SubscriptionManager from '@/components/SubscriptionManager';
-import AdminCreditWidget from '@/components/AdminCreditWidget';
 import { useAppSession } from '@/utils/useAppSession';
 import SettingsLayout from '@/components/SettingsLayout';
 
@@ -27,17 +26,6 @@ export default function OrganizationSubscriptionPage() {
 
       <div className="space-y-6">
         <SubscriptionManager organizationId={organizationId} />
-        
-        {/* Admin credit widget - only show for system admins */}
-        {session.user.role === 'admin' && (
-          <AdminCreditWidget 
-            organizationId={organizationId}
-            onCreditsAdded={() => {
-              // Optionally refresh the subscription manager
-              window.location.reload();
-            }}
-          />
-        )}
       </div>
     </SettingsLayout>
   );

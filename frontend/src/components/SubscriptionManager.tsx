@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { getCustomerPortalApi } from '@/utils/api';
 import SubscriptionPlans from './SubscriptionPlans';
 import SubscriptionUsage from './SubscriptionUsage';
+import AdminCreditWidget from './AdminCreditWidget';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import { toast } from 'react-toastify';
@@ -175,7 +176,18 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
 
       {/* Conditionally Render Views */}
       {view === 'usage' ? (
-        <SubscriptionUsage organizationId={organizationId} />
+        <>
+          <SubscriptionUsage organizationId={organizationId} />
+          <div className="mt-6">
+            <AdminCreditWidget 
+              organizationId={organizationId}
+              onCreditsAdded={() => {
+                // Optionally refresh usage data or show success message
+                toast.success('Credits added successfully!');
+              }}
+            />
+          </div>
+        </>
       ) : (
         <>
           <SubscriptionPlans 
