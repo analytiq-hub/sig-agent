@@ -18,12 +18,12 @@ export default function OrganizationSubscriptionPage() {
 
   return (
     <SettingsLayout>
-      <div className="mb-6">
+      {/* <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Billing</h1>
         <p className="text-gray-600 mt-2">
           Manage your subscription plans, usage, and billing preferences.
         </p>
-      </div>
+      </div> */}
 
       <div className="space-y-6">
         <SubscriptionManager organizationId={organizationId} />
