@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPromptApi, updatePromptApi, listSchemasApi, getSchemaApi, listTagsApi, listLLMModelsApi } from '@/utils/api';
 import { PromptConfig, Schema, Tag, LLMModel } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
-import { isColorLight } from '@/utils/colors';
 import dynamic from 'next/dynamic';
 import { ResponseFormat } from '@/types/schemas';
 import InfoTooltip from '@/components/InfoTooltip';
@@ -37,22 +36,6 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [llmModels, setLLMModels] = useState<LLMModel[]>([]);
-  const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
-  const [tagSearch, setTagSearch] = useState('');
-  const tagDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (tagDropdownRef.current && !tagDropdownRef.current.contains(event.target as Node)) {
-        setTagDropdownOpen(false);
-      }
-    }
-    if (tagDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [tagDropdownOpen]);
 
   const handleSchemaSelect = useCallback(async (schemaId: string) => {
     setSelectedSchema(schemaId);
