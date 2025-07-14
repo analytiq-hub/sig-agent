@@ -11,12 +11,14 @@ interface SubscriptionPlansProps {
   onPaymentMethodStatusChange?: (hasPaymentMethod: boolean) => void;
   onSubscriptionStatusChange?: (subscriptionStatus: string | null) => void;
   onCancellationInfoChange?: (cancelAtPeriodEnd: boolean, currentPeriodEnd: number | null) => void;
+  stripeEnabled?: boolean; // Add this prop
 }
 
 const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ 
   organizationId, 
   onSubscriptionStatusChange,
-  onCancellationInfoChange
+  onCancellationInfoChange,
+  stripeEnabled
 }) => {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
@@ -53,7 +55,13 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         }
       } catch (error) {
         console.error('Error fetching subscription plans:', error);
-        toast.error(`Failed to load subscription plans: ${error}`);
+        
+        // Check if this is a 404 error (Stripe disabled)
+        if (error instanceof Error && error.message.includes('Not Found')) {
+          // Do nothing
+        } else {
+          toast.error(`Failed to load subscription plans: ${error}`);
+        }
       } finally {
         setLoading(false);
       }
@@ -175,6 +183,15 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     return (
       <div className="flex justify-center items-center h-40">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (!stripeEnabled) {
+    return (
+      <div className="text-center py-8">
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Billing Disabled</h3>
+        <p className="text-gray-500">Subscription management is disabled.</p>
       </div>
     );
   }
