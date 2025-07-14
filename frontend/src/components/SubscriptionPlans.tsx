@@ -11,14 +11,12 @@ interface SubscriptionPlansProps {
   onPaymentMethodStatusChange?: (hasPaymentMethod: boolean) => void;
   onSubscriptionStatusChange?: (subscriptionStatus: string | null) => void;
   onCancellationInfoChange?: (cancelAtPeriodEnd: boolean, currentPeriodEnd: number | null) => void;
-  stripeEnabled?: boolean; // Add this prop
 }
 
 const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ 
   organizationId, 
   onSubscriptionStatusChange,
-  onCancellationInfoChange,
-  stripeEnabled
+  onCancellationInfoChange
 }) => {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
@@ -26,6 +24,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   const [loading, setLoading] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [reviewedOrganization, setReviewedOrganization] = useState<Organization | null>(null);
+  const [stripeEnabled, setStripeEnabled] = useState<boolean>(true); // Add this state
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,6 +42,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         setSelectedPlan(subscriptionData.current_plan || 'individual');
         setSubscriptionStatus(subscriptionData.subscription_status);
         setReviewedOrganization(orgData);
+        setStripeEnabled(true); // Stripe is available
         
         // Notify parent component about subscription status
         if (onSubscriptionStatusChange) {
@@ -58,7 +58,8 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         
         // Check if this is a 404 error (Stripe disabled)
         if (error instanceof Error && error.message.includes('Not Found')) {
-          // Do nothing
+          setStripeEnabled(false);
+          console.info('Stripe endpoints not available - billing disabled');
         } else {
           toast.error(`Failed to load subscription plans: ${error}`);
         }
@@ -190,8 +191,13 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   if (!stripeEnabled) {
     return (
       <div className="text-center py-8">
+        <div className="text-gray-500 mb-4">
+          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+        </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">Billing Disabled</h3>
-        <p className="text-gray-500">Subscription management is disabled.</p>
+        <p className="text-gray-500">Subscription management is currently disabled. Please contact your administrator.</p>
       </div>
     );
   }
@@ -291,6 +297,13 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
           SPU is our flexible billing unit that allows for different pricing based on the complexity of document processing. 
           Currently, 1 page = 1 SPU. In the future, different LLM models may consume different SPU amounts per page, 
           allowing for more granular and fair pricing based on actual processing costs.
+        </p>
+      </div>
+      
+      {/* Billing Information */}
+      <div className="mt-4 text-center">
+        <p className="text-gray-500 text-xs">
+          View and download past invoices, update payment methods, and manage your billing preferences
         </p>
       </div>
     </div>

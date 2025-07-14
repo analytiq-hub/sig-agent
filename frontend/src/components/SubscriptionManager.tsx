@@ -307,9 +307,6 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
                 </p>
               </div>
             )}
-            <p className="text-gray-500 text-xs">
-              View and download past invoices, update payment methods, and manage your billing preferences
-            </p>
           </div>
         </>
       )}
