@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPromptApi, updatePromptApi, listSchemasApi, getSchemaApi, listTagsApi, listLLMModelsApi } from '@/utils/api';
 import { PromptConfig, Schema, Tag, LLMModel } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { ResponseFormat } from '@/types/schemas';
 import InfoTooltip from '@/components/InfoTooltip';
 import { usePromptContext } from '@/contexts/PromptContext';
+import TagSelector from './TagSelector';
 
 // Define default model constant
 const DEFAULT_LLM_MODEL = 'gemini-2.0-flash';
@@ -36,6 +37,22 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [llmModels, setLLMModels] = useState<LLMModel[]>([]);
+  const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+  const [tagSearch, setTagSearch] = useState('');
+  const tagDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(event.target as Node)) {
+        setTagDropdownOpen(false);
+      }
+    }
+    if (tagDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [tagDropdownOpen]);
 
   const handleSchemaSelect = useCallback(async (schemaId: string) => {
     setSelectedSchema(schemaId);
@@ -385,42 +402,12 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
                 <label className="block text-sm font-medium text-gray-700">
                   Tags
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {availableTags.map(tag => (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedTagIds(prev => 
-                          prev.includes(tag.id)
-                            ? prev.filter(id => id !== tag.id)
-                            : [...prev, tag.id]
-                        )
-                      }}
-                      className={`group transition-all ${
-                        selectedTagIds.includes(tag.id)
-                          ? 'ring-2 ring-blue-500 ring-offset-2'
-                          : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
-                      }`}
-                    >
-                      <div className="flex items-center h-full w-full">
-                        <div 
-                          className={`px-2 py-1 leading-none rounded shadow-sm flex items-center gap-2 text-sm ${
-                            isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
-                          }`}
-                          style={{ backgroundColor: tag.color }}
-                        >
-                          {tag.name}
-                          {selectedTagIds.includes(tag.id) && (
-                            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                <TagSelector
+                  availableTags={availableTags}
+                  selectedTagIds={selectedTagIds}
+                  onChange={setSelectedTagIds}
+                  disabled={isLoading}
+                />
               </div>
             </div>
 

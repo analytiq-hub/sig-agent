@@ -17,6 +17,7 @@ import { Tag } from '@/types/index';
 import { DocumentWithContent } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
 import InfoTooltip from '@/components/InfoTooltip';
+import TagSelector from './TagSelector';
 
 interface DocumentUploadProps {
   organizationId: string;
@@ -308,43 +309,12 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
                 Select appropriate tags for your documents to ensure they&apos;re processed by the right prompts.
                 <span className="italic ml-1">This step is optional.</span>
               </p>
-              
-              <div className="flex flex-wrap gap-2 mb-4">
-                {availableTags.map(tag => (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedTags(prev => 
-                        prev.includes(tag.id)
-                          ? prev.filter(id => id !== tag.id)
-                          : [...prev, tag.id]
-                      );
-                    }}
-                    className={`group transition-all ${
-                      selectedTags.includes(tag.id)
-                        ? 'ring-2 ring-blue-500 ring-offset-2'
-                        : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
-                    }`}
-                  >
-                    <div className="flex items-center h-full w-full">
-                      <div 
-                        className={`px-2 py-1 leading-none rounded shadow-sm flex items-center gap-2 text-sm ${
-                          isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
-                        }`}
-                        style={{ backgroundColor: tag.color }}
-                      >
-                        {tag.name}
-                        {selectedTags.includes(tag.id) && (
-                          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
+              {/* Replace the manual tag selection with TagSelector */}
+              <TagSelector
+                availableTags={availableTags}
+                selectedTagIds={selectedTags}
+                onChange={setSelectedTags}
+              />
             </div>
             
             <div className="mt-6 flex justify-between">
