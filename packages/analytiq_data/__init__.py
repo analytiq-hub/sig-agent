@@ -7,6 +7,7 @@ from . import migrations
 from . import mongodb
 from . import msg_handlers
 from . import queue
+from . import payments
 
 # Import last since it depends on other modules
 from . import common

@@ -41,8 +41,28 @@ async def run_llm(analytiq_client,
 
     logger.info(f"Running new LLM analysis for document_id: {document_id}, prompt_rev_id: {prompt_rev_id}")
 
+    # 1. Get the document and organization_id
+    doc = await ad.common.doc.get_doc(analytiq_client, document_id)
+    org_id = doc.get("organization_id")
+    if not org_id:
+        raise Exception("Document missing organization_id")
+
+    # 2. Determine LLM model
     if llm_model is None:
         llm_model = await ad.llm.get_llm_model(analytiq_client, prompt_rev_id)
+
+    # 3. Determine SPU cost for this LLM
+    spu_cost = await ad.payments.get_spu_cost(llm_model)
+
+    # 4. Determine number of pages (example: from doc['num_pages'] or OCR)
+    num_pages = doc.get("num_pages", 1)  # You may need to adjust this
+
+    total_spu_needed = spu_cost * num_pages
+
+    # 5. Check if org has enough credits    
+    spus_available = await ad.payments.check_spu_limits(org_id, total_spu_needed)
+    if not spus_available:
+        raise Exception("Not enough SPU credits to run LLM")
 
     if not ad.llm.is_chat_model(llm_model) and not ad.llm.is_supported_model(llm_model):
         logger.info(f"LLM model {llm_model} is not a chat model, falling back to default llm_model")
@@ -100,6 +120,7 @@ async def run_llm(analytiq_client,
         aws_secret_access_key = None
         aws_region_name = None
 
+    # 6. Call the LLM
     response = await litellm.acompletion(
         model=llm_model,
         messages=[
@@ -114,6 +135,10 @@ async def run_llm(analytiq_client,
         aws_region_name=aws_region_name
     )
 
+    # 7. Deduct credits
+    await ad.payments.record_spu_usage(org_id, total_spu_needed)
+
+    # 8. Return the response
     resp_dict = json.loads(response.choices[0].message.content)
 
     # If this is not the default prompt, reorder the response to match schema
@@ -144,7 +169,7 @@ async def run_llm(analytiq_client,
 
             #logger.info(f"Reordered response: {resp_dict}")
 
-    # Save the new result
+    # 9. Save the new result
     await save_llm_result(analytiq_client, document_id, prompt_rev_id, resp_dict)
     
     return resp_dict

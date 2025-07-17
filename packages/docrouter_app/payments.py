@@ -509,7 +509,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
             await stripe_customers.insert_one(customer)
 
         # Ensure credits are initialized for a stripe_customer
-        await ensure_spu_credits(customer)
+        await ensure_subscription_credits(customer)
 
         return customer
     
@@ -640,7 +640,7 @@ async def process_org_billing(org_id: str):
         logger.error(f"Error reporting usage to Stripe for org {org_id}: {e}")
         raise
 
-async def check_usage_limits(org_id: str) -> Dict[str, Any]:
+async def check_subscription_limits(org_id: str) -> Dict[str, Any]:
     """Check if organization has hit usage limits and needs to upgrade"""
 
     if not stripe.api_key:
@@ -654,7 +654,7 @@ async def check_usage_limits(org_id: str) -> Dict[str, Any]:
         raise ValueError(f"No customer found for org_id: {org_id}")
     
     # Ensure credits are initialized
-    await ensure_spu_credits(customer)
+    await ensure_subscription_credits(customer)
     
     # Get separate credit information
     purchased_credits = customer.get("purchased_credits", 0)
@@ -1004,11 +1004,11 @@ async def record_usage(
         )
 
     try:
-        result = await record_spu_usage(
+        result = await record_subscription_usage(
             organization_id,
             usage.spus,
         )
-        limits = await check_usage_limits(organization_id)
+        limits = await check_subscription_limits(organization_id)
         return {"success": True, "usage": result, "limits": limits}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1502,7 +1502,7 @@ async def get_current_usage(
         if not stripe_customer:
             raise HTTPException(status_code=404, detail=f"No stripe_customer found for org_id: {organization_id}")
         
-        await ensure_spu_credits(stripe_customer)
+        await ensure_subscription_credits(stripe_customer)
         
         # Get separate credit information
         purchased_credits = stripe_customer.get("purchased_credits", 0)
@@ -1648,7 +1648,7 @@ async def webhook_received(
     return {"status": "success"}
 
 # Ensure credits are initialized for a stripe_customer
-async def ensure_spu_credits(stripe_customer_doc):
+async def ensure_subscription_credits(stripe_customer_doc):
     update = {}
     # Add new fields for separate tracking
     if "purchased_credits" not in stripe_customer_doc:
@@ -1665,12 +1665,11 @@ async def ensure_spu_credits(stripe_customer_doc):
             {"$set": update}
         )
 
-# Modify record_spu_usage to consume purchased credits first
-async def record_spu_usage(org_id: str, spus: int):
+async def record_subscription_usage(org_id: str, spus: int):
     stripe_customer = await stripe_customers.find_one({"org_id": org_id})
     if not stripe_customer:
         raise Exception("No stripe_customer for org")
-    await ensure_spu_credits(stripe_customer)
+    await ensure_subscription_credits(stripe_customer)
     
     # Get available credits
     purchased_credits = stripe_customer.get("purchased_credits", 0)
@@ -1723,7 +1722,7 @@ async def add_spu_credits(
     stripe_customer = await stripe_customers.find_one({"org_id": organization_id})
     if not stripe_customer:
         raise HTTPException(status_code=404, detail="No stripe_customer for org")
-    await ensure_spu_credits(stripe_customer)
+    await ensure_subscription_credits(stripe_customer)
     await stripe_customers.update_one(
         {"_id": stripe_customer["_id"]},
         {"$inc": {"admin_credits": update.amount}}
@@ -1860,7 +1859,7 @@ async def credit_customer_account_from_session(session: Dict[str, Any]):
             logger.error(f"No stripe customer found for org: {org_id}")
             return
         
-        await ensure_spu_credits(stripe_customer)
+        await ensure_subscription_credits(stripe_customer)
         await stripe_customers.update_one(
             {"_id": stripe_customer["_id"]},
             {"$inc": {"purchased_credits": credits}}
