@@ -20,6 +20,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<number | null>(null);
   const [view, setView] = useState<'usage' | 'pricing'>('pricing');
+  const [usageRefreshKey, setUsageRefreshKey] = useState<number>(0); // Add this state
 
   useEffect(() => {
     const fetchPortalUrl = async () => {
@@ -181,13 +182,16 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
       {/* Conditionally Render Views */}
       {view === 'usage' ? (
         <>
-          <SubscriptionUsage organizationId={organizationId} />
+          <SubscriptionUsage 
+            organizationId={organizationId} 
+            key={usageRefreshKey} // Add this key to force re-render
+          />
           <div className="mt-6">
             <SubscriptionAdminCredit 
               organizationId={organizationId}
               onCreditsAdded={() => {
-                // Optionally refresh usage data or show success message
-                toast.success('Credits added successfully!');
+                // Refresh usage data by updating the key
+                setUsageRefreshKey(prev => prev + 1);
               }}
             />
           </div>
