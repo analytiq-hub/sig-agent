@@ -133,6 +133,8 @@ async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(se
             detail="Admin access required"
         )
 
+    return user
+
 async def is_system_admin(user_id: str):
     """
     Check if a user is an admin
