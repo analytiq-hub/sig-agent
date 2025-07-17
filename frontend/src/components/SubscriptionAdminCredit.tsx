@@ -4,12 +4,12 @@ import React, { useState } from 'react';
 import { addCreditsApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 
-interface AdminCreditWidgetProps {
+interface SubscriptionAdminCreditProps {
   organizationId: string;
   onCreditsAdded?: () => void;
 }
 
-const AdminCreditWidget: React.FC<AdminCreditWidgetProps> = ({ 
+const SubscriptionAdminCredit: React.FC<SubscriptionAdminCreditProps> = ({ 
   organizationId, 
   onCreditsAdded 
 }) => {
@@ -90,4 +90,4 @@ const AdminCreditWidget: React.FC<AdminCreditWidgetProps> = ({
   );
 };
 
-export default AdminCreditWidget;
+export default SubscriptionAdminCredit;

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { getCustomerPortalApi } from '@/utils/api';
 import SubscriptionPlans from './SubscriptionPlans';
 import SubscriptionUsage from './SubscriptionUsage';
-import AdminCreditWidget from './AdminCreditWidget';
+import SubscriptionAdminCredit from './SubscriptionAdminCredit';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import { toast } from 'react-toastify';
@@ -183,7 +183,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
         <>
           <SubscriptionUsage organizationId={organizationId} />
           <div className="mt-6">
-            <AdminCreditWidget 
+            <SubscriptionAdminCredit 
               organizationId={organizationId}
               onCreditsAdded={() => {
                 // Optionally refresh usage data or show success message
