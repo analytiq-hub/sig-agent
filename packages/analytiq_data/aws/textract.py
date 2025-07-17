@@ -8,13 +8,14 @@ from datetime import datetime
 import uuid
 import logging
 import analytiq_data as ad
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 async def run_textract(analytiq_client,
                        blob: bytes,
                        feature_types: list = [],
-                       query_list: list = None) -> dict:
+                       query_list: Optional[list] = None) -> dict:
     """
     Run textract on a blob and return the blocks formatted as a dict.
 
