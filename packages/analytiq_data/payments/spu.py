@@ -23,6 +23,9 @@ async def get_spu_cost(llm_model: str) -> int:
 async def check_spu_limits(org_id: str, spus: int) -> bool:
     """Check if organization has hit usage limits and needs to upgrade"""
     logger.info(f"Checking spu limits for org_id: {org_id}")
+
+    if check_subscription_limits:
+        return True
     return True
 
 async def record_spu_usage(org_id: str, spus: int) -> bool:

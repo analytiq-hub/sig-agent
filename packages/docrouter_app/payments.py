@@ -284,6 +284,10 @@ async def init_payments():
 
     logger.info("Stripe initialized")
 
+    if stripe.api_key:
+        ad.payments.set_check_subscription_limits_hook(check_subscription_limits)
+        ad.payments.set_record_subscription_usage_hook(record_subscription_usage)
+
     await sync_all_customers()
     logger.info("Stripe customers synced")
     
@@ -655,7 +659,7 @@ async def process_org_billing(org_id: str):
         logger.error(f"Error reporting usage to Stripe for org {org_id}: {e}")
         raise
 
-async def check_subscription_limits(org_id: str) -> Dict[str, Any]:
+async def check_subscription_limits(org_id: str, spus: int) -> Dict[str, Any]:
     """Check if organization has hit usage limits and needs to upgrade"""
 
     if not stripe.api_key:
@@ -667,9 +671,17 @@ async def check_subscription_limits(org_id: str) -> Dict[str, Any]:
     customer = await stripe_customers.find_one({"org_id": org_id})
     if not customer:
         raise ValueError(f"No customer found for org_id: {org_id}")
+
+    # Check if they have an active subscription
+    stripe_customer = await get_payments_customer(org_id)
+    subscription = None
+    if stripe_customer:
+        subscription = await get_subscription(stripe_customer.id)
     
-    # Ensure credits are initialized
-    await ensure_subscription_credits(customer)
+    has_active_subscription = subscription and subscription.get("status") == "active"
+    if has_active_subscription:
+        return True
+
     
     # Get separate credit information
     purchased_credits = customer.get("purchased_credits", 0)
@@ -684,43 +696,11 @@ async def check_subscription_limits(org_id: str) -> Dict[str, Any]:
     total_credits = purchased_credits + admin_credits
     total_used = purchased_used + admin_used
     total_remaining = purchased_remaining + admin_remaining
-    
-    # Check if they have an active subscription
-    stripe_customer = await get_payments_customer(org_id)
-    subscription = None
-    if stripe_customer:
-        subscription = await get_subscription(stripe_customer.id)
-    
-    has_active_subscription = subscription and subscription.get("status") == "active"
-    
-    # If they have credits remaining, they can continue
-    if total_remaining > 0:
-        return {
-            "limit_reached": False,
-            "current_usage": total_used,
-            "credits_remaining": total_remaining,
-            "needs_upgrade": False,
-            "can_use_credits": True
-        }
-    
-    # If they have an active subscription with payment method, they can continue
-    if has_active_subscription:
-        return {
-            "limit_reached": False,
-            "current_usage": total_used,
-            "credits_remaining": 0,
-            "needs_upgrade": False,
-            "can_use_credits": False
-        }
-    
-    # No credits and no active subscription - they need to upgrade
-    return {
-        "limit_reached": True,
-        "current_usage": total_used,
-        "credits_remaining": 0,
-        "needs_upgrade": True,
-        "can_use_credits": False
-    }
+
+    if total_remaining < spus:
+        return False
+
+    return True
 
 async def delete_payments_customer(org_id: str, force: bool = False) -> Dict[str, Any]:
     """
@@ -1013,8 +993,7 @@ async def record_usage(
             organization_id,
             usage.spus,
         )
-        limits = await check_subscription_limits(organization_id)
-        return {"success": True, "usage": result, "limits": limits}
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1130,6 +1109,7 @@ async def get_subscription_info(
 ) -> SubscriptionResponse:
     """Get available subscription plans and user's current plan"""
 
+    logger.info(f"THIS METHOD IS CALLED")
     logger.info(f"Getting subscription plans for org_id: {organization_id} user_id: {current_user.user_id}")
 
     # Is the current user an org admin? Or a system admin?
