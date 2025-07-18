@@ -666,7 +666,7 @@ async def check_subscription_limits(org_id: str, spus: int) -> Dict[str, Any]:
         # No-op if Stripe is not configured
         return None
 
-    logger.info(f"Checking usage limits for org_id: {org_id}")
+    logger.info(f"Checking subscription limits for org_id: {org_id} spus: {spus}")
 
     customer = await stripe_customers.find_one({"org_id": org_id})
     if not customer:
@@ -681,7 +681,6 @@ async def check_subscription_limits(org_id: str, spus: int) -> Dict[str, Any]:
     has_active_subscription = subscription and subscription.get("status") == "active"
     if has_active_subscription:
         return True
-
     
     # Get separate credit information
     purchased_credits = customer.get("purchased_credits", 0)
@@ -692,15 +691,7 @@ async def check_subscription_limits(org_id: str, spus: int) -> Dict[str, Any]:
     admin_used = customer.get("admin_credits_used", 0)
     admin_remaining = max(admin_credits - admin_used, 0)
     
-    # Total credits
-    total_credits = purchased_credits + admin_credits
-    total_used = purchased_used + admin_used
-    total_remaining = purchased_remaining + admin_remaining
-
-    if total_remaining < spus:
-        return False
-
-    return True
+    return purchased_remaining + admin_remaining >= spus
 
 async def delete_payments_customer(org_id: str, force: bool = False) -> Dict[str, Any]:
     """
@@ -1635,6 +1626,9 @@ async def ensure_subscription_credits(stripe_customer_doc):
         )
 
 async def record_subscription_usage(org_id: str, spus: int):
+    """Record subscription usage for an organization"""
+    logger.info(f"Recording subscription usage for org_id: {org_id} spus: {spus}")
+
     stripe_customer = await stripe_customers.find_one({"org_id": org_id})
     if not stripe_customer:
         raise Exception("No stripe_customer for org")

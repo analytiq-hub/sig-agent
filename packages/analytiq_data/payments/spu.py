@@ -24,16 +24,23 @@ async def check_spu_limits(org_id: str, spus: int) -> bool:
     """Check if organization has hit usage limits and needs to upgrade"""
     logger.info(f"Checking spu limits for org_id: {org_id}")
 
+    # If a hook is set, use it to check subscription limits
     if check_subscription_limits:
-        return True
+        return await check_subscription_limits(org_id, spus)
+
+    # Otherwise, payments are not enabled
     return True
 
 async def record_spu_usage(org_id: str, spus: int) -> bool:
     """Check if organization has hit usage limits and needs to upgrade"""
 
-    logger.info(f"Recording spu usage for org_id: {org_id} - {spus} spu needed")
-    
-    # TODO: Record spu usage
+    logger.info(f"Recording {spus} spu usage for org_id: {org_id}")
+
+    # If a hook is set, use it to record subscription usage
+    if record_subscription_usage:
+        await record_subscription_usage(org_id, spus)
+
+    # Otherwise, payments are not enabled
     return True
 
 def set_check_subscription_limits_hook(check_subscription_limits_func: Callable) -> None:
