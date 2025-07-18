@@ -149,6 +149,24 @@ class SubscriptionResponse(BaseModel):
     cancel_at_period_end: bool = False
     current_period_end: Optional[int] = None  # Unix timestamp
 
+class UsageData(BaseModel):
+    metered_usage: int
+    remaining_included: int
+    subscription_type: str
+    usage_unit: str
+    purchased_credits: int
+    purchased_credits_used: int
+    purchased_credits_remaining: int
+    admin_credits: int
+    admin_credits_used: int
+    admin_credits_remaining: int
+    period_start: Optional[int] = None  # Unix timestamp
+    period_end: Optional[int] = None    # Unix timestamp
+
+class UsageResponse(BaseModel):
+    usage_source: str  # "stripe", "local", or "none"
+    data: UsageData
+
 class CreditUpdate(BaseModel):
     amount: int
 
@@ -1489,7 +1507,7 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
 async def get_current_usage(
     organization_id: str,
     current_user: User = Depends(get_current_user)
-):
+) -> UsageResponse:
     # Check if user has access to this organization
     if not await is_organization_admin(org_id=organization_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
         raise HTTPException(
@@ -1560,23 +1578,23 @@ async def get_current_usage(
             if agg and agg[0].get("total"):
                 metered_usage = agg[0]["total"]
 
-        return {
-            "usage_source": "stripe",
-            "data": {
-                "metered_usage": metered_usage,
-                "remaining_included": 0,
-                "subscription_type": subscription_type,
-                "usage_unit": usage_unit,
-                "purchased_credits": purchased_credits,
-                "purchased_credits_used": purchased_used,
-                "purchased_credits_remaining": purchased_remaining,
-                "admin_credits": admin_credits,
-                "admin_credits_used": admin_used,
-                "admin_credits_remaining": admin_remaining,
-                "period_start": period_start,
-                "period_end": period_end,
-            }
-        }
+        return UsageResponse(
+            usage_source="stripe",
+            data=UsageData(
+                metered_usage=metered_usage,
+                remaining_included=0,
+                subscription_type=subscription_type,
+                usage_unit=usage_unit,
+                purchased_credits=purchased_credits,
+                purchased_credits_used=purchased_used,
+                purchased_credits_remaining=purchased_remaining,
+                admin_credits=admin_credits,
+                admin_credits_used=admin_used,
+                admin_credits_remaining=admin_remaining,
+                period_start=period_start,
+                period_end=period_end,
+            )
+        )
         
     except Exception as e:
         logger.error(f"Error getting usage: {e}")
