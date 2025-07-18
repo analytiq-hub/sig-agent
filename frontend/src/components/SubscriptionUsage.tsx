@@ -88,7 +88,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
       const success_url = window.location.href;
       const cancel_url = window.location.href;
       const response = await purchaseCreditsApi(organizationId, { 
-        credits: purchaseAmount, 
+        credits: purchaseAmount,
         success_url, 
         cancel_url 
       });

@@ -87,7 +87,9 @@ import {
 import { 
   PortalSessionResponse,
   SubscriptionResponse,
-  CreditUpdateResponse
+  UsageResponse,
+  CreditConfig,
+  CreditUpdateResponse,
 } from '@/types/index';
 import { toast } from 'react-toastify';
 import { JsonValue } from 'type-fest';
@@ -721,8 +723,8 @@ export const cancelSubscriptionApi = async (orgId: string): Promise<{ status: st
 };
 
 // Add new API function to get current usage
-export const getCurrentUsageApi = async (orgId: string) => {
-  const response = await api.get(`/v0/payments/${orgId}/usage`);
+export const getCurrentUsageApi = async (orgId: string): Promise<UsageResponse> => {
+  const response = await api.get<UsageResponse>(`/v0/payments/${orgId}/usage`);
   return response.data;
 };
 
@@ -737,8 +739,8 @@ export const addCreditsApi = async (orgId: string, amount: number): Promise<Cred
   return response.data;
 };
 
-export const getCreditConfigApi = async (orgId: string) => {
-  const response = await api.get(`/v0/payments/${orgId}/credits/config`);
+export const getCreditConfigApi = async (orgId: string): Promise<CreditConfig> => {
+  const response = await api.get<CreditConfig>(`/v0/payments/${orgId}/credits/config`);
   return response.data;
 };
 

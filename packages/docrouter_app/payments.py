@@ -1196,10 +1196,9 @@ async def get_subscription_info(
     if not stripe_customer:
         raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
 
-    has_payment_method = payment_method_exists(stripe_customer)
-
     # Get the subscription
     subscription = await get_subscription(stripe_customer.id)
+
     current_subscription_type = None
     subscription_status = None
     cancel_at_period_end = False
@@ -1210,12 +1209,7 @@ async def get_subscription_info(
         current_subscription_type = None
         subscription_status = "no_subscription"
     else:
-        # Only return subscription type if customer has a payment method
-        if has_payment_method:
-            current_subscription_type = get_subscription_type(subscription)
-        else:
-            current_subscription_type = None
-            
+        current_subscription_type = get_subscription_type(subscription)
         subscription_status = subscription.status
         
         # Check if subscription is set to cancel at period end
@@ -1229,7 +1223,7 @@ async def get_subscription_info(
     return SubscriptionResponse(
         plans=plans, 
         current_plan=current_subscription_type,
-        has_payment_method=has_payment_method,
+        has_payment_method=False,
         subscription_status=subscription_status,
         cancel_at_period_end=cancel_at_period_end,
         current_period_end=current_period_end
