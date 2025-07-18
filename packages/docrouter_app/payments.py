@@ -144,7 +144,6 @@ class SubscriptionPlan(BaseModel):
 class SubscriptionResponse(BaseModel):
     plans: List[SubscriptionPlan]
     current_plan: Optional[str] = None
-    has_payment_method: bool = False
     subscription_status: Optional[str] = None
     cancel_at_period_end: bool = False
     current_period_end: Optional[int] = None  # Unix timestamp
@@ -503,7 +502,6 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                     "user_id": user_id,
                     "user_name": user_name,
                     "user_email": user_email,
-                    "has_payment_method": payment_method_exists(stripe_customer),
                     "updated_at": datetime.utcnow()
                 }}
             )
@@ -519,7 +517,6 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                 "stripe_customer_id": stripe_customer.id,
                 "user_name": user_name,
                 "user_email": user_email,
-                "has_payment_method": payment_method_exists(stripe_customer),
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow()
             }
@@ -695,7 +692,6 @@ async def check_subscription_limits(org_id: str) -> Dict[str, Any]:
         subscription = await get_subscription(stripe_customer.id)
     
     has_active_subscription = subscription and subscription.get("status") == "active"
-    has_payment_method = stripe_customer and payment_method_exists(stripe_customer) if stripe_customer else False
     
     # If they have credits remaining, they can continue
     if total_remaining > 0:
@@ -708,7 +704,7 @@ async def check_subscription_limits(org_id: str) -> Dict[str, Any]:
         }
     
     # If they have an active subscription with payment method, they can continue
-    if has_active_subscription and has_payment_method:
+    if has_active_subscription:
         return {
             "limit_reached": False,
             "current_usage": total_used,
@@ -784,16 +780,7 @@ async def delete_payments_customer(org_id: str, force: bool = False) -> Dict[str
         logger.error(f"Error handling Stripe customer deletion: {e}")
         return {"success": False, "error": str(e)}
 
-def payment_method_exists(stripe_customer: Dict[str, Any]) -> bool:
-    """
-    Check if customer has a payment method
-    """
-    # Check if the customer has a default payment method
-        
-    if stripe_customer.get("invoice_settings", {}).get("default_payment_method"):
-        return True
-    else:
-        return False
+
 
 async def get_subscription(customer_id: str) -> Dict[str, Any]:
     """Get a subscription for a customer"""
@@ -1223,7 +1210,6 @@ async def get_subscription_info(
     return SubscriptionResponse(
         plans=plans, 
         current_plan=current_subscription_type,
-        has_payment_method=False,
         subscription_status=subscription_status,
         cancel_at_period_end=cancel_at_period_end,
         current_period_end=current_period_end
@@ -1302,7 +1288,6 @@ async def get_organization_subscription_status(org_id: str) -> dict:
         return {
             "stripe_enabled": False,
             "subscription_type": None,
-            "has_payment_method": False,
             "status": "no_stripe"
         }
 
@@ -1312,7 +1297,6 @@ async def get_organization_subscription_status(org_id: str) -> dict:
             return {
                 "stripe_enabled": True,
                 "subscription_type": None,
-                "has_payment_method": False,
                 "status": "no_customer"
             }
 
@@ -1321,21 +1305,15 @@ async def get_organization_subscription_status(org_id: str) -> dict:
             return {
                 "stripe_enabled": True,
                 "subscription_type": None,
-                "has_payment_method": payment_method_exists(stripe_customer),
                 "status": "no_subscription"
             }
 
         # Only return subscription type if customer has a payment method
-        has_payment_method = payment_method_exists(stripe_customer)
-        if has_payment_method:
-            subscription_type = get_subscription_type(subscription)
-        else:
-            subscription_type = None
+        subscription_type = get_subscription_type(subscription)
             
         return {
             "stripe_enabled": True,
             "subscription_type": subscription_type,
-            "has_payment_method": has_payment_method,
             "status": subscription.status
         }
 
@@ -1344,7 +1322,6 @@ async def get_organization_subscription_status(org_id: str) -> dict:
         return {
             "stripe_enabled": True,
             "subscription_type": None,
-            "has_payment_method": False,
             "status": "error"
         }
 
