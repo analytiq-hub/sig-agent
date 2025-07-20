@@ -286,9 +286,12 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       connectedNodes.add(edge.target);
     });
 
+    console.log('connectedNodes', connectedNodes);
+    console.log('nodes', nodes);
+
     const looseNodes = nodes.filter(node => !connectedNodes.has(node.id));
     if (looseNodes.length > 0) {
-      return 'All nodes must be connected';
+      return `All nodes must be connected, this node is not connected: ${looseNodes[0].id}`;
     }
 
     return null;
