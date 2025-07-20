@@ -207,7 +207,6 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
       // Refresh the document list to show updated tags
       await fetchFiles();
       console.log('Document list refreshed');
-      toast.success('Tags updated successfully');
     } catch (error) {
       console.error('Error updating document tags:', error);
       toast.error('Failed to update tags');
