@@ -36,6 +36,7 @@ from jose import JWTError, jwt
 from bcrypt import hashpw, gensalt
 from dotenv import load_dotenv
 from jsonschema import validate, ValidationError, Draft7Validator
+from fastapi.encoders import jsonable_encoder
 
 # Local imports
 from docrouter_app import email_utils, startup, organizations, users, limits
