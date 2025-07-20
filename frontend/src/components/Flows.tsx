@@ -14,7 +14,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import DocumentNode from '@/components/flow-nodes/DocumentNode';
+import DocumentInputNode from '@/components/flow-nodes/DocumentInputNode';
 import PromptNode from '@/components/flow-nodes/PromptNode';
 import LLMOutputNode from '@/components/flow-nodes/LLMOutputNode';
 import FlowSidebar from '@/components/flow-nodes/FlowSidebar';
@@ -150,34 +150,32 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   };
 
   const executeNode = async (node: Node) => {
+    if (node.type === 'documentInput') {
+      // Document input nodes don't need execution - they just provide document data
+      return;
+    }
+    
     try {
       const inputEdges = edges.filter(e => e.target === node.id);
       const inputData = inputEdges.map(edge => nodeData[edge.source]);
 
       switch (node.type) {
-        case 'fileInput': {
-          if (!node.data.file) {
-            throw new Error(`File not selected for node ${node.data.label}`);
-          }
-          
-          const content = await readFileContent(node.data.file);
-          updateNodeData(node.id, {
-            label: node.data.label,
-            content,
-            type: node.data.file.type,
-            name: node.data.file.name
-          });
-          break;
-        }
-
         case 'prompt': {
           if (!node.data.promptId) {
             throw new Error(`Prompt not selected for node ${node.data.label}`);
           }
 
+          // Get document ID from connected document input node
+          const documentInputEdge = edges.find(e => e.target === node.id);
+          const documentInputNode = nodes.find(n => n.id === documentInputEdge?.source);
+          
+          if (!documentInputNode?.data.documentId) {
+            throw new Error('Document input node must have a document selected');
+          }
+
           const result = await runLLMApi({
             organizationId: organizationId,
-            documentId: "TO DO: get documentId from node data",
+            documentId: documentInputNode.data.documentId,
             promptId: node.data.promptId,
             force: true,
           });
@@ -214,30 +212,6 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       console.error(`Error executing node ${node.id}:`, error);
       throw error;
     }
-  };
-
-  const readFileContent = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        resolve(e.target?.result as string);
-      };
-      
-      reader.onerror = (e) => {
-        reject(new Error(`Error reading file: ${e}`));
-      };
-
-      if (file.type === 'application/json') {
-        reader.readAsText(file);
-      } else if (file.type.includes('spreadsheet') || file.type.includes('excel')) {
-        // For Excel files, we'll need to use a library like xlsx
-        // This is a placeholder for now
-        reader.readAsArrayBuffer(file);
-      } else {
-        reader.readAsDataURL(file);
-      }
-    });
   };
 
   const handlePromptSelect = useCallback((nodeId: string, promptId: string) => {
@@ -299,10 +273,10 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const validateFlow = (): string | null => {
     // Check for trigger document
     const hasTrigger = nodes.some(node => 
-      node.type === 'document'
+      node.type === 'documentInput'
     );
     if (!hasTrigger) {
-      return 'Flow must contain a document';
+      return 'Flow must contain a document input';
     }
 
     // Check for loose connections
@@ -382,7 +356,7 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       
       // Store the current flow
       setCurrentFlow(flow);
-      setCurrentFlowId(flowId);
+      setCurrentFlowId(flow.flow_id);
       
     } catch (error) {
       console.error('Error loading flow:', error);
@@ -399,9 +373,7 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
 
   // Create nodeTypes inside component using useMemo
   const nodeTypes = useMemo(() => ({
-    document: (props: NodeProps) => (
-      <DocumentNode {...props} handleFileSelect={handleFileSelect} />
-    ),
+    documentInput: DocumentInputNode,
     prompt: (props: NodeProps) => (
       <PromptNode {...props} prompts={prompts} handlePromptSelect={handlePromptSelect} />
     ),

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  DocumentIcon, 
   ChatBubbleLeftRightIcon, 
   DocumentTextIcon,
   FolderIcon,
@@ -28,13 +27,13 @@ interface FlowSidebarProps {
 
 const nodeTypes: NodeType[] = [
   {
-    type: 'document',
-    label: 'Document',
-    icon: DocumentIcon,
-    data: { 
-      label: 'Document',
-      description: 'Uploaded document',
-      required: true,
+    type: 'documentInput',
+    label: 'Document Input',
+    icon: DocumentTextIcon,
+    data: {
+      label: 'Document Input',
+      documentId: '',
+      documentName: ''
     }
   },
   {
@@ -48,8 +47,7 @@ const nodeTypes: NodeType[] = [
     label: 'LLM Output',
     icon: DocumentTextIcon,
     data: { 
-      label: 'LLM Output',
-      description: 'Display LLM processing results'
+      label: 'LLM Output'
     }
   }
 ];

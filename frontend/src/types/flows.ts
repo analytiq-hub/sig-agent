@@ -10,10 +10,13 @@ export interface FlowConfig {
 }
 
 export interface Flow extends FlowConfig {
-  id: string;
-  version: number;
+  flow_revid: string;           // MongoDB's _id
+  flow_id: string;              // Stable identifier
+  flow_version: number;
+  organization_id: string;
   created_at: string;
   created_by: string;
+  updated_at: string;
 }
 
 export interface FlowMetadata {
@@ -28,19 +31,14 @@ export interface FlowMetadata {
 
 export interface NodeData {
   label: string;
-  description?: string;
-  accept?: string[];
-  required?: boolean;
-  isTrigger?: boolean;
-  isStatic?: boolean;
+  documentId?: string;
+  documentName?: string;
   promptId?: string;
   promptName?: string;
-  file?: File;
   result?: Record<string, unknown>;
   content?: string;
   type?: string;
   name?: string;
-  documentId?: string;
 }
 
 export interface DocumentNodeProps {

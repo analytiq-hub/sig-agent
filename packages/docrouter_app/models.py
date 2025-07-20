@@ -350,15 +350,18 @@ class FlowEdge(BaseModel):
 class FlowConfig(BaseModel):
     name: str
     description: Optional[str] = None
-    nodes: List[Dict[str, Any]]
-    edges: List[Dict[str, Any]]
+    nodes: List[FlowNode]
+    edges: List[FlowEdge]
     tag_ids: Optional[List[str]] = None
 
 class Flow(FlowConfig):
-    id: str
-    version: int
+    flow_revid: str           # MongoDB's _id
+    flow_id: str              # Stable identifier
+    flow_version: int
+    organization_id: str
     created_at: datetime
     created_by: str
+    updated_at: datetime
 
 class FlowMetadata(BaseModel):
     id: str

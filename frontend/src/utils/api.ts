@@ -476,7 +476,7 @@ export const deleteTagApi = async (params: DeleteTagParams): Promise<void> => {
 // Flow APIs
 export const createFlowApi = async (params: CreateFlowParams): Promise<Flow> => {
   const { organizationId, flow } = params;
-  const response = await api.post(`/v0/orgs/${organizationId}/flows`, flow);
+  const response = await api.post<Flow>(`/v0/orgs/${organizationId}/flows`, flow);
   return response.data;
 };
 
@@ -488,7 +488,7 @@ export const updateFlowApi = async (params: UpdateFlowParams): Promise<Flow> => 
 
 export const listFlowsApi = async (params: ListFlowsParams): Promise<ListFlowsResponse> => {
   const { organizationId, ...rest } = params;
-  const response = await api.get(`/v0/orgs/${organizationId}/flows`, {
+  const response = await api.get<ListFlowsResponse>(`/v0/orgs/${organizationId}/flows`, {
     params: {
       skip: rest?.skip || 0,
       limit: rest?.limit || 10
