@@ -52,7 +52,9 @@ const TagSelector: React.FC<TagSelectorProps> = ({
               {tag.name}
               <button
                 type="button"
-                className="ml-1 text-xs text-gray-500 hover:text-red-600"
+                className={`ml-1 text-xs font-bold hover:opacity-80 transition-opacity ${
+                  isColorLight(tag.color) ? 'text-gray-700 hover:text-red-600' : 'text-white/90 hover:text-red-200'
+                }`}
                 onClick={() => onChange(selectedTagIds.filter(id => id !== tag.id))}
                 disabled={disabled}
               >
