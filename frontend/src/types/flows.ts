@@ -19,16 +19,6 @@ export interface Flow extends FlowConfig {
   updated_at: string;
 }
 
-export interface FlowMetadata {
-  id: string;
-  name: string;
-  description?: string;
-  version: number;
-  created_at: string;
-  created_by: string;
-  tag_ids?: string[];
-}
-
 export interface NodeData {
   label: string;
   documentId?: string;
@@ -76,7 +66,7 @@ export interface ListFlowsParams {
 }
 
 export interface ListFlowsResponse {
-  flows: FlowMetadata[];
+  flows: Flow[];
   total_count: number;
   skip: number;
 }

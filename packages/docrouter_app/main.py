@@ -76,7 +76,7 @@ from docrouter_app.models import (
     AcceptInvitationRequest,
     FlowConfig,
     Flow,
-    ListFlowsResponse, FlowMetadata
+    ListFlowsResponse
 )
 from docrouter_app.payments import payments_router
 from docrouter_app.payments import (
@@ -1827,19 +1827,30 @@ async def list_flows(
     ).sort("created_at", -1).skip(skip).limit(limit)
     
     # Convert cursor to list
-    flows = await flows_cursor.to_list(length=None)
+    flows = []
     
-    # Convert to Flow objects - map MongoDB _id to flow_revid
-    flow_list = []
-    for flow in flows:
-        # Map MongoDB _id to flow_revid
-        flow_data = flow.copy()
-        if '_id' in flow_data:
-            flow_data['flow_revid'] = str(flow_data['_id'])
-            del flow_data['_id']
-        flow_list.append(Flow(**flow_data))
+    async for flow_doc in flows_cursor:
+        flow = Flow(
+            flow_revid=str(flow_doc["_id"]),
+            flow_id=flow_doc["flow_id"],
+            flow_version=flow_doc["flow_version"],
+            organization_id=flow_doc["organization_id"],
+            created_at=flow_doc["created_at"],
+            created_by=flow_doc["created_by"],
+            updated_at=flow_doc["updated_at"],
+            name=flow_doc["name"],
+            description=flow_doc.get("description"),
+            nodes=flow_doc["nodes"],
+            edges=flow_doc["edges"],
+            tag_ids=flow_doc.get("tag_ids")
+        )
+        flows.append(flow)
     
-    return ListFlowsResponse(flows=flow_list, total_count=total_count, skip=skip)
+    return ListFlowsResponse(
+        flows=flows,
+        total_count=total_count,
+        skip=skip
+    )
 
 @app.get("/v0/orgs/{organization_id}/flows/{flow_id}", tags=["flows"])
 async def get_flow(

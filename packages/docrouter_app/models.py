@@ -363,16 +363,7 @@ class Flow(FlowConfig):
     created_by: str
     updated_at: datetime
 
-class FlowMetadata(BaseModel):
-    id: str
-    name: str
-    description: Optional[str] = None
-    version: int
-    created_at: datetime
-    created_by: str
-    tag_ids: Optional[List[str]] = None
-
 class ListFlowsResponse(BaseModel):
-    flows: List[FlowMetadata]
+    flows: List[Flow]
     total_count: int
     skip: int
