@@ -232,16 +232,6 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     );
   }, [setNodes, prompts]);
 
-  const handleFileSelect = useCallback((nodeId: string, file: File) => {
-    setNodes(nds => 
-      nds.map(n => 
-        n.id === nodeId 
-          ? { ...n, data: { ...n.data, file } }
-          : n
-      )
-    );
-  }, [setNodes]);
-
   const topologicalSort = (nodes: Node[], edges: Edge[]): Node[] => {
     const sorted: Node[] = [];
     const visited = new Set<string>();
@@ -383,7 +373,7 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     llmOutput: (props: NodeProps) => (
       <LLMOutputNode {...props} />
     ),
-  }), [handleFileSelect, handlePromptSelect, prompts]);
+  }), [handlePromptSelect, prompts]);
 
   return (
     <div className="flex h-[800px]">

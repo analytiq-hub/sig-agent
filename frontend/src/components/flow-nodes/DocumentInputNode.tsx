@@ -11,7 +11,7 @@ interface DocumentInputNodeProps {
   };
 }
 
-const DocumentInputNode: React.FC<DocumentInputNodeProps> = ({ id, data }) => {
+const DocumentInputNode: React.FC<DocumentInputNodeProps> = () => {
   return (
     <div className="bg-white border-2 border-gray-200 rounded-lg p-4 shadow-sm min-w-[200px]">
       <div className="flex items-center space-x-2 mb-3">

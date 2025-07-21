@@ -29,6 +29,10 @@ export interface NodeData {
   content?: string;
   type?: string;
   name?: string;
+  // TO DO: review if these are needed
+  description?: string;
+  required?: boolean;
+  accept?: string[];
 }
 
 export interface DocumentNodeProps {

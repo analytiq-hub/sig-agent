@@ -5,7 +5,6 @@ import { DocumentTextIcon } from '@heroicons/react/24/outline';
 interface LLMOutputNodeProps {
   data: {
     label: string;
-    result?: any;
   };
 }
 

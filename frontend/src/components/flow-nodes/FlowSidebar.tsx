@@ -49,7 +49,7 @@ const nodeTypes: NodeType[] = [
   }
 ];
 
-const FlowSidebar: React.FC<FlowSidebarProps> = ({ organizationId, refreshTrigger, onFlowSelect, availableTags }) => {
+const FlowSidebar: React.FC<FlowSidebarProps> = ({ organizationId, refreshTrigger, onFlowSelect }) => {
   const [savedFlows, setSavedFlows] = useState<Flow[]>([]);
   const [loading, setLoading] = useState(false);
 
