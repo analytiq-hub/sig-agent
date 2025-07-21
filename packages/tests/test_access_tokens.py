@@ -6,7 +6,8 @@ import logging
 # Import shared test utilities
 from .conftest import (
     client, TEST_ORG_ID, 
-    get_auth_headers
+    get_auth_headers,
+    get_token_headers
 )
 import analytiq_data as ad
 
@@ -14,13 +15,6 @@ logger = logging.getLogger(__name__)
 
 # Check that ENV is set to pytest
 assert os.environ["ENV"] == "pytest"
-
-def get_token_headers(token):
-    """Get authentication headers for a specific token"""
-    return {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
 
 @pytest.mark.asyncio
 async def test_access_tokens(test_db, mock_auth):
