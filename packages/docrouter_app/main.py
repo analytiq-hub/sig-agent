@@ -463,11 +463,11 @@ async def list_documents(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
-    user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """List documents within an organization"""
     # --- PERMISSION CHECK ---
-    is_org_member = await is_organization_member(organization_id, user.user_id)
+    is_org_member = await is_organization_member(organization_id, current_user.user_id)
     if not is_org_member:
         raise HTTPException(status_code=403, detail="You are not a member of this organization")
     # Get analytiq client

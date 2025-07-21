@@ -176,7 +176,7 @@ async def org_and_users(test_db):
     })
 
     # Helper to create a token for a user (org-level)
-    def create_token(user_id, org_id, name):
+    async def create_token(user_id, org_id, name):
         token = secrets.token_urlsafe(32)
         encrypted = ad.crypto.encrypt_token(token)
         token_doc = {
@@ -187,12 +187,12 @@ async def org_and_users(test_db):
             "created_at": datetime.now(UTC),
             "lifetime": 30
         }
-        result = test_db.access_tokens.insert_one(token_doc)
+        await test_db.access_tokens.insert_one(token_doc)
         return token
 
-    admin_token = create_token(admin_id, org_id, "admin-token")
-    member_token = create_token(member_id, org_id, "member-token")
-    outsider_token = create_token(outsider_id, org_id, "outsider-token")
+    admin_token = await create_token(admin_id, org_id, "admin-token")
+    member_token = await create_token(member_id, org_id, "member-token")
+    outsider_token = await create_token(outsider_id, org_id, "outsider-token")
 
     return {
         "org_id": org_id,
