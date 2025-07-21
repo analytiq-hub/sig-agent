@@ -595,14 +595,6 @@ async def test_upload_document_base64_formats(test_db, small_pdf, mock_auth):
     # Let's test with a string that is definitely not valid base64
     invalid_content = "this-is-definitely-not-valid-base64-content-with-special-chars-!@#$%^&*()_+{}|:<>?[]\\;'\",./"
     
-    # First, let's test what Python's base64.b64decode actually does with this
-    import base64
-    try:
-        result = base64.b64decode(invalid_content)
-        print(f"Python base64.b64decode succeeded with: {result[:20]}...")
-    except Exception as e:
-        print(f"Python base64.b64decode failed with: {e}")
-    
     upload_data_invalid = {
         "documents": [
             {
@@ -618,10 +610,6 @@ async def test_upload_document_base64_formats(test_db, small_pdf, mock_auth):
         json=upload_data_invalid,
         headers=get_auth_headers()
     )
-    
-    # Debug: print the response to understand what's happening
-    print(f"Upload response status: {upload_response.status_code}")
-    print(f"Upload response content: {upload_response.text}")
     
     assert upload_response.status_code == 400
     assert "Invalid base64 content" in upload_response.json()["detail"]
