@@ -8,7 +8,7 @@ import logging
 
 # Import shared test utilities
 from .conftest import (
-    client, TEST_USER, TEST_USER_ID, TEST_ORG_ID, 
+    client, TEST_ORG_ID, 
     get_auth_headers
 )
 import analytiq_data as ad

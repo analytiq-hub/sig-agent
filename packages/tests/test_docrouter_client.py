@@ -14,7 +14,7 @@ from datetime import datetime, UTC
 
 # Import shared test utilities
 from .conftest import (
-    client, TEST_USER, TEST_ORG_ID, 
+    client, TEST_ORG_ID, 
     get_auth_headers
 )
 import analytiq_data as ad
