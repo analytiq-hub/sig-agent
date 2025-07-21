@@ -86,7 +86,6 @@ from docrouter_app.payments import (
 )
 import analytiq_data as ad
 from analytiq_data.common.doc import get_mime_type
-from analytiq_data.mongodb.client import get_mongodb_client
 
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
