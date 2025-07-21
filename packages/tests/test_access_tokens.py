@@ -4,9 +4,9 @@ import os
 import logging
 
 # Import shared test utilities
-from .test_utils import (
+from .conftest import (
     client, TEST_USER, TEST_ORG_ID, 
-    test_db, get_auth_headers, mock_auth
+    get_auth_headers
 )
 import analytiq_data as ad
 

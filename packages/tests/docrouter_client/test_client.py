@@ -19,9 +19,9 @@ sys.path.append(str(TOP_DIR / "packages"))
 sys.path.append(str(TOP_DIR / "backend"))
 
 # Import test utilities using absolute import
-from tests.test_utils import (
+from tests.conftest import (
     client as api_client, TEST_USER, TEST_ORG_ID, 
-    test_db, get_auth_headers, mock_auth
+    get_auth_headers
 )
 
 # Import the DocRouterClient
