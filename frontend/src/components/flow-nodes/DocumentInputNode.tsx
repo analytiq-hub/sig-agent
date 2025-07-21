@@ -18,18 +18,6 @@ const DocumentInputNode: React.FC<DocumentInputNodeProps> = ({ id, data }) => {
         <DocumentTextIcon className="h-5 w-5 text-blue-600" />
         <span className="font-medium text-sm text-gray-900">Document Input</span>
       </div>
-      
-      <div className="space-y-2">
-        <div className="text-xs text-gray-600">
-          {data.documentName ? (
-            <div>
-              <span className="font-medium">Document:</span> {data.documentName}
-            </div>
-          ) : (
-            <div className="text-gray-400 italic">No document selected</div>
-          )}
-        </div>
-      </div>
 
       <Handle
         type="source"
