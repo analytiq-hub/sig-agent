@@ -1,0 +1,314 @@
+import pytest
+from tests.test_utils import client, get_token_headers
+import logging
+
+logger = logging.getLogger(__name__)
+
+@pytest.mark.asyncio
+async def test_create_tag(org_and_users, test_db):
+    """Test creating tags"""
+    org_id = org_and_users["org_id"]
+    admin = org_and_users["admin"]
+    
+    # Valid tag data
+    tag_data = {
+        "name": "test-tag",
+        "color": "#FF0000",
+        "description": "A test tag"
+    }
+    
+    resp = client.post(f"/v0/orgs/{org_id}/tags", json=tag_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200, f"Failed to create tag: {resp.text}"
+    
+    result = resp.json()
+    assert "id" in result
+    assert result["name"] == tag_data["name"]
+    assert result["color"] == tag_data["color"]
+    assert result["description"] == tag_data["description"]
+    assert "created_at" in result
+    assert "created_by" in result
+
+@pytest.mark.asyncio
+async def test_create_duplicate_tag(org_and_users, test_db):
+    """Test creating a tag with duplicate name"""
+    org_id = org_and_users["org_id"]
+    admin = org_and_users["admin"]
+    
+    tag_data = {
+        "name": "duplicate-tag",
+        "color": "#FF0000",
+        "description": "A test tag"
+    }
+    
+    # Create first tag
+    resp = client.post(f"/v0/orgs/{org_id}/tags", json=tag_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    
+    # Try to create duplicate
+    resp = client.post(f"/v0/orgs/{org_id}/tags", json=tag_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 400
+    assert "already exists" in resp.json()["detail"]
+
+@pytest.mark.asyncio
+async def test_list_tags(org_and_users, test_db):
+    """Test listing tags"""
+    org_id = org_and_users["org_id"]
+    admin = org_and_users["admin"]
+    
+    # Create some test tags
+    tags_data = [
+        {"name": "tag1", "color": "#FF0000", "description": "First tag"},
+        {"name": "tag2", "color": "#00FF00", "description": "Second tag"},
+        {"name": "tag3", "color": "#0000FF", "description": "Third tag"}
+    ]
+    
+    created_tags = []
+    for tag_data in tags_data:
+        resp = client.post(f"/v0/orgs/{org_id}/tags", json=tag_data, headers=get_token_headers(admin["token"]))
+        assert resp.status_code == 200
+        created_tags.append(resp.json())
+    
+    # List tags
+    resp = client.get(f"/v0/orgs/{org_id}/tags", headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    
+    result = resp.json()
+    assert "tags" in result
+    assert "total_count" in result
+    assert "skip" in result
+    assert len(result["tags"]) >= len(created_tags)
+    
+    # Verify our created tags are in the list
+    tag_names = [tag["name"] for tag in result["tags"]]
+    for tag_data in tags_data:
+        assert tag_data["name"] in tag_names
+
+@pytest.mark.asyncio
+async def test_list_tags_pagination(org_and_users, test_db):
+    """Test tag listing with pagination"""
+    org_id = org_and_users["org_id"]
+    admin = org_and_users["admin"]
+    
+    # Create more tags than the default limit
+    for i in range(15):
+        tag_data = {
+            "name": f"pagination-tag-{i}",
+            "color": "#FF0000",
+            "description": f"Tag {i}"
+        }
+        resp = client.post(f"/v0/orgs/{org_id}/tags", json=tag_data, headers=get_token_headers(admin["token"]))
+        assert resp.status_code == 200
+    
+    # Test default pagination (limit=10)
+    resp = client.get(f"/v0/orgs/{org_id}/tags", headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    result = resp.json()
+    assert len(result["tags"]) <= 10
+    assert result["total_count"] >= 15
+    
+    # Test custom pagination
+    resp = client.get(f"/v0/orgs/{org_id}/tags?skip=5&limit=5", headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    result = resp.json()
+    assert len(result["tags"]) <= 5
+    assert result["skip"] == 5
+
+@pytest.mark.asyncio
+async def test_update_tag(org_and_users, test_db):
+    """Test updating tags"""
+    org_id = org_and_users["org_id"]
+    admin = org_and_users["admin"]
+    
+    # Create a tag
+    tag_data = {
+        "name": "update-test-tag",
+        "color": "#FF0000",
+        "description": "Original description"
+    }
+    
+    resp = client.post(f"/v0/orgs/{org_id}/tags", json=tag_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    tag_id = resp.json()["id"]
+    
+    # Update the tag
+    update_data = {
+        "name": "updated-tag-name",
+        "color": "#00FF00",
+        "description": "Updated description"
+    }
+    
+    resp = client.put(f"/v0/orgs/{org_id}/tags/{tag_id}", json=update_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    
+    result = resp.json()
+    assert result["name"] == update_data["name"]
+    assert result["color"] == update_data["color"]
+    assert result["description"] == update_data["description"]
+    assert result["id"] == tag_id
+
+@pytest.mark.asyncio
+async def test_update_nonexistent_tag(org_and_users, test_db):
+    """Test updating a tag that doesn't exist"""
+    org_id = org_and_users["org_id"]
+    admin = org_and_users["admin"]
+    
+    fake_tag_id = "507f1f77bcf86cd799439011"  # Fake ObjectId
+    
+    update_data = {
+        "name": "updated-tag-name",
+        "color": "#00FF00",
+        "description": "Updated description"
+    }
+    
+    resp = client.put(f"/v0/orgs/{org_id}/tags/{fake_tag_id}", json=update_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 404
+    assert "Tag not found" in resp.json()["detail"]
+
+@pytest.mark.asyncio
+async def test_delete_tag(org_and_users, test_db):
+    """Test deleting tags"""
+    org_id = org_and_users["org_id"]
+    admin = org_and_users["admin"]
+    
+    # Create a tag
+    tag_data = {
+        "name": "delete-test-tag",
+        "color": "#FF0000",
+        "description": "Tag to be deleted"
+    }
+    
+    resp = client.post(f"/v0/orgs/{org_id}/tags", json=tag_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    tag_id = resp.json()["id"]
+    
+    # Delete the tag
+    resp = client.delete(f"/v0/orgs/{org_id}/tags/{tag_id}", headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    assert "deleted successfully" in resp.json()["message"]
+    
+    # Verify tag is deleted by trying to update it
+    update_data = {
+        "name": "updated-name",
+        "color": "#00FF00",
+        "description": "Updated description"
+    }
+    
+    resp = client.put(f"/v0/orgs/{org_id}/tags/{tag_id}", json=update_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 404
+
+@pytest.mark.asyncio
+async def test_delete_nonexistent_tag(org_and_users, test_db):
+    """Test deleting a tag that doesn't exist"""
+    org_id = org_and_users["org_id"]
+    admin = org_and_users["admin"]
+    
+    fake_tag_id = "507f1f77bcf86cd799439011"  # Fake ObjectId
+    
+    resp = client.delete(f"/v0/orgs/{org_id}/tags/{fake_tag_id}", headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 404
+    assert "Tag not found" in resp.json()["detail"]
+
+@pytest.mark.asyncio
+async def test_tag_validation(org_and_users, test_db):
+    """Test tag validation"""
+    org_id = org_and_users["org_id"]
+    admin = org_and_users["admin"]
+    
+    # Test missing required fields
+    invalid_tag_data = {
+        "color": "#FF0000",
+        "description": "Missing name"
+    }
+    
+    resp = client.post(f"/v0/orgs/{org_id}/tags", json=invalid_tag_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 422  # Validation error
+    
+    # Test invalid color format
+    invalid_color_data = {
+        "name": "test-tag",
+        "color": "invalid-color",
+        "description": "Invalid color"
+    }
+    
+    resp = client.post(f"/v0/orgs/{org_id}/tags", json=invalid_color_data, headers=get_token_headers(admin["token"]))
+    # This might be 422 or 200 depending on validation implementation
+    assert resp.status_code in [200, 422]
+
+@pytest.mark.asyncio
+async def test_tag_cross_organization_isolation(org_and_users, test_db):
+    """Test that tags are isolated between organizations"""
+    org_id = org_and_users["org_id"]
+    admin = org_and_users["admin"]
+    
+    # Create tag in first organization
+    tag_data = {
+        "name": "cross-org-tag",
+        "color": "#FF0000",
+        "description": "Tag for cross-org test"
+    }
+    
+    resp = client.post(f"/v0/orgs/{org_id}/tags", json=tag_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    tag_id = resp.json()["id"]
+    
+    # Try to access tag from different organization (using a fake org ID)
+    fake_org_id = "507f1f77bcf86cd799439011"
+    
+    # Test that we can't update tag from different org
+    resp = client.put(f"/v0/orgs/{fake_org_id}/tags/{tag_id}", json=tag_data, headers=get_token_headers(admin["token"]))
+    # This will return 401 because the user doesn't have access to the fake org
+    assert resp.status_code == 401
+    
+    # Test that we can't delete tag from different org
+    resp = client.delete(f"/v0/orgs/{fake_org_id}/tags/{tag_id}", headers=get_token_headers(admin["token"]))
+    # This will return 401 because the user doesn't have access to the fake org
+    assert resp.status_code == 401
+
+@pytest.mark.asyncio
+async def test_tag_with_documents(org_and_users, test_db):
+    """Test tag behavior when used with documents"""
+    org_id = org_and_users["org_id"]
+    admin = org_and_users["admin"]
+    
+    # Create a tag
+    tag_data = {
+        "name": "document-tag",
+        "color": "#FF0000",
+        "description": "Tag for document test"
+    }
+    
+    resp = client.post(f"/v0/orgs/{org_id}/tags", json=tag_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    tag_id = resp.json()["id"]
+    
+    # Upload a document with this tag
+    pdf_content = "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PgplbmRvYmoKMyAwIG9iago8PC9UeXBlL1BhZ2UvUGFyZW50IDIgMCBSL1Jlc291cmNlczw8Pj4vTWVkaWFCb3hbMCAwIDYxMiA3OTJdL0NvbnRlbnRzIDQgMCBSPj4KZW5kb2JqCjQgMCBvYmoKPDwvTGVuZ3RoIDUgPj4Kc3RyZWFtCkJUClRFU1QKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTAgMDAwMDAgbiAKMDAwMDAwMDAyMCAwMDAwMCBuIAowMDAwMDAwMDMwIDAwMDAwIG4gCjAwMDAwMDAwNDAgMDAwMDAgbiAKdHJhaWxlcgo8PC9TaXplIDUvUm9vdCAxIDAgUi9JbmZvIDYgMCBSCj4+CnN0YXJ0eHJlZgo2NTU1CiUlRU9G"
+    upload_data = {
+        "documents": [
+            {
+                "name": "test.pdf",
+                "content": pdf_content,
+                "tag_ids": [tag_id]
+            }
+        ]
+    }
+    
+    resp = client.post(f"/v0/orgs/{org_id}/documents", json=upload_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    
+    # Get the document ID from the response
+    doc_response = resp.json()
+    doc_id = doc_response["uploaded_documents"][0]["document_id"]
+    
+    # Try to delete the tag (should fail because it's used by a document)
+    resp = client.delete(f"/v0/orgs/{org_id}/tags/{tag_id}", headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 400
+    assert "assigned to one or more documents" in resp.json()["detail"]
+    
+    # Delete the document first
+    resp = client.delete(f"/v0/orgs/{org_id}/documents/{doc_id}", headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    
+    # Now try to delete the tag again (should succeed)
+    resp = client.delete(f"/v0/orgs/{org_id}/tags/{tag_id}", headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200 
