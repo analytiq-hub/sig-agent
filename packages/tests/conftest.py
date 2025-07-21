@@ -202,3 +202,25 @@ def mock_auth():
     
     # Clean up
     app.dependency_overrides.clear() 
+
+@pytest_asyncio.fixture
+async def setup_test_models(test_db):
+    """Set up test LLM models in the database"""
+    # Check if the providers already exist
+    providers = await test_db.llm_providers.find({}).to_list(None)
+    if providers:
+        return  # Providers already set up
+        
+    # Add test provider
+    test_provider = {
+        "name": "OpenAI",
+        "display_name": "OpenAI",
+        "litellm_provider": "openai",
+        "litellm_models_available": ["gpt-4o-mini", "gpt-4o"],
+        "litellm_models_enabled": ["gpt-4o-mini", "gpt-4o"],
+        "enabled": True,
+        "token": "test-token",
+        "token_created_at": datetime.now(UTC)
+    }
+    
+    await test_db.llm_providers.insert_one(test_provider)

@@ -840,9 +840,10 @@ async def get_schema_id_and_version(schema_id: Optional[str] = None) -> tuple[st
 async def create_schema(
     organization_id: str,
     schema: SchemaConfig,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Create a schema"""
+    logger.info(f"create_schema() start: organization_id: {organization_id}, schema: {schema}")
     db = ad.common.get_async_db()
 
     # Check if schema with this name already exists (case-insensitive)
@@ -890,9 +891,10 @@ async def list_schemas(
     organization_id: str,
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """List latest schema revisions within an organization"""
+    logger.info(f"list_schemas() start: organization_id: {organization_id}, skip: {skip}, limit: {limit}")
     db = ad.common.get_async_db()
     
     # First, get schemas that belong to the organization
@@ -959,9 +961,10 @@ async def list_schemas(
 async def get_schema(
     organization_id: str,
     schema_revid: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Get a schema revision"""
+    logger.info(f"get_schema() start: organization_id: {organization_id}, schema_revid: {schema_revid}")
     db = ad.common.get_async_db()
     
     # Get the schema revision
@@ -990,7 +993,7 @@ async def update_schema(
     organization_id: str,
     schema_id: str,
     schema: SchemaConfig,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Update a schema"""
     logger.info(f"update_schema() start: organization_id: {organization_id}, schema_id: {schema_id}, schema: {schema}")
@@ -1073,9 +1076,11 @@ async def update_schema(
 async def delete_schema(
     organization_id: str,
     schema_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Delete a schema"""
+    logger.info(f"delete_schema() start: organization_id: {organization_id}, schema_id: {schema_id}")
+
     db = ad.common.get_async_db()
     
     # Get the schema and verify organization
@@ -1130,7 +1135,7 @@ async def validate_against_schema(
     organization_id: str,
     schema_revid: str,
     data: dict = Body(...),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Validate data against a schema revision"""
     logger.info(f"validate_against_schema() start: organization_id: {organization_id}, schema_revid: {schema_revid}")
@@ -1230,9 +1235,10 @@ async def get_prompt_id_and_version(prompt_id: Optional[str] = None) -> tuple[st
 async def create_prompt(
     organization_id: str,
     prompt: PromptConfig,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Create a prompt"""
+    logger.info(f"create_prompt() start: organization_id: {organization_id}, prompt: {prompt}")
     db = ad.common.get_async_db()
 
     # Verify schema if specified
@@ -1330,9 +1336,10 @@ async def list_prompts(
     limit: int = Query(10, ge=1, le=100),
     document_id: str = Query(None, description="Filter prompts by document's tags"),
     tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """List prompts within an organization"""
+    logger.info(f"list_prompts() start: organization_id: {organization_id}, skip: {skip}, limit: {limit}, document_id: {document_id}, tag_ids: {tag_ids}")
     db = ad.common.get_async_db()
     
     # First, get prompts that belong to the organization
@@ -1432,9 +1439,10 @@ async def list_prompts(
 async def get_prompt(
     organization_id: str,
     prompt_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Get a prompt"""
+    logger.info(f"get_prompt() start: organization_id: {organization_id}, prompt_id: {prompt_id}")
     db = ad.common.get_async_db()
     
     # Get the prompt revision
@@ -1463,9 +1471,10 @@ async def update_prompt(
     organization_id: str,
     prompt_id: str,
     prompt: PromptConfig,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Update a prompt"""
+    logger.info(f"update_prompt() start: organization_id: {organization_id}, prompt_id: {prompt_id}, prompt: {prompt}")
     db = ad.common.get_async_db()
 
     # Check if the prompt exists
@@ -1580,9 +1589,10 @@ async def update_prompt(
 async def delete_prompt(
     organization_id: str,
     prompt_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Delete a prompt"""
+    logger.info(f"delete_prompt() start: organization_id: {organization_id}, prompt_id: {prompt_id}")
     db = ad.common.get_async_db()
     
     # Get the prompt revision   
