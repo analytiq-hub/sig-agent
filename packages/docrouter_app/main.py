@@ -1628,7 +1628,7 @@ async def delete_prompt(
 async def create_tag(
     organization_id: str,
     tag: TagConfig,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Create a tag"""
     db = ad.common.get_async_db()
@@ -1663,7 +1663,7 @@ async def list_tags(
     organization_id: str,
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """List tags"""
     db = ad.common.get_async_db()
@@ -1697,7 +1697,7 @@ async def list_tags(
 async def delete_tag(
     organization_id: str,
     tag_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Delete a tag"""
     db = ad.common.get_async_db()
@@ -1747,7 +1747,7 @@ async def update_tag(
     organization_id: str,
     tag_id: str,
     tag: TagConfig,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Update a tag"""
     db = ad.common.get_async_db()
@@ -1799,7 +1799,7 @@ async def get_flow_id_and_version(flow_id: Optional[str] = None) -> tuple[str, i
 async def create_flow(
     organization_id: str,
     flow: FlowConfig,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ) -> Flow:
     # Check if user has access to organization
     is_org_member = await is_organization_member(organization_id, current_user.user_id)
@@ -1841,7 +1841,7 @@ async def list_flows(
     organization_id: str,
     skip: int = 0,
     limit: int = 10,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ) -> ListFlowsResponse:
     # Check if user has access to organization
     is_org_member = await is_organization_member(organization_id, current_user.user_id)
@@ -1888,7 +1888,7 @@ async def list_flows(
 async def get_flow(
     organization_id: str,
     flow_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ) -> Flow:
     # Check if user has access to organization
     is_org_member = await is_organization_member(organization_id, current_user.user_id)
@@ -1912,7 +1912,7 @@ async def get_flow(
 async def delete_flow(
     organization_id: str,
     flow_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ) -> dict:
     # Check if user has access to organization
     is_org_member = await is_organization_member(organization_id, current_user.user_id)
