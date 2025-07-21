@@ -64,7 +64,7 @@ import pytest
 import os
 
 # Import shared test utilities
-from .conftest import (
+from .test_utils import (
     client, TEST_ORG_ID, 
     get_auth_headers
 )

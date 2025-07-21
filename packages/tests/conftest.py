@@ -36,18 +36,6 @@ def pytest_addoption(parser):
         default="function",
     )
 
-def setup_env():
-    """Set up the environment variables for the tests"""
-    os.environ["ENV"] = "pytest"
-    os.environ["MONGODB_URI"] = "mongodb://localhost:27017"
-    os.environ["FASTAPI_SECRET"] = "test_secret_key_for_tests"
-
-# Set test environment variables
-setup_env()
-
-# Create a test client
-client = TestClient(app)
-
 @pytest_asyncio.fixture(scope="session")
 def unique_db_name():
     # Use xdist worker id if available, else use a UUID
@@ -192,19 +180,6 @@ async def org_and_users(test_db):
         "admin": {"id": admin_id, "token": admin_token},
         "member": {"id": member_id, "token": member_token},
         "outsider": {"id": outsider_id, "token": outsider_token}
-    }
-
-def get_token_headers(token):
-    return {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-
-def get_auth_headers():
-    """Get authentication headers for test requests"""
-    return {
-        "Authorization": "Bearer test_token",
-        "Content-Type": "application/json"
     }
 
 @pytest.fixture

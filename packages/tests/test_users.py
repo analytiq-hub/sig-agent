@@ -5,7 +5,7 @@ from datetime import datetime, UTC
 import logging
 
 # Import shared test utilities
-from .conftest import (
+from .test_utils import (
     client, TEST_ORG_ID, 
     get_auth_headers
 )

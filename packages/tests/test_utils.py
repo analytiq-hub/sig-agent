@@ -31,3 +31,29 @@ TEST_USER = User(
 
 # Use a valid ObjectId format (24-character hex string)
 TEST_ORG_ID = "6579a94b1f1d8f5a8e9c0123"
+
+def setup_env():
+    """Set up the environment variables for the tests"""
+    os.environ["ENV"] = "pytest"
+    os.environ["MONGODB_URI"] = "mongodb://localhost:27017"
+    os.environ["FASTAPI_SECRET"] = "test_secret_key_for_tests"
+
+# Set test environment variables
+setup_env()
+
+# Create a test client
+client = TestClient(app)
+
+
+def get_token_headers(token):
+    return {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+def get_auth_headers():
+    """Get authentication headers for test requests"""
+    return {
+        "Authorization": "Bearer test_token",
+        "Content-Type": "application/json"
+    }

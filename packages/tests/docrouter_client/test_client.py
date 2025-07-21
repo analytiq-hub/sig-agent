@@ -19,7 +19,7 @@ sys.path.append(str(TOP_DIR / "packages"))
 sys.path.append(str(TOP_DIR / "backend"))
 
 # Import test utilities using absolute import
-from tests.conftest import (
+from tests.test_utils import (
     client as api_client, TEST_ORG_ID, 
     get_auth_headers
 )

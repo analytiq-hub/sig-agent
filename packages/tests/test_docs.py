@@ -17,9 +17,9 @@ from bson import ObjectId
 import logging
 
 # Import shared test utilities
-from .conftest import (
+from .test_utils import (
     client, TEST_ORG_ID, 
-    get_auth_headers, mock_auth
+    get_auth_headers
 )
 import analytiq_data as ad
 
