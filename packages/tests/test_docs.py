@@ -546,3 +546,82 @@ async def test_upload_supported_file_types(test_db, minimal_file, mock_auth):
         headers=get_auth_headers()
     )
     assert get_pdf_deleted_response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_upload_document_base64_formats(test_db, small_pdf, mock_auth):
+    """Test document upload with different base64 formats"""
+    logger.info("test_upload_document_base64_formats() start")
+    
+    # Extract the base64 part from the data URL for testing
+    base64_content = small_pdf['content'].split(',', 1)[1]
+    
+    # Test 1: Data URL format (current frontend format)
+    upload_data_data_url = {
+        "documents": [
+            {
+                "name": "test_data_url.pdf",
+                "content": f"data:application/pdf;base64,{base64_content}",
+                "tag_ids": []
+            }
+        ]
+    }
+    
+    upload_response = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/documents",
+        json=upload_data_data_url,
+        headers=get_auth_headers()
+    )
+    assert upload_response.status_code == 200
+    
+    # Test 2: Plain base64 format
+    upload_data_plain = {
+        "documents": [
+            {
+                "name": "test_plain.pdf",
+                "content": base64_content,  # Plain base64 without data URL prefix
+                "tag_ids": []
+            }
+        ]
+    }
+    
+    upload_response = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/documents",
+        json=upload_data_plain,
+        headers=get_auth_headers()
+    )
+    assert upload_response.status_code == 200
+    
+    # Test 3: Invalid base64 should fail
+    # Let's test with a string that is definitely not valid base64
+    invalid_content = "this-is-definitely-not-valid-base64-content-with-special-chars-!@#$%^&*()_+{}|:<>?[]\\;'\",./"
+    
+    # First, let's test what Python's base64.b64decode actually does with this
+    import base64
+    try:
+        result = base64.b64decode(invalid_content)
+        print(f"Python base64.b64decode succeeded with: {result[:20]}...")
+    except Exception as e:
+        print(f"Python base64.b64decode failed with: {e}")
+    
+    upload_data_invalid = {
+        "documents": [
+            {
+                "name": "test_invalid.pdf",
+                "content": invalid_content,
+                "tag_ids": []
+            }
+        ]
+    }
+    
+    upload_response = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/documents",
+        json=upload_data_invalid,
+        headers=get_auth_headers()
+    )
+    
+    # Debug: print the response to understand what's happening
+    print(f"Upload response status: {upload_response.status_code}")
+    print(f"Upload response content: {upload_response.text}")
+    
+    assert upload_response.status_code == 400
+    assert "Invalid base64 content" in upload_response.json()["detail"]

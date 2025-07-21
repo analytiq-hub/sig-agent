@@ -1,6 +1,6 @@
 export interface DocumentWithContent {
   name: string;
-  content: string;
+  content: string; // Base64 encoded content (can be data URL or plain base64)
   tag_ids?: string[];  // Optional list of tag IDs
 }
 

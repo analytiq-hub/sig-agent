@@ -126,6 +126,27 @@ async def check_mongodb_connection(uri):
 
 UPLOAD_DIR = "data"
 
+def decode_base64_content(content: str) -> bytes:
+    """
+    Decode base64 content that may be either:
+    1. A data URL: 'data:application/pdf;base64,JVBERi0xLjQK...'
+    2. Plain base64: 'JVBERi0xLjQK...'
+    """
+    try:
+        # Check if it's a data URL
+        if content.startswith('data:'):
+            # Extract the base64 part after the comma
+            base64_part = content.split(',', 1)[1]
+            return base64.b64decode(base64_part)
+        else:
+            # Assume it's plain base64
+            return base64.b64decode(content)
+    except (IndexError, ValueError) as e:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid base64 content: {str(e)}"
+        )
+
 @asynccontextmanager
 async def lifespan(app):
     # Startup code (previously in @app.on_event("startup"))
@@ -306,7 +327,7 @@ async def upload_document(
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
-        content = base64.b64decode(document.content.split(',')[1])
+        content = decode_base64_content(document.content)
         document_id = ad.common.create_id()
         mongo_file_name = f"{document_id}{ext}"
 

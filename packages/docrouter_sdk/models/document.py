@@ -4,7 +4,12 @@ from pydantic import BaseModel, Field
 
 class DocumentUpload(BaseModel):
     name: str
-    content: str
+    content: str = Field(
+        ..., 
+        description="Base64 encoded file content. Can be either:\n"
+                   "1. Plain base64: 'JVBERi0xLjQK...'\n"
+                   "2. Data URL: 'data:application/pdf;base64,JVBERi0xLjQK...'"
+    )
     tag_ids: List[str] = []
 
 class DocumentsUpload(BaseModel):

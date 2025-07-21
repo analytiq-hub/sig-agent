@@ -19,7 +19,10 @@ class DocumentsAPI:
         
         Args:
             organization_id: The organization ID
-            documents: List of documents to upload, each with name, content (base64), and optional tag_ids
+            documents: List of documents to upload, each with:
+                - name: Document filename
+                - content: Base64 encoded content (can be data URL or plain base64)
+                - tag_ids: Optional list of tag IDs
             
         Returns:
             Dict with uploaded_documents list containing document metadata
