@@ -1,9 +1,14 @@
 from bson.objectid import ObjectId
 import os
 import logging
-import litellm
+import warnings
+# Defer litellm import to avoid event loop warnings
+# import litellm
 from datetime import datetime
 import analytiq_data as ad
+
+# Suppress Pydantic deprecation warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic")
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +27,9 @@ async def list_llm_providers(analytiq_client) -> dict:
 
 async def setup_llm_providers(analytiq_client):
     """Set up default LLM providers by upserting based on provider name"""
+    # Import litellm here to avoid event loop warnings
+    import litellm
+    
     env = analytiq_client.env
     db = analytiq_client.mongodb_async[env]
 
@@ -268,6 +276,9 @@ def get_llm_model_provider(llm_model: str) -> str | None:
     Returns:
         The provider for the given LLM model
     """
+    # Import litellm here to avoid event loop warnings
+    import litellm
+    
     if llm_model is None:
         return None
 

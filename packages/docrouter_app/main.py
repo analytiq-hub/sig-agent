@@ -13,9 +13,14 @@ import logging
 import hmac
 import hashlib
 import asyncio
+import warnings
 from typing import Optional, List
 from contextlib import asynccontextmanager
-import litellm
+# Defer litellm import to avoid event loop warnings
+# import litellm
+
+# Suppress Pydantic deprecation warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic")
 
 # Set up the path first, before other imports
 cwd = os.path.dirname(os.path.abspath(__file__))
@@ -1992,6 +1997,9 @@ async def list_llm_models(
     llm_enabled: bool | None = Query(True, description="Filter models by enabled status"),
 ):
     """List all supported LLM models"""
+    # Import litellm here to avoid event loop warnings
+    import litellm
+    
     db = ad.common.get_async_db()
 
     # Retrieve providers from MongoDB

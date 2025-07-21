@@ -48,6 +48,15 @@ def get_api_context(path: str) -> tuple[str, Optional[str]]:
         return "organization", parts[3]
     return "unknown", None
 
+def extract_org_id_from_path(path: str) -> Optional[str]:
+    """
+    Extract organization ID from the path.
+    """
+    parts = path.split('/')
+    if len(parts) > 2 and parts[2] == "orgs":
+        return parts[3]
+    return None
+
 # Modify get_current_user to validate based on context
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security), request: Request = None):
     """
@@ -76,15 +85,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
         if not user:
             raise HTTPException(status_code=401, detail="User not found in database")
 
-        # TO DO: Validate that the user is a member of the organization
-        # if org_id:
-        #     org_member = await db.org_members.find_one({
-        #         "user_id": userId,
-        #         "organization_id": org_id
-        #     })
-        #     if not org_member:
-        #         raise HTTPException(status_code=401, detail="User not a member of organization")
-            
         return User(
             user_id=userId,
             user_name=userName,
@@ -114,6 +114,17 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
             user = await db.users.find_one({"_id": ObjectId(stored_token["user_id"])})
             if not user:
                 raise HTTPException(status_code=401, detail="User not found in database")
+
+            # Extract organization from URL path
+            path = request.url.path if request else ""
+            org_id = extract_org_id_from_path(path)  # You'd need to implement this
+            
+            # Check if token's organization matches URL organization
+            if org_id and stored_token.get("organization_id") != org_id:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Token is not valid for this organization"
+                )
                 
             return User(
                 user_id=stored_token["user_id"],
