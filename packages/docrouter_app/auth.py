@@ -189,3 +189,23 @@ async def is_organization_member(org_id: str, user_id: str):
             return True
 
     return False
+
+async def get_org_user(
+    organization_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    is_member = await is_organization_member(organization_id, current_user.user_id)
+    if not is_member:
+        raise HTTPException(status_code=403, detail="You are not a member of this organization")
+    return current_user
+
+async def get_admin_or_org_user(
+    organization_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    is_admin = await is_organization_admin(organization_id, current_user.user_id)
+    if is_admin:
+        return current_user
+    is_member = await is_organization_member(organization_id, current_user.user_id)
+    if not is_member:
+        raise HTTPException(status_code=403, detail="You are not a member of this organization")

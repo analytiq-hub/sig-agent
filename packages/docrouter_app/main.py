@@ -43,6 +43,8 @@ from docrouter_app import email_utils, startup, organizations, users, limits
 from docrouter_app.auth import (
     get_current_user,
     get_admin_user,
+    get_org_user,
+    get_admin_or_org_user,
     is_system_admin,
     is_organization_admin,
     is_organization_member
@@ -289,13 +291,9 @@ async def delete_org_token(
 async def upload_document(
     organization_id: str,
     documents_upload: DocumentsUpload = Body(...),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Upload one or more documents"""
-    # --- PERMISSION CHECK ---
-    is_org_member = await is_organization_member(organization_id, current_user.user_id)
-    if not is_org_member:
-        raise HTTPException(status_code=403, detail="You are not a member of this organization")
     logger.debug(f"upload_document(): documents: {[doc.name for doc in documents_upload.documents]}")
     uploaded_documents = []
 
@@ -389,13 +387,9 @@ async def update_document(
     organization_id: str,
     document_id: str,
     update: DocumentUpdate,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Update a document"""
-    # --- PERMISSION CHECK ---
-    is_org_member = await is_organization_member(organization_id, current_user.user_id)
-    if not is_org_member:
-        raise HTTPException(status_code=403, detail="You are not a member of this organization")
     logger.debug(f"Updating document {document_id} with data: {update}")
     analytiq_client = ad.common.get_analytiq_client()
     db = ad.common.get_async_db(analytiq_client)
@@ -463,13 +457,9 @@ async def list_documents(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """List documents within an organization"""
-    # --- PERMISSION CHECK ---
-    is_org_member = await is_organization_member(organization_id, current_user.user_id)
-    if not is_org_member:
-        raise HTTPException(status_code=403, detail="You are not a member of this organization")
     # Get analytiq client
     analytiq_client = ad.common.get_analytiq_client()
     
@@ -512,13 +502,9 @@ async def get_document(
     file_type: str = Query(default="original", 
                            enum=["original", "pdf"], 
                            description="Which file to retrieve: 'original' or 'pdf'"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Get a document (original or associated PDF)"""
-    # --- PERMISSION CHECK ---
-    is_org_member = await is_organization_member(organization_id, current_user.user_id)
-    if not is_org_member:
-        raise HTTPException(status_code=403, detail="You are not a member of this organization")
     logger.debug(f"get_document() start: document_id: {document_id}, file_type: {file_type}")
     analytiq_client = ad.common.get_analytiq_client()
     db = ad.common.get_async_db(analytiq_client)
@@ -569,13 +555,9 @@ async def get_document(
 async def delete_document(
     organization_id: str,
     document_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Delete a document"""
-    # --- PERMISSION CHECK ---
-    is_org_member = await is_organization_member(organization_id, current_user.user_id)
-    if not is_org_member:
-        raise HTTPException(status_code=403, detail="You are not a member of this organization")
     analytiq_client = ad.common.get_analytiq_client()
     db = ad.common.get_async_db(analytiq_client)
 
