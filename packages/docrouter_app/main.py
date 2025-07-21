@@ -669,7 +669,7 @@ async def run_llm_analysis(
     document_id: str,
     prompt_rev_id: str = Query(default="default", description="The prompt revision ID to use"),
     force: bool = Query(default=False, description="Force new run even if result exists"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """
     Run LLM on a document, with optional force refresh.
@@ -712,7 +712,7 @@ async def get_llm_result(
     organization_id: str,
     document_id: str,
     prompt_rev_id: str = Query(default="default", description="The prompt revision ID to retrieve"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """
     Retrieve existing LLM results for a document.
@@ -740,7 +740,7 @@ async def update_llm_result(
     document_id: str,
     prompt_rev_id: str = Query(..., description="The prompt revision ID to update"),
     update: UpdateLLMResultRequest = Body(..., description="The update request"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """
     Update LLM results with user edits and verification status.
@@ -779,7 +779,7 @@ async def delete_llm_result(
     organization_id: str,
     document_id: str,
     prompt_rev_id: str = Query(..., description="The prompt revision ID to delete"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """
     Delete LLM results for a specific document and prompt.
