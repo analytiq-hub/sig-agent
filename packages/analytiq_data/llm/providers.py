@@ -2,8 +2,7 @@ from bson.objectid import ObjectId
 import os
 import logging
 import warnings
-# Defer litellm import to avoid event loop warnings
-# import litellm
+import litellm
 from datetime import datetime
 import analytiq_data as ad
 
@@ -27,8 +26,6 @@ async def list_llm_providers(analytiq_client) -> dict:
 
 async def setup_llm_providers(analytiq_client):
     """Set up default LLM providers by upserting based on provider name"""
-    # Import litellm here to avoid event loop warnings
-    import litellm
     
     env = analytiq_client.env
     db = analytiq_client.mongodb_async[env]

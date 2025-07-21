@@ -1,8 +1,7 @@
 from bson.objectid import ObjectId
 import logging
 import warnings
-# Defer litellm import to avoid event loop warnings
-# import litellm
+import litellm
 
 # Suppress Pydantic deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic")
