@@ -27,7 +27,7 @@ deploy:
 	docker compose up -d --build
 
 tests: setup
-	. .venv/bin/activate && pytest packages/tests/
+	. .venv/bin/activate && pytest -n auto packages/tests/
 
 clean:
 	rm -rf .venv

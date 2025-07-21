@@ -29,6 +29,7 @@ import tempfile
 import subprocess
 
 from analytiq_data.common.doc import EXTENSION_TO_MIME
+from analytiq_data.common.file import libreoffice_filelock
 
 logger = logging.getLogger(__name__)
 
@@ -81,15 +82,20 @@ def minimal_file(request):
             txt_path = txt_file.name
         pdf_path = txt_path.replace(".txt", ".pdf")
         try:
-            subprocess.run([
-                "libreoffice",
-                "--headless",
-                "--convert-to", "pdf",
-                "--outdir", os.path.dirname(txt_path),
-                txt_path
-            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            with open(pdf_path, "rb") as f:
-                content = f.read()
+            with libreoffice_filelock:
+                print(f"LibreOffice lock acquired for {ext}")
+
+                subprocess.run([
+                    "libreoffice",
+                    "--headless",
+                    "--convert-to", "pdf",
+                    "--outdir", os.path.dirname(txt_path),
+                    txt_path
+                ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                with open(pdf_path, "rb") as f:
+                    content = f.read()
+
+                print("LibreOffice lock released")
         finally:
             os.remove(txt_path)
             if os.path.exists(pdf_path):
@@ -102,15 +108,19 @@ def minimal_file(request):
             txt_path = txt_file.name
         docx_path = txt_path.replace(".txt", ".docx")
         try:
-            subprocess.run([
-                "libreoffice",
-                "--headless",
-                "--convert-to", "docx",
-                "--outdir", os.path.dirname(txt_path),
-                txt_path
-            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            with open(docx_path, "rb") as f:
-                content = f.read()
+            with libreoffice_filelock:
+                print(f"LibreOffice lock acquired for {ext}")
+                subprocess.run([
+                    "libreoffice",
+                    "--headless",
+                    "--convert-to", "docx",
+                    "--outdir", os.path.dirname(txt_path),
+                    txt_path
+                ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                with open(docx_path, "rb") as f:
+                    content = f.read()
+
+                print("LibreOffice lock released")
         finally:
             os.remove(txt_path)
             if os.path.exists(docx_path):
@@ -123,15 +133,19 @@ def minimal_file(request):
             csv_path = csv_file.name
         xlsx_path = csv_path.replace(".csv", ".xlsx")
         try:
-            subprocess.run([
-                "libreoffice",
-                "--headless",
-                "--convert-to", "xlsx",
-                "--outdir", os.path.dirname(csv_path),
-                csv_path
-            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            with open(xlsx_path, "rb") as f:
-                content = f.read()
+            with libreoffice_filelock:
+                print(f"LibreOffice lock acquired for {ext}")
+                subprocess.run([
+                    "libreoffice",
+                    "--headless",
+                    "--convert-to", "xlsx",
+                    "--outdir", os.path.dirname(csv_path),
+                    csv_path
+                ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                with open(xlsx_path, "rb") as f:
+                    content = f.read()
+
+                print("LibreOffice lock released")
         finally:
             os.remove(csv_path)
             if os.path.exists(xlsx_path):
@@ -150,15 +164,19 @@ def minimal_file(request):
             txt_path = txt_file.name
         doc_path = txt_path.replace(".txt", ".doc")
         try:
-            subprocess.run([
-                "libreoffice",
-                "--headless",
-                "--convert-to", "doc",
-                "--outdir", os.path.dirname(txt_path),
-                txt_path
-            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            with open(doc_path, "rb") as f:
-                content = f.read()
+            with libreoffice_filelock:
+                print(f"LibreOffice lock acquired for {ext}")
+                subprocess.run([
+                    "libreoffice",
+                    "--headless",
+                    "--convert-to", "doc",
+                    "--outdir", os.path.dirname(txt_path),
+                    txt_path
+                ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                with open(doc_path, "rb") as f:
+                    content = f.read()
+
+                print("LibreOffice lock released")
         finally:
             os.remove(txt_path)
             if os.path.exists(doc_path):

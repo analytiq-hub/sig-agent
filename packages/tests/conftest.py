@@ -8,6 +8,7 @@ import motor.motor_asyncio
 from bson import ObjectId
 from fastapi.testclient import TestClient
 from fastapi.security import HTTPAuthorizationCredentials
+from filelock import FileLock
 
 # Set up the path first, before other imports
 cwd = os.path.dirname(os.path.abspath(__file__))

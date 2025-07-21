@@ -5,6 +5,11 @@ import tempfile
 import logging
 
 import analytiq_data as ad
+from filelock import FileLock
+
+# Use a lock file in /tmp so all processes (tests and app) share it
+LIBREOFFICE_LOCK_PATH = "/tmp/libreoffice.lock"
+libreoffice_filelock = FileLock(LIBREOFFICE_LOCK_PATH)
 
 logger = logging.getLogger(__name__)
 
@@ -275,13 +280,14 @@ def convert_to_pdf(blob: bytes, ext: str) -> bytes:
         input_path = input_file.name
 
     output_path = input_path.replace(ext, ".pdf")
-    subprocess.run([
-        "libreoffice",
-        "--headless",
-        "--convert-to", "pdf",
-        "--outdir", os.path.dirname(input_path),
-        input_path
-    ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    with libreoffice_filelock:
+        subprocess.run([
+            "libreoffice",
+            "--headless",
+            "--convert-to", "pdf",
+            "--outdir", os.path.dirname(input_path),
+            input_path
+        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     with open(output_path, "rb") as f:
         pdf_blob = f.read()
