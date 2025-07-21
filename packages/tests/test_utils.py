@@ -12,6 +12,7 @@ import motor.motor_asyncio
 from fastapi.testclient import TestClient
 from fastapi.security import HTTPAuthorizationCredentials
 from bson import ObjectId
+import uuid
 
 # Set up the path first, before other imports
 cwd = os.path.dirname(os.path.abspath(__file__))
@@ -48,13 +49,13 @@ TEST_USER = User(
 TEST_ORG_ID = "6579a94b1f1d8f5a8e9c0123"
 
 @pytest_asyncio.fixture
-async def test_db():
-    """Set up and tear down the test database"""
+async def test_db(unique_db_name):
+    """Set up and tear down a unique test database per worker/session"""
     client = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URI"])
-    db = client[os.environ["ENV"]]
+    db = client[unique_db_name]
     
     # Verify we're using the test database
-    if os.environ["ENV"] != "pytest":
+    if not os.environ["ENV"].startswith("pytest"):
         raise ValueError(f"Test is not using the test database! ENV={os.environ['ENV']}")
     
     # Clear the database before each test
@@ -89,7 +90,7 @@ async def test_db():
     yield db
     
     # Clean up after test - ONLY if we're using the test database
-    if os.environ["ENV"] == "pytest":
+    if os.environ["ENV"].startswith("pytest"):
         collections = await db.list_collection_names()
         for collection in collections:
             await db.drop_collection(collection)
