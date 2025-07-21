@@ -117,6 +117,95 @@ async def test_db(unique_db_name):
         # This should never happen, but just in case
         raise ValueError(f"Attempted to clean up non-test database! ENV={os.environ['ENV']}")
 
+@pytest_asyncio.fixture
+async def org_and_users(test_db):
+    """
+    Create an organization, an admin, a member, and a non-member user, and generate tokens for each.
+    Returns a dict with user/org info and tokens.
+    """
+    from docrouter_app.main import app
+    import secrets
+
+    # Create users
+    admin_id = str(ObjectId())
+    member_id = str(ObjectId())
+    outsider_id = str(ObjectId())
+
+    await test_db.users.insert_many([
+        {
+            "_id": ObjectId(admin_id),
+            "email": "admin@example.com",
+            "name": "Org Admin",
+            "role": "admin",
+            "emailVerified": True,
+            "hasPassword": True,
+            "createdAt": datetime.now(UTC)
+        },
+        {
+            "_id": ObjectId(member_id),
+            "email": "member@example.com",
+            "name": "Org Member",
+            "role": "user",
+            "emailVerified": True,
+            "hasPassword": True,
+            "createdAt": datetime.now(UTC)
+        },
+        {
+            "_id": ObjectId(outsider_id),
+            "email": "outsider@example.com",
+            "name": "Not In Org",
+            "role": "user",
+            "emailVerified": True,
+            "hasPassword": True,
+            "createdAt": datetime.now(UTC)
+        }
+    ])
+
+    # Create org with admin and member
+    org_id = str(ObjectId())
+    await test_db.organizations.insert_one({
+        "_id": ObjectId(org_id),
+        "name": "Test Org For Auth",
+        "members": [
+            {"user_id": admin_id, "role": "admin"},
+            {"user_id": member_id, "role": "user"}
+        ],
+        "type": "team",
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC)
+    })
+
+    # Helper to create a token for a user (org-level)
+    def create_token(user_id, org_id, name):
+        token = secrets.token_urlsafe(32)
+        encrypted = ad.crypto.encrypt_token(token)
+        token_doc = {
+            "user_id": user_id,
+            "organization_id": org_id,
+            "name": name,
+            "token": encrypted,
+            "created_at": datetime.now(UTC),
+            "lifetime": 30
+        }
+        result = test_db.access_tokens.insert_one(token_doc)
+        return token
+
+    admin_token = create_token(admin_id, org_id, "admin-token")
+    member_token = create_token(member_id, org_id, "member-token")
+    outsider_token = create_token(outsider_id, org_id, "outsider-token")
+
+    return {
+        "org_id": org_id,
+        "admin": {"id": admin_id, "token": admin_token},
+        "member": {"id": member_id, "token": member_token},
+        "outsider": {"id": outsider_id, "token": outsider_token}
+    }
+
+def get_token_headers(token):
+    return {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
 
 def get_auth_headers():
     """Get authentication headers for test requests"""
