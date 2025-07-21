@@ -19,6 +19,12 @@ from docrouter_app.main import app, security, get_current_user, get_admin_user
 from docrouter_app.models import User
 import analytiq_data as ad
 
+from tests.test_utils import (
+    TEST_USER_ID,
+    TEST_ORG_ID,
+    TEST_USER
+)
+
 # Define pytest configuration
 pytest_plugins = ["pytest_asyncio"]
 
@@ -41,19 +47,6 @@ setup_env()
 
 # Create a test client
 client = TestClient(app)
-
-# Use a valid ObjectId format for user_id (24-character hex string)
-TEST_USER_ID = "6579a94b1f1d8f5a8e9c0124"
-
-# Common test data
-TEST_USER = User(
-    user_id=TEST_USER_ID,
-    user_name="test@example.com",
-    token_type="jwt"
-)
-
-# Use a valid ObjectId format (24-character hex string)
-TEST_ORG_ID = "6579a94b1f1d8f5a8e9c0123"
 
 @pytest_asyncio.fixture(scope="session")
 def unique_db_name():

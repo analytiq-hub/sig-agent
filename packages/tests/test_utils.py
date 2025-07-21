@@ -1,0 +1,33 @@
+import pytest
+import os
+import sys
+import uuid
+import pytest_asyncio
+from datetime import datetime, UTC
+import motor.motor_asyncio
+from bson import ObjectId
+from fastapi.testclient import TestClient
+from fastapi.security import HTTPAuthorizationCredentials
+from filelock import FileLock
+
+# Set up the path first, before other imports
+cwd = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(f"{cwd}/..")
+
+# Now import the FastAPI app and dependencies
+from docrouter_app.main import app, security, get_current_user, get_admin_user
+from docrouter_app.models import User
+import analytiq_data as ad
+
+# Use a valid ObjectId format for user_id (24-character hex string)
+TEST_USER_ID = "6579a94b1f1d8f5a8e9c0124"
+
+# Common test data
+TEST_USER = User(
+    user_id=TEST_USER_ID,
+    user_name="test@example.com",
+    token_type="jwt"
+)
+
+# Use a valid ObjectId format (24-character hex string)
+TEST_ORG_ID = "6579a94b1f1d8f5a8e9c0123"
