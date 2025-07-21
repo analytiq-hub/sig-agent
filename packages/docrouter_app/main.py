@@ -592,7 +592,7 @@ async def delete_document(
 async def download_ocr_blocks(
     organization_id: str,
     document_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Download OCR blocks for a document"""
     logger.debug(f"download_ocr_blocks() start: document_id: {document_id}")
@@ -615,7 +615,7 @@ async def download_ocr_text(
     organization_id: str,
     document_id: str,
     page_num: Optional[int] = Query(None, description="Specific page number to retrieve"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Download OCR text for a document"""
     logger.debug(f"download_ocr_text() start: document_id: {document_id}, page_num: {page_num}")
@@ -642,7 +642,7 @@ async def download_ocr_text(
 async def get_ocr_metadata(
     organization_id: str,
     document_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ):
     """Get OCR metadata for a document"""
     logger.debug(f"get_ocr_metadata() start: document_id: {document_id}")
