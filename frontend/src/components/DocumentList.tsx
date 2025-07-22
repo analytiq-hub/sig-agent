@@ -26,7 +26,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import { toast } from 'react-toastify';
 import DocumentRenameModal from './DocumentRename';
 
-const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => {
+const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [totalRows, setTotalRows] = useState<number>(0);
   const [paginationModel, setPaginationModel] = useState(() => {
@@ -532,4 +532,4 @@ const Documents: React.FC<{ organizationId: string }> = ({ organizationId }) => 
   );
 };
 
-export default Documents;
+export default DocumentList;

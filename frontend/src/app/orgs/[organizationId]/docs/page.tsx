@@ -1,6 +1,6 @@
 'use client'
 
-import Documents from '@/components/Documents';
+import Documents from '@/components/DocumentList';
 import DocumentUpload from '@/components/DocumentUpload';
 import { useSearchParams, useRouter } from 'next/navigation';
 
