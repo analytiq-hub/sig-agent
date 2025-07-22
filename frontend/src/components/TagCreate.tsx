@@ -1,14 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { createTagApi, updateTagApi, getApiErrorMsg } from '@/utils/api';
+import { createTagApi, updateTagApi, getApiErrorMsg, getTagApi } from '@/utils/api';
 import { TagConfig } from '@/types/index';
 import colors from 'tailwindcss/colors';
 import InfoTooltip from '@/components/InfoTooltip';
-import { useTagContext } from '@/contexts/TagContext';
 
-const TagCreate: React.FC<{ organizationId: string }> = ({ organizationId }) => {
-  const { editingTag, setEditingTag } = useTagContext();
+const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organizationId, tagId }) => {
   const [currentTag, setCurrentTag] = useState<{id?: string; name: string; color: string; description: string}>({
     name: '',
     color: colors.blue[500], // default blue color
@@ -19,18 +17,28 @@ const TagCreate: React.FC<{ organizationId: string }> = ({ organizationId }) => 
 
   // Load editing tag if available
   useEffect(() => {
-    if (editingTag) {
-      setCurrentTag({
-        id: editingTag.id,
-        name: editingTag.name,
-        color: editingTag.color || colors.blue[500],
-        description: editingTag.description || ''
-      });
-      
-      // Clear the editing tag after loading
-      setEditingTag(null);
+    async function loadTag() {
+      if (tagId) {
+        setIsLoading(true);
+        try {
+          const tag = await getTagApi({ organizationId, tagId });
+          setCurrentTag({
+            id: tag.id,
+            name: tag.name,
+            color: tag.color || colors.blue[500],
+            description: tag.description || ''
+          });
+        } catch (error) {
+          setMessage(`Error loading tag: ${getApiErrorMsg(error)}`);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setCurrentTag({ name: '', color: colors.blue[500], description: '' });
+      }
     }
-  }, [editingTag, setEditingTag]);
+    loadTag();
+  }, [tagId, organizationId]);
 
   const saveTag = async (tag: TagConfig) => {
     try {
@@ -129,7 +137,6 @@ const TagCreate: React.FC<{ organizationId: string }> = ({ organizationId }) => 
                 onClick={() => {
                   setCurrentTag({ name: '', color: colors.blue[500], description: '' });
                   setMessage('');
-                  setEditingTag(null);
                 }}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
                 disabled={isLoading}

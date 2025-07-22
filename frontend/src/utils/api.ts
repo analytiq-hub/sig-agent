@@ -456,6 +456,17 @@ export const createTagApi = async (params: CreateTagParams): Promise<Tag> => {
     return response.data;
 };
 
+export const getTagApi = async ({
+  organizationId,
+  tagId,
+}: {
+  organizationId: string;
+  tagId: string;
+}): Promise<Tag> => {
+  const response = await api.get<Tag>(`/v0/orgs/${organizationId}/tags/${tagId}`);
+  return response.data;
+};
+
 export const listTagsApi = async (params: ListTagsParams): Promise<ListTagsResponse> => {
     const { organizationId } = params;
     const response = await api.get<ListTagsResponse>(`/v0/orgs/${organizationId}/tags`);

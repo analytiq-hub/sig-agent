@@ -1784,6 +1784,22 @@ async def update_tag(
     
     return Tag(**{**updated_tag, "id": str(updated_tag["_id"])})
 
+@app.get("/v0/orgs/{organization_id}/tags/{tag_id}", response_model=Tag, tags=["tags"])
+async def get_tag(
+    organization_id: str,
+    tag_id: str,
+    current_user: User = Depends(get_org_user)
+):
+    """Get a tag by ID"""
+    db = ad.common.get_async_db()
+    tag = await db.tags.find_one({
+        "_id": ObjectId(tag_id),
+        "organization_id": organization_id
+    })
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    return Tag(**{**tag, "id": str(tag["_id"])})
+
 async def get_flow_id_and_version(flow_id: Optional[str] = None) -> tuple[str, int]:
     """Get flow ID and version for creating or updating flows"""
     db = ad.common.get_async_db()

@@ -11,13 +11,11 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import colors from 'tailwindcss/colors';
 import { isColorLight } from '@/utils/colors';
-import { useTagContext } from '@/contexts/TagContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
-  const { setEditingTag } = useTagContext();
   const [tags, setTags] = useState<Tag[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -72,11 +70,7 @@ const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
 
   // Update the edit handler
   const handleEdit = (tag: Tag) => {
-    // Store the tag in context
-    setEditingTag(tag);
-    
-    // Navigate to the create-tag tab
-    router.push(`/orgs/${organizationId}/tags?tab=tag-create`);
+    router.push(`/orgs/${organizationId}/tags/${tag.id}`);
     handleMenuClose();
   };
 
