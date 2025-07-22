@@ -2,7 +2,6 @@
 
 import SchemaList from '@/components/SchemaList';
 import SchemaCreate from '@/components/SchemaCreate';
-import { SchemaProvider } from '@/contexts/SchemaContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function SchemasPage({ params }: { params: { organizationId: string } }) {
@@ -15,7 +14,6 @@ export default function SchemasPage({ params }: { params: { organizationId: stri
   };
 
   return (
-    <SchemaProvider>
       <div className="p-4">
         <div className="border-b border-gray-200 mb-6">
           <div className="flex gap-8">
@@ -52,6 +50,5 @@ export default function SchemasPage({ params }: { params: { organizationId: stri
           </div>
         </div>
       </div>
-    </SchemaProvider>
   );
 }
