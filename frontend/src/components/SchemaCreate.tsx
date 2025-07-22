@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { createSchemaApi, updateSchemaApi } from '@/utils/api';
+import { createSchemaApi, updateSchemaApi, getSchemaApi } from '@/utils/api';
 import { SchemaField, SchemaConfig, ResponseFormat, JsonSchemaProperty } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 
@@ -9,7 +9,6 @@ import InfoTooltip from '@/components/InfoTooltip';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { useSchemaContext } from '@/contexts/SchemaContext';
 
 interface NestedFieldsEditorProps {
   fields: SchemaField[];
@@ -158,8 +157,7 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
   );
 };
 
-const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) => {
-  const { editingSchema, setEditingSchema } = useSchemaContext();
+const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ organizationId, schemaId }) => {
   
   const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
   const [currentSchema, setCurrentSchema] = useState<SchemaConfig>({
@@ -271,18 +269,46 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   // Load editing schema if available
   useEffect(() => {
-    if (editingSchema) {
-      setCurrentSchemaId(editingSchema.schema_id);
-      setCurrentSchema({
-        name: editingSchema.name,
-        response_format: editingSchema.response_format
-      });
-      setFields(jsonSchemaToFields(editingSchema.response_format));
-      
-      // Clear the editing schema after loading
-      setEditingSchema(null);
+    async function loadSchema() {
+      if (schemaId) {
+        setIsLoading(true);
+        try {
+          const schema = await getSchemaApi({ organizationId, schemaId });
+          setCurrentSchemaId(schema.schema_id);
+          setCurrentSchema({
+            name: schema.name,
+            response_format: schema.response_format
+          });
+          setFields(jsonSchemaToFields(schema.response_format));
+        } catch (error) {
+          setMessage(`Error loading schema: ${getApiErrorMsg(error)}`);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setCurrentSchemaId(null);
+        setCurrentSchema({
+          name: '',
+          response_format: {
+            type: 'json_schema',
+            json_schema: {
+              name: 'document_extraction',
+              schema: {
+                type: 'object',
+                properties: {},
+                required: [],
+                additionalProperties: false
+              },
+              strict: true
+            }
+          }
+        });
+        setFields([{ name: '', type: 'str' }]);
+      }
     }
-  }, [editingSchema, setEditingSchema, jsonSchemaToFields]);
+    loadSchema();
+    // Only run when schemaId or organizationId changes
+  }, [schemaId, organizationId, jsonSchemaToFields]);
 
   // Update jsonSchema when currentSchema changes
   useEffect(() => {
@@ -727,7 +753,6 @@ const SchemaCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
                     }
                   });
                   setMessage('');
-                  setEditingSchema(null);
                 }}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
                 disabled={isLoading}

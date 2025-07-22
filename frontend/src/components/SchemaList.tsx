@@ -12,7 +12,6 @@ import DownloadIcon from '@mui/icons-material/Download';
 import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutline';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import colors from 'tailwindcss/colors';
-import { useSchemaContext } from '@/contexts/SchemaContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
@@ -20,7 +19,6 @@ import SchemaNameModal from './SchemaNameModal';
 
 const SchemaList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
-  const { setEditingSchema } = useSchemaContext();
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -72,11 +70,7 @@ const SchemaList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
 
   // Update the edit handler
   const handleEdit = (schema: Schema) => {
-    // Store the schema in context
-    setEditingSchema(schema);
-    
-    // Navigate to the create-schema tab
-    router.push(`/orgs/${organizationId}/schemas?tab=schema-create&schema-id=${schema.schema_id}`);
+    router.push(`/orgs/${organizationId}/schemas/${schema.schema_id}`);
     handleMenuClose();
   };
 
