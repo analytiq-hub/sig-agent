@@ -57,14 +57,12 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
             description: tag.description
           }
         });
-        setMessage('Tag updated successfully');
       } else {
         // Create new tag
         await createTagApi({
           organizationId: organizationId,
           tag: tag
         });
-        setMessage('Tag created successfully');
       }
       
       // Reset form only after successful save
