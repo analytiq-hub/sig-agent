@@ -21,7 +21,7 @@ import PromptNameModal from './PromptNameModal';
 // Define default model constant
 const DEFAULT_LLM_MODEL = 'gemini-2.0-flash';
 
-const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
+const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
   const { setEditingPrompt } = usePromptContext();
   const [prompts, setPrompts] = useState<Prompt[]>([]);
@@ -529,4 +529,4 @@ const Prompts: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   );
 };
 
-export default Prompts;
+export default PromptList;

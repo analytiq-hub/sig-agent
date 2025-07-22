@@ -1,7 +1,7 @@
 'use client'
 
 import SchemaList from '@/components/SchemaList';
-import Prompts from '@/components/Prompts';
+import PromptList from '@/components/PromptList';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function ModelsPage({ params }: { params: { organizationId: string } }) {
@@ -45,7 +45,7 @@ export default function ModelsPage({ params }: { params: { organizationId: strin
           {tab === 'schemas' && <SchemaList organizationId={params.organizationId} />}
         </div>
         <div role="tabpanel" hidden={tab !== 'prompts'}>
-          {tab === 'prompts' && <Prompts organizationId={params.organizationId} />}
+          {tab === 'prompts' && <PromptList organizationId={params.organizationId} />}
         </div>
       </div>
     </div>

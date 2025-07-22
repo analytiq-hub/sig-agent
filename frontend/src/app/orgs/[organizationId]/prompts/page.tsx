@@ -1,6 +1,6 @@
 'use client'
 
-import Prompts from '@/components/Prompts';
+import PromptList from '@/components/PromptList';
 import PromptCreate from '@/components/PromptCreate';
 import { PromptProvider } from '@/contexts/PromptContext';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -45,7 +45,7 @@ export default function PromptsPage({ params }: { params: { organizationId: stri
 
         <div className="max-w-6xl mx-auto">
           <div role="tabpanel" hidden={tab !== 'prompts'}>
-            {tab === 'prompts' && <Prompts organizationId={params.organizationId} />}
+            {tab === 'prompts' && <PromptList organizationId={params.organizationId} />}
           </div>
           <div role="tabpanel" hidden={tab !== 'prompt-create'}>
             {tab === 'prompt-create' && <PromptCreate organizationId={params.organizationId} />}
