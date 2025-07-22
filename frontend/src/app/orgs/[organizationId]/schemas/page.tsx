@@ -1,6 +1,6 @@
 'use client'
 
-import Schemas from '@/components/Schemas';
+import SchemaList from '@/components/SchemaList';
 import SchemaCreate from '@/components/SchemaCreate';
 import { SchemaProvider } from '@/contexts/SchemaContext';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -45,7 +45,7 @@ export default function SchemasPage({ params }: { params: { organizationId: stri
 
         <div className="max-w-6xl mx-auto">
           <div role="tabpanel" hidden={tab !== 'schemas'}>
-            {tab === 'schemas' && <Schemas organizationId={params.organizationId} />}
+            {tab === 'schemas' && <SchemaList organizationId={params.organizationId} />}
           </div>
           <div role="tabpanel" hidden={tab !== 'schema-create'}>
             {tab === 'schema-create' && <SchemaCreate organizationId={params.organizationId} />}

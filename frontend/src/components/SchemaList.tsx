@@ -18,7 +18,7 @@ import Link from 'next/link';
 import { toast } from 'react-toastify';
 import SchemaNameModal from './SchemaNameModal';
 
-const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
+const SchemaList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
   const { setEditingSchema } = useSchemaContext();
   const [schemas, setSchemas] = useState<Schema[]>([]);
@@ -444,4 +444,4 @@ const Schemas: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   );
 };
 
-export default Schemas;
+export default SchemaList;
