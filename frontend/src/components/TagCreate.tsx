@@ -5,6 +5,7 @@ import { createTagApi, updateTagApi, getApiErrorMsg, getTagApi } from '@/utils/a
 import { TagConfig } from '@/types/index';
 import colors from 'tailwindcss/colors';
 import InfoTooltip from '@/components/InfoTooltip';
+import { useRouter } from 'next/navigation';
 
 const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organizationId, tagId }) => {
   const [currentTag, setCurrentTag] = useState<{id?: string; name: string; color: string; description: string}>({
@@ -14,6 +15,7 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
   });
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   // Load editing tag if available
   useEffect(() => {
@@ -67,6 +69,9 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
       
       // Reset form only after successful save
       setCurrentTag({ name: '', color: colors.blue[500], description: '' });
+
+      // Redirect to tags list page
+      router.push(`/orgs/${organizationId}/tags`);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving tag';
       setMessage('Error: ' + errorMsg);
