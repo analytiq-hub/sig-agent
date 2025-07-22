@@ -1,11 +1,12 @@
+'use client';
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { createPromptApi, updatePromptApi, listSchemasApi, getSchemaApi, listTagsApi, listLLMModelsApi } from '@/utils/api';
+import { createPromptApi, updatePromptApi, listSchemasApi, getSchemaApi, listTagsApi, listLLMModelsApi, getPromptApi } from '@/utils/api';
 import { PromptConfig, Schema, Tag, LLMModel } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import dynamic from 'next/dynamic';
 import { ResponseFormat } from '@/types/schemas';
 import InfoTooltip from '@/components/InfoTooltip';
-import { usePromptContext } from '@/contexts/PromptContext';
 import TagSelector from './TagSelector';
 
 // Define default model constant
@@ -16,9 +17,7 @@ const MonacoEditor = dynamic(() => import('./MonacoEditor'), {
   ssr: false,
 });
 
-const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) => {
-  const { editingPrompt, setEditingPrompt } = usePromptContext();
-  
+const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({ organizationId, promptId }) => {
   const [currentPromptId, setCurrentPromptId] = useState<string | null>(null);
   const [currentPrompt, setCurrentPrompt] = useState<PromptConfig>({
     name: '',
@@ -81,30 +80,38 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   // Load editing prompt if available
   useEffect(() => {
-    if (editingPrompt) {
-      setCurrentPromptId(editingPrompt.prompt_id);
-      setCurrentPrompt({
-        name: editingPrompt.name,
-        content: editingPrompt.content,
-        schema_id: editingPrompt.schema_id,
-        schema_version: editingPrompt.schema_version,
-        tag_ids: editingPrompt.tag_ids || [],
-        model: editingPrompt.model
-      });
-      
-      setSelectedTagIds(editingPrompt.tag_ids || []);
-      setSelectedSchema(editingPrompt.schema_id || '');
-      
-      if (editingPrompt.schema_id) {
-        handleSchemaSelect(editingPrompt.schema_id);
-      } else {
-        setSelectedSchemaDetails(null);
+    const loadPrompt = async () => {
+      if (promptId) {
+        try {
+          setIsLoading(true);
+          const prompt = await getPromptApi({ organizationId, promptId });
+          setCurrentPromptId(prompt.prompt_id);
+          setCurrentPrompt({
+            name: prompt.name,
+            content: prompt.content,
+            schema_id: prompt.schema_id,
+            schema_version: prompt.schema_version,
+            tag_ids: prompt.tag_ids || [],
+            model: prompt.model
+          });
+          setSelectedTagIds(prompt.tag_ids || []);
+          setSelectedSchema(prompt.schema_id || '');
+          // Optionally, load schema details if needed
+          if (prompt.schema_id) {
+            await handleSchemaSelect(prompt.schema_id);
+          } else {
+            setSelectedSchemaDetails(null);
+          }
+        } catch (error) {
+          setMessage(`Error loading prompt for editing: ${getApiErrorMsg(error)}`);
+        } finally {
+          setIsLoading(false);
+        }
       }
-      
-      // Clear the editing prompt after loading
-      setEditingPrompt(null);
-    }
-  }, [editingPrompt, setEditingPrompt, handleSchemaSelect]);
+    };
+    loadPrompt();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [promptId, organizationId]);
 
   // Initialize schema details when form is loaded with a schema
   useEffect(() => {
@@ -316,7 +323,6 @@ const PromptCreate: React.FC<{ organizationId: string }> = ({ organizationId }) 
                   setSelectedSchemaDetails(null);
                   setSelectedTagIds([]);
                   setMessage('');
-                  setEditingPrompt(null);
                 }}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
                 disabled={isLoading}

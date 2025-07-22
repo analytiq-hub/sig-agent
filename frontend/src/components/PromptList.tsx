@@ -13,7 +13,6 @@ import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutli
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import colors from 'tailwindcss/colors';
 import { isColorLight } from '@/utils/colors';
-import { usePromptContext } from '@/contexts/PromptContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PromptNameModal from './PromptNameModal';
@@ -23,7 +22,6 @@ const DEFAULT_LLM_MODEL = 'gemini-2.0-flash';
 
 const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
-  const { setEditingPrompt } = usePromptContext();
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -107,11 +105,7 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
 
   // Update the edit handler
   const handleEdit = (prompt: Prompt) => {
-    // Store the prompt in context
-    setEditingPrompt(prompt);
-    
-    // Navigate to the create-prompt tab
-    router.push(`/orgs/${organizationId}/prompts?tab=prompt-create&prompt-id=${prompt.prompt_id}`);
+    router.push(`/orgs/${organizationId}/prompts/${prompt.prompt_revid}`);
     handleMenuClose();
   };
 
