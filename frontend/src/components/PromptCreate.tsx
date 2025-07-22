@@ -8,6 +8,8 @@ import dynamic from 'next/dynamic';
 import { ResponseFormat } from '@/types/schemas';
 import InfoTooltip from '@/components/InfoTooltip';
 import TagSelector from './TagSelector';
+import { toast } from 'react-toastify';
+import { useRouter } from 'next/navigation';
 
 // Define default model constant
 const DEFAULT_LLM_MODEL = 'gemini-2.0-flash';
@@ -18,6 +20,7 @@ const MonacoEditor = dynamic(() => import('./MonacoEditor'), {
 });
 
 const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({ organizationId, promptId }) => {
+  const router = useRouter();
   const [currentPromptId, setCurrentPromptId] = useState<string | null>(null);
   const [currentPrompt, setCurrentPrompt] = useState<PromptConfig>({
     name: '',
@@ -27,7 +30,6 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
     tag_ids: [],
     model: undefined
   });
-  const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [selectedSchema, setSelectedSchema] = useState<string>('');
@@ -70,13 +72,12 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
           }));
         }
       } catch (error) {
-        console.error('Error fetching schema details:', error);
-        setMessage('Error: Unable to fetch schema details');
+        toast.error(`Error fetching schema details: ${getApiErrorMsg(error)}`);
       }
     } else {
       setSelectedSchemaDetails(null);
     }
-  }, [schemas, organizationId, setMessage, setSelectedSchema, setSelectedSchemaDetails, setCurrentPrompt])
+  }, [schemas, organizationId, setSelectedSchema, setSelectedSchemaDetails, setCurrentPrompt])
 
   // Load editing prompt if available
   useEffect(() => {
@@ -103,7 +104,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
             setSelectedSchemaDetails(null);
           }
         } catch (error) {
-          setMessage(`Error loading prompt for editing: ${getApiErrorMsg(error)}`);
+          toast.error(`Error loading prompt for editing: ${getApiErrorMsg(error)}`);
         } finally {
           setIsLoading(false);
         }
@@ -137,8 +138,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
               schema_version: schema.schema_version
             }));
           } catch (error) {
-            console.error('Error fetching schema details:', error);
-            setMessage('Error: Unable to fetch schema details');
+            toast.error(`Error fetching schema details: ${getApiErrorMsg(error)}`);
           }
         }
       }
@@ -178,11 +178,12 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
       setSelectedSchema('');
       setSelectedSchemaDetails(null);
       setSelectedTagIds([]);
-      setMessage('Prompt saved successfully');
+
+      router.push(`/orgs/${organizationId}/prompts`);
       
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving prompt';
-      setMessage('Error: ' + errorMsg);
+      toast.error('Error: ' + errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -194,7 +195,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
       setSchemas(response.schemas);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
-      setMessage('Error: ' + errorMsg);
+      toast.error('Error: ' + errorMsg);
     }
   }, [organizationId]);
 
@@ -204,7 +205,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
       setAvailableTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
-      setMessage('Error: ' + errorMsg);
+      toast.error('Error: ' + errorMsg);
     }
   }, [organizationId]);
 
@@ -218,7 +219,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
       setLLMModels(response.models);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading LLM models';
-      setMessage('Error: ' + errorMsg);
+      toast.error('Error: ' + errorMsg);
     }
   }, []);
 
@@ -231,7 +232,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPrompt.name || !currentPrompt.content) {
-      setMessage('Please fill in all fields');
+      toast.error('Please fill in all fields');
       return;
     }
 
@@ -322,7 +323,6 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
                   setSelectedSchema('');
                   setSelectedSchemaDetails(null);
                   setSelectedTagIds([]);
-                  setMessage('');
                 }}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
                 disabled={isLoading}
@@ -416,28 +416,6 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
             )}
           </div>
         </form>
-
-        {/* Message */}
-        {message && (
-          <div className={`mt-4 p-3 rounded ${
-            message.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
-          }`}>
-            {message}
-            {message.includes('dependent prompts') && (
-              <div className="mt-2">
-                <div className="font-semibold">Dependent prompts:</div>
-                <ul className="list-disc pl-5">
-                  {(JSON.parse(message.split('dependent prompts:')[1]) as Array<{name: string; schema_version: number}>)
-                    .map((prompt, idx) => (
-                      <li key={idx}>
-                        {prompt.name} (v{prompt.schema_version})
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

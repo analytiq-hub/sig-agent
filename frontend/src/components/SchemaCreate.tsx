@@ -9,6 +9,8 @@ import InfoTooltip from '@/components/InfoTooltip';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { toast } from 'react-toastify';
+import { useRouter } from 'next/navigation';
 
 interface NestedFieldsEditorProps {
   fields: SchemaField[];
@@ -158,7 +160,7 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
 };
 
 const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ organizationId, schemaId }) => {
-  
+  const router = useRouter();
   const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
   const [currentSchema, setCurrentSchema] = useState<SchemaConfig>({
     name: '',
@@ -176,7 +178,6 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({
       }
     }
   });
-  const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [fields, setFields] = useState<SchemaField[]>([{ name: '', type: 'str' }]);
   const [expandedNestedFields, setExpandedNestedFields] = useState<Record<number, boolean>>({});
@@ -281,7 +282,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({
           });
           setFields(jsonSchemaToFields(schema.response_format));
         } catch (error) {
-          setMessage(`Error loading schema: ${getApiErrorMsg(error)}`);
+          toast.error(`Error loading schema: ${getApiErrorMsg(error)}`);
         } finally {
           setIsLoading(false);
         }
@@ -323,7 +324,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({
       
       // Validate schema structure
       if (!parsedSchema.json_schema || !parsedSchema.json_schema.schema) {
-        setMessage('Error: Invalid schema format. Must contain json_schema.schema');
+        toast.error('Error: Invalid schema format. Must contain json_schema.schema');
         return;
       }
       
@@ -331,28 +332,25 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({
       
       // Validate required properties
       if (!schema.type || schema.type !== 'object') {
-        setMessage('Error: Schema type must be "object"');
+        toast.error('Error: Schema type must be "object"');
         return;
       }
       
       if (!schema.properties || typeof schema.properties !== 'object') {
-        setMessage('Error: Schema must have properties object');
+        toast.error('Error: Schema must have properties object');
         return;
       }
       
       if (!Array.isArray(schema.required)) {
-        setMessage('Error: Schema must have required array');
+        toast.error('Error: Schema must have required array');
         return;
       }
       
       // Check additionalProperties is present and is boolean
       if (typeof schema.additionalProperties !== 'boolean') {
-        setMessage('Error: additionalProperties must be a boolean');
+        toast.error('Error: additionalProperties must be a boolean');
         return;
       }
-      
-      // Clear any error messages
-      setMessage('');
       
       // Update schema and fields
       setCurrentSchema(prev => ({
@@ -364,7 +362,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({
       setFields(jsonSchemaToFields(parsedSchema));
     } catch (error) {
       // Invalid JSON - don't update
-      setMessage(`Error: Invalid JSON syntax: ${error}`);
+      toast.error(`Error: Invalid JSON syntax: ${error}`);
     }
   };
 
@@ -376,13 +374,12 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({
         await updateSchemaApi({organizationId: organizationId, schemaId: currentSchemaId, schema});
       } else {
         await createSchemaApi({organizationId: organizationId, ...schema });
-      }
+      }      
 
-      setMessage('Schema saved successfully');
-      
+      router.push(`/orgs/${organizationId}/schemas`);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving schema';
-      setMessage('Error: ' + errorMsg);
+      toast.error('Error: ' + errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -512,13 +509,13 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentSchema.name || fields.some(f => !f.name)) {
-      setMessage('Please fill in all fields');
+      toast.error('Please fill in all fields');
       return;
     }
 
     const fieldError = validateFields(fields);
     if (fieldError) {
-      setMessage(`Error: ${fieldError}`);
+      toast.error(`Error: ${fieldError}`);
       return;
     }
 
@@ -752,7 +749,6 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({
                       }
                     }
                   });
-                  setMessage('');
                 }}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
                 disabled={isLoading}
@@ -1004,15 +1000,6 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({
             )}
           </div>
         </form>
-
-        {/* Message */}
-        {message && (
-          <div className={`mt-4 p-3 rounded ${
-            message.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
-          }`}>
-            {message}
-          </div>
-        )}
       </div>
     </div>
   );

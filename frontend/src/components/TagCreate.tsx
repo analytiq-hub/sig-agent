@@ -74,7 +74,6 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
       router.push(`/orgs/${organizationId}/tags`);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving tag';
-      // setMessage('Error: ' + errorMsg);
       toast.error('Error: ' + errorMsg);
     } finally {
       setIsLoading(false);
@@ -84,7 +83,6 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentTag.name) {
-      // setMessage('Please fill in the tag name');
       toast.error('Please fill in the tag name');
       return;
     }
