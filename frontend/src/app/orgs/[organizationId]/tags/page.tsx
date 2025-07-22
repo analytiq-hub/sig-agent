@@ -1,6 +1,6 @@
 'use client'
 
-import Tags from '@/components/Tags';
+import TagList from '@/components/TagList';
 import TagCreate from '@/components/TagCreate';
 import { TagProvider } from '@/contexts/TagContext';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -45,7 +45,7 @@ export default function TagsPage({ params }: { params: { organizationId: string 
 
         <div className="max-w-6xl mx-auto">
           <div role="tabpanel" hidden={tab !== 'tags'}>
-            {tab === 'tags' && <Tags organizationId={params.organizationId} />}
+            {tab === 'tags' && <TagList organizationId={params.organizationId} />}
           </div>
           <div role="tabpanel" hidden={tab !== 'tag-create'}>
             {tab === 'tag-create' && <TagCreate organizationId={params.organizationId} />}

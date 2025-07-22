@@ -15,7 +15,7 @@ import { useTagContext } from '@/contexts/TagContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
+const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
   const { setEditingTag } = useTagContext();
   const [tags, setTags] = useState<Tag[]>([]);
@@ -241,4 +241,4 @@ const Tags: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   );
 };
 
-export default Tags; 
+export default TagList; 
