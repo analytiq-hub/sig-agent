@@ -6,6 +6,7 @@ import { TagConfig } from '@/types/index';
 import colors from 'tailwindcss/colors';
 import InfoTooltip from '@/components/InfoTooltip';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-toastify';
 
 const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organizationId, tagId }) => {
   const [currentTag, setCurrentTag] = useState<{id?: string; name: string; color: string; description: string}>({
@@ -13,7 +14,7 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
     color: colors.blue[500], // default blue color
     description: ''
   });
-  const [message, setMessage] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
@@ -31,7 +32,8 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
             description: tag.description || ''
           });
         } catch (error) {
-          setMessage(`Error loading tag: ${getApiErrorMsg(error)}`);
+          // setMessage(`Error loading tag: ${getApiErrorMsg(error)}`);
+          toast.error(`Error loading tag: ${getApiErrorMsg(error)}`);
         } finally {
           setIsLoading(false);
         }
@@ -72,7 +74,8 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
       router.push(`/orgs/${organizationId}/tags`);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving tag';
-      setMessage('Error: ' + errorMsg);
+      // setMessage('Error: ' + errorMsg);
+      toast.error('Error: ' + errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +84,8 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentTag.name) {
-      setMessage('Please fill in the tag name');
+      // setMessage('Please fill in the tag name');
+      toast.error('Please fill in the tag name');
       return;
     }
 
@@ -142,7 +146,6 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
                 type="button"
                 onClick={() => {
                   setCurrentTag({ name: '', color: colors.blue[500], description: '' });
-                  setMessage('');
                 }}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
                 disabled={isLoading}
@@ -175,15 +178,6 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
             />
           </div>
         </form>
-
-        {/* Message */}
-        {message && (
-          <div className={`mt-4 p-3 rounded ${
-            message.startsWith('Error') ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
-          }`}>
-            {message}
-          </div>
-        )}
       </div>
     </div>
   );
