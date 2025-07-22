@@ -105,7 +105,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
             # For org APIs, only accept tokens for that specific org
             token_query["organization_id"] = org_id
         else:
-            raise HTTPException(status_code=401, detail="Invalid API context")
+            raise HTTPException(status_code=401, detail=f"Invalid API context: '{context_type}'")
             
         stored_token = await db.access_tokens.find_one(token_query)
         
@@ -132,7 +132,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
                 token_type="api"
             )
                 
-        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials: invalid token")
 
 # Add this helper function to check admin status
 async def get_admin_user(credentials: HTTPAuthorizationCredentials = Security(security), request: Request = None):
