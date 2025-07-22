@@ -78,12 +78,12 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
         email: str = payload.get("email")
         
         if userName is None:
-            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+            raise HTTPException(status_code=401, detail="Invalid authentication credentials: missing userName")
         
         # Validate that userId exists in database
         user = await db.users.find_one({"_id": ObjectId(userId)})
         if not user:
-            raise HTTPException(status_code=401, detail="User not found in database")
+            raise HTTPException(status_code=401, detail=f"User id '{userId}' not found in database")
 
         return User(
             user_id=userId,
