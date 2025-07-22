@@ -110,18 +110,21 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-wrap items-center gap-4">
-            <div className="flex flex-1 min-w-[300px] gap-2">
-              <div className="flex-1">
-                <input
-                  type="text"
-                  className="w-full p-2 border rounded disabled:bg-gray-100"
-                  value={currentTag.name}
-                  onChange={e => setCurrentTag({ ...currentTag, name: e.target.value })}
-                  placeholder="Tag Name"
-                  disabled={isLoading}
-                />
-              </div>
-              <div className="w-20">
+            <div className="flex flex-1 min-w-[300px] gap-2 items-center">
+              {/* Tag Name label to the left */}
+              <label htmlFor="tag-name" className="w-28 text-sm font-medium text-gray-700">
+                Tag Name
+              </label>
+              <input
+                id="tag-name"
+                type="text"
+                className="flex-1 p-2 border rounded disabled:bg-gray-100"
+                value={currentTag.name}
+                onChange={e => setCurrentTag({ ...currentTag, name: e.target.value })}
+                placeholder="Tag Name"
+                disabled={isLoading}
+              />
+              <div className="w-20 flex flex-col justify-end">
                 <input
                   type="color"
                   className="w-full h-10 p-1 border rounded cursor-pointer"
@@ -153,10 +156,15 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
             </div>
           </div>
 
-          <div>
+          {/* Description label to the left */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="tag-description" className="w-28 text-sm font-medium text-gray-700">
+              Description
+            </label>
             <input
+              id="tag-description"
               type="text"
-              className="w-full p-2 border rounded"
+              className="flex-1 p-2 border rounded"
               value={currentTag.description}
               onChange={e => setCurrentTag({ ...currentTag, description: e.target.value })}
               placeholder="Description (optional)"
