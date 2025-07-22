@@ -70,7 +70,7 @@ const SchemaList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
 
   // Update the edit handler
   const handleEdit = (schema: Schema) => {
-    router.push(`/orgs/${organizationId}/schemas/${schema.schema_id}`);
+    router.push(`/orgs/${organizationId}/schemas/${schema.schema_revid}`);
     handleMenuClose();
   };
 
