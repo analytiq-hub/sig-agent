@@ -367,3 +367,26 @@ class ListFlowsResponse(BaseModel):
     flows: List[Flow]
     total_count: int
     skip: int
+
+class FormSchemaConfig(BaseModel):
+    name: str
+    description: Optional[str] = None
+    # The JSON schema for the form, including UI positioning metadata
+    form_json_schema: dict = Field(
+        ..., 
+        description="JSON Schema for the form, with UI positioning metadata."
+    )
+
+class FormSchema(FormSchemaConfig):
+    form_schema_revid: str  # MongoDB's _id for this revision
+    form_schema_id: str     # Stable identifier for the form schema
+    form_schema_version: int
+    organization_id: str
+    created_at: datetime
+    created_by: str
+    updated_at: datetime
+
+class ListFormSchemasResponse(BaseModel):
+    form_schemas: List[FormSchema]
+    total_count: int
+    skip: int
