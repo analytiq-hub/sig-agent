@@ -3,7 +3,7 @@ import { listPromptsApi, deletePromptApi, listTagsApi, getSchemaApi, listSchemas
 import { Prompt, Tag, Schema } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';
+import { TextField, InputAdornment, IconButton, Menu, MenuItem, Autocomplete } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -37,6 +37,7 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   const loadPrompts = useCallback(async () => {
     try {
@@ -267,12 +268,16 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
 
     console.log('getSchemaName2', schema);
     return schema ? schema.name : '-';
-  };  
+  };
 
-  // Add filtered prompts
-  const filteredPrompts = prompts.filter(prompt =>
-    prompt.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Add filtered prompts (now also filters by selected tags)
+  const filteredPrompts = prompts.filter(prompt => {
+    const matchesSearch = prompt.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTags =
+      selectedTagIds.length === 0 ||
+      selectedTagIds.every(tagId => (prompt.tag_ids ?? []).includes(tagId));
+    return matchesSearch && matchesTags;
+  });
 
   // Define columns for the data grid
   const columns: GridColDef[] = [
@@ -391,22 +396,75 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
       </div>
       <h2 className="text-xl font-bold mb-4">Prompts</h2>
       
-      {/* Search Box */}
-      <div className="mb-4">
-        <TextField
-          fullWidth
-          variant="outlined"
-          placeholder="Search prompts..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
+      {/* Filters */}
+      <div className="mb-4 flex flex-col md:flex-row md:items-center gap-2">
+        {/* Search Box */}
+        <div className="flex-1">
+          <TextField
+            fullWidth
+            variant="outlined"
+            placeholder="Search prompts..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </div>
+        {/* Tag Filter */}
+        <div className="w-full md:w-72">
+          <Autocomplete
+            multiple
+            options={availableTags}
+            disableCloseOnSelect
+            getOptionLabel={(option) => option.name}
+            value={availableTags.filter(tag => selectedTagIds.includes(tag.id))}
+            onChange={(_, value) => setSelectedTagIds(value.map(tag => tag.id))}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                variant="outlined"
+                label="Filter by Tags"
+                placeholder="Tags"
+              />
+            )}
+            renderOption={(props, option) => (
+              <li {...props} key={option.id}>
+                <div
+                  className={`px-2 py-1 rounded text-sm ${
+                    isColorLight(option.color) ? 'text-gray-800' : 'text-white'
+                  }`}
+                  style={{ backgroundColor: option.color }}
+                >
+                  {option.name}
+                </div>
+              </li>
+            )}
+            renderTags={(tagValue, getTagProps) =>
+              tagValue.map((tag, index) => {
+                const { key, ...otherProps } = getTagProps({ index });
+                return (
+                  <div
+                    key={key}
+                    {...otherProps}
+                    className={`px-2 py-0.5 m-0.5 rounded text-sm ${
+                      isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                    }`}
+                    style={{ backgroundColor: tag.color }}
+                  >
+                    {tag.name}
+                  </div>
+                );
+              })
+            }
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            className="bg-white"
+          />
+        </div>
       </div>
 
       {/* Message */}
