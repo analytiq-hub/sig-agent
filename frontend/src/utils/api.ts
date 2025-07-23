@@ -207,12 +207,21 @@ export const uploadDocumentsApi = async (params: UploadDocumentsParams): Promise
 };
 
 export const listDocumentsApi = async (params?: ListDocumentsParams) => {
+  const queryParams: Record<string, string | number | undefined> = {
+    skip: params?.skip || 0,
+    limit: params?.limit || 10,
+  };
+  
+  if (params?.tagIds) {
+    queryParams.tag_ids = params.tagIds;
+  }
+  
+  if (params?.nameSearch) {
+    queryParams.name_search = params.nameSearch;
+  }
+  
   const response = await api.get(`/v0/orgs/${params?.organizationId}/documents`, { 
-    params: {
-      skip: params?.skip || 0,
-      limit: params?.limit || 10,
-      tag_ids: params?.tagIds
-    }
+    params: queryParams
   });
   return response.data;
 };

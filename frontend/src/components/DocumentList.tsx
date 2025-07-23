@@ -54,13 +54,33 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     try {
       setIsLoading(true);
       console.log('Fetching documents...', paginationModel);
-      const response = await listDocumentsApi({
-        organizationId: organizationId,
+      
+      // Build query parameters for filtering
+      const queryParams: Record<string, string | number | undefined> = {
         skip: paginationModel.page * paginationModel.pageSize,
         limit: paginationModel.pageSize
+      };
+      
+      // Add search term if provided
+      if (searchTerm.trim()) {
+        queryParams.nameSearch = searchTerm.trim();
+      }
+      
+      // Add tag filters if provided
+      if (selectedTagFilters.length > 0) {
+        queryParams.tagIds = selectedTagFilters.map(tag => tag.id).join(',');
+      }
+      
+      const response = await listDocumentsApi({
+        organizationId,
+        skip: paginationModel.page * paginationModel.pageSize,
+        limit: paginationModel.pageSize,
+        nameSearch: searchTerm.trim() || undefined,
+        tagIds: selectedTagFilters.length > 0 ? selectedTagFilters.map(tag => tag.id).join(',') : undefined,
       });
+      
       console.log('Documents response:', response);
-      setDocuments(response.documents);  // Changed from pdfs
+      setDocuments(response.documents);
       setTotalRows(response.total_count);
     } catch (error: unknown) {
       console.error('Error fetching documents:', error);
@@ -88,7 +108,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     } finally {
       setIsLoading(false);
     }
-  }, [paginationModel, organizationId]);
+  }, [paginationModel, organizationId, searchTerm, selectedTagFilters]);
 
   useEffect(() => {
     console.log('FileList component mounted or pagination changed');
@@ -434,11 +454,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
       <DataGrid
         loading={isLoading}
-        rows={documents.filter(document => 
-          document.document_name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-          (selectedTagFilters.length === 0 || 
-           selectedTagFilters.every(tag => document.tag_ids.includes(tag.id)))
-        )}
+        rows={documents} // Remove the client-side filtering here
         columns={columns}
         paginationModel={paginationModel}
         onPaginationModelChange={(newModel) => {

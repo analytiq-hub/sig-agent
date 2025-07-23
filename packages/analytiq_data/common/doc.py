@@ -130,7 +130,14 @@ async def delete_doc(analytiq_client, document_id: str, organization_id: str):
     logger.info(f"Document {document_id} has been deleted with all LLM and OCR results.")
 
 
-async def list_docs(analytiq_client, organization_id: str, skip: int = 0, limit: int = 10) -> tuple[list, int]:
+async def list_docs(
+    analytiq_client,
+    organization_id: str,
+    skip: int = 0,
+    limit: int = 10,
+    tag_ids: list[str] = None,
+    name_search: str = None
+) -> tuple[list, int]:
     """
     List documents with pagination within an organization
     
@@ -154,11 +161,15 @@ async def list_docs(analytiq_client, organization_id: str, skip: int = 0, limit:
     
     # Add organization filter
     query = {"organization_id": organization_id}
+    if tag_ids:
+        query["tag_ids"] = {"$all": tag_ids}
+    if name_search:
+        # Search in user_file_name (case-insensitive)
+        query["user_file_name"] = {"$regex": name_search, "$options": "i"}
     
     total_count = await collection.count_documents(query)
     cursor = collection.find(query).sort("upload_date", -1).skip(skip).limit(limit)
     documents = await cursor.to_list(length=limit)
-    
     return documents, total_count
 
 async def update_doc_state(analytiq_client, document_id: str, state: str):

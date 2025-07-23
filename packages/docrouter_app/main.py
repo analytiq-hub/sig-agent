@@ -462,25 +462,22 @@ async def list_documents(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
+    name_search: str = Query(None, description="Search term for document names"),
     current_user: User = Depends(get_org_user)
 ):
     """List documents within an organization"""
     # Get analytiq client
     analytiq_client = ad.common.get_analytiq_client()
     
-    # Get documents from database with organization scope
-    documents, total_count = await ad.common.list_docs(
-        analytiq_client, 
+    tag_id_list = [tid.strip() for tid in tag_ids.split(",")] if tag_ids else None
+    docs, total_count = await ad.common.list_docs(
+        analytiq_client,
         organization_id=organization_id,
-        skip=skip, 
-        limit=limit
+        skip=skip,
+        limit=limit,
+        tag_ids=tag_id_list,
+        name_search=name_search
     )
-    
-    # Add tag filtering if tag_ids are provided
-    if tag_ids:
-        tag_id_list = [tid.strip() for tid in tag_ids.split(",")]
-        documents = [doc for doc in documents if all(tid in doc.get("tag_ids", []) for tid in tag_id_list)]
-        total_count = len(documents)
     
     return ListDocumentsResponse(
         documents=[
@@ -494,7 +491,7 @@ async def list_documents(
                 tag_ids=doc.get("tag_ids", []),
                 # Optionally add pdf_file_name if you want to expose it
             )
-            for doc in documents
+            for doc in docs
         ],
         total_count=total_count,
         skip=skip

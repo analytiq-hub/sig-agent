@@ -41,7 +41,8 @@ export interface ListDocumentsParams {
   organizationId: string;
   skip?: number;
   limit?: number;
-  tagIds?: string;  // Added tag_ids parameter for filtering
+  tagIds?: string;  // Comma-separated list of tag IDs
+  nameSearch?: string;  // Search term for document names
 }
 
 export interface GetDocumentParams {
