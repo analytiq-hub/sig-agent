@@ -286,8 +286,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     {
       field: 'upload_date',
       headerName: 'Upload Date', // Renamed column
-      flex: .75, // Slightly wider than before
-      minWidth: 200, // Ensures enough space for date and time
+      flex: .65, // Slightly wider than before
       valueFormatter: (params: GridRenderCellParams) => {
         if (!params.value) return '';
         return formatLocalDateWithTZ(params.value as string);
