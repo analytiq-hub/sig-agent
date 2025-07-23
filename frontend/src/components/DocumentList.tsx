@@ -284,24 +284,33 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     },
     {
       field: 'upload_date',
-      headerName: 'Date',
-      flex: .5,
+      headerName: 'Upload Date', // Renamed column
+      flex: .75, // Slightly wider than before
+      minWidth: 180, // Ensures enough space for date and time
       valueFormatter: (params: GridRenderCellParams) => {
         if (!params.value) return '';
         const date = new Date(params.value as string);
+        // Include hours and minutes
         return date.toLocaleDateString('en-US', {
           month: '2-digit',
           day: '2-digit',
           year: 'numeric'
+        }) + ' ' + date.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit'
         });
       },
       renderCell: (params: GridRenderCellParams) => {
         if (!params.value) return '';
         const date = new Date(params.value as string);
+        // Format for display: MM/DD/YYYY HH:MM
         const formattedDate = date.toLocaleDateString('en-US', {
           month: '2-digit',
           day: '2-digit',
           year: 'numeric'
+        }) + ' ' + date.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit'
         });
         const tooltip = date.toLocaleString();
         return (
