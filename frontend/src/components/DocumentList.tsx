@@ -286,31 +286,33 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       field: 'upload_date',
       headerName: 'Upload Date', // Renamed column
       flex: .75, // Slightly wider than before
-      minWidth: 180, // Ensures enough space for date and time
+      minWidth: 200, // Ensures enough space for date and time
       valueFormatter: (params: GridRenderCellParams) => {
         if (!params.value) return '';
         const date = new Date(params.value as string);
-        // Include hours and minutes
-        return date.toLocaleDateString('en-US', {
+        // Include hours, minutes, and time zone abbreviation
+        return date.toLocaleDateString(undefined, {
           month: '2-digit',
           day: '2-digit',
           year: 'numeric'
-        }) + ' ' + date.toLocaleTimeString('en-US', {
+        }) + ' ' + date.toLocaleTimeString(undefined, {
           hour: '2-digit',
-          minute: '2-digit'
+          minute: '2-digit',
+          timeZoneName: 'short'
         });
       },
       renderCell: (params: GridRenderCellParams) => {
         if (!params.value) return '';
         const date = new Date(params.value as string);
-        // Format for display: MM/DD/YYYY HH:MM
-        const formattedDate = date.toLocaleDateString('en-US', {
+        // Format for display: MM/DD/YYYY HH:MM TZ
+        const formattedDate = date.toLocaleDateString(undefined, {
           month: '2-digit',
           day: '2-digit',
           year: 'numeric'
-        }) + ' ' + date.toLocaleTimeString('en-US', {
+        }) + ' ' + date.toLocaleTimeString(undefined, {
           hour: '2-digit',
-          minute: '2-digit'
+          minute: '2-digit',
+          timeZoneName: 'short'
         });
         const tooltip = date.toLocaleString();
         return (
