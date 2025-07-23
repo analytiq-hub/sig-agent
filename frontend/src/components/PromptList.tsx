@@ -428,8 +428,7 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
               <TextField
                 {...params}
                 variant="outlined"
-                label="Filter by Tags"
-                placeholder="Tags"
+                placeholder="Filter by tags..."
               />
             )}
             renderOption={(props, option) => (
