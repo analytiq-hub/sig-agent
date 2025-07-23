@@ -25,6 +25,7 @@ import { DocumentUpdate } from './DocumentUpdate';
 import SearchIcon from '@mui/icons-material/Search';
 import { toast } from 'react-toastify';
 import DocumentRenameModal from './DocumentRename';
+import { formatLocalDateWithTZ } from '@/utils/date';
 
 const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
@@ -289,31 +290,12 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       minWidth: 200, // Ensures enough space for date and time
       valueFormatter: (params: GridRenderCellParams) => {
         if (!params.value) return '';
-        const date = new Date(params.value as string);
-        // Include hours, minutes, and time zone abbreviation
-        return date.toLocaleDateString(undefined, {
-          month: '2-digit',
-          day: '2-digit',
-          year: 'numeric'
-        }) + ' ' + date.toLocaleTimeString(undefined, {
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZoneName: 'short'
-        });
+        return formatLocalDateWithTZ(params.value as string);
       },
       renderCell: (params: GridRenderCellParams) => {
         if (!params.value) return '';
+        const formattedDate = formatLocalDateWithTZ(params.value as string);
         const date = new Date(params.value as string);
-        // Format for display: MM/DD/YYYY HH:MM TZ
-        const formattedDate = date.toLocaleDateString(undefined, {
-          month: '2-digit',
-          day: '2-digit',
-          year: 'numeric'
-        }) + ' ' + date.toLocaleTimeString(undefined, {
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZoneName: 'short'
-        });
         const tooltip = date.toLocaleString();
         return (
           <div title={tooltip}>
