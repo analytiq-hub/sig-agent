@@ -94,13 +94,13 @@ import {
 import { toast } from 'react-toastify';
 import { JsonValue } from 'type-fest';
 import {
-  FormSchema,
-  CreateFormSchemaParams,
-  ListFormSchemasParams,
-  ListFormSchemasResponse,
-  GetFormSchemaParams,
-  UpdateFormSchemaParams,
-  DeleteFormSchemaParams
+  CreateFormParams,
+  Form,
+  ListFormsParams,
+  ListFormsResponse,
+  GetFormParams,
+  UpdateFormParams,
+  DeleteFormParams
 } from '@/types/forms';
 
 // These APIs execute from the frontend
@@ -467,6 +467,43 @@ export const deletePromptApi = async (params: DeletePromptParams): Promise<void>
   return response.data;
 };
 
+// Form APIs
+export const createFormApi = async (form: CreateFormParams) => {
+  const { organizationId, ...formConfig } = form;
+  const response = await api.post<Form>(`/v0/orgs/${organizationId}/forms`, formConfig);
+  return response.data;
+};
+
+export const listFormsApi = async (params: ListFormsParams): Promise<ListFormsResponse> => {
+  const { organizationId, ...rest } = params;
+  const response = await api.get<ListFormsResponse>(`/v0/orgs/${organizationId}/forms`, {
+    params: {
+      skip: rest?.skip || 0,
+      limit: rest?.limit || 10
+    }
+  });
+  return response.data;
+};
+
+export const getFormApi = async (params: GetFormParams): Promise<Form> => {
+  const { organizationId, formId } = params;
+  const response = await api.get<Form>(`/v0/orgs/${organizationId}/forms/${formId}`);
+  return response.data;
+};
+
+export const updateFormApi = async (params: UpdateFormParams): Promise<Form> => {
+  const { organizationId, formId, form } = params;
+  const response = await api.put<Form>(`/v0/orgs/${organizationId}/forms/${formId}`, form);
+  return response.data;
+};
+
+export const deleteFormApi = async (params: DeleteFormParams) => {
+  const { organizationId, formId } = params;
+  const response = await api.delete(`/v0/orgs/${organizationId}/forms/${formId}`);
+  return response.data;
+};
+
+
 // Tag APIs
 export const createTagApi = async (params: CreateTagParams): Promise<Tag> => {
     const { organizationId, tag } = params;
@@ -786,35 +823,4 @@ export const purchaseCreditsApi = async (orgId: string, request: {
 export const createCheckoutSessionApi = async (orgId: string, planId: string): Promise<PortalSessionResponse> => {
   const response = await api.post<PortalSessionResponse>(`/v0/payments/${orgId}/checkout-session`, { plan_id: planId });
   return response.data;
-};
-
-export const createFormSchemaApi = async (params: CreateFormSchemaParams): Promise<FormSchema> => {
-  const { organizationId, ...formSchema } = params;
-  const response = await api.post<FormSchema>(`/v0/orgs/${organizationId}/forms`, formSchema);
-  return response.data;
-};
-
-export const listFormSchemasApi = async (params: ListFormSchemasParams): Promise<ListFormSchemasResponse> => {
-  const { organizationId, skip = 0, limit = 10 } = params;
-  const response = await api.get<ListFormSchemasResponse>(`/v0/orgs/${organizationId}/forms`, {
-    params: { skip, limit }
-  });
-  return response.data;
-};
-
-export const getFormSchemaApi = async (params: GetFormSchemaParams): Promise<FormSchema> => {
-  const { organizationId, formSchemaRevid } = params;
-  const response = await api.get<FormSchema>(`/v0/orgs/${organizationId}/forms/${formSchemaRevid}`);
-  return response.data;
-};
-
-export const updateFormSchemaApi = async (params: UpdateFormSchemaParams): Promise<FormSchema> => {
-  const { organizationId, formSchemaId, formSchema } = params;
-  const response = await api.put<FormSchema>(`/v0/orgs/${organizationId}/forms/${formSchemaId}`, formSchema);
-  return response.data;
-};
-
-export const deleteFormSchemaApi = async (params: DeleteFormSchemaParams): Promise<void> => {
-  const { organizationId, formSchemaId } = params;
-  await api.delete(`/v0/orgs/${organizationId}/forms/${formSchemaId}`);
 };

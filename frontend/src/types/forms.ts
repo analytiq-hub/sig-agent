@@ -1,47 +1,78 @@
-export interface FormSchemaConfig {
-  name: string;
+export interface FormProperty {
+  type: 'string' | 'integer' | 'number' | 'boolean' | 'array' | 'object';
   description?: string;
-  form_json_schema: Record<string, unknown>; // JSON Schema with UI positioning metadata
+  items?: FormProperty;  // For array types
+  properties?: Record<string, FormProperty>;  // For object types
+  additionalProperties?: boolean;  // Add this for object types
+  required?: string[];  // Add this for object types to specify required properties
 }
 
-export interface FormSchema extends FormSchemaConfig {
-  form_schema_revid: string; // MongoDB's _id for this revision
-  form_schema_id: string;    // Stable identifier
-  form_schema_version: number;
-  organization_id: string;
+export interface FormResponseFormat {
+  type: 'json_schema';
+  json_schema: {
+    name: string;
+    schema: {
+      type: 'object';
+      properties: Record<string, FormProperty>;
+      required: string[];
+      additionalProperties: boolean;
+    };
+    strict: boolean;
+  };
+}
+
+export interface Form {
+  form_revid: string; // MongoDB's _id
+  form_id: string;  // Stable identifier
+  name: string;
+  response_format: FormResponseFormat;
+  form_version: number;
   created_at: string;
   created_by: string;
-  updated_at: string;
 }
 
-export interface CreateFormSchemaParams extends FormSchemaConfig {
+export interface FormField {
+  name: string;
+  type: 'str' | 'int' | 'float' | 'bool' | 'object' | 'array';
+  description?: string;
+  nestedFields?: FormField[]; // For object types
+  arrayItemType?: 'str' | 'int' | 'float' | 'bool' | 'object'; // For array types
+  arrayObjectFields?: FormField[]; // For array of objects
+}
+
+export interface FormConfig {
+  name: string;
+  response_format: FormResponseFormat;
+}
+
+export interface CreateFormParams extends FormConfig {
   organizationId: string;
 }
 
-export interface ListFormSchemasParams {
+export interface ListFormsParams {
   organizationId: string;
   skip?: number;
   limit?: number;
 }
 
-export interface ListFormSchemasResponse {
-  forms: FormSchema[];
+export interface ListFormsResponse {
+  forms: Form[];
   total_count: number;
   skip: number;
 }
 
-export interface GetFormSchemaParams {
+export interface GetFormParams {
   organizationId: string;
-  formSchemaRevid: string;
+  formId: string;
 }
 
-export interface UpdateFormSchemaParams {
+export interface UpdateFormParams {
   organizationId: string;
-  formSchemaId: string;
-  formSchema: FormSchemaConfig;
+  formId: string;
+  form: FormConfig;
 }
 
-export interface DeleteFormSchemaParams {
+export interface DeleteFormParams {
   organizationId: string;
-  formSchemaId: string;
+  formId: string;
 }
