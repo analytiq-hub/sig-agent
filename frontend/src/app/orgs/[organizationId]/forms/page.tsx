@@ -4,7 +4,7 @@ import FormList from '@/components/FormList';
 import FormCreate from '@/components/FormCreate';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function FormSchemasPage({ params }: { params: { organizationId: string } }) {
+export default function FormsPage({ params }: { params: { organizationId: string } }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tab = searchParams.get('tab') || 'forms';
