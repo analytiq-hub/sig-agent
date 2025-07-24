@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @import 'react-toastify/dist/ReactToastify.css';
+@import 'formiojs/dist/formio.full.min.css';
 
 :root {
   --background: #ecf0f1;

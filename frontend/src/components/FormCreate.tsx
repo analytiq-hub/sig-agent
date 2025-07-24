@@ -1015,12 +1015,13 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                 />
               </div>
             ) : activeTab === 'formio' && (
-              <div className="h-[calc(100vh-300px)] border rounded bg-white">
-                <FormioBuilder
-                  formJson={formioJson ?? undefined}
-                  onChange={setFormioJson}
-                />
-                {/* You can add a button to save formioJson to your backend or state */}
+              <div className="h-[calc(100vh-300px)]">
+                <div className="formio-scope">
+                  <FormioBuilder
+                    formJson={formioJson ?? undefined}
+                    onChange={setFormioJson}
+                  />
+                </div>
               </div>
             )}
           </div>
