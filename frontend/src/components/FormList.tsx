@@ -295,7 +295,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     <div className="p-4 mx-auto">
       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800 hidden md:block">
         <p className="text-sm">
-          Schemas define the structure for extracting key data fields from your documents. Below is a list of your existing form schemas. 
+          Forms are used to check data extracted from documents. Below is a list of your existing forms. 
           If none are available, <Link href={`/orgs/${organizationId}/forms?tab=form-create`} className="text-blue-600 font-medium hover:underline">click here</Link> or use the tab above to create a new form schema.
         </p>
       </div>
