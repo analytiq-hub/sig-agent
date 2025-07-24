@@ -127,6 +127,22 @@ class UpdateLLMResultRequest(BaseModel):
     updated_llm_result: dict
     is_verified: bool = False
 
+# Add these new models for tag management
+class TagConfig(BaseModel):
+    name: str
+    color: str | None = None  # Optional hex color code for UI display
+    description: str | None = None
+
+class Tag(TagConfig):
+    id: str
+    created_at: datetime
+    created_by: str
+
+class ListTagsResponse(BaseModel):
+    tags: List[Tag]
+    total_count: int
+    skip: int
+
 class JsonSchemaProperty(BaseModel):
     type: Literal['string', 'integer', 'number', 'boolean', 'array', 'object']
     format: str | None = None
@@ -213,22 +229,6 @@ class Prompt(PromptConfig):
 
 class ListPromptsResponse(BaseModel):
     prompts: List[Prompt]
-    total_count: int
-    skip: int
-
-# Add these new models for tag management
-class TagConfig(BaseModel):
-    name: str
-    color: str | None = None  # Optional hex color code for UI display
-    description: str | None = None
-
-class Tag(TagConfig):
-    id: str
-    created_at: datetime
-    created_by: str
-
-class ListTagsResponse(BaseModel):
-    tags: List[Tag]
     total_count: int
     skip: int
 
