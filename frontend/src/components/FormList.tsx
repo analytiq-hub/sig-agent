@@ -225,7 +225,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const columns: GridColDef[] = [
     {
       field: 'name',
-      headerName: 'Schema Name',
+      headerName: 'Form Name',
       flex: 1,
       headerAlign: 'left',
       align: 'left',
@@ -299,14 +299,14 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           If none are available, <Link href={`/orgs/${organizationId}/forms?tab=form-create`} className="text-blue-600 font-medium hover:underline">click here</Link> or use the tab above to create a new form schema.
         </p>
       </div>
-      <h2 className="text-xl font-bold mb-4 hidden md:block">Schemas</h2>
+      <h2 className="text-xl font-bold mb-4 hidden md:block">Forms</h2>
       
       {/* Search Box */}
       <div className="mb-4">
         <TextField
           fullWidth
           variant="outlined"
-          placeholder="Search schemas..."
+          placeholder="Search forms..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           InputProps={{
