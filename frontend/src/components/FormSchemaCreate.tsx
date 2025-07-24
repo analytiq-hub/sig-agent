@@ -376,7 +376,7 @@ const FormSchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> 
         await createSchemaApi({organizationId: organizationId, ...schema });
       }      
 
-      router.push(`/orgs/${organizationId}/form-schemas`);
+      router.push(`/orgs/${organizationId}/forms`);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving schema';
       toast.error('Error: ' + errorMsg);

@@ -10,7 +10,7 @@ export default function FormSchemasPage({ params }: { params: { organizationId: 
   const tab = searchParams.get('tab') || 'forms';
 
   const handleTabChange = (newValue: string) => {
-    router.push(`/orgs/${params.organizationId}/form-schemas?tab=${newValue}`);
+    router.push(`/orgs/${params.organizationId}/forms?tab=${newValue}`);
   };
 
   return (
