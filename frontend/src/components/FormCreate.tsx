@@ -11,6 +11,11 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+import type { Form as FormioForm } from 'formiojs';
+
+// Dynamically import to avoid SSR issues
+const FormioBuilder = dynamic(() => import('./FormioBuilder'), { ssr: false });
 
 interface NestedFieldsEditorProps {
   fields: FormField[];
@@ -182,8 +187,9 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   const [fields, setFields] = useState<FormField[]>([{ name: '', type: 'str' }]);
   const [expandedNestedFields, setExpandedNestedFields] = useState<Record<number, boolean>>({});
   const [expandedArrayFields, setExpandedArrayFields] = useState<Record<number, boolean>>({});
-  const [activeTab, setActiveTab] = useState<'fields' | 'json'>('fields');
+  const [activeTab, setActiveTab] = useState<'fields' | 'json' | 'formio'>('fields');
   const [jsonForm, setJsonForm] = useState('');
+  const [formioJson, setFormioJson] = useState<FormioForm | object | null>(null);
 
   // Define jsonFormToFields with useCallback
   const jsonFormToFields = useCallback((responseFormat: FormResponseFormat): FormField[] => {
@@ -790,6 +796,17 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
               >
                 JSON Form
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('formio')}
+                className={`pb-4 px-1 relative font-semibold text-base ${
+                  activeTab === 'formio'
+                    ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Formio Designer
+              </button>
             </div>
           </div>
 
@@ -977,7 +994,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                   Add Field
                 </button>
               </div>
-            ) : (
+            ) : activeTab === 'json' ? (
               // JSON Form Tab
               <div className="h-[calc(100vh-300px)] border rounded">
                 <Editor
@@ -996,6 +1013,14 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                   }}
                   theme="vs-light"
                 />
+              </div>
+            ) : activeTab === 'formio' && (
+              <div className="h-[calc(100vh-300px)] border rounded bg-white">
+                <FormioBuilder
+                  formJson={formioJson}
+                  onChange={setFormioJson}
+                />
+                {/* You can add a button to save formioJson to your backend or state */}
               </div>
             )}
           </div>
