@@ -1757,7 +1757,7 @@ async def list_forms(
         {
             "$facet": {
                 "total": [{"$count": "count"}],
-                "schemas": [
+                "forms": [
                     {"$skip": skip},
                     {"$limit": limit}
                 ]
