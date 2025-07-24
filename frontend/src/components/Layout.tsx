@@ -20,7 +20,7 @@ import {
   LocalOffer as LocalOfferIcon,
   DataObject as SchemaIcon,
   Chat as PromptIcon,
-  ViewQuilt as FormStudioIcon,
+  ViewQuilt as FormsIcon,
   InfoOutlined as AboutIcon
 } from '@mui/icons-material';
 import { SvgIconProps } from '@mui/material';
@@ -70,7 +70,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { text: 'Tags', icon: LocalOfferIcon, tooltip: 'Tags', href: `/orgs/${currentOrganization?.id}/tags`},  
     { text: 'Schemas', icon: SchemaIcon, tooltip: 'Schemas', href: `/orgs/${currentOrganization?.id}/schemas`},
     { text: 'Prompts', icon: PromptIcon, tooltip: 'Prompts', href: `/orgs/${currentOrganization?.id}/prompts`},
-    { text: 'Form Studio', icon: FormStudioIcon, tooltip: 'Form Studio', href: `/orgs/${currentOrganization?.id}/form-schemas`},
+    { text: 'Forms', icon: FormsIcon, tooltip: 'Forms', href: `/orgs/${currentOrganization?.id}/form-schemas`},
   ];
 
   // const modelMenuItems = [
