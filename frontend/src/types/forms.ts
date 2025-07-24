@@ -8,10 +8,10 @@ export interface FormProperty {
 }
 
 export interface FormResponseFormat {
-  type: 'json_schema';
-  json_schema: {
+  type: 'json_form';
+  json_form: {
     name: string;
-    schema: {
+    form: {
       type: 'object';
       properties: Record<string, FormProperty>;
       required: string[];

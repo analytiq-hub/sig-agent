@@ -240,13 +240,13 @@ class FormProperty(BaseModel):
     properties: Dict[str, ForwardRef('FormProperty')] | None = None
 
 class FormResponseFormat(BaseModel):
-    type: Literal['json_schema']
-    json_schema: dict = Field(
+    type: Literal['json_form']
+    json_form: dict = Field(
         ..., 
-        json_schema_extra={
+        json_form_extra={
             "example": {
                 "name": "document_extraction",
-                "schema": {
+                "form": {
                     "type": "object",
                     "properties": {
                         "invoice_date": {
@@ -262,24 +262,24 @@ class FormResponseFormat(BaseModel):
         }
     )
 
-    @field_validator('json_schema')
-    def validate_json_schema(cls, v):
-        # Validate schema follows OpenAI format
-        required_keys = {'name', 'schema', 'strict'}
+    @field_validator('json_form')
+    def validate_json_form(cls, v):
+        # Validate form follows OpenAI format
+        required_keys = {'name', 'form', 'strict'}
         if not all(key in v for key in required_keys):
-            raise ValueError(f"JSON schema must contain all required keys: {required_keys}")
+            raise ValueError(f"JSON form  must contain all required keys: {required_keys}")
         
-        schema = v['schema']
-        if schema.get('type') != 'object':
+        form = v['form']
+        if form.get('type') != 'object':
             raise ValueError("Form root must be of type 'object'")
             
-        if 'properties' not in schema:
+        if 'properties' not in form:
             raise ValueError("Form must contain 'properties'")
             
-        if 'required' not in schema:
+        if 'required' not in form:
             raise ValueError("Form must contain 'required' field")
             
-        if 'additionalProperties' not in schema:
+        if 'additionalProperties' not in form:
             raise ValueError("Form must specify 'additionalProperties'")
             
         return v

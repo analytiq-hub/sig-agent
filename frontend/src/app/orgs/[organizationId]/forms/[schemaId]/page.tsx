@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import FormCreate from '@/components/FormCreate';
 
 export default function FormSchemaEditPage() {
-  const { organizationId, schemaId } = useParams();
+  const { organizationId, formId } = useParams();
   const router = useRouter();
 
   return (
@@ -17,7 +17,7 @@ export default function FormSchemaEditPage() {
         ← Back to Schemas
       </button>
 
-      <FormCreate organizationId={organizationId as string} schemaId={schemaId as string} />
+      <FormCreate organizationId={organizationId as string} formId={formId as string} />
     </div>
   );
 } 

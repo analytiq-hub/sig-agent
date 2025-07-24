@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { createSchemaApi, updateSchemaApi, getSchemaApi } from '@/utils/api';
-import { SchemaField, SchemaConfig, SchemaResponseFormat, SchemaProperty } from '@/types/index';
+import { createFormApi, updateFormApi, getFormApi } from '@/utils/api';
+import { FormField, FormConfig, FormResponseFormat, FormProperty } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
@@ -13,8 +13,8 @@ import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
 
 interface NestedFieldsEditorProps {
-  fields: SchemaField[];
-  onChange: (fields: SchemaField[]) => void;
+  fields: FormField[];
+  onChange: (fields: FormField[]) => void;
   isLoading: boolean;
 }
 
@@ -50,9 +50,9 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
     onChange(newFields);
   };
 
-  const updateNestedField = (index: number, field: Partial<SchemaField>) => {
+  const updateNestedField = (index: number, field: Partial<FormField>) => {
     const newFields = fields.map((f, i) => 
-      i === index ? { ...f, ...field } as SchemaField : f
+      i === index ? { ...f, ...field } as FormField : f
     );
     
     // If changing to object type, automatically expand
@@ -66,7 +66,7 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
     onChange(newFields);
   };
 
-  const handleNestedFieldsChange = (parentIndex: number, nestedFields: SchemaField[]) => {
+  const handleNestedFieldsChange = (parentIndex: number, nestedFields: FormField[]) => {
     const updatedFields = [...fields];
     updatedFields[parentIndex] = {
       ...updatedFields[parentIndex],
@@ -91,7 +91,7 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
             <select
               className="p-1.5 border rounded text-sm w-24"
               value={field.type}
-              onChange={e => updateNestedField(index, { type: e.target.value as SchemaField['type'] })}
+              onChange={e => updateNestedField(index, { type: e.target.value as FormField['type'] })}
               disabled={isLoading}
             >
               <option value="str">String</option>
@@ -159,16 +159,16 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
   );
 };
 
-const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ organizationId, schemaId }) => {
+const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ organizationId, formId }) => {
   const router = useRouter();
-  const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
-  const [currentSchema, setCurrentSchema] = useState<SchemaConfig>({
+  const [currentFormId, setCurrentFormId] = useState<string | null>(null);
+  const [currentForm, setCurrentForm] = useState<FormConfig>({
     name: '',
     response_format: {
-      type: 'json_schema',
-      json_schema: {
+      type: 'json_form',
+      json_form: {
         name: 'document_extraction',
-        schema: {
+        form: {
           type: 'object',
           properties: {},
           required: [],
@@ -179,22 +179,22 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
     }
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [fields, setFields] = useState<SchemaField[]>([{ name: '', type: 'str' }]);
+  const [fields, setFields] = useState<FormField[]>([{ name: '', type: 'str' }]);
   const [expandedNestedFields, setExpandedNestedFields] = useState<Record<number, boolean>>({});
   const [expandedArrayFields, setExpandedArrayFields] = useState<Record<number, boolean>>({});
   const [activeTab, setActiveTab] = useState<'fields' | 'json'>('fields');
-  const [jsonSchema, setJsonSchema] = useState('');
+  const [jsonForm, setJsonForm] = useState('');
 
-  // Define jsonSchemaToFields with useCallback
-  const jsonSchemaToFields = useCallback((responseFormat: SchemaResponseFormat): SchemaField[] => {
-    const fields: SchemaField[] = [];
-    const properties = responseFormat.json_schema.schema.properties;
+  // Define jsonFormToFields with useCallback
+  const jsonFormToFields = useCallback((responseFormat: FormResponseFormat): FormField[] => {
+    const fields: FormField[] = [];
+    const properties = responseFormat.json_form.form.properties;
 
-    const processProperty = (name: string, prop: SchemaProperty): SchemaField => {
-      let fieldType: SchemaField['type'];
-      let nestedFields: SchemaField[] | undefined;
+    const processProperty = (name: string, prop: FormProperty): FormField => {
+      let fieldType: FormField['type'];
+      let nestedFields: FormField[] | undefined;
       let arrayItemType: 'str' | 'int' | 'float' | 'bool' | 'object' | undefined;
-      let arrayObjectFields: SchemaField[] | undefined;
+      let arrayObjectFields: FormField[] | undefined;
 
       switch (prop.type) {
         case 'string':
@@ -268,33 +268,33 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
     return fields;
   }, []);
 
-  // Load editing schema if available
+  // Load editing form if available
   useEffect(() => {
-    async function loadSchema() {
-      if (schemaId) {
+    async function loadForm() {
+      if (formId) {
         setIsLoading(true);
         try {
-          const schema = await getSchemaApi({ organizationId, schemaId });
-          setCurrentSchemaId(schema.schema_id);
-          setCurrentSchema({
-            name: schema.name,
-            response_format: schema.response_format
+          const form = await getFormApi({ organizationId, formId });
+          setCurrentFormId(form.form_id);
+          setCurrentForm({
+            name: form.name,
+            response_format: form.response_format
           });
-          setFields(jsonSchemaToFields(schema.response_format));
+          setFields(jsonFormToFields(form.response_format));
         } catch (error) {
-          toast.error(`Error loading schema: ${getApiErrorMsg(error)}`);
+          toast.error(`Error loading form: ${getApiErrorMsg(error)}`);
         } finally {
           setIsLoading(false);
         }
       } else {
-        setCurrentSchemaId(null);
-        setCurrentSchema({
+        setCurrentFormId(null);
+        setCurrentForm({
           name: '',
           response_format: {
-            type: 'json_schema',
-            json_schema: {
+            type: 'json_form',
+            json_form: {
               name: 'document_extraction',
-              schema: {
+              form: {
                 type: 'object',
                 properties: {},
                 required: [],
@@ -307,78 +307,78 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
         setFields([{ name: '', type: 'str' }]);
       }
     }
-    loadSchema();
-    // Only run when schemaId or organizationId changes
-  }, [schemaId, organizationId, jsonSchemaToFields]);
+    loadForm();
+    // Only run when formId or organizationId changes
+  }, [formId, organizationId, jsonFormToFields]);
 
-  // Update jsonSchema when currentSchema changes
+  // Update jsonForm when currentForm changes
   useEffect(() => {
-    setJsonSchema(JSON.stringify(currentSchema.response_format, null, 2));
-  }, [currentSchema]);
+    setJsonForm(JSON.stringify(currentForm.response_format, null, 2));
+  }, [currentForm]);
 
-  // Add handler for JSON schema changes
-  const handleJsonSchemaChange = (value: string | undefined) => {
+  // Add handler for JSON form changes
+  const handleJsonFormChange = (value: string | undefined) => {
     if (!value) return;
     try {
-      const parsedSchema = JSON.parse(value);
+      const parsedForm = JSON.parse(value);
       
-      // Validate schema structure
-      if (!parsedSchema.json_schema || !parsedSchema.json_schema.schema) {
-        toast.error('Error: Invalid schema format. Must contain json_schema.schema');
+      // Validate form structure
+      if (!parsedForm.json_form || !parsedForm.json_form.form) {
+        toast.error('Error: Invalid form format. Must contain json_form.form');
         return;
       }
       
-      const schema = parsedSchema.json_schema.schema;
+      const form = parsedForm.json_form.form;
       
       // Validate required properties
-      if (!schema.type || schema.type !== 'object') {
-        toast.error('Error: Schema type must be "object"');
+      if (!form.type || form.type !== 'object') {
+        toast.error('Error: Form type must be "object"');
         return;
       }
       
-      if (!schema.properties || typeof schema.properties !== 'object') {
-        toast.error('Error: Schema must have properties object');
+      if (!form.properties || typeof form.properties !== 'object') {
+        toast.error('Error: Form must have properties object');
         return;
       }
       
-      if (!Array.isArray(schema.required)) {
-        toast.error('Error: Schema must have required array');
+      if (!Array.isArray(form.required)) {
+        toast.error('Error: Form must have required array');
         return;
       }
       
       // Check additionalProperties is present and is boolean
-      if (typeof schema.additionalProperties !== 'boolean') {
+      if (typeof form.additionalProperties !== 'boolean') {
         toast.error('Error: additionalProperties must be a boolean');
         return;
       }
       
-      // Update schema and fields
-      setCurrentSchema(prev => ({
+      // Update form and fields
+      setCurrentForm(prev => ({
         ...prev,
-        response_format: parsedSchema
+        response_format: parsedForm
       }));
       
-      // Update fields based on the new schema
-      setFields(jsonSchemaToFields(parsedSchema));
+      // Update fields based on the new form
+      setFields(jsonFormToFields(parsedForm));
     } catch (error) {
       // Invalid JSON - don't update
       toast.error(`Error: Invalid JSON syntax: ${error}`);
     }
   };
 
-  const saveSchema = async (schema: SchemaConfig) => {
+  const saveForm = async (form: FormConfig) => {
     try {
       setIsLoading(true);
       
-      if (currentSchemaId) {
-        await updateSchemaApi({organizationId: organizationId, schemaId: currentSchemaId, schema});
+      if (currentFormId) {
+        await updateFormApi({organizationId: organizationId, formId: currentFormId, form});
       } else {
-        await createSchemaApi({organizationId: organizationId, ...schema });
+        await createFormApi({organizationId: organizationId, ...form });
       }      
 
       router.push(`/orgs/${organizationId}/forms`);
     } catch (error) {
-      const errorMsg = getApiErrorMsg(error) || 'Error saving schema';
+      const errorMsg = getApiErrorMsg(error) || 'Error saving form';
       toast.error('Error: ' + errorMsg);
     } finally {
       setIsLoading(false);
@@ -388,24 +388,24 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
   const addField = () => {
     const newFields = [...fields, { name: '', type: 'str' as const }];
     setFields(newFields);
-    setCurrentSchema(prev => ({
+    setCurrentForm(prev => ({
       ...prev,
-      response_format: fieldsToJsonSchema(newFields)
+      response_format: fieldsToJsonForm(newFields)
     }));
   };
 
   const removeField = (index: number) => {
     const newFields = fields.filter((_, i) => i !== index);
     setFields(newFields);
-    setCurrentSchema(prev => ({
+    setCurrentForm(prev => ({
       ...prev,
-      response_format: fieldsToJsonSchema(newFields)
+      response_format: fieldsToJsonForm(newFields)
     }));
   };
 
-  const updateField = (index: number, field: Partial<SchemaField>) => {
+  const updateField = (index: number, field: Partial<FormField>) => {
     const newFields = fields.map((f, i) => 
-      i === index ? { ...f, ...field } as SchemaField : f
+      i === index ? { ...f, ...field } as FormField : f
     );
     
     // If changing to object type, automatically expand
@@ -425,9 +425,9 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
     }
     
     setFields(newFields);
-    setCurrentSchema(prev => ({
+    setCurrentForm(prev => ({
       ...prev,
-      response_format: fieldsToJsonSchema(newFields)
+      response_format: fieldsToJsonForm(newFields)
     }));
   };
 
@@ -448,21 +448,21 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
   };
 
   // Add this function to handle nested object fields
-  const handleNestedFieldsChange = (parentIndex: number, nestedFields: SchemaField[]) => {
+  const handleNestedFieldsChange = (parentIndex: number, nestedFields: FormField[]) => {
     const updatedFields = [...fields];
     updatedFields[parentIndex] = {
       ...updatedFields[parentIndex],
       nestedFields
     };
     setFields(updatedFields);
-    setCurrentSchema(prev => ({
+    setCurrentForm(prev => ({
       ...prev,
-      response_format: fieldsToJsonSchema(updatedFields)
+      response_format: fieldsToJsonForm(updatedFields)
     }));
   };
 
   // Add this function to handle array item type changes
-  const handleArrayItemTypeChange = (index: number, itemType: SchemaField['type']) => {
+  const handleArrayItemTypeChange = (index: number, itemType: FormField['type']) => {
     const newFields = [...fields];
     // Only assign valid types to arrayItemType
     const validArrayItemType = (itemType === 'str' || itemType === 'int' || 
@@ -475,27 +475,27 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
       arrayObjectFields: validArrayItemType === 'object' ? [{ name: '', type: 'str' }] : undefined
     };
     setFields(newFields);
-    setCurrentSchema(prev => ({
+    setCurrentForm(prev => ({
       ...prev,
-      response_format: fieldsToJsonSchema(newFields)
+      response_format: fieldsToJsonForm(newFields)
     }));
   };
 
   // Add this function to handle array object fields changes
-  const handleArrayObjectFieldsChange = (parentIndex: number, objectFields: SchemaField[]) => {
+  const handleArrayObjectFieldsChange = (parentIndex: number, objectFields: FormField[]) => {
     const updatedFields = [...fields];
     updatedFields[parentIndex] = {
       ...updatedFields[parentIndex],
       arrayObjectFields: objectFields
     };
     setFields(updatedFields);
-    setCurrentSchema(prev => ({
+    setCurrentForm(prev => ({
       ...prev,
-      response_format: fieldsToJsonSchema(updatedFields)
+      response_format: fieldsToJsonForm(updatedFields)
     }));
   };
 
-  const validateFields = (fields: SchemaField[]): string | null => {
+  const validateFields = (fields: FormField[]): string | null => {
     const fieldNames = fields.map(f => f.name.toLowerCase());
     const duplicates = fieldNames.filter((name, index) => fieldNames.indexOf(name) !== index);
     
@@ -508,7 +508,7 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentSchema.name || fields.some(f => !f.name)) {
+    if (!currentForm.name || fields.some(f => !f.name)) {
       toast.error('Please fill in all fields');
       return;
     }
@@ -519,15 +519,15 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
       return;
     }
 
-    saveSchema(currentSchema);
+    saveForm(currentForm);
     setFields([{ name: '', type: 'str' }]);
-    setCurrentSchema({
+    setCurrentForm({
       name: '',
       response_format: {
-        type: 'json_schema',
-        json_schema: {
+        type: 'json_form',
+        json_form: {
           name: 'document_extraction',
-          schema: {
+          form: {
             type: 'object',
             properties: {},
             required: [],
@@ -537,18 +537,18 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
         }
       }
     });
-    setCurrentSchemaId(null);
+    setCurrentFormId(null);
   };
 
-  // Update fieldsToJsonSchema to handle arrays
-  const fieldsToJsonSchema = (fields: SchemaField[]): SchemaResponseFormat => {
+  // Update fieldsToJsonForm to handle arrays
+  const fieldsToJsonForm = (fields: FormField[]): FormResponseFormat => {
     const responseFormat = {
-      type: 'json_schema' as const,
-      json_schema: {
+      type: 'json_form' as const,
+      json_form: {
         name: 'document_extraction',
-        schema: {
+        form: {
           type: 'object' as const,
-          properties: {} as Record<string, SchemaProperty>,
+          properties: {} as Record<string, FormProperty>,
           required: [] as string[],
           additionalProperties: false
         },
@@ -556,8 +556,8 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
       }
     };
 
-    const processField = (field: SchemaField): SchemaProperty => {
-      let property: SchemaProperty;
+    const processField = (field: FormField): FormProperty => {
+      let property: FormProperty;
 
       switch (field.type) {
         case 'str':
@@ -613,7 +613,7 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
     };
 
     // Helper function to process array item types
-    const processArrayItemType = (field: SchemaField): SchemaProperty => {
+    const processArrayItemType = (field: FormField): FormProperty => {
       if (!field.arrayItemType) return { type: 'string' };
 
       switch (field.arrayItemType) {
@@ -626,7 +626,7 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
         case 'bool':
           return { type: 'boolean' };
         case 'object':
-          const objectProperty: SchemaProperty = {
+          const objectProperty: FormProperty = {
             type: 'object',
             properties: {},
             additionalProperties: false,
@@ -654,8 +654,8 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
 
     fields.forEach(field => {
       if (field.name) {
-        responseFormat.json_schema.schema.properties[field.name] = processField(field);
-        responseFormat.json_schema.schema.required.push(field.name);
+        responseFormat.json_form.form.properties[field.name] = processField(field);
+        responseFormat.json_form.form.required.push(field.name);
       }
     });
 
@@ -676,14 +676,14 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
     );
 
     setFields(reorderedFields);
-    setCurrentSchema(prev => ({
+    setCurrentForm(prev => ({
       ...prev,
-      response_format: fieldsToJsonSchema(reorderedFields)
+      response_format: fieldsToJsonForm(reorderedFields)
     }));
   };
 
   // Helper function to reorder fields
-  const reorderFields = (list: SchemaField[], startIndex: number, endIndex: number): SchemaField[] => {
+  const reorderFields = (list: FormField[], startIndex: number, endIndex: number): FormField[] => {
     const result = Array.from(list);
     const [removed] = result.splice(startIndex, 1);
     result.splice(endIndex, 0, removed);
@@ -695,34 +695,34 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
       <div className="bg-white p-6 rounded-lg shadow mb-6">
         <div className="hidden md:flex items-center gap-2 mb-4">
           <h2 className="text-xl font-bold">
-            {currentSchemaId ? 'Edit Schema' : 'Create Schema'}
+            {currentFormId ? 'Edit Form' : 'Create Form'}
           </h2>
           <InfoTooltip 
-            title="About Schemas"
+            title="About Forms"
             content={
               <>
                 <p className="mb-2">
-                  When linked to a prompt, schemas enforce structured output.
+                  When linked to a prompt, forms enforce structured output.
                 </p>
                 <ul className="list-disc list-inside space-y-1 mb-2">
                   <li>Use descriptive field names</li>
                   <li>Choose appropriate data types for each field</li>
-                  <li>All fields defined in a schema are required by default</li>
+                  <li>All fields defined in a form are required by default</li>
                 </ul>
               </>
             }
           />
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Schema Name Input and Action Buttons in a flex container */}
+          {/* Form Name Input and Action Buttons in a flex container */}
           <div className="flex items-center gap-4 mb-4">
             <div className="flex-1 md:w-1/2 md:max-w-[calc(50%-1rem)]">
               <input
                 type="text"
                 className="w-full p-2 border rounded"
-                value={currentSchema.name}
-                onChange={e => setCurrentSchema({ ...currentSchema, name: e.target.value })}
-                placeholder="Schema Name"
+                value={currentForm.name}
+                onChange={e => setCurrentForm({ ...currentForm, name: e.target.value })}
+                placeholder="Form Name"
                 disabled={isLoading}
               />
             </div>
@@ -731,15 +731,15 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
                 type="button"
                 onClick={() => {
                   // Clear the form
-                  setCurrentSchemaId(null);
+                  setCurrentFormId(null);
                   setFields([{ name: '', type: 'str' }]);
-                  setCurrentSchema({
+                  setCurrentForm({
                     name: '',
                     response_format: {
-                      type: 'json_schema',
-                      json_schema: {
+                      type: 'json_form',
+                      json_form: {
                         name: 'document_extraction',
-                        schema: {
+                        form: {
                           type: 'object',
                           properties: {},
                           required: [],
@@ -760,7 +760,7 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                 disabled={isLoading}
               >
-                {currentSchemaId ? 'Update Schema' : 'Save Schema'}
+                {currentFormId ? 'Update Form' : 'Save Form'}
               </button>
             </div>
           </div>
@@ -788,7 +788,7 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                JSON Schema
+                JSON Form
               </button>
             </div>
           </div>
@@ -833,7 +833,7 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
                                     <select
                                       className="p-1.5 border rounded text-sm w-24"
                                       value={field.type}
-                                      onChange={e => updateField(index, { type: e.target.value as SchemaField['type'] })}
+                                      onChange={e => updateField(index, { type: e.target.value as FormField['type'] })}
                                       disabled={isLoading}
                                     >
                                       <option value="str">String</option>
@@ -858,9 +858,9 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
                                         const newFields = [...fields];
                                         newFields.splice(index + 1, 0, { name: '', type: 'str' });
                                         setFields(newFields);
-                                        setCurrentSchema(prev => ({
+                                        setCurrentForm(prev => ({
                                           ...prev,
-                                          response_format: fieldsToJsonSchema(newFields)
+                                          response_format: fieldsToJsonForm(newFields)
                                         }));
                                       }}
                                       className="p-1 bg-green-50 text-green-600 rounded hover:bg-green-100 disabled:opacity-50 text-xl h-8 w-8 flex items-center justify-center"
@@ -932,7 +932,7 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
                                             <select
                                               className="p-1.5 border rounded text-sm"
                                               value={field.arrayItemType || 'str'}
-                                              onChange={e => handleArrayItemTypeChange(index, e.target.value as SchemaField['type'])}
+                                              onChange={e => handleArrayItemTypeChange(index, e.target.value as FormField['type'])}
                                               disabled={isLoading}
                                             >
                                               <option value="str">String</option>
@@ -978,13 +978,13 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
                 </button>
               </div>
             ) : (
-              // JSON Schema Tab
+              // JSON Form Tab
               <div className="h-[calc(100vh-300px)] border rounded">
                 <Editor
                   height="100%"
                   defaultLanguage="json"
-                  value={jsonSchema}
-                  onChange={handleJsonSchemaChange}
+                  value={jsonForm}
+                  onChange={handleJsonFormChange}
                   options={{
                     minimap: { enabled: false },
                     scrollBeyondLastLine: false,

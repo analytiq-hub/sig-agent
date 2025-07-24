@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { listSchemasApi, deleteSchemaApi, updateSchemaApi, createSchemaApi } from '@/utils/api';
-import { SchemaField, Schema, SchemaResponseFormat, SchemaProperty } from '@/types/index';
+import { listFormsApi, deleteFormApi, updateFormApi, createFormApi } from '@/utils/api';
+import { FormField, Form, FormResponseFormat, FormProperty } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';
@@ -15,11 +15,11 @@ import colors from 'tailwindcss/colors';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
-import SchemaNameModal from './SchemaNameModal';
+import FormNameModal from '@/components/FormNameModal';
 
 const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
-  const [schemas, setSchemas] = useState<Schema[]>([]);
+  const [forms, setForms] = useState<Form[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,37 +27,37 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [pageSize, setPageSize] = useState(5);
   const [total, setTotal] = useState(0);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedSchema, setSelectedSchema] = useState<Schema | null>(null);
+  const [selectedForm, setSelectedForm] = useState<Form | null>(null);
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
 
-  const loadSchemas = useCallback(async () => {
+  const loadForms = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await listSchemasApi({
+      const response = await listFormsApi({
         organizationId: organizationId,
         skip: page * pageSize,
         limit: pageSize
       });
-      setSchemas(response.schemas);
+      setForms(response.forms);
       setTotal(response.total_count);
     } catch (error) {
-      const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
+      const errorMsg = getApiErrorMsg(error) || 'Error loading forms';
       setMessage('Error: ' + errorMsg);
     } finally {
       setIsLoading(false);
     }
   }, [page, pageSize, organizationId]);
 
-  const handleDelete = async (schemaId: string) => {
+  const handleDelete = async (formId: string) => {
     try {
       setIsLoading(true);
-      await deleteSchemaApi({organizationId: organizationId, schemaId});
-      setSchemas(schemas.filter(schema => schema.schema_id !== schemaId));
+      await deleteFormApi({organizationId: organizationId, formId});
+      setForms(forms.filter(form => form.form_id !== formId));
     } catch (error) {
-      const errorMsg = getApiErrorMsg(error) || 'Error deleting schema';
+      const errorMsg = getApiErrorMsg(error) || 'Error deleting form';
       setMessage('Error: ' + errorMsg);
-      toast.error('Failed to delete schema');
+      toast.error('Failed to delete form');
     } finally {
       setIsLoading(false);
       handleMenuClose();
@@ -65,69 +65,69 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   };
 
   useEffect(() => {
-    loadSchemas();
-  }, [loadSchemas]);
+    loadForms();
+  }, [loadForms]);
 
   // Update the edit handler
-  const handleEdit = (schema: Schema) => {
-    router.push(`/orgs/${organizationId}/forms/${schema.schema_revid}`);
+  const handleEdit = (form: Form) => {
+    router.push(`/orgs/${organizationId}/forms/${form.form_revid}`);
     handleMenuClose();
   };
 
-  // Add a function to handle schema name change
-  const handleNameSchema = (schema: Schema) => {
-    setSelectedSchema(schema);
+  // Add a function to handle form name change
+  const handleNameForm = (form: Form) => {
+    setSelectedForm(form);
     setIsCloning(false);
     setIsNameModalOpen(true);
     handleMenuClose();
   };
 
   const handleNameSubmit = async (newName: string) => {
-    if (!selectedSchema) return;
+    if (!selectedForm) return;
     
     try {
-      // Create a new schema config with the updated name
-      const schemaConfig = {
+      // Create a new form config with the updated name
+      const formConfig = {
         name: newName,
-        response_format: selectedSchema.response_format
+        response_format: selectedForm.response_format
       };
       
       if (isCloning) {
-        // For cloning, create a new schema
-        await createSchemaApi({
+        // For cloning, create a new form
+        await createFormApi({
           organizationId: organizationId,
-          ...schemaConfig
+          ...formConfig
         });
       } else {
-        // For renaming, update existing schema
-        await updateSchemaApi({
+        // For renaming, update existing form
+        await updateFormApi({
           organizationId: organizationId,
-          schemaId: selectedSchema.schema_id,
-          schema: schemaConfig
+          formId: selectedForm.form_id,
+          form: formConfig
         });
       }
       
-      // Refresh the schema list
-      await loadSchemas();
+      // Refresh the form list
+      await loadForms();
     } catch (error) {
-      console.error(`Error ${isCloning ? 'cloning' : 'renaming'} schema:`, error);
-      toast.error(`Failed to ${isCloning ? 'clone' : 'rename'} schema`);
+      console.error(`Error ${isCloning ? 'cloning' : 'renaming'} form:`, error);
+      toast.error(`Failed to ${isCloning ? 'clone' : 'rename'} form`);
       throw error;
     }
   };
 
   const handleCloseNameModal = () => {
     setIsNameModalOpen(false);
-    setSelectedSchema(null);
+    setSelectedForm(null);
     setIsCloning(false);
   };
 
-  // Add a function to handle schema download
-  const handleDownload = (schema: Schema) => {
+  // Add a function to handle form download
+  const handleDownload = (form: Form) => {
     try {
-      // Create a JSON blob from the schema
-      const schemaJson = JSON.stringify(schema.response_format.json_schema, null, 2);
-      const blob = new Blob([schemaJson], { type: 'application/json' });
+      // Create a JSON blob from the form
+      const formJson = JSON.stringify(form.response_format.json_form, null, 2);
+      const blob = new Blob([formJson], { type: 'application/json' });
       
       // Create a URL for the blob
       const url = URL.createObjectURL(blob);
@@ -135,7 +135,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       // Create a temporary anchor element to trigger the download
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${schema.name.replace(/\s+/g, '_')}_schema.json`;
+      a.download = `${form.name.replace(/\s+/g, '_')}_form.json`;
       
       // Append to the document, click, and remove
       document.body.appendChild(a);
@@ -149,14 +149,14 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       
       handleMenuClose();
     } catch (error) {
-      console.error('Error downloading schema:', error);
-      setMessage('Error: Failed to download schema');
+      console.error('Error downloading form:', error);
+      setMessage('Error: Failed to download form');
     }
   };
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, schema: Schema) => {
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, form: Form) => {
     setAnchorEl(event.currentTarget);
-    setSelectedSchema(schema);
+    setSelectedForm(form);
   };
 
   const handleMenuClose = () => {
@@ -164,25 +164,25 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   };
 
   // Add a new function to handle clone operation
-  const handleCloneOperation = (schema: Schema) => {
-    setSelectedSchema(schema);
+  const handleCloneOperation = (form: Form) => {
+    setSelectedForm(form);
     setIsCloning(true);
     setIsNameModalOpen(true);
     handleMenuClose();
   };
 
-  // Add filtered schemas
-  const filteredSchemas = schemas.filter(schema =>
-    schema.name.toLowerCase().includes(searchTerm.toLowerCase())
+  // Add filtered forms
+  const filteredForms = forms.filter(form =>
+    form.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Helper function to convert JSON schema to fields for display
-  const jsonSchemaToFields = (responseFormat: SchemaResponseFormat): SchemaField[] => {
-    const fields: SchemaField[] = [];
-    const properties = responseFormat.json_schema.schema.properties;
+  // Helper function to convert JSON form to fields for display
+  const jsonFormToFields = (responseFormat: FormResponseFormat): FormField[] => {
+    const fields: FormField[] = [];
+    const properties = responseFormat.json_form.form.properties;
 
-    const processProperty = (name: string, prop: SchemaProperty): SchemaField => {
-      let fieldType: SchemaField['type'];
+    const processProperty = (name: string, prop: FormProperty): FormField => {
+      let fieldType: FormField['type'];
 
       switch (prop.type) {
         case 'string':
@@ -245,8 +245,8 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       headerAlign: 'left',
       align: 'left',
       renderCell: (params) => {
-        // Convert JSON Schema to fields for display
-        const fields = jsonSchemaToFields(params.row.response_format);
+        // Convert JSON Form to fields for display
+        const fields = jsonFormToFields(params.row.response_format);
         return (
           <div className="flex flex-col justify-center w-full h-full">
             {fields.map((field, index) => (
@@ -259,14 +259,14 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       },
     },
     {
-      field: 'schema_version',
+      field: 'form_version',
       headerName: 'Version',
       width: 100,
       headerAlign: 'left',
       align: 'left',
       renderCell: (params) => (
         <div className="text-gray-600">
-          v{params.row.schema_version}
+          v{params.row.form_version}
         </div>
       ),
     },
@@ -296,7 +296,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800 hidden md:block">
         <p className="text-sm">
           Forms are used to check data extracted from documents. Below is a list of your existing forms. 
-          If none are available, <Link href={`/orgs/${organizationId}/forms?tab=form-create`} className="text-blue-600 font-medium hover:underline">click here</Link> or use the tab above to create a new form schema.
+          If none are available, <Link href={`/orgs/${organizationId}/forms?tab=form-create`} className="text-blue-600 font-medium hover:underline">click here</Link> or use the tab above to create a new form.
         </p>
       </div>
       <h2 className="text-xl font-bold mb-4 hidden md:block">Forms</h2>
@@ -331,15 +331,15 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       {/* Data Grid */}
       <div style={{ height: 400, width: '100%' }}>
         <DataGrid
-          rows={filteredSchemas}
+          rows={filteredForms}
           columns={columns}
-          getRowId={(row) => row.schema_revid}
+          getRowId={(row) => row.form_revid}
           initialState={{
             pagination: {
               paginationModel: { pageSize: 5 }
             },
             sorting: {
-              sortModel: [{ field: 'schema_revid', sort: 'desc' }]
+              sortModel: [{ field: 'form_revid', sort: 'desc' }]
             }
           }}
           pageSizeOptions={[5, 10, 20]}
@@ -352,7 +352,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             setPageSize(model.pageSize);
           }}
           getRowHeight={({ model }) => {
-            const fields = jsonSchemaToFields(model.response_format);
+            const fields = jsonFormToFields(model.response_format);
             const numFields = fields.length;
             return Math.max(52, 24 * numFields + 16);
           }}
@@ -378,7 +378,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       >
         <MenuItem 
           onClick={() => {
-            if (selectedSchema) handleNameSchema(selectedSchema);
+            if (selectedForm) handleNameForm(selectedForm);
           }}
           className="flex items-center gap-2"
         >
@@ -387,7 +387,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         </MenuItem>
         <MenuItem 
           onClick={() => {
-            if (selectedSchema) handleCloneOperation(selectedSchema);
+            if (selectedForm) handleCloneOperation(selectedForm);
           }}
           className="flex items-center gap-2"
         >
@@ -396,7 +396,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         </MenuItem>
         <MenuItem 
           onClick={() => {
-            if (selectedSchema) handleEdit(selectedSchema);
+            if (selectedForm) handleEdit(selectedForm);
           }}
           className="flex items-center gap-2"
         >
@@ -405,7 +405,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         </MenuItem>
         <MenuItem 
           onClick={() => {
-            if (selectedSchema) handleDownload(selectedSchema);
+            if (selectedForm) handleDownload(selectedForm);
           }}
           className="flex items-center gap-2"
         >
@@ -414,7 +414,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
         </MenuItem>
         <MenuItem 
           onClick={() => {
-            if (selectedSchema) handleDelete(selectedSchema.schema_id);
+            if (selectedForm) handleDelete(selectedForm.form_id);
           }}
           className="flex items-center gap-2"
         >
@@ -424,11 +424,11 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       </Menu>
       
       {/* Rename/Clone Modal */}
-      {selectedSchema && (
-        <SchemaNameModal
+      {selectedForm && (
+        <FormNameModal
           isOpen={isNameModalOpen}
           onClose={handleCloseNameModal}
-          schemaName={isCloning ? `${selectedSchema.name} (Copy)` : selectedSchema.name}
+          formName={isCloning ? `${selectedForm.name} (Copy)` : selectedForm.name}
           onSubmit={handleNameSubmit}
           isCloning={isCloning}
           organizationId={organizationId}

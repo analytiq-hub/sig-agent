@@ -2,6 +2,7 @@ export * from './AppSession';
 export * from './aws_credentials';
 export * from './documents';
 export * from './flows';
+export * from './forms';
 export * from './invitations';
 export * from './llm';
 export * from './ocr';
