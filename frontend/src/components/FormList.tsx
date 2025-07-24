@@ -17,7 +17,7 @@ import Link from 'next/link';
 import { toast } from 'react-toastify';
 import SchemaNameModal from './SchemaNameModal';
 
-const FormSchemaList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
+const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [message, setMessage] = useState('');
@@ -438,4 +438,4 @@ const FormSchemaList: React.FC<{ organizationId: string }> = ({ organizationId }
   );
 };
 
-export default FormSchemaList;
+export default FormList;

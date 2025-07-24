@@ -159,7 +159,7 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
   );
 };
 
-const FormSchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ organizationId, schemaId }) => {
+const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ organizationId, schemaId }) => {
   const router = useRouter();
   const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
   const [currentSchema, setCurrentSchema] = useState<SchemaConfig>({
@@ -1005,4 +1005,4 @@ const FormSchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> 
   );
 };
 
-export default FormSchemaCreate;
+export default FormCreate;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import FormSchemaCreate from '@/components/FormSchemaCreate';
+import FormCreate from '@/components/FormCreate';
 
 export default function FormSchemaEditPage() {
   const { organizationId, schemaId } = useParams();
@@ -17,7 +17,7 @@ export default function FormSchemaEditPage() {
         ← Back to Schemas
       </button>
 
-      <FormSchemaCreate organizationId={organizationId as string} schemaId={schemaId as string} />
+      <FormCreate organizationId={organizationId as string} schemaId={schemaId as string} />
     </div>
   );
 } 

@@ -1,7 +1,7 @@
 'use client'
 
-import FormSchemaList from '@/components/FormSchemaList';
-import FormSchemaCreate from '@/components/FormSchemaCreate';
+import FormList from '@/components/FormList';
+import FormCreate from '@/components/FormCreate';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function FormSchemasPage({ params }: { params: { organizationId: string } }) {
@@ -43,10 +43,10 @@ export default function FormSchemasPage({ params }: { params: { organizationId: 
 
         <div className="max-w-6xl mx-auto">
           <div role="tabpanel" hidden={tab !== 'forms'}>
-            {tab === 'forms' && <FormSchemaList organizationId={params.organizationId} />}
+            {tab === 'forms' && <FormList organizationId={params.organizationId} />}
           </div>
           <div role="tabpanel" hidden={tab !== 'form-create'}>
-            {tab === 'form-create' && <FormSchemaCreate organizationId={params.organizationId} />}
+            {tab === 'form-create' && <FormCreate organizationId={params.organizationId} />}
           </div>
         </div>
       </div>
