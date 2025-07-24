@@ -70,7 +70,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
 
   // Update the edit handler
   const handleEdit = (form: Form) => {
-    router.push(`/orgs/${organizationId}/forms/${form.form_id}`);
+    router.push(`/orgs/${organizationId}/forms/${form.form_revid}`);
     handleMenuClose();
   };
 
