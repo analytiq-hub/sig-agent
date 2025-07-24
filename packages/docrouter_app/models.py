@@ -232,6 +232,74 @@ class ListPromptsResponse(BaseModel):
     total_count: int
     skip: int
 
+class FormProperty(BaseModel):
+    type: Literal['string', 'integer', 'number', 'boolean', 'array', 'object']
+    format: str | None = None
+    description: str | None = None
+    items: ForwardRef('FormProperty') | None = None
+    properties: Dict[str, ForwardRef('FormProperty')] | None = None
+
+class FormResponseFormat(BaseModel):
+    type: Literal['json_schema']
+    json_schema: dict = Field(
+        ..., 
+        json_schema_extra={
+            "example": {
+                "name": "document_extraction",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "invoice_date": {
+                            "type": "string",
+                            "description": "invoice date"
+                        }
+                    },
+                    "required": ["invoice_date"],
+                    "additionalProperties": False
+                },
+                "strict": True
+            }
+        }
+    )
+
+    @field_validator('json_schema')
+    def validate_json_schema(cls, v):
+        # Validate schema follows OpenAI format
+        required_keys = {'name', 'schema', 'strict'}
+        if not all(key in v for key in required_keys):
+            raise ValueError(f"JSON schema must contain all required keys: {required_keys}")
+        
+        schema = v['schema']
+        if schema.get('type') != 'object':
+            raise ValueError("Form root must be of type 'object'")
+            
+        if 'properties' not in schema:
+            raise ValueError("Form must contain 'properties'")
+            
+        if 'required' not in schema:
+            raise ValueError("Form must contain 'required' field")
+            
+        if 'additionalProperties' not in schema:
+            raise ValueError("Form must specify 'additionalProperties'")
+            
+        return v
+
+class FormConfig(BaseModel):
+    name: str
+    response_format: FormResponseFormat
+
+class Form(FormConfig):
+    form_revid: str # MongoDB's _id
+    form_id: str    # Stable identifier
+    form_version: int
+    created_at: datetime
+    created_by: str
+
+class ListFormsResponse(BaseModel):
+    forms: List[Form]
+    total_count: int
+    skip: int
+
 # Add to schemas.py
 class OrganizationMember(BaseModel):
     user_id: str
@@ -365,28 +433,5 @@ class Flow(FlowConfig):
 
 class ListFlowsResponse(BaseModel):
     flows: List[Flow]
-    total_count: int
-    skip: int
-
-class FormConfig(BaseModel):
-    name: str
-    description: Optional[str] = None
-    # The JSON schema for the form, including UI positioning metadata
-    form_json_schema: dict = Field(
-        ..., 
-        description="JSON Schema for the form, with UI positioning metadata."
-    )
-
-class Form(FormConfig):
-    form_revid: str  # MongoDB's _id for this revision
-    form_id: str     # Stable identifier for the form schema
-    form_version: int
-    organization_id: str
-    created_at: datetime
-    created_by: str
-    updated_at: datetime
-
-class ListFormsResponse(BaseModel):
-    forms: List[Form]
     total_count: int
     skip: int

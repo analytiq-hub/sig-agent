@@ -69,6 +69,7 @@ from docrouter_app.models import (
     UpdateLLMResultRequest,
     Schema, SchemaConfig, ListSchemasResponse,
     Prompt, PromptConfig, ListPromptsResponse,
+    Form, FormConfig, ListFormsResponse,
     TagConfig, Tag, ListTagsResponse,
     DocumentResponse,
     UserCreate, UserUpdate, UserResponse, ListUsersResponse,
@@ -84,7 +85,6 @@ from docrouter_app.models import (
     FlowConfig,
     Flow,
     ListFlowsResponse,
-    Form, FormConfig, ListFormsResponse
 )
 from docrouter_app.payments import payments_router
 from docrouter_app.payments import (
@@ -1625,6 +1625,335 @@ async def delete_prompt(
         raise HTTPException(status_code=404, detail="No prompt revisions found")
         
     return {"message": "Prompt deleted successfully"}
+
+# Add this helper function near the top of the file with other functions
+async def get_form_id_and_version(form_id: Optional[str] = None) -> tuple[str, int]:
+    """
+    Get the next version for an existing form or create a new form identifier.
+    
+    Args:
+        form_id: Existing form ID, or None to create a new one
+        
+    Returns:
+        Tuple of (form_id, form_version)
+    """
+    db = ad.common.get_async_db()
+
+    if form_id is None:
+        # Insert a placeholder document to get MongoDB-generated ID
+        result = await db.forms.insert_one({
+            "form_version": 1
+        })
+        
+        # Use the MongoDB-assigned _id as our form_id
+        form_id = str(result.inserted_id)
+        form_version = 1
+    else:
+        # Get the next version for an existing form
+        result = await db.forms.find_one_and_update(
+            {"_id": ObjectId(form_id)},
+            {"$inc": {"form_version": 1}},
+            upsert=True,
+            return_document=True
+        )
+        form_version = result["form_version"]
+    
+    return form_id, form_version
+
+# Form management endpoints
+@app.post("/v0/orgs/{organization_id}/forms", response_model=Form, tags=["forms"])
+async def create_form(
+    organization_id: str,
+    form: FormConfig,
+    current_user: User = Depends(get_org_user)
+):
+    """Create a form"""
+    logger.info(f"create_form() start: organization_id: {organization_id}, form: {form}")
+    db = ad.common.get_async_db()
+
+    # Check if form with this name already exists (case-insensitive)
+    existing_form = await db.forms.find_one({
+        "name": {"$regex": f"^{form.name}$", "$options": "i"},
+        "organization_id": organization_id
+    })
+
+    # Generate form_id and version
+    if existing_form:
+        form_id, new_form_version = await get_form_id_and_version(str(existing_form["_id"]))
+    else:
+        # Generate a new form_id when creating a new form
+        form_id, new_form_version = await get_form_id_and_version(None)
+    
+    # Update the forms collection with name and organization_id
+    await db.forms.update_one(
+        {"_id": ObjectId(form_id)},
+        {"$set": {
+            "name": form.name,
+            "organization_id": organization_id
+        }},
+        upsert=True
+    )
+    
+    # Create form document for form_revisions
+    form_dict = {
+        "form_id": form_id,
+        "response_format": form.response_format.model_dump(),
+        "form_version": new_form_version,
+        "created_at": datetime.now(UTC),
+        "created_by": current_user.user_id
+    }
+    
+    # Insert into MongoDB
+    result = await db.form_revisions.insert_one(form_dict)
+    
+    # Return complete form
+    form_dict["name"] = form.name
+    form_dict["form_revid"] = str(result.inserted_id)
+    return Form(**form_dict)
+
+@app.get("/v0/orgs/{organization_id}/forms", response_model=ListFormsResponse, tags=["forms"])
+async def list_forms(
+    organization_id: str,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    current_user: User = Depends(get_org_user)
+):
+    """List latest form revisions within an organization"""
+    logger.info(f"list_forms() start: organization_id: {organization_id}, skip: {skip}, limit: {limit}")
+    db = ad.common.get_async_db()
+    
+    # First, get forms that belong to the organization
+    org_forms = await db.forms.find(
+        {"organization_id": organization_id}
+    ).to_list(None)
+    
+    if not org_forms:
+        return ListFormsResponse(forms=[], total_count=0, skip=skip)
+    
+    # Extract form IDs
+    form_ids = [form["_id"] for form in org_forms]
+    form_id_to_name = {str(form["_id"]): form["name"] for form in org_forms}
+    
+    # Build pipeline for form_revisions
+    pipeline = [
+        {
+            "$match": {"form_id": {"$in": [str(fid) for fid in form_ids]}}
+        },
+        {
+            "$sort": {"_id": -1}
+        },
+        {
+            "$group": {
+                "_id": "$form_id",
+                "doc": {"$first": "$$ROOT"}
+            }
+        },
+        {
+            "$replaceRoot": {"newRoot": "$doc"}
+        },
+        {
+            "$sort": {"_id": -1}
+        },
+        {
+            "$facet": {
+                "total": [{"$count": "count"}],
+                "schemas": [
+                    {"$skip": skip},
+                    {"$limit": limit}
+                ]
+            }
+        }
+    ]
+    
+    result = await db.form_revisions.aggregate(pipeline).to_list(length=1)
+    result = result[0]
+    
+    total_count = result["total"][0]["count"] if result["total"] else 0
+    forms = result["forms"]
+    
+    # Convert _id to id in each form and add name from forms collection
+    for form in forms:
+        form['form_revid'] = str(form.pop('_id'))
+        form['name'] = form_id_to_name.get(form['form_id'], "Unknown")
+    
+    return ListFormsResponse(
+        forms=forms,
+        total_count=total_count,
+        skip=skip
+    )
+
+@app.get("/v0/orgs/{organization_id}/forms/{form_revid}", response_model=Form, tags=["forms"])
+async def get_form(
+    organization_id: str,
+    form_revid: str,
+    current_user: User = Depends(get_org_user)
+):
+    """Get a form revision"""
+    logger.info(f"get_form() start: organization_id: {organization_id}, form_revid: {form_revid}")
+    db = ad.common.get_async_db()
+    
+    # Get the form revision
+    revision = await db.form_revisions.find_one({
+        "_id": ObjectId(form_revid)
+    })
+    if not revision:
+        raise HTTPException(status_code=404, detail="Form not found")
+    
+    # Get the form name and verify organization
+    form = await db.forms.find_one({
+        "_id": ObjectId(revision["form_id"]),
+        "organization_id": organization_id
+    })
+    if not form:
+        raise HTTPException(status_code=404, detail="Form not found or not in this organization")
+    
+    # Combine the data
+    revision['form_revid'] = str(revision.pop('_id'))
+    revision['name'] = form['name']
+    
+    return Form(**revision)
+
+@app.put("/v0/orgs/{organization_id}/forms/{form_id}", response_model=Form, tags=["forms"])
+async def update_form(
+    organization_id: str,
+    form_id: str,
+    form: FormConfig,
+    current_user: User = Depends(get_org_user)
+):
+    """Update a form"""
+    logger.info(f"update_form() start: organization_id: {organization_id}, form_id: {form_id}, form: {form}")
+    
+    db = ad.common.get_async_db()
+
+    # Check if user is a member of the organization
+    org = await db.organizations.find_one({"_id": ObjectId(organization_id)})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    # Check if user is a member of the organization
+    if not any(member["user_id"] == current_user.user_id for member in org["members"]):
+        raise HTTPException(status_code=403, detail="Not authorized to update forms in this organization")
+
+    # Get the existing form and latest revision
+    existing_form = await db.forms.find_one({"_id": ObjectId(form_id)})
+    if not existing_form:
+        raise HTTPException(status_code=404, detail="Form not found")
+    
+    latest_form_revision = await db.form_revisions.find_one(
+        {"form_id": form_id},
+        sort=[("form_version", -1)]
+    )
+    
+    if not latest_form_revision:
+        raise HTTPException(status_code=404, detail="Form revision not found")
+
+    # Check if only the name has changed
+    only_name_changed = (
+        form.name != existing_form["name"] and
+        form.response_format.model_dump() == latest_form_revision["response_format"]
+    )
+    
+    if only_name_changed:
+        # Update the name in the forms collection
+        result = await db.forms.update_one(
+            {"_id": ObjectId(form_id)},
+            {"$set": {"name": form.name}}
+        )
+        
+        if result.modified_count > 0:
+            # Return the updated form
+            updated_revision = latest_form_revision.copy()
+            updated_revision["form_revid"] = str(updated_revision.pop("_id"))
+            updated_revision["name"] = form.name
+            return Form(**updated_revision)
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update form name")
+    
+    # If other fields changed, create a new version
+    # Get the next version number using the stable form_id
+    _, new_form_version = await get_form_id_and_version(form_id)
+    
+    # Update the forms collection if name changed
+    if form.name != existing_form["name"]:
+        await db.forms.update_one(
+            {"_id": ObjectId(form_id)},
+            {"$set": {"name": form.name}}
+        )
+    
+    # Create new version of the schema in schema_revisions
+    new_form = {
+        "form_id": form_id,
+        "response_format": form.response_format.model_dump(),
+        "form_version": new_form_version,
+        "created_at": datetime.now(UTC),
+        "created_by": current_user.user_id
+    }
+    
+    # Insert new version
+    result = await db.form_revisions.insert_one(new_form)
+    
+    # Return updated form
+    new_form["form_revid"] = str(result.inserted_id)
+    new_form["name"] = form.name
+    return Form(**new_form)
+
+@app.delete("/v0/orgs/{organization_id}/forms/{form_id}", tags=["forms"])
+async def delete_form(
+    organization_id: str,
+    form_id: str,
+    current_user: User = Depends(get_org_user)
+):
+    """Delete a form"""
+    logger.info(f"delete_form() start: organization_id: {organization_id}, form_id: {form_id}")
+
+    db = ad.common.get_async_db()
+    
+    # Get the form and verify organization
+    form = await db.forms.find_one({
+        "_id": ObjectId(form_id),
+        "organization_id": organization_id
+    })
+    if not form:
+        raise HTTPException(status_code=404, detail="Form not found or not in this organization")
+
+    # Check for dependent prompts by form_id
+    dependent_prompts = await db.prompt_revisions.find({
+        "form_id": form_id
+    }).to_list(None)
+    
+    if dependent_prompts:
+        # Get names from prompts collection
+        prompt_names = {}
+        for prompt_revision in dependent_prompts:
+            prompt = await db.prompts.find_one({"_id": ObjectId(prompt_revision["prompt_id"])})
+            if prompt:
+                prompt_names[str(prompt_revision["_id"])] = prompt["name"]
+        
+        # Format the list of dependent prompts
+        prompt_list = [
+            {
+                "name": prompt_names.get(str(p["_id"]), "Unknown"), 
+                "form_version": p["form_version"]
+            } 
+            for p in dependent_prompts
+        ]
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete form because it has dependent prompts:{json.dumps(prompt_list)}"
+        )
+    
+    # If no dependent prompts, proceed with deletion
+    result = await db.form_revisions.delete_many({
+        "form_id": form_id
+    })
+    
+    # Delete the form entry
+    await db.forms.delete_one({"_id": ObjectId(form_id)})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="No form revisions found")
+        
+    return {"message": "Form deleted successfully"}
 
 # Tag management endpoints
 @app.post("/v0/orgs/{organization_id}/tags", response_model=Tag, tags=["tags"])
