@@ -1,16 +1,16 @@
 'use client'
 
-import SchemaList from '@/components/SchemaList';
-import SchemaCreate from '@/components/SchemaCreate';
+import FormSchemaList from '@/components/FormSchemaList';
+import FormSchemaCreate from '@/components/FormSchemaCreate';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function SchemasPage({ params }: { params: { organizationId: string } }) {
+export default function FormSchemasPage({ params }: { params: { organizationId: string } }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tab = searchParams.get('tab') || 'schemas';
 
   const handleTabChange = (newValue: string) => {
-    router.push(`/orgs/${params.organizationId}/schemas?tab=${newValue}`);
+    router.push(`/orgs/${params.organizationId}/form-schemas?tab=${newValue}`);
   };
 
   return (
@@ -43,10 +43,10 @@ export default function SchemasPage({ params }: { params: { organizationId: stri
 
         <div className="max-w-6xl mx-auto">
           <div role="tabpanel" hidden={tab !== 'schemas'}>
-            {tab === 'schemas' && <SchemaList organizationId={params.organizationId} />}
+            {tab === 'schemas' && <FormSchemaList organizationId={params.organizationId} />}
           </div>
           <div role="tabpanel" hidden={tab !== 'schema-create'}>
-            {tab === 'schema-create' && <SchemaCreate organizationId={params.organizationId} />}
+            {tab === 'schema-create' && <FormSchemaCreate organizationId={params.organizationId} />}
           </div>
         </div>
       </div>
