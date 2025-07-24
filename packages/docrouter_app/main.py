@@ -84,7 +84,7 @@ from docrouter_app.models import (
     FlowConfig,
     Flow,
     ListFlowsResponse,
-    FormSchema, FormSchemaConfig, ListFormSchemasResponse
+    Form, FormConfig, ListFormsResponse
 )
 from docrouter_app.payments import payments_router
 from docrouter_app.payments import (
@@ -3364,80 +3364,80 @@ if os.getenv("STRIPE_SECRET_KEY"):
     app.include_router(payments_router)
 
 # --- Form Schema Versioning Helper ---
-async def get_form_schema_id_and_version(form_schema_id: Optional[str] = None) -> tuple[str, int]:
+async def get_form_id_and_version(form_id: Optional[str] = None) -> tuple[str, int]:
     """
     Get the next version for an existing form schema or create a new form schema identifier.
     Args:
-        form_schema_id: Existing form schema ID, or None to create a new one
+        form_id: Existing form schema ID, or None to create a new one
     Returns:
-        Tuple of (form_schema_id, form_schema_version)
+        Tuple of (form_id, form_version)
     """
     db = ad.common.get_async_db()
-    if form_schema_id is None:
+    if form_id is None:
         # Insert a placeholder document to get MongoDB-generated ID
-        result = await db.form_schemas.insert_one({
-            "form_schema_version": 1
+        result = await db.forms.insert_one({
+            "form_version": 1
         })
-        form_schema_id = str(result.inserted_id)
-        form_schema_version = 1
+        form_id = str(result.inserted_id)
+        form_version = 1
     else:
         # Get the next version for an existing form schema
-        result = await db.form_schemas.find_one_and_update(
-            {"_id": ObjectId(form_schema_id)},
-            {"$inc": {"form_schema_version": 1}},
+        result = await db.forms.find_one_and_update(
+            {"_id": ObjectId(form_id)},
+            {"$inc": {"form_version": 1}},
             upsert=True,
             return_document=True
         )
-        form_schema_version = result["form_schema_version"]
-    return form_schema_id, form_schema_version
+        form_version = result["form_version"]
+    return form_id, form_version
 
 # --- Form Schema CRUD Endpoints ---
-@app.post("/v0/orgs/{organization_id}/form_schemas", response_model=FormSchema, tags=["form_schemas"])
-async def create_form_schema(
+@app.post("/v0/orgs/{organization_id}/forms", response_model=Form, tags=["forms"])
+async def create_form(
     organization_id: str,
-    form_schema: FormSchemaConfig,
+    form: FormConfig,
     current_user: User = Depends(get_org_user)
 ):
     """Create a form schema"""
     db = ad.common.get_async_db()
     # Check if form schema with this name already exists (case-insensitive)
-    existing = await db.form_schemas.find_one({
-        "name": {"$regex": f"^{form_schema.name}$", "$options": "i"},
+    existing = await db.forms.find_one({
+        "name": {"$regex": f"^{form.name}$", "$options": "i"},
         "organization_id": organization_id
     })
     if existing:
-        form_schema_id, new_version = await get_form_schema_id_and_version(str(existing["_id"]))
+        form_id, new_version = await get_form_id_and_version(str(existing["_id"]))
     else:
-        form_schema_id, new_version = await get_form_schema_id_and_version(None)
-    # Update the form_schemas collection with name and organization_id
-    await db.form_schemas.update_one(
-        {"_id": ObjectId(form_schema_id)},
+        form_id, new_version = await get_form_id_and_version(None)
+    # Update the forms collection with name and organization_id
+    await db.forms.update_one(
+        {"_id": ObjectId(form_id)},
         {"$set": {
-            "name": form_schema.name,
-            "description": form_schema.description,
+            "name": form.name,
+            "description": form.description,
             "organization_id": organization_id
         }},
         upsert=True
     )
     now = datetime.now(UTC)
-    # Create form schema document for form_schema_revisions
+    # Create form schema document for form_revisions
     schema_dict = {
-        "form_schema_id": form_schema_id,
-        "form_json_schema": form_schema.form_json_schema,
-        "form_schema_version": new_version,
+        "form_id": form_id,
+        "form_json_schema": form.form_json_schema,
+        "form_version": new_version,
         "organization_id": organization_id,
         "created_at": now,
         "created_by": current_user.user_id,
         "updated_at": now,
-        "name": form_schema.name,
-        "description": form_schema.description
+        "name": form.name,
+        "description": form.description
     }
-    result = await db.form_schema_revisions.insert_one(schema_dict)
-    schema_dict["form_schema_revid"] = str(result.inserted_id)
-    return FormSchema(**schema_dict)
+    result = await db.form_revisions.insert_one(schema_dict)
+    schema_dict["form_revid"] = str(result.inserted_id)
+    return Form(**schema_dict)
 
-@app.get("/v0/orgs/{organization_id}/form_schemas", response_model=ListFormSchemasResponse, tags=["form_schemas"])
-async def list_form_schemas(
+@app.get("/v0/orgs/{organization_id}/forms", response_model=ListFormsResponse, tags=["forms"])
+async def list_forms(
     organization_id: str,
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
@@ -3445,63 +3445,63 @@ async def list_form_schemas(
 ):
     """List latest form schema revisions within an organization"""
     db = ad.common.get_async_db()
-    # Get all form_schemas for the org
-    org_schemas = await db.form_schemas.find({"organization_id": organization_id}).to_list(None)
+    # Get all forms for the org
+    org_schemas = await db.forms.find({"organization_id": organization_id}).to_list(None)
     if not org_schemas:
-        return ListFormSchemasResponse(form_schemas=[], total_count=0, skip=skip)
+        return ListFormsResponse(forms=[], total_count=0, skip=skip)
     schema_ids = [str(schema["_id"]) for schema in org_schemas]
     schema_id_to_name = {str(schema["_id"]): schema["name"] for schema in org_schemas}
-    # Build pipeline for form_schema_revisions
+    # Build pipeline for form_revisions
     pipeline = [
-        {"$match": {"form_schema_id": {"$in": schema_ids}}},
+        {"$match": {"form_id": {"$in": schema_ids}}},
         {"$sort": {"_id": -1}},
-        {"$group": {"_id": "$form_schema_id", "doc": {"$first": "$$ROOT"}}},
+        {"$group": {"_id": "$form_id", "doc": {"$first": "$$ROOT"}}},
         {"$replaceRoot": {"newRoot": "$doc"}},
         {"$sort": {"_id": -1}},
         {"$facet": {
             "total": [{"$count": "count"}],
-            "form_schemas": [
+            "forms": [
                 {"$skip": skip},
                 {"$limit": limit}
             ]
         }}
     ]
-    result = await db.form_schema_revisions.aggregate(pipeline).to_list(length=1)
-    result = result[0] if result else {"total": [], "form_schemas": []}
+    result = await db.form_revisions.aggregate(pipeline).to_list(length=1)
+    result = result[0] if result else {"total": [], "forms": []}
     total_count = result["total"][0]["count"] if result["total"] else 0
-    schemas = result["form_schemas"]
+    schemas = result["forms"]
     for schema in schemas:
-        schema["form_schema_revid"] = str(schema.pop("_id"))
-        schema["name"] = schema_id_to_name.get(schema["form_schema_id"], "Unknown")
-    return ListFormSchemasResponse(
-        form_schemas=schemas,
+        schema["form_revid"] = str(schema.pop("_id"))
+        schema["name"] = schema_id_to_name.get(schema["form_id"], "Unknown")
+    return ListFormsResponse(
+        forms=schemas,
         total_count=total_count,
         skip=skip
     )
 
-@app.get("/v0/orgs/{organization_id}/form_schemas/{form_schema_revid}", response_model=FormSchema, tags=["form_schemas"])
-async def get_form_schema(
+@app.get("/v0/orgs/{organization_id}/forms/{form_revid}", response_model=Form, tags=["forms"])
+async def get_form(
     organization_id: str,
-    form_schema_revid: str,
+    form_revid: str,
     current_user: User = Depends(get_org_user)
 ):
     """Get a form schema revision"""
     db = ad.common.get_async_db()
-    revision = await db.form_schema_revisions.find_one({"_id": ObjectId(form_schema_revid)})
+    revision = await db.form_revisions.find_one({"_id": ObjectId(form_revid)})
     if not revision:
-        raise HTTPException(status_code=404, detail="Form schema not found")
-    schema = await db.form_schemas.find_one({"_id": ObjectId(revision["form_schema_id"]), "organization_id": organization_id})
+        raise HTTPException(status_code=404, detail="Form not found")
+    schema = await db.forms.find_one({"_id": ObjectId(revision["form_id"]), "organization_id": organization_id})
     if not schema:
-        raise HTTPException(status_code=404, detail="Form schema not found or not in this organization")
-    revision["form_schema_revid"] = str(revision.pop("_id"))
+        raise HTTPException(status_code=404, detail="Form not found or not in this organization")
+    revision["form_revid"] = str(revision.pop("_id"))
     revision["name"] = schema["name"]
-    return FormSchema(**revision)
+    return Form(**revision)
 
-@app.put("/v0/orgs/{organization_id}/form_schemas/{form_schema_id}", response_model=FormSchema, tags=["form_schemas"])
-async def update_form_schema(
+@app.put("/v0/orgs/{organization_id}/forms/{form_id}", response_model=Form, tags=["forms"])
+async def update_form(
     organization_id: str,
-    form_schema_id: str,
-    form_schema: FormSchemaConfig,
+    form_id: str,
+    form: FormConfig,
     current_user: User = Depends(get_org_user)
 ):
     """Update a form schema (creates a new version)"""
@@ -3511,48 +3511,48 @@ async def update_form_schema(
         raise HTTPException(status_code=404, detail="Organization not found")
     if not any(member["user_id"] == current_user.user_id for member in org["members"]):
         raise HTTPException(status_code=403, detail="Not authorized to update form schemas in this organization")
-    existing = await db.form_schemas.find_one({"_id": ObjectId(form_schema_id)})
+    existing = await db.forms.find_one({"_id": ObjectId(form_id)})
     if not existing:
         raise HTTPException(status_code=404, detail="Form schema not found")
-    _, new_version = await get_form_schema_id_and_version(form_schema_id)
-    # Update the form_schemas collection if name/description changed
-    await db.form_schemas.update_one(
-        {"_id": ObjectId(form_schema_id)},
+    _, new_version = await get_form_id_and_version(form_id)
+    # Update the forms collection if name/description changed
+    await db.forms.update_one(
+        {"_id": ObjectId(form_id)},
         {"$set": {
-            "name": form_schema.name,
-            "description": form_schema.description
+            "name": form.name,
+            "description": form.description
         }}
     )
     now = datetime.now(UTC)
-    new_schema = {
-        "form_schema_id": form_schema_id,
-        "form_json_schema": form_schema.form_json_schema,
-        "form_schema_version": new_version,
+    new_form = {
+        "form_id": form_id,
+        "form_json_schema": form.form_json_schema,
+        "form_version": new_version,
         "organization_id": organization_id,
         "created_at": now,
         "created_by": current_user.user_id,
         "updated_at": now,
-        "name": form_schema.name,
-        "description": form_schema.description
+        "name": form.name,
+        "description": form.description
     }
-    result = await db.form_schema_revisions.insert_one(new_schema)
-    new_schema["form_schema_revid"] = str(result.inserted_id)
-    return FormSchema(**new_schema)
+    result = await db.form_revisions.insert_one(new_form)
+    new_form["form_revid"] = str(result.inserted_id)
+    return Form(**new_form)
 
-@app.delete("/v0/orgs/{organization_id}/form_schemas/{form_schema_id}", tags=["form_schemas"])
-async def delete_form_schema(
+@app.delete("/v0/orgs/{organization_id}/forms/{form_id}", tags=["forms"])
+async def delete_form(
     organization_id: str,
-    form_schema_id: str,
+    form_id: str,
     current_user: User = Depends(get_org_user)
 ):
     """Delete a form schema and all its revisions"""
     db = ad.common.get_async_db()
-    schema = await db.form_schemas.find_one({"_id": ObjectId(form_schema_id), "organization_id": organization_id})
+    schema = await db.forms.find_one({"_id": ObjectId(form_id), "organization_id": organization_id})
     if not schema:
-        raise HTTPException(status_code=404, detail="Form schema not found or not in this organization")
-    await db.form_schema_revisions.delete_many({"form_schema_id": form_schema_id})
-    await db.form_schemas.delete_one({"_id": ObjectId(form_schema_id)})
-    return {"message": "Form schema deleted successfully"}
+        raise HTTPException(status_code=404, detail="Form not found or not in this organization")
+    await db.form_revisions.delete_many({"form_id": form_id})
+    await db.forms.delete_one({"_id": ObjectId(form_id)})
+    return {"message": "Form deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn
