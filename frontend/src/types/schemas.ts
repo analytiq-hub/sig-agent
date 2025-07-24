@@ -1,8 +1,8 @@
-export interface JsonSchemaProperty {
+export interface SchemaProperty {
   type: 'string' | 'integer' | 'number' | 'boolean' | 'array' | 'object';
   description?: string;
-  items?: JsonSchemaProperty;  // For array types
-  properties?: Record<string, JsonSchemaProperty>;  // For object types
+  items?: SchemaProperty;  // For array types
+  properties?: Record<string, SchemaProperty>;  // For object types
   additionalProperties?: boolean;  // Add this for object types
   required?: string[];  // Add this for object types to specify required properties
 }
@@ -13,7 +13,7 @@ export interface SchemaResponseFormat {
     name: string;
     schema: {
       type: 'object';
-      properties: Record<string, JsonSchemaProperty>;
+      properties: Record<string, SchemaProperty>;
       required: string[];
       additionalProperties: boolean;
     };

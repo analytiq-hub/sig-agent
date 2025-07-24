@@ -15,7 +15,7 @@ from .llm import (
     UpdateLLMResultRequest
 )
 from .schema import (
-    JsonSchemaProperty,
+    SchemaProperty,
     SchemaResponseFormat,
     SchemaConfig,
     Schema,
@@ -52,7 +52,7 @@ __all__ = [
     "UpdateLLMResultRequest",
     
     # Schema models
-    "JsonSchemaProperty",
+    "SchemaProperty",
     "SchemaResponseFormat",
     "SchemaConfig",
     "Schema",

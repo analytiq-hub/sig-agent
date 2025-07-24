@@ -143,12 +143,12 @@ class ListTagsResponse(BaseModel):
     total_count: int
     skip: int
 
-class JsonSchemaProperty(BaseModel):
+class SchemaProperty(BaseModel):
     type: Literal['string', 'integer', 'number', 'boolean', 'array', 'object']
     format: str | None = None
     description: str | None = None
-    items: ForwardRef('JsonSchemaProperty') | None = None
-    properties: Dict[str, ForwardRef('JsonSchemaProperty')] | None = None
+    items: ForwardRef('SchemaProperty') | None = None
+    properties: Dict[str, ForwardRef('SchemaProperty')] | None = None
 
 class SchemaResponseFormat(BaseModel):
     type: Literal['json_schema']

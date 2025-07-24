@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Literal
 from pydantic import BaseModel, Field
 
-class JsonSchemaProperty(BaseModel):
+class SchemaProperty(BaseModel):
     type: Literal['string', 'integer', 'number', 'boolean', 'array', 'object']
     format: Optional[str] = None
     description: Optional[str] = None

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createSchemaApi, updateSchemaApi, getSchemaApi } from '@/utils/api';
-import { SchemaField, SchemaConfig, SchemaResponseFormat, JsonSchemaProperty } from '@/types/index';
+import { SchemaField, SchemaConfig, SchemaResponseFormat, SchemaProperty } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
@@ -190,7 +190,7 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
     const fields: SchemaField[] = [];
     const properties = responseFormat.json_schema.schema.properties;
 
-    const processProperty = (name: string, prop: JsonSchemaProperty): SchemaField => {
+    const processProperty = (name: string, prop: SchemaProperty): SchemaField => {
       let fieldType: SchemaField['type'];
       let nestedFields: SchemaField[] | undefined;
       let arrayItemType: 'str' | 'int' | 'float' | 'bool' | 'object' | undefined;
@@ -548,7 +548,7 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
         name: 'document_extraction',
         schema: {
           type: 'object' as const,
-          properties: {} as Record<string, JsonSchemaProperty>,
+          properties: {} as Record<string, SchemaProperty>,
           required: [] as string[],
           additionalProperties: false
         },
@@ -556,8 +556,8 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
       }
     };
 
-    const processField = (field: SchemaField): JsonSchemaProperty => {
-      let property: JsonSchemaProperty;
+    const processField = (field: SchemaField): SchemaProperty => {
+      let property: SchemaProperty;
 
       switch (field.type) {
         case 'str':
@@ -613,7 +613,7 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
     };
 
     // Helper function to process array item types
-    const processArrayItemType = (field: SchemaField): JsonSchemaProperty => {
+    const processArrayItemType = (field: SchemaField): SchemaProperty => {
       if (!field.arrayItemType) return { type: 'string' };
 
       switch (field.arrayItemType) {
@@ -626,7 +626,7 @@ const FormCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ o
         case 'bool':
           return { type: 'boolean' };
         case 'object':
-          const objectProperty: JsonSchemaProperty = {
+          const objectProperty: SchemaProperty = {
             type: 'object',
             properties: {},
             additionalProperties: false,

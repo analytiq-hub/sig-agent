@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { listSchemasApi, deleteSchemaApi, updateSchemaApi, createSchemaApi } from '@/utils/api';
-import { SchemaField, Schema, SchemaResponseFormat, JsonSchemaProperty } from '@/types/index';
+import { SchemaField, Schema, SchemaResponseFormat, SchemaProperty } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';
@@ -181,7 +181,7 @@ const SchemaList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
     const fields: SchemaField[] = [];
     const properties = responseFormat.json_schema.schema.properties;
 
-    const processProperty = (name: string, prop: JsonSchemaProperty): SchemaField => {
+    const processProperty = (name: string, prop: SchemaProperty): SchemaField => {
       let fieldType: SchemaField['type'];
 
       switch (prop.type) {
