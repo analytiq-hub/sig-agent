@@ -25,7 +25,7 @@ export interface ListFormSchemasParams {
 }
 
 export interface ListFormSchemasResponse {
-  form_schemas: FormSchema[];
+  forms: FormSchema[];
   total_count: number;
   skip: number;
 }

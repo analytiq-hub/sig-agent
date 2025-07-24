@@ -101,7 +101,7 @@ import {
   GetFormSchemaParams,
   UpdateFormSchemaParams,
   DeleteFormSchemaParams
-} from '@/types/form_schemas';
+} from '@/types/forms';
 
 // These APIs execute from the frontend
 const NEXT_PUBLIC_FASTAPI_FRONTEND_URL = process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL || "http://localhost:8000";
@@ -790,13 +790,13 @@ export const createCheckoutSessionApi = async (orgId: string, planId: string): P
 
 export const createFormSchemaApi = async (params: CreateFormSchemaParams): Promise<FormSchema> => {
   const { organizationId, ...formSchema } = params;
-  const response = await api.post<FormSchema>(`/v0/orgs/${organizationId}/form_schemas`, formSchema);
+  const response = await api.post<FormSchema>(`/v0/orgs/${organizationId}/forms`, formSchema);
   return response.data;
 };
 
 export const listFormSchemasApi = async (params: ListFormSchemasParams): Promise<ListFormSchemasResponse> => {
   const { organizationId, skip = 0, limit = 10 } = params;
-  const response = await api.get<ListFormSchemasResponse>(`/v0/orgs/${organizationId}/form_schemas`, {
+  const response = await api.get<ListFormSchemasResponse>(`/v0/orgs/${organizationId}/forms`, {
     params: { skip, limit }
   });
   return response.data;
@@ -804,17 +804,17 @@ export const listFormSchemasApi = async (params: ListFormSchemasParams): Promise
 
 export const getFormSchemaApi = async (params: GetFormSchemaParams): Promise<FormSchema> => {
   const { organizationId, formSchemaRevid } = params;
-  const response = await api.get<FormSchema>(`/v0/orgs/${organizationId}/form_schemas/${formSchemaRevid}`);
+  const response = await api.get<FormSchema>(`/v0/orgs/${organizationId}/forms/${formSchemaRevid}`);
   return response.data;
 };
 
 export const updateFormSchemaApi = async (params: UpdateFormSchemaParams): Promise<FormSchema> => {
   const { organizationId, formSchemaId, formSchema } = params;
-  const response = await api.put<FormSchema>(`/v0/orgs/${organizationId}/form_schemas/${formSchemaId}`, formSchema);
+  const response = await api.put<FormSchema>(`/v0/orgs/${organizationId}/forms/${formSchemaId}`, formSchema);
   return response.data;
 };
 
 export const deleteFormSchemaApi = async (params: DeleteFormSchemaParams): Promise<void> => {
   const { organizationId, formSchemaId } = params;
-  await api.delete(`/v0/orgs/${organizationId}/form_schemas/${formSchemaId}`);
+  await api.delete(`/v0/orgs/${organizationId}/forms/${formSchemaId}`);
 };
