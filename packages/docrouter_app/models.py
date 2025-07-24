@@ -134,7 +134,7 @@ class JsonSchemaProperty(BaseModel):
     items: ForwardRef('JsonSchemaProperty') | None = None
     properties: Dict[str, ForwardRef('JsonSchemaProperty')] | None = None
 
-class ResponseFormat(BaseModel):
+class SchemaResponseFormat(BaseModel):
     type: Literal['json_schema']
     json_schema: dict = Field(
         ..., 
@@ -181,7 +181,7 @@ class ResponseFormat(BaseModel):
 
 class SchemaConfig(BaseModel):
     name: str
-    response_format: ResponseFormat
+    response_format: SchemaResponseFormat
 
 class Schema(SchemaConfig):
     schema_revid: str # MongoDB's _id

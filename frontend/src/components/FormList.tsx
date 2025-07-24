@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { listSchemasApi, deleteSchemaApi, updateSchemaApi, createSchemaApi } from '@/utils/api';
-import { SchemaField, Schema, ResponseFormat, JsonSchemaProperty } from '@/types/index';
+import { SchemaField, Schema, SchemaResponseFormat, JsonSchemaProperty } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';
@@ -177,7 +177,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   );
 
   // Helper function to convert JSON schema to fields for display
-  const jsonSchemaToFields = (responseFormat: ResponseFormat): SchemaField[] => {
+  const jsonSchemaToFields = (responseFormat: SchemaResponseFormat): SchemaField[] => {
     const fields: SchemaField[] = [];
     const properties = responseFormat.json_schema.schema.properties;
 

@@ -16,7 +16,7 @@ from .llm import (
 )
 from .schema import (
     JsonSchemaProperty,
-    ResponseFormat,
+    SchemaResponseFormat,
     SchemaConfig,
     Schema,
     ListSchemasResponse
@@ -53,7 +53,7 @@ __all__ = [
     
     # Schema models
     "JsonSchemaProperty",
-    "ResponseFormat",
+    "SchemaResponseFormat",
     "SchemaConfig",
     "Schema",
     "ListSchemasResponse",

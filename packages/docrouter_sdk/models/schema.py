@@ -7,13 +7,13 @@ class JsonSchemaProperty(BaseModel):
     format: Optional[str] = None
     description: Optional[str] = None
     
-class ResponseFormat(BaseModel):
+class SchemaResponseFormat(BaseModel):
     type: Literal['json_schema']
     json_schema: dict
 
 class SchemaConfig(BaseModel):
     name: str
-    response_format: ResponseFormat
+    response_format: SchemaResponseFormat
 
 class Schema(SchemaConfig):
     schema_revid: str

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createSchemaApi, updateSchemaApi, getSchemaApi } from '@/utils/api';
-import { SchemaField, SchemaConfig, ResponseFormat, JsonSchemaProperty } from '@/types/index';
+import { SchemaField, SchemaConfig, SchemaResponseFormat, JsonSchemaProperty } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
@@ -186,7 +186,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({
   const [jsonSchema, setJsonSchema] = useState('');
 
   // Define jsonSchemaToFields with useCallback
-  const jsonSchemaToFields = useCallback((responseFormat: ResponseFormat): SchemaField[] => {
+  const jsonSchemaToFields = useCallback((responseFormat: SchemaResponseFormat): SchemaField[] => {
     const fields: SchemaField[] = [];
     const properties = responseFormat.json_schema.schema.properties;
 
@@ -541,7 +541,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({
   };
 
   // Update fieldsToJsonSchema to handle arrays
-  const fieldsToJsonSchema = (fields: SchemaField[]): ResponseFormat => {
+  const fieldsToJsonSchema = (fields: SchemaField[]): SchemaResponseFormat => {
     const responseFormat = {
       type: 'json_schema' as const,
       json_schema: {

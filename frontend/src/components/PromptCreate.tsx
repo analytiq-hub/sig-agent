@@ -5,7 +5,7 @@ import { createPromptApi, updatePromptApi, listSchemasApi, getSchemaApi, listTag
 import { PromptConfig, Schema, Tag, LLMModel } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import dynamic from 'next/dynamic';
-import { ResponseFormat } from '@/types/schemas';
+import { SchemaResponseFormat } from '@/types/schemas';
 import InfoTooltip from '@/components/InfoTooltip';
 import TagSelector from './TagSelector';
 import { toast } from 'react-toastify';
@@ -250,7 +250,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
   };
 
   // Helper function
-  const jsonSchemaToFields = (responseFormat: ResponseFormat) => {
+  const jsonSchemaToFields = (responseFormat: SchemaResponseFormat) => {
     const fields = [];
     const properties = responseFormat.json_schema.schema.properties;
     

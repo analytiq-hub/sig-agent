@@ -7,7 +7,7 @@ export interface JsonSchemaProperty {
   required?: string[];  // Add this for object types to specify required properties
 }
 
-export interface ResponseFormat {
+export interface SchemaResponseFormat {
   type: 'json_schema';
   json_schema: {
     name: string;
@@ -25,7 +25,7 @@ export interface Schema {
   schema_revid: string; // MongoDB's _id
   schema_id: string;  // Stable identifier
   name: string;
-  response_format: ResponseFormat;
+  response_format: SchemaResponseFormat;
   schema_version: number;
   created_at: string;
   created_by: string;
@@ -42,7 +42,7 @@ export interface SchemaField {
 
 export interface SchemaConfig {
   name: string;
-  response_format: ResponseFormat;
+  response_format: SchemaResponseFormat;
 }
 
 export interface CreateSchemaParams extends SchemaConfig {
