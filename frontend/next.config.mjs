@@ -16,9 +16,10 @@ const nextConfig = {
       ];
     }
 
-    // Handle ESM modules
+    // Handle ESM modules - exclude PDF.js worker
     config.module.rules.push({
       test: /\.m?js$/,
+      exclude: /pdf\.worker\.min\.mjs$/,
       type: 'javascript/auto',
       resolve: {
         fullySpecified: false,
