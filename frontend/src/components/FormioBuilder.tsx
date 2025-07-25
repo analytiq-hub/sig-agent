@@ -24,7 +24,7 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ formJson, onChange }) => 
       builderInstance.current = null;
     }
 
-    // Create the Formio builder
+    // Create the Formio builder (iconClass configured globally in FormioProvider)
     const builder = new FormBuilder(builderRef.current, formJson || {}, {});
     
     builderInstance.current = builder;

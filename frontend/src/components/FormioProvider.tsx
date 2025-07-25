@@ -10,7 +10,7 @@ export default function FormioProvider({
   children: React.ReactNode
 }) {
   useEffect(() => {
-    // Initialize Formio with Tailwind on the client side
+    // Initialize Formio with Tailwind (uses Boxicons by default)
     Formio.use(tailwind);
     Templates.framework = "tailwind";
   }, []);

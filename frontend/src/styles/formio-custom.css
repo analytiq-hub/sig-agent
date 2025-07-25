@@ -10,6 +10,19 @@
   margin-bottom: 0.25rem !important;
 }
 
+/* Ensure icons are displayed properly */
+.formio-builder .bx,
+.formio-builder [class^="bx-"],
+.formio-builder [class*=" bx-"] {
+  font-family: "boxicons" !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  display: inline-block !important;
+  line-height: 1 !important;
+  text-rendering: auto !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
 .formio-builder .formio-component {
   margin-bottom: 0.25rem !important;
 }
