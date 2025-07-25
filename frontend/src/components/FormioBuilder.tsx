@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { FormBuilder } from 'formiojs';
 import type { FormBuilder as FormioFormBuilder, Form as FormioForm } from 'formiojs';
+import '@/styles/formio-custom.css';
 
 interface FormioBuilderProps {
   formJson?: FormioForm | object;

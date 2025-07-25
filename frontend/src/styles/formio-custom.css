@@ -1,0 +1,21 @@
+/* frontend/src/styles/formio-custom.css */
+.formio-builder .btn, 
+.formio-builder .btn-primary, 
+.formio-builder .btn-default {
+  font-size: 0.85rem !important;
+  padding: 0.25rem 0.5rem !important;
+  border-radius: 0.375rem !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  line-height: 1.2 !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.formio-builder .formio-component {
+  margin-bottom: 0.25rem !important;
+}
+
+.formio-builder .formio-builder-panel-premium,
+.formio-builder .formio-builder-panel-data {
+  display: none !important;
+}
