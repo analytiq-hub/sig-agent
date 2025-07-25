@@ -204,7 +204,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             transition-all duration-300 ease-in-out 
             bg-blue-50
             border-r border-gray-200
-            ${open ? 'w-50' : 'w-16'}
+            ${open ? 'w-48' : 'w-16'}
           `}
         >
           <nav className="flex h-full flex-col overflow-hidden">

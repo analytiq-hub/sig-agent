@@ -1,9 +1,12 @@
+/* Import Bootstrap and Formio before Tailwind */
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import 'formiojs/dist/formio.full.min.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @import 'react-toastify/dist/ReactToastify.css';
-@import 'formiojs/dist/formio.full.min.css';
 
 :root {
   --background: #ecf0f1;
