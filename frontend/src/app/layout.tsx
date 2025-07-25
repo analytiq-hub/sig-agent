@@ -7,6 +7,7 @@ import { OrganizationProvider } from '@/contexts/OrganizationContext';
 import { getAppServerSession } from '@/utils/session';
 import { Toaster } from 'react-hot-toast';
 import { ToastContainer } from 'react-toastify';
+import FormioProvider from '@/components/FormioProvider';
 
 export const metadata = {
   title: 'Smart Document Router',
@@ -28,7 +29,9 @@ export default async function RootLayout({
         <ThemeRegistry>
           <SessionProvider session={appSession}>
             <OrganizationProvider>
-              <Layout>{children}</Layout>
+              <FormioProvider>
+                <Layout>{children}</Layout>
+              </FormioProvider>
             </OrganizationProvider>
           </SessionProvider>
         </ThemeRegistry>

@@ -3,6 +3,7 @@
 import TerserPlugin from 'terser-webpack-plugin';
 
 const nextConfig = {  
+  transpilePackages: ['@tsed/react-formio', '@tsed/tailwind-formio'],
   webpack: (config) => {
     if (config.optimization) {
       config.optimization.minimizer = [
@@ -14,6 +15,16 @@ const nextConfig = {
         }),
       ];
     }
+
+    // Handle ESM modules
+    config.module.rules.push({
+      test: /\.m?js$/,
+      type: 'javascript/auto',
+      resolve: {
+        fullySpecified: false,
+      },
+    });
+
     return config;
   },
 };
