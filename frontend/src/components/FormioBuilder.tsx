@@ -1,16 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import { Templates } from '@tsed/react-formio';
 import { FormBuilder } from 'formiojs';
-import type { FormBuilder as FormioFormBuilder, Form as FormioForm } from 'formiojs';
+import type { Form } from 'formiojs';
 
 interface FormioBuilderProps {
-  formJson?: FormioForm | object;
-  onChange?: (schema: FormioForm | object) => void;
+  formJson?: Form | object;
+  onChange?: (schema: Form | object) => void;
 }
 
 const FormioBuilder: React.FC<FormioBuilderProps> = ({ formJson, onChange }) => {
   const builderRef = useRef<HTMLDivElement>(null);
-  const builderInstance = useRef<FormioFormBuilder | null>(null);
+  const builderInstance = useRef<FormBuilder | null>(null);
 
   useEffect(() => {
     // Ensure we're using the Tailwind template

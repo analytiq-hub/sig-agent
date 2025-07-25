@@ -19,6 +19,7 @@ export interface FormResponseFormat {
     };
     strict: boolean;
   };
+  json_formio?: object | null; // Just use any for the free-form dict
 }
 
 export interface Form {

@@ -12,7 +12,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import type { Form as FormioForm } from 'formiojs';
+import { Form } from 'formiojs';
 
 // Dynamically import to avoid SSR issues
 const FormioBuilder = dynamic(() => import('./FormioBuilder'), { ssr: false });
@@ -189,7 +189,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   const [expandedArrayFields, setExpandedArrayFields] = useState<Record<number, boolean>>({});
   const [activeTab, setActiveTab] = useState<'fields' | 'json' | 'formio'>('fields');
   const [jsonForm, setJsonForm] = useState('');
-  const [formioJson, setFormioJson] = useState<FormioForm | object | null>(null);
+  // Use Form type for state
+  const [formioJson, setFormioJson] = useState<Form | null>(null);
 
   // Define jsonFormToFields with useCallback
   const jsonFormToFields = useCallback((responseFormat: FormResponseFormat): FormField[] => {
@@ -287,6 +288,11 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
             response_format: form.response_format
           });
           setFields(jsonFormToFields(form.response_format));
+
+          // Load Form.io schema if it exists
+          if (form.response_format.json_formio) {
+            setFormioJson(form.response_format.json_formio as Form);
+          }
         } catch (error) {
           toast.error(`Error loading form: ${getApiErrorMsg(error)}`);
         } finally {
@@ -376,10 +382,40 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
     try {
       setIsLoading(true);
       
-      if (currentFormId) {
-        await updateFormApi({organizationId: organizationId, formId: currentFormId, form});
+      // Determine which schema to save
+      const hasJsonForm = form.response_format.json_form && Object.keys(form.response_format.json_form.form.properties).length > 0;
+      const hasFormioForm = form.response_format.json_formio && typeof form.response_format.json_formio === 'object' && 'components' in form.response_format.json_formio;
+      
+      let formToSave: FormConfig;
+      
+      if (hasJsonForm && !hasFormioForm) {
+        // Save only json_form
+        formToSave = {
+          ...form,
+          response_format: {
+            ...form.response_format,
+            json_formio: undefined
+          }
+        };
+      } else if (hasFormioForm && !hasJsonForm) {
+        // Save only json_formio (keep empty json_form)
+        formToSave = {
+          ...form,
+          response_format: {
+            ...form.response_format,
+            json_formio: form.response_format.json_formio
+          }
+        };
       } else {
-        await createFormApi({organizationId: organizationId, ...form });
+        // Save both or neither (error case)
+        toast.error('Please define either a JSON form or a Form.io form');
+        return;
+      }
+      
+      if (currentFormId) {
+        await updateFormApi({organizationId: organizationId, formId: currentFormId, form: formToSave});
+      } else {
+        await createFormApi({organizationId: organizationId, ...formToSave });
       }      
 
       router.push(`/orgs/${organizationId}/forms`);
@@ -514,6 +550,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('currentForm', currentForm);
     if (!currentForm.name || fields.some(f => !f.name)) {
       toast.error('Please fill in all fields');
       return;
@@ -696,6 +733,13 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
     return result;
   };
 
+  // Update the handler to accept the Formio library's Form type
+  const handleFormioChange = (formioForm: Form | object) => {
+    if (formioForm) {
+      setFormioJson(formioForm as Form);
+    }
+  };
+
   return (
     <div className="p-4 mx-auto">
       <div className="bg-white p-6 rounded-lg shadow mb-6">
@@ -755,6 +799,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                       }
                     }
                   });
+                  setFormioJson(null); // Clear Form.io schema
                 }}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
                 disabled={isLoading}
@@ -1019,7 +1064,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                 <div className="formio-scope h-full">
                   <FormioBuilder
                     formJson={formioJson ?? undefined}
-                    onChange={setFormioJson}
+                    onChange={handleFormioChange}
                   />
                 </div>
               </div>

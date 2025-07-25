@@ -261,6 +261,33 @@ class FormResponseFormat(BaseModel):
             }
         }
     )
+    json_formio: Optional[dict] = Field(
+        default=None,
+        description="Form.io form schema",
+        json_formio_extra={
+            "example": {
+                "components": [
+                    {
+                        "type": "textfield",
+                        "key": "firstName",
+                        "label": "First Name",
+                        "input": True,
+                        "tableView": True,
+                        "validate": {
+                            "required": True
+                        }
+                    }
+                ],
+                "display": "form",
+                "settings": {
+                    "pdf": {
+                        "id": "formio-pdf",
+                        "src": "https://cdn.form.io/pdfjs/web/viewer.html"
+                    }
+                }
+            }
+        }
+    )
 
     @field_validator('json_form')
     def validate_json_form(cls, v):
@@ -282,6 +309,35 @@ class FormResponseFormat(BaseModel):
         if 'additionalProperties' not in form:
             raise ValueError("Form must specify 'additionalProperties'")
             
+        return v
+
+    @field_validator('json_formio')
+    def validate_json_formio(cls, v):
+        if v is None:
+            return v
+        
+        # Basic validation for Form.io schema
+        if not isinstance(v, dict):
+            raise ValueError("Form.io schema must be a dictionary")
+        
+        # Check for required Form.io structure
+        if 'components' not in v:
+            raise ValueError("Form.io schema must contain 'components' array")
+        
+        if not isinstance(v['components'], list):
+            raise ValueError("Form.io components must be an array")
+        
+        # Validate each component has required fields
+        for i, component in enumerate(v['components']):
+            if not isinstance(component, dict):
+                raise ValueError(f"Component {i} must be a dictionary")
+            
+            if 'type' not in component:
+                raise ValueError(f"Component {i} must have a 'type' field")
+            
+            if 'key' not in component:
+                raise ValueError(f"Component {i} must have a 'key' field")
+        
         return v
 
 class FormConfig(BaseModel):
