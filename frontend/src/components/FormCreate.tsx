@@ -1015,8 +1015,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                 />
               </div>
             ) : activeTab === 'formio' && (
-              <div className="h-[calc(100vh-300px)]">
-                <div className="formio-scope">
+              <div className="flex-1 min-h-0">
+                <div className="formio-scope h-full">
                   <FormioBuilder
                     formJson={formioJson ?? undefined}
                     onChange={setFormioJson}
