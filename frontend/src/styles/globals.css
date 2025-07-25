@@ -9,6 +9,7 @@
 @import "./fonts/inconsolata/index.css";
 @import "./fonts/bxicons/index.css"; */
 @import "~@tsed/tailwind-formio/styles/index.css";
+@import './formio-custom.css';
 
 @import 'react-toastify/dist/ReactToastify.css';
 

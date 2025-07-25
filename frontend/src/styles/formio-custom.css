@@ -19,3 +19,28 @@
 .formio-builder .formio-builder-panel-data {
   display: none !important;
 }
+
+/* Force the builder to be a horizontal flex container */
+.formio.builder.formbuilder {
+  display: flex !important;
+  flex-direction: row !important;
+  height: 100%;
+}
+
+/* Sidebar: fixed width, scrollable if needed */
+.formio.builder.formbuilder .formcomponents {
+  min-width: 260px;
+  max-width: 320px;
+  flex: 0 0 260px;
+  margin-right: 1rem;
+  overflow-y: auto;
+  height: 100%;
+}
+
+/* Form area: take the rest of the space */
+.formio.builder.formbuilder .formarea {
+  flex: 1 1 0%;
+  min-width: 0;
+  overflow-y: auto;
+  height: 100%;
+}
