@@ -28,11 +28,10 @@ import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import { OCRProvider } from '@/contexts/OCRContext';
 import type { OCRBlock, HighlightInfo } from '@/types/index';
 
-// Set the PDF.js worker source
-if (typeof window !== 'undefined') {
-  // Disable worker for now to avoid CDN issues
-  pdfjs.GlobalWorkerOptions.workerSrc = '';
-}
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
   fontSize: '0.875rem',
@@ -110,7 +109,6 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
 
     const loadPDF = async () => {
       try {
-        console.log('Loading PDF for document:', id, 'organization:', organizationId);
         const response = await getDocumentApi(
           {
             organizationId: organizationId,
@@ -119,23 +117,22 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
           }
         );
         
-        console.log('PDF response received, content size:', response.content.byteLength);
-        
         // Create a blob from the array buffer
         const blob = new Blob([response.content], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
 
-        console.log('Created blob URL:', url, 'blob size:', blob.size);
-
         if (isMounted) {
-          setFile(url);
+          // Load the PDF data directly instead of using the blob URL
+          const loadingTask = pdfjs.getDocument({ data: response.content });
+          await loadingTask.promise;  // Wait for PDF to load before continuing
+          
+          setFile(url);  // Keep the URL for download/print functionality
           fileRef.current = url;
           setLoading(false);
 
           // Use metadata from the response
           setFileName(response.metadata.document_name);
           setFileSize(blob.size);
-          console.log('PDF loaded successfully');
         } else {
           if (url) {
             URL.revokeObjectURL(url);
@@ -222,37 +219,27 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
   const [originalRotation, setOriginalRotation] = useState(0);
 
   const handleLoadSuccess = ({ numPages }: { numPages: number }) => {
-    console.log('PDF loaded successfully with', numPages, 'pages');
     setNumPages(numPages);
     setPageNumber(1);
     pageRefs.current = new Array(numPages).fill(null);
-    setError(null);
     
-    // Get the PDF document from the react-pdf Document component
-    if (file) {
-      console.log('Getting PDF properties for file:', file);
-      pdfjs.getDocument(file).promise.then((pdf) => {
-        console.log('PDF document loaded for properties');
-        extractDocumentProperties(pdf);
+    pdfjs.getDocument(file!).promise.then((pdf) => {
+      extractDocumentProperties(pdf);
+      
+      // Get the first page and check its rotation
+      pdf.getPage(1).then((page) => {
+        const viewport = page.getViewport({ scale: 1 });
+        setPdfDimensions({ width: viewport.width, height: viewport.height });
         
-        // Get the first page and check its rotation
-        pdf.getPage(1).then((page) => {
-          const viewport = page.getViewport({ scale: 1 });
-          setPdfDimensions({ width: viewport.width, height: viewport.height });
-          
-          // Store the original rotation
-          setOriginalRotation(page.rotate || 0);
-          console.log('PDF dimensions set:', { width: viewport.width, height: viewport.height });
-        });
-      }).catch((error) => {
-        console.error('Error getting PDF properties:', error);
+        // Store the original rotation
+        setOriginalRotation(page.rotate || 0);
       });
-    }
+    });
   };
 
   const handleLoadError = (error: { message: string }) => {
-    console.error('PDF Load Error:', error);
     setError(error.message);
+    console.error('PDF Load Error:', error);
   };
 
   const goToNextPage = () => {
