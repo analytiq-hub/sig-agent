@@ -23,7 +23,8 @@
     "@mui/icons-material": "^6.1.4",
     "@mui/material": "^6.1.1",
     "@mui/x-data-grid": "^7.21.0",
-    "autoprefixer": "^10.4.20",
+    "@tsed/tailwind-formio": "^2.3.6",
+    "autoprefixer": "^10.4.21",
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
     "bootstrap": "^5.3.7",
@@ -58,8 +59,9 @@
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.13",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
+    "postcss": "^8.5.6",
+    "postcss-nested": "^4.2.3",
+    "tailwindcss": "^3.4.17",
     "terser-webpack-plugin": "^5.3.10",
     "typescript": "^5"
   }
