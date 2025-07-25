@@ -63,16 +63,16 @@ export interface ListFormsResponse {
 
 export interface GetFormParams {
   organizationId: string;
-  formId: string;
+  formRevId: string; // GET uses form revision ID
 }
 
 export interface UpdateFormParams {
   organizationId: string;
-  formId: string;
+  formId: string; // UPDATE uses form ID
   form: FormConfig;
 }
 
 export interface DeleteFormParams {
   organizationId: string;
-  formId: string;
+  formId: string; // DELETE uses form ID
 }

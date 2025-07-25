@@ -280,7 +280,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
       if (formId) {
         setIsLoading(true);
         try {
-          const form = await getFormApi({ organizationId, formId });
+          const form = await getFormApi({ organizationId, formRevId: formId });
           setCurrentFormId(form.form_id);
           setCurrentForm({
             name: form.name,

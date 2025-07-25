@@ -486,8 +486,8 @@ export const listFormsApi = async (params: ListFormsParams): Promise<ListFormsRe
 };
 
 export const getFormApi = async (params: GetFormParams): Promise<Form> => {
-  const { organizationId, formId } = params;
-  const response = await api.get<Form>(`/v0/orgs/${organizationId}/forms/${formId}`);
+  const { organizationId, formRevId } = params;
+  const response = await api.get<Form>(`/v0/orgs/${organizationId}/forms/${formRevId}`);
   return response.data;
 };
 
