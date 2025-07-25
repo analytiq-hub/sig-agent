@@ -5,6 +5,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* @import "./fonts/source-sans-pro/index.css";
+@import "./fonts/inconsolata/index.css";
+@import "./fonts/bxicons/index.css"; */
+/* @import "~@tsed/tailwind-formio/styles/index.css"; */
+
 @import 'react-toastify/dist/ReactToastify.css';
 
 :root {
