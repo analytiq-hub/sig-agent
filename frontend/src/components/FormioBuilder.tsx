@@ -4,7 +4,7 @@ import { FormBuilder } from 'formiojs';
 import type { Form } from 'formiojs';
 
 interface FormioBuilderProps {
-  formJson?: Form | object;
+  jsonFormio?: string;
   onChange?: (schema: Form | object) => void;
 }
 
@@ -12,7 +12,7 @@ interface FormWithComponents extends Form {
   components: unknown[];
 }
 
-const FormioBuilder: React.FC<FormioBuilderProps> = ({ formJson, onChange }) => {
+const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) => {
   const builderRef = useRef<HTMLDivElement>(null);
   const builderInstance = useRef<FormBuilder | null>(null);
   const onChangeRef = useRef(onChange);
@@ -30,8 +30,13 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ formJson, onChange }) => 
 
     // Only create the builder once
     if (!builderInstance.current) {
+      let form = {};
+      if (jsonFormio != '') {
+        form = {components: JSON.parse(jsonFormio || '{}')};
+      }
+  
       // Create the Formio builder (iconClass configured globally in FormioProvider)
-      const builder = new FormBuilder(builderRef.current, formJson || {}, {});
+      const builder = new FormBuilder(builderRef.current, form, {});
       
       builderInstance.current = builder;
       
