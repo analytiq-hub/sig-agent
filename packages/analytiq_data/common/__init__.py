@@ -1,6 +1,7 @@
 from .client import *
 from .doc import *
 from .file import *
+from .forms import *
 from .id import *
 from .ocr import *
 from .prompts import *
