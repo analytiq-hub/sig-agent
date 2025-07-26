@@ -261,7 +261,7 @@ class FormResponseFormat(BaseModel):
             }
         }
     )
-    json_formio: Optional[dict] = Field(
+    json_formio: Optional[List[dict]] = Field(  # Changed from Optional[dict] to Optional[List[dict]]
         default=None,
         description="Form.io schema definition"
     )
@@ -277,8 +277,8 @@ class FormResponseFormat(BaseModel):
     @field_validator('json_formio')
     def validate_json_formio(cls, v):
         if v is not None:
-            if not isinstance(v, dict):
-                raise ValueError("json_formio must be a dictionary")
+            if not isinstance(v, list):
+                raise ValueError("json_formio must be a list")
         return v
 
     @model_validator(mode='after')
