@@ -290,12 +290,14 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
             <label className="block text-sm font-medium text-gray-700">
               Tags
             </label>
-            <TagSelector
-              availableTags={availableTags}
-              selectedTagIds={selectedTagIds}
-              onChange={setSelectedTagIds}
-              disabled={isLoading}
-            />
+            <div className="w-full md:w-1/4">
+              <TagSelector
+                availableTags={availableTags}
+                selectedTagIds={selectedTagIds}
+                onChange={setSelectedTagIds}
+                disabled={isLoading}
+              />
+            </div>
           </div>
         </form>
       </div>
