@@ -190,9 +190,9 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   const [activeTab, setActiveTab] = useState<'fields' | 'json' | 'formio' | 'jsonFormio'>('formio');
   const [jsonForm, setJsonForm] = useState('');
   // Use Form type for state
-  const [jsonFormio, setJsonFormio] = useState('[]'); // Initialize with empty array string instead of empty string
+  const [jsonFormio, setJsonFormio] = useState('[]'); // Initialize with a proper form structure that includes Submit button
   // Add state for JSON Formio editor
-  const [jsonFormioEditor, setJsonFormioEditor] = useState('');
+  const [jsonFormioEditor, setJsonFormioEditor] = useState('[]');
 
   // Define jsonFormToFields with useCallback
   const jsonFormToFields = useCallback((responseFormat: FormResponseFormat): FormField[] => {
@@ -320,8 +320,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
           }
         });
         setFields([{ name: '', type: 'str' }]);
-        setJsonFormio('[]'); // Initialize with empty array string
-        setJsonFormioEditor('[]'); // Initialize with empty array string
+        setJsonFormio('[]'); // Let FormioBuilder handle the initial structure
+        setJsonFormioEditor('[]');
       }
     }
     loadForm();
@@ -842,8 +842,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                       json_formio: []
                     }
                   });
-                  setJsonFormio('[]'); // Clear with empty array string
-                  setJsonFormioEditor('[]'); // Clear with empty array string
+                  setJsonFormio('[]'); // Let FormioBuilder handle the initial structure
+                  setJsonFormioEditor('[]');
                 }}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
                 disabled={isLoading}

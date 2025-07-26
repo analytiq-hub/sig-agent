@@ -72,9 +72,14 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
       (builder.events as { on: (event: string, handler: () => void) => void }).on('formio.change', handleFormChange);
     }
 
-    // Set initialization to false after a short delay
+    // Trigger initial change after builder is ready to sync the actual form structure
     setTimeout(() => {
       isInitializing.current = false;
+      // Trigger initial change to sync the actual form structure (including default Submit button)
+      if (onChangeRef.current) {
+        const currentForm: FormWithComponents = (builder as FormBuilder & { _form: FormWithComponents })._form;
+        onChangeRef.current(currentForm.components);
+      }
     }, 100);
 
     // Cleanup on unmount
