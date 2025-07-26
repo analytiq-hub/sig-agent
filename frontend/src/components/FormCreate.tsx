@@ -313,7 +313,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                 additionalProperties: false
               },
               strict: true
-            }
+            },
+            json_formio: {}
           }
         });
         setFields([{ name: '', type: 'str' }]);
@@ -384,7 +385,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
       
       // Determine which schema to save
       const hasJsonForm = form.response_format.json_form && Object.keys(form.response_format.json_form.form.properties).length > 0;
-      const hasFormioForm = form.response_format.json_formio && typeof form.response_format.json_formio === 'object' && 'components' in form.response_format.json_formio;
+      const hasFormioForm = form.response_format.json_formio;
       
       let formToSave: FormConfig;
       
@@ -551,8 +552,12 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('currentForm', currentForm);
-    if (!currentForm.name || fields.some(f => !f.name)) {
-      toast.error('Please fill in all fields');
+    if (!currentForm.name) {
+      toast.error('Please enter a form name');
+      return;
+    }
+    if (fields.some(f => !f.name) && jsonFormio.length == 0) {
+      toast.error('Cannot save a form with no fields');
       return;
     }
 
@@ -577,7 +582,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
             additionalProperties: false
           },
           strict: true
-        }
+        },
+        json_formio: {}
       }
     });
     setCurrentFormId(null);
@@ -740,6 +746,14 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
       // Convert to string
       const formioFormString = JSON.stringify(formioForm, null, 2);
       setJsonFormio(formioFormString);
+
+      setCurrentForm(prev => ({
+        ...prev,
+        response_format: {
+          ...prev.response_format,
+          json_formio: formioForm
+        }
+      }));
     }
   };
 
@@ -799,7 +813,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                           additionalProperties: false
                         },
                         strict: true
-                      }
+                      },
+                      json_formio: {}
                     }
                   });
                   setJsonFormio(''); // Clear Form.io schema
