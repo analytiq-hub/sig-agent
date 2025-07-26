@@ -382,7 +382,6 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
     try {
       setIsLoading(true);
     
-      
       if (currentFormId) {
         await updateFormApi({organizationId: organizationId, formId: currentFormId, form: form});
       } else {
@@ -521,11 +520,11 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
 
   // Add a separate handler for the submit button
   const handleSaveClick = () => {
-    // console.log('=== handleSaveClick called ===');
-    // console.log('Current form state:', currentForm);
-    // console.log('Fields state:', fields);
-    // console.log('JSON Formio state:', jsonFormio);
-    // console.log('Active tab:', activeTab);
+    console.log('=== handleSaveClick called ===');
+    console.log('Current form state:', currentForm);
+    console.log('Fields state:', fields);
+    console.log('JSON Formio state:', jsonFormio);
+    console.log('Active tab:', activeTab);
     
     if (!currentForm.name) {
       toast.error('Please enter a form name');
@@ -541,6 +540,9 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
       toast.error(`Error: ${fieldError}`);
       return;
     }
+
+    // Update the currentForm.response_format.json_formio with the jsonFormio
+    currentForm.response_format.json_formio = JSON.parse(jsonFormio);
 
     console.log('About to save form...');
     saveForm(currentForm);
@@ -562,13 +564,12 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
       }
     });
     setCurrentFormId(null);
-    // console.log('=== handleSaveClick completed ===');
+    console.log('=== handleSaveClick completed ===');
   };
 
   // Update fieldsToJsonForm to handle arrays
   const fieldsToJsonForm = (fields: FormField[]): FormResponseFormat => {
     const responseFormat = {
-      type: 'json_form' as const,
       json_form: {
         name: 'document_extraction',
         form: {
