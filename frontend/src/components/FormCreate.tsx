@@ -519,28 +519,6 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
     return null;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    console.log('=== handleSubmit called ===');
-    console.log('Event:', e);
-    console.log('Event type:', e.type);
-    console.log('Current form state:', currentForm);
-    console.log('Fields state:', fields);
-    console.log('JSON Formio state:', jsonFormio);
-    console.log('Active tab:', activeTab);
-    
-    e.preventDefault();
-    
-    // Prevent submission if we're on the Formio tab and there's Formio data
-    if (activeTab === 'formio') {
-      console.log('Preventing form submission on Formio tab - this is likely triggered by Formio builder interaction');
-      console.log('=== handleSubmit completed ===');
-      return;
-    }
-
-    console.log('=== handleSubmit completed ===');
-    return;
-  };
-
   // Add a separate handler for the submit button
   const handleSaveClick = () => {
     console.log('=== handleSaveClick called ===');
@@ -1088,12 +1066,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
               </div>
             ) : activeTab === 'formio' && (
               <div className="flex-1 min-h-0">
-                <div 
-                  className="formio-scope h-full" 
-                  onKeyDown={(e) => e.stopPropagation()}
-                  onSubmit={(e) => e.preventDefault()}
-                  onClick={(e) => e.stopPropagation()}
-                >
+                <div className="formio-scope h-full">
                   <FormioBuilder
                     jsonFormio={jsonFormio}
                     onChange={handleFormioChange}
