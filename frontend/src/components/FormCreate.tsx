@@ -3,11 +3,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createFormApi, updateFormApi, listTagsApi, getFormApi } from '@/utils/api';
 import { FormConfig } from '@/types/forms';
+import { Tag } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import TagSelector from './TagSelector';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
 import FormioBuilder from './FormioBuilder';
+import Editor from "@monaco-editor/react";
+import InfoTooltip from '@/components/InfoTooltip';
 
 const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ organizationId, formId }) => {
   const router = useRouter();
@@ -32,6 +35,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   const [isLoading, setIsLoading] = useState(false);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'builder' | 'json'>('builder');
+  const [jsonForm, setJsonForm] = useState('');
 
   // Load editing form if available
   useEffect(() => {
@@ -70,6 +75,58 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   useEffect(() => {
     loadTags();
   }, [loadTags]);
+
+  // Update jsonForm when currentForm changes
+  useEffect(() => {
+    setJsonForm(JSON.stringify(currentForm.response_format, null, 2));
+  }, [currentForm]);
+
+  // Add handler for JSON form changes
+  const handleJsonFormChange = (value: string | undefined) => {
+    if (!value) return;
+    try {
+      const parsedForm = JSON.parse(value);
+      
+      // Validate form structure
+      if (!parsedForm.json_form || !parsedForm.json_form.form) {
+        toast.error('Error: Invalid form format. Must contain json_form.form');
+        return;
+      }
+      
+      const form = parsedForm.json_form.form;
+      
+      // Validate required properties
+      if (!form.type || form.type !== 'object') {
+        toast.error('Error: Form type must be "object"');
+        return;
+      }
+      
+      if (!form.properties || typeof form.properties !== 'object') {
+        toast.error('Error: Form must have properties object');
+        return;
+      }
+      
+      if (!Array.isArray(form.required)) {
+        toast.error('Error: Form must have required array');
+        return;
+      }
+      
+      // Check additionalProperties is present and is boolean
+      if (typeof form.additionalProperties !== 'boolean') {
+        toast.error('Error: additionalProperties must be a boolean');
+        return;
+      }
+      
+      // Update form
+      setCurrentForm(prev => ({
+        ...prev,
+        response_format: parsedForm
+      }));
+    } catch (error) {
+      // Invalid JSON - don't update
+      toast.error(`Error: Invalid JSON syntax: ${error}`);
+    }
+  };
 
   const saveForm = async () => {
     try {
@@ -140,9 +197,26 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   return (
     <div className="p-4 w-full">
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-bold mb-4">
-          {currentFormId ? 'Edit Form' : 'Create Form'}
-        </h2>
+        <div className="hidden md:flex items-center gap-2 mb-4">
+          <h2 className="text-xl font-bold">
+            {currentFormId ? 'Edit Form' : 'Create Form'}
+          </h2>
+          <InfoTooltip 
+            title="About Forms"
+            content={
+              <>
+                <p className="mb-2">
+                  Forms are used to validate and structure data extracted from documents.
+                </p>
+                <ul className="list-disc list-inside space-y-1 mb-2">
+                  <li>Use descriptive field names</li>
+                  <li>Choose appropriate data types for each field</li>
+                  <li>All fields defined in a form are required by default</li>
+                </ul>
+              </>
+            }
+          />
+        </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Form Name Input */}
@@ -196,20 +270,73 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
             </div>
           </div>
 
-          {/* Form Builder */}
-          <div className="border rounded-lg overflow-hidden bg-white">
-            <FormioBuilder
-              jsonFormio={JSON.stringify(currentForm.response_format.json_formio || [])}
-              onChange={(components) => {
-                setCurrentForm(prev => ({
-                  ...prev,
-                  response_format: {
-                    ...prev.response_format,
-                    json_formio: components
-                  }
-                }));
-              }}
-            />
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-200 mb-4">
+            <div className="flex gap-8">
+              <button
+                type="button"
+                onClick={() => setActiveTab('builder')}
+                className={`pb-4 px-1 relative font-semibold text-base ${
+                  activeTab === 'builder'
+                    ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Form Builder
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('json')}
+                className={`pb-4 px-1 relative font-semibold text-base ${
+                  activeTab === 'json'
+                    ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                JSON Form
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="space-y-4">
+            {activeTab === 'builder' ? (
+              // Form Builder Tab
+              <div className="border rounded-lg overflow-hidden bg-white">
+                <FormioBuilder
+                  jsonFormio={JSON.stringify(currentForm.response_format.json_formio || [])}
+                  onChange={(components) => {
+                    setCurrentForm(prev => ({
+                      ...prev,
+                      response_format: {
+                        ...prev.response_format,
+                        json_formio: components
+                      }
+                    }));
+                  }}
+                />
+              </div>
+            ) : (
+              // JSON Form Tab
+              <div className="h-[calc(100vh-300px)] border rounded">
+                <Editor
+                  height="100%"
+                  defaultLanguage="json"
+                  value={jsonForm}
+                  onChange={handleJsonFormChange}
+                  options={{
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    wordWrap: "on",
+                    wrappingIndent: "indent",
+                    lineNumbers: "on",
+                    folding: true,
+                    renderValidationDecorations: "on"
+                  }}
+                  theme="vs-light"
+                />
+              </div>
+            )}
           </div>
 
           {/* Tags Section */}
