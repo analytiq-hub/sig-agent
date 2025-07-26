@@ -18,16 +18,6 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   const [currentForm, setCurrentForm] = useState<FormConfig>({
     name: '',
     response_format: {
-      json_form: {
-        name: '',
-        form: {
-          type: 'object',
-          properties: {},
-          required: [],
-          additionalProperties: false
-        },
-        strict: true
-      },
       json_formio: []
     },
     tag_ids: [] // Initialize with empty array
@@ -88,32 +78,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
       const parsedForm = JSON.parse(value);
       
       // Validate form structure
-      if (!parsedForm.json_form || !parsedForm.json_form.form) {
-        toast.error('Error: Invalid form format. Must contain json_form.form');
-        return;
-      }
-      
-      const form = parsedForm.json_form.form;
-      
-      // Validate required properties
-      if (!form.type || form.type !== 'object') {
-        toast.error('Error: Form type must be "object"');
-        return;
-      }
-      
-      if (!form.properties || typeof form.properties !== 'object') {
-        toast.error('Error: Form must have properties object');
-        return;
-      }
-      
-      if (!Array.isArray(form.required)) {
-        toast.error('Error: Form must have required array');
-        return;
-      }
-      
-      // Check additionalProperties is present and is boolean
-      if (typeof form.additionalProperties !== 'boolean') {
-        toast.error('Error: additionalProperties must be a boolean');
+      if (!parsedForm.json_formio) {
+        toast.error('Error: Invalid form format. Must contain json_formio');
         return;
       }
       
@@ -157,16 +123,6 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
       setCurrentForm({
         name: '',
         response_format: {
-          json_form: {
-            name: '',
-            form: {
-              type: 'object',
-              properties: {},
-              required: [],
-              additionalProperties: false
-            },
-            strict: true
-          },
           json_formio: []
         },
         tag_ids: []
@@ -239,16 +195,6 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                   setCurrentForm({
                     name: '',
                     response_format: {
-                      json_form: {
-                        name: '',
-                        form: {
-                          type: 'object',
-                          properties: {},
-                          required: [],
-                          additionalProperties: false
-                        },
-                        strict: true
-                      },
                       json_formio: []
                     },
                     tag_ids: []

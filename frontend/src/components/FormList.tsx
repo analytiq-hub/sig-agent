@@ -149,7 +149,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const handleDownload = (form: Form) => {
     try {
       // Create a JSON blob from the form
-      const formJson = JSON.stringify(form.response_format.json_form, null, 2);
+      const formJson = JSON.stringify(form.response_format.json_formio, null, 2);
       const blob = new Blob([formJson], { type: 'application/json' });
       
       // Create a URL for the blob

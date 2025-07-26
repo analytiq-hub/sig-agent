@@ -232,46 +232,11 @@ class ListPromptsResponse(BaseModel):
     total_count: int
     skip: int
 
-class FormProperty(BaseModel):
-    type: Literal['string', 'integer', 'number', 'boolean', 'array', 'object']
-    format: str | None = None
-    description: str | None = None
-    items: ForwardRef('FormProperty') | None = None
-    properties: Dict[str, ForwardRef('FormProperty')] | None = None
-
 class FormResponseFormat(BaseModel):
-    json_form: dict = Field(
-        ..., 
-        json_form_extra={
-            "example": {
-                "name": "document_extraction",
-                "form": {
-                    "type": "object",
-                    "properties": {
-                        "invoice_date": {
-                            "type": "string",
-                            "description": "invoice date"
-                        }
-                    },
-                    "required": ["invoice_date"],
-                    "additionalProperties": False
-                },
-                "strict": True
-            }
-        }
-    )
     json_formio: Optional[List[dict]] = Field(  # Changed from Optional[dict] to Optional[List[dict]]
         default=None,
         description="Form.io schema definition"
     )
-
-    @field_validator('json_form')
-    def validate_json_form(cls, v):
-        # Validate form follows OpenAI format
-        if not isinstance(v, dict):
-            raise ValueError("json_form must be a dictionary")
-        
-        return v
 
     @field_validator('json_formio')
     def validate_json_formio(cls, v):

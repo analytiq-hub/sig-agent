@@ -1,23 +1,4 @@
-export interface FormProperty {
-  type: 'string' | 'integer' | 'number' | 'boolean' | 'array' | 'object';
-  description?: string;
-  items?: FormProperty;  // For array types
-  properties?: Record<string, FormProperty>;  // For object types
-  additionalProperties?: boolean;  // Add this for object types
-  required?: string[];  // Add this for object types to specify required properties
-}
-
 export interface FormResponseFormat {
-  json_form: {
-    name: string;
-    form: {
-      type: 'object';
-      properties: Record<string, FormProperty>;
-      required: string[];
-      additionalProperties: boolean;
-    };
-    strict: boolean;
-  };
   json_formio?: object | null; // Just use any for the free-form dict
 }
 
@@ -30,15 +11,6 @@ export interface Form {
   created_at: string;
   created_by: string;
   tag_ids?: string[]; // Add tag_ids to match backend model
-}
-
-export interface FormField {
-  name: string;
-  type: 'str' | 'int' | 'float' | 'bool' | 'object' | 'array';
-  description?: string;
-  nestedFields?: FormField[]; // For object types
-  arrayItemType?: 'str' | 'int' | 'float' | 'bool' | 'object'; // For array types
-  arrayObjectFields?: FormField[]; // For array of objects
 }
 
 export interface FormConfig {
