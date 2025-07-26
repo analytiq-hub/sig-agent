@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { listFormsApi, deleteFormApi, updateFormApi, createFormApi } from '@/utils/api';
-import { FormField, Form, FormResponseFormat, FormProperty } from '@/types/index';
+import { listFormsApi, deleteFormApi, updateFormApi, createFormApi, listTagsApi } from '@/utils/api';
+import { FormField, Form, FormResponseFormat, FormProperty, Tag } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';
@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
 import FormNameModal from '@/components/FormNameModal';
+import { isColorLight } from '@/utils/colors';
 
 const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
@@ -30,6 +31,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [selectedForm, setSelectedForm] = useState<Form | null>(null);
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
 
   const loadForms = useCallback(async () => {
     try {
@@ -49,24 +51,29 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     }
   }, [page, pageSize, organizationId]);
 
-  const handleDelete = async (formId: string) => {
+  const loadTags = useCallback(async () => {
     try {
-      setIsLoading(true);
-      await deleteFormApi({organizationId: organizationId, formId});
-      setForms(forms.filter(form => form.form_id !== formId));
+      const response = await listTagsApi({ organizationId: organizationId });
+      setAvailableTags(response.tags);
     } catch (error) {
-      const errorMsg = getApiErrorMsg(error) || 'Error deleting form';
+      const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
       setMessage('Error: ' + errorMsg);
-      toast.error('Failed to delete form');
-    } finally {
-      setIsLoading(false);
-      handleMenuClose();
     }
-  };
+  }, [organizationId]);
 
   useEffect(() => {
-    loadForms();
-  }, [loadForms]);
+    // Load all required data at once
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([loadForms(), loadTags()]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [loadForms, loadTags]);
 
   // Update the edit handler
   const handleEdit = (form: Form) => {
@@ -113,6 +120,22 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       console.error(`Error ${isCloning ? 'cloning' : 'renaming'} form:`, error);
       toast.error(`Failed to ${isCloning ? 'clone' : 'rename'} form`);
       throw error;
+    }
+  };
+
+  // Add the missing handleDelete function
+  const handleDelete = async (formId: string) => {
+    try {
+      setIsLoading(true);
+      await deleteFormApi({organizationId: organizationId, formId});
+      setForms(forms.filter(form => form.form_id !== formId));
+    } catch (error) {
+      const errorMsg = getApiErrorMsg(error) || 'Error deleting form';
+      setMessage('Error: ' + errorMsg);
+      toast.error('Failed to delete form');
+    } finally {
+      setIsLoading(false);
+      handleMenuClose();
     }
   };
 
@@ -252,6 +275,33 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             {fields.map((field, index) => (
               <div key={index} className="text-sm text-gray-600 leading-6">
                 {`${field.name}: ${field.type}`}
+              </div>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
+      field: 'tag_ids',
+      headerName: 'Tags',
+      width: 200,
+      headerAlign: 'left',
+      align: 'left',
+      renderCell: (params) => {
+        const formTags = availableTags.filter(tag => 
+          params.row.tag_ids?.includes(tag.id)
+        );
+        return (
+          <div className="flex gap-1 flex-wrap items-center h-full">
+            {formTags.map(tag => (
+              <div
+                key={tag.id}
+                className={`px-2 py-1 rounded text-xs ${
+                  isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                } flex items-center`}
+                style={{ backgroundColor: tag.color }}
+              >
+                {tag.name}
               </div>
             ))}
           </div>

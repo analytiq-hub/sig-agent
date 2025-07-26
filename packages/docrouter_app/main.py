@@ -1689,7 +1689,7 @@ async def create_form(
         {"_id": ObjectId(form_id)},
         {"$set": {
             "name": form.name,
-            "organization_id": organization_id
+            "organization_id": organization_id,
         }},
         upsert=True
     )
@@ -1699,6 +1699,7 @@ async def create_form(
         "form_id": form_id,
         "response_format": form.response_format.model_dump(),
         "form_version": new_form_version,
+        "tag_ids": form.tag_ids,
         "created_at": datetime.now(UTC),
         "created_by": current_user.user_id
     }
@@ -1726,8 +1727,6 @@ async def list_forms(
     org_forms = await db.forms.find(
         {"organization_id": organization_id}
     ).to_list(None)
-
-    logger.info(f"list_forms() org_forms: {org_forms}")
     
     if not org_forms:
         return ListFormsResponse(forms=[], total_count=0, skip=skip)
@@ -1768,13 +1767,10 @@ async def list_forms(
     ]
     
     result = await db.form_revisions.aggregate(pipeline).to_list(length=1)
-    logger.info(f"list_forms() result: {result}")
     result = result[0]
     
     total_count = result["total"][0]["count"] if result["total"] else 0
     forms = result["forms"]
-
-    logger.info(f"list_forms() forms: {forms}")
     
     # Convert _id to id in each form and add name from forms collection
     for form in forms:
@@ -1798,11 +1794,9 @@ async def get_form(
     db = ad.common.get_async_db()
     
     # Get the form revision
-    revision = await db.form_revisions.find_one({
-        "_id": ObjectId(form_revid)
-    })
+    revision = await db.form_revisions.find_one({"_id": ObjectId(form_revid)})
     if not revision:
-        raise HTTPException(status_code=404, detail="Form not found")
+        raise HTTPException(status_code=404, detail="Form revision not found")
     
     # Get the form name and verify organization
     form = await db.forms.find_one({
@@ -1819,8 +1813,9 @@ async def get_form(
         "form_revid": str(revision['_id']),
         "form_id": revision["form_id"],
         "form_version": revision["form_version"],
+        "tag_ids": revision["tag_ids"],
         "created_at": revision["created_at"],
-        "created_by": revision["created_by"]
+        "created_by": revision["created_by"],
     }
     
     return Form(**form_data)
@@ -1832,82 +1827,90 @@ async def update_form(
     form: FormConfig,
     current_user: User = Depends(get_org_user)
 ):
-    """Update a form"""
-    logger.info(f"update_form() start: organization_id: {organization_id}, form_id: {form_id}, form: {form}")
-    
+    """Update an existing form"""
+    logger.info(f"update_form() start: organization_id: {organization_id}, form_id: {form_id}")
     db = ad.common.get_async_db()
-
-    # Check if user is a member of the organization
-    org = await db.organizations.find_one({"_id": ObjectId(organization_id)})
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    # Check if user is a member of the organization
-    if not any(member["user_id"] == current_user.user_id for member in org["members"]):
-        raise HTTPException(status_code=403, detail="Not authorized to update forms in this organization")
 
     # Get the existing form and latest revision
     existing_form = await db.forms.find_one({"_id": ObjectId(form_id)})
     if not existing_form:
         raise HTTPException(status_code=404, detail="Form not found")
     
-    latest_form_revision = await db.form_revisions.find_one(
+    latest_revision = await db.form_revisions.find_one(
         {"form_id": form_id},
         sort=[("form_version", -1)]
     )
-    
-    if not latest_form_revision:
-        raise HTTPException(status_code=404, detail="Form revision not found")
 
-    # Check if only the name has changed
-    only_name_changed = (
-        form.name != existing_form["name"] and
-        form.response_format.model_dump() == latest_form_revision["response_format"]
+    logger.info(f"update_form() latest_revision: {latest_revision}")
+    
+    if not latest_revision:
+        raise HTTPException(status_code=404, detail="Form not found")
+    
+    # Check if response_format or tag_ids has actually changed
+    current_response_format = latest_revision.get("response_format", {})
+    new_response_format = form.response_format.model_dump()
+    
+    response_format_changed = current_response_format != new_response_format
+    tag_ids_changed = set(latest_revision.get("tag_ids", [])) != set(form.tag_ids)
+
+    logger.info(f"update_form() response_format_changed: {response_format_changed}")
+    logger.info(f"update_form() name: {form.name}")
+    logger.info(f"update_form() tag_ids: {form.tag_ids}")
+    
+    # Update the form metadata in the forms collection
+    await db.forms.update_one(
+        {"form_id": form_id, "organization_id": organization_id},
+        {"$set": {
+            "name": form.name,
+            "organization_id": organization_id,
+        }},
+        upsert=True
     )
     
-    if only_name_changed:
-        # Update the name in the forms collection
-        result = await db.forms.update_one(
-            {"_id": ObjectId(form_id)},
-            {"$set": {"name": form.name}}
-        )
+    # Only create a new revision if the response_format has changed
+    if response_format_changed or tag_ids_changed:
+        new_form_version = latest_revision["form_version"] + 1
         
-        if result.modified_count > 0:
-            # Return the updated form
-            updated_revision = latest_form_revision.copy()
-            updated_revision["form_revid"] = str(updated_revision.pop("_id"))
-            updated_revision["name"] = form.name
-            return Form(**updated_revision)
-        else:
-            raise HTTPException(status_code=500, detail="Failed to update form name")
-    
-    # If other fields changed, create a new version
-    # Get the next version number using the stable form_id
-    _, new_form_version = await get_form_id_and_version(form_id)
-    
-    # Update the forms collection if name changed
-    if form.name != existing_form["name"]:
-        await db.forms.update_one(
-            {"_id": ObjectId(form_id)},
-            {"$set": {"name": form.name}}
+        # Create new form revision
+        form_revision_dict = {
+            "form_id": form_id,
+            "response_format": new_response_format,
+            "tag_ids": form.tag_ids,
+            "form_version": new_form_version,
+            "created_at": datetime.now(UTC),
+            "created_by": current_user.user_id
+        }
+        
+        # Insert new revision
+        result = await db.form_revisions.insert_one(form_revision_dict)
+
+        logger.info(f"update_form() new revision: {form_revision_dict}")
+        
+        # Return updated form with new revision
+        return Form(
+            form_revid=str(result.inserted_id),
+            form_id=form_id,
+            form_version=new_form_version,
+            name=form.name,
+            response_format=form.response_format,
+            tag_ids=form.tag_ids,
+            created_at=datetime.now(UTC),
+            created_by=current_user.user_id,
         )
-    
-    # Create new version of the schema in schema_revisions
-    new_form = {
-        "form_id": form_id,
-        "response_format": form.response_format.model_dump(),
-        "form_version": new_form_version,
-        "created_at": datetime.now(UTC),
-        "created_by": current_user.user_id
-    }
-    
-    # Insert new version
-    result = await db.form_revisions.insert_one(new_form)
-    
-    # Return updated form
-    new_form["form_revid"] = str(result.inserted_id)
-    new_form["name"] = form.name
-    return Form(**new_form)
+    else:
+        logger.info(f"update_form() no revision change")
+
+        # No revision change, just return the existing form with updated metadata
+        return Form(
+            form_revid=str(latest_revision["_id"]),
+            form_id=form_id,
+            name=form.name,
+            response_format=form.response_format,
+            form_version=latest_revision["form_version"],
+            tag_ids=latest_revision["tag_ids"],
+            created_at=latest_revision["created_at"],
+            created_by=latest_revision["created_by"],
+        )
 
 @app.delete("/v0/orgs/{organization_id}/forms/{form_id}", tags=["forms"])
 async def delete_form(

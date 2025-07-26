@@ -479,7 +479,8 @@ export const listFormsApi = async (params: ListFormsParams): Promise<ListFormsRe
   const response = await api.get<ListFormsResponse>(`/v0/orgs/${organizationId}/forms`, {
     params: {
       skip: rest?.skip || 0,
-      limit: rest?.limit || 10
+      limit: rest?.limit || 10,
+      tag_ids: rest?.tag_ids // Add tag_ids support
     }
   });
   return response.data;
