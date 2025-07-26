@@ -177,7 +177,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Form Name Input */}
           <div className="flex items-center gap-4 mb-4">
-            <div className="flex-1">
+            <div className="flex-1 md:w-1/2 md:max-w-[calc(50%-1rem)]">
               <input
                 type="text"
                 className="w-full p-2 border rounded"
@@ -285,7 +285,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
             )}
           </div>
 
-          {/* Tags Section */}
+          {/* Tags Section - moved to bottom like in PromptCreate */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
               Tags
