@@ -18,6 +18,7 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
   const onChangeRef = useRef(onChange);
   const isInitializing = useRef(false);
   const lastJsonFormio = useRef<string>('');
+  const isUpdatingFromProps = useRef(false);
 
   // Keep the onChange ref updated
   useEffect(() => {
@@ -30,10 +31,13 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
 
     if (!builderRef.current) return;
 
-    // Only recreate if jsonFormio actually changed and it's not empty
-    if (jsonFormio === lastJsonFormio.current) return;
+    // Normalize jsonFormio for comparison (handle undefined/null)
+    const currentJsonFormio = jsonFormio || '';
     
-    lastJsonFormio.current = jsonFormio || '';
+    // Only recreate if jsonFormio actually changed
+    if (currentJsonFormio === lastJsonFormio.current) return;
+    
+    lastJsonFormio.current = currentJsonFormio;
 
     // Destroy existing builder if it exists
     if (builderInstance.current) {
@@ -42,12 +46,13 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
     }
 
     isInitializing.current = true;
+    isUpdatingFromProps.current = true;
 
     // Parse the form data
     let form = {};
-    if (jsonFormio && jsonFormio.trim() !== '') {
+    if (currentJsonFormio.trim() !== '') {
       try {
-        const parsedComponents = JSON.parse(jsonFormio);
+        const parsedComponents = JSON.parse(currentJsonFormio);
         form = { components: parsedComponents };
       } catch (error) {
         console.error('Error parsing jsonFormio:', error);
@@ -61,9 +66,15 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
     
     // Listen to the correct FormBuilder events
     const handleFormChange = () => {
-      if (onChangeRef.current && !isInitializing.current) {
+      // Don't trigger onChange if we're updating from props to prevent loops
+      if (onChangeRef.current && !isInitializing.current && !isUpdatingFromProps.current) {
         const currentForm: FormWithComponents = (builder as FormBuilder & { _form: FormWithComponents })._form;
-        onChangeRef.current(currentForm.components);
+        const currentComponents = JSON.stringify(currentForm.components);
+        
+        // Only call onChange if the components actually changed from what we have
+        if (currentComponents !== lastJsonFormio.current) {
+          onChangeRef.current(currentForm.components);
+        }
       }
     };
 
@@ -75,11 +86,7 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
     // Trigger initial change after builder is ready to sync the actual form structure
     setTimeout(() => {
       isInitializing.current = false;
-      // Trigger initial change to sync the actual form structure (including default Submit button)
-      if (onChangeRef.current) {
-        const currentForm: FormWithComponents = (builder as FormBuilder & { _form: FormWithComponents })._form;
-        onChangeRef.current(currentForm.components);
-      }
+      isUpdatingFromProps.current = false;
     }, 100);
 
     // Cleanup on unmount
@@ -89,7 +96,7 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
         builderInstance.current = null;
       }
     };
-  }, [jsonFormio]); // Keep jsonFormio as dependency
+  }, [jsonFormio]);
 
   return <div ref={builderRef} />;
 };
