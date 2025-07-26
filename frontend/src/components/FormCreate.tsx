@@ -528,6 +528,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
     console.log('JSON Formio state:', jsonFormio);
     console.log('Active tab:', activeTab);
     
+    e.preventDefault();
+    
     // Prevent submission if we're on the Formio tab and there's Formio data
     if (activeTab === 'formio') {
       console.log('Preventing form submission on Formio tab - this is likely triggered by Formio builder interaction');
