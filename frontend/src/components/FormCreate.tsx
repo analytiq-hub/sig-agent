@@ -190,7 +190,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   const [activeTab, setActiveTab] = useState<'fields' | 'json' | 'formio'>('fields');
   const [jsonForm, setJsonForm] = useState('');
   // Use Form type for state
-  const [formioJson, setFormioJson] = useState<Form | null>(null);
+  const [jsonFormio, setJsonFormio] = useState<Form | null>(null);
 
   // Define jsonFormToFields with useCallback
   const jsonFormToFields = useCallback((responseFormat: FormResponseFormat): FormField[] => {
@@ -291,7 +291,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
 
           // Load Form.io schema if it exists
           if (form.response_format.json_formio) {
-            setFormioJson(form.response_format.json_formio as Form);
+            setJsonFormio(form.response_format.json_formio as Form);
           }
         } catch (error) {
           toast.error(`Error loading form: ${getApiErrorMsg(error)}`);
@@ -735,8 +735,9 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
 
   // Update the handler to accept the Formio library's Form type
   const handleFormioChange = (formioForm: Form | object) => {
+    console.log('handleFormioChange', formioForm);
     if (formioForm) {
-      setFormioJson(formioForm as Form);
+      setJsonFormio(formioForm as Form);
     }
   };
 
@@ -799,7 +800,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                       }
                     }
                   });
-                  setFormioJson(null); // Clear Form.io schema
+                  setJsonFormio(null); // Clear Form.io schema
                 }}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
                 disabled={isLoading}
@@ -1063,7 +1064,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
               <div className="flex-1 min-h-0">
                 <div className="formio-scope h-full">
                   <FormioBuilder
-                    formJson={formioJson ?? undefined}
+                    formJson={jsonFormio ?? undefined}
                     onChange={handleFormioChange}
                   />
                 </div>
