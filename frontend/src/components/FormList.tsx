@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { listFormsApi, deleteFormApi, updateFormApi, createFormApi, listTagsApi } from '@/utils/api';
-import { FormField, Form, FormResponseFormat, FormProperty, Tag } from '@/types/index';
+import { Form, Tag } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';
@@ -199,51 +199,6 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     form.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Helper function to convert JSON form to fields for display
-  const jsonFormToFields = (responseFormat: FormResponseFormat): FormField[] => {
-    const fields: FormField[] = [];
-    const properties = responseFormat.json_form.form.properties;
-
-    const processProperty = (name: string, prop: FormProperty): FormField => {
-      let fieldType: FormField['type'];
-
-      switch (prop.type) {
-        case 'string':
-          fieldType = 'str';
-          break;
-        case 'integer':
-          fieldType = 'int';
-          break;
-        case 'number':
-          fieldType = 'float';
-          break;
-        case 'boolean':
-          fieldType = 'bool';
-          break;
-        case 'array':
-          fieldType = 'array';
-          break;
-        case 'object':
-          fieldType = 'object';
-          break;
-        default:
-          fieldType = 'str';
-      }
-
-      return { 
-        name, 
-        type: fieldType,
-        description: prop.description
-      };
-    };
-
-    Object.entries(properties).forEach(([name, prop]) => {
-      fields.push(processProperty(name, prop));
-    });
-
-    return fields;
-  };
-
   // Define columns for the data grid
   const columns: GridColDef[] = [
     {
@@ -260,26 +215,6 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           {params.row.name}
         </div>
       ),
-    },
-    {
-      field: 'fields',
-      headerName: 'Fields',
-      flex: 2,
-      headerAlign: 'left',
-      align: 'left',
-      renderCell: (params) => {
-        // Convert JSON Form to fields for display
-        const fields = jsonFormToFields(params.row.response_format);
-        return (
-          <div className="flex flex-col justify-center w-full h-full">
-            {fields.map((field, index) => (
-              <div key={index} className="text-sm text-gray-600 leading-6">
-                {`${field.name}: ${field.type}`}
-              </div>
-            ))}
-          </div>
-        );
-      },
     },
     {
       field: 'tag_ids',
@@ -400,11 +335,6 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           onPaginationModelChange={(model) => {
             setPage(model.page);
             setPageSize(model.pageSize);
-          }}
-          getRowHeight={({ model }) => {
-            const fields = jsonFormToFields(model.response_format);
-            const numFields = fields.length;
-            return Math.max(52, 24 * numFields + 16);
           }}
           sx={{
             '& .MuiDataGrid-cell': {
