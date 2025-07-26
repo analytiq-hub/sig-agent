@@ -283,6 +283,7 @@ class FormResponseFormat(BaseModel):
 class FormConfig(BaseModel):
     name: str
     response_format: FormResponseFormat
+    tag_ids: List[str] = []  # Add tag_ids field with default empty list
 
 class Form(FormConfig):
     form_revid: str # MongoDB's _id
