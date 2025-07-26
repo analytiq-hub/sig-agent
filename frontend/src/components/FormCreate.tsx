@@ -381,41 +381,12 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   const saveForm = async (form: FormConfig) => {
     try {
       setIsLoading(true);
-      
-      // Determine which schema to save
-      const hasJsonForm = form.response_format.json_form && Object.keys(form.response_format.json_form.form.properties).length > 0;
-      const hasFormioForm = form.response_format.json_formio;
-      
-      let formToSave: FormConfig;
-      
-      if (hasJsonForm && !hasFormioForm) {
-        // Save only json_form
-        formToSave = {
-          ...form,
-          response_format: {
-            ...form.response_format,
-            json_formio: undefined
-          }
-        };
-      } else if (hasFormioForm && !hasJsonForm) {
-        // Save only json_formio (keep empty json_form)
-        formToSave = {
-          ...form,
-          response_format: {
-            ...form.response_format,
-            json_formio: form.response_format.json_formio
-          }
-        };
-      } else {
-        // Save both or neither (error case)
-        toast.error('Please define either a JSON form or a Form.io form');
-        return;
-      }
+    
       
       if (currentFormId) {
-        await updateFormApi({organizationId: organizationId, formId: currentFormId, form: formToSave});
+        await updateFormApi({organizationId: organizationId, formId: currentFormId, form: form});
       } else {
-        await createFormApi({organizationId: organizationId, ...formToSave });
+        await createFormApi({organizationId: organizationId, ...form });
       }      
 
       router.push(`/orgs/${organizationId}/forms`);
