@@ -8,7 +8,6 @@ export interface FormProperty {
 }
 
 export interface FormResponseFormat {
-  type: 'json_form' | 'json_formio';
   json_form: {
     name: string;
     form: {

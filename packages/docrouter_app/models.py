@@ -240,7 +240,6 @@ class FormProperty(BaseModel):
     properties: Dict[str, ForwardRef('FormProperty')] | None = None
 
 class FormResponseFormat(BaseModel):
-    type: Literal['json_form', 'json_formio']
     json_form: dict = Field(
         ..., 
         json_form_extra={
@@ -280,15 +279,6 @@ class FormResponseFormat(BaseModel):
             if not isinstance(v, list):
                 raise ValueError("json_formio must be a list")
         return v
-
-    @model_validator(mode='after')
-    def validate_form_type(self) -> 'FormResponseFormat':
-        # Ensure at least one form type is provided
-        if self.type == 'json_form' and not self.json_form:
-            raise ValueError("json_form is required when type is 'json_form'")
-        elif self.type == 'json_formio' and self.json_formio is None:
-            raise ValueError("json_formio is required when type is 'json_formio'")
-        return self
 
 class FormConfig(BaseModel):
     name: str

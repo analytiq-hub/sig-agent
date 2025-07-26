@@ -170,7 +170,6 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   const [currentForm, setCurrentForm] = useState<FormConfig>({
     name: '',
     response_format: {
-      type: 'json_form',
       json_form: {
         name: 'document_extraction',
         form: {
@@ -304,7 +303,6 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
         setCurrentForm({
           name: '',
           response_format: {
-            type: 'json_form',
             json_form: {
               name: 'document_extraction',
               form: {
@@ -573,7 +571,6 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
     setCurrentForm({
       name: '',
       response_format: {
-        type: 'json_form',
         json_form: {
           name: 'document_extraction',
           form: {
@@ -753,7 +750,6 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
         response_format: {
           ...prev.response_format,
           json_formio: formioForm,
-          type: 'json_formio'
         }
       }));
     }
@@ -805,7 +801,6 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                   setCurrentForm({
                     name: '',
                     response_format: {
-                      type: 'json_form',
                       json_form: {
                         name: 'document_extraction',
                         form: {
