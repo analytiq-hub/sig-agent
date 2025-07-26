@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Formio, Templates } from "@tsed/react-formio";
-import tailwind from "@tsed/tailwind-formio";
 
 export default function FormioProvider({
   children
@@ -10,9 +8,17 @@ export default function FormioProvider({
   children: React.ReactNode
 }) {
   useEffect(() => {
-    // Initialize Formio with Tailwind (uses Boxicons by default)
-    Formio.use(tailwind);
-    Templates.framework = "tailwind";
+    // Only initialize Formio on the client side
+    const initializeFormio = async () => {
+      const { Formio, Templates } = await import("@tsed/react-formio");
+      const tailwind = await import("@tsed/tailwind-formio");
+      
+      // Initialize Formio with Tailwind (uses Boxicons by default)
+      Formio.use(tailwind.default);
+      Templates.framework = "tailwind";
+    };
+
+    initializeFormio();
   }, []);
 
   return <>{children}</>;

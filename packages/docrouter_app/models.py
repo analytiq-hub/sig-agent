@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, constr, ConfigDict, field_validator
+from pydantic import BaseModel, Field, constr, ConfigDict, field_validator, model_validator
 from datetime import datetime
 from typing import List, Literal, Optional, Any, Dict, Union, ForwardRef
 from enum import Enum
@@ -240,7 +240,7 @@ class FormProperty(BaseModel):
     properties: Dict[str, ForwardRef('FormProperty')] | None = None
 
 class FormResponseFormat(BaseModel):
-    type: Literal['json_form']
+    type: Literal['json_form', 'json_formio']
     json_form: dict = Field(
         ..., 
         json_form_extra={
@@ -263,82 +263,59 @@ class FormResponseFormat(BaseModel):
     )
     json_formio: Optional[dict] = Field(
         default=None,
-        description="Form.io form schema",
-        json_formio_extra={
-            "example": {
-                "components": [
-                    {
-                        "type": "textfield",
-                        "key": "firstName",
-                        "label": "First Name",
-                        "input": True,
-                        "tableView": True,
-                        "validate": {
-                            "required": True
-                        }
-                    }
-                ],
-                "display": "form",
-                "settings": {
-                    "pdf": {
-                        "id": "formio-pdf",
-                        "src": "https://cdn.form.io/pdfjs/web/viewer.html"
-                    }
-                }
-            }
-        }
+        description="Form.io schema definition"
     )
 
     @field_validator('json_form')
     def validate_json_form(cls, v):
         # Validate form follows OpenAI format
-        required_keys = {'name', 'form', 'strict'}
-        if not all(key in v for key in required_keys):
-            raise ValueError(f"JSON form  must contain all required keys: {required_keys}")
+        if not isinstance(v, dict):
+            raise ValueError("json_form must be a dictionary")
+        
+        required_keys = ['name', 'form', 'strict']
+        for key in required_keys:
+            if key not in v:
+                raise ValueError(f"json_form must contain '{key}' key")
+        
+        if not isinstance(v['name'], str):
+            raise ValueError("json_form.name must be a string")
+        
+        if not isinstance(v['form'], dict):
+            raise ValueError("json_form.form must be a dictionary")
         
         form = v['form']
         if form.get('type') != 'object':
-            raise ValueError("Form root must be of type 'object'")
-            
-        if 'properties' not in form:
-            raise ValueError("Form must contain 'properties'")
-            
-        if 'required' not in form:
-            raise ValueError("Form must contain 'required' field")
-            
-        if 'additionalProperties' not in form:
-            raise ValueError("Form must specify 'additionalProperties'")
-            
+            raise ValueError("json_form.form.type must be 'object'")
+        
+        if not isinstance(form.get('properties'), dict):
+            raise ValueError("json_form.form.properties must be a dictionary")
+        
+        if not isinstance(form.get('required'), list):
+            raise ValueError("json_form.form.required must be a list")
+        
+        if not isinstance(form.get('additionalProperties'), bool):
+            raise ValueError("json_form.form.additionalProperties must be a boolean")
+        
+        if not isinstance(v['strict'], bool):
+            raise ValueError("json_form.strict must be a boolean")
+        
         return v
 
     @field_validator('json_formio')
     def validate_json_formio(cls, v):
-        if v is None:
-            return v
-        
-        # Basic validation for Form.io schema
-        if not isinstance(v, dict):
-            raise ValueError("Form.io schema must be a dictionary")
-        
-        # Check for required Form.io structure
-        if 'components' not in v:
-            raise ValueError("Form.io schema must contain 'components' array")
-        
-        if not isinstance(v['components'], list):
-            raise ValueError("Form.io components must be an array")
-        
-        # Validate each component has required fields
-        for i, component in enumerate(v['components']):
-            if not isinstance(component, dict):
-                raise ValueError(f"Component {i} must be a dictionary")
-            
-            if 'type' not in component:
-                raise ValueError(f"Component {i} must have a 'type' field")
-            
-            if 'key' not in component:
-                raise ValueError(f"Component {i} must have a 'key' field")
-        
+        if v is not None:
+            if not isinstance(v, (dict, list)):
+                raise ValueError("json_formio must be a dictionary or list")
         return v
+
+    @model_validator(mode='after')
+    def validate_form_type(self) -> 'FormResponseFormat':
+        # Ensure at least one form type is provided
+        if self.type == 'json_form' and not self.json_form:
+            raise ValueError("json_form is required when type is 'json_form'")
+        elif self.type == 'json_formio' and not self.json_formio:
+            raise ValueError("json_formio is required when type is 'json_formio'")
+        return self
 
 class FormConfig(BaseModel):
     name: str

@@ -180,7 +180,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
           additionalProperties: false
         },
         strict: true
-      }
+      },
+      json_formio: {}
     }
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -751,7 +752,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
         ...prev,
         response_format: {
           ...prev.response_format,
-          json_formio: formioForm
+          json_formio: formioForm,
+          type: 'json_formio'
         }
       }));
     }
