@@ -1832,7 +1832,7 @@ async def update_form(
     db = ad.common.get_async_db()
 
     # Get the existing form and latest revision
-    existing_form = await db.forms.find_one({"_id": ObjectId(form_id)})
+    existing_form = await db.forms.find_one({"_id": ObjectId(form_id), "organization_id": organization_id})
     if not existing_form:
         raise HTTPException(status_code=404, detail="Form not found")
     
@@ -1859,10 +1859,9 @@ async def update_form(
     
     # Update the form metadata in the forms collection
     await db.forms.update_one(
-        {"form_id": form_id, "organization_id": organization_id},
+        {"_id": ObjectId(form_id)},
         {"$set": {
             "name": form.name,
-            "organization_id": organization_id,
         }},
         upsert=True
     )
@@ -1889,13 +1888,13 @@ async def update_form(
         # Return updated form with new revision
         return Form(
             form_revid=str(result.inserted_id),
-            form_id=new_revision.form_id,
-            form_version=new_revision.form_version,
+            form_id=new_revision["form_id"],
+            form_version=new_revision["form_version"],
             name=form.name,
-            response_format=new_revision.response_format,
-            tag_ids=new_revision.tag_ids,
-            created_at=new_revision.created_at,
-            created_by=new_revision.created_by,
+            response_format=new_revision["response_format"],
+            tag_ids=new_revision["tag_ids"],
+            created_at=new_revision["created_at"],
+            created_by=new_revision["created_by"],
         )
     else:
         logger.info(f"update_form() no revision change")
