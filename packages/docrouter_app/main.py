@@ -1812,16 +1812,12 @@ async def get_form(
     if not form:
         raise HTTPException(status_code=404, detail="Form not found or not in this organization")
     
-    # Combine the data
-    revision['form_revid'] = str(revision.pop('_id'))
-    revision['name'] = form['name']
-    
-    # Transform the MongoDB document to match Form model
+    # Transform the data to match Form model
     form_data = {
-        "form_revid": str(revision["_id"]),
-        "form_id": revision["form_id"],
-        "name": revision["response_format"]["json_form"]["name"],  # Extract name from json_form
+        "name": form["name"],
         "response_format": revision["response_format"],
+        "form_revid": str(revision['_id']),
+        "form_id": revision["form_id"],
         "form_version": revision["form_version"],
         "created_at": revision["created_at"],
         "created_by": revision["created_by"]
