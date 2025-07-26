@@ -187,7 +187,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   const [fields, setFields] = useState<FormField[]>([{ name: '', type: 'str' }]);
   const [expandedNestedFields, setExpandedNestedFields] = useState<Record<number, boolean>>({});
   const [expandedArrayFields, setExpandedArrayFields] = useState<Record<number, boolean>>({});
-  const [activeTab, setActiveTab] = useState<'fields' | 'json' | 'formio' | 'jsonFormio'>('fields');
+  const [activeTab, setActiveTab] = useState<'fields' | 'json' | 'formio' | 'jsonFormio'>('formio');
   const [jsonForm, setJsonForm] = useState('');
   // Use Form type for state
   const [jsonFormio, setJsonFormio] = useState('');
@@ -866,28 +866,6 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
             <div className="flex gap-8">
               <button
                 type="button"
-                onClick={() => setActiveTab('fields')}
-                className={`pb-4 px-1 relative font-semibold text-base ${
-                  activeTab === 'fields'
-                    ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Fields Editor
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('json')}
-                className={`pb-4 px-1 relative font-semibold text-base ${
-                  activeTab === 'json'
-                    ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                JSON Form
-              </button>
-              <button
-                type="button"
                 onClick={() => setActiveTab('formio')}
                 className={`pb-4 px-1 relative font-semibold text-base ${
                   activeTab === 'formio'
@@ -907,6 +885,28 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                 }`}
               >
                 JSON Formio
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('fields')}
+                className={`pb-4 px-1 relative font-semibold text-base ${
+                  activeTab === 'fields'
+                    ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Fields Editor
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('json')}
+                className={`pb-4 px-1 relative font-semibold text-base ${
+                  activeTab === 'json'
+                    ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                JSON Form
               </button>
             </div>
           </div>
