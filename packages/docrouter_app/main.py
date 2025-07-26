@@ -1726,6 +1726,8 @@ async def list_forms(
     org_forms = await db.forms.find(
         {"organization_id": organization_id}
     ).to_list(None)
+
+    logger.info(f"list_forms() org_forms: {org_forms}")
     
     if not org_forms:
         return ListFormsResponse(forms=[], total_count=0, skip=skip)
@@ -1766,10 +1768,13 @@ async def list_forms(
     ]
     
     result = await db.form_revisions.aggregate(pipeline).to_list(length=1)
+    logger.info(f"list_forms() result: {result}")
     result = result[0]
     
     total_count = result["total"][0]["count"] if result["total"] else 0
     forms = result["forms"]
+
+    logger.info(f"list_forms() forms: {forms}")
     
     # Convert _id to id in each form and add name from forms collection
     for form in forms:
@@ -1811,7 +1816,18 @@ async def get_form(
     revision['form_revid'] = str(revision.pop('_id'))
     revision['name'] = form['name']
     
-    return Form(**revision)
+    # Transform the MongoDB document to match Form model
+    form_data = {
+        "form_revid": str(revision["_id"]),
+        "form_id": revision["form_id"],
+        "name": revision["response_format"]["json_form"]["name"],  # Extract name from json_form
+        "response_format": revision["response_format"],
+        "form_version": revision["form_version"],
+        "created_at": revision["created_at"],
+        "created_by": revision["created_by"]
+    }
+    
+    return Form(**form_data)
 
 @app.put("/v0/orgs/{organization_id}/forms/{form_id}", response_model=Form, tags=["forms"])
 async def update_form(

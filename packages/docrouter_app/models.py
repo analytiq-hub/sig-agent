@@ -272,40 +272,13 @@ class FormResponseFormat(BaseModel):
         if not isinstance(v, dict):
             raise ValueError("json_form must be a dictionary")
         
-        required_keys = ['name', 'form', 'strict']
-        for key in required_keys:
-            if key not in v:
-                raise ValueError(f"json_form must contain '{key}' key")
-        
-        if not isinstance(v['name'], str):
-            raise ValueError("json_form.name must be a string")
-        
-        if not isinstance(v['form'], dict):
-            raise ValueError("json_form.form must be a dictionary")
-        
-        form = v['form']
-        if form.get('type') != 'object':
-            raise ValueError("json_form.form.type must be 'object'")
-        
-        if not isinstance(form.get('properties'), dict):
-            raise ValueError("json_form.form.properties must be a dictionary")
-        
-        if not isinstance(form.get('required'), list):
-            raise ValueError("json_form.form.required must be a list")
-        
-        if not isinstance(form.get('additionalProperties'), bool):
-            raise ValueError("json_form.form.additionalProperties must be a boolean")
-        
-        if not isinstance(v['strict'], bool):
-            raise ValueError("json_form.strict must be a boolean")
-        
         return v
 
     @field_validator('json_formio')
     def validate_json_formio(cls, v):
         if v is not None:
-            if not isinstance(v, (dict, list)):
-                raise ValueError("json_formio must be a dictionary or list")
+            if not isinstance(v, dict):
+                raise ValueError("json_formio must be a dictionary")
         return v
 
     @model_validator(mode='after')
@@ -313,7 +286,7 @@ class FormResponseFormat(BaseModel):
         # Ensure at least one form type is provided
         if self.type == 'json_form' and not self.json_form:
             raise ValueError("json_form is required when type is 'json_form'")
-        elif self.type == 'json_formio' and not self.json_formio:
+        elif self.type == 'json_formio' and self.json_formio is None:
             raise ValueError("json_formio is required when type is 'json_formio'")
         return self
 
