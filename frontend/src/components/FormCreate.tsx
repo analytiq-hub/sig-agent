@@ -187,10 +187,12 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   const [fields, setFields] = useState<FormField[]>([{ name: '', type: 'str' }]);
   const [expandedNestedFields, setExpandedNestedFields] = useState<Record<number, boolean>>({});
   const [expandedArrayFields, setExpandedArrayFields] = useState<Record<number, boolean>>({});
-  const [activeTab, setActiveTab] = useState<'fields' | 'json' | 'formio'>('fields');
+  const [activeTab, setActiveTab] = useState<'fields' | 'json' | 'formio' | 'jsonFormio'>('fields');
   const [jsonForm, setJsonForm] = useState('');
   // Use Form type for state
   const [jsonFormio, setJsonFormio] = useState('');
+  // Add state for JSON Formio editor
+  const [jsonFormioEditor, setJsonFormioEditor] = useState('');
 
   // Define jsonFormToFields with useCallback
   const jsonFormToFields = useCallback((responseFormat: FormResponseFormat): FormField[] => {
@@ -292,6 +294,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
           // Load Form.io schema if it exists
           if (form.response_format.json_formio) {
             setJsonFormio(JSON.stringify(form.response_format.json_formio, null, 2));
+            setJsonFormioEditor(JSON.stringify(form.response_format.json_formio, null, 2));
           }
         } catch (error) {
           toast.error(`Error loading form: ${getApiErrorMsg(error)}`);
@@ -317,6 +320,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
           }
         });
         setFields([{ name: '', type: 'str' }]);
+        setJsonFormio('');
+        setJsonFormioEditor('');
       }
     }
     loadForm();
@@ -327,6 +332,11 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   useEffect(() => {
     setJsonForm(JSON.stringify(currentForm.response_format, null, 2));
   }, [currentForm]);
+
+  // Update jsonFormioEditor when jsonFormio changes
+  useEffect(() => {
+    setJsonFormioEditor(jsonFormio);
+  }, [jsonFormio]);
 
   // Add handler for JSON form changes
   const handleJsonFormChange = (value: string | undefined) => {
@@ -372,6 +382,34 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
       
       // Update fields based on the new form
       setFields(jsonFormToFields(parsedForm));
+    } catch (error) {
+      // Invalid JSON - don't update
+      toast.error(`Error: Invalid JSON syntax: ${error}`);
+    }
+  };
+
+  // Add handler for JSON Formio changes
+  const handleJsonFormioChange = (value: string | undefined) => {
+    if (!value) return;
+    try {
+      const parsedFormio = JSON.parse(value);
+      
+      // Validate that it's an array of components
+      if (!Array.isArray(parsedFormio)) {
+        toast.error('Error: Formio components must be an array');
+        return;
+      }
+      
+      // Update the formio state
+      setJsonFormio(value);
+      
+      setCurrentForm(prev => ({
+        ...prev,
+        response_format: {
+          ...prev.response_format,
+          json_formio: parsedFormio,
+        }
+      }));
     } catch (error) {
       // Invalid JSON - don't update
       toast.error(`Error: Invalid JSON syntax: ${error}`);
@@ -805,6 +843,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                     }
                   });
                   setJsonFormio(''); // Clear Form.io schema
+                  setJsonFormioEditor(''); // Clear JSON Formio editor
                 }}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
                 disabled={isLoading}
@@ -857,6 +896,17 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                 }`}
               >
                 Formio Designer
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('jsonFormio')}
+                className={`pb-4 px-1 relative font-semibold text-base ${
+                  activeTab === 'jsonFormio'
+                    ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                JSON Formio
               </button>
             </div>
           </div>
@@ -1065,7 +1115,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                   theme="vs-light"
                 />
               </div>
-            ) : activeTab === 'formio' && (
+            ) : activeTab === 'formio' ? (
               <div className="flex-1 min-h-0">
                 <div className="formio-scope h-full">
                   <FormioBuilder
@@ -1074,7 +1124,27 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                   />
                 </div>
               </div>
-            )}
+            ) : activeTab === 'jsonFormio' ? (
+              // JSON Formio Tab
+              <div className="h-[calc(100vh-300px)] border rounded">
+                <Editor
+                  height="100%"
+                  defaultLanguage="json"
+                  value={jsonFormioEditor}
+                  onChange={handleJsonFormioChange}
+                  options={{
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    wordWrap: "on",
+                    wrappingIndent: "indent",
+                    lineNumbers: "on",
+                    folding: true,
+                    renderValidationDecorations: "on"
+                  }}
+                  theme="vs-light"
+                />
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
