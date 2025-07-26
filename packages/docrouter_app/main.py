@@ -1872,7 +1872,7 @@ async def update_form(
         new_form_version = latest_revision["form_version"] + 1
         
         # Create new form revision
-        form_revision_dict = {
+        new_revision = {
             "form_id": form_id,
             "response_format": new_response_format,
             "tag_ids": form.tag_ids,
@@ -1882,20 +1882,20 @@ async def update_form(
         }
         
         # Insert new revision
-        result = await db.form_revisions.insert_one(form_revision_dict)
+        result = await db.form_revisions.insert_one(new_revision)
 
-        logger.info(f"update_form() new revision: {form_revision_dict}")
+        logger.info(f"update_form() new revision: {new_revision}")
         
         # Return updated form with new revision
         return Form(
             form_revid=str(result.inserted_id),
-            form_id=form_id,
-            form_version=new_form_version,
+            form_id=new_revision.form_id,
+            form_version=new_revision.form_version,
             name=form.name,
-            response_format=form.response_format,
-            tag_ids=form.tag_ids,
-            created_at=datetime.now(UTC),
-            created_by=current_user.user_id,
+            response_format=new_revision.response_format,
+            tag_ids=new_revision.tag_ids,
+            created_at=new_revision.created_at,
+            created_by=new_revision.created_by,
         )
     else:
         logger.info(f"update_form() no revision change")
