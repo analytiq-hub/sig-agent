@@ -62,7 +62,7 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
         builderInstance.current = null;
       }
     };
-  }, []); // Empty dependency array - only run once
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <div ref={builderRef} />;
 };
