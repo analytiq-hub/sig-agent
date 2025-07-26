@@ -4,9 +4,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 import analytiq_data as ad
 
-async def get_prompt_id_and_version(analytiq_client,
-                                    prompt_name: str,
-                                    organization_id: str) -> tuple[str, int]:
+async def get_prompt_id(analytiq_client, prompt_name: str, organization_id: str) -> str:
     """
     Get a prompt ID by its name
 
