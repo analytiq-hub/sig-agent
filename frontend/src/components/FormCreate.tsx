@@ -784,8 +784,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
             }
           />
         </div>
-        <form 
-          onSubmit={handleSubmit} 
+        <div 
           className="space-y-4"
           onKeyDown={(e) => {
             console.log('Form keydown event:', e.key);
@@ -1103,7 +1102,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
               </div>
             )}
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
