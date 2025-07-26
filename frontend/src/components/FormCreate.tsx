@@ -521,11 +521,11 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
 
   // Add a separate handler for the submit button
   const handleSaveClick = () => {
-    console.log('=== handleSaveClick called ===');
-    console.log('Current form state:', currentForm);
-    console.log('Fields state:', fields);
-    console.log('JSON Formio state:', jsonFormio);
-    console.log('Active tab:', activeTab);
+    // console.log('=== handleSaveClick called ===');
+    // console.log('Current form state:', currentForm);
+    // console.log('Fields state:', fields);
+    // console.log('JSON Formio state:', jsonFormio);
+    // console.log('Active tab:', activeTab);
     
     if (!currentForm.name) {
       toast.error('Please enter a form name');
@@ -562,7 +562,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
       }
     });
     setCurrentFormId(null);
-    console.log('=== handleSaveClick completed ===');
+    // console.log('=== handleSaveClick completed ===');
   };
 
   // Update fieldsToJsonForm to handle arrays
