@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createFormApi, updateFormApi, listTagsApi, getFormApi } from '@/utils/api';
-import { FormConfig, Tag } from '@/types/forms';
+import { FormConfig } from '@/types/forms';
 import { getApiErrorMsg } from '@/utils/api';
 import TagSelector from './TagSelector';
 import { toast } from 'react-toastify';
