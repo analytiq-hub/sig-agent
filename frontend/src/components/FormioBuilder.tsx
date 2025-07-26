@@ -28,11 +28,19 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ formJson, onChange }) => 
     const builder = new FormBuilder(builderRef.current, formJson || {}, {});
     
     builderInstance.current = builder;
-    builder.on('change', () => {
+    
+    // Listen to the correct FormBuilder events
+    const handleFormChange = () => {
       if (onChange) {
-        onChange(builder.form);
+        const currentForm = builder.form;
+        onChange(currentForm);
       }
-    }, false);
+    };
+
+    // Listen via the events emitter directly
+    if (builder.events) {
+      (builder.events as { on: (event: string, handler: () => void) => void }).on('formio.change', handleFormChange);
+    }
 
     // Cleanup on unmount
     return () => {
