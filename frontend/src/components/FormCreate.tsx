@@ -528,52 +528,15 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
     console.log('JSON Formio state:', jsonFormio);
     console.log('Active tab:', activeTab);
     
-    e.preventDefault();
-    
     // Prevent submission if we're on the Formio tab and there's Formio data
     if (activeTab === 'formio') {
       console.log('Preventing form submission on Formio tab - this is likely triggered by Formio builder interaction');
       console.log('=== handleSubmit completed ===');
       return;
     }
-    
-    console.log('currentForm', currentForm);
-    if (!currentForm.name) {
-      toast.error('Please enter a form name');
-      return;
-    }
-    if (fields.some(f => !f.name) && jsonFormio.length == 0) {
-      toast.error('Cannot save a form with no fields');
-      return;
-    }
 
-    const fieldError = validateFields(fields);
-    if (fieldError) {
-      toast.error(`Error: ${fieldError}`);
-      return;
-    }
-
-    console.log('About to save form...');
-    saveForm(currentForm);
-    setFields([{ name: '', type: 'str' }]);
-    setCurrentForm({
-      name: '',
-      response_format: {
-        json_form: {
-          name: 'document_extraction',
-          form: {
-            type: 'object',
-            properties: {},
-            required: [],
-            additionalProperties: false
-          },
-          strict: true
-        },
-        json_formio: {}
-      }
-    });
-    setCurrentFormId(null);
     console.log('=== handleSubmit completed ===');
+    return;
   };
 
   // Add a separate handler for the submit button
