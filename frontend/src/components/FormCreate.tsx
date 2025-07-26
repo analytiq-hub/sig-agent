@@ -520,7 +520,23 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   };
 
   const handleSubmit = (e: React.FormEvent) => {
+    console.log('=== handleSubmit called ===');
+    console.log('Event:', e);
+    console.log('Event type:', e.type);
+    console.log('Current form state:', currentForm);
+    console.log('Fields state:', fields);
+    console.log('JSON Formio state:', jsonFormio);
+    console.log('Active tab:', activeTab);
+    
     e.preventDefault();
+    
+    // Prevent submission if we're on the Formio tab and there's Formio data
+    if (activeTab === 'formio') {
+      console.log('Preventing form submission on Formio tab - this is likely triggered by Formio builder interaction');
+      console.log('=== handleSubmit completed ===');
+      return;
+    }
+    
     console.log('currentForm', currentForm);
     if (!currentForm.name) {
       toast.error('Please enter a form name');
@@ -537,6 +553,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
       return;
     }
 
+    console.log('About to save form...');
     saveForm(currentForm);
     setFields([{ name: '', type: 'str' }]);
     setCurrentForm({
@@ -556,6 +573,53 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
       }
     });
     setCurrentFormId(null);
+    console.log('=== handleSubmit completed ===');
+  };
+
+  // Add a separate handler for the submit button
+  const handleSaveClick = () => {
+    console.log('=== handleSaveClick called ===');
+    console.log('Current form state:', currentForm);
+    console.log('Fields state:', fields);
+    console.log('JSON Formio state:', jsonFormio);
+    console.log('Active tab:', activeTab);
+    
+    if (!currentForm.name) {
+      toast.error('Please enter a form name');
+      return;
+    }
+    if (fields.some(f => !f.name) && jsonFormio.length == 0) {
+      toast.error('Cannot save a form with no fields');
+      return;
+    }
+
+    const fieldError = validateFields(fields);
+    if (fieldError) {
+      toast.error(`Error: ${fieldError}`);
+      return;
+    }
+
+    console.log('About to save form...');
+    saveForm(currentForm);
+    setFields([{ name: '', type: 'str' }]);
+    setCurrentForm({
+      name: '',
+      response_format: {
+        json_form: {
+          name: 'document_extraction',
+          form: {
+            type: 'object',
+            properties: {},
+            required: [],
+            additionalProperties: false
+          },
+          strict: true
+        },
+        json_formio: {}
+      }
+    });
+    setCurrentFormId(null);
+    console.log('=== handleSaveClick completed ===');
   };
 
   // Update fieldsToJsonForm to handle arrays
@@ -710,10 +774,14 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
 
   // Update the handler to accept the Formio library's Form type
   const handleFormioChange = (formioForm: Form | object) => {
-    console.log('handleFormioChange', formioForm);
+    console.log('=== handleFormioChange called ===');
+    console.log('Formio form:', formioForm);
+    console.log('Formio form type:', typeof formioForm);
+    
     if (formioForm) {
       // Convert to string
       const formioFormString = JSON.stringify(formioForm, null, 2);
+      console.log('Formio form string:', formioFormString);
       setJsonFormio(formioFormString);
 
       setCurrentForm(prev => ({
@@ -723,7 +791,9 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
           json_formio: formioForm,
         }
       }));
+      console.log('Updated currentForm with Formio data');
     }
+    console.log('=== handleFormioChange completed ===');
   };
 
   return (
@@ -749,7 +819,13 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
             }
           />
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form 
+          onSubmit={handleSubmit} 
+          className="space-y-4"
+          onKeyDown={(e) => {
+            console.log('Form keydown event:', e.key);
+          }}
+        >
           {/* Form Name Input and Action Buttons in a flex container */}
           <div className="flex items-center gap-4 mb-4">
             <div className="flex-1 md:w-1/2 md:max-w-[calc(50%-1rem)]">
@@ -793,7 +869,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                 Clear
               </button>
               <button
-                type="submit"
+                type="button"
+                onClick={handleSaveClick}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                 disabled={isLoading}
               >
@@ -1047,7 +1124,12 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
               </div>
             ) : activeTab === 'formio' && (
               <div className="flex-1 min-h-0">
-                <div className="formio-scope h-full">
+                <div 
+                  className="formio-scope h-full" 
+                  onKeyDown={(e) => e.stopPropagation()}
+                  onSubmit={(e) => e.preventDefault()}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <FormioBuilder
                     jsonFormio={jsonFormio}
                     onChange={handleFormioChange}
