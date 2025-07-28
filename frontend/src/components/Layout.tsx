@@ -146,8 +146,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           `}
         >
           <div className={`
-            flex
-            ${open ? 'justify-start w-6' : 'justify-center w-6'}
+            flex items-center justify-center
+            ${open ? 'w-6' : 'w-full'}
           `}>
             <Icon className="h-6 w-6 shrink-0" />
           </div>
