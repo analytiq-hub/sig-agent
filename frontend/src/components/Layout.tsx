@@ -129,10 +129,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Link
         key={item.text}
         href={item.href}
-        className={`
-          block px-2 py-1
-          ${!open ? 'tooltip' : ''}
-        `}
+        className="block px-2 py-1"
         title={!open ? item.tooltip : ''}
       >
         <div
