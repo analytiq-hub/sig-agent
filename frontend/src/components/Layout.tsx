@@ -59,7 +59,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const isPDFViewer = pathname.includes('/pdf-viewer/');
+  const isPDFViewer = pathname.includes('/extractions/');
   const [forceUpdate, setForceUpdate] = useState(0);
   const [pdfControls, setPdfControls] = useState<PDFViewerControlsType | null>(null);
 
