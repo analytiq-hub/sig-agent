@@ -407,7 +407,7 @@ class FormSubmissionData(BaseModel):
     submitted_by: Optional[str] = None
 
 class FormSubmission(FormSubmissionData):
-    submission_id: str
+    id: str  # MongoDB _id converted to string
     organization_id: str
     created_at: datetime
     updated_at: datetime

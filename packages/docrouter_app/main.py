@@ -1998,11 +1998,9 @@ async def submit_form(
         raise HTTPException(status_code=404, detail="Document not found or not in this organization")
     
     # Create the form submission
-    submission_id = str(uuid.uuid4())
     now = datetime.now(UTC)
     
     submission_doc = {
-        "submission_id": submission_id,
         "form_id": submission.form_id,
         "form_version": submission.form_version,
         "document_id": submission.document_id,
@@ -2016,7 +2014,7 @@ async def submit_form(
     result = await db.form_submissions.insert_one(submission_doc)
     
     # Return the created submission
-    submission_doc["_id"] = result.inserted_id
+    submission_doc["id"] = str(result.inserted_id)
     return FormSubmission(**submission_doc)
 
 @app.get("/v0/orgs/{organization_id}/forms/submissions", response_model=ListFormSubmissionsResponse, tags=["form-submissions"])
@@ -2045,9 +2043,9 @@ async def list_form_submissions(
     # Get submissions
     submissions = await db.form_submissions.find(filter_dict).sort("created_at", -1).skip(skip).limit(limit).to_list(length=limit)
     
-    # Convert ObjectId to string
+    # Convert _id to id field
     for submission in submissions:
-        submission.pop('_id', None)
+        submission["id"] = str(submission.pop('_id'))
     
     return ListFormSubmissionsResponse(
         submissions=submissions,
@@ -2066,14 +2064,14 @@ async def get_form_submission(
     db = ad.common.get_async_db()
     
     submission = await db.form_submissions.find_one({
-        "submission_id": submission_id,
+        "_id": ObjectId(submission_id),
         "organization_id": organization_id
     })
     
     if not submission:
         raise HTTPException(status_code=404, detail="Form submission not found")
     
-    submission.pop('_id', None)
+    submission["id"] = str(submission.pop('_id'))
     return FormSubmission(**submission)
 
 @app.put("/v0/orgs/{organization_id}/forms/submissions/{submission_id}", response_model=FormSubmission, tags=["form-submissions"])
@@ -2090,7 +2088,7 @@ async def update_form_submission(
     # Update the submission
     result = await db.form_submissions.update_one(
         {
-            "submission_id": submission_id,
+            "_id": ObjectId(submission_id),
             "organization_id": organization_id
         },
         {
@@ -2106,11 +2104,11 @@ async def update_form_submission(
     
     # Return the updated submission
     updated_submission = await db.form_submissions.find_one({
-        "submission_id": submission_id,
+        "_id": ObjectId(submission_id),
         "organization_id": organization_id
     })
     
-    updated_submission.pop('_id', None)
+    updated_submission["id"] = str(updated_submission.pop('_id'))
     return FormSubmission(**updated_submission)
 
 @app.delete("/v0/orgs/{organization_id}/forms/submissions/{submission_id}", tags=["form-submissions"])
@@ -2124,7 +2122,7 @@ async def delete_form_submission(
     db = ad.common.get_async_db()
     
     result = await db.form_submissions.delete_one({
-        "submission_id": submission_id,
+        "_id": ObjectId(submission_id),
         "organization_id": organization_id
     })
     
