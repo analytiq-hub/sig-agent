@@ -1993,9 +1993,9 @@ async def submit_form(
     })
     if not form:
         raise HTTPException(status_code=404, detail="Form not found or not in this organization")
-    
+
     # Verify the document exists and belongs to the organization
-    document = await db.documents.find_one({
+    document = await db.docs.find_one({
         "_id": ObjectId(submission.document_id),
         "organization_id": organization_id
     })
