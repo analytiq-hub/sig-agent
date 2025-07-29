@@ -1978,12 +1978,17 @@ async def submit_form(
     current_user: User = Depends(get_org_user)
 ):
     """Submit a form for a specific document"""
-    logger.info(f"submit_form() start: organization_id: {organization_id}, form_id: {submission.form_id}, document_id: {submission.document_id}")
+    logger.info(f"submit_form() start: organization_id: {organization_id}, form_revid: {submission.form_revid}, document_id: {submission.document_id}")
     db = ad.common.get_async_db()
     
-    # Verify the form exists and belongs to the organization
+    # Verify the form revision exists
+    form_revision = await db.form_revisions.find_one({"_id": ObjectId(submission.form_revid)})
+    if not form_revision:
+        raise HTTPException(status_code=404, detail="Form revision not found")
+    
+    # Verify the form belongs to the organization
     form = await db.forms.find_one({
-        "_id": ObjectId(submission.form_id),
+        "_id": ObjectId(form_revision["form_id"]),
         "organization_id": organization_id
     })
     if not form:
@@ -2001,8 +2006,7 @@ async def submit_form(
     now = datetime.now(UTC)
     
     submission_doc = {
-        "form_id": submission.form_id,
-        "form_version": submission.form_version,
+        "form_revid": submission.form_revid,
         "document_id": submission.document_id,
         "organization_id": organization_id,
         "submission_data": submission.submission_data,
@@ -2021,21 +2025,21 @@ async def submit_form(
 async def list_form_submissions(
     organization_id: str,
     document_id: Optional[str] = Query(None, description="Filter submissions by document ID"),
-    form_id: Optional[str] = Query(None, description="Filter submissions by form ID"),
+    form_revid: Optional[str] = Query(None, description="Filter submissions by form revision ID"),
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_org_user)
 ):
     """List form submissions within an organization"""
-    logger.info(f"list_form_submissions() start: organization_id: {organization_id}, document_id: {document_id}, form_id: {form_id}")
+    logger.info(f"list_form_submissions() start: organization_id: {organization_id}, document_id: {document_id}, form_revid: {form_revid}")
     db = ad.common.get_async_db()
     
     # Build filter
     filter_dict = {"organization_id": organization_id}
     if document_id:
         filter_dict["document_id"] = document_id
-    if form_id:
-        filter_dict["form_id"] = form_id
+    if form_revid:
+        filter_dict["form_revid"] = form_revid
     
     # Get total count
     total_count = await db.form_submissions.count_documents(filter_dict)
