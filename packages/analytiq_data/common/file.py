@@ -14,6 +14,13 @@ libreoffice_filelock = FileLock(LIBREOFFICE_LOCK_PATH)
 
 logger = logging.getLogger(__name__)
 
+def get_libreoffice_cmd():
+    """Get the correct LibreOffice command based on the operating system"""
+    if platform.system() == "Darwin":  # macOS
+        return "/Applications/LibreOffice.app/Contents/MacOS/soffice"
+    else:  # Linux and other Unix-like systems
+        return "libreoffice"
+
 def get_file(analytiq_client, file_name: str) -> dict:
     """
     Get the file
@@ -282,15 +289,9 @@ def convert_to_pdf(blob: bytes, ext: str) -> bytes:
 
     output_path = input_path.replace(ext, ".pdf")
     
-    # Determine the correct LibreOffice command based on OS
-    if platform.system() == "Darwin":  # macOS
-        libreoffice_cmd = "/Applications/LibreOffice.app/Contents/MacOS/soffice"
-    else:  # Linux and other Unix-like systems
-        libreoffice_cmd = "libreoffice"
-    
     with libreoffice_filelock:
         subprocess.run([
-            libreoffice_cmd,
+            get_libreoffice_cmd(),
             "--headless",
             "--convert-to", "pdf",
             "--outdir", os.path.dirname(input_path),

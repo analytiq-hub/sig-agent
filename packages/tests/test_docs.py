@@ -30,16 +30,9 @@ import subprocess
 import platform
 
 from analytiq_data.common.doc import EXTENSION_TO_MIME
-from analytiq_data.common.file import libreoffice_filelock
+from analytiq_data.common.file import libreoffice_filelock, get_libreoffice_cmd
 
 logger = logging.getLogger(__name__)
-
-def get_libreoffice_cmd():
-    """Get the correct LibreOffice command based on the operating system"""
-    if platform.system() == "Darwin":  # macOS
-        return "/Applications/LibreOffice.app/Contents/MacOS/soffice"
-    else:  # Linux and other Unix-like systems
-        return "libreoffice"
 
 # Check that ENV is set to pytest
 assert os.environ["ENV"] == "pytest"
