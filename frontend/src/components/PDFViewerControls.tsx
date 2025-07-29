@@ -10,6 +10,7 @@ interface PDFViewerControlsProps {
   setShowLeftPanel: React.Dispatch<React.SetStateAction<boolean>>;
   showPdfPanel: boolean;
   setShowPdfPanel: React.Dispatch<React.SetStateAction<boolean>>;
+  sidebarMode?: 'extraction' | 'forms';
 }
 
 const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
@@ -17,6 +18,7 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
   setShowLeftPanel,
   showPdfPanel,
   setShowPdfPanel,
+  sidebarMode = 'extraction',
 }) => {
   return (
     <div className="flex items-center gap-1">
@@ -32,7 +34,7 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
             : 'text-blue-200 hover:bg-blue-500 hover:text-white'
           }
         `}
-        title={showLeftPanel ? "Hide Extraction Panel" : "Show Extraction Panel"}
+        title={showLeftPanel ? `Hide ${sidebarMode === 'extraction' ? 'Extraction' : 'Forms'} Panel` : `Show ${sidebarMode === 'extraction' ? 'Extraction' : 'Forms'} Panel`}
       >
         {showLeftPanel ? (
           <ViewSidebar className="w-4 h-4" />

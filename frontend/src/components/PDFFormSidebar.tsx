@@ -29,7 +29,7 @@ interface EditingState {
 // Update the type definition to handle nested structures
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
-const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
+const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   const { loadOCRBlocks, findBlocksWithContext } = useOCR();
   const [llmResults, setLlmResults] = useState<Record<string, GetLLMResultResponse>>({});
   const [matchingPrompts, setMatchingPrompts] = useState<Prompt[]>([]);
@@ -43,37 +43,46 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Filter prompts to only show form-related prompts
         const promptsResponse = await listPromptsApi({organizationId: organizationId, document_id: id, limit: 100 });
-        setMatchingPrompts(promptsResponse.prompts);
+        const formPrompts = promptsResponse.prompts.filter(prompt => 
+          prompt.name.toLowerCase().includes('form') || 
+          prompt.name.toLowerCase().includes('field')
+        );
+        setMatchingPrompts(formPrompts);
         
-        // Fetch default prompt results
-        setLoadingPrompts(prev => new Set(prev).add('default'));
-        try {
-          const defaultResults = await getLLMResultApi({
-            organizationId: organizationId,
-            documentId: id, 
-            promptId: 'default',
-          });
-          setLlmResults(prev => ({
-            ...prev,
-            'default': defaultResults
-          }));
-          setLoadingPrompts(prev => {
-            const next = new Set(prev);
-            next.delete('default');
-            return next;
-          });
-        } catch (error) {
-          console.error('Error fetching default results:', error);
-          setFailedPrompts(prev => new Set(prev).add('default'));
-          setLoadingPrompts(prev => {
-            const next = new Set(prev);
-            next.delete('default');
-            return next;
-          });
+        // Fetch default form prompt results if available
+        const defaultFormPrompt = formPrompts.find(p => p.name.toLowerCase().includes('form'));
+        if (defaultFormPrompt) {
+          setLoadingPrompts(prev => new Set(prev).add(defaultFormPrompt.prompt_revid));
+          try {
+            const defaultResults = await getLLMResultApi({
+              organizationId: organizationId,
+              documentId: id, 
+              promptId: defaultFormPrompt.prompt_revid,
+            });
+            setLlmResults(prev => ({
+              ...prev,
+              [defaultFormPrompt.prompt_revid]: defaultResults
+            }));
+            setExpandedPrompt(defaultFormPrompt.prompt_revid);
+            setLoadingPrompts(prev => {
+              const next = new Set(prev);
+              next.delete(defaultFormPrompt.prompt_revid);
+              return next;
+            });
+          } catch (error) {
+            console.error('Error fetching default form results:', error);
+            setFailedPrompts(prev => new Set(prev).add(defaultFormPrompt.prompt_revid));
+            setLoadingPrompts(prev => {
+              const next = new Set(prev);
+              next.delete(defaultFormPrompt.prompt_revid);
+              return next;
+            });
+          }
         }
       } catch (error) {
-        console.error('Error fetching prompts:', error);
+        console.error('Error fetching form prompts:', error);
       }
     };
     
@@ -155,10 +164,8 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
   };
 
   const handleFind = (promptId: string, key: string, value: string) => {
-    // Make sure value is not empty or null
     if (!value || value === 'null') return;
     
-    // Clean up the value if needed
     const searchValue = value.trim();
     if (searchValue === '') return;
     
@@ -171,7 +178,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
   };
 
   const handleEdit = (promptId: string, key: string, value: string) => {
-    if (!editMode) return; // Only allow editing when edit mode is enabled
+    if (!editMode) return;
     setEditing({ promptId, key, value });
   };
 
@@ -182,24 +189,19 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
       const currentResult = llmResults[editing.promptId];
       if (!currentResult) return;
 
-      // Create a deep copy of the current result
       const updatedResult = JSON.parse(JSON.stringify(currentResult.updated_llm_result));
       
-      // Check if we're dealing with an array item - matches patterns like "items[2]" or "items[2].name"
       const arrayItemRegex = /(.*?)\[(\d+)\](\..*)?$/;
       const matches = editing.key.match(arrayItemRegex);
       
       if (matches) {
-        // Extract array path, index, and any nested path that follows
-        const arrayPath = matches[1];      // e.g., "items" 
-        const index = parseInt(matches[2], 10); // e.g., 2
-        const nestedPath = matches[3] ? matches[3].substring(1) : null; // e.g., "name" (without the leading dot)
+        const arrayPath = matches[1];
+        const index = parseInt(matches[2], 10);
+        const nestedPath = matches[3] ? matches[3].substring(1) : null;
         
-        // Navigate to the array
         let current = updatedResult;
         const pathParts = arrayPath.split('.');
         
-        // Navigate to the containing array
         for (const part of pathParts) {
           if (current[part] !== undefined) {
             current = current[part];
@@ -209,14 +211,11 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
           }
         }
         
-        // Make sure we found the array and the index is valid
         if (Array.isArray(current) && index >= 0 && index < current.length) {
           if (nestedPath) {
-            // We need to update a property inside an object in the array
             const nestedPathParts = nestedPath.split('.');
             const arrayItem = current[index];
             
-            // Navigate to the nested object that contains the property to update
             let currentNested = arrayItem;
             for (let i = 0; i < nestedPathParts.length - 1; i++) {
               const part = nestedPathParts[i];
@@ -226,26 +225,21 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
               currentNested = currentNested[part];
             }
             
-            // Update the nested property
             const lastKey = nestedPathParts[nestedPathParts.length - 1];
             currentNested[lastKey] = editing.value;
           } else {
-            // Update the array item directly (it's a primitive value)
             current[index] = editing.value;
           }
         }
       } else {
-        // Handle normal path (non-array) - existing logic
         const pathParts = editing.key.split('.');
         let current = updatedResult;
         
-        // Navigate to the nested object that contains the property to update
         for (let i = 0; i < pathParts.length - 1; i++) {
           current = current[pathParts[i]];
           if (!current) break;
         }
         
-        // Update the value if we found the containing object
         if (current) {
           const lastKey = pathParts[pathParts.length - 1];
           current[lastKey] = editing.value;
@@ -791,9 +785,9 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
   };
 
   return (
-    <div className="w-full h-full flex flex-col border-r border-black/10">
+    <div className="w-full h-full flex flex-col">
       <div className="h-12 min-h-[48px] flex items-center justify-between px-4 bg-gray-100 text-black font-bold border-b border-black/10">
-        <span>Available Prompts</span>
+        <span>Form Fields</span>
         <div className="flex items-center gap-2">
           {editMode && (
             <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-md">
@@ -811,95 +805,62 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
       </div>
       
       <div className="overflow-auto flex-grow">
-        {/* Document Summary */}
-        <div className="border-b border-black/10">
-          <div
-            onClick={() => handlePromptChange('default')}
-            className="w-full min-h-[48px] flex items-center justify-between px-4 bg-gray-100/[0.6] hover:bg-gray-100/[0.8] transition-colors cursor-pointer"
-          >
-            <span className="text-sm text-gray-900">Document Summary</span>
-            <div className="flex items-center gap-2">
+        {matchingPrompts.length === 0 ? (
+          <div className="p-4 text-sm text-gray-500">
+            No form-related prompts found for this document.
+          </div>
+        ) : (
+          matchingPrompts.map((prompt) => (
+            <div key={prompt.prompt_revid} className="border-b border-black/10">
               <div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRunPrompt('default');
-                }}
-                className="p-1 rounded-full hover:bg-black/5 transition-colors cursor-pointer"
+                onClick={() => handlePromptChange(prompt.prompt_revid)}
+                className="w-full min-h-[48px] flex items-center justify-between px-4 bg-gray-100/[0.6] hover:bg-gray-100/[0.8] transition-colors cursor-pointer"
               >
-                {runningPrompts.has('default') ? (
-                  <div className="w-4 h-4 border-2 border-[#2B4479]/60 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <ArrowPathIcon className="w-4 h-4 text-gray-600" />
-                )}
-              </div>
-              <ChevronDownIcon 
-                className={`w-5 h-5 text-gray-600 transition-transform ${
-                  expandedPrompt === 'default' ? 'rotate-180' : ''
-                }`}
-              />
-            </div>
-          </div>
-          <div 
-            className={`transition-all duration-200 ease-in-out bg-white ${
-              expandedPrompt === 'default' ? '' : 'hidden'
-            }`}
-          >
-            {renderPromptResults('default')}
-          </div>
-        </div>
-
-        {/* Other Prompts */}
-        {matchingPrompts.map((prompt) => (
-          <div key={prompt.prompt_revid} className="border-b border-black/10">
-            <div
-              onClick={() => handlePromptChange(prompt.prompt_revid)}
-              className="w-full min-h-[48px] flex items-center justify-between px-4 bg-gray-100/[0.6] hover:bg-gray-100/[0.8] transition-colors cursor-pointer"
-            >
-              <span className="text-sm text-gray-900">
-                {prompt.name} <span className="text-gray-500 text-xs">(v{prompt.prompt_version})</span>
-              </span>
-              <div className="flex items-center gap-2">
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRunPrompt(prompt.prompt_revid);
-                  }}
-                  className="p-1 rounded-full hover:bg-black/5 transition-colors cursor-pointer"
-                >
-                  {runningPrompts.has(prompt.prompt_revid) ? (
-                    <div className="w-4 h-4 border-2 border-[#2B4479]/60 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <ArrowPathIcon className="w-4 h-4 text-gray-600" />
-                  )}
+                <span className="text-sm text-gray-900">
+                  {prompt.name} <span className="text-gray-500 text-xs">(v{prompt.prompt_version})</span>
+                </span>
+                <div className="flex items-center gap-2">
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRunPrompt(prompt.prompt_revid);
+                    }}
+                    className="p-1 rounded-full hover:bg-black/5 transition-colors cursor-pointer"
+                  >
+                    {runningPrompts.has(prompt.prompt_revid) ? (
+                      <div className="w-4 h-4 border-2 border-[#2B4479]/60 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <ArrowPathIcon className="w-4 h-4 text-gray-600" />
+                    )}
+                  </div>
+                  <ChevronDownIcon 
+                    className={`w-5 h-5 text-gray-600 transition-transform ${
+                      expandedPrompt === prompt.prompt_revid ? 'rotate-180' : ''
+                    }`}
+                  />
                 </div>
-                <ChevronDownIcon 
-                  className={`w-5 h-5 text-gray-600 transition-transform ${
-                    expandedPrompt === prompt.prompt_revid ? 'rotate-180' : ''
-                  }`}
-                />
+              </div>
+              <div 
+                className={`transition-all duration-200 ease-in-out ${
+                  expandedPrompt === prompt.prompt_revid ? '' : 'hidden'
+                }`}
+              >
+                {renderPromptResults(prompt.prompt_revid)}
               </div>
             </div>
-            <div 
-              className={`transition-all duration-200 ease-in-out ${
-                expandedPrompt === prompt.prompt_revid ? '' : 'hidden'
-              }`}
-            >
-              {renderPromptResults(prompt.prompt_revid)}
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
 };
 
-// Wrap the component with OCRProvider
-const PDFExtractionSidebar = (props: Props) => {
+const PDFFormSidebar = (props: Props) => {
   return (
     <OCRProvider>
-      <PDFExtractionSidebarContent {...props} />
+      <PDFFormSidebarContent {...props} />
     </OCRProvider>
   );
 };
 
-export default PDFExtractionSidebar;
+export default PDFFormSidebar;
