@@ -397,3 +397,25 @@ class ListFlowsResponse(BaseModel):
     flows: List[Flow]
     total_count: int
     skip: int
+
+# Add these new models for form submissions
+class FormSubmissionData(BaseModel):
+    form_id: str
+    form_version: int
+    document_id: str
+    submission_data: dict
+    submitted_by: Optional[str] = None
+
+class FormSubmission(FormSubmissionData):
+    submission_id: str
+    organization_id: str
+    created_at: datetime
+    updated_at: datetime
+
+class ListFormSubmissionsResponse(BaseModel):
+    submissions: List[FormSubmission]
+    total_count: int
+    skip: int
+
+class UpdateFormSubmissionRequest(BaseModel):
+    submission_data: dict
