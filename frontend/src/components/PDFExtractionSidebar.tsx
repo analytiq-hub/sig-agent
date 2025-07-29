@@ -29,7 +29,7 @@ interface EditingState {
 // Update the type definition to handle nested structures
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
-const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
+const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   const { loadOCRBlocks, findBlocksWithContext } = useOCR();
   const [llmResults, setLlmResults] = useState<Record<string, GetLLMResultResponse>>({});
   const [matchingPrompts, setMatchingPrompts] = useState<Prompt[]>([]);
@@ -894,12 +894,12 @@ const PDFLeftSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
 };
 
 // Wrap the component with OCRProvider
-const PDFLeftSidebar = (props: Props) => {
+const PDFExtractionSidebar = (props: Props) => {
   return (
     <OCRProvider>
-      <PDFLeftSidebarContent {...props} />
+      <PDFExtractionSidebarContent {...props} />
     </OCRProvider>
   );
 };
 
-export default PDFLeftSidebar;
+export default PDFExtractionSidebar;

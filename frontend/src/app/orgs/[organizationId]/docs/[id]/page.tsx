@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { Box } from '@mui/material';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useState, useEffect } from 'react';
-import PDFLeftSidebar from '@/components/PDFLeftSidebar';
+import PDFExtractionSidebar from '@/components/PDFExtractionSidebar';
 import type { HighlightInfo } from '@/types/index';
 
 const PDFViewer = dynamic(() => import('@/components/PDFViewer'), {
@@ -70,7 +70,7 @@ const PDFViewerPage = ({ params }: PageProps) => {
             <>
               <Panel defaultSize={panelSizes.left}>
                 <Box sx={{ height: '100%', overflow: 'auto' }}>
-                  <PDFLeftSidebar 
+                  <PDFExtractionSidebar 
                     organizationId={params.organizationId} 
                     id={pdfId}
                     onHighlight={setHighlightInfo}
