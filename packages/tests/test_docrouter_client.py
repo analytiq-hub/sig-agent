@@ -147,11 +147,11 @@ async def test_documents_api(test_db, mock_auth, mock_docrouter_client, small_pd
     try:
         # Test 1: Create a document
         upload_result = mock_docrouter_client.documents.upload(TEST_ORG_ID, [small_pdf])
-        assert "uploaded_documents" in upload_result
-        assert len(upload_result["uploaded_documents"]) == 1
-        assert upload_result["uploaded_documents"][0]["document_name"] == "small_test.pdf"
+        assert "documents" in upload_result
+        assert len(upload_result["documents"]) == 1
+        assert upload_result["documents"][0]["document_name"] == "small_test.pdf"
         
-        document_id = upload_result["uploaded_documents"][0]["document_id"]
+        document_id = upload_result["documents"][0]["document_id"]
         
         # Test 2: List documents
         documents = mock_docrouter_client.documents.list(TEST_ORG_ID)

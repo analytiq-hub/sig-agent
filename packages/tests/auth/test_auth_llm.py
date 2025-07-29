@@ -21,7 +21,7 @@ async def test_llm_permissions(org_and_users, test_db):
     }
     resp = client.post(f"/v0/orgs/{org_id}/documents", json=upload_data, headers=get_token_headers(admin["token"]))
     assert resp.status_code == 200
-    doc_id = resp.json()["uploaded_documents"][0]["document_id"]
+    doc_id = resp.json()["documents"][0]["document_id"]
 
     # Optionally, mock OCR completion here if your backend requires it
 

@@ -234,12 +234,12 @@ async def test_upload_document(test_db, pdf_fixture, request, mock_auth):
         # Check upload response
         assert upload_response.status_code == 200
         upload_result = upload_response.json()
-        assert "uploaded_documents" in upload_result
-        assert len(upload_result["uploaded_documents"]) == 1
-        assert upload_result["uploaded_documents"][0]["document_name"] == test_pdf["name"]
+        assert "documents" in upload_result
+        assert len(upload_result["documents"]) == 1
+        assert upload_result["documents"][0]["document_name"] == test_pdf["name"]
         
         # Get the document ID from the upload response
-        document_id = upload_result["uploaded_documents"][0]["document_id"]
+        document_id = upload_result["documents"][0]["document_id"]
         
         # Step 2: List documents to verify it appears in the list
         list_response = client.get(
@@ -340,7 +340,7 @@ async def test_document_lifecycle(test_db, small_pdf, mock_auth):
 
         assert upload_response.status_code == 200
         upload_result = upload_response.json()
-        document_id = upload_result["uploaded_documents"][0]["document_id"]
+        document_id = upload_result["documents"][0]["document_id"]
         
         # Step 3: List documents and verify tag
         list_response = client.get(
@@ -490,10 +490,10 @@ async def test_upload_supported_file_types(test_db, minimal_file, mock_auth):
     )
     assert upload_response.status_code == 200
     upload_result = upload_response.json()
-    assert "uploaded_documents" in upload_result
-    assert len(upload_result["uploaded_documents"]) == 1
-    assert upload_result["uploaded_documents"][0]["document_name"] == test_file["name"]
-    document_id = upload_result["uploaded_documents"][0]["document_id"]
+    assert "documents" in upload_result
+    assert len(upload_result["documents"]) == 1
+    assert upload_result["documents"][0]["document_name"] == test_file["name"]
+    document_id = upload_result["documents"][0]["document_id"]
 
     # List and verify
     list_response = client.get(

@@ -25,7 +25,7 @@ class DocumentsAPI:
                 - tag_ids: Optional list of tag IDs
             
         Returns:
-            Dict with uploaded_documents list containing document metadata
+            Dict with documents list containing document metadata
         """
         # Convert to expected format
         docs_upload = {"documents": documents}

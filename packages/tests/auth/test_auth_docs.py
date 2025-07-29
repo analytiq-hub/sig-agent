@@ -22,7 +22,7 @@ async def test_doc_permissions(org_and_users, test_db):
     # --- CREATE ---
     resp = client.post(f"/v0/orgs/{org_id}/documents", json=upload_data, headers=get_token_headers(admin["token"]))
     assert resp.status_code == 200, f"Admin should be able to create document, got {resp.status_code}: {resp.text}"
-    doc_id = resp.json()["uploaded_documents"][0]["document_id"]
+    doc_id = resp.json()["documents"][0]["document_id"]
 
     resp = client.post(f"/v0/orgs/{org_id}/documents", json=upload_data, headers=get_token_headers(member["token"]))
     assert resp.status_code == 200, f"Member should be able to create document, got {resp.status_code}: {resp.text}"
@@ -67,7 +67,7 @@ async def test_doc_permissions(org_and_users, test_db):
 
     # Re-upload for admin delete test
     resp = client.post(f"/v0/orgs/{org_id}/documents", json=upload_data, headers=get_token_headers(admin["token"]))
-    doc_id = resp.json()["uploaded_documents"][0]["document_id"]
+    doc_id = resp.json()["documents"][0]["document_id"]
 
     resp = client.delete(f"/v0/orgs/{org_id}/documents/{doc_id}", headers=get_token_headers(admin["token"]))
     assert resp.status_code == 200, f"Admin should be able to delete document, got {resp.status_code}: {resp.text}"

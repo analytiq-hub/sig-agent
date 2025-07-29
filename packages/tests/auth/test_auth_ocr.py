@@ -22,7 +22,7 @@ async def test_ocr_permissions(org_and_users, test_db):
     # Upload a document as admin
     resp = client.post(f"/v0/orgs/{org_id}/documents", json=upload_data, headers=get_token_headers(admin["token"]))
     assert resp.status_code == 200
-    doc_id = resp.json()["uploaded_documents"][0]["document_id"]
+    doc_id = resp.json()["documents"][0]["document_id"]
 
     # --- OCR BLOCKS ---
     url_blocks = f"/v0/orgs/{org_id}/ocr/download/blocks/{doc_id}"

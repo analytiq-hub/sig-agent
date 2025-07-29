@@ -53,7 +53,7 @@ result = client.documents.upload(organization_id, [{
     "content": content,
     "tag_ids": []
 }])
-print(f"Uploaded document: {result['uploaded_documents'][0]['document_id']}")
+print(f"Uploaded document: {result['documents'][0]['document_id']}")
 
 # Get OCR text from a document
 document_id = "document_id_here"

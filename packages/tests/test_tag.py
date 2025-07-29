@@ -298,7 +298,7 @@ async def test_tag_with_documents(org_and_users, test_db):
     
     # Get the document ID from the response
     doc_response = resp.json()
-    doc_id = doc_response["uploaded_documents"][0]["document_id"]
+    doc_id = doc_response["documents"][0]["document_id"]
     
     # Try to delete the tag (should fail because it's used by a document)
     resp = client.delete(f"/v0/orgs/{org_id}/tags/{tag_id}", headers=get_token_headers(admin["token"]))

@@ -302,7 +302,7 @@ async def upload_document(
 ):
     """Upload one or more documents"""
     logger.debug(f"upload_document(): documents: {[doc.name for doc in documents_upload.documents]}")
-    uploaded_documents = []
+    documents = []
 
     # Validate all tag IDs first
     all_tag_ids = set()
@@ -377,7 +377,7 @@ async def upload_document(
         }
         
         await ad.common.save_doc(analytiq_client, document_metadata)
-        uploaded_documents.append({
+        documents.append({
             "document_name": document.name,
             "document_id": document_id,
             "tag_ids": document.tag_ids
@@ -387,7 +387,7 @@ async def upload_document(
         msg = {"document_id": document_id}
         await ad.queue.send_msg(analytiq_client, "ocr", msg=msg)
     
-    return {"uploaded_documents": uploaded_documents}
+    return {"documents": documents}
 
 @app.put("/v0/orgs/{organization_id}/documents/{document_id}", tags=["documents"])
 async def update_document(

@@ -106,7 +106,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
             .join(", ")
         : "no tags";
       
-      setUploadStatus(`Successfully uploaded ${response.uploaded_documents.length} file(s): ${fileNames} with ${tagNames}`);
+      setUploadStatus(`Successfully uploaded ${response.documents.length} file(s): ${fileNames} with ${tagNames}`);
       
       setFiles([]);
       setSelectedTags([]); // Reset selected tags after successful upload

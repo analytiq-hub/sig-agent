@@ -10,7 +10,7 @@ export interface UploadDocumentsParams {
 }
 
 export interface UploadDocumentsResponse {
-  uploaded_documents: Array<{
+  documents: Array<{
     document_name: string;
     document_id: string;
   }>;
