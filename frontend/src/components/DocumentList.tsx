@@ -276,7 +276,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       flex: 2,
       renderCell: (params) => {
         return (
-          <Link href={`/orgs/${organizationId}/extractions/${params.row.id}`}
+          <Link href={`/orgs/${organizationId}/docs/${params.row.id}`}
             style={{ color: 'blue', textDecoration: 'underline' }}>
             {params.value}
           </Link>
