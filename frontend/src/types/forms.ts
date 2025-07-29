@@ -51,3 +51,56 @@ export interface DeleteFormParams {
   organizationId: string;
   formId: string; // DELETE uses form ID
 }
+
+export interface FormSubmissionData {
+  form_revid: string;
+  document_id: string;
+  submission_data: Record<string, any>;
+  submitted_by?: string;
+}
+
+export interface FormSubmission extends FormSubmissionData {
+  id: string;
+  organization_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ListFormSubmissionsResponse {
+  submissions: FormSubmission[];
+  total_count: number;
+  skip: number;
+}
+
+export interface UpdateFormSubmissionRequest {
+  submission_data: Record<string, any>;
+}
+
+export interface SubmitFormParams {
+  organizationId: string;
+  submission: FormSubmissionData;
+}
+
+export interface ListFormSubmissionsParams {
+  organizationId: string;
+  document_id?: string;
+  form_revid?: string;
+  skip?: number;
+  limit?: number;
+}
+
+export interface GetFormSubmissionParams {
+  organizationId: string;
+  submissionId: string;
+}
+
+export interface UpdateFormSubmissionParams {
+  organizationId: string;
+  submissionId: string;
+  update: UpdateFormSubmissionRequest;
+}
+
+export interface DeleteFormSubmissionParams {
+  organizationId: string;
+  submissionId: string;
+}

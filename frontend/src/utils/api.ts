@@ -100,7 +100,14 @@ import {
   ListFormsResponse,
   GetFormParams,
   UpdateFormParams,
-  DeleteFormParams
+  DeleteFormParams,
+  SubmitFormParams,
+  ListFormSubmissionsParams,
+  ListFormSubmissionsResponse,
+  GetFormSubmissionParams,
+  FormSubmission,
+  UpdateFormSubmissionParams,
+  DeleteFormSubmissionParams
 } from '@/types/forms';
 
 // These APIs execute from the frontend
@@ -501,6 +508,49 @@ export const updateFormApi = async (params: UpdateFormParams): Promise<Form> => 
 export const deleteFormApi = async (params: DeleteFormParams) => {
   const { organizationId, formId } = params;
   const response = await api.delete(`/v0/orgs/${organizationId}/forms/${formId}`);
+  return response.data;
+};
+
+export const submitFormApi = async (params: SubmitFormParams): Promise<FormSubmission> => {
+  const { organizationId, submission } = params;
+  
+  const response = await api.post<FormSubmission>(`/v0/orgs/${organizationId}/forms/submissions`, submission);
+  return response.data;
+};
+
+export const listFormSubmissionsApi = async (params: ListFormSubmissionsParams): Promise<ListFormSubmissionsResponse> => {
+  const { organizationId, document_id, form_revid, skip = 0, limit = 10 } = params;
+  
+  const queryParams: Record<string, string | number | undefined> = {
+    skip: skip,
+    limit: limit,
+  };
+  if (document_id) queryParams.document_id = document_id;
+  if (form_revid) queryParams.form_revid = form_revid;
+
+  const response = await api.get<ListFormSubmissionsResponse>(`/v0/orgs/${organizationId}/forms/submissions`, {
+    params: queryParams
+  });
+  return response.data;
+};
+
+export const getFormSubmissionApi = async (params: GetFormSubmissionParams): Promise<FormSubmission> => {
+  const { organizationId, submissionId } = params;
+  
+  const response = await api.get<FormSubmission>(`/v0/orgs/${organizationId}/forms/submissions/${submissionId}`);
+  return response.data;
+};
+
+export const updateFormSubmissionApi = async (params: UpdateFormSubmissionParams): Promise<FormSubmission> => {
+  const { organizationId, submissionId, update } = params;
+  
+  const response = await api.put<FormSubmission>(`/v0/orgs/${organizationId}/forms/submissions/${submissionId}`, update);
+  return response.data;
+};
+
+export const deleteFormSubmissionApi = async (params: DeleteFormSubmissionParams): Promise<void> => {
+  const { organizationId, submissionId } = params;
+  const response = await api.delete(`/v0/orgs/${organizationId}/forms/submissions/${submissionId}`);
   return response.data;
 };
 
