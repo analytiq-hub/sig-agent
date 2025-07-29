@@ -24,7 +24,7 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
         onClick={() => setShowLeftPanel((prev: boolean) => !prev)}
         className={`
           flex items-center justify-center
-          w-8 h-8
+          w-8 h-[31px]
           rounded
           transition-colors duration-150
           ${showLeftPanel 
@@ -45,7 +45,7 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
         onClick={() => setShowPdfPanel(prev => !prev)}
         className={`
           flex items-center justify-center
-          w-8 h-8
+          w-8 h-[31px]
           rounded
           transition-colors duration-150
           ${showPdfPanel 
