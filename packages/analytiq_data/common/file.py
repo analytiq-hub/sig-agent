@@ -3,6 +3,7 @@ import os
 import subprocess
 import tempfile
 import logging
+import platform
 
 import analytiq_data as ad
 from filelock import FileLock
@@ -280,9 +281,16 @@ def convert_to_pdf(blob: bytes, ext: str) -> bytes:
         input_path = input_file.name
 
     output_path = input_path.replace(ext, ".pdf")
+    
+    # Determine the correct LibreOffice command based on OS
+    if platform.system() == "Darwin":  # macOS
+        libreoffice_cmd = "/Applications/LibreOffice.app/Contents/MacOS/soffice"
+    else:  # Linux and other Unix-like systems
+        libreoffice_cmd = "libreoffice"
+    
     with libreoffice_filelock:
         subprocess.run([
-            "libreoffice",
+            libreoffice_cmd,
             "--headless",
             "--convert-to", "pdf",
             "--outdir", os.path.dirname(input_path),

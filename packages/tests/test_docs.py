@@ -27,11 +27,19 @@ import io
 import zipfile
 import tempfile
 import subprocess
+import platform
 
 from analytiq_data.common.doc import EXTENSION_TO_MIME
 from analytiq_data.common.file import libreoffice_filelock
 
 logger = logging.getLogger(__name__)
+
+def get_libreoffice_cmd():
+    """Get the correct LibreOffice command based on the operating system"""
+    if platform.system() == "Darwin":  # macOS
+        return "/Applications/LibreOffice.app/Contents/MacOS/soffice"
+    else:  # Linux and other Unix-like systems
+        return "libreoffice"
 
 # Check that ENV is set to pytest
 assert os.environ["ENV"] == "pytest"
@@ -86,7 +94,7 @@ def minimal_file(request):
                 print(f"LibreOffice lock acquired for {ext}")
 
                 subprocess.run([
-                    "libreoffice",
+                    get_libreoffice_cmd(),
                     "--headless",
                     "--convert-to", "pdf",
                     "--outdir", os.path.dirname(txt_path),
@@ -111,7 +119,7 @@ def minimal_file(request):
             with libreoffice_filelock:
                 print(f"LibreOffice lock acquired for {ext}")
                 subprocess.run([
-                    "libreoffice",
+                    get_libreoffice_cmd(),
                     "--headless",
                     "--convert-to", "docx",
                     "--outdir", os.path.dirname(txt_path),
@@ -136,7 +144,7 @@ def minimal_file(request):
             with libreoffice_filelock:
                 print(f"LibreOffice lock acquired for {ext}")
                 subprocess.run([
-                    "libreoffice",
+                    get_libreoffice_cmd(),
                     "--headless",
                     "--convert-to", "xlsx",
                     "--outdir", os.path.dirname(csv_path),
@@ -167,7 +175,7 @@ def minimal_file(request):
             with libreoffice_filelock:
                 print(f"LibreOffice lock acquired for {ext}")
                 subprocess.run([
-                    "libreoffice",
+                    get_libreoffice_cmd(),
                     "--headless",
                     "--convert-to", "doc",
                     "--outdir", os.path.dirname(txt_path),
