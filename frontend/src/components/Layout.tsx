@@ -55,13 +55,33 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { currentOrganization } = useOrganization();
+  
+  // Initialize with a default value that works for both server and client
   const [open, setOpen] = useState(true);
+  const [isClient, setIsClient] = useState(false);
+  
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const isPDFViewer = pathname.includes('/docs/');
   const [forceUpdate, setForceUpdate] = useState(0);
   const [pdfControls, setPdfControls] = useState<PDFViewerControlsType | null>(null);
+
+  // Load sidebar state from localStorage after component mounts (client-side only)
+  useEffect(() => {
+    setIsClient(true);
+    const savedSidebarState = localStorage.getItem('sidebarOpen');
+    if (savedSidebarState !== null) {
+      setOpen(JSON.parse(savedSidebarState));
+    }
+  }, []);
+
+  // Save sidebar state to localStorage whenever it changes (client-side only)
+  useEffect(() => {
+    if (isClient) {
+      localStorage.setItem('sidebarOpen', JSON.stringify(open));
+    }
+  }, [open, isClient]);
 
   const fileMenuItems = [
   //  { text: 'Dashboard', icon: ChartPieIcon, tooltip: 'Dashboard', href: `/orgs/${currentOrganization?.id}/dashboard` },
@@ -87,7 +107,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   useEffect(() => {
     const handleResize = () => {
-      setOpen(window.innerWidth > 640);
+      // Only auto-close on small screens if no saved state exists
+      if (window.innerWidth <= 640) {
+        const savedState = localStorage.getItem('sidebarOpen');
+        if (savedState === null) {
+          setOpen(false);
+        }
+      }
     };
     
     window.addEventListener('resize', handleResize);
