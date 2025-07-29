@@ -29,6 +29,15 @@ deploy:
 tests: setup
 	. .venv/bin/activate && pytest -n auto packages/tests/
 
+setup-ui:
+	cd tests-ui && npm install
+
+tests-ui: setup-ui
+	cd tests-ui && npm run test:ui
+
+tests-ui-debug: setup-ui
+	cd tests-ui && npm run test:ui:debug
+
 clean:
 	rm -rf .venv
 
