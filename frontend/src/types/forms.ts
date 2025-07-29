@@ -55,7 +55,7 @@ export interface DeleteFormParams {
 export interface FormSubmissionData {
   form_revid: string;
   document_id: string;
-  submission_data: Record<string, any>;
+  submission_data: Record<string, unknown>;
   submitted_by?: string;
 }
 
@@ -73,7 +73,7 @@ export interface ListFormSubmissionsResponse {
 }
 
 export interface UpdateFormSubmissionRequest {
-  submission_data: Record<string, any>;
+  submission_data: Record<string, unknown>;
 }
 
 export interface SubmitFormParams {
