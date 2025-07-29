@@ -494,7 +494,7 @@ async def test_form_submission_cross_organization_isolation(test_db, mock_auth):
             headers=get_auth_headers()
         )
         
-        assert get_response.status_code == 404
+        assert get_response.status_code == 403
         
         # Update submission from different org should fail
         update_data = {
@@ -507,7 +507,7 @@ async def test_form_submission_cross_organization_isolation(test_db, mock_auth):
             headers=get_auth_headers()
         )
         
-        assert update_response.status_code == 404
+        assert update_response.status_code == 403
         
         # Delete submission from different org should fail
         delete_response = client.delete(
@@ -515,7 +515,7 @@ async def test_form_submission_cross_organization_isolation(test_db, mock_auth):
             headers=get_auth_headers()
         )
         
-        assert delete_response.status_code == 404
+        assert delete_response.status_code == 403
         
         # Verify the submission still exists in the original organization
         verify_response = client.get(

@@ -1784,6 +1784,171 @@ async def list_forms(
         skip=skip
     )
 
+# Form submission endpoints
+@app.post("/v0/orgs/{organization_id}/forms/submissions", response_model=FormSubmission, tags=["form-submissions"])
+async def submit_form(
+    organization_id: str,
+    submission: FormSubmissionData,
+    current_user: User = Depends(get_org_user)
+):
+    """Submit a form for a specific document"""
+    logger.info(f"submit_form() start: organization_id: {organization_id}, form_revid: {submission.form_revid}, document_id: {submission.document_id}")
+    db = ad.common.get_async_db()
+    
+    # Verify the form revision exists
+    form_revision = await db.form_revisions.find_one({"_id": ObjectId(submission.form_revid)})
+    if not form_revision:
+        raise HTTPException(status_code=404, detail="Form revision not found")
+    
+    # Verify the form belongs to the organization
+    form = await db.forms.find_one({
+        "_id": ObjectId(form_revision["form_id"]),
+        "organization_id": organization_id
+    })
+    if not form:
+        raise HTTPException(status_code=404, detail="Form not found or not in this organization")
+
+    # Verify the document exists and belongs to the organization
+    document = await db.docs.find_one({
+        "_id": ObjectId(submission.document_id),
+        "organization_id": organization_id
+    })
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found or not in this organization")
+    
+    # Create the form submission
+    now = datetime.now(UTC)
+    
+    submission_doc = {
+        "form_revid": submission.form_revid,
+        "document_id": submission.document_id,
+        "organization_id": organization_id,
+        "submission_data": submission.submission_data,
+        "submitted_by": submission.submitted_by or current_user.user_id,
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    result = await db.form_submissions.insert_one(submission_doc)
+    
+    # Return the created submission
+    submission_doc["id"] = str(result.inserted_id)
+    return FormSubmission(**submission_doc)
+
+@app.get("/v0/orgs/{organization_id}/forms/submissions", response_model=ListFormSubmissionsResponse, tags=["form-submissions"])
+async def list_form_submissions(
+    organization_id: str,
+    document_id: Optional[str] = Query(None, description="Filter submissions by document ID"),
+    form_revid: Optional[str] = Query(None, description="Filter submissions by form revision ID"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    current_user: User = Depends(get_org_user)
+):
+    """List form submissions within an organization"""
+    logger.info(f"list_form_submissions() start: organization_id: {organization_id}, document_id: {document_id}, form_revid: {form_revid}")
+    db = ad.common.get_async_db()
+    
+    # Build filter
+    filter_dict = {"organization_id": organization_id}
+    if document_id:
+        filter_dict["document_id"] = document_id
+    if form_revid:
+        filter_dict["form_revid"] = form_revid
+    
+    # Get total count
+    total_count = await db.form_submissions.count_documents(filter_dict)
+    
+    # Get submissions
+    submissions = await db.form_submissions.find(filter_dict).sort("created_at", -1).skip(skip).limit(limit).to_list(length=limit)
+    
+    # Convert _id to id field
+    for submission in submissions:
+        submission["id"] = str(submission.pop('_id'))
+    
+    return ListFormSubmissionsResponse(
+        submissions=submissions,
+        total_count=total_count,
+        skip=skip
+    )
+
+@app.get("/v0/orgs/{organization_id}/forms/submissions/{submission_id}", response_model=FormSubmission, tags=["form-submissions"])
+async def get_form_submission(
+    organization_id: str,
+    submission_id: str,
+    current_user: User = Depends(get_org_user)
+):
+    """Get a specific form submission"""
+    logger.info(f"get_form_submission() start: organization_id: {organization_id}, submission_id: {submission_id}")
+    db = ad.common.get_async_db()
+    
+    submission = await db.form_submissions.find_one({
+        "_id": ObjectId(submission_id),
+        "organization_id": organization_id
+    })
+    
+    if not submission:
+        raise HTTPException(status_code=404, detail="Form submission not found")
+    
+    submission["id"] = str(submission.pop('_id'))
+    return FormSubmission(**submission)
+
+@app.put("/v0/orgs/{organization_id}/forms/submissions/{submission_id}", response_model=FormSubmission, tags=["form-submissions"])
+async def update_form_submission(
+    organization_id: str,
+    submission_id: str,
+    update_request: UpdateFormSubmissionRequest,
+    current_user: User = Depends(get_org_user)
+):
+    """Update a form submission"""
+    logger.info(f"update_form_submission() start: organization_id: {organization_id}, submission_id: {submission_id}")
+    db = ad.common.get_async_db()
+    
+    # Update the submission
+    result = await db.form_submissions.update_one(
+        {
+            "_id": ObjectId(submission_id),
+            "organization_id": organization_id
+        },
+        {
+            "$set": {
+                "submission_data": update_request.submission_data,
+                "updated_at": datetime.now(UTC)
+            }
+        }
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Form submission not found")
+    
+    # Return the updated submission
+    updated_submission = await db.form_submissions.find_one({
+        "_id": ObjectId(submission_id),
+        "organization_id": organization_id
+    })
+    
+    updated_submission["id"] = str(updated_submission.pop('_id'))
+    return FormSubmission(**updated_submission)
+
+@app.delete("/v0/orgs/{organization_id}/forms/submissions/{submission_id}", tags=["form-submissions"])
+async def delete_form_submission(
+    organization_id: str,
+    submission_id: str,
+    current_user: User = Depends(get_org_user)
+):
+    """Delete a form submission"""
+    logger.info(f"delete_form_submission() start: organization_id: {organization_id}, submission_id: {submission_id}")
+    db = ad.common.get_async_db()
+    
+    result = await db.form_submissions.delete_one({
+        "_id": ObjectId(submission_id),
+        "organization_id": organization_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Form submission not found")
+    
+    return {"message": "Form submission deleted successfully"}
+
 @app.get("/v0/orgs/{organization_id}/forms/{form_revid}", response_model=Form, tags=["forms"])
 async def get_form(
     organization_id: str,
