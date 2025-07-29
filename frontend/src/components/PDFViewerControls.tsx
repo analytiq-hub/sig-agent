@@ -1,4 +1,9 @@
-import { Box, Button, Tooltip, useTheme } from '@mui/material';
+import { 
+  ViewSidebar, 
+  PictureAsPdf,
+  ViewSidebarOutlined,
+  PictureAsPdfOutlined 
+} from '@mui/icons-material';
 
 interface PDFViewerControlsProps {
   showLeftPanel: boolean;
@@ -13,47 +18,50 @@ const PDFViewerControls: React.FC<PDFViewerControlsProps> = ({
   showPdfPanel,
   setShowPdfPanel,
 }) => {
-  const theme = useTheme();
-  
   return (
-    <Box sx={{ display: 'flex', gap: 1 }}>
-      <Tooltip title={showLeftPanel ? "Hide Extraction Panel" : "Show Extraction Panel"}>
-        <Button 
-          variant="text"
-          onClick={() => setShowLeftPanel((prev: boolean) => !prev)}
-          sx={{ 
-            color: theme.palette.primary.contrastText,
-            '&:hover': {
-              backgroundColor: theme.palette.primary.light,
-              opacity: 0.5,
-            },
-            backgroundColor: showLeftPanel ? theme.palette.secondary.main : theme.palette.primary.light,
-            minWidth: 'auto',
-            padding: '6px 12px',
-          }}
-        >
-          Extract
-        </Button>
-      </Tooltip>
-      <Tooltip title={showPdfPanel ? "Hide PDF Panel" : "Show PDF Panel"}>
-        <Button 
-          variant="text"
-          onClick={() => setShowPdfPanel(prev => !prev)}
-          sx={{ 
-            color: theme.palette.primary.contrastText,
-            '&:hover': {
-              backgroundColor: theme.palette.primary.light,
-              opacity: 0.5,
-            },
-            backgroundColor: showPdfPanel ? theme.palette.secondary.main : theme.palette.primary.light,
-            minWidth: 'auto',
-            padding: '6px 12px',
-          }}
-        >
-          PDF
-        </Button>
-      </Tooltip>
-    </Box>
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => setShowLeftPanel((prev: boolean) => !prev)}
+        className={`
+          flex items-center justify-center
+          w-8 h-8
+          rounded
+          transition-colors duration-150
+          ${showLeftPanel 
+            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+            : 'text-blue-200 hover:bg-blue-500 hover:text-white'
+          }
+        `}
+        title={showLeftPanel ? "Hide Extraction Panel" : "Show Extraction Panel"}
+      >
+        {showLeftPanel ? (
+          <ViewSidebar className="w-4 h-4" />
+        ) : (
+          <ViewSidebarOutlined className="w-4 h-4" />
+        )}
+      </button>
+      
+      <button
+        onClick={() => setShowPdfPanel(prev => !prev)}
+        className={`
+          flex items-center justify-center
+          w-8 h-8
+          rounded
+          transition-colors duration-150
+          ${showPdfPanel 
+            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+            : 'text-blue-200 hover:bg-blue-500 hover:text-white'
+          }
+        `}
+        title={showPdfPanel ? "Hide PDF Panel" : "Show PDF Panel"}
+      >
+        {showPdfPanel ? (
+          <PictureAsPdf className="w-4 h-4" />
+        ) : (
+          <PictureAsPdfOutlined className="w-4 h-4" />
+        )}
+      </button>
+    </div>
   );
 };
 
