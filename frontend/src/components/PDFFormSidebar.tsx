@@ -15,7 +15,7 @@ import type { GetLLMResultResponse } from '@/types/index';
 import type { HighlightInfo } from '@/contexts/OCRContext';
 import FormioRenderer from './FormioRenderer';
 import { toast } from 'react-toastify';
-import { getApiErrorMsg, getFormSubmissionApi } from '@/utils/api';
+import { getApiErrorMsg, getFormSubmissionApi, deleteFormSubmissionApi } from '@/utils/api';
 import type { FormSubmission } from '@/types/forms';
 
 interface Props {
@@ -52,6 +52,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   const [existingSubmissions, setExistingSubmissions] = useState<Record<string, FormSubmission>>({});
   const [loadingSubmissions, setLoadingSubmissions] = useState<Set<string>>(new Set());
   const loadingSubmissionsRef = useRef<Set<string>>(new Set());
+  const [deletingSubmissions, setDeletingSubmissions] = useState<Set<string>>(new Set());
 
   const fetchData = useCallback(async () => {
     try {
@@ -168,7 +169,6 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
           promptId
         });
         setLlmResults(prev => ({ ...prev, [promptId]: updatedResult }));
-        toast.success('Analysis completed successfully');
       } else {
         toast.error('Analysis failed');
       }
@@ -484,6 +484,37 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     }
   };
 
+  const handleDeleteSubmission = async (formRevId: string) => {
+    if (!existingSubmissions[formRevId]) return;
+    
+    setDeletingSubmissions(prev => new Set(prev).add(formRevId));
+
+    try {
+      await deleteFormSubmissionApi({
+        organizationId,
+        documentId: id,
+        formRevId
+      });
+
+      // Remove from existing submissions state
+      setExistingSubmissions(prev => {
+        const newSubmissions = { ...prev };
+        delete newSubmissions[formRevId];
+        return newSubmissions;
+      });
+
+    } catch (error) {
+      console.error('Error deleting submission:', error);
+      toast.error(`Error deleting submission: ${getApiErrorMsg(error)}`);
+    } finally {
+      setDeletingSubmissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(formRevId);
+        return newSet;
+      });
+    }
+  };
+
   return (
     <div className="h-full overflow-y-auto p-4 space-y-6">
       {/* Forms Section */}
@@ -509,9 +540,23 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
                       <ArrowPathIcon className="h-4 w-4 animate-spin text-blue-500" />
                     )}
                     {existingSubmissions[form.form_revid] && (
-                      <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
-                        Previously submitted
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                          Previously submitted
+                        </span>
+                        <button
+                          onClick={() => handleDeleteSubmission(form.form_revid)}
+                          disabled={deletingSubmissions.has(form.form_revid)}
+                          className="text-xs text-red-600 hover:text-red-800 disabled:opacity-50"
+                          title="Delete submission"
+                        >
+                          {deletingSubmissions.has(form.form_revid) ? (
+                            <ArrowPathIcon className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <XMarkIcon className="h-3 w-3" />
+                          )}
+                        </button>
+                      </div>
                     )}
                     {submittingForms.has(form.form_revid) && (
                       <ArrowPathIcon className="h-4 w-4 animate-spin text-blue-500" />

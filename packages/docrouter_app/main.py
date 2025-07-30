@@ -1885,18 +1885,20 @@ async def get_form_submission(
     
     return None
 
-@app.delete("/v0/orgs/{organization_id}/forms/submissions/{submission_id}", tags=["form-submissions"])
+@app.delete("/v0/orgs/{organization_id}/forms/submissions/{document_id}", tags=["form-submissions"])
 async def delete_form_submission(
     organization_id: str,
-    submission_id: str,
+    document_id: str,
+    form_revid: str = Query(..., description="The form revision ID"),
     current_user: User = Depends(get_org_user)
 ):
     """Delete a form submission"""
-    logger.info(f"delete_form_submission() start: organization_id: {organization_id}, submission_id: {submission_id}")
+    logger.info(f"delete_form_submission() start: organization_id: {organization_id}, document_id: {document_id}, form_revid: {form_revid}")
     db = ad.common.get_async_db()
     
     result = await db.form_submissions.delete_one({
-        "_id": ObjectId(submission_id),
+        "document_id": document_id,
+        "form_revid": form_revid,
         "organization_id": organization_id
     })
     

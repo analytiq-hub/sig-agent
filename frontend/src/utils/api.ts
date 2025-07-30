@@ -32,8 +32,8 @@ import {
 import { 
   Schema, 
   CreateSchemaParams,
-  ListSchemasParams, 
-  ListSchemasResponse, 
+  ListSchemasParams,
+  ListSchemasResponse,
   GetSchemaParams,
   UpdateSchemaParams,
   DeleteSchemaParams,
@@ -527,8 +527,12 @@ export const getFormSubmissionApi = async (params: GetFormSubmissionParams): Pro
 };
 
 export const deleteFormSubmissionApi = async (params: DeleteFormSubmissionParams): Promise<void> => {
-  const { organizationId, submissionId } = params;
-  const response = await api.delete(`/v0/orgs/${organizationId}/forms/submissions/${submissionId}`);
+  const { organizationId, documentId, formRevId } = params;
+  const response = await api.delete(`/v0/orgs/${organizationId}/forms/submissions/${documentId}`, {
+    params: {
+      form_revid: formRevId
+    }
+  });
   return response.data;
 };
 

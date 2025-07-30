@@ -79,5 +79,6 @@ export interface GetFormSubmissionParams {
 
 export interface DeleteFormSubmissionParams {
   organizationId: string;
-  submissionId: string;
+  documentId: string;
+  formRevId: string;
 }
