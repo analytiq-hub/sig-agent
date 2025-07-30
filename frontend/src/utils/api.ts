@@ -516,10 +516,11 @@ export const submitFormApi = async (params: SubmitFormParams): Promise<FormSubmi
   return response.data;
 };
 
-export const getFormSubmissionApi = async (params: GetFormSubmissionParams): Promise<FormSubmission> => {
-  const { organizationId, submissionId } = params;
-  
-  const response = await api.get<FormSubmission>(`/v0/orgs/${organizationId}/forms/submissions/${submissionId}`);
+export const getFormSubmissionApi = async (params: GetFormSubmissionParams): Promise<FormSubmission | null> => {
+  const { organizationId, documentId, formRevId } = params;
+  const response = await api.get<FormSubmission | null>(
+    `/v0/orgs/${organizationId}/forms/submissions/${documentId}?form_revid=${formRevId}`
+  );
   return response.data;
 };
 

@@ -1861,26 +1861,28 @@ async def submit_form(
         return FormSubmission(**submission_doc)
 
 
-@app.get("/v0/orgs/{organization_id}/forms/submissions/{submission_id}", response_model=FormSubmission, tags=["form-submissions"])
+@app.get("/v0/orgs/{organization_id}/forms/submissions/{document_id}", response_model=Optional[FormSubmission], tags=["form-submissions"])
 async def get_form_submission(
     organization_id: str,
-    submission_id: str,
+    document_id: str,
+    form_revid: str = Query(..., description="The form revision ID"),
     current_user: User = Depends(get_org_user)
 ):
-    """Get a specific form submission"""
-    logger.info(f"get_form_submission() start: organization_id: {organization_id}, submission_id: {submission_id}")
+    """Get the form submission for a specific document and form combination"""
+    logger.info(f"get_form_submission() start: organization_id: {organization_id}, document_id: {document_id}, form_revid: {form_revid}")
     db = ad.common.get_async_db()
     
     submission = await db.form_submissions.find_one({
-        "_id": ObjectId(submission_id),
+        "document_id": document_id,
+        "form_revid": form_revid,
         "organization_id": organization_id
     })
     
-    if not submission:
-        raise HTTPException(status_code=404, detail="Form submission not found")
+    if submission:
+        submission["id"] = str(submission.pop('_id'))
+        return FormSubmission(**submission)
     
-    submission["id"] = str(submission.pop('_id'))
-    return FormSubmission(**submission)
+    return None
 
 @app.put("/v0/orgs/{organization_id}/forms/submissions/{submission_id}", response_model=FormSubmission, tags=["form-submissions"])
 async def update_form_submission(

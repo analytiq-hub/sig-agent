@@ -6,9 +6,15 @@ interface FormioRendererProps {
   jsonFormio?: string;
   onSubmit?: (submission: unknown) => void;
   readOnly?: boolean;
+  initialData?: Record<string, unknown>; // Add this prop
 }
 
-const FormioRenderer: React.FC<FormioRendererProps> = ({ jsonFormio, onSubmit, readOnly = false }) => {
+const FormioRenderer: React.FC<FormioRendererProps> = ({ 
+  jsonFormio, 
+  onSubmit, 
+  readOnly = false,
+  initialData 
+}) => {
   const formRef = useRef<HTMLDivElement>(null);
   const formInstance = useRef<Form | null>(null);
 
@@ -43,7 +49,7 @@ const FormioRenderer: React.FC<FormioRendererProps> = ({ jsonFormio, onSubmit, r
       noValidate: false,
       disableAlerts: true,
       hooks: {
-        beforeSubmit: (submission: unknown, next: unknown) => {
+        beforeSubmit: (submission: unknown, next: (submission?: unknown) => void) => {
           if (onSubmit) {
             onSubmit(submission);
           }
@@ -54,6 +60,17 @@ const FormioRenderer: React.FC<FormioRendererProps> = ({ jsonFormio, onSubmit, r
     
     formInstance.current = formioForm;
 
+    // Set initial data if provided
+    if (initialData && formInstance.current) {
+      // Wait for form to be ready, then set the data
+      setTimeout(() => {
+        if (formInstance.current) {
+          // Access the instance property which has the submission property
+          (formInstance.current as unknown as { instance: { submission: Record<string, unknown> } }).instance.submission = initialData;
+        }
+      }, 100);
+    }
+
     // Cleanup on unmount
     return () => {
       if (formInstance.current) {
@@ -61,7 +78,7 @@ const FormioRenderer: React.FC<FormioRendererProps> = ({ jsonFormio, onSubmit, r
         formInstance.current = null;
       }
     };
-  }, [jsonFormio, onSubmit, readOnly]);
+  }, [jsonFormio, onSubmit, readOnly, initialData]);
 
   return <div ref={formRef} />;
 };

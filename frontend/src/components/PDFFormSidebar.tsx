@@ -15,7 +15,8 @@ import type { GetLLMResultResponse } from '@/types/index';
 import type { HighlightInfo } from '@/contexts/OCRContext';
 import FormioRenderer from './FormioRenderer';
 import { toast } from 'react-toastify';
-import { getApiErrorMsg } from '@/utils/api';
+import { getApiErrorMsg, getFormSubmissionApi } from '@/utils/api';
+import type { FormSubmission } from '@/types/forms';
 
 interface Props {
   organizationId: string;
@@ -48,6 +49,8 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   const [availableForms, setAvailableForms] = useState<Form[]>([]);
   const [loadingForms, setLoadingForms] = useState(false);
   const [submittingForms, setSubmittingForms] = useState<Set<string>>(new Set());
+  const [existingSubmissions, setExistingSubmissions] = useState<Record<string, FormSubmission>>({});
+  const [loadingSubmissions, setLoadingSubmissions] = useState<Set<string>>(new Set());
 
   const fetchData = useCallback(async () => {
     try {
@@ -408,12 +411,51 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     );
   };
 
+  // Add function to load existing submission for a form
+  const loadExistingSubmission = async (formRevId: string) => {
+    if (loadingSubmissions.has(formRevId)) return;
+    
+    setLoadingSubmissions(prev => new Set(prev).add(formRevId));
+    
+    try {
+      const submission = await getFormSubmissionApi({
+        organizationId,
+        documentId: id,
+        formRevId
+      });
+      
+      if (submission) {
+        setExistingSubmissions(prev => ({
+          ...prev,
+          [formRevId]: submission
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading existing submission:', error);
+    } finally {
+      setLoadingSubmissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(formRevId);
+        return newSet;
+      });
+    }
+  };
+
+  // Add useEffect to load existing submissions when forms are loaded
+  useEffect(() => {
+    if (availableForms.length > 0) {
+      availableForms.forEach(form => {
+        loadExistingSubmission(form.form_revid);
+      });
+    }
+  }, [availableForms]);
+
   // New form handling functions
   const handleFormSubmit = async (form: Form, submissionData: unknown) => {
     setSubmittingForms(prev => new Set(prev).add(form.form_revid));
 
     try {
-      await submitFormApi({
+      const result = await submitFormApi({
         organizationId,
         submission: {
           form_revid: form.form_revid,
@@ -422,7 +464,13 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         }
       });
 
-      toast.success(`Form "${form.name}" submitted successfully`);
+      // Update the existing submissions state with the new submission
+      setExistingSubmissions(prev => ({
+        ...prev,
+        [form.form_revid]: result
+      }));
+
+      toast.success(`Form "${form.name}" ${existingSubmissions[form.form_revid] ? 'updated' : 'submitted'} successfully`);
     } catch (error) {
       console.error('Error submitting form:', error);
       toast.error(`Error submitting form: ${getApiErrorMsg(error)}`);
@@ -455,15 +503,26 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
               <div key={form.form_revid} className="border rounded-lg p-4 bg-white">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="font-medium text-sm">{form.name}</h4>
-                  {submittingForms.has(form.form_revid) && (
-                    <ArrowPathIcon className="h-4 w-4 animate-spin text-blue-500" />
-                  )}
+                  <div className="flex items-center gap-2">
+                    {loadingSubmissions.has(form.form_revid) && (
+                      <ArrowPathIcon className="h-4 w-4 animate-spin text-blue-500" />
+                    )}
+                    {existingSubmissions[form.form_revid] && (
+                      <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                        Previously submitted
+                      </span>
+                    )}
+                    {submittingForms.has(form.form_revid) && (
+                      <ArrowPathIcon className="h-4 w-4 animate-spin text-blue-500" />
+                    )}
+                  </div>
                 </div>
                 
                 <FormioRenderer
                   jsonFormio={JSON.stringify(form.response_format.json_formio || [])}
                   onSubmit={(submission) => handleFormSubmit(form, submission)}
                   readOnly={submittingForms.has(form.form_revid)}
+                  initialData={existingSubmissions[form.form_revid]?.submission_data}
                 />
               </div>
             ))}
