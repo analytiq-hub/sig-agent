@@ -241,7 +241,6 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       }));
 
       setEditing(null);
-      toast.success('Result updated successfully');
     } catch (error) {
       console.error('Error updating result:', error);
       toast.error(`Error updating result: ${getApiErrorMsg(error)}`);
@@ -460,9 +459,9 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     try {
       const result = await submitFormApi({
         organizationId,
+        documentId: id,
         submission: {
           form_revid: form.form_revid,
-          document_id: id,
           submission_data: submissionData as Record<string, unknown>
         }
       });
@@ -473,7 +472,6 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         [form.form_revid]: result
       }));
 
-      toast.success(`Form "${form.name}" ${existingSubmissions[form.form_revid] ? 'updated' : 'submitted'} successfully`);
     } catch (error) {
       console.error('Error submitting form:', error);
       toast.error(`Error submitting form: ${getApiErrorMsg(error)}`);

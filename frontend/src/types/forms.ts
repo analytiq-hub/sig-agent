@@ -71,6 +71,7 @@ export interface UpdateFormSubmissionRequest {
 
 export interface SubmitFormParams {
   organizationId: string;
+  documentId: string;
   submission: FormSubmissionData;
 }
 
