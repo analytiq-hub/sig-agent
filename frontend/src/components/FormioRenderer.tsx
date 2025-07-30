@@ -83,6 +83,7 @@ const FormioRenderer: React.FC<FormioRendererProps> = ({
           // Create search icon
           const searchIcon = document.createElement('button');
           searchIcon.type = 'button';
+          searchIcon.tabIndex = -1; // Prevent focus via tab navigation
           searchIcon.className = 'search-icon ml-2 text-blue-600 hover:text-blue-800 inline-flex items-center';
           searchIcon.innerHTML = `
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
