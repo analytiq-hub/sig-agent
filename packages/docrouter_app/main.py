@@ -70,7 +70,7 @@ from docrouter_app.models import (
     Schema, SchemaConfig, ListSchemasResponse,
     Prompt, PromptConfig, ListPromptsResponse,
     Form, FormConfig, ListFormsResponse,
-    FormSubmissionData, FormSubmission, UpdateFormSubmissionRequest,
+    FormSubmissionData, FormSubmission,
     TagConfig, Tag, ListTagsResponse,
     DocumentResponse,
     UserCreate, UserUpdate, UserResponse, ListUsersResponse,
@@ -1884,43 +1884,6 @@ async def get_form_submission(
         return FormSubmission(**submission)
     
     return None
-
-@app.put("/v0/orgs/{organization_id}/forms/submissions/{submission_id}", response_model=FormSubmission, tags=["form-submissions"])
-async def update_form_submission(
-    organization_id: str,
-    submission_id: str,
-    update_request: UpdateFormSubmissionRequest,
-    current_user: User = Depends(get_org_user)
-):
-    """Update a form submission"""
-    logger.info(f"update_form_submission() start: organization_id: {organization_id}, submission_id: {submission_id}")
-    db = ad.common.get_async_db()
-    
-    # Update the submission
-    result = await db.form_submissions.update_one(
-        {
-            "_id": ObjectId(submission_id),
-            "organization_id": organization_id
-        },
-        {
-            "$set": {
-                "submission_data": update_request.submission_data,
-                "updated_at": datetime.now(UTC)
-            }
-        }
-    )
-    
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Form submission not found")
-    
-    # Return the updated submission
-    updated_submission = await db.form_submissions.find_one({
-        "_id": ObjectId(submission_id),
-        "organization_id": organization_id
-    })
-    
-    updated_submission["id"] = str(updated_submission.pop('_id'))
-    return FormSubmission(**updated_submission)
 
 @app.delete("/v0/orgs/{organization_id}/forms/submissions/{submission_id}", tags=["form-submissions"])
 async def delete_form_submission(

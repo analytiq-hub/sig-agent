@@ -65,10 +65,6 @@ export interface FormSubmission extends FormSubmissionData {
   updated_at: string;
 }
 
-export interface UpdateFormSubmissionRequest {
-  submission_data: Record<string, unknown>;
-}
-
 export interface SubmitFormParams {
   organizationId: string;
   documentId: string;
@@ -79,12 +75,6 @@ export interface GetFormSubmissionParams {
   organizationId: string;
   documentId: string;
   formRevId: string;
-}
-
-export interface UpdateFormSubmissionParams {
-  organizationId: string;
-  submissionId: string;
-  update: UpdateFormSubmissionRequest;
 }
 
 export interface DeleteFormSubmissionParams {

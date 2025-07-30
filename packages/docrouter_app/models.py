@@ -409,6 +409,3 @@ class FormSubmission(FormSubmissionData):
     organization_id: str
     created_at: datetime
     updated_at: datetime
-
-class UpdateFormSubmissionRequest(BaseModel):
-    submission_data: dict

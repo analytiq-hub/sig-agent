@@ -104,7 +104,6 @@ import {
   SubmitFormParams,
   GetFormSubmissionParams,
   FormSubmission,
-  UpdateFormSubmissionParams,
   DeleteFormSubmissionParams
 } from '@/types/forms';
 
@@ -524,13 +523,6 @@ export const getFormSubmissionApi = async (params: GetFormSubmissionParams): Pro
   const response = await api.get<FormSubmission | null>(
     `/v0/orgs/${organizationId}/forms/submissions/${documentId}?form_revid=${formRevId}`
   );
-  return response.data;
-};
-
-export const updateFormSubmissionApi = async (params: UpdateFormSubmissionParams): Promise<FormSubmission> => {
-  const { organizationId, submissionId, update } = params;
-  
-  const response = await api.put<FormSubmission>(`/v0/orgs/${organizationId}/forms/submissions/${submissionId}`, update);
   return response.data;
 };
 
