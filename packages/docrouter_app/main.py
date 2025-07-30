@@ -1730,27 +1730,33 @@ async def list_forms(
     if tag_ids:
         filter_tag_ids = [tag_id.strip() for tag_id in tag_ids.split(',') if tag_id.strip()]
     
-    # Build the forms query
-    forms_query = {"organization_id": organization_id}
-    if filter_tag_ids:
-        # Filter forms that have at least one of the specified tags
-        forms_query["tag_ids"] = {"$in": filter_tag_ids}
-    
-    # Get forms that belong to the organization (and match tags if specified)
-    org_forms = await db.forms.find(forms_query).to_list(None)
+    # Get all forms that belong to the organization
+    org_forms = await db.forms.find({"organization_id": organization_id}).to_list(None)
     
     if not org_forms:
         return ListFormsResponse(forms=[], total_count=0, skip=skip)
+
+    logger.info(f"list_forms() org_forms: {org_forms}")
     
     # Extract form IDs
     form_ids = [form["_id"] for form in org_forms]
     form_id_to_name = {str(form["_id"]): form["name"] for form in org_forms}
     
-    # Build pipeline for form_revisions
+    # Build pipeline for form_revisions with tag filtering
     pipeline = [
         {
             "$match": {"form_id": {"$in": [str(fid) for fid in form_ids]}}
-        },
+        }
+    ]
+    
+    # Add tag filtering if tag_ids are provided
+    if filter_tag_ids:
+        pipeline.append({
+            "$match": {"tag_ids": {"$in": filter_tag_ids}}
+        })
+    
+    # Continue with the rest of the pipeline
+    pipeline.extend([
         {
             "$sort": {"_id": -1}
         },
@@ -1775,7 +1781,7 @@ async def list_forms(
                 ]
             }
         }
-    ]
+    ])
     
     result = await db.form_revisions.aggregate(pipeline).to_list(length=1)
     result = result[0]

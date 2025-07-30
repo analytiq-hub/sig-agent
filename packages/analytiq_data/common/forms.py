@@ -95,7 +95,7 @@ async def get_form_revision_ids_by_tag_ids(analytiq_client: AnalytiqClient,
     Args:
         analytiq_client: The AnalytiqClient instance
         tag_ids: List of tag IDs to filter by
-        latest_version: If True, return only the latest version of each form
+        latest_version: If True, return only the latest version of each form that matches tag criteria
         
     Returns:
         List of form revision IDs that match the tag criteria
@@ -117,11 +117,11 @@ async def get_form_revision_ids_by_tag_ids(analytiq_client: AnalytiqClient,
         form_versions.sort(key=lambda x: x["form_version"])
         
         if latest_version:
-            # Get the latest version
+            # Get the latest version and check if it matches tag criteria
             latest_form = form_versions[-1]
             form_tag_ids = latest_form.get("tag_ids", [])
             
-            # Check if any of the requested tag_ids are in the form's tag_ids
+            # Only include if the latest version matches the tag criteria
             if any(tag_id in form_tag_ids for tag_id in tag_ids):
                 matching_form_rev_ids.append(latest_form["_id"])
         else:
