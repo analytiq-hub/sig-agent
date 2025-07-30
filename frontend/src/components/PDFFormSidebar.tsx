@@ -412,7 +412,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   };
 
   // Add function to load existing submission for a form
-  const loadExistingSubmission = async (formRevId: string) => {
+  const loadExistingSubmission = useCallback(async (formRevId: string) => {
     if (loadingSubmissions.has(formRevId)) return;
     
     setLoadingSubmissions(prev => new Set(prev).add(formRevId));
@@ -439,7 +439,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         return newSet;
       });
     }
-  };
+  }, [organizationId, id, loadingSubmissions]);
 
   // Add useEffect to load existing submissions when forms are loaded
   useEffect(() => {
@@ -448,7 +448,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         loadExistingSubmission(form.form_revid);
       });
     }
-  }, [availableForms]);
+  }, [availableForms, loadExistingSubmission]);
 
   // New form handling functions
   const handleFormSubmit = async (form: Form, submissionData: unknown) => {
