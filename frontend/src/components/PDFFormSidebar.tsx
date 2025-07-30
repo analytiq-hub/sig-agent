@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { 
   ChevronDownIcon, 
   ArrowPathIcon,
@@ -51,6 +51,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   const [submittingForms, setSubmittingForms] = useState<Set<string>>(new Set());
   const [existingSubmissions, setExistingSubmissions] = useState<Record<string, FormSubmission>>({});
   const [loadingSubmissions, setLoadingSubmissions] = useState<Set<string>>(new Set());
+  const loadingSubmissionsRef = useRef<Set<string>>(new Set());
 
   const fetchData = useCallback(async () => {
     try {
@@ -413,8 +414,9 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
 
   // Add function to load existing submission for a form
   const loadExistingSubmission = useCallback(async (formRevId: string) => {
-    if (loadingSubmissions.has(formRevId)) return;
+    if (loadingSubmissionsRef.current.has(formRevId)) return;
     
+    loadingSubmissionsRef.current.add(formRevId);
     setLoadingSubmissions(prev => new Set(prev).add(formRevId));
     
     try {
@@ -433,13 +435,14 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     } catch (error) {
       console.error('Error loading existing submission:', error);
     } finally {
+      loadingSubmissionsRef.current.delete(formRevId);
       setLoadingSubmissions(prev => {
         const newSet = new Set(prev);
         newSet.delete(formRevId);
         return newSet;
       });
     }
-  }, [organizationId, id, loadingSubmissions]);
+  }, [organizationId, id]);
 
   // Add useEffect to load existing submissions when forms are loaded
   useEffect(() => {
