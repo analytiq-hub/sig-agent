@@ -411,10 +411,5 @@ class FormSubmission(FormSubmissionData):
     created_at: datetime
     updated_at: datetime
 
-class ListFormSubmissionsResponse(BaseModel):
-    submissions: List[FormSubmission]
-    total_count: int
-    skip: int
-
 class UpdateFormSubmissionRequest(BaseModel):
     submission_data: dict

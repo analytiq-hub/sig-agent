@@ -66,12 +66,6 @@ export interface FormSubmission extends FormSubmissionData {
   updated_at: string;
 }
 
-export interface ListFormSubmissionsResponse {
-  submissions: FormSubmission[];
-  total_count: number;
-  skip: number;
-}
-
 export interface UpdateFormSubmissionRequest {
   submission_data: Record<string, unknown>;
 }
@@ -79,14 +73,6 @@ export interface UpdateFormSubmissionRequest {
 export interface SubmitFormParams {
   organizationId: string;
   submission: FormSubmissionData;
-}
-
-export interface ListFormSubmissionsParams {
-  organizationId: string;
-  document_id?: string;
-  form_revid?: string;
-  skip?: number;
-  limit?: number;
 }
 
 export interface GetFormSubmissionParams {

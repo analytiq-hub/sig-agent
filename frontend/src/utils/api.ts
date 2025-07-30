@@ -102,8 +102,6 @@ import {
   UpdateFormParams,
   DeleteFormParams,
   SubmitFormParams,
-  ListFormSubmissionsParams,
-  ListFormSubmissionsResponse,
   GetFormSubmissionParams,
   FormSubmission,
   UpdateFormSubmissionParams,
@@ -515,22 +513,6 @@ export const submitFormApi = async (params: SubmitFormParams): Promise<FormSubmi
   const { organizationId, submission } = params;
   
   const response = await api.post<FormSubmission>(`/v0/orgs/${organizationId}/forms/submissions`, submission);
-  return response.data;
-};
-
-export const listFormSubmissionsApi = async (params: ListFormSubmissionsParams): Promise<ListFormSubmissionsResponse> => {
-  const { organizationId, document_id, form_revid, skip = 0, limit = 10 } = params;
-  
-  const queryParams: Record<string, string | number | undefined> = {
-    skip: skip,
-    limit: limit,
-  };
-  if (document_id) queryParams.document_id = document_id;
-  if (form_revid) queryParams.form_revid = form_revid;
-
-  const response = await api.get<ListFormSubmissionsResponse>(`/v0/orgs/${organizationId}/forms/submissions`, {
-    params: queryParams
-  });
   return response.data;
 };
 
