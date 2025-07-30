@@ -1718,16 +1718,26 @@ async def list_forms(
     organization_id: str,
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
+    tag_ids: str = Query(None, description="Comma-separated list of tag IDs to filter by"),
     current_user: User = Depends(get_org_user)
 ):
-    """List latest form revisions within an organization"""
-    logger.info(f"list_forms() start: organization_id: {organization_id}, skip: {skip}, limit: {limit}")
+    """List latest form revisions within an organization, optionally filtered by tags"""
+    logger.info(f"list_forms() start: organization_id: {organization_id}, skip: {skip}, limit: {limit}, tag_ids: {tag_ids}")
     db = ad.common.get_async_db()
     
-    # First, get forms that belong to the organization
-    org_forms = await db.forms.find(
-        {"organization_id": organization_id}
-    ).to_list(None)
+    # Parse tag IDs if provided
+    filter_tag_ids = []
+    if tag_ids:
+        filter_tag_ids = [tag_id.strip() for tag_id in tag_ids.split(',') if tag_id.strip()]
+    
+    # Build the forms query
+    forms_query = {"organization_id": organization_id}
+    if filter_tag_ids:
+        # Filter forms that have at least one of the specified tags
+        forms_query["tag_ids"] = {"$in": filter_tag_ids}
+    
+    # Get forms that belong to the organization (and match tags if specified)
+    org_forms = await db.forms.find(forms_query).to_list(None)
     
     if not org_forms:
         return ListFormsResponse(forms=[], total_count=0, skip=skip)
