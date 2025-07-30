@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Templates } from '@tsed/react-formio';
 import { Form } from 'formiojs';
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 interface FormioRendererProps {
   jsonFormio?: string;
