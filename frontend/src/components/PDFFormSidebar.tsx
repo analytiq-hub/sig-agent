@@ -5,13 +5,17 @@ import {
   MagnifyingGlassIcon,
   PencilIcon,
   CheckIcon,
-  XMarkIcon
+  XMarkIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
-import { getLLMResultApi, listPromptsApi, runLLMApi, updateLLMResultApi } from '@/utils/api';
-import type { Prompt } from '@/types/index';
+import { getLLMResultApi, listPromptsApi, runLLMApi, updateLLMResultApi, listFormsApi, submitFormApi, getDocumentApi } from '@/utils/api';
+import type { Prompt, Form } from '@/types/index';
 import { useOCR, OCRProvider } from '@/contexts/OCRContext';
 import type { GetLLMResultResponse } from '@/types/index';
 import type { HighlightInfo } from '@/contexts/OCRContext';
+import FormioRenderer from './FormioRenderer';
+import { toast } from 'react-toastify';
+import { getApiErrorMsg } from '@/utils/api';
 
 interface Props {
   organizationId: string;
@@ -38,54 +42,73 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   const [loadingPrompts, setLoadingPrompts] = useState<Set<string>>(new Set());
   const [failedPrompts, setFailedPrompts] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<EditingState | null>(null);
-  const [editMode, setEditMode] = useState<boolean>(false);
+  
+  // New state for forms
+  const [documentTags, setDocumentTags] = useState<string[]>([]);
+  const [availableForms, setAvailableForms] = useState<Form[]>([]);
+  const [loadingForms, setLoadingForms] = useState(false);
+  const [submittingForms, setSubmittingForms] = useState<Set<string>>(new Set());
+
+  const fetchData = async () => {
+    try {
+      // Get document metadata to access tags
+      const documentResponse = await getDocumentApi({ 
+        organizationId, 
+        documentId: id, 
+        fileType: 'original' 
+      });
+      
+      const documentTags = documentResponse.metadata.tag_ids || [];
+      setDocumentTags(documentTags);
+
+      // Fetch forms that match the document's tags
+      if (documentTags.length > 0) {
+        setLoadingForms(true);
+        try {
+          const formsResponse = await listFormsApi({
+            organizationId,
+            tag_ids: documentTags.join(','),
+            limit: 100
+          });
+          setAvailableForms(formsResponse.forms);
+        } catch (error) {
+          console.error('Error loading forms:', error);
+          toast.error(`Error loading forms: ${getApiErrorMsg(error)}`);
+        } finally {
+          setLoadingForms(false);
+        }
+      }
+
+      // Load prompts (existing functionality)
+      const promptsResponse = await listPromptsApi({
+        organizationId,
+        document_id: id,
+        limit: 100
+      });
+      setMatchingPrompts(promptsResponse.prompts);
+
+      // Load existing LLM results
+      const loadedResults: Record<string, GetLLMResultResponse> = {};
+      for (const prompt of promptsResponse.prompts) {
+        try {
+          const result = await getLLMResultApi({
+            organizationId,
+            documentId: id,
+            promptId: prompt.prompt_revid
+          });
+          loadedResults[prompt.prompt_revid] = result;
+        } catch (error) {
+          // Result doesn't exist yet, that's okay
+        }
+      }
+      setLlmResults(loadedResults);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error(`Error loading document data: ${getApiErrorMsg(error)}`);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Filter prompts to only show form-related prompts
-        const promptsResponse = await listPromptsApi({organizationId: organizationId, document_id: id, limit: 100 });
-        const formPrompts = promptsResponse.prompts.filter(prompt => 
-          prompt.name.toLowerCase().includes('form') || 
-          prompt.name.toLowerCase().includes('field')
-        );
-        setMatchingPrompts(formPrompts);
-        
-        // Fetch default form prompt results if available
-        const defaultFormPrompt = formPrompts.find(p => p.name.toLowerCase().includes('form'));
-        if (defaultFormPrompt) {
-          setLoadingPrompts(prev => new Set(prev).add(defaultFormPrompt.prompt_revid));
-          try {
-            const defaultResults = await getLLMResultApi({
-              organizationId: organizationId,
-              documentId: id, 
-              promptId: defaultFormPrompt.prompt_revid,
-            });
-            setLlmResults(prev => ({
-              ...prev,
-              [defaultFormPrompt.prompt_revid]: defaultResults
-            }));
-            setExpandedPrompt(defaultFormPrompt.prompt_revid);
-            setLoadingPrompts(prev => {
-              const next = new Set(prev);
-              next.delete(defaultFormPrompt.prompt_revid);
-              return next;
-            });
-          } catch (error) {
-            console.error('Error fetching default form results:', error);
-            setFailedPrompts(prev => new Set(prev).add(defaultFormPrompt.prompt_revid));
-            setLoadingPrompts(prev => {
-              const next = new Set(prev);
-              next.delete(defaultFormPrompt.prompt_revid);
-              return next;
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching form prompts:', error);
-      }
-    };
-    
     fetchData();
   }, [organizationId, id]);
 
@@ -101,84 +124,77 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     }
 
     setExpandedPrompt(promptId);
-    
-    if (!llmResults[promptId]) {
-      setLoadingPrompts(prev => new Set(prev).add(promptId));
-      try {
-        const results = await getLLMResultApi({
-          organizationId: organizationId,
-          documentId: id, 
-          promptId: promptId,
-        });
-        setLlmResults(prev => ({
-          ...prev,
-          [promptId]: results
-        }));
-        setFailedPrompts(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(promptId);
-          return newSet;
-        });
-      } catch (error) {
-        console.error('Error fetching LLM results:', error);
-        setFailedPrompts(prev => new Set(prev).add(promptId));
-      } finally {
-        setLoadingPrompts(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(promptId);
-          return newSet;
-        });
-      }
+    setLoadingPrompts(prev => new Set(prev).add(promptId));
+
+    try {
+      const result = await getLLMResultApi({
+        organizationId,
+        documentId: id,
+        promptId
+      });
+      setLlmResults(prev => ({ ...prev, [promptId]: result }));
+    } catch (error) {
+      console.error(`Error loading result for prompt ${promptId}:`, error);
+      setFailedPrompts(prev => new Set(prev).add(promptId));
+    } finally {
+      setLoadingPrompts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(promptId);
+        return newSet;
+      });
     }
   };
 
   const handleRunPrompt = async (promptId: string) => {
     setRunningPrompts(prev => new Set(prev).add(promptId));
+
     try {
-      await runLLMApi({
-        organizationId: organizationId,
+      const result = await runLLMApi({
+        organizationId,
         documentId: id,
-        promptId: promptId,
-        force: true
+        promptId
       });
       
-      const result = await getLLMResultApi({
-        organizationId: organizationId,
-        documentId: id,
-        promptId: promptId
-      });
-      
-      setLlmResults(prev => ({
-        ...prev,
-        [promptId]: result
-      }));
+      if (result.status === 'success') {
+        // Refresh the result
+        const updatedResult = await getLLMResultApi({
+          organizationId,
+          documentId: id,
+          promptId
+        });
+        setLlmResults(prev => ({ ...prev, [promptId]: updatedResult }));
+        toast.success('Analysis completed successfully');
+      } else {
+        toast.error('Analysis failed');
+      }
     } catch (error) {
-      console.error('Error running prompt:', error);
+      console.error(`Error running prompt ${promptId}:`, error);
+      toast.error(`Error running analysis: ${getApiErrorMsg(error)}`);
     } finally {
       setRunningPrompts(prev => {
-        const next = new Set(prev);
-        next.delete(promptId);
-        return next;
+        const newSet = new Set(prev);
+        newSet.delete(promptId);
+        return newSet;
       });
     }
   };
 
   const handleFind = (promptId: string, key: string, value: string) => {
-    if (!value || value === 'null') return;
-    
-    const searchValue = value.trim();
-    if (searchValue === '') return;
-    
-    const highlightInfo = findBlocksWithContext(searchValue, promptId, key);
-    if (highlightInfo.blocks.length > 0) {
-      onHighlight(highlightInfo);
-    } else {
-      console.log('No matches found for:', searchValue);
-    }
+    findBlocksWithContext(value).then(blocks => {
+      if (blocks.length > 0) {
+        onHighlight({
+          blocks,
+          promptId,
+          key,
+          value
+        });
+      } else {
+        toast.info('No matching text found in document');
+      }
+    });
   };
 
   const handleEdit = (promptId: string, key: string, value: string) => {
-    if (!editMode) return;
     setEditing({ promptId, key, value });
   };
 
@@ -189,78 +205,41 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       const currentResult = llmResults[editing.promptId];
       if (!currentResult) return;
 
-      const updatedResult = JSON.parse(JSON.stringify(currentResult.updated_llm_result));
+      const updatedResult = { ...currentResult.llm_result };
       
-      const arrayItemRegex = /(.*?)\[(\d+)\](\..*)?$/;
-      const matches = editing.key.match(arrayItemRegex);
-      
-      if (matches) {
-        const arrayPath = matches[1];
-        const index = parseInt(matches[2], 10);
-        const nestedPath = matches[3] ? matches[3].substring(1) : null;
-        
-        let current = updatedResult;
-        const pathParts = arrayPath.split('.');
-        
-        for (const part of pathParts) {
-          if (current[part] !== undefined) {
-            current = current[part];
-          } else {
-            console.error('Array path not found:', arrayPath);
-            return;
-          }
-        }
-        
-        if (Array.isArray(current) && index >= 0 && index < current.length) {
-          if (nestedPath) {
-            const nestedPathParts = nestedPath.split('.');
-            const arrayItem = current[index];
-            
-            let currentNested = arrayItem;
-            for (let i = 0; i < nestedPathParts.length - 1; i++) {
-              const part = nestedPathParts[i];
-              if (!currentNested[part]) {
-                currentNested[part] = {};
-              }
-              currentNested = currentNested[part];
-            }
-            
-            const lastKey = nestedPathParts[nestedPathParts.length - 1];
-            currentNested[lastKey] = editing.value;
-          } else {
-            current[index] = editing.value;
-          }
-        }
-      } else {
-        const pathParts = editing.key.split('.');
-        let current = updatedResult;
-        
-        for (let i = 0; i < pathParts.length - 1; i++) {
-          current = current[pathParts[i]];
-          if (!current) break;
-        }
-        
-        if (current) {
-          const lastKey = pathParts[pathParts.length - 1];
-          current[lastKey] = editing.value;
-        }
+      // Update the nested value
+      const keys = editing.key.split('.');
+      let current: any = updatedResult;
+      for (let i = 0; i < keys.length - 1; i++) {
+        current = current[keys[i]];
       }
+      current[keys[keys.length - 1]] = editing.value;
 
-      const result = await updateLLMResultApi({
+      await updateLLMResultApi({
         organizationId,
         documentId: id,
         promptId: editing.promptId,
         result: updatedResult,
-        isVerified: false
+        isVerified: true
       });
 
+      // Update local state
       setLlmResults(prev => ({
         ...prev,
-        [editing.promptId]: result
+        [editing.promptId]: {
+          ...prev[editing.promptId],
+          llm_result: updatedResult,
+          updated_llm_result: updatedResult,
+          is_edited: true,
+          is_verified: true
+        }
       }));
+
       setEditing(null);
+      toast.success('Result updated successfully');
     } catch (error) {
-      console.error('Error saving edit:', error);
+      console.error('Error updating result:', error);
+      toast.error(`Error updating result: ${getApiErrorMsg(error)}`);
     }
   };
 
@@ -268,15 +247,10 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     setEditing(null);
   };
 
-  // Replace the isKeyValuePairs function with a more flexible approach
   const isEditableValue = (value: unknown): boolean => {
-    return typeof value === 'string' || 
-           typeof value === 'number' || 
-           value === null ||
-           typeof value === 'boolean';
+    return typeof value === 'string' || typeof value === 'number';
   };
 
-  // Update the renderNestedValue function to handle arrays with editing capabilities
   const renderNestedValue = (
     promptId: string, 
     parentKey: string, 
@@ -289,566 +263,414 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     handleCancel: () => void,
     editMode: boolean = false
   ) => {
-    // If the value is editable (string, number, boolean, null), render it with edit controls
-    if (isEditableValue(value)) {
-      const stringValue = value?.toString() ?? '';
-      const isEmpty = stringValue === '' || stringValue === 'null' || value === null;
-      const fullKey = parentKey;
-      
-      if (editing && editing.promptId === promptId && editing.key === fullKey) {
-        return (
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={editing.value}
-              onChange={(e) => setEditing({ ...editing, value: e.target.value })}
-              className="flex-1 px-2 py-1 text-sm border rounded"
-              autoFocus
-            />
-            <button
-              onClick={handleSave}
-              className="p-1 text-green-600 hover:bg-gray-100 rounded"
-              title="Save changes"
-            >
-              <CheckIcon className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleCancel}
-              className="p-1 text-red-600 hover:bg-gray-100 rounded"
-              title="Cancel"
-            >
-              <XMarkIcon className="w-4 h-4" />
-            </button>
-          </div>
-        );
-      }
-      
-      return (
-        <div className="flex items-center justify-between gap-2">
-          <div className={`flex-1 ${isEmpty ? 'text-gray-400 italic' : ''}`}>
-            {isEmpty ? 'null' : stringValue}
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => onFind(promptId, fullKey, stringValue)}
-              className="p-1 text-gray-600 hover:bg-gray-100 rounded"
-              title="Find in document"
-            >
-              <MagnifyingGlassIcon className="w-4 h-4" />
-            </button>
-            {editMode && (
-              <button
-                onClick={() => onEdit(promptId, fullKey, stringValue)}
-                className="p-1 text-gray-600 hover:bg-gray-100 rounded"
-                title="Edit value"
-              >
-                <PencilIcon className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
-      );
-    }
-    
-    // If it's an object, render each property recursively
-    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-      // If the object is empty, render an empty state
-      if (Object.keys(value).length === 0) {
-        return (
-          <div className="text-sm text-gray-500 italic">Empty object</div>
-        );
-      }
-      
-      return (
-        <div className={`space-y-2 ${level > 0 ? 'ml-4 pl-2 border-l border-gray-200' : ''}`}>
-          {Object.entries(value).map(([key, val]) => {
-            const fullKey = parentKey ? `${parentKey}.${key}` : key;
-            return (
-              <div key={fullKey} className="text-sm">
-                <div className="text-xs text-gray-500 mb-1">{key}</div>
-                {renderNestedValue(promptId, fullKey, val, level + 1, onFind, onEdit, editing, handleSave, handleCancel, editMode)}
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
-    
-    // If it's an array, render with editing capabilities
+    const indent = '  '.repeat(level);
+    const currentKey = parentKey ? `${parentKey}.${parentKey}` : parentKey;
+
     if (Array.isArray(value)) {
-      if (value.length === 0) {
-        return (
-          <div className="text-sm text-gray-500 italic flex justify-between items-center">
-            <span>Empty array</span>
-            {editMode && (
-              <button
-                onClick={() => handleArrayItemAdd(promptId, parentKey, [])}
-                className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100"
-                title="Add item"
-              >
-                Add Item
-              </button>
-            )}
-          </div>
-        );
-      }
-      
-      // For arrays with primitive values, display with edit controls
-      const isPrimitiveArray = value.every(item => isEditableValue(item));
-      
-      if (isPrimitiveArray) {
-        return (
-          <div className="space-y-2">
-            {value.map((item, index) => {
-              // Ensure array path is constructed properly for searching
-              const arrayItemKey = `${parentKey}[${index}]`;
-              const stringValue = item?.toString() ?? '';
-              
-              if (editing && editing.promptId === promptId && editing.key === arrayItemKey) {
-                return (
-                  <div key={index} className="flex items-center gap-2 pl-2 border-l-2 border-gray-200">
-                    <span className="text-gray-500 text-xs w-6">[{index}]</span>
-                    <input
-                      type="text"
-                      value={editing.value}
-                      onChange={(e) => setEditing({ ...editing, value: e.target.value })}
-                      className="flex-1 px-2 py-1 text-sm border rounded"
-                      autoFocus
-                    />
-                    <button
-                      onClick={handleSave}
-                      className="p-1 text-green-600 hover:bg-gray-100 rounded"
-                      title="Save changes"
-                    >
-                      <CheckIcon className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      className="p-1 text-red-600 hover:bg-gray-100 rounded"
-                      title="Cancel"
-                    >
-                      <XMarkIcon className="w-4 h-4" />
-                    </button>
-                  </div>
-                );
-              }
-              
-              return (
-                <div key={index} className="flex items-center gap-2 pl-2 border-l-2 border-gray-200">
-                  <span className="text-gray-500 text-xs w-6">[{index}]</span>
-                  <span className="flex-1 font-medium text-gray-900">{stringValue}</span>
-                  <button
-                    onClick={() => {
-                      // Ensure the value is properly formatted for search
-                      const searchableValue = stringValue.trim();
-                      if (searchableValue !== '') {
-                        onFind(promptId, arrayItemKey, searchableValue);
-                      }
-                    }}
-                    className="p-1 text-gray-600 hover:bg-gray-100 rounded"
-                    title="Find in document"
-                    disabled={!stringValue || stringValue === 'null'}
-                  >
-                    <MagnifyingGlassIcon className="w-4 h-4" />
-                  </button>
-                  {editMode && (
-                    <>
-                      <button
-                        onClick={() => onEdit(promptId, arrayItemKey, stringValue)}
-                        className="p-1 text-gray-600 hover:bg-gray-100 rounded"
-                        title="Edit item"
-                      >
-                        <PencilIcon className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleArrayItemDelete(promptId, arrayItemKey)}
-                        className="p-1 text-red-600 hover:bg-gray-100 rounded"
-                        title="Delete item"
-                      >
-                        <XMarkIcon className="w-4 h-4" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-            
-            {editMode && (
-              <div className="mt-2">
-                <button
-                  onClick={() => handleArrayItemAdd(promptId, parentKey, value)}
-                  className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 w-full"
-                  title="Add item"
-                >
-                  Add Item
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      }
-      
-      // For arrays of objects, render a more structured editor with proper paths
       return (
-        <div className="space-y-3">
-          {value.map((item, index) => {
-            // Ensure array path is constructed properly
-            const arrayItemKey = `${parentKey}[${index}]`;
-            
-            return (
-              <div key={index} className="border rounded p-2 bg-gray-50">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium text-sm text-gray-700">Item {index}</span>
-                  {editMode && (
-                    <button
-                      onClick={() => handleArrayItemDelete(promptId, arrayItemKey)}
-                      className="p-1 text-red-600 hover:bg-gray-100 rounded"
-                      title="Delete item"
-                    >
-                      <XMarkIcon className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-                
+        <div className="ml-4">
+          {value.map((item, index) => (
+            <div key={index} className="mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 text-sm">{indent}[{index}]:</span>
                 {typeof item === 'object' && item !== null ? (
-                  <div className="pl-3 border-l-2 border-gray-300">
-                    {renderNestedValue(
-                      promptId,
-                      arrayItemKey,
-                      item,
-                      level + 1,
-                      onFind,
-                      onEdit,
-                      editing,
-                      handleSave,
-                      handleCancel,
-                      editMode
-                    )}
-                  </div>
+                  renderNestedValue(
+                    promptId,
+                    `${currentKey}[${index}]`,
+                    item,
+                    level + 1,
+                    onFind,
+                    onEdit,
+                    editing,
+                    handleSave,
+                    handleCancel,
+                    editMode
+                  )
                 ) : (
-                  <div className="text-sm font-medium text-gray-900">{item?.toString() ?? ''}</div>
+                  <span className="text-gray-700">{String(item)}</span>
                 )}
               </div>
-            );
-          })}
-          
-          {editMode && (
-            <div className="mt-2">
-              <button
-                onClick={() => handleArrayObjectAdd(promptId, parentKey, value)}
-                className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 w-full"
-                title="Add item"
-              >
-                Add Item
-              </button>
             </div>
-          )}
+          ))}
         </div>
       );
+    } else if (typeof value === 'object' && value !== null) {
+      return (
+        <div className="ml-4">
+          {Object.entries(value).map(([key, val]) => (
+            <div key={key} className="mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 text-sm">{indent}{key}:</span>
+                {typeof val === 'object' && val !== null ? (
+                  renderNestedValue(
+                    promptId,
+                    currentKey ? `${currentKey}.${key}` : key,
+                    val,
+                    level + 1,
+                    onFind,
+                    onEdit,
+                    editing,
+                    handleSave,
+                    handleCancel,
+                    editMode
+                  )
+                ) : (
+                  <div className="flex items-center gap-2">
+                    {editing?.promptId === promptId && editing?.key === (currentKey ? `${currentKey}.${key}` : key) ? (
+                      <>
+                        <input
+                          type="text"
+                          value={editing.value}
+                          onChange={(e) => setEditing({ ...editing, value: e.target.value })}
+                          className="border rounded px-2 py-1 text-sm"
+                          autoFocus
+                        />
+                        <button
+                          onClick={handleSave}
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          <CheckIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={handleCancel}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <XMarkIcon className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-gray-700">{String(val)}</span>
+                        {isEditableValue(val) && (
+                          <>
+                            <button
+                              onClick={() => onFind(promptId, currentKey ? `${currentKey}.${key}` : key, String(val))}
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Find in document"
+                            >
+                              <MagnifyingGlassIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => onEdit(promptId, currentKey ? `${currentKey}.${key}` : key, String(val))}
+                              className="text-yellow-600 hover:text-yellow-800"
+                              title="Edit value"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    } else {
+      return <span className="text-gray-700">{String(value)}</span>;
     }
-    
-    // Fallback for any other type
-    return (
-      <div className="text-sm whitespace-pre-wrap break-words text-gray-700 bg-gray-50 rounded p-2">
-        {JSON.stringify(value, null, 2)}
-      </div>
-    );
   };
 
   const renderPromptResults = (promptId: string) => {
     const result = llmResults[promptId];
-    if (!result) {
-      if (loadingPrompts.has(promptId)) {
-        return <div className="p-4 text-sm text-gray-500">Loading...</div>;
-      }
-      if (failedPrompts.has(promptId)) {
-        return <div className="p-4 text-sm text-red-500">Failed to load results</div>;
-      }
-      return <div className="p-4 text-sm text-gray-500">No results available</div>;
-    }
+    if (!result) return null;
 
     return (
-      <div className="p-4 space-y-3">
-        {renderNestedValue(
-          promptId, 
-          '', 
-          result.updated_llm_result, 
-          0, 
-          handleFind, 
-          handleEdit, 
-          editing, 
-          handleSave, 
-          handleCancel,
-          editMode
-        )}
+      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="font-semibold text-sm">Results</h4>
+          <div className="flex items-center gap-2">
+            {result.is_verified && (
+              <span className="text-green-600 text-xs">✓ Verified</span>
+            )}
+            {result.is_edited && (
+              <span className="text-blue-600 text-xs">✎ Edited</span>
+            )}
+          </div>
+        </div>
+        <div className="text-sm">
+          {renderNestedValue(
+            promptId,
+            '',
+            result.llm_result,
+            0,
+            handleFind,
+            handleEdit,
+            editing,
+            handleSave,
+            handleCancel
+          )}
+        </div>
       </div>
     );
   };
 
-  // Add these new handler functions to the component
   const handleArrayItemDelete = async (promptId: string, arrayKey: string) => {
-    // Only allow array item deletion when edit mode is enabled
-    if (!editMode) return;
-    
     try {
-      const result = llmResults[promptId];
-      if (!result) return;
+      const currentResult = llmResults[promptId];
+      if (!currentResult) return;
 
-      // Create a deep copy of the current result
-      const updatedResult = JSON.parse(JSON.stringify(result.updated_llm_result));
+      const updatedResult = { ...currentResult.llm_result };
+      const keys = arrayKey.split('.');
+      let current: any = updatedResult;
       
-      // Extract the array path and index from the arrayKey
-      const arrayItemRegex = /(.*?)\[(\d+)\](\..*)?$/;
-      const matches = arrayKey.match(arrayItemRegex);
-      
-      if (!matches) {
-        console.error('Invalid array key format:', arrayKey);
-        return;
+      for (let i = 0; i < keys.length - 1; i++) {
+        current = current[keys[i]];
       }
       
-      const arrayPath = matches[1];      // e.g., "items"
-      const arrayIndex = parseInt(matches[2], 10); // e.g., 2
-      
-      // Navigate to the array
-      let current = updatedResult;
-      const pathParts = arrayPath.split('.');
-      
-      // Navigate to the containing array
-      for (const part of pathParts) {
-        if (current[part] !== undefined) {
-          current = current[part];
-        } else {
-          console.error('Array path not found:', arrayPath);
-          return;
-        }
-      }
-      
-      // Make sure we found the array and the index is valid
-      if (Array.isArray(current) && arrayIndex >= 0 && arrayIndex < current.length) {
-        // Remove the item at the specified index
-        current.splice(arrayIndex, 1);
+      const array = current[keys[keys.length - 1]];
+      if (Array.isArray(array)) {
+        array.pop(); // Remove last item
         
-        // Update the result with API
-        const apiResult = await updateLLMResultApi({
+        await updateLLMResultApi({
           organizationId,
           documentId: id,
-          promptId: promptId,
+          promptId,
           result: updatedResult,
-          isVerified: false
+          isVerified: true
         });
 
         setLlmResults(prev => ({
           ...prev,
-          [promptId]: apiResult
+          [promptId]: {
+            ...prev[promptId],
+            llm_result: updatedResult,
+            updated_llm_result: updatedResult,
+            is_edited: true,
+            is_verified: true
+          }
         }));
+
+        toast.success('Array item removed');
       }
     } catch (error) {
-      console.error('Error deleting array item:', error);
+      console.error('Error removing array item:', error);
+      toast.error(`Error removing item: ${getApiErrorMsg(error)}`);
     }
   };
 
   const handleArrayItemAdd = async (promptId: string, arrayKey: string, currentArray: JsonValue[]) => {
-    // Only allow array item addition when edit mode is enabled
-    if (!editMode) return;
-    
     try {
-      const result = llmResults[promptId];
-      if (!result) return;
+      const currentResult = llmResults[promptId];
+      if (!currentResult) return;
 
-      // Create a deep copy of the current result
-      const updatedResult = JSON.parse(JSON.stringify(result.updated_llm_result));
+      const updatedResult = { ...currentResult.llm_result };
+      const keys = arrayKey.split('.');
+      let current: any = updatedResult;
       
-      // Determine default value based on existing array items
-      let defaultValue: JsonValue = "";
-      if (currentArray.length > 0) {
-        const firstItem = currentArray[0];
-        if (typeof firstItem === 'string') defaultValue = "";
-        else if (typeof firstItem === 'number') defaultValue = 0;
-        else if (typeof firstItem === 'boolean') defaultValue = false;
-        else if (firstItem === null) defaultValue = null;
+      for (let i = 0; i < keys.length - 1; i++) {
+        current = current[keys[i]];
       }
       
-      // Find the array to modify
-      const pathParts = arrayKey.split('.');
-      let current = updatedResult;
-      let parent = updatedResult;
-      let lastKey = arrayKey;
-      
-      // Navigate to the containing object
-      for (let i = 0; i < pathParts.length; i++) {
-        const part = pathParts[i];
-        parent = current;
-        lastKey = part;
-        if (current[part] !== undefined) {
-          current = current[part];
-        } else {
-          console.error('Path not found:', arrayKey);
-          return;
-        }
-      }
-      
-      // Add the new item to the array
-      if (Array.isArray(parent[lastKey])) {
-        parent[lastKey].push(defaultValue);
+      const array = current[keys[keys.length - 1]];
+      if (Array.isArray(array)) {
+        // Add a new item of the same type as the first item
+        const newItem = array.length > 0 ? 
+          (typeof array[0] === 'string' ? '' : 
+           typeof array[0] === 'number' ? 0 : 
+           typeof array[0] === 'boolean' ? false : '') : '';
         
-        // Update the result with API
-        const apiResult = await updateLLMResultApi({
+        array.push(newItem);
+        
+        await updateLLMResultApi({
           organizationId,
           documentId: id,
-          promptId: promptId,
+          promptId,
           result: updatedResult,
-          isVerified: false
+          isVerified: true
         });
 
         setLlmResults(prev => ({
           ...prev,
-          [promptId]: apiResult
+          [promptId]: {
+            ...prev[promptId],
+            llm_result: updatedResult,
+            updated_llm_result: updatedResult,
+            is_edited: true,
+            is_verified: true
+          }
         }));
+
+        toast.success('Array item added');
       }
     } catch (error) {
       console.error('Error adding array item:', error);
+      toast.error(`Error adding item: ${getApiErrorMsg(error)}`);
     }
   };
 
   const handleArrayObjectAdd = async (promptId: string, arrayKey: string, currentArray: JsonValue[]) => {
-    // Only allow array object addition when edit mode is enabled
-    if (!editMode) return;
-    
     try {
-      const result = llmResults[promptId];
-      if (!result) return;
+      const currentResult = llmResults[promptId];
+      if (!currentResult) return;
 
-      // Create a deep copy of the current result
-      const updatedResult = JSON.parse(JSON.stringify(result.updated_llm_result));
+      const updatedResult = { ...currentResult.llm_result };
+      const keys = arrayKey.split('.');
+      let current: any = updatedResult;
       
-      // Determine default object structure based on existing array items
-      let defaultValue: JsonValue = {};
-      if (currentArray.length > 0) {
-        const firstItem = currentArray[0];
-        if (typeof firstItem === 'object' && firstItem !== null) {
-          // Create an empty object with the same keys
-          defaultValue = Object.fromEntries(
-            Object.keys(firstItem).map(key => {
-              // Set default values based on the type of each field
-              const val = (firstItem as Record<string, JsonValue>)[key];
-              if (typeof val === 'string') return [key, ""];
-              if (typeof val === 'number') return [key, 0];
-              if (typeof val === 'boolean') return [key, false];
-              if (val === null) return [key, null];
-              if (Array.isArray(val)) return [key, []];
-              return [key, {}];
-            })
-          );
-        }
+      for (let i = 0; i < keys.length - 1; i++) {
+        current = current[keys[i]];
       }
       
-      // Find the array to modify
-      const pathParts = arrayKey.split('.');
-      let current = updatedResult;
-      let parent = updatedResult;
-      let lastKey = arrayKey;
-      
-      // Navigate to the containing object
-      for (let i = 0; i < pathParts.length; i++) {
-        const part = pathParts[i];
-        parent = current;
-        lastKey = part;
-        if (current[part] !== undefined) {
-          current = current[part];
-        } else {
-          console.error('Path not found:', arrayKey);
-          return;
-        }
-      }
-      
-      // Add the new object to the array
-      if (Array.isArray(parent[lastKey])) {
-        parent[lastKey].push(defaultValue);
+      const array = current[keys[keys.length - 1]];
+      if (Array.isArray(array)) {
+        // Add a new object with the same structure as the first item
+        const newItem = array.length > 0 && typeof array[0] === 'object' ? 
+          Object.fromEntries(Object.keys(array[0]).map(key => [key, ''])) : {};
         
-        // Update the result with API
-        const apiResult = await updateLLMResultApi({
+        array.push(newItem);
+        
+        await updateLLMResultApi({
           organizationId,
           documentId: id,
-          promptId: promptId,
+          promptId,
           result: updatedResult,
-          isVerified: false
+          isVerified: true
         });
 
         setLlmResults(prev => ({
           ...prev,
-          [promptId]: apiResult
+          [promptId]: {
+            ...prev[promptId],
+            llm_result: updatedResult,
+            updated_llm_result: updatedResult,
+            is_edited: true,
+            is_verified: true
+          }
         }));
+
+        toast.success('Array object added');
       }
     } catch (error) {
       console.error('Error adding array object:', error);
+      toast.error(`Error adding object: ${getApiErrorMsg(error)}`);
+    }
+  };
+
+  // New form handling functions
+  const handleFormSubmit = async (form: Form, submissionData: any) => {
+    setSubmittingForms(prev => new Set(prev).add(form.form_revid));
+
+    try {
+      await submitFormApi({
+        organizationId,
+        submission: {
+          form_revid: form.form_revid,
+          document_id: id,
+          submission_data: submissionData
+        }
+      });
+
+      toast.success(`Form "${form.name}" submitted successfully`);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast.error(`Error submitting form: ${getApiErrorMsg(error)}`);
+    } finally {
+      setSubmittingForms(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(form.form_revid);
+        return newSet;
+      });
     }
   };
 
   return (
-    <div className="w-full h-full flex flex-col">
-      <div className="h-12 min-h-[48px] flex items-center justify-between px-4 bg-gray-100 text-black font-bold border-b border-black/10">
-        <span>Form Fields</span>
-        <div className="flex items-center gap-2">
-          {editMode && (
-            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-md">
-              Edit Mode
-            </span>
-          )}
-          <button
-            onClick={() => setEditMode(prev => !prev)}
-            className={`p-1 rounded-full hover:bg-black/5 transition-colors cursor-pointer ${editMode ? 'bg-blue-100' : ''}`}
-            title={editMode ? "Disable editing mode" : "Enable editing mode"}
-          >
-            <PencilIcon className={`w-4 h-4 ${editMode ? 'text-blue-600' : 'text-gray-600'}`} />
-          </button>
-        </div>
-      </div>
-      
-      <div className="overflow-auto flex-grow">
-        {matchingPrompts.length === 0 ? (
-          <div className="p-4 text-sm text-gray-500">
-            No form-related prompts found for this document.
+    <div className="h-full overflow-y-auto p-4 space-y-6">
+      {/* Forms Section */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <DocumentTextIcon className="h-5 w-5" />
+          Forms
+        </h3>
+        
+        {loadingForms ? (
+          <div className="flex items-center justify-center py-8">
+            <ArrowPathIcon className="h-6 w-6 animate-spin text-gray-500" />
+            <span className="ml-2 text-gray-500">Loading forms...</span>
+          </div>
+        ) : availableForms.length > 0 ? (
+          <div className="space-y-4">
+            {availableForms.map((form) => (
+              <div key={form.form_revid} className="border rounded-lg p-4 bg-white">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-sm">{form.name}</h4>
+                  {submittingForms.has(form.form_revid) && (
+                    <ArrowPathIcon className="h-4 w-4 animate-spin text-blue-500" />
+                  )}
+                </div>
+                
+                <FormioRenderer
+                  jsonFormio={JSON.stringify(form.response_format.json_formio || [])}
+                  onSubmit={(submission) => handleFormSubmit(form, submission)}
+                  readOnly={submittingForms.has(form.form_revid)}
+                />
+              </div>
+            ))}
+          </div>
+        ) : documentTags.length > 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <DocumentTextIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+            <p>No forms found for this document's tags</p>
+            <p className="text-sm mt-1">Create forms with matching tags to see them here</p>
           </div>
         ) : (
-          matchingPrompts.map((prompt) => (
-            <div key={prompt.prompt_revid} className="border-b border-black/10">
-              <div
-                onClick={() => handlePromptChange(prompt.prompt_revid)}
-                className="w-full min-h-[48px] flex items-center justify-between px-4 bg-gray-100/[0.6] hover:bg-gray-100/[0.8] transition-colors cursor-pointer"
-              >
-                <span className="text-sm text-gray-900">
-                  {prompt.name} <span className="text-gray-500 text-xs">(v{prompt.prompt_version})</span>
-                </span>
-                <div className="flex items-center gap-2">
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRunPrompt(prompt.prompt_revid);
-                    }}
-                    className="p-1 rounded-full hover:bg-black/5 transition-colors cursor-pointer"
+          <div className="text-center py-8 text-gray-500">
+            <DocumentTextIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+            <p>No tags assigned to this document</p>
+            <p className="text-sm mt-1">Add tags to the document to see relevant forms</p>
+          </div>
+        )}
+      </div>
+
+      {/* Prompts Section (existing functionality) */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">LLM Analysis</h3>
+        
+        {matchingPrompts.length > 0 ? (
+          <div className="space-y-4">
+            {matchingPrompts.map((prompt) => (
+              <div key={prompt.prompt_revid} className="border rounded-lg p-4 bg-white">
+                <div className="flex items-center justify-between mb-2">
+                  <button
+                    onClick={() => handlePromptChange(prompt.prompt_revid)}
+                    className="flex items-center gap-2 text-left w-full"
                   >
-                    {runningPrompts.has(prompt.prompt_revid) ? (
-                      <div className="w-4 h-4 border-2 border-[#2B4479]/60 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <ArrowPathIcon className="w-4 h-4 text-gray-600" />
+                    <ChevronDownIcon 
+                      className={`h-4 w-4 transition-transform ${
+                        expandedPrompt === prompt.prompt_revid ? 'rotate-180' : ''
+                      }`} 
+                    />
+                    <span className="font-medium text-sm">{prompt.name}</span>
+                  </button>
+                  
+                  <div className="flex items-center gap-2">
+                    {loadingPrompts.has(prompt.prompt_revid) && (
+                      <ArrowPathIcon className="h-4 w-4 animate-spin text-blue-500" />
                     )}
+                    {failedPrompts.has(prompt.prompt_revid) && (
+                      <span className="text-red-500 text-xs">Failed</span>
+                    )}
+                    <button
+                      onClick={() => handleRunPrompt(prompt.prompt_revid)}
+                      disabled={runningPrompts.has(prompt.prompt_revid)}
+                      className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {runningPrompts.has(prompt.prompt_revid) ? 'Running...' : 'Run'}
+                    </button>
                   </div>
-                  <ChevronDownIcon 
-                    className={`w-5 h-5 text-gray-600 transition-transform ${
-                      expandedPrompt === prompt.prompt_revid ? 'rotate-180' : ''
-                    }`}
-                  />
                 </div>
+                
+                {expandedPrompt === prompt.prompt_revid && renderPromptResults(prompt.prompt_revid)}
               </div>
-              <div 
-                className={`transition-all duration-200 ease-in-out ${
-                  expandedPrompt === prompt.prompt_revid ? '' : 'hidden'
-                }`}
-              >
-                {renderPromptResults(prompt.prompt_revid)}
-              </div>
-            </div>
-          ))
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <p>No prompts found for this document</p>
+            <p className="text-sm mt-1">Create prompts with matching tags to see them here</p>
+          </div>
         )}
       </div>
     </div>
