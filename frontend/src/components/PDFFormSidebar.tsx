@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   ChevronDownIcon, 
   ArrowPathIcon,
@@ -49,7 +49,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   const [loadingForms, setLoadingForms] = useState(false);
   const [submittingForms, setSubmittingForms] = useState<Set<string>>(new Set());
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       // Get document metadata to access tags
       const documentResponse = await getDocumentApi({ 
@@ -97,7 +97,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
             promptId: prompt.prompt_revid
           });
           loadedResults[prompt.prompt_revid] = result;
-        } catch (error) {
+        } catch {
           // Result doesn't exist yet, that's okay
         }
       }
@@ -106,11 +106,11 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       console.error('Error fetching data:', error);
       toast.error(`Error loading document data: ${getApiErrorMsg(error)}`);
     }
-  };
+  }, [organizationId, id]);
 
   useEffect(() => {
     fetchData();
-  }, [organizationId, id]);
+  }, [fetchData]);
 
   useEffect(() => {
     // Load OCR blocks in the background
@@ -152,7 +152,8 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       const result = await runLLMApi({
         organizationId,
         documentId: id,
-        promptId
+        promptId,
+        force: false
       });
       
       if (result.status === 'success') {
@@ -180,18 +181,12 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   };
 
   const handleFind = (promptId: string, key: string, value: string) => {
-    findBlocksWithContext(value).then(blocks => {
-      if (blocks.length > 0) {
-        onHighlight({
-          blocks,
-          promptId,
-          key,
-          value
-        });
-      } else {
-        toast.info('No matching text found in document');
-      }
-    });
+    const highlightInfo = findBlocksWithContext(value, promptId, key);
+    if (highlightInfo.blocks.length > 0) {
+      onHighlight(highlightInfo);
+    } else {
+      toast.info('No matching text found in document');
+    }
   };
 
   const handleEdit = (promptId: string, key: string, value: string) => {
@@ -209,9 +204,15 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       
       // Update the nested value
       const keys = editing.key.split('.');
-      let current: any = updatedResult;
+      let current: Record<string, JsonValue> = updatedResult;
       for (let i = 0; i < keys.length - 1; i++) {
-        current = current[keys[i]];
+        const key = keys[i];
+        if (typeof current[key] === 'object' && current[key] !== null) {
+          current = current[key] as Record<string, JsonValue>;
+        } else {
+          current[key] = {};
+          current = current[key] as Record<string, JsonValue>;
+        }
       }
       current[keys[keys.length - 1]] = editing.value;
 
@@ -407,150 +408,8 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     );
   };
 
-  const handleArrayItemDelete = async (promptId: string, arrayKey: string) => {
-    try {
-      const currentResult = llmResults[promptId];
-      if (!currentResult) return;
-
-      const updatedResult = { ...currentResult.llm_result };
-      const keys = arrayKey.split('.');
-      let current: any = updatedResult;
-      
-      for (let i = 0; i < keys.length - 1; i++) {
-        current = current[keys[i]];
-      }
-      
-      const array = current[keys[keys.length - 1]];
-      if (Array.isArray(array)) {
-        array.pop(); // Remove last item
-        
-        await updateLLMResultApi({
-          organizationId,
-          documentId: id,
-          promptId,
-          result: updatedResult,
-          isVerified: true
-        });
-
-        setLlmResults(prev => ({
-          ...prev,
-          [promptId]: {
-            ...prev[promptId],
-            llm_result: updatedResult,
-            updated_llm_result: updatedResult,
-            is_edited: true,
-            is_verified: true
-          }
-        }));
-
-        toast.success('Array item removed');
-      }
-    } catch (error) {
-      console.error('Error removing array item:', error);
-      toast.error(`Error removing item: ${getApiErrorMsg(error)}`);
-    }
-  };
-
-  const handleArrayItemAdd = async (promptId: string, arrayKey: string, currentArray: JsonValue[]) => {
-    try {
-      const currentResult = llmResults[promptId];
-      if (!currentResult) return;
-
-      const updatedResult = { ...currentResult.llm_result };
-      const keys = arrayKey.split('.');
-      let current: any = updatedResult;
-      
-      for (let i = 0; i < keys.length - 1; i++) {
-        current = current[keys[i]];
-      }
-      
-      const array = current[keys[keys.length - 1]];
-      if (Array.isArray(array)) {
-        // Add a new item of the same type as the first item
-        const newItem = array.length > 0 ? 
-          (typeof array[0] === 'string' ? '' : 
-           typeof array[0] === 'number' ? 0 : 
-           typeof array[0] === 'boolean' ? false : '') : '';
-        
-        array.push(newItem);
-        
-        await updateLLMResultApi({
-          organizationId,
-          documentId: id,
-          promptId,
-          result: updatedResult,
-          isVerified: true
-        });
-
-        setLlmResults(prev => ({
-          ...prev,
-          [promptId]: {
-            ...prev[promptId],
-            llm_result: updatedResult,
-            updated_llm_result: updatedResult,
-            is_edited: true,
-            is_verified: true
-          }
-        }));
-
-        toast.success('Array item added');
-      }
-    } catch (error) {
-      console.error('Error adding array item:', error);
-      toast.error(`Error adding item: ${getApiErrorMsg(error)}`);
-    }
-  };
-
-  const handleArrayObjectAdd = async (promptId: string, arrayKey: string, currentArray: JsonValue[]) => {
-    try {
-      const currentResult = llmResults[promptId];
-      if (!currentResult) return;
-
-      const updatedResult = { ...currentResult.llm_result };
-      const keys = arrayKey.split('.');
-      let current: any = updatedResult;
-      
-      for (let i = 0; i < keys.length - 1; i++) {
-        current = current[keys[i]];
-      }
-      
-      const array = current[keys[keys.length - 1]];
-      if (Array.isArray(array)) {
-        // Add a new object with the same structure as the first item
-        const newItem = array.length > 0 && typeof array[0] === 'object' ? 
-          Object.fromEntries(Object.keys(array[0]).map(key => [key, ''])) : {};
-        
-        array.push(newItem);
-        
-        await updateLLMResultApi({
-          organizationId,
-          documentId: id,
-          promptId,
-          result: updatedResult,
-          isVerified: true
-        });
-
-        setLlmResults(prev => ({
-          ...prev,
-          [promptId]: {
-            ...prev[promptId],
-            llm_result: updatedResult,
-            updated_llm_result: updatedResult,
-            is_edited: true,
-            is_verified: true
-          }
-        }));
-
-        toast.success('Array object added');
-      }
-    } catch (error) {
-      console.error('Error adding array object:', error);
-      toast.error(`Error adding object: ${getApiErrorMsg(error)}`);
-    }
-  };
-
   // New form handling functions
-  const handleFormSubmit = async (form: Form, submissionData: any) => {
+  const handleFormSubmit = async (form: Form, submissionData: unknown) => {
     setSubmittingForms(prev => new Set(prev).add(form.form_revid));
 
     try {
@@ -559,7 +418,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         submission: {
           form_revid: form.form_revid,
           document_id: id,
-          submission_data: submissionData
+          submission_data: submissionData as Record<string, unknown>
         }
       });
 
@@ -612,7 +471,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         ) : documentTags.length > 0 ? (
           <div className="text-center py-8 text-gray-500">
             <DocumentTextIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-            <p>No forms found for this document's tags</p>
+            <p>No forms found for this document&apos;s tags</p>
             <p className="text-sm mt-1">Create forms with matching tags to see them here</p>
           </div>
         ) : (
