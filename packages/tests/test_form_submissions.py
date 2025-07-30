@@ -94,7 +94,6 @@ async def test_form_submission_lifecycle(test_db, mock_auth):
         # Step 3: Submit a form
         submission_data = {
             "form_revid": form_revid,
-            "document_id": document_id,
             "submission_data": {
                 "customer_name": "John Doe",
                 "customer_email": "john.doe@example.com",
@@ -104,7 +103,7 @@ async def test_form_submission_lifecycle(test_db, mock_auth):
         }
         
         submit_response = client.post(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions",
+            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{document_id}",
             json=submission_data,
             headers=get_auth_headers()
         )
@@ -113,7 +112,7 @@ async def test_form_submission_lifecycle(test_db, mock_auth):
         submission_result = submit_response.json()
         assert "id" in submission_result
         assert submission_result["form_revid"] == form_revid
-        assert submission_result["document_id"] == document_id
+        # Note: document_id is not included in the response model
         assert submission_result["submission_data"]["customer_name"] == "John Doe"
         assert submission_result["submission_data"]["customer_email"] == "john.doe@example.com"
         assert submission_result["submission_data"]["order_amount"] == 150.00
@@ -122,9 +121,9 @@ async def test_form_submission_lifecycle(test_db, mock_auth):
         
         submission_id = submission_result["id"]
         
-        # Step 4: Get the submission
+        # Step 4: Get the submission using the new endpoint
         get_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{submission_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{document_id}?form_revid={form_revid}",
             headers=get_auth_headers()
         )
         
@@ -132,10 +131,11 @@ async def test_form_submission_lifecycle(test_db, mock_auth):
         get_result = get_response.json()
         assert get_result["id"] == submission_id
         assert get_result["form_revid"] == form_revid
-        assert get_result["document_id"] == document_id
+        # Note: document_id is not included in the response model
         
-        # Step 5: Update the submission
-        update_data = {
+        # Step 5: Submit the same form again (should update existing)
+        updated_submission_data = {
+            "form_revid": form_revid,
             "submission_data": {
                 "customer_name": "Jane Smith",
                 "customer_email": "jane.smith@example.com",
@@ -143,9 +143,9 @@ async def test_form_submission_lifecycle(test_db, mock_auth):
             }
         }
         
-        update_response = client.put(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{submission_id}",
-            json=update_data,
+        update_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{document_id}",
+            json=updated_submission_data,
             headers=get_auth_headers()
         )
         
@@ -154,23 +154,11 @@ async def test_form_submission_lifecycle(test_db, mock_auth):
         assert update_result["submission_data"]["customer_name"] == "Jane Smith"
         assert update_result["submission_data"]["customer_email"] == "jane.smith@example.com"
         assert update_result["submission_data"]["order_amount"] == 200.00
+        assert update_result["id"] == submission_id  # Same submission ID
         
-        # Step 6: List submissions
-        list_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions",
-            headers=get_auth_headers()
-        )
-        
-        assert list_response.status_code == 200
-        list_result = list_response.json()
-        assert "submissions" in list_result
-        assert "total_count" in list_result
-        assert "skip" in list_result
-        assert len(list_result["submissions"]) >= 1
-        
-        # Step 7: Delete the submission
+        # Step 6: Delete the submission
         delete_response = client.delete(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{submission_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{document_id}?form_revid={form_revid}",
             headers=get_auth_headers()
         )
         
@@ -178,142 +166,17 @@ async def test_form_submission_lifecycle(test_db, mock_auth):
         delete_result = delete_response.json()
         assert delete_result["message"] == "Form submission deleted successfully"
         
-        # Step 8: Verify deletion
+        # Step 7: Verify deletion - should return None (not 404)
         get_deleted_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{submission_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{document_id}?form_revid={form_revid}",
             headers=get_auth_headers()
         )
         
-        assert get_deleted_response.status_code == 404
+        assert get_deleted_response.status_code == 200
+        assert get_deleted_response.json() is None
         
     except Exception as e:
         logger.error(f"test_form_submission_lifecycle() failed: {e}")
-        raise
-
-@pytest.mark.asyncio
-async def test_form_submission_with_filters(test_db, mock_auth):
-    """Test form submission listing with filters"""
-    logger.info(f"test_form_submission_with_filters() start")
-    
-    try:
-        # Create a form
-        form_data = {
-            "name": "Filter Test Form",
-            "response_format": {
-                "json_formio": [
-                    {
-                        "type": "textfield",
-                        "key": "test_field",
-                        "label": "Test Field",
-                        "input": True
-                    }
-                ]
-            },
-            "tag_ids": []
-        }
-        
-        create_form_response = client.post(
-            f"/v0/orgs/{TEST_ORG_ID}/forms",
-            json=form_data,
-            headers=get_auth_headers()
-        )
-        
-        assert create_form_response.status_code == 200
-        form_result = create_form_response.json()
-        form_revid = form_result["form_revid"]
-        
-        # Create multiple documents
-        documents_data = {
-            "documents": [
-                {
-                    "name": "doc1.pdf",
-                    "content": "data:application/pdf;base64,JVBERi0xLjQKJcOkw7zDtsO8DQoxIDAgb2JqDQo8PA0KL1R5cGUgL0NhdGFsb2cNCi9QYWdlcyAyIDAgUg0KPj4NCmVuZG9iag0KMiAwIG9iag0KPDwNCi9UeXBlIC9QYWdlcw0KL0NvdW50IDENCi9LaWRzIFsgMyAwIFIgXQ0KPj4NCmVuZG9iag0KMyAwIG9iag0KPDwNCi9UeXBlIC9QYWdlDQovUGFyZW50IDIgMCBSDQovUmVzb3VyY2VzIDw8DQovRm9udCA8PA0KL0YxIDQgMCBSDQo+Pg0KPj4NCi9Db250ZW50cyA1IDAgUg0KPj4NCmVuZG9iag0KNCAwIG9iag0KPDwNCi9UeXBlIC9Gb250DQovU3VidHlwZSAvVHlwZTENCi9CYXNlRm9udCAvSGVsdmV0aWNhDQovRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZw0KPj4NCmVuZG9iag0KNSAwIG9iag0KPDwNCi9MZW5ndGggMzQNCj4+DQpzdHJlYW0NCkJUCjcwIDUwIFRECi9GMSAxMiBUZgooSGVsbG8gV29ybGQpIFRqCkVUCmVuZG9iag0KeHJlZg0KMCA2DQowMDAwMDAwMDAwIDY1NTM1IGYNCjAwMDAwMDAwMTAgMDAwMDAgbg0KMDAwMDAwMDA3MCAwMDAwMCBuDQowMDAwMDAwMTczIDAwMDAwIG4NCjAwMDAwMDAzMDEgMDAwMDAgbg0KMDAwMDAwMDM4MCAwMDAwMCBuDQp0cmFpbGVyDQo8PA0KL1NpemUgNg0KL1Jvb3QgMSAwIFINCj4+DQpzdGFydHhyZWYNCjQ5Mg0KJSVFT0Y=",
-                    "tag_ids": []
-                },
-                {
-                    "name": "doc2.pdf",
-                    "content": "data:application/pdf;base64,JVBERi0xLjQKJcOkw7zDtsO8DQoxIDAgb2JqDQo8PA0KL1R5cGUgL0NhdGFsb2cNCi9QYWdlcyAyIDAgUg0KPj4NCmVuZG9iag0KMiAwIG9iag0KPDwNCi9UeXBlIC9QYWdlcw0KL0NvdW50IDENCi9LaWRzIFsgMyAwIFIgXQ0KPj4NCmVuZG9iag0KMyAwIG9iag0KPDwNCi9UeXBlIC9QYWdlDQovUGFyZW50IDIgMCBSDQovUmVzb3VyY2VzIDw8DQovRm9udCA8PA0KL0YxIDQgMCBSDQo+Pg0KPj4NCi9Db250ZW50cyA1IDAgUg0KPj4NCmVuZG9iag0KNCAwIG9iag0KPDwNCi9UeXBlIC9Gb250DQovU3VidHlwZSAvVHlwZTENCi9CYXNlRm9udCAvSGVsdmV0aWNhDQovRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZw0KPj4NCmVuZG9iag0KNSAwIG9iag0KPDwNCi9MZW5ndGggMzQNCj4+DQpzdHJlYW0NCkJUCjcwIDUwIFRECi9GMSAxMiBUZgooSGVsbG8gV29ybGQpIFRqCkVUCmVuZG9iag0KeHJlZg0KMCA2DQowMDAwMDAwMDAwIDY1NTM1IGYNCjAwMDAwMDAwMTAgMDAwMDAgbg0KMDAwMDAwMDA3MCAwMDAwMCBuDQowMDAwMDAwMTczIDAwMDAwIG4NCjAwMDAwMDAzMDEgMDAwMDAgbg0KMDAwMDAwMDM4MCAwMDAwMCBuDQp0cmFpbGVyDQo8PA0KL1NpemUgNg0KL1Jvb3QgMSAwIFINCj4+DQpzdGFydHhyZWYNCjQ5Mg0KJSVFT0Y=",
-                    "tag_ids": []
-                }
-            ]
-        }
-        
-        upload_response = client.post(
-            f"/v0/orgs/{TEST_ORG_ID}/documents",
-            json=documents_data,
-            headers=get_auth_headers()
-        )
-        
-        assert upload_response.status_code == 200
-        documents_result = upload_response.json()
-        doc1_id = documents_result["documents"][0]["document_id"]
-        doc2_id = documents_result["documents"][1]["document_id"]
-        
-        # Create submissions for both documents
-        submission1_data = {
-            "form_revid": form_revid,
-            "document_id": doc1_id,
-            "submission_data": {"test_field": "value1"}
-        }
-        
-        submission2_data = {
-            "form_revid": form_revid,
-            "document_id": doc2_id,
-            "submission_data": {"test_field": "value2"}
-        }
-        
-        # Submit both
-        submit1_response = client.post(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions",
-            json=submission1_data,
-            headers=get_auth_headers()
-        )
-        
-        submit2_response = client.post(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions",
-            json=submission2_data,
-            headers=get_auth_headers()
-        )
-        
-        assert submit1_response.status_code == 200
-        assert submit2_response.status_code == 200
-        
-        # Test filtering by document_id
-        filter_by_doc_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions?document_id={doc1_id}",
-            headers=get_auth_headers()
-        )
-        
-        assert filter_by_doc_response.status_code == 200
-        filter_result = filter_by_doc_response.json()
-        assert len(filter_result["submissions"]) == 1
-        assert filter_result["submissions"][0]["document_id"] == doc1_id
-        
-        # Test filtering by form_revid
-        filter_by_form_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions?form_revid={form_revid}",
-            headers=get_auth_headers()
-        )
-        
-        assert filter_by_form_response.status_code == 200
-        filter_form_result = filter_by_form_response.json()
-        assert len(filter_form_result["submissions"]) == 2
-        for submission in filter_form_result["submissions"]:
-            assert submission["form_revid"] == form_revid
-        
-        # Test pagination
-        paginated_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions?skip=0&limit=1",
-            headers=get_auth_headers()
-        )
-        
-        assert paginated_response.status_code == 200
-        paginated_result = paginated_response.json()
-        assert len(paginated_result["submissions"]) == 1
-        assert paginated_result["total_count"] >= 2
-        
-    except Exception as e:
-        logger.error(f"test_form_submission_with_filters() failed: {e}")
         raise
 
 @pytest.mark.asyncio
@@ -325,12 +188,11 @@ async def test_form_submission_validation(test_db, mock_auth):
         # Test submission with non-existent form
         invalid_submission = {
             "form_revid": "507f1f77bcf86cd799439011",  # Non-existent ObjectId
-            "document_id": "507f1f77bcf86cd799439012",  # Non-existent ObjectId
             "submission_data": {"test": "value"}
         }
         
         response = client.post(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions",
+            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/507f1f77bcf86cd799439012",
             json=invalid_submission,
             headers=get_auth_headers()
         )
@@ -366,12 +228,11 @@ async def test_form_submission_validation(test_db, mock_auth):
         
         invalid_doc_submission = {
             "form_revid": form_revid,
-            "document_id": "507f1f77bcf86cd799439012",  # Non-existent ObjectId
             "submission_data": {"test": "value"}
         }
         
         response = client.post(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions",
+            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/507f1f77bcf86cd799439012",
             json=invalid_doc_submission,
             headers=get_auth_headers()
         )
@@ -379,32 +240,18 @@ async def test_form_submission_validation(test_db, mock_auth):
         assert response.status_code == 404
         assert "Document not found" in response.json()["detail"]
         
-        # Test getting non-existent submission
+        # Test getting non-existent submission - should return None (not 404)
         response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/507f1f77bcf86cd799439011",
+            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/507f1f77bcf86cd799439011?form_revid=507f1f77bcf86cd799439012",
             headers=get_auth_headers()
         )
         
-        assert response.status_code == 404
-        assert "Form submission not found" in response.json()["detail"]
-        
-        # Test updating non-existent submission
-        update_data = {
-            "submission_data": {"test": "updated"}
-        }
-        
-        response = client.put(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/507f1f77bcf86cd799439011",
-            json=update_data,
-            headers=get_auth_headers()
-        )
-        
-        assert response.status_code == 404
-        assert "Form submission not found" in response.json()["detail"]
+        assert response.status_code == 200
+        assert response.json() is None
         
         # Test deleting non-existent submission
         response = client.delete(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/507f1f77bcf86cd799439011",
+            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/507f1f77bcf86cd799439011?form_revid=507f1f77bcf86cd799439012",
             headers=get_auth_headers()
         )
         
@@ -471,12 +318,11 @@ async def test_form_submission_cross_organization_isolation(test_db, mock_auth):
         # Create a submission
         submission_data = {
             "form_revid": form_revid,
-            "document_id": document_id,
             "submission_data": {"test_field": "isolation_test"}
         }
         
         submit_response = client.post(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions",
+            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{document_id}",
             json=submission_data,
             headers=get_auth_headers()
         )
@@ -490,28 +336,24 @@ async def test_form_submission_cross_organization_isolation(test_db, mock_auth):
         
         # Get submission from different org should fail
         get_response = client.get(
-            f"/v0/orgs/{different_org_id}/forms/submissions/{submission_id}",
+            f"/v0/orgs/{different_org_id}/forms/submissions/{document_id}?form_revid={form_revid}",
             headers=get_auth_headers()
         )
         
         assert get_response.status_code == 403
         
-        # Update submission from different org should fail
-        update_data = {
-            "submission_data": {"test_field": "hacked"}
-        }
-        
-        update_response = client.put(
-            f"/v0/orgs/{different_org_id}/forms/submissions/{submission_id}",
-            json=update_data,
+        # Submit to different org should fail
+        submit_different_org_response = client.post(
+            f"/v0/orgs/{different_org_id}/forms/submissions/{document_id}",
+            json=submission_data,
             headers=get_auth_headers()
         )
         
-        assert update_response.status_code == 403
+        assert submit_different_org_response.status_code == 403
         
         # Delete submission from different org should fail
         delete_response = client.delete(
-            f"/v0/orgs/{different_org_id}/forms/submissions/{submission_id}",
+            f"/v0/orgs/{different_org_id}/forms/submissions/{document_id}?form_revid={form_revid}",
             headers=get_auth_headers()
         )
         
@@ -519,7 +361,7 @@ async def test_form_submission_cross_organization_isolation(test_db, mock_auth):
         
         # Verify the submission still exists in the original organization
         verify_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{submission_id}",
+            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{document_id}?form_revid={form_revid}",
             headers=get_auth_headers()
         )
         
@@ -530,14 +372,14 @@ async def test_form_submission_cross_organization_isolation(test_db, mock_auth):
         raise
 
 @pytest.mark.asyncio
-async def test_form_submission_pagination(test_db, mock_auth):
-    """Test form submission pagination"""
-    logger.info(f"test_form_submission_pagination() start")
+async def test_form_submission_update_behavior(test_db, mock_auth):
+    """Test that submitting the same form multiple times updates the existing submission"""
+    logger.info(f"test_form_submission_update_behavior() start")
     
     try:
         # Create a form
         form_data = {
-            "name": "Pagination Test Form",
+            "name": "Update Test Form",
             "response_format": {
                 "json_formio": [
                     {
@@ -565,7 +407,7 @@ async def test_form_submission_pagination(test_db, mock_auth):
         document_data = {
             "documents": [
                 {
-                    "name": "pagination_test.pdf",
+                    "name": "update_test.pdf",
                     "content": "data:application/pdf;base64,JVBERi0xLjQKJcOkw7zDtsO8DQoxIDAgb2JqDQo8PA0KL1R5cGUgL0NhdGFsb2cNCi9QYWdlcyAyIDAgUg0KPj4NCmVuZG9iag0KMiAwIG9iag0KPDwNCi9UeXBlIC9QYWdlcw0KL0NvdW50IDENCi9LaWRzIFsgMyAwIFIgXQ0KPj4NCmVuZG9iag0KMyAwIG9iag0KPDwNCi9UeXBlIC9QYWdlDQovUGFyZW50IDIgMCBSDQovUmVzb3VyY2VzIDw8DQovRm9udCA8PA0KL0YxIDQgMCBSDQo+Pg0KPj4NCi9Db250ZW50cyA1IDAgUg0KPj4NCmVuZG9iag0KNCAwIG9iag0KPDwNCi9UeXBlIC9Gb250DQovU3VidHlwZSAvVHlwZTENCi9CYXNlRm9udCAvSGVsdmV0aWNhDQovRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZw0KPj4NCmVuZG9iag0KNSAwIG9iag0KPDwNCi9MZW5ndGggMzQNCj4+DQpzdHJlYW0NCkJUCjcwIDUwIFRECi9GMSAxMiBUZgooSGVsbG8gV29ybGQpIFRqCkVUCmVuZG9iag0KeHJlZg0KMCA2DQowMDAwMDAwMDAwIDY1NTM1IGYNCjAwMDAwMDAwMTAgMDAwMDAgbg0KMDAwMDAwMDA3MCAwMDAwMCBuDQowMDAwMDAwMTczIDAwMDAwIG4NCjAwMDAwMDAzMDEgMDAwMDAgbg0KMDAwMDAwMDM4MCAwMDAwMCBuDQp0cmFpbGVyDQo8PA0KL1NpemUgNg0KL1Jvb3QgMSAwIFINCj4+DQpzdGFydHhyZWYNCjQ5Mg0KJSVFT0Y=",
                     "tag_ids": []
                 }
@@ -582,53 +424,54 @@ async def test_form_submission_pagination(test_db, mock_auth):
         document_result = upload_response.json()
         document_id = document_result["documents"][0]["document_id"]
         
-        # Create multiple submissions
-        submission_ids = []
-        for i in range(5):
-            submission_data = {
-                "form_revid": form_revid,
-                "document_id": document_id,
-                "submission_data": {"test_field": f"value_{i}"}
-            }
-            
-            submit_response = client.post(
-                f"/v0/orgs/{TEST_ORG_ID}/forms/submissions",
-                json=submission_data,
-                headers=get_auth_headers()
-            )
-            
-            assert submit_response.status_code == 200
-            submission_result = submit_response.json()
-            submission_ids.append(submission_result["id"])
+        # First submission
+        submission1_data = {
+            "form_revid": form_revid,
+            "submission_data": {"test_field": "initial_value"}
+        }
         
-        # Test pagination with limit=2
-        page1_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions?skip=0&limit=2",
+        submit1_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{document_id}",
+            json=submission1_data,
             headers=get_auth_headers()
         )
         
-        assert page1_response.status_code == 200
-        page1_result = page1_response.json()
-        assert len(page1_result["submissions"]) == 2
-        assert page1_result["total_count"] >= 5
-        assert page1_result["skip"] == 0
+        assert submit1_response.status_code == 200
+        submission1_result = submit1_response.json()
+        submission_id = submission1_result["id"]
         
-        # Test second page
-        page2_response = client.get(
-            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions?skip=2&limit=2",
+        # Second submission (should update the first one)
+        submission2_data = {
+            "form_revid": form_revid,
+            "submission_data": {"test_field": "updated_value"}
+        }
+        
+        submit2_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{document_id}",
+            json=submission2_data,
             headers=get_auth_headers()
         )
         
-        assert page2_response.status_code == 200
-        page2_result = page2_response.json()
-        assert len(page2_result["submissions"]) == 2
-        assert page2_result["skip"] == 2
+        assert submit2_response.status_code == 200
+        submission2_result = submit2_response.json()
         
-        # Verify different submissions on different pages
-        page1_ids = {sub["id"] for sub in page1_result["submissions"]}
-        page2_ids = {sub["id"] for sub in page2_result["submissions"]}
-        assert page1_ids.isdisjoint(page2_ids)
+        # Should have the same submission ID
+        assert submission2_result["id"] == submission_id
+        
+        # Should have updated data
+        assert submission2_result["submission_data"]["test_field"] == "updated_value"
+        
+        # Verify via GET request
+        get_response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/forms/submissions/{document_id}?form_revid={form_revid}",
+            headers=get_auth_headers()
+        )
+        
+        assert get_response.status_code == 200
+        get_result = get_response.json()
+        assert get_result["id"] == submission_id
+        assert get_result["submission_data"]["test_field"] == "updated_value"
         
     except Exception as e:
-        logger.error(f"test_form_submission_pagination() failed: {e}")
+        logger.error(f"test_form_submission_update_behavior() failed: {e}")
         raise 
