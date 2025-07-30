@@ -515,6 +515,21 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     }
   };
 
+  // Add this function to handle form field search
+  const handleFormFieldSearch = (fieldValue: string) => {
+    if (!fieldValue || typeof fieldValue !== 'string') {
+      toast.info('No text to search');
+      return;
+    }
+    
+    const highlightInfo = findBlocksWithContext(fieldValue, 'form', 'field');
+    if (highlightInfo.blocks.length > 0) {
+      onHighlight(highlightInfo);
+    } else {
+      toast.info('No matching text found in document');
+    }
+  };
+
   return (
     <div className="h-full overflow-y-auto p-4 space-y-6">
       {/* Forms Section */}
@@ -569,6 +584,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
                   onSubmit={(submission) => handleFormSubmit(form, submission)}
                   readOnly={submittingForms.has(form.form_revid)}
                   initialData={existingSubmissions[form.form_revid]?.submission_data}
+                  onFieldSearch={handleFormFieldSearch}
                 />
               </div>
             ))}
