@@ -16,6 +16,8 @@ import VerticalAlignTopIcon from '@mui/icons-material/VerticalAlignTop';
 import VerticalAlignBottomIcon from '@mui/icons-material/VerticalAlignBottom';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import FitScreenIcon from '@mui/icons-material/FitScreen';
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import { styled } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 import PrintIcon from '@mui/icons-material/Print';
@@ -263,27 +265,78 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
   const rotateLeft = () => setRotation(prevRotation => (prevRotation - 90) % 360);
   const rotateRight = () => setRotation(prevRotation => (prevRotation + 90) % 360);
 
-  // New useEffect to handle auto-zoom
+  const handleMenuClose = useCallback(() => {
+    setAnchorEl(null);
+  }, []);
+
+  // Fit to page - scales to fit entire page in container
+  const fitToPage = useCallback(() => {
+    if (pdfDimensions.width && pdfDimensions.height && containerRef.current) {
+      const containerElement = containerRef.current;
+      const containerWidth = containerElement.clientWidth - 32;
+      const containerHeight = containerElement.clientHeight - 32;
+
+      let effectiveWidth = pdfDimensions.width;
+      let effectiveHeight = pdfDimensions.height;
+      
+      if (Math.abs(rotation) === 90 || Math.abs(rotation) === 270) {
+        effectiveWidth = pdfDimensions.height;
+        effectiveHeight = pdfDimensions.width;
+      }
+
+      const widthScale = containerWidth / effectiveWidth;
+      const heightScale = containerHeight / effectiveHeight;
+      const optimalScale = Math.min(widthScale, heightScale) * 0.9;
+      
+      setScale(Math.max(optimalScale, 0.1));
+    }
+    handleMenuClose();
+  }, [pdfDimensions, rotation, handleMenuClose]);
+
+  // Fit to width - scales to fit page width in container
+  const fitToWidth = useCallback(() => {
+    if (pdfDimensions.width && pdfDimensions.height && containerRef.current) {
+      const containerElement = containerRef.current;
+      const containerWidth = containerElement.clientWidth - 32;
+
+      let effectiveWidth = pdfDimensions.width;
+      
+      if (Math.abs(rotation) === 90 || Math.abs(rotation) === 270) {
+        effectiveWidth = pdfDimensions.height;
+      }
+
+      const widthScale = containerWidth / effectiveWidth;
+      const optimalScale = widthScale * 0.95;
+      
+      setScale(Math.max(optimalScale, 0.1));
+    }
+    handleMenuClose();
+  }, [pdfDimensions, rotation, handleMenuClose]);
+
+  // Auto-zoom to fit width by default
   useEffect(() => {
     if (pdfDimensions.width && pdfDimensions.height && containerRef.current) {
-      // Get the container dimensions
-      const containerWidth = containerRef.current.clientWidth;
-      const containerHeight = containerRef.current.clientHeight;
+      // Get the container dimensions, accounting for padding
+      const containerElement = containerRef.current;
+      const containerWidth = containerElement.clientWidth - 32; // Account for 16px padding on each side
 
-      // Calculate scale ratios for width and height
-      const widthScale = containerWidth / pdfDimensions.width;
-      const heightScale = containerHeight / pdfDimensions.height;
+      // Account for rotation when calculating dimensions
+      let effectiveWidth = pdfDimensions.width;
+      
+      if (Math.abs(rotation) === 90 || Math.abs(rotation) === 270) {
+        effectiveWidth = pdfDimensions.height;
+      }
 
-      // Use the smaller scale to ensure the entire page fits
-      // Multiply by 0.95 to add a small margin around the page
-      const optimalScale = Math.min(widthScale, heightScale) * 0.95;
+      // Calculate scale to fit width
+      const widthScale = containerWidth / effectiveWidth;
+      const optimalScale = widthScale * 0.95;
 
-      // Ensure the scale never goes below 100%
-      const adjustedScale = Math.max(optimalScale, 1.0);
+      // Allow scaling below 100% for large documents, but not below 0.1
+      const adjustedScale = Math.max(optimalScale, 0.1);
 
       setScale(adjustedScale);
     }
-  }, [pdfDimensions]);
+  }, [pdfDimensions, rotation]);
 
   const [inputPageNumber, setInputPageNumber] = useState('1');
 
@@ -308,10 +361,6 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
-
-  const handleMenuClose = useCallback(() => {
-    setAnchorEl(null);
-  }, []);
 
   const handleDocumentProperties = useCallback(() => {
     setShowProperties(true);
@@ -675,6 +724,15 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
           <StyledMenuItem onClick={rotateLeft}>
             <RotateLeftIcon fontSize="small" sx={{ mr: 1 }} />
             Rotate Counterclockwise
+          </StyledMenuItem>
+          <Divider />
+          <StyledMenuItem onClick={fitToWidth}>
+            <UnfoldMoreIcon fontSize="small" sx={{ mr: 1 }} />
+            Fit to Width
+          </StyledMenuItem>
+          <StyledMenuItem onClick={fitToPage}>
+            <FitScreenIcon fontSize="small" sx={{ mr: 1 }} />
+            Fit to Page
           </StyledMenuItem>
           <Divider />
           <StyledMenuItem onClick={handleOcrToggle}>
