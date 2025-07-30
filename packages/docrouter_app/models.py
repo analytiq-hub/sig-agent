@@ -401,7 +401,6 @@ class ListFlowsResponse(BaseModel):
 # Add these new models for form submissions
 class FormSubmissionData(BaseModel):
     form_revid: str
-    document_id: str
     submission_data: dict
     submitted_by: Optional[str] = None
 

@@ -1785,14 +1785,15 @@ async def list_forms(
     )
 
 # Form submission endpoints
-@app.post("/v0/orgs/{organization_id}/forms/submissions", response_model=FormSubmission, tags=["form-submissions"])
+@app.post("/v0/orgs/{organization_id}/forms/submissions/{document_id}", response_model=FormSubmission, tags=["form-submissions"])
 async def submit_form(
     organization_id: str,
+    document_id: str,
     submission: FormSubmissionData,
     current_user: User = Depends(get_org_user)
 ):
     """Submit a form for a specific document - updates existing submission if found"""
-    logger.info(f"submit_form() start: organization_id: {organization_id}, form_revid: {submission.form_revid}, document_id: {submission.document_id}")
+    logger.info(f"submit_form() start: organization_id: {organization_id}, document_id: {document_id}, form_revid: {submission.form_revid}")
     db = ad.common.get_async_db()
     
     # Verify the form revision exists
@@ -1810,7 +1811,7 @@ async def submit_form(
 
     # Verify the document exists and belongs to the organization
     document = await db.docs.find_one({
-        "_id": ObjectId(submission.document_id),
+        "_id": ObjectId(document_id),
         "organization_id": organization_id
     })
     if not document:
@@ -1819,7 +1820,7 @@ async def submit_form(
     # Check if a submission already exists for this form/document combination
     existing_submission = await db.form_submissions.find_one({
         "form_revid": submission.form_revid,
-        "document_id": submission.document_id,
+        "document_id": document_id,
         "organization_id": organization_id
     })
     
@@ -1846,7 +1847,7 @@ async def submit_form(
         # Create new submission
         submission_doc = {
             "form_revid": submission.form_revid,
-            "document_id": submission.document_id,
+            "document_id": document_id,
             "organization_id": organization_id,
             "submission_data": submission.submission_data,
             "submitted_by": submission.submitted_by or current_user.user_id,

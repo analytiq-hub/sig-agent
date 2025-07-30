@@ -54,7 +54,6 @@ export interface DeleteFormParams {
 
 export interface FormSubmissionData {
   form_revid: string;
-  document_id: string;
   submission_data: Record<string, unknown>;
   submitted_by?: string;
 }

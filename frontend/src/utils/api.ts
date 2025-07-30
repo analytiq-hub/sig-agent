@@ -512,7 +512,10 @@ export const deleteFormApi = async (params: DeleteFormParams) => {
 export const submitFormApi = async (params: SubmitFormParams): Promise<FormSubmission> => {
   const { organizationId, submission } = params;
   
-  const response = await api.post<FormSubmission>(`/v0/orgs/${organizationId}/forms/submissions`, submission);
+  const response = await api.post<FormSubmission>(
+    `/v0/orgs/${organizationId}/forms/submissions/${submission.document_id}`, 
+    submission
+  );
   return response.data;
 };
 
