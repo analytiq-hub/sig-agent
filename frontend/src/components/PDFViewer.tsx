@@ -746,12 +746,12 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
           <StyledMenuItem onClick={fitToWidth}>
             <UnfoldMoreIcon fontSize="small" sx={{ mr: 1 }} />
             Fit to Width
-            {fitMode === 'width' && <CheckIcon fontSize="small" sx={{ ml: 1 }} />}
+            {fitMode === 'width' && <CheckIcon fontSize="small" sx={{ ml: 1, mb:1  }} />}
           </StyledMenuItem>
           <StyledMenuItem onClick={fitToPage}>
             <FitScreenIcon fontSize="small" sx={{ mr: 1 }} />
             Fit to Page
-            {fitMode === 'page' && <CheckIcon fontSize="small" sx={{ ml: 1 }} />}
+            {fitMode === 'page' && <CheckIcon fontSize="small" sx={{ ml: 1, mb: 1 }} />}
           </StyledMenuItem>
           <Divider />
           <StyledMenuItem onClick={handleOcrToggle}>
