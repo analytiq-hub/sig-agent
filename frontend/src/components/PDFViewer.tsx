@@ -179,6 +179,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
   const [ocrText, setOcrText] = useState<string>('');
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrError, setOcrError] = useState<string | null>(null);
+  const [fitMode, setFitMode] = useState<'width' | 'page' | 'manual'>('width');
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -260,8 +261,14 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
     }
   };
 
-  const zoomIn = () => setScale(prevScale => Math.min(prevScale + 0.25, 3));
-  const zoomOut = () => setScale(prevScale => Math.max(prevScale - 0.25, 0.5));
+  const zoomIn = () => {
+    setScale(prevScale => Math.min(prevScale + 0.25, 3));
+    setFitMode('manual');
+  };
+  const zoomOut = () => {
+    setScale(prevScale => Math.max(prevScale - 0.25, 0.5));
+    setFitMode('manual');
+  };
   const rotateLeft = () => setRotation(prevRotation => (prevRotation - 90) % 360);
   const rotateRight = () => setRotation(prevRotation => (prevRotation + 90) % 360);
 
@@ -289,6 +296,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
       const optimalScale = Math.min(widthScale, heightScale) * 0.9;
       
       setScale(Math.max(optimalScale, 0.1));
+      setFitMode('page');
     }
     handleMenuClose();
   }, [pdfDimensions, rotation, handleMenuClose]);
@@ -309,34 +317,43 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
       const optimalScale = widthScale * 0.95;
       
       setScale(Math.max(optimalScale, 0.1));
+      setFitMode('width');
     }
     handleMenuClose();
   }, [pdfDimensions, rotation, handleMenuClose]);
 
-  // Auto-zoom to fit width by default
+  // Auto-zoom based on current fit mode
   useEffect(() => {
-    if (pdfDimensions.width && pdfDimensions.height && containerRef.current) {
-      // Get the container dimensions, accounting for padding
+    if (pdfDimensions.width && pdfDimensions.height && containerRef.current && fitMode !== 'manual') {
       const containerElement = containerRef.current;
-      const containerWidth = containerElement.clientWidth - 32; // Account for 16px padding on each side
+      const containerWidth = containerElement.clientWidth - 32;
+      const containerHeight = containerElement.clientHeight - 32;
 
-      // Account for rotation when calculating dimensions
       let effectiveWidth = pdfDimensions.width;
+      let effectiveHeight = pdfDimensions.height;
       
       if (Math.abs(rotation) === 90 || Math.abs(rotation) === 270) {
         effectiveWidth = pdfDimensions.height;
+        effectiveHeight = pdfDimensions.width;
       }
 
-      // Calculate scale to fit width
-      const widthScale = containerWidth / effectiveWidth;
-      const optimalScale = widthScale * 0.95;
-
-      // Allow scaling below 100% for large documents, but not below 0.1
-      const adjustedScale = Math.max(optimalScale, 0.1);
+      let adjustedScale;
+      if (fitMode === 'page') {
+        // Fit to page - use smaller scale to fit both dimensions
+        const widthScale = containerWidth / effectiveWidth;
+        const heightScale = containerHeight / effectiveHeight;
+        const optimalScale = Math.min(widthScale, heightScale) * 0.9;
+        adjustedScale = Math.max(optimalScale, 0.1);
+      } else {
+        // Fit to width (default)
+        const widthScale = containerWidth / effectiveWidth;
+        const optimalScale = widthScale * 0.95;
+        adjustedScale = Math.max(optimalScale, 0.1);
+      }
 
       setScale(adjustedScale);
     }
-  }, [pdfDimensions, rotation]);
+  }, [pdfDimensions, rotation, fitMode]);
 
   const [inputPageNumber, setInputPageNumber] = useState('1');
 
@@ -729,10 +746,12 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
           <StyledMenuItem onClick={fitToWidth}>
             <UnfoldMoreIcon fontSize="small" sx={{ mr: 1 }} />
             Fit to Width
+            {fitMode === 'width' && <CheckIcon fontSize="small" sx={{ ml: 1 }} />}
           </StyledMenuItem>
           <StyledMenuItem onClick={fitToPage}>
             <FitScreenIcon fontSize="small" sx={{ mr: 1 }} />
             Fit to Page
+            {fitMode === 'page' && <CheckIcon fontSize="small" sx={{ ml: 1 }} />}
           </StyledMenuItem>
           <Divider />
           <StyledMenuItem onClick={handleOcrToggle}>
