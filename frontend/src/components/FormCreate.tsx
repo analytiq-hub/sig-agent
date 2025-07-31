@@ -140,16 +140,6 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentForm.name) {
-      toast.error('Please fill in the form name');
-      return;
-    }
-
-    saveForm();
-  };
-
   return (
     <div className="p-4 w-full">
       <div className="bg-white p-6 rounded-lg shadow mb-6">
@@ -174,7 +164,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
           />
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4">
           {/* Form Name Input */}
           <div className="flex items-center gap-4 mb-4">
             <div className="flex-1 md:w-1/2 md:max-w-[calc(50%-1rem)]">
@@ -207,7 +197,14 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                 Clear
               </button>
               <button
-                type="submit"
+                type="button"
+                onClick={() => {
+                  if (!currentForm.name) {
+                    toast.error('Please fill in the form name');
+                    return;
+                  }
+                  saveForm();
+                }}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                 disabled={isLoading}
               >
@@ -299,7 +296,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
               />
             </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
