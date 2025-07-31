@@ -359,42 +359,50 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
   useEffect(() => {
     if (!containerRef.current || fitMode === 'manual') return;
 
-    const resizeObserver = new ResizeObserver((entries) => {
-      // Trigger scale recalculation when container size changes
-      if (pdfDimensions.width && pdfDimensions.height) {
-        const containerElement = containerRef.current;
-        if (!containerElement) return;
+    let timeoutId: NodeJS.Timeout;
 
-        const containerWidth = containerElement.clientWidth - 32;
-        const containerHeight = containerElement.clientHeight - 32;
+    const resizeObserver = new ResizeObserver(() => {
+      // Clear previous timeout
+      clearTimeout(timeoutId);
+      
+      // Debounce the scale recalculation
+      timeoutId = setTimeout(() => {
+        if (pdfDimensions.width && pdfDimensions.height) {
+          const containerElement = containerRef.current;
+          if (!containerElement) return;
 
-        let effectiveWidth = pdfDimensions.width;
-        let effectiveHeight = pdfDimensions.height;
-        
-        if (Math.abs(rotation) === 90 || Math.abs(rotation) === 270) {
-          effectiveWidth = pdfDimensions.height;
-          effectiveHeight = pdfDimensions.width;
+          const containerWidth = containerElement.clientWidth - 32;
+          const containerHeight = containerElement.clientHeight - 32;
+
+          let effectiveWidth = pdfDimensions.width;
+          let effectiveHeight = pdfDimensions.height;
+          
+          if (Math.abs(rotation) === 90 || Math.abs(rotation) === 270) {
+            effectiveWidth = pdfDimensions.height;
+            effectiveHeight = pdfDimensions.width;
+          }
+
+          let adjustedScale;
+          if (fitMode === 'page') {
+            const widthScale = containerWidth / effectiveWidth;
+            const heightScale = containerHeight / effectiveHeight;
+            const optimalScale = Math.min(widthScale, heightScale) * 0.9;
+            adjustedScale = Math.max(optimalScale, 0.1);
+          } else {
+            const widthScale = containerWidth / effectiveWidth;
+            const optimalScale = widthScale * 0.95;
+            adjustedScale = Math.max(optimalScale, 0.1);
+          }
+
+          setScale(adjustedScale);
         }
-
-        let adjustedScale;
-        if (fitMode === 'page') {
-          const widthScale = containerWidth / effectiveWidth;
-          const heightScale = containerHeight / effectiveHeight;
-          const optimalScale = Math.min(widthScale, heightScale) * 0.9;
-          adjustedScale = Math.max(optimalScale, 0.1);
-        } else {
-          const widthScale = containerWidth / effectiveWidth;
-          const optimalScale = widthScale * 0.95;
-          adjustedScale = Math.max(optimalScale, 0.1);
-        }
-
-        setScale(adjustedScale);
-      }
+      }, 1000); // 250ms debounce
     });
 
     resizeObserver.observe(containerRef.current);
 
     return () => {
+      clearTimeout(timeoutId);
       resizeObserver.disconnect();
     };
   }, [pdfDimensions, rotation, fitMode]);
