@@ -210,6 +210,34 @@
   padding-left: calc(0.25rem * var(--formio-scale)) !important;
 }
 
+/* Scalable radio buttons specifically */
+.formio-form input[type="radio"] {
+  width: calc(1rem * var(--formio-scale)) !important;
+  height: calc(1rem * var(--formio-scale)) !important;
+  margin-right: calc(0.5rem * var(--formio-scale)) !important;
+}
+
+.formio-form .radio label,
+.formio-form .form-radio label {
+  font-size: calc(0.875rem * var(--formio-scale)) !important;
+  padding-left: calc(0.25rem * var(--formio-scale)) !important;
+}
+
+.formio-form .radio,
+.formio-form .form-radio {
+  margin-bottom: calc(0.5rem * var(--formio-scale)) !important;
+}
+
+/* Scale radio button groups */
+.formio-form .form-group.form-field-type-radio .form-control {
+  padding: calc(0.375rem * var(--formio-scale)) !important;
+}
+
+.formio-form .form-group.form-field-type-radio label {
+  font-size: calc(0.875rem * var(--formio-scale)) !important;
+  margin-bottom: calc(0.25rem * var(--formio-scale)) !important;
+}
+
 /* Scalable submit button styling */
 .formio-form .btn-primary {
   font-size: calc(0.875rem * var(--formio-scale)) !important;
