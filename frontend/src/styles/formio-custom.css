@@ -130,4 +130,97 @@
 
 .xl\:grid {
   display: grid !important;
+}
+
+/* Form scaling factor - change this value to scale entire form */
+:root {
+  --formio-scale: 0.8; /* 1.0 is original size */
+}
+
+/* Form Renderer Styles - Scalable Layout */
+.formio-form .formio-component {
+  margin-bottom: calc(1rem * var(--formio-scale)) !important;
+}
+
+.formio-form .form-group {
+  margin-bottom: calc(1rem * var(--formio-scale)) !important;
+}
+
+/* Scalable font sizes - based on original baseline */
+.formio-form label,
+.formio-form .control-label {
+  font-size: calc(1rem * var(--formio-scale)) !important;
+  font-weight: 500 !important;
+  margin-bottom: calc(0.25rem * var(--formio-scale)) !important;
+}
+
+.formio-form input,
+.formio-form textarea,
+.formio-form select,
+.formio-form .form-control {
+  font-size: calc(1rem * var(--formio-scale)) !important;
+  padding: calc(0.5rem * var(--formio-scale)) calc(0.75rem * var(--formio-scale)) !important;
+  border-radius: calc(0.375rem * var(--formio-scale)) !important;
+  min-height: calc(2.5rem * var(--formio-scale)) !important;
+}
+
+/* Scalable floating/embedded labels style */
+.formio-form .form-floating {
+  position: relative !important;
+}
+
+.formio-form .form-floating > .form-control {
+  padding: calc(1rem * var(--formio-scale)) calc(0.75rem * var(--formio-scale)) calc(0.25rem * var(--formio-scale)) calc(0.75rem * var(--formio-scale)) !important;
+}
+
+.formio-form .form-floating > label {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  height: 100% !important;
+  padding: calc(1rem * var(--formio-scale)) calc(0.75rem * var(--formio-scale)) !important;
+  pointer-events: none !important;
+  border: 1px solid transparent !important;
+  transform-origin: 0 0 !important;
+  transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out !important;
+  font-size: calc(0.875rem * var(--formio-scale)) !important;
+  color: #6b7280 !important;
+}
+
+.formio-form .form-floating > .form-control:focus ~ label,
+.formio-form .form-floating > .form-control:not(:placeholder-shown) ~ label {
+  opacity: 0.65 !important;
+  transform: scale(0.85) translateY(calc(-0.5rem * var(--formio-scale))) translateX(calc(0.15rem * var(--formio-scale))) !important;
+}
+
+/* Scalable checkboxes and radios */
+.formio-form .form-check {
+  min-height: calc(1.25rem * var(--formio-scale)) !important;
+  margin-bottom: calc(0.5rem * var(--formio-scale)) !important;
+}
+
+.formio-form .form-check-input {
+  width: calc(1rem * var(--formio-scale)) !important;
+  height: calc(1rem * var(--formio-scale)) !important;
+  margin-top: calc(0.125rem * var(--formio-scale)) !important;
+}
+
+.formio-form .form-check-label {
+  font-size: calc(0.875rem * var(--formio-scale)) !important;
+  padding-left: calc(0.25rem * var(--formio-scale)) !important;
+}
+
+/* Scalable submit button styling */
+.formio-form .btn-primary {
+  font-size: calc(0.875rem * var(--formio-scale)) !important;
+  padding: calc(0.5rem * var(--formio-scale)) calc(1rem * var(--formio-scale)) !important;
+  margin-top: calc(1rem * var(--formio-scale)) !important;
+}
+
+/* Don't interfere with Formio's column system */
+
+/* Scalable select dropdowns */
+.formio-form select.form-control {
+  height: calc(2.5rem * var(--formio-scale)) !important;
+  line-height: calc(1.5 * var(--formio-scale)) !important;
 } 
