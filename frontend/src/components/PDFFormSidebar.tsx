@@ -215,7 +215,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
             {availableForms.map((form) => (
               <div key={form.form_revid} className="border rounded-lg p-4 bg-white">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-sm">{form.name}</h4>
+                  <h4 className="font-semibold text-sm">{form.name}</h4>
                   <div className="flex items-center gap-2">
                     {loadingSubmissions.has(form.form_revid) && (
                       <ArrowPathIcon className="h-4 w-4 animate-spin text-blue-500" />
