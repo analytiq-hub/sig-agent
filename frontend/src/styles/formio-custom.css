@@ -447,7 +447,7 @@ i[data-tooltip],
   vertical-align: middle !important;
   transform: translateY(-0.125rem) !important;
   border-radius: 50% !important;
-  margin: 0 0.5rem !important;
+  margin: 0 0 0 0.25rem !important;
   min-width: 1rem !important;
   min-height: 1rem !important;
   position: relative !important;
