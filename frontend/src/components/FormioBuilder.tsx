@@ -49,6 +49,7 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
       }
     } catch (e) {
       // If parsing fails, continue with normal flow
+      console.error('Error parsing jsonFormio:', e);
     }
     
     lastJsonFormio.current = currentJsonFormio;
@@ -79,7 +80,8 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
     builderInstance.current = builder;
     
     // Listen to the correct FormBuilder events
-    const handleFormChange = (event: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const handleFormChange = (event: unknown) => {
       // Don't trigger onChange if we're updating from props to prevent loops
       if (onChangeRef.current && !isInitializing.current && !isUpdatingFromProps.current) {
         const currentForm: FormWithComponents = (builder as FormBuilder & { _form: FormWithComponents })._form;
@@ -105,7 +107,7 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
 
     // Listen via the events emitter directly
     if (builder.events) {
-      (builder.events as { on: (event: string, handler: () => void) => void }).on('formio.change', handleFormChange);
+      (builder.events as { on: (event: string, handler: (event?: unknown) => void) => void }).on('formio.change', handleFormChange);
     }
 
     // Trigger initial change after builder is ready to sync the actual form structure
