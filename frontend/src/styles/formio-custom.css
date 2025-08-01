@@ -266,6 +266,22 @@
   margin-bottom: calc(0.5rem * var(--formio-scale)) !important;
 }
 
+/* Scalable Data Map component */
+.formio-form .formio-component-datamap .table th,
+.formio-form .formio-component-datamap .table thead th {
+  font-size: calc(0.875rem * var(--formio-scale)) !important;
+  padding: calc(0.5rem * var(--formio-scale)) !important;
+}
+
+.formio-form .formio-component-datamap .table td {
+  padding: calc(0.375rem * var(--formio-scale)) !important;
+}
+
+.formio-form .formio-component-datamap .btn {
+  font-size: calc(0.75rem * var(--formio-scale)) !important;
+  padding: calc(0.25rem * var(--formio-scale)) calc(0.5rem * var(--formio-scale)) !important;
+}
+
 /* Scalable HTML Element and Content components */
 .formio-form .formio-component-htmlelement,
 .formio-form .formio-component-content {
