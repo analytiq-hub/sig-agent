@@ -266,6 +266,71 @@
   margin-bottom: calc(0.5rem * var(--formio-scale)) !important;
 }
 
+/* Scalable HTML Element and Content components */
+.formio-form .formio-component-htmlelement,
+.formio-form .formio-component-content {
+  font-size: calc(1rem * var(--formio-scale)) !important;
+  padding: calc(0.5rem * var(--formio-scale)) !important;
+  margin-bottom: calc(0.75rem * var(--formio-scale)) !important;
+}
+
+.formio-form .formio-component-htmlelement h1,
+.formio-form .formio-component-content h1 {
+  font-size: calc(2rem * var(--formio-scale)) !important;
+  margin-bottom: calc(0.5rem * var(--formio-scale)) !important;
+}
+
+.formio-form .formio-component-htmlelement h2,
+.formio-form .formio-component-content h2 {
+  font-size: calc(1.5rem * var(--formio-scale)) !important;
+  margin-bottom: calc(0.5rem * var(--formio-scale)) !important;
+}
+
+.formio-form .formio-component-htmlelement h3,
+.formio-form .formio-component-content h3 {
+  font-size: calc(1.25rem * var(--formio-scale)) !important;
+  margin-bottom: calc(0.5rem * var(--formio-scale)) !important;
+}
+
+.formio-form .formio-component-htmlelement h4,
+.formio-form .formio-component-content h4 {
+  font-size: calc(1.125rem * var(--formio-scale)) !important;
+  margin-bottom: calc(0.5rem * var(--formio-scale)) !important;
+}
+
+.formio-form .formio-component-htmlelement h5,
+.formio-form .formio-component-content h5 {
+  font-size: calc(1rem * var(--formio-scale)) !important;
+  margin-bottom: calc(0.5rem * var(--formio-scale)) !important;
+}
+
+.formio-form .formio-component-htmlelement h6,
+.formio-form .formio-component-content h6 {
+  font-size: calc(0.875rem * var(--formio-scale)) !important;
+  margin-bottom: calc(0.5rem * var(--formio-scale)) !important;
+}
+
+.formio-form .formio-component-htmlelement p,
+.formio-form .formio-component-content p {
+  font-size: calc(1rem * var(--formio-scale)) !important;
+  margin-bottom: calc(0.75rem * var(--formio-scale)) !important;
+  line-height: calc(1.5 * var(--formio-scale)) !important;
+}
+
+.formio-form .formio-component-htmlelement ul,
+.formio-form .formio-component-htmlelement ol,
+.formio-form .formio-component-content ul,
+.formio-form .formio-component-content ol {
+  font-size: calc(1rem * var(--formio-scale)) !important;
+  margin-bottom: calc(0.75rem * var(--formio-scale)) !important;
+  padding-left: calc(1.5rem * var(--formio-scale)) !important;
+}
+
+.formio-form .formio-component-htmlelement li,
+.formio-form .formio-component-content li {
+  margin-bottom: calc(0.25rem * var(--formio-scale)) !important;
+}
+
 /* Scalable submit button styling */
 .formio-form .btn-primary {
   font-size: calc(0.875rem * var(--formio-scale)) !important;
