@@ -830,20 +830,26 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
                       ref={el => { pageRefs.current[index] = el; }}
                       style={{ 
                         position: 'relative',
-                        width: pdfDimensions.width,
-                        height: pdfDimensions.height,
-                        transform: `rotate(${rotation}deg) scale(${scale})`,
-                        transformOrigin: Math.abs(rotation) === 90 || Math.abs(rotation) === 270 
-                          ? 'center center' 
-                          : 'top center',
-                        margin: 'auto'
+                        width: Math.abs(rotation) === 90 || Math.abs(rotation) === 270 
+                          ? pdfDimensions.height * scale 
+                          : pdfDimensions.width * scale,
+                        height: Math.abs(rotation) === 90 || Math.abs(rotation) === 270 
+                          ? pdfDimensions.width * scale 
+                          : pdfDimensions.height * scale,
+                        transform: `rotate(${rotation}deg)`,
+                        transformOrigin: 'center center',
+                        margin: '8px auto',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center'
                       }}
                     >
                       <Page 
                         key={`page_${index + 1}`} 
                         pageNumber={index + 1} 
-                        width={pdfDimensions.width}   // ← Fixed dimensions
-                        height={pdfDimensions.height}  // ← Fixed dimensions
+                        width={pdfDimensions.width}
+                        height={pdfDimensions.height}
+                        scale={scale}
                         rotate={originalRotation}
                       >
                         {renderHighlights(index + 1)}
