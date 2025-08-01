@@ -223,4 +223,68 @@
 .formio-form select.form-control {
   height: calc(2.5rem * var(--formio-scale)) !important;
   line-height: calc(1.5 * var(--formio-scale)) !important;
+}
+
+/* Scalable date picker widgets */
+.formio-form .flatpickr-calendar,
+.formio-form .flatpickr-months,
+.formio-form .flatpickr-weekdays,
+.formio-form .flatpickr-days,
+.formio-form .flatpickr-time {
+  font-size: calc(0.875rem * var(--formio-scale)) !important;
+}
+
+.formio-form .flatpickr-calendar {
+  width: calc(307.875px * var(--formio-scale)) !important;
+}
+
+.formio-form .flatpickr-months .flatpickr-month,
+.formio-form .flatpickr-current-month {
+  height: calc(28px * var(--formio-scale)) !important;
+  line-height: calc(28px * var(--formio-scale)) !important;
+}
+
+.formio-form .flatpickr-weekdays,
+.formio-form .flatpickr-days {
+  width: 100% !important;
+}
+
+.formio-form .flatpickr-day {
+  height: calc(39px * var(--formio-scale)) !important;
+  line-height: calc(39px * var(--formio-scale)) !important;
+  max-width: calc(39px * var(--formio-scale)) !important;
+  width: calc(14.2857% * var(--formio-scale)) !important;
+  font-size: calc(0.875rem * var(--formio-scale)) !important;
+}
+
+.formio-form .flatpickr-weekday {
+  height: calc(28px * var(--formio-scale)) !important;
+  line-height: calc(28px * var(--formio-scale)) !important;
+  font-size: calc(0.75rem * var(--formio-scale)) !important;
+}
+
+.formio-form .flatpickr-time input {
+  font-size: calc(1rem * var(--formio-scale)) !important;
+  height: calc(40px * var(--formio-scale)) !important;
+  line-height: calc(40px * var(--formio-scale)) !important;
+}
+
+.formio-form .flatpickr-time .flatpickr-time-separator,
+.formio-form .flatpickr-time .flatpickr-am-pm {
+  font-size: calc(1rem * var(--formio-scale)) !important;
+  height: calc(40px * var(--formio-scale)) !important;
+  line-height: calc(40px * var(--formio-scale)) !important;
+}
+
+/* Scale navigation arrows */
+.formio-form .flatpickr-prev-month,
+.formio-form .flatpickr-next-month {
+  width: calc(28px * var(--formio-scale)) !important;
+  height: calc(28px * var(--formio-scale)) !important;
+}
+
+.formio-form .flatpickr-prev-month svg,
+.formio-form .flatpickr-next-month svg {
+  width: calc(14px * var(--formio-scale)) !important;
+  height: calc(14px * var(--formio-scale)) !important;
 } 
