@@ -359,14 +359,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
   useEffect(() => {
     if (!containerRef.current || fitMode === 'manual') return;
 
-    let timeoutId: NodeJS.Timeout;
-
     const resizeObserver = new ResizeObserver(() => {
-      // Clear previous timeout
-      clearTimeout(timeoutId);
-      
-      // Debounce the scale recalculation
-      timeoutId = setTimeout(() => {
         if (pdfDimensions.width && pdfDimensions.height) {
           const containerElement = containerRef.current;
           if (!containerElement) return;
@@ -396,13 +389,11 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
 
           setScale(adjustedScale);
         }
-      }, 1000); // 250ms debounce
     });
 
     resizeObserver.observe(containerRef.current);
 
     return () => {
-      clearTimeout(timeoutId);
       resizeObserver.disconnect();
     };
   }, [pdfDimensions, rotation, fitMode]);
@@ -839,18 +830,20 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
                       ref={el => { pageRefs.current[index] = el; }}
                       style={{ 
                         position: 'relative',
-                        width: pdfDimensions.width * scale,
-                        height: pdfDimensions.height * scale,
-                        transform: `rotate(${rotation}deg)`,
-                        transformOrigin: 'center center',
+                        width: pdfDimensions.width,
+                        height: pdfDimensions.height,
+                        transform: `rotate(${rotation}deg) scale(${scale})`,
+                        transformOrigin: Math.abs(rotation) === 90 || Math.abs(rotation) === 270 
+                          ? 'center center' 
+                          : 'top center',
                         margin: 'auto'
                       }}
                     >
                       <Page 
                         key={`page_${index + 1}`} 
                         pageNumber={index + 1} 
-                        width={pdfDimensions.width * scale}
-                        height={pdfDimensions.height * scale}
+                        width={pdfDimensions.width}   // ← Fixed dimensions
+                        height={pdfDimensions.height}  // ← Fixed dimensions
                         rotate={originalRotation}
                       >
                         {renderHighlights(index + 1)}
