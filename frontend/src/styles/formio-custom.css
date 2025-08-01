@@ -426,6 +426,78 @@
   height: calc(14px * var(--formio-scale)) !important;
 }
 
+/* Scoped Bootstrap/Tailwind grid conflict resolution - only affects Formio components */
+
+/* Ensure Tailwind grid classes work properly within Formio contexts */
+.formio-builder [class*="grid-cols-"],
+.formio-form [class*="grid-cols-"],
+.formio-dialog [class*="grid-cols-"] {
+  display: grid !important;
+}
+
+/* Generate grid template columns for common patterns - Formio scoped */
+.formio-builder .grid-cols-1,
+.formio-form .grid-cols-1,
+.formio-dialog .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+
+.formio-builder .grid-cols-2,
+.formio-form .grid-cols-2,
+.formio-dialog .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+
+.formio-builder .grid-cols-3,
+.formio-form .grid-cols-3,
+.formio-dialog .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+
+.formio-builder .grid-cols-4,
+.formio-form .grid-cols-4,
+.formio-dialog .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+
+.formio-builder .grid-cols-5,
+.formio-form .grid-cols-5,
+.formio-dialog .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+
+.formio-builder .grid-cols-6,
+.formio-form .grid-cols-6,
+.formio-dialog .grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
+
+.formio-builder .grid-cols-12,
+.formio-form .grid-cols-12,
+.formio-dialog .grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)) !important; }
+
+/* Generate column span classes - Formio scoped */
+.formio-builder .col-span-6,
+.formio-form .col-span-6,
+.formio-dialog .col-span-6 { grid-column: span 6 / span 6 !important; }
+
+.formio-builder .col-span-12,
+.formio-form .col-span-12,
+.formio-dialog .col-span-12 { grid-column: span 12 / span 12 !important; }
+
+/* Responsive column span classes - Formio scoped */
+.formio-builder .sm\:col-span-6,
+.formio-form .sm\:col-span-6,
+.formio-dialog .sm\:col-span-6 { grid-column: span 6 / span 6 !important; }
+
+.formio-builder .sm\:col-span-12,
+.formio-form .sm\:col-span-12,
+.formio-dialog .sm\:col-span-12 { grid-column: span 12 / span 12 !important; }
+
+/* Override Bootstrap's flex-based grid system when Tailwind grid classes are used - Formio scoped */
+.formio-builder [class*="grid-cols-"] [class*="col-span-"],
+.formio-builder [class*="grid-cols-"] [class*="sm:col-span-"],
+.formio-form [class*="grid-cols-"] [class*="col-span-"],
+.formio-form [class*="grid-cols-"] [class*="sm:col-span-"],
+.formio-dialog [class*="grid-cols-"] [class*="col-span-"],
+.formio-dialog [class*="grid-cols-"] [class*="sm:col-span-"] {
+  width: auto !important;
+  flex: none !important;
+  max-width: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
 /* Fix Boxicons tooltip icon visibility */
 .bx-question-mark:before {
   content: "?";
