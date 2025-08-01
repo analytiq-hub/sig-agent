@@ -424,4 +424,41 @@
 .formio-form .flatpickr-next-month svg {
   width: calc(14px * var(--formio-scale)) !important;
   height: calc(14px * var(--formio-scale)) !important;
+}
+
+/* Fix Boxicons tooltip icon visibility */
+.bx-question-mark:before {
+  content: "?";
+}
+
+/* Force tooltip visibility regardless of dynamic loading */
+i[ref="tooltip"],
+[ref="tooltip"],
+i[data-tooltip],
+[data-tooltip] {
+  background-color: rgb(156 163 175) !important;
+  color: rgb(255 255 255) !important;
+  width: 1rem !important;
+  height: 1rem !important;
+  font-size: calc(1rem * var(--formio-scale)) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  transform: translateY(-0.125rem) !important;
+  border-radius: 50% !important;
+  margin: 0 0.5rem !important;
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  position: relative !important;
+}
+
+/* Ensure question mark content appears */
+i[ref="tooltip"]:before,
+[ref="tooltip"]:before,
+i[data-tooltip]:before,
+[data-tooltip]:before {
+  content: "?" !important;
+  font-style: normal !important;
+  font-weight: normal !important;
 } 
