@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { getOrganizationsApi } from '@/utils/api'
 import { Organization } from '@/types/index'
-import { getSession } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { AppSession } from '@/types/AppSession'
 import { usePathname } from 'next/navigation'
 
@@ -32,6 +32,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const pathname = usePathname()
+  const { data: session, status } = useSession()
 
   // Extract organization ID from pathname if we're on an organization-specific settings page
   const getOrganizationIdFromPath = useCallback(() => {
@@ -41,20 +42,22 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   useEffect(() => {
     const fetchOrganizations = async () => {
+      if (status === 'loading') return;
+      
       try {
-        const session = await getSession() as AppSession | null;
-        if (!session?.user?.id) {
+        const appSession = session as AppSession | null;
+        if (!appSession?.user?.id) {
           console.warn('No user ID found in session');
           setIsLoading(false);
           return;
         }
 
         // Fetch all organizations the user is a member of
-        const response = await getOrganizationsApi({ userId: session.user.id });
+        const response = await getOrganizationsApi({ userId: appSession.user.id });
 
         // Filtering logic based on page and user role
         let filtered: Organization[] = response.organizations;
-        const isSysAdmin = session.user.role === 'admin';
+        const isSysAdmin = appSession.user.role === 'admin';
 
         // If on settings/organizations page or a specific org settings page
         const isSettingsPage = pathname.startsWith('/settings/organizations');
@@ -63,7 +66,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             filtered = response.organizations;
           } else {
             filtered = response.organizations.filter(org =>
-              org.members.some(m => m.user_id === session.user.id && m.role === 'admin')
+              org.members.some(m => m.user_id === appSession.user.id && m.role === 'admin')
             );
           }
         }
@@ -77,7 +80,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     fetchOrganizations();
-  }, [pathname]);
+  }, [pathname, session, status]);
 
   useEffect(() => {
     const initializeCurrentOrganization = () => {
@@ -133,17 +136,17 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const refreshOrganizations = useCallback(async () => {
     try {
-      const session = await getSession() as AppSession | null;
-      if (!session?.user?.id) {
+      const appSession = session as AppSession | null;
+      if (!appSession?.user?.id) {
         console.warn('No user ID found in session');
         return;
       }
 
-      const response = await getOrganizationsApi({ userId: session.user.id });
+      const response = await getOrganizationsApi({ userId: appSession.user.id });
       
       // Re-apply filtering logic
       let filtered: Organization[] = response.organizations;
-      const isSysAdmin = session.user.role === 'admin';
+      const isSysAdmin = appSession.user.role === 'admin';
       const isSettingsPage = pathname.startsWith('/settings/organizations');
       
       if (isSettingsPage) {
@@ -151,7 +154,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           filtered = response.organizations;
         } else {
           filtered = response.organizations.filter(org =>
-            org.members.some(m => m.user_id === session.user.id && m.role === 'admin')
+            org.members.some(m => m.user_id === appSession.user.id && m.role === 'admin')
           );
         }
       }
@@ -166,7 +169,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch (error) {
       console.error('Failed to refresh organizations:', error);
     }
-  }, [pathname, currentOrganization])
+  }, [pathname, currentOrganization, session])
 
   return (
     <OrganizationContext.Provider value={{

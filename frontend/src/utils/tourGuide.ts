@@ -1,8 +1,8 @@
-import { getSession } from 'next-auth/react';
-import { updateUserApi, getUserApi } from './api';
+import { getCachedSession, updateUserApi, getUserApi } from './api';
+import { AppSession } from '@/types/AppSession';
 
 export const getTourKey = async (): Promise<string> => {
-  const session = await getSession();
+  const session = await getCachedSession() as AppSession | null;
   if (!session?.user?.email) return '';
   
   return `hasSeenTour-${session.user.email}`;
@@ -16,7 +16,7 @@ export const hasSeenTour = async (): Promise<boolean> => {
     return key === 'true';
   }
   // If not, check the backend
-  const session = await getSession();
+  const session = await getCachedSession() as AppSession | null;
   if (session?.user?.id) {
     const user = await getUserApi(session.user.id);
     return user.hasSeenTour;
@@ -25,7 +25,7 @@ export const hasSeenTour = async (): Promise<boolean> => {
 };
 
 export const setHasSeenTour = async (hasSeenTour: boolean): Promise<void> => {
-  const session = await getSession();
+  const session = await getCachedSession() as AppSession | null;
   const tourKey = await getTourKey();
   
   // Save to localStorage

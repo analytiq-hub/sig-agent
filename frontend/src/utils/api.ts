@@ -1,6 +1,27 @@
 import axios, { isAxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/types/AppSession';
+
+// Session cache to avoid repeated calls
+let sessionCache: { session: AppSession | null; timestamp: number } | null = null;
+const SESSION_CACHE_DURATION = 30000; // 30 seconds
+
+export async function getCachedSession(): Promise<AppSession | null> {
+  const now = Date.now();
+  
+  if (sessionCache && (now - sessionCache.timestamp) < SESSION_CACHE_DURATION) {
+    return sessionCache.session;
+  }
+  
+  const session = await getSession() as AppSession | null;
+  sessionCache = { session, timestamp: now };
+  return session;
+}
+
+// Function to invalidate session cache
+export function invalidateSessionCache(): void {
+  sessionCache = null;
+}
 import { 
   UploadDocumentsParams,
   UploadDocumentsResponse,
@@ -120,7 +141,7 @@ const api = axios.create({
 
 // Add authorization header to all requests
 api.interceptors.request.use(async (config) => {
-  const session = await getSession() as AppSession | null;
+  const session = await getCachedSession();
   if (session?.apiAccessToken) {
     config.headers.Authorization = `Bearer ${session.apiAccessToken}`;
   } else {
@@ -178,7 +199,9 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const session = await getSession() as AppSession;
+        // Invalidate cache and get fresh session on 401
+        invalidateSessionCache();
+        const session = await getCachedSession();
         if (session?.apiAccessToken) {
           originalRequest.headers.Authorization = `Bearer ${session.apiAccessToken}`;
           processQueue();
