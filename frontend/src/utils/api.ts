@@ -6,7 +6,23 @@ import { AppSession } from '@/types/AppSession';
 let sessionCache: { session: AppSession | null; timestamp: number } | null = null;
 const SESSION_CACHE_DURATION = 30000; // 30 seconds
 
+// Global session reference for context-based access
+let globalSession: AppSession | null = null;
+
+export function setGlobalSession(session: AppSession | null): void {
+  globalSession = session;
+}
+
+export function getGlobalSession(): AppSession | null {
+  return globalSession;
+}
+
 export async function getCachedSession(): Promise<AppSession | null> {
+  // First try to use global session from context
+  if (globalSession) {
+    return globalSession;
+  }
+  
   const now = Date.now();
   
   if (sessionCache && (now - sessionCache.timestamp) < SESSION_CACHE_DURATION) {
@@ -21,6 +37,7 @@ export async function getCachedSession(): Promise<AppSession | null> {
 // Function to invalidate session cache
 export function invalidateSessionCache(): void {
   sessionCache = null;
+  globalSession = null;
 }
 import { 
   UploadDocumentsParams,
@@ -141,7 +158,14 @@ const api = axios.create({
 
 // Add authorization header to all requests
 api.interceptors.request.use(async (config) => {
-  const session = await getCachedSession();
+  // First try to use global session (pre-fetched from context)
+  let session = getGlobalSession();
+  
+  // Fallback to cached session if global session is not available
+  if (!session) {
+    session = await getCachedSession();
+  }
+  
   if (session?.apiAccessToken) {
     config.headers.Authorization = `Bearer ${session.apiAccessToken}`;
   } else {
