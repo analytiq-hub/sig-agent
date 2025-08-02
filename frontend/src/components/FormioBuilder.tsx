@@ -19,7 +19,6 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
   const isInitializing = useRef(false);
   const lastJsonFormio = useRef<string>('');
   const isUpdatingFromProps = useRef(false);
-  const changeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Keep the onChange ref updated
   useEffect(() => {
@@ -35,22 +34,8 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
     // Normalize jsonFormio for comparison (handle undefined/null)
     const currentJsonFormio = jsonFormio || '';
     
-    // Only recreate if jsonFormio actually changed significantly
-    // This prevents recreation during tab switches and minor UI changes
+    // Only recreate if jsonFormio actually changed
     if (currentJsonFormio === lastJsonFormio.current) return;
-    
-    // Also check if it's just a formatting difference (same components, different whitespace)
-    try {
-      const currentParsed = currentJsonFormio ? JSON.parse(currentJsonFormio) : [];
-      const lastParsed = lastJsonFormio.current ? JSON.parse(lastJsonFormio.current) : [];
-      
-      if (JSON.stringify(currentParsed) === JSON.stringify(lastParsed)) {
-        return; // Same components, don't recreate
-      }
-    } catch (e) {
-      // If parsing fails, continue with normal flow
-      console.error('Error parsing jsonFormio:', e);
-    }
     
     lastJsonFormio.current = currentJsonFormio;
 
@@ -89,18 +74,7 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
         
         // Only call onChange if the components actually changed from what we have
         if (currentComponents !== lastJsonFormio.current) {
-          // Clear any existing timeout
-          if (changeTimeoutRef.current) {
-            clearTimeout(changeTimeoutRef.current);
-          }
-          
-          // Debounce the onChange call to prevent rapid rebuilds during UI interactions
-          changeTimeoutRef.current = setTimeout(() => {
-            if (onChangeRef.current && currentComponents !== lastJsonFormio.current) {
-              lastJsonFormio.current = currentComponents;
-              onChangeRef.current(currentForm.components);
-            }
-          }, 300); // Longer delay to allow tab switching to complete
+          onChangeRef.current(currentForm.components);
         }
       }
     };
@@ -118,10 +92,6 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
 
     // Cleanup on unmount
     return () => {
-      if (changeTimeoutRef.current) {
-        clearTimeout(changeTimeoutRef.current);
-        changeTimeoutRef.current = null;
-      }
       if (builderInstance.current) {
         builderInstance.current.destroy();
         builderInstance.current = null;
