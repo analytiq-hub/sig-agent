@@ -1,22 +1,20 @@
-import { getCachedSession, updateUserApi, getUserApi } from './api';
+import { updateUserApi, getUserApi } from './api';
 import { AppSession } from '@/types/AppSession';
 
-export const getTourKey = async (): Promise<string> => {
-  const session = await getCachedSession() as AppSession | null;
+export const getTourKey = async (session: AppSession | null): Promise<string> => {
   if (!session?.user?.email) return '';
   
   return `hasSeenTour-${session.user.email}`;
 };
 
-export const hasSeenTour = async (): Promise<boolean> => {
-  const tourKey = await getTourKey();
+export const hasSeenTour = async (session: AppSession | null): Promise<boolean> => {
+  const tourKey = await getTourKey(session);
   // Is there a local storage item for this user?
   const key = localStorage.getItem(tourKey);
   if (key) {
     return key === 'true';
   }
   // If not, check the backend
-  const session = await getCachedSession() as AppSession | null;
   if (session?.user?.id) {
     const user = await getUserApi(session.user.id);
     return user.hasSeenTour;
@@ -24,9 +22,8 @@ export const hasSeenTour = async (): Promise<boolean> => {
   return false;
 };
 
-export const setHasSeenTour = async (hasSeenTour: boolean): Promise<void> => {
-  const session = await getCachedSession() as AppSession | null;
-  const tourKey = await getTourKey();
+export const setHasSeenTour = async (hasSeenTour: boolean, session: AppSession | null): Promise<void> => {
+  const tourKey = await getTourKey(session);
   
   // Save to localStorage
   localStorage.setItem(tourKey, hasSeenTour.toString());

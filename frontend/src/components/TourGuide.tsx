@@ -100,7 +100,7 @@ const TourGuide = () => {
     const checkTourStatus = async () => {
       if (session) {
         // Use a more specific key that includes the user's email to ensure it's per-user
-        const tour = await hasSeenTour();
+        const tour = await hasSeenTour(session);
         //console.log("TourGuide: Checking if user has seen tour", { hasSeenTour: tour });
         
         if (!tour) {
@@ -141,8 +141,10 @@ const TourGuide = () => {
   const startTour = useCallback(() => {
     setCurrentStep(0); // Reset to first step
     setShowTour(true);
-    setHasSeenTour(false);
-  }, []);
+    if (session) {
+      setHasSeenTour(false, session);
+    }
+  }, [session]);
 
   // Memoize the functions with useCallback
   const endTour = useCallback(() => {
@@ -152,8 +154,10 @@ const TourGuide = () => {
   // Memoize the functions with useCallback
   const skipTour = useCallback(() => {
     setShowTour(false);
-    setHasSeenTour(true);
-  }, []);
+    if (session) {
+      setHasSeenTour(true, session);
+    }
+  }, [session]);
 
   // Now the useEffect hooks can safely reference these functions
   useEffect(() => {
