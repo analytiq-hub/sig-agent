@@ -4,6 +4,7 @@ import SessionProvider from "@/components/SessionProvider"
 import Layout from '@/components/Layout';
 import ThemeRegistry from '@/components/ThemeRegistry';
 import { OrganizationProvider } from '@/contexts/OrganizationContext';
+import { AppSessionProvider } from '@/contexts/AppSessionContext';
 import { getAppServerSession } from '@/utils/session';
 import { Toaster } from 'react-hot-toast';
 import { ToastContainer } from 'react-toastify';
@@ -28,11 +29,13 @@ export default async function RootLayout({
       <body>
         <ThemeRegistry>
           <SessionProvider session={appSession}>
-            <OrganizationProvider>
-              <FormioProvider>
-                <Layout>{children}</Layout>
-              </FormioProvider>
-            </OrganizationProvider>
+            <AppSessionProvider>
+              <OrganizationProvider>
+                <FormioProvider>
+                  <Layout>{children}</Layout>
+                </FormioProvider>
+              </OrganizationProvider>
+            </AppSessionProvider>
           </SessionProvider>
         </ThemeRegistry>
         <ToastContainer position="top-right" />

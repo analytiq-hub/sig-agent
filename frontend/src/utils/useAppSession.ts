@@ -1,11 +1,7 @@
 'use client'
-import { useSession } from 'next-auth/react';
-import { AppSession } from '@/types/AppSession';
+// This file is deprecated. Use `useAppSession` from '@/contexts/AppSessionContext' instead
+import { useAppSession as useAppSessionContext } from '@/contexts/AppSessionContext';
 
 export function useAppSession() {
-  const { data: session, status } = useSession();
-  return {
-    session: session as AppSession | null,
-    status
-  };
+  return useAppSessionContext();
 } 

@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { Settings as SettingsIcon, ExitToApp as SignoutIcon, Help as HelpIcon, Info as InfoIcon, Feedback as FeedbackIcon, Payment as PaymentIcon } from '@mui/icons-material';
-import { signOut, useSession } from 'next-auth/react';
+import { signOut } from 'next-auth/react';
+import { useAppSession } from '@/contexts/AppSessionContext';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -24,7 +25,7 @@ interface UserMenuProps {
 
 const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { data: session } = useSession();
+  const { session } = useAppSession();
   const { currentOrganization } = useOrganization();
 
   const handleLogout = () => {

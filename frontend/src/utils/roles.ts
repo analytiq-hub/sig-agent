@@ -1,9 +1,9 @@
-import { useSession } from "next-auth/react";
+import { useAppSession } from '@/contexts/AppSessionContext';
 import { Organization } from "@/types/organizations";
 import { Session } from "next-auth";
 
 export function useRole() {
-  const { data: session } = useSession();
+  const { session } = useAppSession();
   
   return {
     role: session?.user?.role,

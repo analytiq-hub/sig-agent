@@ -1,12 +1,13 @@
 "use client"
 
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
+import { useAppSession } from '@/contexts/AppSessionContext';
 import { Typography, Button, Box } from '@mui/material';
 import { ExitToApp as LogoutIcon } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 
 function AuthButton() {
-  const { data: session } = useSession();
+  const { session } = useAppSession();
   const router = useRouter();
 
   const handleLogin = () => {

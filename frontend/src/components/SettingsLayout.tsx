@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { useAppSession } from '@/contexts/AppSessionContext';
 import { 
   Person as UserIcon,
   Business as OrganizationsIcon,
@@ -25,7 +25,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({
   selectedMenu = 'user_developer',
   children
 }) => {
-  const { data: session } = useSession();
+  const { session } = useAppSession();
   const isAdmin = session?.user?.role === 'admin';
 
   const menuItems: Array<{

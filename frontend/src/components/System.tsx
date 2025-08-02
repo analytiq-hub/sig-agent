@@ -1,6 +1,6 @@
-import { useSession } from 'next-auth/react';
+import { useAppSession } from '@/contexts/AppSessionContext';
 const System: React.FC = () => {
-  const { data: session } = useSession();
+  const { session } = useAppSession();
   console.log('Session:', session);
   console.log('Session user:', session?.user);
   console.log('Session role:', session?.user?.role); // Should be properly typed

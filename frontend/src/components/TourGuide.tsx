@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAppSession } from '@/contexts/AppSessionContext';
 import { useRouter } from 'next/navigation';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { setHasSeenTour, hasSeenTour } from '@/utils/tourGuide';
@@ -27,7 +27,7 @@ const TourGuide = () => {
   const [showTour, setShowTour] = useState<boolean>(false);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [tooltipReady, setTooltipReady] = useState<boolean>(false);
-  const { data: session } = useSession();
+  const { session } = useAppSession();
   const router = useRouter();
   const { currentOrganization } = useOrganization();
 

@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { getOrganizationsApi } from '@/utils/api'
 import { Organization } from '@/types/index'
-import { useSession } from 'next-auth/react'
+import { useAppSession } from '@/contexts/AppSessionContext'
 import { AppSession } from '@/types/AppSession'
 import { usePathname } from 'next/navigation'
 
@@ -32,7 +32,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const pathname = usePathname()
-  const { data: session, status } = useSession()
+  const { session, status } = useAppSession()
 
   // Extract organization ID from pathname if we're on an organization-specific settings page
   const getOrganizationIdFromPath = useCallback(() => {

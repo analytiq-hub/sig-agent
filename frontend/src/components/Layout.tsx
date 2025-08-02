@@ -3,7 +3,7 @@
 import { useState, ReactNode, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useAppSession } from '@/contexts/AppSessionContext';
 import AuthButton from '@/components/AuthButton';
 import UserMenu from '@/components/UserMenu';
 import PDFViewerControls from '@/components/PDFViewerControls';
@@ -60,7 +60,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [open, setOpen] = useState(true);
   const [isClient, setIsClient] = useState(false);
   
-  const { data: session, status } = useSession();
+  const { session, status } = useAppSession();
   const router = useRouter();
   const pathname = usePathname();
   const isPDFViewer = pathname.includes('/docs/');

@@ -4,7 +4,7 @@ import { Fragment, useEffect } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useSession } from 'next-auth/react';
+import { useAppSession } from '@/contexts/AppSessionContext';
 import { useRouter, usePathname } from 'next/navigation';
 
 const typeLabels = {
@@ -17,7 +17,7 @@ export default function OrganizationSwitcher() {
   const router = useRouter();
   const pathname = usePathname();
   const { currentOrganization, switchOrganization, organizations, isLoading, refreshOrganizations } = useOrganization();
-  const { data: session, status } = useSession();
+  const { session, status } = useAppSession();
 
   const handleOrganizationSwitch = (organizationId: string) => {
     switchOrganization(organizationId);
