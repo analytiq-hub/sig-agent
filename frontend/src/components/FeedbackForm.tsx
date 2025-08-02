@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAppSession } from '@/contexts/AppSessionContext';
 import { Feedback as FeedbackIcon, AdminPanelSettings as AdminIcon } from '@mui/icons-material';
 import Link from 'next/link';
 
@@ -11,7 +11,7 @@ interface FeedbackFormProps {
 }
 
 const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, isModal = false }) => {
-  const { data: session } = useSession();
+  const { session } = useAppSession();
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');

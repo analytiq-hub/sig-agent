@@ -11,7 +11,7 @@ import colors from 'tailwindcss/colors';
 import { isAxiosError } from 'axios';
 import { useRouter } from 'next/navigation'
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useSession } from "next-auth/react";
+import { useAppSession } from '@/contexts/AppSessionContext';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -137,7 +137,7 @@ const OrganizationManager: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { data: session } = useSession();
+  const { session } = useAppSession();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
 

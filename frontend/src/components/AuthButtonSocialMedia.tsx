@@ -1,12 +1,13 @@
 "use client"
 
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
+import { useAppSession } from '@/contexts/AppSessionContext';
 import { Typography, Box, Button } from '@mui/material';
 import { ExitToApp as LogoutIcon, Login as LoginIcon } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 
 function AuthButtonSocialMediaOnly() {
-  const { data: session } = useSession();
+  const { session } = useAppSession();
   const router = useRouter();
 
   const buttonStyle = {

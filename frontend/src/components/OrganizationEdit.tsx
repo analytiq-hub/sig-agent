@@ -13,7 +13,7 @@ import {
 } from '@mui/x-data-grid'
 import { Switch, IconButton } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
-import { useSession } from 'next-auth/react'
+import { useAppSession } from '@/contexts/AppSessionContext'
 import UserAddToOrgModal from './UserAddToOrgModal'
 import { toast } from 'react-toastify'
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -50,7 +50,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [originalName, setOriginalName] = useState('')
   const [originalType, setOriginalType] = useState<OrganizationType>('individual')
   const [originalMembers, setOriginalMembers] = useState<OrganizationMember[]>([])
-  const { data: session } = useSession();
+  const { session } = useAppSession();
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedMember, setSelectedMember] = useState<{ id: string, isAdmin: boolean } | null>(null);

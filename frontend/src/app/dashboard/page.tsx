@@ -2,14 +2,14 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useAppSession } from '@/contexts/AppSessionContext';
 import { getOrganizationsApi } from '@/utils/api';
 import { AppSession } from '@/types/AppSession';
 import { toast } from 'react-toastify';
 
 export default function DashboardRedirect() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { session, status } = useAppSession();
 
   useEffect(() => {
     const redirectToDashboard = async () => {

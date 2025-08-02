@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { acceptInvitationApi, getInvitationApi } from '@/utils/api';
 import { toast } from 'react-toastify';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
+import { useAppSession } from '@/contexts/AppSessionContext';
 
 interface Invitation {
   email: string;
@@ -41,7 +42,7 @@ const handleExistingUserAccept = async (
 
 const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) => {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { session } = useAppSession();
   
   const [formData, setFormData] = useState({
     name: '',

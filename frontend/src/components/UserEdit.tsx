@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUserApi, updateUserApi, deleteUserApi, sendVerificationEmailApi } from '@/utils/api';
 import { UserResponse, UserUpdate } from '@/types/index';
-import { useSession, signOut } from 'next-auth/react';
+import { signOut } from 'next-auth/react';
+import { useAppSession } from '@/contexts/AppSessionContext';
 import { toast } from 'react-toastify';
 
 interface UserEditProps {
@@ -136,7 +137,7 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ isOpen, onClose, onCo
 
 const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { session } = useAppSession();
   const [user, setUser] = useState<UserResponse | null>(null);
   const [name, setName] = useState('');
   const [role, setRole] = useState<string>('user');
