@@ -57,6 +57,41 @@ def extract_org_id_from_path(path: str) -> Optional[str]:
         return parts[3]
     return None
 
+async def get_session_user(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """
+    Get the current user from JWT session token only (no API tokens allowed).
+    Used for endpoints that should only be accessible via browser sessions.
+    """
+    db = ad.common.get_async_db()
+    token = credentials.credentials
+    
+    try:
+        # Only validate as JWT (no API token fallback)
+        payload = jwt.decode(token, FASTAPI_SECRET, algorithms=[ALGORITHM])
+        userId: str = payload.get("userId")
+        userName: str = payload.get("userName")
+        email: str = payload.get("email")
+        
+        if userName is None:
+            raise HTTPException(status_code=401, detail="Invalid authentication credentials: missing userName")
+        
+        # Validate that userId exists in database
+        user = await db.users.find_one({"_id": ObjectId(userId)})
+        if not user:
+            raise HTTPException(status_code=401, detail=f"User id '{userId}' not found in database")
+        
+        return User(
+            user_id=userId,
+            user_name=userName,
+            token_type="jwt"
+        )
+                   
+    except JWTError:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid session token. Only browser sessions are allowed for this endpoint."
+        )
+
 # Modify get_current_user to validate based on context
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security), request: Request = None):
     """
@@ -71,27 +106,10 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
     context_type, org_id = get_api_context(request.url.path)
     
     try:
-        # First, try to validate as JWT (always valid for both contexts)
-        payload = jwt.decode(token, FASTAPI_SECRET, algorithms=[ALGORITHM])
-        userId: str = payload.get("userId")
-        userName: str = payload.get("userName")
-        email: str = payload.get("email")
-        
-        if userName is None:
-            raise HTTPException(status_code=401, detail="Invalid authentication credentials: missing userName")
-        
-        # Validate that userId exists in database
-        user = await db.users.find_one({"_id": ObjectId(userId)})
-        if not user:
-            raise HTTPException(status_code=401, detail=f"User id '{userId}' not found in database")
-
-        return User(
-            user_id=userId,
-            user_name=userName,
-            token_type="jwt"
-        )
+        # First, try to validate as JWT using the session user function
+        return await get_session_user(credentials)
                    
-    except JWTError:
+    except HTTPException:
         # If JWT validation fails, check if it's an API token
         encrypted_token = ad.crypto.encrypt_token(token)
         

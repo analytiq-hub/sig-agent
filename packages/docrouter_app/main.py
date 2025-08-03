@@ -42,12 +42,15 @@ from bcrypt import hashpw, gensalt
 from dotenv import load_dotenv
 from jsonschema import validate, ValidationError, Draft7Validator
 from fastapi.encoders import jsonable_encoder
+import httpx
+from urllib.parse import urlparse
 
 # Local imports
 from docrouter_app import email_utils, startup, organizations, users, limits
 from docrouter_app.auth import (
     get_current_user,
     get_admin_user,
+    get_session_user,
     get_org_user,
     get_admin_or_org_user,
     is_system_admin,
@@ -3873,3 +3876,77 @@ async def get_form_id_and_version(form_id: Optional[str] = None) -> tuple[str, i
         )
         form_version = result["form_version"]
     return form_id, form_version
+
+# --- Proxy Endpoint ---
+@app.api_route("/v0/proxy", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"], tags=["proxy"])
+async def proxy_request(
+    request: Request,
+    url: str = Query(..., description="Target URL to proxy the request to"),
+    current_user: User = Depends(get_session_user)
+):
+    """
+    Proxy HTTP requests to external APIs to avoid CORS issues.
+    Requires authentication and only allows specific domains for security.
+    """
+    # Parse the target URL
+    parsed_url = urlparse(url)
+    
+    # Security: Allow only specific domains to prevent SSRF attacks
+    allowed_domains = {
+        "query1.finance.yahoo.com",
+        "query2.finance.yahoo.com",
+        "api.yahoo.com",
+        # Add other trusted domains as needed
+    }
+    
+    if parsed_url.netloc not in allowed_domains:
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Domain {parsed_url.netloc} is not allowed for proxying"
+        )
+    
+    # Get request body if present
+    body = None
+    if request.method in ["POST", "PUT", "PATCH"]:
+        body = await request.body()
+    
+    # Prepare headers (exclude some that should not be forwarded)
+    headers_to_exclude = {
+        "host", "authorization", "content-length", 
+        "transfer-encoding", "connection"
+    }
+    headers = {
+        key: value for key, value in request.headers.items()
+        if key.lower() not in headers_to_exclude
+    }
+    
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.request(
+                method=request.method,
+                url=url,
+                headers=headers,
+                content=body,
+                params=dict(request.query_params) if request.query_params else None
+            )
+            
+            # Prepare response headers (exclude some that should not be forwarded)
+            response_headers = {
+                key: value for key, value in response.headers.items()
+                if key.lower() not in {"transfer-encoding", "connection", "content-encoding"}
+            }
+            
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=response_headers,
+                media_type=response.headers.get("content-type")
+            )
+            
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Request timeout")
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"Request failed: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Proxy error: {str(e)}")

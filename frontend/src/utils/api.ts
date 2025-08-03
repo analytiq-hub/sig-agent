@@ -904,3 +904,35 @@ export const createCheckoutSessionApi = async (orgId: string, planId: string): P
   const response = await api.post<PortalSessionResponse>(`/v0/payments/${orgId}/checkout-session`, { plan_id: planId });
   return response.data;
 };
+
+// Proxy API
+export const proxyRequestApi = async (targetUrl: string, options?: {
+  method?: string;
+  body?: any;
+  headers?: Record<string, string>;
+}) => {
+  const method = options?.method || 'GET';
+  const config: any = {
+    method: method.toLowerCase(),
+    params: { url: targetUrl }
+  };
+
+  // If there's a body, add it to the request
+  if (options?.body && ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase())) {
+    config.data = options.body;
+  }
+
+  // Add any additional headers
+  if (options?.headers) {
+    config.headers = { ...config.headers, ...options.headers };
+  }
+
+  const response = await api.request(config.method, '/v0/proxy', config);
+  return response.data;
+};
+
+// Helper function to get session token for direct fetch calls (for FormIO)
+export const getSessionToken = async (): Promise<string | null> => {
+  const session = await getCachedSession();
+  return session?.apiAccessToken || null;
+};
