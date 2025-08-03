@@ -215,6 +215,23 @@
   width: calc(1rem * var(--formio-scale)) !important;
   height: calc(1rem * var(--formio-scale)) !important;
   margin-right: calc(0.5rem * var(--formio-scale)) !important;
+  margin-left: calc(0.5rem * var(--formio-scale)) !important;
+  margin-bottom: calc(0.25rem * var(--formio-scale)) !important;
+  border-radius: 50% !important;
+  min-width: calc(1rem * var(--formio-scale)) !important;
+  min-height: calc(1rem * var(--formio-scale)) !important;
+  max-width: calc(1rem * var(--formio-scale)) !important;
+  max-height: calc(1rem * var(--formio-scale)) !important;
+  padding: 0 !important;
+}
+
+.formio-form input[type="radio"]:hover {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+}
+
+.formio-form input[type="radio"]:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
 }
 
 .formio-form .radio label,
