@@ -559,4 +559,10 @@ i[data-tooltip]:before,
   color: #374151 !important;
   font-weight: 900 !important;
   opacity: 1 !important;
-} 
+}
+
+/* Form.io component edit Help button positioning - scoped to FormIO dialogs */
+.formio-dialog .component-edit-container .col-span-6.flex.justify-end.items-center.pr-15 .reset-link {
+  padding-top: 1rem !important;
+  padding-right: 1.5rem !important;
+}
