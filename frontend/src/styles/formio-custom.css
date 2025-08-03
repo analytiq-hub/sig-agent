@@ -550,4 +550,13 @@ i[data-tooltip]:before,
   content: "?" !important;
   font-style: normal !important;
   font-weight: normal !important;
+}
+
+/* FormIO modal close button styling - override red hover effect */
+.formio-dialog .formio-dialog-close.btn:hover,
+.formio-dialog.formio-dialog-theme-default .formio-dialog-close.btn:hover {
+  background-color: transparent !important;
+  color: #374151 !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
 } 
