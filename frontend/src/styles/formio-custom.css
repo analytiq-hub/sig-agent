@@ -203,6 +203,20 @@
   width: calc(1rem * var(--formio-scale)) !important;
   height: calc(1rem * var(--formio-scale)) !important;
   margin-top: calc(0.125rem * var(--formio-scale)) !important;
+  min-width: calc(1rem * var(--formio-scale)) !important;
+  min-height: calc(1rem * var(--formio-scale)) !important;
+  max-width: calc(1rem * var(--formio-scale)) !important;
+  max-height: calc(1rem * var(--formio-scale)) !important;
+  padding: 0 !important;
+}
+
+.formio-form .form-check-input:hover {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+}
+
+.formio-form .form-check-input:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
 }
 
 .formio-form .form-check-label {
