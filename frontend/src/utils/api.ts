@@ -908,11 +908,16 @@ export const createCheckoutSessionApi = async (orgId: string, planId: string): P
 // Proxy API
 export const proxyRequestApi = async (targetUrl: string, options?: {
   method?: string;
-  body?: any;
+  body?: unknown;
   headers?: Record<string, string>;
 }) => {
   const method = options?.method || 'GET';
-  const config: any = {
+  const config: {
+    method: string;
+    params: { url: string };
+    data?: unknown;
+    headers?: Record<string, string>;
+  } = {
     method: method.toLowerCase(),
     params: { url: targetUrl }
   };
@@ -927,7 +932,13 @@ export const proxyRequestApi = async (targetUrl: string, options?: {
     config.headers = { ...config.headers, ...options.headers };
   }
 
-  const response = await api.request(config.method, '/v0/proxy', config);
+  const response = await api.request({
+    method: config.method,
+    url: '/v0/proxy',
+    params: config.params,
+    data: config.data,
+    headers: config.headers
+  });
   return response.data;
 };
 
