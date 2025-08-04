@@ -255,10 +255,71 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
     return fields;
   }, []);
 
-  // Update form fields when components change
+  // Update form fields when components change and clean up orphaned mappings
   useEffect(() => {
-    setFormFields(parseFormFields(formComponents as FormComponent[]));
-  }, [formComponents, parseFormFields]);
+    const newFormFields = parseFormFields(formComponents as FormComponent[]);
+    const oldFormFields = formFields; // Previous form fields
+    setFormFields(newFormFields);
+    
+    // Only process mapping cleanup if we have existing mappings and previous fields
+    if (Object.keys(fieldMappings).length === 0 || oldFormFields.length === 0) {
+      return;
+    }
+    
+    // Clean up orphaned mappings when form fields are removed or renamed
+    const currentFormFieldKeys = new Set(newFormFields.map(field => field.key));
+    const mappedFieldKeys = Object.keys(fieldMappings);
+    const orphanedMappings = mappedFieldKeys.filter(key => !currentFormFieldKeys.has(key));
+    
+    if (orphanedMappings.length > 0) {
+      console.log('Found orphaned mappings for removed/renamed fields:', orphanedMappings);
+      
+      // Try to detect renamed fields
+      const renamedFields = detectRenamedFields(oldFormFields, newFormFields, orphanedMappings);
+      
+      let cleanedMappings = { ...fieldMappings };
+      let removedCount = 0;
+      let renamedCount = 0;
+      
+      orphanedMappings.forEach(oldKey => {
+        const newKey = renamedFields.get(oldKey);
+        
+        if (newKey) {
+          // Field was renamed - migrate the mapping
+          cleanedMappings[newKey] = cleanedMappings[oldKey];
+          delete cleanedMappings[oldKey];
+          renamedCount++;
+          console.log(`Migrated mapping from '${oldKey}' to '${newKey}'`);
+        } else {
+          // Field was deleted - remove the mapping
+          delete cleanedMappings[oldKey];
+          removedCount++;
+          console.log(`Removed mapping for deleted field '${oldKey}'`);
+        }
+      });
+      
+      // Update the mappings
+      onMappingChange(cleanedMappings);
+      
+      // Notify user about the changes
+      let message = '';
+      if (renamedCount > 0 && removedCount > 0) {
+        message = `Updated ${renamedCount} renamed field mapping(s) and removed ${removedCount} deleted field mapping(s)`;
+      } else if (renamedCount > 0) {
+        message = renamedCount === 1 
+          ? 'Updated mapping for renamed field' 
+          : `Updated mappings for ${renamedCount} renamed fields`;
+      } else if (removedCount > 0) {
+        message = removedCount === 1 
+          ? 'Removed mapping for deleted field' 
+          : `Removed mappings for ${removedCount} deleted fields`;
+      }
+      
+      if (message) {
+        toast.info(message);
+      }
+    }
+  }, [formComponents, parseFormFields, fieldMappings, onMappingChange, formFields]);
 
   // Load data when tags change
   useEffect(() => {
@@ -411,6 +472,36 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
     };
 
     return typeMapping[schemaType]?.includes(formType) || false;
+  };
+
+  // Detect potentially renamed fields by comparing labels and types
+  const detectRenamedFields = (oldFields: FormField[], newFields: FormField[], orphanedMappings: string[]): Map<string, string> => {
+    const renamedFields = new Map<string, string>(); // Maps old key to new key
+    
+    // Only consider orphaned mappings that might be renamed fields
+    const orphanedFields = oldFields.filter(field => orphanedMappings.includes(field.key));
+    
+    orphanedFields.forEach(orphanedField => {
+      // Look for new fields with similar labels or types that weren't previously mapped
+      const candidates = newFields.filter(newField => 
+        !Object.keys(fieldMappings).includes(newField.key) && // Not already mapped
+        (
+          // Same label (exact match)
+          newField.label === orphanedField.label ||
+          // Same type and similar label (fuzzy match)
+          (newField.type === orphanedField.type && 
+           newField.label.toLowerCase().includes(orphanedField.label.toLowerCase()) ||
+           orphanedField.label.toLowerCase().includes(newField.label.toLowerCase()))
+        )
+      );
+      
+      // If we found exactly one candidate, it's likely a rename
+      if (candidates.length === 1) {
+        renamedFields.set(orphanedField.key, candidates[0].key);
+      }
+    });
+    
+    return renamedFields;
   };
 
   // Check if field should be visible based on parent expansion state
