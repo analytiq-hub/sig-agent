@@ -237,12 +237,23 @@ class FormResponseFormat(BaseModel):
         default=None,
         description="Form.io schema definition"
     )
+    json_formio_mapping: Optional[Dict[str, dict]] = Field(
+        default=None,
+        description="Field mappings from schema fields to form fields"
+    )
 
     @field_validator('json_formio')
     def validate_json_formio(cls, v):
         if v is not None:
             if not isinstance(v, list):
                 raise ValueError("json_formio must be a list")
+        return v
+    
+    @field_validator('json_formio_mapping')
+    def validate_json_formio_mapping(cls, v):
+        if v is not None:
+            if not isinstance(v, dict):
+                raise ValueError("json_formio_mapping must be a dictionary")
         return v
 
 class FormConfig(BaseModel):

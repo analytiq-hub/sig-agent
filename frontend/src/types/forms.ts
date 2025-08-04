@@ -1,5 +1,6 @@
 export interface FormResponseFormat {
   json_formio?: object | null; // Just use any for the free-form dict
+  json_formio_mapping?: Record<string, FieldMapping>; // Field mappings from schema to form fields
 }
 
 export interface Form {
@@ -31,7 +32,6 @@ export interface FormConfig {
   name: string;
   response_format: FormResponseFormat;
   tag_ids?: string[]; // Add tag_ids support
-  field_mappings?: Record<string, FieldMapping>; // Add field mappings support
 }
 
 export interface CreateFormParams extends FormConfig {

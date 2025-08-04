@@ -696,3 +696,167 @@ async def test_form_name_only_update(test_db, mock_auth):
         pass  # mock_auth fixture handles cleanup
     
     logger.info(f"test_form_name_only_update() end")
+
+@pytest.mark.asyncio
+async def test_form_with_mapping(test_db, mock_auth):
+    """Test form creation and retrieval with json_formio_mapping field"""
+    logger.info(f"test_form_with_mapping() start")
+    
+    try:
+        # Step 1: Create a form with field mappings
+        form_data = {
+            "name": "Test Mapped Form",
+            "response_format": {
+                "json_formio": [
+                    {
+                        "type": "textfield",
+                        "key": "full_name",
+                        "label": "Full Name",
+                        "input": True,
+                        "validate": {
+                            "required": True
+                        }
+                    },
+                    {
+                        "type": "textfield",
+                        "key": "address",
+                        "label": "Address",
+                        "input": True,
+                        "validate": {
+                            "required": False
+                        }
+                    }
+                ],
+                "json_formio_mapping": {
+                    "full_name": {
+                        "sources": [
+                            {
+                                "promptId": "prompt123",
+                                "promptName": "Test Prompt",
+                                "schemaFieldPath": "clearance_search_fields.insured_name.first_name",
+                                "schemaFieldName": "first_name",
+                                "schemaFieldType": "string"
+                            },
+                            {
+                                "promptId": "prompt123",
+                                "promptName": "Test Prompt",
+                                "schemaFieldPath": "clearance_search_fields.insured_name.last_name",
+                                "schemaFieldName": "last_name",
+                                "schemaFieldType": "string"
+                            }
+                        ],
+                        "mappingType": "concatenated",
+                        "concatenationSeparator": " "
+                    },
+                    "address": {
+                        "sources": [
+                            {
+                                "promptId": "prompt123",
+                                "promptName": "Test Prompt",
+                                "schemaFieldPath": "clearance_search_fields.mailing_address.street_address",
+                                "schemaFieldName": "street_address",
+                                "schemaFieldType": "string"
+                            }
+                        ],
+                        "mappingType": "direct"
+                    }
+                }
+            },
+            "tag_ids": []
+        }
+        
+        create_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/forms",
+            json=form_data,
+            headers=get_auth_headers()
+        )
+        
+        assert create_response.status_code == 200
+        form_result = create_response.json()
+        assert "form_revid" in form_result
+        assert form_result["name"] == "Test Mapped Form"
+        assert "response_format" in form_result
+        assert "json_formio" in form_result["response_format"]
+        assert "json_formio_mapping" in form_result["response_format"]
+        
+        form_id = form_result["form_id"]
+        form_revid = form_result["form_revid"]
+        
+        # Step 2: Verify the mapping was saved correctly
+        mapping = form_result["response_format"]["json_formio_mapping"]
+        assert "full_name" in mapping
+        assert "address" in mapping
+        
+        # Verify full_name mapping (concatenated)
+        full_name_mapping = mapping["full_name"]
+        assert full_name_mapping["mappingType"] == "concatenated"
+        assert full_name_mapping["concatenationSeparator"] == " "
+        assert len(full_name_mapping["sources"]) == 2
+        
+        # Verify address mapping (direct)
+        address_mapping = mapping["address"]
+        assert address_mapping["mappingType"] == "direct"
+        assert len(address_mapping["sources"]) == 1
+        
+        # Step 3: Get the form to verify mappings are persisted
+        get_response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/forms/{form_revid}",
+            headers=get_auth_headers()
+        )
+        
+        assert get_response.status_code == 200
+        retrieved_form = get_response.json()
+        assert "json_formio_mapping" in retrieved_form["response_format"]
+        
+        retrieved_mapping = retrieved_form["response_format"]["json_formio_mapping"]
+        assert retrieved_mapping == mapping  # Should be identical
+        
+        # Step 4: Update the form to modify mappings
+        updated_form_data = {
+            "name": "Test Mapped Form",
+            "response_format": {
+                "json_formio": form_result["response_format"]["json_formio"],
+                "json_formio_mapping": {
+                    "full_name": {
+                        "sources": [
+                            {
+                                "promptId": "prompt456",
+                                "promptName": "Updated Prompt",
+                                "schemaFieldPath": "person.full_name",
+                                "schemaFieldName": "full_name",
+                                "schemaFieldType": "string"
+                            }
+                        ],
+                        "mappingType": "direct"
+                    }
+                }
+            },
+            "tag_ids": []
+        }
+        
+        update_response = client.put(
+            f"/v0/orgs/{TEST_ORG_ID}/forms/{form_id}",
+            json=updated_form_data,
+            headers=get_auth_headers()
+        )
+        
+        assert update_response.status_code == 200
+        updated_form = update_response.json()
+        
+        # Verify updated mapping
+        updated_mapping = updated_form["response_format"]["json_formio_mapping"]
+        assert "full_name" in updated_mapping
+        assert "address" not in updated_mapping  # Should be removed
+        assert updated_mapping["full_name"]["mappingType"] == "direct"
+        assert len(updated_mapping["full_name"]["sources"]) == 1
+        
+        # Clean up
+        client.delete(
+            f"/v0/orgs/{TEST_ORG_ID}/forms/{form_id}",
+            headers=get_auth_headers()
+        )
+        
+    finally:
+        pass  # mock_auth fixture handles cleanup
+    
+    logger.info(f"test_form_with_mapping() end")

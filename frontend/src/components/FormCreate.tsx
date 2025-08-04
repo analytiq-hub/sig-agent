@@ -19,10 +19,10 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
   const [currentForm, setCurrentForm] = useState<FormConfig>({
     name: '',
     response_format: {
-      json_formio: []
+      json_formio: [],
+      json_formio_mapping: {}
     },
-    tag_ids: [], // Initialize with empty array
-    field_mappings: {} // Initialize with empty mappings
+    tag_ids: [] // Initialize with empty array
   });
   const [isLoading, setIsLoading] = useState(false);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
@@ -40,9 +40,11 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
           setCurrentFormId(form.form_id);
           setCurrentForm({
             name: form.name,
-            response_format: form.response_format,
-            tag_ids: form.tag_ids || [],
-            field_mappings: form.field_mappings || {}
+            response_format: {
+              ...form.response_format,
+              json_formio_mapping: form.response_format.json_formio_mapping || {}
+            },
+            tag_ids: form.tag_ids || []
           });
           setSelectedTagIds(form.tag_ids || []);
         } catch (error) {
@@ -86,10 +88,13 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
         return;
       }
       
-      // Update form
+      // Update form (preserve existing mapping if not provided in JSON)
       setCurrentForm(prev => ({
         ...prev,
-        response_format: parsedForm
+        response_format: {
+          json_formio: parsedForm.json_formio,
+          json_formio_mapping: parsedForm.json_formio_mapping || prev.response_format.json_formio_mapping || {}
+        }
       }));
     } catch (error) {
       // Invalid JSON - don't update
@@ -126,10 +131,10 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
       setCurrentForm({
         name: '',
         response_format: {
-          json_formio: []
+          json_formio: [],
+          json_formio_mapping: {}
         },
-        tag_ids: [],
-        field_mappings: {}
+        tag_ids: []
       });
       setCurrentFormId(null);
       setSelectedTagIds([]);
@@ -189,10 +194,10 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                   setCurrentForm({
                     name: '',
                     response_format: {
-                      json_formio: []
+                      json_formio: [],
+                      json_formio_mapping: {}
                     },
-                    tag_ids: [],
-                    field_mappings: {}
+                    tag_ids: []
                   });
                   setSelectedTagIds([]);
                 }}
@@ -281,11 +286,14 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                 organizationId={organizationId}
                 selectedTagIds={selectedTagIds}
                 formComponents={currentForm.response_format.json_formio as any[] || []}
-                fieldMappings={currentForm.field_mappings || {}}
+                fieldMappings={currentForm.response_format.json_formio_mapping || {}}
                 onMappingChange={(mappings) => {
                   setCurrentForm(prev => ({
                     ...prev,
-                    field_mappings: mappings
+                    response_format: {
+                      ...prev.response_format,
+                      json_formio_mapping: mappings
+                    }
                   }));
                 }}
               />
