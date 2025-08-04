@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { listPromptsApi, getSchemaApi, listSchemasApi } from '@/utils/api';
 import { Prompt } from '@/types/prompts';
-import { Schema, SchemaProperty } from '@/types/schemas';
 import { FieldMapping, FieldMappingSource } from '@/types/forms';
 import { getApiErrorMsg } from '@/utils/api';
 import { toast } from 'react-toastify';
@@ -19,7 +18,7 @@ import {
 interface FormioMapperProps {
   organizationId: string;
   selectedTagIds: string[];
-  formComponents: any[];
+  formComponents: unknown[];
   fieldMappings: Record<string, FieldMapping>;
   onMappingChange: (mappings: Record<string, FieldMapping>) => void;
 }
@@ -43,6 +42,16 @@ interface FormField {
   path: string[];
 }
 
+// Add interface for form component structure
+interface FormComponent {
+  key?: string;
+  type?: string;
+  label?: string;
+  components?: FormComponent[];
+  columns?: FormComponent[];
+  tabs?: FormComponent[];
+}
+
 const FormioMapper: React.FC<FormioMapperProps> = ({
   organizationId,
   selectedTagIds,
@@ -50,9 +59,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
   fieldMappings,
   onMappingChange
 }) => {
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
-  const [schemas, setSchemas] = useState<Record<string, Schema>>({});
-  const [allSchemas, setAllSchemas] = useState<Schema[]>([]);
+
   const [schemaFields, setSchemaFields] = useState<SchemaField[]>([]);
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [loading, setLoading] = useState(false);
@@ -64,8 +71,6 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
   // Load prompts and schemas based on selected tags
   const loadPromptsAndSchemas = useCallback(async () => {
     if (selectedTagIds.length === 0) {
-      setPrompts([]);
-      setSchemas({});
       setSchemaFields([]);
       return;
     }
@@ -77,7 +82,6 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
         organizationId,
         limit: 100 // Maximum allowed by backend
       });
-      setAllSchemas(allSchemasResponse.schemas);
 
       // Fetch prompts for each tag individually and merge results
       // This is needed because backend uses $all (requires ALL tags) but we want ANY tags
@@ -112,7 +116,6 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
       }
 
       const uniquePrompts = Array.from(allPrompts.values());
-      setPrompts(uniquePrompts);
 
       // Fetch schemas for prompts that have schema_id
       const schemaPromises = uniquePrompts
@@ -143,7 +146,6 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
 
       const schemaResults = await Promise.all(schemaPromises);
       const combinedSchemas = schemaResults.reduce((acc, curr) => ({ ...acc, ...curr }), {});
-      setSchemas(combinedSchemas);
 
       // Parse schema fields recursively
       const allSchemaFields: SchemaField[] = [];
@@ -153,22 +155,33 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
           const properties = schema.response_format.json_schema.schema.properties;
           
           // Recursive function to parse nested properties
-          const parseProperties = (props: Record<string, any>, basePath: string = '', depth: number = 0, parentPath?: string) => {
+          const parseProperties = (props: Record<string, unknown>, basePath: string = '', depth: number = 0, parentPath?: string) => {
             Object.entries(props).forEach(([fieldName, fieldDef]) => {
               const fullPath = basePath ? `${basePath}.${fieldName}` : fieldName;
               const displayName = fieldName; // Show only the field name, not the full path
               
+              // Type assertion for fieldDef
+              const typedFieldDef = fieldDef as {
+                type: string;
+                properties?: Record<string, unknown>;
+                items?: {
+                  type: string;
+                  properties?: Record<string, unknown>;
+                };
+                description?: string;
+              };
+              
               // Check if this field is expandable (has children)
-              const hasObjectChildren = fieldDef.type === 'object' && fieldDef.properties;
-              const hasArrayChildren = fieldDef.type === 'array' && fieldDef.items?.type === 'object' && fieldDef.items.properties;
-              const isExpandable = hasObjectChildren || hasArrayChildren;
+              const hasObjectChildren = typedFieldDef.type === 'object' && typedFieldDef.properties;
+              const hasArrayChildren = typedFieldDef.type === 'array' && typedFieldDef.items?.type === 'object' && typedFieldDef.items.properties;
+              const isExpandable = Boolean(hasObjectChildren || hasArrayChildren);
               
               // Add the current field
               allSchemaFields.push({
                 name: displayName,
                 path: fullPath,
-                type: fieldDef.type,
-                description: fieldDef.description,
+                type: typedFieldDef.type,
+                description: typedFieldDef.description,
                 promptId: prompt.prompt_revid,
                 promptName: prompt.name,
                 depth: depth,
@@ -178,13 +191,13 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
 
               // Recursively handle nested object properties
               if (hasObjectChildren) {
-                parseProperties(fieldDef.properties, fullPath, depth + 1, fullPath);
+                parseProperties(typedFieldDef.properties!, fullPath, depth + 1, fullPath);
               }
 
               // Handle array of objects
               if (hasArrayChildren) {
                 // Add array item properties with [n] notation
-                parseProperties(fieldDef.items.properties, `${fullPath}[0]`, depth + 1, fullPath);
+                parseProperties(typedFieldDef.items!.properties!, `${fullPath}[0]`, depth + 1, fullPath);
               }
             });
           };
@@ -203,7 +216,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
   }, [organizationId, selectedTagIds]);
 
   // Parse form components into flat field list
-  const parseFormFields = useCallback((components: any[], path: string[] = []): FormField[] => {
+  const parseFormFields = useCallback((components: FormComponent[], path: string[] = []): FormField[] => {
     const fields: FormField[] = [];
 
     components.forEach(component => {
@@ -224,14 +237,14 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
         fields.push(...parseFormFields(component.components, [...path, component.key || '']));
       }
       if (component.columns) {
-        component.columns.forEach((column: any) => {
+        component.columns.forEach((column: FormComponent) => {
           if (column.components) {
             fields.push(...parseFormFields(column.components, [...path, component.key || '']));
           }
         });
       }
       if (component.tabs) {
-        component.tabs.forEach((tab: any) => {
+        component.tabs.forEach((tab: FormComponent) => {
           if (tab.components) {
             fields.push(...parseFormFields(tab.components, [...path, component.key || '']));
           }
@@ -244,7 +257,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
 
   // Update form fields when components change
   useEffect(() => {
-    setFormFields(parseFormFields(formComponents));
+    setFormFields(parseFormFields(formComponents as FormComponent[]));
   }, [formComponents, parseFormFields]);
 
   // Load data when tags change
@@ -483,8 +496,8 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
                   <button
                     onClick={() => setExpandedPrompts(prev => 
                       prev.has(promptId) 
-                        ? new Set([...prev].filter(id => id !== promptId))
-                        : new Set([...prev, promptId])
+                        ? new Set(Array.from(prev).filter(id => id !== promptId))
+                        : new Set([...Array.from(prev), promptId])
                     )}
                     className="w-full px-3 py-2 flex items-center justify-between bg-gray-50 hover:bg-gray-100 text-left"
                   >
@@ -653,7 +666,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
                             {mapping.mappingType === 'concatenated' && (
                               <div className="mt-2 pt-2 border-t">
                                 <span className="text-gray-600">
-                                  Separator: "{mapping.concatenationSeparator || ' '}"
+                                  Separator: &quot;{mapping.concatenationSeparator || ' '}&quot;
                                 </span>
                               </div>
                             )}

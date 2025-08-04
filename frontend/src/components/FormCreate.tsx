@@ -285,7 +285,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
               <FormioMapper
                 organizationId={organizationId}
                 selectedTagIds={selectedTagIds}
-                formComponents={currentForm.response_format.json_formio as any[] || []}
+                formComponents={currentForm.response_format.json_formio as unknown[] || []}
                 fieldMappings={currentForm.response_format.json_formio_mapping || {}}
                 onMappingChange={(mappings) => {
                   setCurrentForm(prev => ({
