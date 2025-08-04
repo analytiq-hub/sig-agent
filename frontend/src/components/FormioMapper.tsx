@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { listPromptsApi, getSchemaApi, listSchemasApi } from '@/utils/api';
 import { Prompt } from '@/types/prompts';
 import { FieldMapping, FieldMappingSource } from '@/types/forms';
@@ -67,6 +67,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedField, setDraggedField] = useState<SchemaField | null>(null);
+  const previousFormFieldsRef = useRef<FormField[]>([]);
 
   // Load prompts and schemas based on selected tags
   const loadPromptsAndSchemas = useCallback(async () => {
@@ -255,27 +256,45 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
     return fields;
   }, []);
 
-  // Update form fields when components change and clean up orphaned mappings
+  // Update form fields when components change
   useEffect(() => {
     const newFormFields = parseFormFields(formComponents as FormComponent[]);
-    const oldFormFields = formFields; // Previous form fields
     setFormFields(newFormFields);
+  }, [formComponents, parseFormFields]);
+
+  // Clean up orphaned mappings when form fields change (separate effect to avoid infinite loops)
+  useEffect(() => {
+    const currentFormFields = formFields;
+    const previousFormFields = previousFormFieldsRef.current;
     
-    // Only process mapping cleanup if we have existing mappings and previous fields
-    if (Object.keys(fieldMappings).length === 0 || oldFormFields.length === 0) {
+    // Update the ref for next time
+    previousFormFieldsRef.current = currentFormFields;
+    
+    // Only process mapping cleanup if we have existing mappings and both current and previous fields
+    if (Object.keys(fieldMappings).length === 0 || previousFormFields.length === 0 || currentFormFields.length === 0) {
       return;
     }
     
+    // Check if form structure actually changed
+    const previousKeys = new Set(previousFormFields.map(field => field.key));
+    const currentKeys = new Set(currentFormFields.map(field => field.key));
+    const keysChanged = previousKeys.size !== currentKeys.size || 
+      [...previousKeys].some(key => !currentKeys.has(key)) ||
+      [...currentKeys].some(key => !previousKeys.has(key));
+    
+    if (!keysChanged) {
+      return; // No structural changes
+    }
+    
     // Clean up orphaned mappings when form fields are removed or renamed
-    const currentFormFieldKeys = new Set(newFormFields.map(field => field.key));
     const mappedFieldKeys = Object.keys(fieldMappings);
-    const orphanedMappings = mappedFieldKeys.filter(key => !currentFormFieldKeys.has(key));
+    const orphanedMappings = mappedFieldKeys.filter(key => !currentKeys.has(key));
     
     if (orphanedMappings.length > 0) {
       console.log('Found orphaned mappings for removed/renamed fields:', orphanedMappings);
       
       // Try to detect renamed fields
-      const renamedFields = detectRenamedFields(oldFormFields, newFormFields, orphanedMappings);
+      const renamedFields = detectRenamedFields(previousFormFields, currentFormFields, orphanedMappings);
       
       let cleanedMappings = { ...fieldMappings };
       let removedCount = 0;
@@ -319,7 +338,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
         toast.info(message);
       }
     }
-  }, [formComponents, parseFormFields, fieldMappings, onMappingChange, formFields]);
+  }, [formFields, fieldMappings, onMappingChange]);
 
   // Load data when tags change
   useEffect(() => {
