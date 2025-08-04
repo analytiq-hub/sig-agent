@@ -75,17 +75,43 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
       });
       setAllSchemas(allSchemasResponse.schemas);
 
-      // Fetch prompts with matching tags
-      const promptsResponse = await listPromptsApi({
-        organizationId,
-        tag_ids: selectedTagIds.join(','),
-        limit: 100
-      });
+      // Fetch prompts for each tag individually and merge results
+      // This is needed because backend uses $all (requires ALL tags) but we want ANY tags
+      const allPrompts = new Map<string, Prompt>();
+      
+      for (const tagId of selectedTagIds) {
+        try {
+          const promptsResponse = await listPromptsApi({
+            organizationId,
+            tag_ids: tagId, // Single tag ID
+            limit: 100
+          });
+          
+          // Add prompts to map to avoid duplicates
+          promptsResponse.prompts.forEach(prompt => {
+            allPrompts.set(prompt.prompt_revid, prompt);
+          });
+        } catch (error) {
+          console.error(`Error fetching prompts for tag ${tagId}:`, error);
+        }
+      }
+      
+      // Also fetch prompts without tag filtering to include untagged prompts if needed
+      if (selectedTagIds.length === 0) {
+        const promptsResponse = await listPromptsApi({
+          organizationId,
+          limit: 100
+        });
+        promptsResponse.prompts.forEach(prompt => {
+          allPrompts.set(prompt.prompt_revid, prompt);
+        });
+      }
 
-      setPrompts(promptsResponse.prompts);
+      const uniquePrompts = Array.from(allPrompts.values());
+      setPrompts(uniquePrompts);
 
       // Fetch schemas for prompts that have schema_id
-      const schemaPromises = promptsResponse.prompts
+      const schemaPromises = uniquePrompts
         .filter(prompt => prompt.schema_id)
         .map(async (prompt) => {
           try {
@@ -117,7 +143,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
 
       // Parse schema fields recursively
       const allSchemaFields: SchemaField[] = [];
-      promptsResponse.prompts.forEach(prompt => {
+      uniquePrompts.forEach(prompt => {
         if (prompt.schema_id && combinedSchemas[prompt.schema_id]) {
           const schema = combinedSchemas[prompt.schema_id];
           const properties = schema.response_format.json_schema.schema.properties;
