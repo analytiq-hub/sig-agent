@@ -2,12 +2,18 @@
 
 import { useEffect } from 'react';
 import { useAppSession } from '@/contexts/AppSessionContext';
+import { getLLMResultApi } from '@/utils/api';
 
 // Global type declarations for the proxy helper
 declare global {
   interface Window {
     FASTAPI_URL: string;
     proxyFetch: (url: string, options?: RequestInit) => Promise<Response>;
+    getLLMResult: (params: {
+      organizationId: string;
+      documentId: string;
+      promptId: string;
+    }) => Promise<unknown>;
   }
 }
 
@@ -49,6 +55,21 @@ export default function FormioProvider({
             ...options.headers
           }
         });
+      };
+
+      // LLM Result helper function
+      window.getLLMResult = async (params: {
+        organizationId: string;
+        documentId: string;
+        promptId: string;
+      }) => {
+        try {
+          const result = await getLLMResultApi(params);
+          return result;
+        } catch (error) {
+          console.error('Error fetching LLM result:', error);
+          throw error;
+        }
       };
     };
 
