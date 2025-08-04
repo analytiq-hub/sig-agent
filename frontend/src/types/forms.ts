@@ -13,10 +13,25 @@ export interface Form {
   tag_ids?: string[]; // Add tag_ids to match backend model
 }
 
+export interface FieldMappingSource {
+  promptId: string;
+  promptName: string;
+  schemaFieldPath: string;
+  schemaFieldName: string;
+  schemaFieldType: string;
+}
+
+export interface FieldMapping {
+  sources: FieldMappingSource[];
+  mappingType: 'direct' | 'concatenated' | 'calculated' | 'conditional';
+  concatenationSeparator?: string; // For concatenated mappings
+}
+
 export interface FormConfig {
   name: string;
   response_format: FormResponseFormat;
   tag_ids?: string[]; // Add tag_ids support
+  field_mappings?: Record<string, FieldMapping>; // Add field mappings support
 }
 
 export interface CreateFormParams extends FormConfig {

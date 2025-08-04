@@ -9,6 +9,7 @@ import TagSelector from './TagSelector';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
 import FormioBuilder from './FormioBuilder';
+import FormioMapper from './FormioMapper';
 import Editor from "@monaco-editor/react";
 import InfoTooltip from '@/components/InfoTooltip';
 
@@ -20,12 +21,13 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
     response_format: {
       json_formio: []
     },
-    tag_ids: [] // Initialize with empty array
+    tag_ids: [], // Initialize with empty array
+    field_mappings: {} // Initialize with empty mappings
   });
   const [isLoading, setIsLoading] = useState(false);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'builder' | 'json'>('builder');
+  const [activeTab, setActiveTab] = useState<'builder' | 'mapper' | 'json'>('builder');
   const [jsonForm, setJsonForm] = useState('');
 
   // Load editing form if available
@@ -39,7 +41,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
           setCurrentForm({
             name: form.name,
             response_format: form.response_format,
-            tag_ids: form.tag_ids || []
+            tag_ids: form.tag_ids || [],
+            field_mappings: form.field_mappings || {}
           });
           setSelectedTagIds(form.tag_ids || []);
         } catch (error) {
@@ -125,7 +128,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
         response_format: {
           json_formio: []
         },
-        tag_ids: []
+        tag_ids: [],
+        field_mappings: {}
       });
       setCurrentFormId(null);
       setSelectedTagIds([]);
@@ -187,7 +191,8 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                     response_format: {
                       json_formio: []
                     },
-                    tag_ids: []
+                    tag_ids: [],
+                    field_mappings: {}
                   });
                   setSelectedTagIds([]);
                 }}
@@ -229,6 +234,17 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
               </button>
               <button
                 type="button"
+                onClick={() => setActiveTab('mapper')}
+                className={`pb-4 px-1 relative font-semibold text-base ${
+                  activeTab === 'mapper'
+                    ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Form Mapper
+              </button>
+              <button
+                type="button"
                 onClick={() => setActiveTab('json')}
                 className={`pb-4 px-1 relative font-semibold text-base ${
                   activeTab === 'json'
@@ -259,6 +275,20 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
                   }}
                 />
               </div>
+            ) : activeTab === 'mapper' ? (
+              // Form Mapper Tab
+              <FormioMapper
+                organizationId={organizationId}
+                selectedTagIds={selectedTagIds}
+                formComponents={currentForm.response_format.json_formio as any[] || []}
+                fieldMappings={currentForm.field_mappings || {}}
+                onMappingChange={(mappings) => {
+                  setCurrentForm(prev => ({
+                    ...prev,
+                    field_mappings: mappings
+                  }));
+                }}
+              />
             ) : (
               // JSON Form Tab
               <div className="h-[calc(100vh-300px)] border rounded">

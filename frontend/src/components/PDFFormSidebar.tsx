@@ -96,6 +96,8 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
           ...prev,
           [formRevId]: submission
         }));
+
+        console.log('submission', submission);
       }
     } catch (error) {
       console.error('Error loading existing submission:', error);
