@@ -378,8 +378,8 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
   return (
     <div className="h-[calc(100vh-300px)] flex gap-4">
       {/* Left Panel - Schema Fields */}
-      <div className="w-1/2 border rounded-lg bg-white overflow-hidden">
-        <div className="p-4 border-b bg-gray-50">
+      <div className="w-1/2 border rounded-lg bg-white overflow-hidden flex flex-col">
+        <div className="p-4 border-b bg-gray-50 flex-shrink-0">
           <h3 className="font-semibold text-gray-900 mb-3">Schema Fields</h3>
           
           {/* Search */}
@@ -395,7 +395,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 min-h-0">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <ArrowPathIcon className="h-6 w-6 animate-spin text-gray-500" />
@@ -464,13 +464,13 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
       </div>
 
       {/* Right Panel - Form Fields */}
-      <div className="w-1/2 border rounded-lg bg-white overflow-hidden">
-        <div className="p-4 border-b bg-gray-50">
+      <div className="w-1/2 border rounded-lg bg-white overflow-hidden flex flex-col">
+        <div className="p-4 border-b bg-gray-50 flex-shrink-0">
           <h3 className="font-semibold text-gray-900">Form Fields</h3>
           <p className="text-sm text-gray-500 mt-1">Drop schema fields here to create mappings</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 min-h-0">
           {formFields.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>No form fields available</p>
