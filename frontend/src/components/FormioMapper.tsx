@@ -32,6 +32,8 @@ interface SchemaField {
   promptId: string;
   promptName: string;
   depth: number; // Nesting level for indentation
+  isExpandable: boolean; // Whether this field has children (object/array)
+  parentPath?: string; // Path of parent field for hierarchy
 }
 
 interface FormField {
@@ -55,6 +57,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedPrompts, setExpandedPrompts] = useState<Set<string>>(new Set());
+  const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedField, setDraggedField] = useState<SchemaField | null>(null);
 
@@ -150,10 +153,15 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
           const properties = schema.response_format.json_schema.schema.properties;
           
           // Recursive function to parse nested properties
-          const parseProperties = (props: Record<string, any>, basePath: string = '', depth: number = 0) => {
+          const parseProperties = (props: Record<string, any>, basePath: string = '', depth: number = 0, parentPath?: string) => {
             Object.entries(props).forEach(([fieldName, fieldDef]) => {
               const fullPath = basePath ? `${basePath}.${fieldName}` : fieldName;
               const displayName = fieldName; // Show only the field name, not the full path
+              
+              // Check if this field is expandable (has children)
+              const hasObjectChildren = fieldDef.type === 'object' && fieldDef.properties;
+              const hasArrayChildren = fieldDef.type === 'array' && fieldDef.items?.type === 'object' && fieldDef.items.properties;
+              const isExpandable = hasObjectChildren || hasArrayChildren;
               
               // Add the current field
               allSchemaFields.push({
@@ -163,18 +171,20 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
                 description: fieldDef.description,
                 promptId: prompt.prompt_revid,
                 promptName: prompt.name,
-                depth: depth
+                depth: depth,
+                isExpandable: isExpandable,
+                parentPath: parentPath
               });
 
               // Recursively handle nested object properties
-              if (fieldDef.type === 'object' && fieldDef.properties) {
-                parseProperties(fieldDef.properties, fullPath, depth + 1);
+              if (hasObjectChildren) {
+                parseProperties(fieldDef.properties, fullPath, depth + 1, fullPath);
               }
 
               // Handle array of objects
-              if (fieldDef.type === 'array' && fieldDef.items?.type === 'object' && fieldDef.items.properties) {
+              if (hasArrayChildren) {
                 // Add array item properties with [n] notation
-                parseProperties(fieldDef.items.properties, `${fullPath}[0]`, depth + 1);
+                parseProperties(fieldDef.items.properties, `${fullPath}[0]`, depth + 1, fullPath);
               }
             });
           };
@@ -390,6 +400,35 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
     return typeMapping[schemaType]?.includes(formType) || false;
   };
 
+  // Check if field should be visible based on parent expansion state
+  const isFieldVisible = (field: SchemaField): boolean => {
+    if (!field.parentPath) return true; // Root level fields are always visible
+    
+    // Check if all parent paths are expanded
+    const pathParts = field.parentPath.split('.');
+    for (let i = 1; i <= pathParts.length; i++) {
+      const parentPath = pathParts.slice(0, i).join('.');
+      if (!expandedFields.has(`${field.promptId}-${parentPath}`)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Toggle field expansion
+  const toggleFieldExpansion = (field: SchemaField) => {
+    const fieldKey = `${field.promptId}-${field.path}`;
+    setExpandedFields(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(fieldKey)) {
+        newSet.delete(fieldKey);
+      } else {
+        newSet.add(fieldKey);
+      }
+      return newSet;
+    });
+  };
+
   // Get type badge color
   const getTypeBadgeColor = (type: string): string => {
     const colors: Record<string, string> = {
@@ -462,12 +501,10 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
                   
                   {expandedPrompts.has(promptId) && (
                     <div className="p-2 space-y-1">
-                      {fields.map((field) => (
+                      {fields.filter(field => isFieldVisible(field)).map((field) => (
                         <div
                           key={field.path}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, field)}
-                          className="flex items-center justify-between p-2 bg-white border rounded cursor-move hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                          className="flex items-center justify-between p-2 bg-white border rounded transition-colors"
                           style={{ marginLeft: `${field.depth * 16}px` }} // 16px per depth level
                         >
                           <div className="flex-1 min-w-0">
@@ -477,10 +514,48 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
                                   {'└─ '.repeat(1)}
                                 </span>
                               )}
-                              <span className="font-medium text-sm">{field.name}</span>
+                              
+                              {/* Expand/Collapse button for expandable fields */}
+                              {field.isExpandable && (
+                                <button
+                                  onClick={() => toggleFieldExpansion(field)}
+                                  className="text-gray-500 hover:text-gray-700 p-0.5"
+                                  title={expandedFields.has(`${field.promptId}-${field.path}`) ? 'Collapse' : 'Expand'}
+                                >
+                                  {expandedFields.has(`${field.promptId}-${field.path}`) ? (
+                                    <ChevronDownIcon className="h-3 w-3" />
+                                  ) : (
+                                    <ChevronRightIcon className="h-3 w-3" />
+                                  )}
+                                </button>
+                              )}
+                              
+                              <span 
+                                className={`font-medium text-sm ${field.isExpandable ? 'cursor-pointer' : 'cursor-move'}`}
+                                onClick={field.isExpandable ? () => toggleFieldExpansion(field) : undefined}
+                                draggable={!field.isExpandable}
+                                onDragStart={!field.isExpandable ? (e) => handleDragStart(e, field) : undefined}
+                              >
+                                {field.name}
+                              </span>
+                              
                               <span className={`px-2 py-0.5 rounded text-xs font-medium ${getTypeBadgeColor(field.type)}`}>
                                 {field.type}
                               </span>
+                              
+                              {/* Drag handle for leaf fields only */}
+                              {!field.isExpandable && (
+                                <div 
+                                  className="cursor-move text-gray-400 hover:text-gray-600 ml-auto"
+                                  draggable
+                                  onDragStart={(e) => handleDragStart(e, field)}
+                                  title="Drag to map this field"
+                                >
+                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                                  </svg>
+                                </div>
+                              )}
                             </div>
                             {field.description && (
                               <p className="text-xs text-gray-500 mt-1 truncate" style={{ marginLeft: field.depth > 0 ? '24px' : '0' }}>
