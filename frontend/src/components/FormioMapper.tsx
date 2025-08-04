@@ -509,12 +509,6 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              {field.depth > 0 && (
-                                <span className="text-gray-400 text-xs">
-                                  {'└─ '.repeat(1)}
-                                </span>
-                              )}
-                              
                               {/* Expand/Collapse button for expandable fields */}
                               {field.isExpandable && (
                                 <button
@@ -558,7 +552,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
                               )}
                             </div>
                             {field.description && (
-                              <p className="text-xs text-gray-500 mt-1 truncate" style={{ marginLeft: field.depth > 0 ? '24px' : '0' }}>
+                              <p className="text-xs text-gray-500 mt-1 truncate">
                                 {field.description}
                               </p>
                             )}
