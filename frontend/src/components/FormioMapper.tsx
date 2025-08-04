@@ -31,6 +31,7 @@ interface SchemaField {
   description?: string;
   promptId: string;
   promptName: string;
+  depth: number; // Nesting level for indentation
 }
 
 interface FormField {
@@ -149,10 +150,10 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
           const properties = schema.response_format.json_schema.schema.properties;
           
           // Recursive function to parse nested properties
-          const parseProperties = (props: Record<string, any>, basePath: string = '') => {
+          const parseProperties = (props: Record<string, any>, basePath: string = '', depth: number = 0) => {
             Object.entries(props).forEach(([fieldName, fieldDef]) => {
               const fullPath = basePath ? `${basePath}.${fieldName}` : fieldName;
-              const displayName = basePath ? `${basePath}.${fieldName}` : fieldName;
+              const displayName = fieldName; // Show only the field name, not the full path
               
               // Add the current field
               allSchemaFields.push({
@@ -161,18 +162,19 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
                 type: fieldDef.type,
                 description: fieldDef.description,
                 promptId: prompt.prompt_revid,
-                promptName: prompt.name
+                promptName: prompt.name,
+                depth: depth
               });
 
               // Recursively handle nested object properties
               if (fieldDef.type === 'object' && fieldDef.properties) {
-                parseProperties(fieldDef.properties, fullPath);
+                parseProperties(fieldDef.properties, fullPath, depth + 1);
               }
 
               // Handle array of objects
               if (fieldDef.type === 'array' && fieldDef.items?.type === 'object' && fieldDef.items.properties) {
                 // Add array item properties with [n] notation
-                parseProperties(fieldDef.items.properties, `${fullPath}[0]`);
+                parseProperties(fieldDef.items.properties, `${fullPath}[0]`, depth + 1);
               }
             });
           };
@@ -466,16 +468,24 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
                           draggable
                           onDragStart={(e) => handleDragStart(e, field)}
                           className="flex items-center justify-between p-2 bg-white border rounded cursor-move hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                          style={{ marginLeft: `${field.depth * 16}px` }} // 16px per depth level
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
+                              {field.depth > 0 && (
+                                <span className="text-gray-400 text-xs">
+                                  {'└─ '.repeat(1)}
+                                </span>
+                              )}
                               <span className="font-medium text-sm">{field.name}</span>
                               <span className={`px-2 py-0.5 rounded text-xs font-medium ${getTypeBadgeColor(field.type)}`}>
                                 {field.type}
                               </span>
                             </div>
                             {field.description && (
-                              <p className="text-xs text-gray-500 mt-1 truncate">{field.description}</p>
+                              <p className="text-xs text-gray-500 mt-1 truncate" style={{ marginLeft: field.depth > 0 ? '24px' : '0' }}>
+                                {field.description}
+                              </p>
                             )}
                           </div>
                         </div>
