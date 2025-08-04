@@ -12,6 +12,7 @@ import FormioBuilder from './FormioBuilder';
 import FormioMapper from './FormioMapper';
 import Editor from "@monaco-editor/react";
 import InfoTooltip from '@/components/InfoTooltip';
+import { FormComponent } from '@/types/forms';
 
 const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ organizationId, formId }) => {
   const router = useRouter();
@@ -285,7 +286,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
               <FormioMapper
                 organizationId={organizationId}
                 selectedTagIds={selectedTagIds}
-                formComponents={currentForm.response_format.json_formio as unknown[] || []}
+                formComponents={currentForm.response_format.json_formio as FormComponent[] || []}
                 fieldMappings={currentForm.response_format.json_formio_mapping || {}}
                 onMappingChange={(mappings) => {
                   setCurrentForm(prev => ({

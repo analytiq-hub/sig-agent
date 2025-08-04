@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { listPromptsApi, getSchemaApi, listSchemasApi } from '@/utils/api';
 import { Prompt } from '@/types/prompts';
-import { FieldMapping, FieldMappingSource } from '@/types/forms';
+import { FieldMapping, FieldMappingSource, FormComponent, FormField } from '@/types/forms';
 import { getApiErrorMsg } from '@/utils/api';
 import { toast } from 'react-toastify';
 import { 
@@ -18,7 +18,7 @@ import {
 interface FormioMapperProps {
   organizationId: string;
   selectedTagIds: string[];
-  formComponents: unknown[];
+  formComponents: FormComponent[];
   fieldMappings: Record<string, FieldMapping>;
   onMappingChange: (mappings: Record<string, FieldMapping>) => void;
 }
@@ -35,21 +35,15 @@ interface SchemaField {
   parentPath?: string; // Path of parent field for hierarchy
 }
 
-interface FormField {
-  key: string;
-  label: string;
+// Add interface for schema field definition
+interface SchemaFieldDefinition {
   type: string;
-  path: string[];
-}
-
-// Add interface for form component structure
-interface FormComponent {
-  key?: string;
-  type?: string;
-  label?: string;
-  components?: FormComponent[];
-  columns?: FormComponent[];
-  tabs?: FormComponent[];
+  properties?: Record<string, SchemaFieldDefinition>;
+  items?: {
+    type: string;
+    properties?: Record<string, SchemaFieldDefinition>;
+  };
+  description?: string;
 }
 
 const FormioMapper: React.FC<FormioMapperProps> = ({
@@ -156,33 +150,22 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
           const properties = schema.response_format.json_schema.schema.properties;
           
           // Recursive function to parse nested properties
-          const parseProperties = (props: Record<string, unknown>, basePath: string = '', depth: number = 0, parentPath?: string) => {
+          const parseProperties = (props: Record<string, SchemaFieldDefinition>, basePath: string = '', depth: number = 0, parentPath?: string) => {
             Object.entries(props).forEach(([fieldName, fieldDef]) => {
               const fullPath = basePath ? `${basePath}.${fieldName}` : fieldName;
               const displayName = fieldName; // Show only the field name, not the full path
               
-              // Type assertion for fieldDef
-              const typedFieldDef = fieldDef as {
-                type: string;
-                properties?: Record<string, unknown>;
-                items?: {
-                  type: string;
-                  properties?: Record<string, unknown>;
-                };
-                description?: string;
-              };
-              
               // Check if this field is expandable (has children)
-              const hasObjectChildren = typedFieldDef.type === 'object' && typedFieldDef.properties;
-              const hasArrayChildren = typedFieldDef.type === 'array' && typedFieldDef.items?.type === 'object' && typedFieldDef.items.properties;
+              const hasObjectChildren = fieldDef.type === 'object' && fieldDef.properties;
+              const hasArrayChildren = fieldDef.type === 'array' && fieldDef.items?.type === 'object' && fieldDef.items.properties;
               const isExpandable = Boolean(hasObjectChildren || hasArrayChildren);
               
               // Add the current field
               allSchemaFields.push({
                 name: displayName,
                 path: fullPath,
-                type: typedFieldDef.type,
-                description: typedFieldDef.description,
+                type: fieldDef.type,
+                description: fieldDef.description,
                 promptId: prompt.prompt_revid,
                 promptName: prompt.name,
                 depth: depth,
@@ -191,19 +174,21 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
               });
 
               // Recursively handle nested object properties
-              if (hasObjectChildren) {
-                parseProperties(typedFieldDef.properties!, fullPath, depth + 1, fullPath);
+              if (hasObjectChildren && fieldDef.properties) {
+                parseProperties(fieldDef.properties, fullPath, depth + 1, fullPath);
               }
 
               // Handle array of objects
-              if (hasArrayChildren) {
+              if (hasArrayChildren && fieldDef.items?.properties) {
                 // Add array item properties with [n] notation
-                parseProperties(typedFieldDef.items!.properties!, `${fullPath}[0]`, depth + 1, fullPath);
+                parseProperties(fieldDef.items.properties, `${fullPath}[0]`, depth + 1, fullPath);
               }
             });
           };
 
-          parseProperties(properties);
+          if (properties) {
+            parseProperties(properties);
+          }
         }
       });
 
@@ -258,9 +243,39 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
 
   // Update form fields when components change
   useEffect(() => {
-    const newFormFields = parseFormFields(formComponents as FormComponent[]);
+    const newFormFields = parseFormFields(formComponents);
     setFormFields(newFormFields);
   }, [formComponents, parseFormFields]);
+
+  // Detect potentially renamed fields by comparing labels and types
+  const detectRenamedFields = useCallback((oldFields: FormField[], newFields: FormField[], orphanedMappings: string[]): Map<string, string> => {
+    const renamedFields = new Map<string, string>(); // Maps old key to new key
+    
+    // Only consider orphaned mappings that might be renamed fields
+    const orphanedFields = oldFields.filter(field => orphanedMappings.includes(field.key));
+    
+    orphanedFields.forEach(orphanedField => {
+      // Look for new fields with similar labels or types that weren't previously mapped
+      const candidates = newFields.filter(newField => 
+        !Object.keys(fieldMappings).includes(newField.key) && // Not already mapped
+        (
+          // Same label (exact match)
+          newField.label === orphanedField.label ||
+          // Same type and similar label (fuzzy match)
+          (newField.type === orphanedField.type && 
+           newField.label.toLowerCase().includes(orphanedField.label.toLowerCase()) ||
+           orphanedField.label.toLowerCase().includes(newField.label.toLowerCase()))
+        )
+      );
+      
+      // If we found exactly one candidate, it's likely a rename
+      if (candidates.length === 1) {
+        renamedFields.set(orphanedField.key, candidates[0].key);
+      }
+    });
+    
+    return renamedFields;
+  }, [fieldMappings]);
 
   // Clean up orphaned mappings when form fields change (separate effect to avoid infinite loops)
   useEffect(() => {
@@ -279,8 +294,8 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
     const previousKeys = new Set(previousFormFields.map(field => field.key));
     const currentKeys = new Set(currentFormFields.map(field => field.key));
     const keysChanged = previousKeys.size !== currentKeys.size || 
-      [...previousKeys].some(key => !currentKeys.has(key)) ||
-      [...currentKeys].some(key => !previousKeys.has(key));
+      Array.from(previousKeys).some(key => !currentKeys.has(key)) ||
+      Array.from(currentKeys).some(key => !previousKeys.has(key));
     
     if (!keysChanged) {
       return; // No structural changes
@@ -296,7 +311,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
       // Try to detect renamed fields
       const renamedFields = detectRenamedFields(previousFormFields, currentFormFields, orphanedMappings);
       
-      let cleanedMappings = { ...fieldMappings };
+      const cleanedMappings = { ...fieldMappings };
       let removedCount = 0;
       let renamedCount = 0;
       
@@ -338,7 +353,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
         toast.info(message);
       }
     }
-  }, [formFields, fieldMappings, onMappingChange]);
+  }, [formFields, fieldMappings, onMappingChange, detectRenamedFields]);
 
   // Load data when tags change
   useEffect(() => {
@@ -491,36 +506,6 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
     };
 
     return typeMapping[schemaType]?.includes(formType) || false;
-  };
-
-  // Detect potentially renamed fields by comparing labels and types
-  const detectRenamedFields = (oldFields: FormField[], newFields: FormField[], orphanedMappings: string[]): Map<string, string> => {
-    const renamedFields = new Map<string, string>(); // Maps old key to new key
-    
-    // Only consider orphaned mappings that might be renamed fields
-    const orphanedFields = oldFields.filter(field => orphanedMappings.includes(field.key));
-    
-    orphanedFields.forEach(orphanedField => {
-      // Look for new fields with similar labels or types that weren't previously mapped
-      const candidates = newFields.filter(newField => 
-        !Object.keys(fieldMappings).includes(newField.key) && // Not already mapped
-        (
-          // Same label (exact match)
-          newField.label === orphanedField.label ||
-          // Same type and similar label (fuzzy match)
-          (newField.type === orphanedField.type && 
-           newField.label.toLowerCase().includes(orphanedField.label.toLowerCase()) ||
-           orphanedField.label.toLowerCase().includes(newField.label.toLowerCase()))
-        )
-      );
-      
-      // If we found exactly one candidate, it's likely a rename
-      if (candidates.length === 1) {
-        renamedFields.set(orphanedField.key, candidates[0].key);
-      }
-    });
-    
-    return renamedFields;
   };
 
   // Check if field should be visible based on parent expansion state

@@ -97,3 +97,20 @@ export interface DeleteFormSubmissionParams {
   documentId: string;
   formRevId: string;
 }
+
+export interface FormField {
+  key: string;
+  label: string;
+  type: string;
+  path: string[];
+}
+
+// Add interface for form component structure
+export interface FormComponent {
+  key?: string;
+  type?: string;
+  label?: string;
+  components?: FormComponent[];
+  columns?: FormComponent[];
+  tabs?: FormComponent[];
+}
