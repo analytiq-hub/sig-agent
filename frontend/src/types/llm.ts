@@ -43,7 +43,7 @@ type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string
 export interface RunLLMParams {
   organizationId: string;
   documentId: string;
-  promptId: string;
+  promptRevId: string;
   force: boolean;
 }
 
@@ -55,7 +55,7 @@ export interface RunLLMResponse {
 export interface GetLLMResultParams {
   organizationId: string;
   documentId: string;
-  promptId: string;
+  promptRevId: string;
 }
 
 export interface GetLLMResultResponse {

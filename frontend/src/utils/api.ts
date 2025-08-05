@@ -371,13 +371,13 @@ export const setLLMProviderConfigApi = async (providerName: string, request: Set
 };
 
 export const runLLMApi = async (params: RunLLMParams) => {
-  const { organizationId, documentId, promptId, force } = params;
+  const { organizationId, documentId, promptRevId, force } = params;
   const response = await api.post<RunLLMResponse>(
     `/v0/orgs/${organizationId}/llm/run/${documentId}`,
     {},
     {
       params: {
-        prompt_rev_id: promptId,
+        prompt_rev_id: promptRevId,
         force: force
       }
     }
@@ -386,12 +386,12 @@ export const runLLMApi = async (params: RunLLMParams) => {
 };
 
 export const getLLMResultApi = async (params: GetLLMResultParams) => {
-  const { organizationId, documentId, promptId } = params;
+  const { organizationId, documentId, promptRevId } = params;
   const response = await api.get<GetLLMResultResponse>(
     `/v0/orgs/${organizationId}/llm/result/${documentId}`,
     {
       params: {
-        prompt_rev_id: promptId
+        prompt_rev_id: promptRevId
       }
     }
   );

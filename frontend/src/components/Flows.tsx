@@ -176,7 +176,7 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
           const result = await runLLMApi({
             organizationId: organizationId,
             documentId: documentInputNode.data.documentId,
-            promptId: node.data.promptId,
+            promptRevId: node.data.promptRevId,
             force: true,
           });
 

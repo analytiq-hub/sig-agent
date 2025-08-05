@@ -52,7 +52,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
           const defaultResults = await getLLMResultApi({
             organizationId: organizationId,
             documentId: id, 
-            promptId: 'default',
+            promptRevId: 'default',
           });
           setLlmResults(prev => ({
             ...prev,
@@ -99,7 +99,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
         const results = await getLLMResultApi({
           organizationId: organizationId,
           documentId: id, 
-          promptId: promptId,
+          promptRevId: promptId,
         });
         setLlmResults(prev => ({
           ...prev,
@@ -129,14 +129,14 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
       await runLLMApi({
         organizationId: organizationId,
         documentId: id,
-        promptId: promptId,
+        promptRevId: promptId,
         force: true
       });
       
       const result = await getLLMResultApi({
         organizationId: organizationId,
         documentId: id,
-        promptId: promptId
+        promptRevId: promptId
       });
       
       setLlmResults(prev => ({

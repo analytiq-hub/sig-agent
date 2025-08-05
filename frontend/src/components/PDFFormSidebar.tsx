@@ -310,7 +310,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       const result = await getLLMResultApi({
         organizationId,
         documentId: id,
-        promptId
+        promptRevId: promptId
       });
       
       setLlmResults(prev => ({
