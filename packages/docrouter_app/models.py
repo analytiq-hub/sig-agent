@@ -115,6 +115,8 @@ class LLMRunResponse(BaseModel):
 
 class LLMResult(BaseModel):
     prompt_rev_id: str
+    prompt_id: str
+    prompt_version: int
     document_id: str
     llm_result: dict
     updated_llm_result: dict
