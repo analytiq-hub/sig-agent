@@ -671,7 +671,7 @@ async def get_ocr_metadata(
 
 # LLM Run Endpoints
 @app.post("/v0/orgs/{organization_id}/llm/run/{document_id}", response_model=LLMRunResponse, tags=["llm"])
-async def run_llm_analysis(
+async def run_llm(
     organization_id: str,
     document_id: str,
     prompt_rev_id: str = Query(default="default", description="The prompt revision ID to use"),
