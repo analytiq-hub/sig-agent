@@ -109,26 +109,60 @@ async def run_llm(analytiq_client,
             
             Please provide your analysis based on both the visual content and the text."""
             
-            # Create base64 URL for the PDF
-            encoded_file = base64.b64encode(pdf_file['blob']).decode("utf-8")
-            base64_url = f"data:application/pdf;base64,{encoded_file}"
-            
-            # Create messages with file attachment using litellm format
-            file_content = [
-                {"type": "text", "text": prompt},
-                {
-                    "type": "file",
-                    "file": {
-                        "file_data": base64_url,
-                    }
-                },
-            ]
-            
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": file_content}
-            ]
-            logger.info(f"Attaching OCR and PDF to prompt {prompt_rev_id}")
+            # Different approaches for different providers
+            if llm_provider == "openai":
+                # For OpenAI, we need to upload the file first
+                try:
+                    # Upload file to OpenAI
+                    file_response = await litellm.afile_upload(
+                        model=llm_model,
+                        file=pdf_file['blob'],
+                        file_name=doc["pdf_file_name"],
+                        api_key=api_key
+                    )
+                    file_id = file_response.id
+                    
+                    # Create messages with file reference
+                    file_content = [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "file",
+                            "file": {
+                                "file_id": file_id,
+                            }
+                        },
+                    ]
+                    
+                    messages = [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": file_content}
+                    ]
+                    logger.info(f"Attaching OCR and PDF to prompt {prompt_rev_id} using OpenAI file_id: {file_id}")
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to upload file to OpenAI: {e}, falling back to OCR-only")
+                    use_vision = False
+                    
+            else:
+                # For other providers (Anthropic, Gemini), use base64 approach
+                encoded_file = base64.b64encode(pdf_file['blob']).decode("utf-8")
+                base64_url = f"data:application/pdf;base64,{encoded_file}"
+                
+                file_content = [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "file",
+                        "file": {
+                            "file_data": base64_url,
+                        }
+                    },
+                ]
+                
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": file_content}
+                ]
+                logger.info(f"Attaching OCR and PDF to prompt {prompt_rev_id} using base64 for {llm_provider}")
         else:
             # Fallback to OCR-only if PDF not available
             use_vision = False
