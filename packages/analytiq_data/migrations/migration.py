@@ -1430,6 +1430,101 @@ class RemoveLlmModelsAndTokens(Migration):
         logger.warning("Cannot restore llm_models and llm_tokens collections as original data is not preserved")
         return False
 
+# Add this new migration class before the MIGRATIONS list
+class AddPromptIdAndVersionToLlmRuns(Migration):
+    def __init__(self):
+        super().__init__(description="Add prompt_id and prompt_version fields to llm_runs collection")
+        
+    async def up(self, db) -> bool:
+        """Add prompt_id and prompt_version fields to all documents in llm_runs collection"""
+        try:
+            from bson import ObjectId
+            
+            # Get all documents in llm_runs that don't have prompt_id or prompt_version
+            cursor = db.llm_runs.find({
+                "$or": [
+                    {"prompt_id": {"$exists": False}},
+                    {"prompt_version": {"$exists": False}}
+                ]
+            })
+            
+            updated_count = 0
+            skipped_count = 0
+            error_count = 0
+            
+            async for doc in cursor:
+                prompt_rev_id = doc.get("prompt_rev_id")
+                
+                if not prompt_rev_id:
+                    logger.warning(f"Document {doc['_id']} missing prompt_rev_id, skipping")
+                    skipped_count += 1
+                    continue
+                
+                try:
+                    # Handle special case for default prompt
+                    if prompt_rev_id == "default":
+                        prompt_id = "default"
+                        prompt_version = 1
+                    else:
+                        # Look up the prompt revision
+                        prompt_revision = await db.prompt_revisions.find_one({"_id": ObjectId(prompt_rev_id)})
+                        if prompt_revision is None:
+                            logger.warning(f"Prompt revision {prompt_rev_id} not found for document {doc['_id']}, skipping")
+                            skipped_count += 1
+                            continue
+                        
+                        prompt_id = str(prompt_revision["prompt_id"])
+                        prompt_version = prompt_revision["prompt_version"]
+                    
+                    # Update the document
+                    await db.llm_runs.update_one(
+                        {"_id": doc["_id"]},
+                        {
+                            "$set": {
+                                "prompt_id": prompt_id,
+                                "prompt_version": prompt_version
+                            }
+                        }
+                    )
+                    updated_count += 1
+                    
+                except Exception as e:
+                    logger.error(f"Error processing document {doc['_id']}: {e}")
+                    error_count += 1
+                    continue
+            
+            logger.info(f"Migration completed: {updated_count} documents updated, {skipped_count} skipped, {error_count} errors")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Migration failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """Remove prompt_id and prompt_version fields from llm_runs collection"""
+        try:
+            result = await db.llm_runs.update_many(
+                {
+                    "$or": [
+                        {"prompt_id": {"$exists": True}},
+                        {"prompt_version": {"$exists": True}}
+                    ]
+                },
+                {
+                    "$unset": {
+                        "prompt_id": "",
+                        "prompt_version": ""
+                    }
+                }
+            )
+            
+            logger.info(f"Removed prompt_id and prompt_version fields from {result.modified_count} documents")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -1450,6 +1545,7 @@ MIGRATIONS = [
     RenamePromptIdToPromptRevId(),
     RenameLlmRunsCollection(),
     RemoveLlmModelsAndTokens(),
+    AddPromptIdAndVersionToLlmRuns(),
     # Add more migrations here
 ]
 
