@@ -386,12 +386,13 @@ export const runLLMApi = async (params: RunLLMParams) => {
 };
 
 export const getLLMResultApi = async (params: GetLLMResultParams) => {
-  const { organizationId, documentId, promptRevId } = params;
+  const { organizationId, documentId, promptRevId, fallback } = params;
   const response = await api.get<GetLLMResultResponse>(
     `/v0/orgs/${organizationId}/llm/result/${documentId}`,
     {
       params: {
-        prompt_rev_id: promptRevId
+        prompt_rev_id: promptRevId,
+        fallback: fallback
       }
     }
   );

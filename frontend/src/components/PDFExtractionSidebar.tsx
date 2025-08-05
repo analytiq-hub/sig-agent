@@ -53,6 +53,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
             organizationId: organizationId,
             documentId: id, 
             promptRevId: 'default',
+            fallback: false
           });
           setLlmResults(prev => ({
             ...prev,
@@ -100,6 +101,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
           organizationId: organizationId,
           documentId: id, 
           promptRevId: promptId,
+          fallback: false
         });
         setLlmResults(prev => ({
           ...prev,
@@ -136,7 +138,8 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
       const result = await getLLMResultApi({
         organizationId: organizationId,
         documentId: id,
-        promptRevId: promptId
+        promptRevId: promptId,
+        fallback: false
       });
       
       setLlmResults(prev => ({

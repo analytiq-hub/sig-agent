@@ -719,6 +719,7 @@ async def get_llm_result(
     organization_id: str,
     document_id: str,
     prompt_rev_id: str = Query(default="default", description="The prompt revision ID to retrieve"),
+    fallback: bool = Query(default=False, description="Whether to return a fallback result if the prompt revision is not found"),
     current_user: User = Depends(get_org_user)
 ):
     """
