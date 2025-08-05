@@ -7,6 +7,7 @@ from pydantic import BaseModel, create_model
 from typing import Optional, Dict, Any
 from collections import OrderedDict
 import logging
+from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
@@ -209,6 +210,31 @@ async def get_llm_result(analytiq_client,
         
     return None
 
+async def get_prompt_info_from_rev_id(analytiq_client, prompt_rev_id: str) -> tuple[str, int]:
+    """
+    Get prompt_id and prompt_version from prompt_rev_id.
+    
+    Args:
+        analytiq_client: The AnalytiqClient instance
+        prompt_rev_id: The prompt revision ID
+        
+    Returns:
+        tuple[str, int]: (prompt_id, prompt_version)
+    """
+    # Special case for the default prompt
+    if prompt_rev_id == "default":
+        return "default", 1
+    
+    db_name = analytiq_client.env
+    db = analytiq_client.mongodb_async[db_name]
+    
+    # Get the prompt revision
+    elem = await db.prompt_revisions.find_one({"_id": ObjectId(prompt_rev_id)})
+    if elem is None:
+        raise ValueError(f"Prompt revision {prompt_rev_id} not found")
+    
+    return str(elem["prompt_id"]), elem["prompt_version"]
+
 async def save_llm_result(analytiq_client, 
                           document_id: str,
                           prompt_rev_id: str, 
@@ -227,9 +253,14 @@ async def save_llm_result(analytiq_client,
     db = analytiq_client.mongodb_async[db_name]
 
     current_time_utc = datetime.now(UTC)
+    
+    # Get prompt_id and prompt_version from prompt_rev_id
+    prompt_id, prompt_version = await get_prompt_info_from_rev_id(analytiq_client, prompt_rev_id)
 
     element = {
         "prompt_rev_id": prompt_rev_id,
+        "prompt_id": prompt_id,
+        "prompt_version": prompt_version,
         "document_id": document_id,
         "llm_result": llm_result,
         "updated_llm_result": llm_result.copy(),
