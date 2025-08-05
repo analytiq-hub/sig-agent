@@ -217,7 +217,6 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   const updateFormInitialDataFromLLM = useCallback(() => {
     console.log('🔄 updateFormInitialDataFromLLM called');
     console.log('Available forms:', availableForms.map(f => f.name));
-    console.log('Current formInitialData keys:', Object.keys(formInitialData));
     console.log('Current llmResults keys:', Object.keys(llmResults));
     
     availableForms.forEach(form => {
@@ -238,6 +237,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       // Always update to support multiple LLM results
       if (Object.keys(llmInitialData).length > 0) {
         setFormInitialData(prev => {
+          console.log('Current formInitialData keys:', Object.keys(prev));
           const existingData = prev[form.form_revid];
           
           // Merge with existing data if it exists
@@ -277,7 +277,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         });
       }
     });
-  }, [availableForms, generateInitialFormData, llmResults, existingSubmissions]); // Removed formInitialData to prevent infinite loop
+  }, [availableForms, generateInitialFormData, llmResults, existingSubmissions]);
 
   // Track which LLM results we've already processed to avoid infinite loops
   const processedLlmResults = useRef<Set<string>>(new Set());
