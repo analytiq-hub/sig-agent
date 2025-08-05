@@ -35,6 +35,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   const [deletingSubmissions, setDeletingSubmissions] = useState<Set<string>>(new Set());
   const [llmResults, setLlmResults] = useState<Record<string, GetLLMResultResponse>>({});
   const [llmResultsLoading, setLlmResultsLoading] = useState<Set<string>>(new Set());
+  const [llmResultsFailed, setLlmResultsFailed] = useState<Set<string>>(new Set());
   const [formInitialData, setFormInitialData] = useState<Record<string, Record<string, unknown>>>({});
 
   const fetchData = useCallback(async () => {
@@ -299,8 +300,8 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   
   // Load LLM result for a specific prompt
   const loadLLMResult = useCallback(async (promptId: string) => {
-    if (llmResults[promptId] || llmResultsLoading.has(promptId)) {
-      return; // Already loaded or loading
+    if (llmResults[promptId] || llmResultsLoading.has(promptId) || llmResultsFailed.has(promptId)) {
+      return; // Already loaded, loading, or failed
     }
 
     setLlmResultsLoading(prev => new Set(prev).add(promptId));
@@ -319,7 +320,10 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       
       console.log(`✅ LLM result loaded for prompt ${promptId}: ${JSON.stringify(result)}`);
     } catch (error) {
-      console.error(`Error loading LLM result for prompt ${promptId}:`, error);
+      console.error(`❌ LLM result failed for prompt ${promptId}:`, error);
+      
+      // Mark as failed to prevent infinite retries
+      setLlmResultsFailed(prev => new Set(prev).add(promptId));
     } finally {
       setLlmResultsLoading(prev => {
         const newSet = new Set(prev);
@@ -327,7 +331,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         return newSet;
       });
     }
-  }, [organizationId, id, llmResults, llmResultsLoading, updateFormInitialDataFromLLM]);
+  }, [organizationId, id, llmResults, llmResultsLoading, llmResultsFailed]);
 
 
 
@@ -359,15 +363,17 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     console.log(`Form ${form.name} requires LLM results for prompts:`, Array.from(requiredPromptIds));
     console.log(`Current LLM results:`, Object.keys(llmResults));
     console.log(`Currently loading:`, Array.from(llmResultsLoading));
+    console.log(`Failed LLM results:`, Array.from(llmResultsFailed));
 
-    // All required prompts must have results loaded
+    // All required prompts must be either loaded successfully OR failed (don't wait for non-existent data)
     const isReady = Array.from(requiredPromptIds).every(promptId => 
-      llmResults[promptId] && !llmResultsLoading.has(promptId)
+      (llmResults[promptId] && !llmResultsLoading.has(promptId)) || // Successfully loaded
+      llmResultsFailed.has(promptId) // Failed to load (don't wait forever)
     );
     
     console.log(`Form ${form.name} ready to render:`, isReady);
     return isReady;
-  }, [existingSubmissions, llmResults, llmResultsLoading]);
+  }, [existingSubmissions, llmResults, llmResultsLoading, llmResultsFailed]);
 
   // Add useEffect to load existing submissions when forms are loaded
   useEffect(() => {
