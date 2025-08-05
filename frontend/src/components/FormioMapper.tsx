@@ -28,7 +28,7 @@ interface SchemaField {
   path: string;
   type: string;
   description?: string;
-  promptId: string;
+  promptRevId: string;
   promptName: string;
   depth: number; // Nesting level for indentation
   isExpandable: boolean; // Whether this field has children (object/array)
@@ -166,7 +166,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
                 path: fullPath,
                 type: fieldDef.type,
                 description: fieldDef.description,
-                promptId: prompt.prompt_revid,
+                promptRevId: prompt.prompt_revid,
                 promptName: prompt.name,
                 depth: depth,
                 isExpandable: isExpandable,
@@ -369,13 +369,13 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
 
   // Group schema fields by prompt
   const groupedSchemaFields = filteredSchemaFields.reduce((acc, field) => {
-    if (!acc[field.promptId]) {
-      acc[field.promptId] = {
+    if (!acc[field.promptRevId]) {
+      acc[field.promptRevId] = {
         promptName: field.promptName,
         fields: []
       };
     }
-    acc[field.promptId].fields.push(field);
+    acc[field.promptRevId].fields.push(field);
     return acc;
   }, {} as Record<string, { promptName: string; fields: SchemaField[] }>);
 
@@ -405,7 +405,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
 
       // Create new source
       const newSource: FieldMappingSource = {
-        promptId: schemaField.promptId,
+        promptRevId: schemaField.promptRevId,
         promptName: schemaField.promptName,
         schemaFieldPath: schemaField.path,
         schemaFieldName: schemaField.name,
@@ -516,7 +516,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
     const pathParts = field.parentPath.split('.');
     for (let i = 1; i <= pathParts.length; i++) {
       const parentPath = pathParts.slice(0, i).join('.');
-      if (!expandedFields.has(`${field.promptId}-${parentPath}`)) {
+      if (!expandedFields.has(`${field.promptRevId}-${parentPath}`)) {
         return false;
       }
     }
@@ -525,7 +525,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
 
   // Toggle field expansion
   const toggleFieldExpansion = (field: SchemaField) => {
-    const fieldKey = `${field.promptId}-${field.path}`;
+    const fieldKey = `${field.promptRevId}-${field.path}`;
     setExpandedFields(prev => {
       const newSet = new Set(prev);
       if (newSet.has(fieldKey)) {
@@ -586,20 +586,20 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
             </div>
           ) : (
             <div className="space-y-2">
-              {Object.entries(groupedSchemaFields).map(([promptId, { promptName, fields }]) => (
-                <div key={promptId} className="border rounded-lg">
+              {Object.entries(groupedSchemaFields).map(([promptRevId, { promptName, fields }]) => (
+                <div key={promptRevId} className="border rounded-lg">
                   <button
                     onClick={() => setExpandedPrompts(prev => 
-                      prev.has(promptId) 
-                        ? new Set(Array.from(prev).filter(id => id !== promptId))
-                        : new Set([...Array.from(prev), promptId])
+                      prev.has(promptRevId) 
+                        ? new Set(Array.from(prev).filter(id => id !== promptRevId))
+                        : new Set([...Array.from(prev), promptRevId])
                     )}
                     className="w-full px-3 py-2 flex items-center justify-between bg-gray-50 hover:bg-gray-100 text-left"
                   >
                     <span className="font-medium text-sm">{promptName}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-500">{fields.length} fields</span>
-                      {expandedPrompts.has(promptId) ? (
+                      {expandedPrompts.has(promptRevId) ? (
                         <ChevronDownIcon className="h-4 w-4" />
                       ) : (
                         <ChevronRightIcon className="h-4 w-4" />
@@ -607,7 +607,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
                     </div>
                   </button>
                   
-                  {expandedPrompts.has(promptId) && (
+                  {expandedPrompts.has(promptRevId) && (
                     <div className="p-2 space-y-1">
                       {fields.filter(field => isFieldVisible(field)).map((field) => (
                         <div
@@ -622,9 +622,9 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
                                 <button
                                   onClick={() => toggleFieldExpansion(field)}
                                   className="text-gray-500 hover:text-gray-700 p-0.5"
-                                  title={expandedFields.has(`${field.promptId}-${field.path}`) ? 'Collapse' : 'Expand'}
+                                  title={expandedFields.has(`${field.promptRevId}-${field.path}`) ? 'Collapse' : 'Expand'}
                                 >
-                                  {expandedFields.has(`${field.promptId}-${field.path}`) ? (
+                                  {expandedFields.has(`${field.promptRevId}-${field.path}`) ? (
                                     <ChevronDownIcon className="h-3 w-3" />
                                   ) : (
                                     <ChevronRightIcon className="h-3 w-3" />

@@ -179,8 +179,8 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       const values: string[] = [];
 
       mapping.sources.forEach((source: FieldMappingSource) => {
-        const llmResult = llmResults[source.promptId];
-        console.log(`LLM result for prompt ${source.promptId}:`, llmResult);
+        const llmResult = llmResults[source.promptRevId];
+        console.log(`LLM result for prompt ${source.promptRevId}:`, llmResult);
         
         if (llmResult) {
           const resultData = llmResult.is_edited ? llmResult.updated_llm_result : llmResult.llm_result;
@@ -299,36 +299,36 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   }, [llmResults, updateFormInitialDataFromLLM]);
   
   // Load LLM result for a specific prompt
-  const loadLLMResult = useCallback(async (promptId: string) => {
-    if (llmResults[promptId] || llmResultsLoading.has(promptId) || llmResultsFailed.has(promptId)) {
+  const loadLLMResult = useCallback(async (promptRevId: string) => {
+    if (llmResults[promptRevId] || llmResultsLoading.has(promptRevId) || llmResultsFailed.has(promptRevId)) {
       return; // Already loaded, loading, or failed
     }
 
-    setLlmResultsLoading(prev => new Set(prev).add(promptId));
+    setLlmResultsLoading(prev => new Set(prev).add(promptRevId));
     
     try {
       const result = await getLLMResultApi({
         organizationId,
         documentId: id,
-        promptRevId: promptId,
+        promptRevId: promptRevId,
         fallback: true
       });
       
       setLlmResults(prev => ({
         ...prev,
-        [promptId]: result
+        [promptRevId]: result
       }));
       
-      console.log(`✅ LLM result loaded for prompt ${promptId}: ${JSON.stringify(result)}`);
+      console.log(`✅ LLM result loaded for prompt ${promptRevId}: ${JSON.stringify(result)}`);
     } catch (error) {
-      console.info(`❌ LLM result failed for prompt ${promptId}: ${error instanceof Error ? error.message : String(error)}`);
+      console.info(`❌ LLM result failed for prompt ${promptRevId}: ${error instanceof Error ? error.message : String(error)}`);
       
       // Mark as failed to prevent infinite retries
-      setLlmResultsFailed(prev => new Set(prev).add(promptId));
+      setLlmResultsFailed(prev => new Set(prev).add(promptRevId));
     } finally {
       setLlmResultsLoading(prev => {
         const newSet = new Set(prev);
-        newSet.delete(promptId);
+        newSet.delete(promptRevId);
         return newSet;
       });
     }
@@ -354,22 +354,22 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     }
 
     // Check if all required LLM results are loaded
-    const requiredPromptIds = new Set<string>();
+    const requiredPromptRevIds = new Set<string>();
     Object.values(mappings).forEach((mapping: FieldMapping) => {
       mapping.sources.forEach((source: FieldMappingSource) => {
-        requiredPromptIds.add(source.promptId);
+        requiredPromptRevIds.add(source.promptRevId);
       });
     });
 
-    console.log(`Form ${form.name} requires LLM results for prompts:`, Array.from(requiredPromptIds));
+    console.log(`Form ${form.name} requires LLM results for prompts:`, Array.from(requiredPromptRevIds));
     console.log(`Current LLM results:`, Object.keys(llmResults));
     console.log(`Currently loading:`, Array.from(llmResultsLoading));
     console.log(`Failed LLM results:`, Array.from(llmResultsFailed));
 
     // All required prompts must be either loaded successfully OR failed (don't wait for non-existent data)
-    const isReady = Array.from(requiredPromptIds).every(promptId => 
-      (llmResults[promptId] && !llmResultsLoading.has(promptId)) || // Successfully loaded
-      llmResultsFailed.has(promptId) // Failed to load (don't wait forever)
+    const isReady = Array.from(requiredPromptRevIds).every(promptRevId => 
+      (llmResults[promptRevId] && !llmResultsLoading.has(promptRevId)) || // Successfully loaded
+      llmResultsFailed.has(promptRevId) // Failed to load (don't wait forever)
     );
     
     console.log(`Form ${form.name} ready to render:`, isReady);
@@ -393,16 +393,16 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         if (!existingSubmissions[form.form_revid]) {
           const mappings = form.response_format.json_formio_mapping;
           if (mappings) {
-            const requiredPromptIds = new Set<string>();
+            const requiredPromptRevIds = new Set<string>();
             Object.values(mappings).forEach((mapping: FieldMapping) => {
               mapping.sources.forEach((source: FieldMappingSource) => {
-                requiredPromptIds.add(source.promptId);
+                requiredPromptRevIds.add(source.promptRevId);
               });
             });
             
             // Load each required LLM result
-            requiredPromptIds.forEach(promptId => {
-              loadLLMResult(promptId);
+            requiredPromptRevIds.forEach(promptRevId => {
+              loadLLMResult(promptRevId);
             });
           }
         }

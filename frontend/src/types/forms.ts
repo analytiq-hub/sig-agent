@@ -15,7 +15,7 @@ export interface Form {
 }
 
 export interface FieldMappingSource {
-  promptId: string;
+  promptRevId: string;
   promptName: string;
   schemaFieldPath: string;
   schemaFieldName: string;
