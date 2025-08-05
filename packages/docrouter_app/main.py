@@ -719,7 +719,7 @@ async def get_llm_result(
     organization_id: str,
     document_id: str,
     prompt_rev_id: str = Query(default="default", description="The prompt revision ID to retrieve"),
-    fallback: bool = Query(default=False, description="Whether to return a fallback result if the prompt revision is not found"),
+    latest: bool = Query(default=False, description="Whether to return the result for the most recent available prompt revision"),
     current_user: User = Depends(get_org_user)
 ):
     """
@@ -733,11 +733,11 @@ async def get_llm_result(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    llm_result = await ad.llm.get_llm_result(analytiq_client, document_id, prompt_rev_id, fallback)
+    llm_result = await ad.llm.get_llm_result(analytiq_client, document_id, prompt_rev_id, latest)
     if not llm_result:
         raise HTTPException(
             status_code=404,
-            detail=f"LLM result not found for document_id: {document_id} prompt_rev_id: {prompt_rev_id} fallback: {fallback}"
+            detail=f"LLM result not found for document_id: {document_id} prompt_rev_id: {prompt_rev_id} latest: {latest}"
         )
     
     return llm_result

@@ -53,7 +53,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
             organizationId: organizationId,
             documentId: id, 
             promptRevId: 'default',
-            fallback: false
+            latest: false
           });
           setLlmResults(prev => ({
             ...prev,
@@ -101,7 +101,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
           organizationId: organizationId,
           documentId: id, 
           promptRevId: promptId,
-          fallback: true
+          latest: true
         });
         setLlmResults(prev => ({
           ...prev,
@@ -139,7 +139,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
         organizationId: organizationId,
         documentId: id,
         promptRevId: promptId,
-        fallback: false
+        latest: false
       });
       
       setLlmResults(prev => ({
