@@ -222,9 +222,9 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     availableForms.forEach(form => {
       console.log(`Processing form ${form.name} (${form.form_revid})`);
       
-      // Skip if form initial data is already set
-      if (formInitialData[form.form_revid]) {
-        console.log(`Skipping ${form.name} - initial data already set`);
+      // Skip if form has existing submission (don't overwrite user-submitted data)
+      if (existingSubmissions[form.form_revid]) {
+        console.log(`Skipping ${form.name} - has existing submission, won't overwrite`);
         return;
       }
       
@@ -234,36 +234,65 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       console.log(`Generated data for ${form.name}:`, llmInitialData);
       console.log(`Data length: ${Object.keys(llmInitialData).length}`);
       
-      // Update even if empty to prevent infinite calls, but log differently
+      // Always update to support multiple LLM results
       if (Object.keys(llmInitialData).length > 0) {
-        // Format LLM data to match Form.io submission structure
-        const formattedData = {
-          data: llmInitialData, // Nest the actual field data inside 'data'
-          metadata: {},
-          state: "draft"
-        };
-        
-        console.log(`🤖 Setting initial data from LLM OUTPUT for form ${form.name}:`, formattedData);
-        
-        setFormInitialData(prev => ({
-          ...prev,
-          [form.form_revid]: formattedData
-        }));
+        setFormInitialData(prev => {
+          const existingData = prev[form.form_revid];
+          
+          // Merge with existing data if it exists
+          const mergedData = existingData ? 
+            { ...existingData.data, ...llmInitialData } : // Merge field data
+            llmInitialData; // Use new data
+          
+          // Format LLM data to match Form.io submission structure
+          const formattedData = {
+            data: mergedData,
+            metadata: existingData?.metadata || {},
+            state: "draft"
+          };
+          
+          if (existingData) {
+            console.log(`🔄 Merging additional LLM data for form ${form.name}:`, formattedData);
+          } else {
+            console.log(`🤖 Setting initial data from LLM OUTPUT for form ${form.name}:`, formattedData);
+          }
+          
+          return {
+            ...prev,
+            [form.form_revid]: formattedData
+          };
+        });
       } else {
-        console.log(`⚠️ Setting empty initial data for form ${form.name} (no LLM data available)`);
-        
-        setFormInitialData(prev => ({
-          ...prev,
-          [form.form_revid]: { data: {}, metadata: {}, state: "draft" }
-        }));
+        setFormInitialData(prev => {
+          // Only set empty data if no data exists yet
+          if (!prev[form.form_revid]) {
+            console.log(`⚠️ Setting empty initial data for form ${form.name} (no LLM data available)`);
+            return {
+              ...prev,
+              [form.form_revid]: { data: {}, metadata: {}, state: "draft" }
+            };
+          }
+          return prev; // No change needed
+        });
       }
     });
-  }, [availableForms, formInitialData, generateInitialFormData, llmResults]); // Added llmResults dependency
+  }, [availableForms, generateInitialFormData, llmResults, existingSubmissions]); // Removed formInitialData to prevent infinite loop
 
-  // Automatically update form initial data when LLM results change
+  // Track which LLM results we've already processed to avoid infinite loops
+  const processedLlmResults = useRef<Set<string>>(new Set());
+  
+  // Automatically update form initial data when NEW LLM results are added
   useEffect(() => {
-    if (Object.keys(llmResults).length > 0) {
-      console.log('🔄 LLM results changed, triggering form data update');
+    const currentLlmKeys = Object.keys(llmResults);
+    const newLlmKeys = currentLlmKeys.filter(key => !processedLlmResults.current.has(key));
+    
+    if (newLlmKeys.length > 0) {
+      console.log('🔄 New LLM results detected:', newLlmKeys, 'triggering form data update');
+      
+      // Mark these as processed
+      newLlmKeys.forEach(key => processedLlmResults.current.add(key));
+      
+      // Update form data
       updateFormInitialDataFromLLM();
     }
   }, [llmResults, updateFormInitialDataFromLLM]);
