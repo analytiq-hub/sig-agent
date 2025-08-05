@@ -201,20 +201,7 @@ async def get_llm_result(analytiq_client,
         sort=[("_id", -1)]
     )
     
-    if result:
-        # Remove MongoDB's _id field
-        result.pop('_id', None)
-
-        # Add prompt_id and prompt_version if not present
-        if "prompt_id" not in result or "prompt_version" not in result:
-            prompt_info = await get_prompt_info_from_rev_id(analytiq_client, prompt_rev_id)
-            result["prompt_id"] = prompt_info[0]
-            result["prompt_version"] = prompt_info[1]
-
-        logger.info(f"LLM result: {result}")
-        return result
-        
-    return None
+    return result
 
 async def get_prompt_info_from_rev_id(analytiq_client, prompt_rev_id: str) -> tuple[str, int]:
     """
