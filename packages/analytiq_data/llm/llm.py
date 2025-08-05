@@ -1,6 +1,7 @@
 import asyncio
 import analytiq_data as ad
 import litellm
+from litellm.utils import supports_pdf_input  # Add this import
 import json
 from datetime import datetime, UTC
 from pydantic import BaseModel, create_model
@@ -8,6 +9,7 @@ from typing import Optional, Dict, Any
 from collections import OrderedDict
 import logging
 from bson import ObjectId
+import base64
 
 logger = logging.getLogger(__name__)
 
@@ -82,18 +84,69 @@ async def run_llm(analytiq_client,
     ocr_text = ad.common.get_ocr_text(analytiq_client, document_id)
     prompt1 = await ad.common.get_prompt_content(analytiq_client, prompt_rev_id)
     
-    # Build the prompt
-    prompt = f"""{prompt1}
-
-        Now extract from this text: 
-        
-        {ocr_text}"""
-
+    # Define system_prompt before using it
     system_prompt = (
         "You are a helpful assistant that extracts document information into JSON format. "
         "Always respond with valid JSON only, no other text. "
         "Format your entire response as a JSON object."
     )
+    
+    # Check if this model supports vision and we have a PDF
+    use_vision = supports_pdf_input(llm_model, None) and doc.get("pdf_file_name")
+    
+    if use_vision:
+        # Get the PDF file
+        pdf_file = ad.common.get_file(analytiq_client, doc["pdf_file_name"])
+        if pdf_file and pdf_file["blob"]:
+            # For vision models, we can pass both the PDF and OCR text
+            # The PDF provides visual context, OCR text provides structured text
+            prompt = f"""{prompt1}
+
+            Please analyze this document. You have access to both the visual PDF and the extracted text.
+            
+            Extracted text from the document:
+            {ocr_text}
+            
+            Please provide your analysis based on both the visual content and the text."""
+            
+            # Create base64 URL for the PDF
+            encoded_file = base64.b64encode(pdf_file['blob']).decode("utf-8")
+            base64_url = f"data:application/pdf;base64,{encoded_file}"
+            
+            # Create messages with file attachment using litellm format
+            file_content = [
+                {"type": "text", "text": prompt},
+                {
+                    "type": "file",
+                    "file": {
+                        "file_data": base64_url,
+                    }
+                },
+            ]
+            
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": file_content}
+            ]
+            logger.info(f"Attaching OCR and PDF to prompt {prompt_rev_id}")
+        else:
+            # Fallback to OCR-only if PDF not available
+            use_vision = False
+    
+    if not use_vision:
+        # Original OCR-only approach
+        prompt = f"""{prompt1}
+
+        Now extract from this text: 
+        
+        {ocr_text}"""
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ]
+
+        logger.info(f"Attaching OCR-only to prompt {prompt_rev_id}")
 
     response_format = None
     
@@ -124,10 +177,7 @@ async def run_llm(analytiq_client,
     # 6. Call the LLM
     response = await litellm.acompletion(
         model=llm_model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
-        ],
+        messages=messages,  # Use the vision-aware messages
         api_key=api_key,
         temperature=0.1,
         response_format=response_format,
