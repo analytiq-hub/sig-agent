@@ -20,6 +20,7 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const modelRef = useRef<monaco.editor.ITextModel | null>(null);
   const subscriptionRef = useRef<monaco.IDisposable | null>(null);
+  const isDisposedRef = useRef(false);
 
   // Initialize editor once with layout effect
   useEffect(() => {
@@ -46,17 +47,35 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (subscriptionRef.current) {
-        subscriptionRef.current.dispose();
-        subscriptionRef.current = null;
+      if (isDisposedRef.current) return;
+      
+      isDisposedRef.current = true;
+      
+      try {
+        if (subscriptionRef.current) {
+          subscriptionRef.current.dispose();
+          subscriptionRef.current = null;
+        }
+      } catch (error) {
+        console.warn('Monaco subscription disposal error:', error);
       }
-      if (editorRef.current) {
-        editorRef.current.dispose();
-        editorRef.current = null;
+
+      try {
+        if (editorRef.current) {
+          editorRef.current.dispose();
+          editorRef.current = null;
+        }
+      } catch (error) {
+        console.warn('Monaco editor disposal error:', error);
       }
-      if (modelRef.current) {
-        modelRef.current.dispose();
-        modelRef.current = null;
+
+      try {
+        if (modelRef.current) {
+          modelRef.current.dispose();
+          modelRef.current = null;
+        }
+      } catch (error) {
+        console.warn('Monaco model disposal error:', error);
       }
     };
   }, []); // Empty deps since this is cleanup only
