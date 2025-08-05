@@ -852,45 +852,56 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
         </div>
 
         {/* Other Prompts */}
-        {matchingPrompts.map((prompt) => (
-          <div key={prompt.prompt_revid} className="border-b border-black/10">
-            <div
-              onClick={() => handlePromptChange(prompt.prompt_revid)}
-              className="w-full min-h-[48px] flex items-center justify-between px-4 bg-gray-100/[0.6] hover:bg-gray-100/[0.8] transition-colors cursor-pointer"
-            >
-              <span className="text-sm text-gray-900">
-                {prompt.name} <span className="text-gray-500 text-xs">(v{prompt.prompt_version})</span>
-              </span>
-              <div className="flex items-center gap-2">
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRunPrompt(prompt.prompt_revid);
-                  }}
-                  className="p-1 rounded-full hover:bg-black/5 transition-colors cursor-pointer"
-                >
-                  {runningPrompts.has(prompt.prompt_revid) ? (
-                    <div className="w-4 h-4 border-2 border-[#2B4479]/60 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <ArrowPathIcon className="w-4 h-4 text-gray-600" />
-                  )}
+        {matchingPrompts.map((prompt) => {
+          const isExpanded = expandedPrompt === prompt.prompt_revid;
+          const llmResult = llmResults[prompt.prompt_revid];
+          const retrievedVersion = llmResult?.prompt_version;
+          
+          return (
+            <div key={prompt.prompt_revid} className="border-b border-black/10">
+              <div
+                onClick={() => handlePromptChange(prompt.prompt_revid)}
+                className="w-full min-h-[48px] flex items-center justify-between px-4 bg-gray-100/[0.6] hover:bg-gray-100/[0.8] transition-colors cursor-pointer"
+              >
+                <span className="text-sm text-gray-900">
+                  {prompt.name} <span className="text-gray-500 text-xs">
+                    {isExpanded && retrievedVersion !== undefined 
+                      ? `(v${retrievedVersion})` 
+                      : `(v${prompt.prompt_version})`
+                    }
+                  </span>
+                </span>
+                <div className="flex items-center gap-2">
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRunPrompt(prompt.prompt_revid);
+                    }}
+                    className="p-1 rounded-full hover:bg-black/5 transition-colors cursor-pointer"
+                  >
+                    {runningPrompts.has(prompt.prompt_revid) ? (
+                      <div className="w-4 h-4 border-2 border-[#2B4479]/60 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <ArrowPathIcon className="w-4 h-4 text-gray-600" />
+                    )}
+                  </div>
+                  <ChevronDownIcon 
+                    className={`w-5 h-5 text-gray-600 transition-transform ${
+                      isExpanded ? 'rotate-180' : ''
+                    }`}
+                  />
                 </div>
-                <ChevronDownIcon 
-                  className={`w-5 h-5 text-gray-600 transition-transform ${
-                    expandedPrompt === prompt.prompt_revid ? 'rotate-180' : ''
-                  }`}
-                />
+              </div>
+              <div 
+                className={`transition-all duration-200 ease-in-out ${
+                  isExpanded ? '' : 'hidden'
+                }`}
+              >
+                {renderPromptResults(prompt.prompt_revid)}
               </div>
             </div>
-            <div 
-              className={`transition-all duration-200 ease-in-out ${
-                expandedPrompt === prompt.prompt_revid ? '' : 'hidden'
-              }`}
-            >
-              {renderPromptResults(prompt.prompt_revid)}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

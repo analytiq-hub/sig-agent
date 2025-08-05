@@ -60,7 +60,9 @@ export interface GetLLMResultParams {
 }
 
 export interface GetLLMResultResponse {
+  prompt_rev_id: string;
   prompt_id: string;
+  prompt_version: number;
   document_id: string;
   llm_result: Record<string, JsonValue>;
   updated_llm_result: Record<string, JsonValue>;
