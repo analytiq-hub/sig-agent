@@ -11,6 +11,7 @@ import logging
 from bson import ObjectId
 import base64
 import re
+from .llm_output_utils import process_llm_resp_content
 
 logger = logging.getLogger(__name__)
 
@@ -230,43 +231,14 @@ async def run_llm(analytiq_client,
     # 7. Deduct credits
     await ad.payments.record_spu_usage(org_id, total_spu_needed)
 
-    logger.info(f"LLM response: {response}")
-
     # Skip any <think> ... </think> blocks
     resp_content = response.choices[0].message.content
 
-    logger.info(f"LLM response content: {resp_content}")
-
-    if llm_provider == "groq":
-        # Groq doesn't support response_format parameter
-        resp_content = re.sub(r'<think>.*?</think>', '', resp_content, flags=re.DOTALL)
-
-        # Groq could return json with a markdown code block, perhaps prepeded by newlines
-        resp_content = resp_content.strip()
-
-        # Try to extract JSON from various formats
-        # First, try to find JSON in markdown code blocks
-        if resp_content.startswith("```json"):
-            resp_content = resp_content[7:]
-            resp_content = resp_content.split("```")[0]
-            resp_content = resp_content.strip()
-        elif "```json" in resp_content:
-            # Find the start and end of the JSON code block
-            start = resp_content.find("```json") + 7
-            end = resp_content.find("```", start)
-            if end != -1:
-                resp_content = resp_content[start:end].strip()
-        
-        # If we still don't have valid JSON, try to find JSON object in the content
-        if not resp_content.startswith('{'):
-            # Look for the first { and last } to extract JSON
-            start = resp_content.find('{')
-            end = resp_content.rfind('}')
-            if start != -1 and end != -1 and end > start:
-                resp_content = resp_content[start:end+1]
+    # Process response based on LLM provider
+    resp_content1 = process_llm_resp_content(resp_content, llm_provider)
 
     # 8. Return the response
-    resp_dict = json.loads(resp_content)
+    resp_dict = json.loads(resp_content1)
 
     # If this is not the default prompt, reorder the response to match schema
     if prompt_rev_id != "default":
