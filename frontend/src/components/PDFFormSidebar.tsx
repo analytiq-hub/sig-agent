@@ -320,7 +320,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       
       console.log(`✅ LLM result loaded for prompt ${promptId}: ${JSON.stringify(result)}`);
     } catch (error) {
-      console.error(`❌ LLM result failed for prompt ${promptId}:`, error);
+      console.info(`❌ LLM result failed for prompt ${promptId}: ${error instanceof Error ? error.message : String(error)}`);
       
       // Mark as failed to prevent infinite retries
       setLlmResultsFailed(prev => new Set(prev).add(promptId));
