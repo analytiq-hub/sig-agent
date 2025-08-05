@@ -177,7 +177,8 @@ async def run_llm(analytiq_client,
 
 async def get_llm_result(analytiq_client,
                          document_id: str,
-                         prompt_rev_id: str) -> dict | None:
+                         prompt_rev_id: str,
+                         fallback: bool = False) -> dict | None:
     """
     Retrieve the latest LLM result from MongoDB.
     
@@ -200,6 +201,17 @@ async def get_llm_result(analytiq_client,
         },
         sort=[("_id", -1)]
     )
+
+    if not result and fallback:
+        # Get the prompt_id and prompt_version from the prompt_rev_id
+        prompt_id, _ = await get_prompt_info_from_rev_id(analytiq_client, prompt_rev_id)
+        result = await db.llm_runs.find_one(
+            {
+                "document_id": document_id,
+                "prompt_id": prompt_id,
+            },
+            sort=[("prompt_version", -1)]
+        )
     
     return result
 

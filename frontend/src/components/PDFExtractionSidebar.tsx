@@ -101,7 +101,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
           organizationId: organizationId,
           documentId: id, 
           promptRevId: promptId,
-          fallback: false
+          fallback: true
         });
         setLlmResults(prev => ({
           ...prev,

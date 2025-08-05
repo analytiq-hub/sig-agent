@@ -733,7 +733,7 @@ async def get_llm_result(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    llm_result = await ad.llm.get_llm_result(analytiq_client, document_id, prompt_rev_id)
+    llm_result = await ad.llm.get_llm_result(analytiq_client, document_id, prompt_rev_id, fallback)
     if not llm_result:
         raise HTTPException(
             status_code=404,
