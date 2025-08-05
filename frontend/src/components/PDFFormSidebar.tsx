@@ -241,8 +241,8 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
           const existingData = prev[form.form_revid];
           
           // Merge with existing data if it exists
-          const mergedData = existingData ? 
-            { ...existingData.data, ...llmInitialData } : // Merge field data
+          const mergedData = existingData && typeof existingData.data === 'object' && existingData.data ? 
+            { ...(existingData.data as Record<string, unknown>), ...llmInitialData } : // Merge field data
             llmInitialData; // Use new data
           
           // Format LLM data to match Form.io submission structure
