@@ -220,8 +220,8 @@ def get_llm_providers() -> dict:
         "openai": {
             "display_name": "OpenAI",
             "litellm_provider": "openai",
-            "litellm_models_available": ["gpt-4o-mini", "gpt-4.1-2025-04-14", "gpt-4.5-preview", "o4-mini"],
-            "litellm_models_enabled": ["gpt-4o-mini", "gpt-4.1-2025-04-14", "gpt-4.5-preview", "o4-mini"],
+            "litellm_models_available": ["gpt-4o-mini", "gpt-4.1-2025-04-14", "o4-mini"],
+            "litellm_models_enabled": ["gpt-4o-mini", "gpt-4.1-2025-04-14", "o4-mini"],
             "enabled": True,
             "token" : "",
             "token_created_at": None,
