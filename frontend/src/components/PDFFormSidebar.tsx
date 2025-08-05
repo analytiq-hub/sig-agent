@@ -214,25 +214,59 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
 
   // Update form initial data when LLM results are loaded
   const updateFormInitialDataFromLLM = useCallback(() => {
+    console.log('🔄 updateFormInitialDataFromLLM called');
+    console.log('Available forms:', availableForms.map(f => f.name));
+    console.log('Current formInitialData keys:', Object.keys(formInitialData));
+    console.log('Current llmResults keys:', Object.keys(llmResults));
+    
     availableForms.forEach(form => {
+      console.log(`Processing form ${form.name} (${form.form_revid})`);
+      
       // Skip if form initial data is already set
       if (formInitialData[form.form_revid]) {
+        console.log(`Skipping ${form.name} - initial data already set`);
         return;
       }
       
       // Generate initial data from LLM results
       const llmInitialData = generateInitialFormData(form);
       
-      // Only update if we have actual data
+      console.log(`Generated data for ${form.name}:`, llmInitialData);
+      console.log(`Data length: ${Object.keys(llmInitialData).length}`);
+      
+      // Update even if empty to prevent infinite calls, but log differently
       if (Object.keys(llmInitialData).length > 0) {
-        console.log(`🤖 Setting initial data from LLM OUTPUT for form ${form.name}:`, llmInitialData);
+        // Format LLM data to match Form.io submission structure
+        const formattedData = {
+          data: llmInitialData, // Nest the actual field data inside 'data'
+          metadata: {},
+          state: "draft"
+        };
+        
+        console.log(`🤖 Setting initial data from LLM OUTPUT for form ${form.name}:`, formattedData);
+        
         setFormInitialData(prev => ({
           ...prev,
-          [form.form_revid]: llmInitialData
+          [form.form_revid]: formattedData
+        }));
+      } else {
+        console.log(`⚠️ Setting empty initial data for form ${form.name} (no LLM data available)`);
+        
+        setFormInitialData(prev => ({
+          ...prev,
+          [form.form_revid]: { data: {}, metadata: {}, state: "draft" }
         }));
       }
     });
-  }, [availableForms, formInitialData, generateInitialFormData]);
+  }, [availableForms, formInitialData, generateInitialFormData, llmResults]); // Added llmResults dependency
+
+  // Automatically update form initial data when LLM results change
+  useEffect(() => {
+    if (Object.keys(llmResults).length > 0) {
+      console.log('🔄 LLM results changed, triggering form data update');
+      updateFormInitialDataFromLLM();
+    }
+  }, [llmResults, updateFormInitialDataFromLLM]);
   
   // Load LLM result for a specific prompt
   const loadLLMResult = useCallback(async (promptId: string) => {
@@ -254,8 +288,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         [promptId]: result
       }));
       
-      // Trigger initial data update for forms that depend on this LLM result
-      updateFormInitialDataFromLLM();
+      console.log(`✅ LLM result loaded for prompt ${promptId}: ${JSON.stringify(result)}`);
     } catch (error) {
       console.error(`Error loading LLM result for prompt ${promptId}:`, error);
     } finally {
