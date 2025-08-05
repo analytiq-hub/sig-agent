@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { useAppSession } from '@/contexts/AppSessionContext';
-import { getLLMResultApi } from '@/utils/api';
 
 // Global type declarations for the proxy helper
 declare global {
