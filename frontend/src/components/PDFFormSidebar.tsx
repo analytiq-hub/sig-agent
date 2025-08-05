@@ -311,7 +311,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         organizationId,
         documentId: id,
         promptRevId: promptId,
-        fallback: false
+        fallback: true
       });
       
       setLlmResults(prev => ({

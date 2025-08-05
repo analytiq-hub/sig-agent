@@ -737,7 +737,7 @@ async def get_llm_result(
     if not llm_result:
         raise HTTPException(
             status_code=404,
-            detail=f"LLM result not found for document_id: {document_id} and prompt_rev_id: {prompt_rev_id}"
+            detail=f"LLM result not found for document_id: {document_id} prompt_rev_id: {prompt_rev_id} fallback: {fallback}"
         )
     
     return llm_result
