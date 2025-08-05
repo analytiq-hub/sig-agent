@@ -35,6 +35,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   const [deletingSubmissions, setDeletingSubmissions] = useState<Set<string>>(new Set());
   const [llmResults, setLlmResults] = useState<Record<string, GetLLMResultResponse>>({});
   const [llmResultsLoading, setLlmResultsLoading] = useState<Set<string>>(new Set());
+  const [formInitialData, setFormInitialData] = useState<Record<string, Record<string, unknown>>>({});
 
   const fetchData = useCallback(async () => {
     try {
@@ -100,6 +101,15 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
           [formRevId]: submission
         }));
 
+        // Update initial data state with existing submission data (only if not already set)
+        if (!formInitialData[formRevId]) {
+          console.log(`📥 Setting initial data from EXISTING SUBMISSION for form ${formRevId}:`, submission.submission_data);
+          setFormInitialData(prev => ({
+            ...prev,
+            [formRevId]: submission.submission_data || {}
+          }));
+        }
+        
         console.log('submission', submission);
       }
     } catch (error) {
@@ -112,7 +122,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         return newSet;
       });
     }
-  }, [organizationId, id]);
+  }, [organizationId, id, formInitialData]);
 
   // Helper function to get value from nested object using path
   const getValueFromPath = (obj: Record<string, unknown>, path: string): unknown => {
@@ -202,6 +212,28 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     return initialData;
   }, [llmResults]);
 
+  // Update form initial data when LLM results are loaded
+  const updateFormInitialDataFromLLM = useCallback(() => {
+    availableForms.forEach(form => {
+      // Skip if form initial data is already set
+      if (formInitialData[form.form_revid]) {
+        return;
+      }
+      
+      // Generate initial data from LLM results
+      const llmInitialData = generateInitialFormData(form);
+      
+      // Only update if we have actual data
+      if (Object.keys(llmInitialData).length > 0) {
+        console.log(`🤖 Setting initial data from LLM OUTPUT for form ${form.name}:`, llmInitialData);
+        setFormInitialData(prev => ({
+          ...prev,
+          [form.form_revid]: llmInitialData
+        }));
+      }
+    });
+  }, [availableForms, formInitialData, generateInitialFormData]);
+  
   // Load LLM result for a specific prompt
   const loadLLMResult = useCallback(async (promptId: string) => {
     if (llmResults[promptId] || llmResultsLoading.has(promptId)) {
@@ -221,6 +253,9 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         ...prev,
         [promptId]: result
       }));
+      
+      // Trigger initial data update for forms that depend on this LLM result
+      updateFormInitialDataFromLLM();
     } catch (error) {
       console.error(`Error loading LLM result for prompt ${promptId}:`, error);
     } finally {
@@ -230,7 +265,9 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         return newSet;
       });
     }
-  }, [organizationId, id, llmResults, llmResultsLoading]);
+  }, [organizationId, id, llmResults, llmResultsLoading, updateFormInitialDataFromLLM]);
+
+
 
   // Check if a form needs LLM data and if it's ready to render
   const isFormReadyToRender = useCallback((form: Form): boolean => {
@@ -323,6 +360,15 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         ...prev,
         [form.form_revid]: result
       }));
+
+      // Update initial data state with submission data (only if not already set)
+      if (!formInitialData[form.form_revid]) {
+        console.log(`🔄 Setting initial data from NEW SUBMISSION for form ${form.name}:`, result.submission_data);
+        setFormInitialData(prev => ({
+          ...prev,
+          [form.form_revid]: result.submission_data || {}
+        }));
+      }
 
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -436,10 +482,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
                     jsonFormio={JSON.stringify(form.response_format.json_formio || [])}
                     onSubmit={(submission) => handleFormSubmit(form, submission)}
                     readOnly={submittingForms.has(form.form_revid)}
-                    initialData={
-                      existingSubmissions[form.form_revid]?.submission_data ||
-                      generateInitialFormData(form)
-                    }
+                    initialData={formInitialData[form.form_revid] || {}}
                     onFieldSearch={handleFormFieldSearch}
                   />
                 ) : (
