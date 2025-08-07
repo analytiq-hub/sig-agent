@@ -69,13 +69,10 @@ const FormioRenderer: React.FC<FormioRendererProps> = ({
               // For custom buttons, trigger redraw after execution
               if (this.component.action === 'custom') {
                 console.log('Custom button executed, triggering redraw...');
-                // Use setTimeout to ensure custom script has completed
-                setTimeout(() => {
-                  const form = this.getRoot();
-                  if (form && form.redraw) {
-                    form.redraw();
-                  }
-                }, 100);
+                const form = this.getRoot();
+                if (form && form.redraw) {
+                  form.redraw();
+                }
               }
               
               return result;
