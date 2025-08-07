@@ -52,6 +52,21 @@ const FormioRenderer: React.FC<FormioRendererProps> = ({
             onSubmit(submission);
           }
           next();
+        },
+        // Add component-specific hooks
+        component: function(this: any) {
+          // This hook is called for each component
+          if (this.type === 'button') {
+            // Override button click behavior
+            const originalOnClick = this.onClick;
+            this.onClick = function(event: unknown) {
+              console.log('Button clicked:', this.component.key, this.component.label);
+              // Call original onClick if it exists
+              if (originalOnClick) {
+                return originalOnClick.call(this, event);
+              }
+            };
+          }
         }
       }
     });
