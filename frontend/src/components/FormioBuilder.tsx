@@ -42,6 +42,9 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
     
     lastJsonFormio.current = currentJsonFormio;
 
+    // Capture the current element reference for listener add/remove and cleanup
+    const builderElement = builderRef.current;
+
     // Destroy existing builder if it exists
     if (builderInstance.current) {
       builderInstance.current.destroy();
@@ -63,8 +66,8 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
       }
     }
 
-    // Create the Formio builder
-    const builder = new FormBuilder(builderRef.current, form, {});
+    // Create the Formio builder using the captured element
+    const builder = new FormBuilder(builderElement, form, {});
     builderInstance.current = builder;
     
     // Listen to the correct FormBuilder events
@@ -92,35 +95,33 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
     // Listen via the events emitter directly
     if (builder.events) {
       (builder.events as { on: (event: string, handler: () => void) => void }).on('formio.change', handleFormChange);
-      // Also listen for component selection changes which can trigger during tab switching
       (builder.events as { on: (event: string, handler: () => void) => void }).on('componentChange', handleFormChange);
     }
 
     // Set up tab switching detection
     const handleTabClick = () => {
       isTabSwitching.current = true;
-      // Reset the flag after a short delay
       setTimeout(() => {
         isTabSwitching.current = false;
       }, 500);
     };
 
-    // Listen for tab clicks in the builder
-    if (builderRef.current) {
-      const tabElements = builderRef.current.querySelectorAll('.nav-link, .nav-item a, [role="tab"]');
+    // Also track clicks within the builder area (captured locally for cleanup)
+    const handleBuilderClick = (event: Event) => {
+      const target = event.target as HTMLElement;
+      if (target.closest('.nav-link, .nav-item a, [role="tab"]')) {
+        handleTabClick();
+      }
+    };
+    handleBuilderClickRef.current = handleBuilderClick;
+
+    // Listen for tab clicks in the builder using the captured element
+    if (builderElement) {
+      const tabElements = builderElement.querySelectorAll('.nav-link, .nav-item a, [role="tab"]');
       tabElements.forEach(tab => {
         tab.addEventListener('click', handleTabClick);
       });
-      
-      // Also listen for any clicks within the builder area that might be tab-related
-      handleBuilderClickRef.current = (event: Event) => {
-        const target = event.target as HTMLElement;
-        if (target.closest('.nav-link, .nav-item a, [role="tab"]')) {
-          handleTabClick();
-        }
-      };
-      
-      builderRef.current.addEventListener('click', handleBuilderClickRef.current);
+      builderElement.addEventListener('click', handleBuilderClick);
     }
 
     // Trigger initial change after builder is ready to sync the actual form structure
@@ -129,27 +130,26 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
       isUpdatingFromProps.current = false;
     }, 100);
 
-    // Cleanup on unmount
+    // Cleanup on unmount or when jsonFormio changes
     return () => {
       if (changeTimeoutRef.current) {
         clearTimeout(changeTimeoutRef.current);
       }
-      
-      // Remove event listeners
-      if (builderRef.current) {
-        const tabElements = builderRef.current.querySelectorAll('.nav-link, .nav-item a, [role="tab"]');
+
+      // Remove event listeners using captured references
+      if (builderElement) {
+        const tabElements = builderElement.querySelectorAll('.nav-link, .nav-item a, [role="tab"]');
         tabElements.forEach(tab => {
           tab.removeEventListener('click', handleTabClick);
         });
         if (handleBuilderClickRef.current) {
-          builderRef.current.removeEventListener('click', handleBuilderClickRef.current);
+          builderElement.removeEventListener('click', handleBuilderClickRef.current);
         }
       }
-      
-      if (builderInstance.current) {
-        builderInstance.current.destroy();
-        builderInstance.current = null;
-      }
+
+      // Destroy the specific builder created by this effect run
+      builder.destroy();
+      builderInstance.current = null;
     };
   }, [jsonFormio]);
 
