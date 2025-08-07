@@ -62,10 +62,23 @@ const FormioRenderer: React.FC<FormioRendererProps> = ({
             const originalOnClick = this.onClick;
             this.onClick = function(event: unknown) {
               console.log('Button clicked:', this.component.key, this.component.label);
-              // Call original onClick if it exists
-              if (originalOnClick) {
-                return originalOnClick.call(this, event);
+              
+              // Call original onClick and handle the result
+              const result = originalOnClick ? originalOnClick.call(this, event) : undefined;
+              
+              // For custom buttons, trigger redraw after execution
+              if (this.component.action === 'custom') {
+                console.log('Custom button executed, triggering redraw...');
+                // Use setTimeout to ensure custom script has completed
+                setTimeout(() => {
+                  const form = this.getRoot();
+                  if (form && form.redraw) {
+                    form.redraw();
+                  }
+                }, 100);
               }
+              
+              return result;
             };
           }
         }
@@ -75,6 +88,9 @@ const FormioRenderer: React.FC<FormioRendererProps> = ({
     // Wait for form to be ready, then set up listeners
     formioForm.ready.then(() => {
       console.log('Form ready');
+      
+      // Redraw is now handled automatically after custom button execution
+      // No general change listener needed
 
       // Set initial data properly
       if (initialData) {
