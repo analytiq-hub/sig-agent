@@ -19,6 +19,9 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
   const isInitializing = useRef(false);
   const lastJsonFormio = useRef<string>('');
   const isUpdatingFromProps = useRef(false);
+  const isTabSwitching = useRef(false);
+  const changeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const handleBuilderClickRef = useRef<((event: Event) => void) | null>(null);
 
   // Keep the onChange ref updated
   useEffect(() => {
@@ -65,23 +68,59 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
     builderInstance.current = builder;
     
     // Listen to the correct FormBuilder events
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const handleFormChange = (event: unknown) => {
+    const handleFormChange = () => {
       // Don't trigger onChange if we're updating from props to prevent loops
-      if (onChangeRef.current && !isInitializing.current && !isUpdatingFromProps.current) {
-        const currentForm: FormWithComponents = (builder as FormBuilder & { _form: FormWithComponents })._form;
-        const currentComponents = JSON.stringify(currentForm.components);
-        
-        // Only call onChange if the components actually changed from what we have
-        if (currentComponents !== lastJsonFormio.current) {
-          onChangeRef.current(currentForm.components);
+      if (onChangeRef.current && !isInitializing.current && !isUpdatingFromProps.current && !isTabSwitching.current) {
+        // Clear any existing timeout
+        if (changeTimeoutRef.current) {
+          clearTimeout(changeTimeoutRef.current);
         }
+
+        // Debounce the change to prevent rapid updates during tab switching
+        changeTimeoutRef.current = setTimeout(() => {
+          const currentForm: FormWithComponents = (builder as FormBuilder & { _form: FormWithComponents })._form;
+          const currentComponents = JSON.stringify(currentForm.components);
+          
+          // Only call onChange if the components actually changed from what we have
+          if (currentComponents !== lastJsonFormio.current && onChangeRef.current) {
+            onChangeRef.current(currentForm.components);
+          }
+        }, 100);
       }
     };
 
     // Listen via the events emitter directly
     if (builder.events) {
-      (builder.events as { on: (event: string, handler: (event?: unknown) => void) => void }).on('formio.change', handleFormChange);
+      (builder.events as { on: (event: string, handler: () => void) => void }).on('formio.change', handleFormChange);
+      // Also listen for component selection changes which can trigger during tab switching
+      (builder.events as { on: (event: string, handler: () => void) => void }).on('componentChange', handleFormChange);
+    }
+
+    // Set up tab switching detection
+    const handleTabClick = () => {
+      isTabSwitching.current = true;
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        isTabSwitching.current = false;
+      }, 500);
+    };
+
+    // Listen for tab clicks in the builder
+    if (builderRef.current) {
+      const tabElements = builderRef.current.querySelectorAll('.nav-link, .nav-item a, [role="tab"]');
+      tabElements.forEach(tab => {
+        tab.addEventListener('click', handleTabClick);
+      });
+      
+      // Also listen for any clicks within the builder area that might be tab-related
+      handleBuilderClickRef.current = (event: Event) => {
+        const target = event.target as HTMLElement;
+        if (target.closest('.nav-link, .nav-item a, [role="tab"]')) {
+          handleTabClick();
+        }
+      };
+      
+      builderRef.current.addEventListener('click', handleBuilderClickRef.current);
     }
 
     // Trigger initial change after builder is ready to sync the actual form structure
@@ -92,6 +131,21 @@ const FormioBuilder: React.FC<FormioBuilderProps> = ({ jsonFormio, onChange }) =
 
     // Cleanup on unmount
     return () => {
+      if (changeTimeoutRef.current) {
+        clearTimeout(changeTimeoutRef.current);
+      }
+      
+      // Remove event listeners
+      if (builderRef.current) {
+        const tabElements = builderRef.current.querySelectorAll('.nav-link, .nav-item a, [role="tab"]');
+        tabElements.forEach(tab => {
+          tab.removeEventListener('click', handleTabClick);
+        });
+        if (handleBuilderClickRef.current) {
+          builderRef.current.removeEventListener('click', handleBuilderClickRef.current);
+        }
+      }
+      
       if (builderInstance.current) {
         builderInstance.current.destroy();
         builderInstance.current = null;
