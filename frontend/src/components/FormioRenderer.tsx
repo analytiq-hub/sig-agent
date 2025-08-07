@@ -54,6 +54,7 @@ const FormioRenderer: React.FC<FormioRendererProps> = ({
           next();
         },
         // Add component-specific hooks
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         component: function(this: any) {
           // This hook is called for each component
           if (this.type === 'button') {
@@ -71,16 +72,21 @@ const FormioRenderer: React.FC<FormioRendererProps> = ({
       }
     });
     
-    formInstance.current = formioForm;
+    // Wait for form to be ready, then set up listeners
+    formioForm.ready.then(() => {
+      console.log('Form ready');
 
-    // Set initial data if provided
-    if (initialData && formInstance.current) {
-      setTimeout(() => {
-        if (formInstance.current) {
-          (formInstance.current as unknown as { instance: { submission: Record<string, unknown> } }).instance.submission = initialData;
-        }
-      }, 100);
-    }
+      // Set initial data properly
+      if (initialData) {
+        console.log('Setting initial data:', initialData);
+        console.log('Form instance:', formioForm);
+        formioForm.instance.submission = initialData;
+      }
+    }).catch((error) => {
+      console.error('Error waiting for form ready:', error);
+    });
+
+    formInstance.current = formioForm;
 
     // Add search icons after form is rendered
     if (onFieldSearch) {
