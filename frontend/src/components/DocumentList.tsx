@@ -179,7 +179,29 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       });
       
       // Create a blob from the array buffer
-      const blob = new Blob([response.content], { type: 'application/pdf' });
+      // Infer MIME type from file extension to avoid forcing .pdf downloads
+      const fileName = doc.document_name || response.metadata.document_name;
+      const ext = (fileName.split('.').pop() || '').toLowerCase();
+      const mimeMap: Record<string, string> = {
+        pdf: 'application/pdf',
+        doc: 'application/msword',
+        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        csv: 'text/csv',
+        xls: 'application/vnd.ms-excel',
+        xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        txt: 'text/plain',
+        md: 'text/markdown',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        gif: 'image/gif',
+        webp: 'image/webp',
+        bmp: 'image/bmp',
+        tiff: 'image/tiff',
+        tif: 'image/tiff'
+      };
+      const inferredType = mimeMap[ext] || 'application/octet-stream';
+      const blob = new Blob([response.content], { type: inferredType });
       
       // Create a URL for the blob
       const url = URL.createObjectURL(blob);
@@ -187,7 +209,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       // Create a temporary anchor element to trigger the download
       const a = document.createElement('a');
       a.href = url;
-      a.download = doc.document_name;
+      a.download = fileName;
       
       // Append to the document, click, and remove
       document.body.appendChild(a);
