@@ -379,7 +379,8 @@
 }
 
 /* Scalable submit button styling */
-.formio-form .btn-primary {
+.formio-form .btn-primary,
+.formio-form .btn-danger {
   font-size: calc(0.875rem * var(--formio-scale)) !important;
   padding: calc(0.5rem * var(--formio-scale)) calc(1rem * var(--formio-scale)) !important;
   margin-top: calc(1rem * var(--formio-scale)) !important;
