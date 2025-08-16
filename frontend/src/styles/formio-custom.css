@@ -572,3 +572,8 @@ i[data-tooltip]:before,
 .formio-dialog .component-edit-container .col-span-6.flex.justify-end.items-center.pr-15 .reset-link {
   padding-right: 3rem !important;
 }
+
+/* Ensure buttons don't cause overflow */
+.formio-form .btn-group.pull-right{
+  float: left !important;
+}
