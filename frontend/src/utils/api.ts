@@ -445,6 +445,20 @@ export const deleteLLMResultApi = async (params: DeleteLLMResultParams) => {
   return response.data;
 };
 
+export const downloadAllLLMResultsApi = async (params: {
+  organizationId: string;
+  documentId: string;
+}) => {
+  const { organizationId, documentId } = params;
+  const response = await api.get(
+    `/v0/orgs/${organizationId}/llm/results/${documentId}/download`,
+    {
+      responseType: 'blob'
+    }
+  );
+  return response.data;
+};
+
 // Schema APIs
 export const createSchemaApi = async (schema: CreateSchemaParams) => {
   const { organizationId, ...schemaConfig } = schema;

@@ -5,7 +5,8 @@ import {
   MagnifyingGlassIcon,
   PencilIcon,
   CheckIcon,
-  XMarkIcon
+  XMarkIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import { getLLMResultApi, listPromptsApi, runLLMApi, updateLLMResultApi } from '@/utils/api';
 import type { Prompt } from '@/types/index';
@@ -793,6 +794,101 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
     }
   };
 
+  const handleDownloadResult = async (promptId: string) => {
+    try {
+      // Try to get the latest result from the API, even if not currently loaded
+      const result = await getLLMResultApi({
+        organizationId: organizationId,
+        documentId: id,
+        promptRevId: promptId,
+        latest: true
+      });
+
+      // Get prompt name for filename
+      let promptName = 'unknown_prompt';
+      if (promptId === 'default') {
+        promptName = 'document_summary';
+      } else {
+        // Find the prompt in matchingPrompts
+        const prompt = matchingPrompts.find(p => p.prompt_revid === promptId);
+        if (prompt) {
+          promptName = prompt.name.toLowerCase().replace(/\s+/g, '_');
+        }
+      }
+
+      // Create the download data
+      const downloadData = {
+        prompt_id: promptId,
+        document_id: id,
+        organization_id: organizationId,
+        extraction_result: result.updated_llm_result,
+        metadata: {
+          prompt_version: result.prompt_version,
+          created_at: result.created_at,
+          updated_at: result.updated_at,
+          is_edited: result.is_edited,
+          is_verified: result.is_verified
+        }
+      };
+
+      // Create and download the file
+      const blob = new Blob([JSON.stringify(downloadData, null, 2)], {
+        type: 'application/json'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${promptName}_${result.prompt_rev_id}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading result:', error);
+      // Fallback to local result if API call fails
+      const localResult = llmResults[promptId];
+      if (localResult) {
+        // Get prompt name for filename
+        let promptName = 'unknown_prompt';
+        if (promptId === 'default') {
+          promptName = 'document_summary';
+        } else {
+          // Find the prompt in matchingPrompts
+          const prompt = matchingPrompts.find(p => p.prompt_revid === promptId);
+          if (prompt) {
+            promptName = prompt.name.toLowerCase().replace(/\s+/g, '_');
+          }
+        }
+
+        const downloadData = {
+          prompt_id: promptId,
+          document_id: id,
+          organization_id: organizationId,
+          extraction_result: localResult.updated_llm_result,
+          metadata: {
+            prompt_version: localResult.prompt_version,
+            created_at: localResult.created_at,
+            updated_at: localResult.updated_at,
+            is_edited: localResult.is_edited,
+            is_verified: localResult.is_verified
+          }
+        };
+
+        const blob = new Blob([JSON.stringify(downloadData, null, 2)], {
+          type: 'application/json'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${promptName}_${localResult.prompt_rev_id}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    }
+  };
+
   return (
     <div className="w-full h-full flex flex-col border-r border-black/10">
       <div className="h-12 min-h-[48px] flex items-center justify-between px-4 bg-gray-100 text-black font-bold border-b border-black/10">
@@ -834,6 +930,16 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
                 ) : (
                   <ArrowPathIcon className="w-4 h-4 text-gray-600" />
                 )}
+              </div>
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownloadResult('default');
+                }}
+                className="p-1 rounded-full hover:bg-black/5 transition-colors cursor-pointer"
+                title="Download extraction result"
+              >
+                <ArrowDownTrayIcon className="w-4 h-4 text-gray-600" />
               </div>
               <ChevronDownIcon 
                 className={`w-5 h-5 text-gray-600 transition-transform ${
@@ -884,6 +990,16 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
                     ) : (
                       <ArrowPathIcon className="w-4 h-4 text-gray-600" />
                     )}
+                  </div>
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownloadResult(prompt.prompt_revid);
+                    }}
+                    className="p-1 rounded-full hover:bg-black/5 transition-colors cursor-pointer"
+                    title="Download extraction result"
+                  >
+                    <ArrowDownTrayIcon className="w-4 h-4 text-gray-600" />
                   </div>
                   <ChevronDownIcon 
                     className={`w-5 h-5 text-gray-600 transition-transform ${

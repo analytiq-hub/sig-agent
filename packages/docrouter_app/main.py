@@ -822,6 +822,79 @@ async def delete_llm_result(
     
     return {"status": "success", "message": "LLM result deleted"}
 
+@app.get("/v0/orgs/{organization_id}/llm/results/{document_id}/download", tags=["llm"])
+async def download_all_llm_results(
+    organization_id: str,
+    document_id: str,
+    current_user: User = Depends(get_org_user)
+):
+    """
+    Download all LLM results for a document as a JSON file.
+    """
+    logger.debug(f"download_all_llm_results() start: document_id: {document_id}")
+    analytiq_client = ad.common.get_analytiq_client()
+    
+    # Verify document exists and user has access
+    document = await ad.common.get_doc(analytiq_client, document_id, organization_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Get all LLM results for this document
+    db = ad.common.get_async_db(analytiq_client)
+    llm_results = await db.llm_results.find({
+        "document_id": document_id
+    }).to_list(None)
+    
+    if not llm_results:
+        raise HTTPException(
+            status_code=404,
+            detail="No LLM results found for this document"
+        )
+    
+    # Get prompts information for context
+    prompt_ids = list(set(result["prompt_rev_id"] for result in llm_results))
+    prompts = await db.prompt_revisions.find({
+        "_id": {"$in": [ObjectId(pid) for pid in prompt_ids]}
+    }).to_list(None)
+    
+    prompt_map = {str(p["_id"]): p for p in prompts}
+    
+    # Prepare download data
+    download_data = {
+        "document_id": document_id,
+        "organization_id": organization_id,
+        "document_name": document.get("user_file_name", "Unknown"),
+        "extraction_date": datetime.now(UTC).isoformat(),
+        "results": []
+    }
+    
+    for result in llm_results:
+        prompt_info = prompt_map.get(result["prompt_rev_id"], {})
+        download_data["results"].append({
+            "prompt_rev_id": result["prompt_rev_id"],
+            "prompt_name": prompt_info.get("content", "Unknown")[:100] + "..." if len(prompt_info.get("content", "")) > 100 else prompt_info.get("content", "Unknown"),
+            "prompt_version": result.get("prompt_version", 0),
+            "extraction_result": result["updated_llm_result"],
+            "metadata": {
+                "created_at": result["created_at"].isoformat() if result.get("created_at") else None,
+                "updated_at": result["updated_at"].isoformat() if result.get("updated_at") else None,
+                "is_edited": result.get("is_edited", False),
+                "is_verified": result.get("is_verified", False)
+            }
+        })
+    
+    # Create JSON response
+    json_content = json.dumps(download_data, indent=2, default=str)
+    
+    # Return as downloadable file
+    return Response(
+        content=json_content,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f"attachment; filename=extractions_{document_id}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
+        }
+    )
+
 # Add this helper function near the top of the file with other functions
 async def get_schema_id_and_version(schema_id: Optional[str] = None) -> tuple[str, int]:
     """
