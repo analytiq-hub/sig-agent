@@ -8,7 +8,12 @@ import { listFormsApi, submitFormApi, getDocumentApi, getLLMResultApi } from '@/
 import type { Form } from '@/types/index';
 import { useOCR, OCRProvider } from '@/contexts/OCRContext';
 import type { HighlightInfo } from '@/contexts/OCRContext';
-import FormioRenderer from './FormioRenderer';
+import dynamic from 'next/dynamic';
+
+const FormioRenderer = dynamic(() => import('./FormioRenderer'), {
+  ssr: false,
+  loading: () => <div className="h-32 flex items-center justify-center">Loading form...</div>
+});
 import { toast } from 'react-toastify';
 import { getApiErrorMsg, getFormSubmissionApi, deleteFormSubmissionApi } from '@/utils/api';
 import type { FormSubmission, FieldMapping, FieldMappingSource } from '@/types/forms';

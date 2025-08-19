@@ -132,9 +132,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setPdfControls(window.pdfViewerControls || null);
-    }
+    setPdfControls(window.pdfViewerControls || null);
   }, [forceUpdate]);
 
   useEffect(() => {

@@ -4,7 +4,10 @@ import dynamic from 'next/dynamic';
 import { Box } from '@mui/material';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useState, useEffect } from 'react';
-import PDFSidebar from '@/components/PDFSidebar';
+const PDFSidebar = dynamic(() => import('@/components/PDFSidebar'), {
+  ssr: false,
+  loading: () => <div className="h-64 flex items-center justify-center">Loading sidebar...</div>
+});
 import type { HighlightInfo } from '@/types/index';
 
 const PDFViewer = dynamic(() => import('@/components/PDFViewer'), {

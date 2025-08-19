@@ -265,13 +265,9 @@ const TourGuide = () => {
 
   // Then update the useEffect
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.startTourGuide = startTour;
-    }
+    window.startTourGuide = startTour;
     return () => {
-      if (typeof window !== 'undefined') {
-        delete window.startTourGuide;
-      }
+      delete window.startTourGuide;
     };
   }, [startTour]);
 

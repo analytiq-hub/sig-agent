@@ -40,7 +40,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
     localStorage.removeItem('hasSeenTour');
     
     // If the startTourGuide function is available, use it directly
-    if (typeof window !== 'undefined' && window.startTourGuide) {
+    if (window.startTourGuide) {
       window.startTourGuide();
     } else {
       // Otherwise reload the page to trigger the tour

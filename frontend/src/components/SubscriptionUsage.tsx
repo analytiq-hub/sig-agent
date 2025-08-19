@@ -85,12 +85,11 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
     try {
       console.log('Starting credit purchase for:', purchaseAmount, 'credits');
       
-      const success_url = window.location.href;
-      const cancel_url = window.location.href;
+      const currentUrl = window.location.href;
       const response = await purchaseCreditsApi(organizationId, { 
         credits: purchaseAmount,
-        success_url, 
-        cancel_url 
+        success_url: currentUrl, 
+        cancel_url: currentUrl 
       });
       
       console.log('Purchase response:', response);

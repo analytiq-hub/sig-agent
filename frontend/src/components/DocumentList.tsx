@@ -31,11 +31,8 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [totalRows, setTotalRows] = useState<number>(0);
   const [paginationModel, setPaginationModel] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const isSmallScreen = window.innerWidth < 768;
-      return { page: 0, pageSize: isSmallScreen ? 5 : 25 };
-    }
-    return { page: 0, pageSize: 25 };
+    const isSmallScreen = window.innerWidth < 768;
+    return { page: 0, pageSize: isSmallScreen ? 5 : 25 };
   });
   const [isLoading, setIsLoading] = useState(true);
   const [tags, setTags] = useState<Tag[]>([]);

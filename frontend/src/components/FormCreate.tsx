@@ -8,9 +8,22 @@ import { getApiErrorMsg } from '@/utils/api';
 import TagSelector from './TagSelector';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
-import FormioBuilder from './FormioBuilder';
-import FormioMapper from './FormioMapper';
-import Editor from "@monaco-editor/react";
+import dynamic from 'next/dynamic';
+
+const FormioBuilder = dynamic(() => import('./FormioBuilder'), {
+  ssr: false,
+  loading: () => <div className="h-64 flex items-center justify-center">Loading form builder...</div>
+});
+
+const FormioMapper = dynamic(() => import('./FormioMapper'), {
+  ssr: false,
+  loading: () => <div className="h-64 flex items-center justify-center">Loading form mapper...</div>
+});
+
+const Editor = dynamic(() => import("@monaco-editor/react"), {
+  ssr: false,
+  loading: () => <div className="h-64 flex items-center justify-center">Loading editor...</div>
+});
 import InfoTooltip from '@/components/InfoTooltip';
 import { FormComponent } from '@/types/forms';
 

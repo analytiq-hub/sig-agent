@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import PDFExtractionSidebar from './PDFExtractionSidebar';
-import PDFFormSidebar from './PDFFormSidebar';
+import dynamic from 'next/dynamic';
+
+const PDFExtractionSidebar = dynamic(() => import('./PDFExtractionSidebar'), {
+  ssr: false,
+  loading: () => <div className="h-32 flex items-center justify-center">Loading extraction...</div>
+});
+
+const PDFFormSidebar = dynamic(() => import('./PDFFormSidebar'), {
+  ssr: false,
+  loading: () => <div className="h-32 flex items-center justify-center">Loading forms...</div>
+});
 import type { HighlightInfo } from '@/types/index';
 import { getDocumentApi } from '@/utils/api';
 
