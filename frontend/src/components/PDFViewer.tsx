@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import { getDocumentApi, getOCRTextApi } from '@/utils/api';
+import { getDocumentApi, getOCRTextApi, getOCRBlocksApi } from '@/utils/api';
 import { Toolbar, Typography, IconButton, TextField, Menu, MenuItem, Divider, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, Tooltip, Box, CircularProgress } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
@@ -23,6 +23,7 @@ import { alpha } from '@mui/material/styles';
 import PrintIcon from '@mui/icons-material/Print';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import DownloadIcon from '@mui/icons-material/Download';
 import { saveAs } from 'file-saver';
 import { PanelGroup, Panel } from 'react-resizable-panels';
 import CheckIcon from '@mui/icons-material/Check';
@@ -478,6 +479,36 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
     handleMenuClose();
   }, [handleMenuClose]);
 
+  const handleDownloadOcrText = async () => {
+    try {
+      const text = await getOCRTextApi({
+        organizationId: organizationId,
+        documentId: id
+      });
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const defaultFileName = (fileName || `Document_${id}`) + `_ocr.txt`;
+      saveAs(blob, defaultFileName);
+    } catch (err) {
+      console.error('Error downloading OCR text:', err);
+    }
+    handleMenuClose();
+  };
+
+  const handleDownloadOcrJson = async () => {
+    try {
+      const blocks = await getOCRBlocksApi({
+        organizationId: organizationId,
+        documentId: id
+      });
+      const blob = new Blob([JSON.stringify(blocks, null, 2)], { type: 'application/json' });
+      const defaultFileName = (fileName || `Document_${id}`) + `_ocr.json`;
+      saveAs(blob, defaultFileName);
+    } catch (err) {
+      console.error('Error downloading OCR JSON:', err);
+    }
+    handleMenuClose();
+  };
+
   useEffect(() => {
     const fetchOcrText = async () => {
       if (!showOcr) return;
@@ -801,6 +832,14 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
             <TextSnippetIcon fontSize="small" sx={{ mr: 1 }} />
             Show OCR Text
             {showOcr && <CheckIcon fontSize="small" sx={{ ml: 1 }} />}
+          </StyledMenuItem>
+          <StyledMenuItem onClick={handleDownloadOcrText}>
+            <DownloadIcon fontSize="small" sx={{ mr: 1 }} />
+            Download OCR Text
+          </StyledMenuItem>
+          <StyledMenuItem onClick={handleDownloadOcrJson}>
+            <DownloadIcon fontSize="small" sx={{ mr: 1 }} />
+            Download OCR JSON
           </StyledMenuItem>
           <Divider />
           <StyledMenuItem onClick={handleDocumentProperties}>
