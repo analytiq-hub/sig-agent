@@ -1495,7 +1495,7 @@ async def update_prompt(
     current_user: User = Depends(get_org_user)
 ):
     """Update a prompt"""
-    logger.info(f"update_prompt() start: organization_id: {organization_id}, prompt_id: {prompt_id}, prompt: {prompt}")
+    logger.info(f"update_prompt() start: organization_id: {organization_id}, prompt_id: {prompt_id}")
     db = ad.common.get_async_db()
 
     # Check if the prompt exists
