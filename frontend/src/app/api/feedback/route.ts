@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/auth';
-import clientPromise from '@/utils/mongodb';
+import { getDatabase } from '@/utils/mongodb';
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,9 +26,8 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // Connect to database using mongoClient
-    const client = await clientPromise;
-    const db = client.db();
+    // Connect to database
+    const db = getDatabase();
     
     // Create feedback document with email hard-coded from session
     const feedbackDoc = {
