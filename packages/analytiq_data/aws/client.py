@@ -2,10 +2,20 @@ import boto3
 import botocore
 from botocore.credentials import AssumeRoleCredentialFetcher, DeferredRefreshableCredentials
 import logging
+import os
 
 import analytiq_data as ad
 
 logger = logging.getLogger(__name__)
+
+def get_s3_bucket_name() -> str:
+    """
+    Get the S3 bucket name from environment variable with fallback to default.
+    
+    Returns:
+        The S3 bucket name to use for AWS operations.
+    """
+    return os.getenv("AWS_S3_BUCKET_NAME", "analytiq-data")
 
 class AWSClient:
     def __init__(self, analytiq_client, region_name: str = "us-east-1"):
@@ -55,7 +65,7 @@ class AWSClient:
 
             # Create the s3 client
             self.s3 = self.session.client("s3", region_name=region_name)
-            self.s3_bucket_name = "analytiq-data"
+            self.s3_bucket_name = get_s3_bucket_name()
 
             # Create the textract client
             self.textract = self.session.client("textract", region_name=region_name)
