@@ -30,10 +30,7 @@ import { formatLocalDateWithTZ } from '@/utils/date';
 const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [totalRows, setTotalRows] = useState<number>(0);
-  const [paginationModel, setPaginationModel] = useState(() => {
-    const isSmallScreen = window.innerWidth < 768;
-    return { page: 0, pageSize: isSmallScreen ? 5 : 25 };
-  });
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
   const [isLoading, setIsLoading] = useState(true);
   const [tags, setTags] = useState<Tag[]>([]);
   const [editingDocument, setEditingDocument] = useState<DocumentMetadata | null>(null);
@@ -256,7 +253,14 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsSmallScreen(window.innerWidth < 768);
+      const isSmall = window.innerWidth < 768;
+      setIsSmallScreen(isSmall);
+      
+      // Update pagination model based on screen size
+      setPaginationModel(prev => ({
+        ...prev,
+        pageSize: isSmall ? 5 : 25
+      }));
     };
     
     // Initial check
