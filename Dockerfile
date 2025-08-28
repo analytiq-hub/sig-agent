@@ -27,6 +27,9 @@ EXPOSE 3000
 # Use slim Python 3.12 as the base image
 FROM python:3.12-slim AS backend
 
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Set the working directory in the container
 WORKDIR /app
 
