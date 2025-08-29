@@ -145,11 +145,13 @@ async def test_documents_api(test_db, mock_auth, mock_docrouter_client, small_pd
     logger.info(f"test_documents_api() start")
     
     try:
-        # Test 1: Create a document
+        # Test 1: Create a document with metadata
+        small_pdf["metadata"] = {"test_client": "sdk", "suite": "integration"}
         upload_result = mock_docrouter_client.documents.upload(TEST_ORG_ID, [small_pdf])
         assert "documents" in upload_result
         assert len(upload_result["documents"]) == 1
         assert upload_result["documents"][0]["document_name"] == "small_test.pdf"
+        assert upload_result["documents"][0]["metadata"] == {"test_client": "sdk", "suite": "integration"}
         
         document_id = upload_result["documents"][0]["document_id"]
         
@@ -163,17 +165,20 @@ async def test_documents_api(test_db, mock_auth, mock_docrouter_client, small_pd
                            if doc.id == document_id), None)
         assert created_doc is not None
         assert created_doc.document_name == "small_test.pdf"
+        assert created_doc.metadata == {"test_client": "sdk", "suite": "integration"}
         
         # Test 3: Get a document
         doc = mock_docrouter_client.documents.get(TEST_ORG_ID, document_id)
         assert doc.metadata.id == document_id
         assert doc.metadata.document_name == "small_test.pdf"
+        assert doc.metadata.metadata == {"test_client": "sdk", "suite": "integration"}
         
-        # Test 4: Update a document
+        # Test 4: Update a document with metadata
         update_result = mock_docrouter_client.documents.update(
             TEST_ORG_ID,
             document_id,
-            document_name="small_test_updated.pdf"
+            document_name="small_test_updated.pdf",
+            metadata={"test_client": "sdk", "suite": "integration", "updated": "true"}
         )
         assert "message" in update_result
         assert update_result["message"] == "Document updated successfully"
@@ -181,6 +186,7 @@ async def test_documents_api(test_db, mock_auth, mock_docrouter_client, small_pd
         # Get the document again to verify the update
         updated_doc = mock_docrouter_client.documents.get(TEST_ORG_ID, document_id)
         assert updated_doc.metadata.document_name == "small_test_updated.pdf"
+        assert updated_doc.metadata.metadata == {"test_client": "sdk", "suite": "integration", "updated": "true"}
         
         # Test 5: Delete a document
         delete_result = mock_docrouter_client.documents.delete(TEST_ORG_ID, document_id)

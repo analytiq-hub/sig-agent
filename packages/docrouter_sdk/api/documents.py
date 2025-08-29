@@ -76,7 +76,7 @@ class DocumentsAPI:
         )
         return DocumentResponse(**data)
     
-    def update(self, organization_id: str, document_id: str, document_name: Optional[str] = None, tag_ids: List[str] = None) -> Dict[str, str]:
+    def update(self, organization_id: str, document_id: str, document_name: Optional[str] = None, tag_ids: List[str] = None, metadata: Optional[Dict[str, str]] = None) -> Dict[str, str]:
         """
         Update a document
         
@@ -85,6 +85,7 @@ class DocumentsAPI:
             document_id: The document ID
             document_name: Optional new name for the document
             tag_ids: Optional list of tag IDs
+            metadata: Optional metadata key-value pairs
             
         Returns:
             Dict with status message
@@ -94,6 +95,8 @@ class DocumentsAPI:
             update_data["document_name"] = document_name
         if tag_ids is not None:
             update_data["tag_ids"] = tag_ids
+        if metadata is not None:
+            update_data["metadata"] = metadata
             
         return self.client.request(
             "PUT",

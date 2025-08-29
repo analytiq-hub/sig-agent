@@ -376,6 +376,7 @@ async def upload_document(
             "uploaded_by": current_user.user_name,
             "state": ad.common.doc.DOCUMENT_STATE_UPLOADED,
             "tag_ids": document.tag_ids,
+            "metadata": document.metadata,
             "organization_id": organization_id
         }
         
@@ -383,7 +384,8 @@ async def upload_document(
         documents.append({
             "document_name": document.name,
             "document_id": document_id,
-            "tag_ids": document.tag_ids
+            "tag_ids": document.tag_ids,
+            "metadata": document.metadata
         })
 
         # Post a message to the ocr job queue
@@ -437,6 +439,10 @@ async def update_document(
     # Add document_name to update if provided
     if update.document_name is not None:
         update_dict["user_file_name"] = update.document_name
+    
+    # Add metadata to update if provided
+    if update.metadata is not None:
+        update_dict["metadata"] = update.metadata
     
     # Only proceed if there's something to update
     if not update_dict:
@@ -494,6 +500,7 @@ async def list_documents(
                 uploaded_by=doc.get("uploaded_by", ""),
                 state=doc.get("state", ""),
                 tag_ids=doc.get("tag_ids", []),
+                metadata=doc.get("metadata", {}),
                 # Optionally add pdf_file_name if you want to expose it
             )
             for doc in docs
@@ -562,7 +569,8 @@ async def get_document(
         uploaded_by=document["uploaded_by"],
         state=document.get("state", ""),
         tag_ids=document.get("tag_ids", []),
-        type=returned_mime
+        type=returned_mime,
+        metadata=document.get("metadata", {})
     )
 
     # Return using the DocumentResponse model

@@ -11,6 +11,7 @@ class DocumentUpload(BaseModel):
                    "2. Data URL: 'data:application/pdf;base64,JVBERi0xLjQK...'"
     )
     tag_ids: List[str] = []
+    metadata: Optional[Dict[str, str]] = {}
 
 class DocumentsUpload(BaseModel):
     documents: List[DocumentUpload]
@@ -22,6 +23,7 @@ class DocumentMetadata(BaseModel):
     uploaded_by: str
     state: str
     tag_ids: List[str] = []
+    metadata: Optional[Dict[str, str]] = {}
 
 class DocumentResponse(BaseModel):
     metadata: DocumentMetadata
@@ -30,6 +32,7 @@ class DocumentResponse(BaseModel):
 class DocumentUpdate(BaseModel):
     document_name: Optional[str] = None
     tag_ids: List[str] = []
+    metadata: Optional[Dict[str, str]] = {}
 
 class ListDocumentsResponse(BaseModel):
     documents: List[DocumentMetadata]

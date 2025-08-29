@@ -29,6 +29,7 @@ class DocumentUpload(BaseModel):
     name: str
     content: str
     tag_ids: List[str] = []  # Optional list of tag IDs
+    metadata: Optional[Dict[str, str]] = {}  # Optional key-value metadata pairs
 
 class DocumentsUpload(BaseModel):
     documents: List[DocumentUpload]
@@ -42,6 +43,7 @@ class DocumentMetadata(BaseModel):
     state: str
     tag_ids: List[str] = []  # List of tag IDs
     type: str | None = None   # MIME type of the returned file (original/pdf)
+    metadata: Optional[Dict[str, str]] = {}  # Optional key-value metadata pairs
 
 class DocumentResponse(BaseModel):
     metadata: DocumentMetadata
@@ -64,6 +66,10 @@ class DocumentUpdate(BaseModel):
     tag_ids: List[str] = Field(
         default=[],
         description="List of tag IDs associated with the document"
+    )
+    metadata: Optional[Dict[str, str]] = Field(
+        default=None,
+        description="Optional key-value metadata pairs"
     )
 
 class LLMModel(BaseModel):

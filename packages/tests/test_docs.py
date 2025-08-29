@@ -247,13 +247,15 @@ async def test_upload_document(test_db, pdf_fixture, request, mock_auth):
     
     logger.info(f"test_upload_document() start with {test_pdf['name']}")
     
-    # Prepare test data
+    # Prepare test data with metadata
+    test_metadata = {"source": "test_suite", "category": "unit_test"}
     upload_data = {
         "documents": [
             {
                 "name": test_pdf["name"],
                 "content": test_pdf["content"],
-                "tag_ids": []
+                "tag_ids": [],
+                "metadata": test_metadata
             }
         ]
     }
@@ -272,6 +274,7 @@ async def test_upload_document(test_db, pdf_fixture, request, mock_auth):
         assert "documents" in upload_result
         assert len(upload_result["documents"]) == 1
         assert upload_result["documents"][0]["document_name"] == test_pdf["name"]
+        assert upload_result["documents"][0]["metadata"] == test_metadata
         
         # Get the document ID from the upload response
         document_id = upload_result["documents"][0]["document_id"]
@@ -291,6 +294,7 @@ async def test_upload_document(test_db, pdf_fixture, request, mock_auth):
         uploaded_doc = next((doc for doc in list_data["documents"] if doc["id"] == document_id), None)
         assert uploaded_doc is not None
         assert uploaded_doc["document_name"] == test_pdf["name"]
+        assert uploaded_doc["metadata"] == test_metadata
         
         # Step 3: Get the specific document to verify its content
         get_response = client.get(
@@ -303,6 +307,7 @@ async def test_upload_document(test_db, pdf_fixture, request, mock_auth):
         assert "metadata" in doc_data
         assert doc_data["metadata"]["id"] == document_id
         assert doc_data["metadata"]["document_name"] == test_pdf["name"]
+        assert doc_data["metadata"]["metadata"] == test_metadata
         assert "content" in doc_data  # Verify the PDF content is returned
         
         # Verify the content matches what we uploaded
@@ -356,13 +361,15 @@ async def test_document_lifecycle(test_db, small_pdf, mock_auth):
         tag = tag_response.json()
         tag_id = tag["id"]
         
-        # Step 2: Upload document with the tag
+        # Step 2: Upload document with the tag and metadata
+        initial_metadata = {"department": "testing", "priority": "high"}
         upload_data = {
             "documents": [
                 {
                     "name": test_pdf["name"],
                     "content": test_pdf["content"],
-                    "tag_ids": [tag_id]
+                    "tag_ids": [tag_id],
+                    "metadata": initial_metadata
                 }
             ]
         }
@@ -389,6 +396,7 @@ async def test_document_lifecycle(test_db, small_pdf, mock_auth):
         assert uploaded_doc is not None
         assert tag_id in uploaded_doc["tag_ids"]
         assert uploaded_doc["document_name"] == test_pdf["name"]
+        assert uploaded_doc["metadata"] == initial_metadata
         
         # Step 4: Create a second tag
         second_tag_data = {
@@ -406,9 +414,11 @@ async def test_document_lifecycle(test_db, small_pdf, mock_auth):
         second_tag = second_tag_response.json()
         second_tag_id = second_tag["id"]
         
-        # Step 5: Update document with new tag
+        # Step 5: Update document with new tag and metadata
+        updated_metadata = {"department": "production", "priority": "low", "reviewed": "true"}
         update_data = {
-            "tag_ids": [second_tag_id]  # Replace the original tag
+            "tag_ids": [second_tag_id],  # Replace the original tag
+            "metadata": updated_metadata
         }
         
         update_response = client.put(
@@ -431,6 +441,7 @@ async def test_document_lifecycle(test_db, small_pdf, mock_auth):
         assert updated_doc is not None
         assert second_tag_id in updated_doc["tag_ids"]
         assert tag_id not in updated_doc["tag_ids"]
+        assert updated_doc["metadata"] == updated_metadata
         
         # Step 7: Update document name
         new_document_name = "Updated Test Document.pdf"
@@ -468,6 +479,7 @@ async def test_document_lifecycle(test_db, small_pdf, mock_auth):
         doc_data = get_response.json()
         assert doc_data["metadata"]["document_name"] == new_document_name
         assert second_tag_id in doc_data["metadata"]["tag_ids"]
+        assert doc_data["metadata"]["metadata"] == updated_metadata
         
         # Step 10: Filter documents by tag
         filtered_list_response = client.get(

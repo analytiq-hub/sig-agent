@@ -14,7 +14,8 @@ async def test_doc_permissions(org_and_users, test_db):
             {
                 "name": "test.pdf",
                 "content": pdf_content,
-                "tag_ids": []
+                "tag_ids": [],
+                "metadata": {"test_type": "auth_test"}
             }
         ]
     }
@@ -51,7 +52,7 @@ async def test_doc_permissions(org_and_users, test_db):
     assert resp.status_code in (401, 403, 404), f"Outsider should NOT be able to get document, got {resp.status_code}: {resp.text}"
 
     # --- UPDATE ---
-    update_data = {"document_name": "newname.pdf"}
+    update_data = {"document_name": "newname.pdf", "metadata": {"test_type": "auth_test", "updated": "true"}}
     resp = client.put(f"/v0/orgs/{org_id}/documents/{doc_id}", json=update_data, headers=get_token_headers(admin["token"]))
     assert resp.status_code == 200, f"Admin should be able to update document, got {resp.status_code}: {resp.text}"
 
