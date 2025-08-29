@@ -27,6 +27,38 @@ import { toast } from 'react-toastify';
 import DocumentRenameModal from './DocumentRename';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
+// Helper function to parse and URL-encode metadata search
+const parseAndEncodeMetadataSearch = (searchStr: string): string | null => {
+  try {
+    const pairs: string[] = [];
+    // Simple parsing - split by comma and then by first equals sign
+    const rawPairs = searchStr.split(',');
+    
+    for (const rawPair of rawPairs) {
+      const trimmed = rawPair.trim();
+      if (!trimmed) continue;
+      
+      const equalIndex = trimmed.indexOf('=');
+      if (equalIndex === -1) continue;
+      
+      const key = trimmed.substring(0, equalIndex).trim();
+      const value = trimmed.substring(equalIndex + 1).trim();
+      
+      if (key && value) {
+        // URL encode both key and value to handle special characters
+        const encodedKey = encodeURIComponent(key);
+        const encodedValue = encodeURIComponent(value);
+        pairs.push(`${encodedKey}=${encodedValue}`);
+      }
+    }
+    
+    return pairs.length > 0 ? pairs.join(',') : null;
+  } catch (error) {
+    console.error('Error parsing metadata search:', error);
+    return null;
+  }
+};
+
 const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [totalRows, setTotalRows] = useState<number>(0);
@@ -69,7 +101,11 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       
       // Add metadata search if provided
       if (metadataSearch.trim()) {
-        queryParams.metadataSearch = metadataSearch.trim();
+        // Parse and URL-encode metadata search to handle special characters
+        const encodedMetadataSearch = parseAndEncodeMetadataSearch(metadataSearch.trim());
+        if (encodedMetadataSearch) {
+          queryParams.metadataSearch = encodedMetadataSearch;
+        }
       }
       
       const response = await listDocumentsApi({
@@ -78,7 +114,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         limit: paginationModel.pageSize,
         nameSearch: searchTerm.trim() || undefined,
         tagIds: selectedTagFilters.length > 0 ? selectedTagFilters.map(tag => tag.id).join(',') : undefined,
-        metadataSearch: metadataSearch.trim() || undefined,
+        metadataSearch: metadataSearch.trim() ? parseAndEncodeMetadataSearch(metadataSearch.trim()) || undefined : undefined,
       });
       
       console.log('Documents response:', response);
@@ -460,9 +496,10 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         <TextField
           fullWidth
           variant="outlined"
-          placeholder="Search metadata (key=value,key2=value2)..."
+          placeholder="Search metadata (author=John Smith,type=invoice)..."
           value={metadataSearch}
           onChange={(e) => setMetadataSearch(e.target.value)}
+          title="Format: key=value,key2=value2. Commas and equals in values are automatically handled."
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">

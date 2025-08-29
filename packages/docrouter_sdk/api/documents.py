@@ -56,8 +56,9 @@ class DocumentsAPI:
         if name_search:
             params["name_search"] = name_search
         if metadata_search:
-            # Convert dict to comma-separated key=value pairs
-            metadata_pairs = [f"{k}={v}" for k, v in metadata_search.items()]
+            # Convert dict to comma-separated key=value pairs with URL encoding
+            from urllib.parse import quote
+            metadata_pairs = [f"{quote(str(k))}={quote(str(v))}" for k, v in metadata_search.items()]
             params["metadata_search"] = ",".join(metadata_pairs)
             
         data = self.client.request(

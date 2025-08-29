@@ -474,7 +474,7 @@ async def list_documents(
     limit: int = Query(10, ge=1, le=100),
     tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
     name_search: str = Query(None, description="Search term for document names"),
-    metadata_search: str = Query(None, description="Metadata search as key=value pairs, comma-separated (e.g., 'author=John,type=invoice')"),
+    metadata_search: str = Query(None, description="Metadata search as key=value pairs, comma-separated (e.g., 'author=John,type=invoice'). Special characters in keys/values are URL-encoded automatically."),
     current_user: User = Depends(get_org_user)
 ):
     """List documents within an organization"""
@@ -486,12 +486,16 @@ async def list_documents(
     # Parse metadata search parameters
     metadata_search_dict = None
     if metadata_search:
+        from urllib.parse import unquote
         metadata_search_dict = {}
         for pair in metadata_search.split(","):
             pair = pair.strip()
             if "=" in pair:
                 key, value = pair.split("=", 1)
-                metadata_search_dict[key.strip()] = value.strip()
+                # URL decode the key and value to handle special characters
+                decoded_key = unquote(key.strip())
+                decoded_value = unquote(value.strip())
+                metadata_search_dict[decoded_key] = decoded_value
     
     docs, total_count = await ad.common.list_docs(
         analytiq_client,
