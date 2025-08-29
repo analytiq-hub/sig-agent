@@ -982,3 +982,353 @@ async def test_document_metadata_search_edge_cases(test_db, small_pdf, mock_auth
                 logger.warning(f"Failed to cleanup document {document_id}: {e}")
                 
     logger.info("test_document_metadata_search_edge_cases() end")
+
+@pytest.mark.asyncio
+async def test_document_name_search(test_db, small_pdf, mock_auth):
+    """Test document name search functionality"""
+    logger.info("test_document_name_search() start")
+    
+    # Upload multiple documents with different names
+    test_documents = [
+        {"name": "invoice_2023.pdf", "content": small_pdf["content"]},
+        {"name": "INVOICE_2024.pdf", "content": small_pdf["content"]},
+        {"name": "receipt_store_A.pdf", "content": small_pdf["content"]},
+        {"name": "contract_john_smith.pdf", "content": small_pdf["content"]},
+        {"name": "report_quarterly.pdf", "content": small_pdf["content"]},
+        {"name": "My Invoice Document.pdf", "content": small_pdf["content"]},
+    ]
+    
+    document_ids = []
+    
+    try:
+        # Upload all documents
+        for doc in test_documents:
+            upload_data = {"documents": [doc]}
+            upload_response = client.post(
+                f"/v0/orgs/{TEST_ORG_ID}/documents",
+                json=upload_data,
+                headers=get_auth_headers()
+            )
+            assert upload_response.status_code == 200
+            upload_result = upload_response.json()
+            document_ids.append(upload_result["documents"][0]["document_id"])
+        
+        # Test 1: Case-insensitive search for "invoice"
+        logger.info("Testing case-insensitive name search: invoice")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?name_search=invoice",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 3  # invoice_2023.pdf, INVOICE_2024.pdf, My Invoice Document.pdf
+        doc_names = [doc["document_name"] for doc in data["documents"]]
+        assert "invoice_2023.pdf" in doc_names
+        assert "INVOICE_2024.pdf" in doc_names
+        assert "My Invoice Document.pdf" in doc_names
+        
+        # Test 2: Partial name search
+        logger.info("Testing partial name search: contract")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?name_search=contract",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1
+        assert data["documents"][0]["document_name"] == "contract_john_smith.pdf"
+        
+        # Test 3: Search with spaces
+        logger.info("Testing name search with spaces: My Invoice")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?name_search=My%20Invoice",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1
+        assert data["documents"][0]["document_name"] == "My Invoice Document.pdf"
+        
+        # Test 4: Search for year/number
+        logger.info("Testing name search with numbers: 2023")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?name_search=2023",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1
+        assert data["documents"][0]["document_name"] == "invoice_2023.pdf"
+        
+        # Test 5: Search with underscores
+        logger.info("Testing name search with underscores: store_A")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?name_search=store_A",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1
+        assert data["documents"][0]["document_name"] == "receipt_store_A.pdf"
+        
+        # Test 6: No matches
+        logger.info("Testing name search with no matches")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?name_search=nonexistent",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 0
+        
+        # Test 7: Empty search should return all documents
+        logger.info("Testing empty name search")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?name_search=",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) >= 6
+        
+        # Test 8: Name search combined with pagination
+        logger.info("Testing name search with pagination")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?name_search=pdf&limit=2",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 2  # Limited to 2 results
+        assert data["total_count"] >= 6  # But total count shows all matches
+        
+    finally:
+        # Cleanup: Delete all uploaded documents
+        for doc_id in document_ids:
+            try:
+                delete_response = client.delete(
+                    f"/v0/orgs/{TEST_ORG_ID}/documents/{doc_id}",
+                    headers=get_auth_headers()
+                )
+            except Exception as e:
+                logger.warning(f"Failed to cleanup document {doc_id}: {e}")
+                
+    logger.info("test_document_name_search() end")
+
+@pytest.mark.asyncio
+async def test_document_tag_search(test_db, small_pdf, mock_auth):
+    """Test document tag search functionality"""
+    logger.info("test_document_tag_search() start")
+    
+    # Step 1: Create multiple tags
+    tag_data_list = [
+        {"name": "Finance", "color": "#FF5733"},
+        {"name": "Legal", "color": "#33FF57"},
+        {"name": "HR", "color": "#3357FF"},
+        {"name": "Urgent", "color": "#FF33F5"},
+        {"name": "Archive", "color": "#808080"},
+    ]
+    
+    tag_ids = []
+    document_ids = []
+    
+    try:
+        # Create all tags
+        for tag_data in tag_data_list:
+            tag_response = client.post(
+                f"/v0/orgs/{TEST_ORG_ID}/tags",
+                json=tag_data,
+                headers=get_auth_headers()
+            )
+            assert tag_response.status_code == 200
+            tag = tag_response.json()
+            tag_ids.append(tag["id"])
+        
+        finance_tag, legal_tag, hr_tag, urgent_tag, archive_tag = tag_ids
+        
+        # Step 2: Upload documents with different tag combinations
+        test_documents = [
+            {
+                "name": "doc_finance.pdf", 
+                "content": small_pdf["content"],
+                "tag_ids": [finance_tag]
+            },
+            {
+                "name": "doc_legal.pdf",
+                "content": small_pdf["content"], 
+                "tag_ids": [legal_tag]
+            },
+            {
+                "name": "doc_finance_urgent.pdf",
+                "content": small_pdf["content"],
+                "tag_ids": [finance_tag, urgent_tag]
+            },
+            {
+                "name": "doc_legal_hr.pdf",
+                "content": small_pdf["content"],
+                "tag_ids": [legal_tag, hr_tag]
+            },
+            {
+                "name": "doc_all_tags.pdf",
+                "content": small_pdf["content"],
+                "tag_ids": [finance_tag, legal_tag, hr_tag, urgent_tag]
+            },
+            {
+                "name": "doc_no_tags.pdf",
+                "content": small_pdf["content"],
+                "tag_ids": []
+            }
+        ]
+        
+        # Upload all documents
+        for doc in test_documents:
+            upload_data = {"documents": [doc]}
+            upload_response = client.post(
+                f"/v0/orgs/{TEST_ORG_ID}/documents",
+                json=upload_data,
+                headers=get_auth_headers()
+            )
+            assert upload_response.status_code == 200
+            upload_result = upload_response.json()
+            document_ids.append(upload_result["documents"][0]["document_id"])
+        
+        # Test 1: Filter by single tag (Finance)
+        logger.info("Testing single tag filter: Finance")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?tag_ids={finance_tag}",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 3  # doc_finance.pdf, doc_finance_urgent.pdf, doc_all_tags.pdf
+        doc_names = [doc["document_name"] for doc in data["documents"]]
+        assert "doc_finance.pdf" in doc_names
+        assert "doc_finance_urgent.pdf" in doc_names
+        assert "doc_all_tags.pdf" in doc_names
+        
+        # Test 2: Filter by single tag (Legal)
+        logger.info("Testing single tag filter: Legal")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?tag_ids={legal_tag}",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 3  # doc_legal.pdf, doc_legal_hr.pdf, doc_all_tags.pdf
+        doc_names = [doc["document_name"] for doc in data["documents"]]
+        assert "doc_legal.pdf" in doc_names
+        assert "doc_legal_hr.pdf" in doc_names
+        assert "doc_all_tags.pdf" in doc_names
+        
+        # Test 3: Filter by multiple tags (AND logic - documents must have ALL tags)
+        logger.info("Testing multiple tag filter: Finance AND Urgent")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?tag_ids={finance_tag},{urgent_tag}",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 2  # doc_finance_urgent.pdf, doc_all_tags.pdf
+        doc_names = [doc["document_name"] for doc in data["documents"]]
+        assert "doc_finance_urgent.pdf" in doc_names
+        assert "doc_all_tags.pdf" in doc_names
+        
+        # Test 4: Filter by multiple tags (Legal AND HR)
+        logger.info("Testing multiple tag filter: Legal AND HR")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?tag_ids={legal_tag},{hr_tag}",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 2  # doc_legal_hr.pdf, doc_all_tags.pdf
+        doc_names = [doc["document_name"] for doc in data["documents"]]
+        assert "doc_legal_hr.pdf" in doc_names
+        assert "doc_all_tags.pdf" in doc_names
+        
+        # Test 5: Filter by three tags
+        logger.info("Testing three tag filter: Finance AND Legal AND HR")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?tag_ids={finance_tag},{legal_tag},{hr_tag}",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1  # Only doc_all_tags.pdf
+        assert data["documents"][0]["document_name"] == "doc_all_tags.pdf"
+        
+        # Test 6: Filter by tag that has no documents
+        logger.info("Testing tag filter with no matches: Archive")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?tag_ids={archive_tag}",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 0
+        
+        # Test 7: Filter by non-existent tag ID
+        logger.info("Testing filter with non-existent tag ID")
+        fake_tag_id = str(ObjectId())  # Generate a fake ObjectId
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?tag_ids={fake_tag_id}",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 0
+        
+        # Test 8: Combine tag filter with name search
+        logger.info("Testing tag filter combined with name search")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?tag_ids={finance_tag}&name_search=urgent",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1  # Only doc_finance_urgent.pdf
+        assert data["documents"][0]["document_name"] == "doc_finance_urgent.pdf"
+        
+        # Test 9: Tag filtering with pagination
+        logger.info("Testing tag filter with pagination")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?tag_ids={finance_tag}&limit=1",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1  # Limited to 1 result
+        assert data["total_count"] == 3  # But total shows 3 finance documents
+        
+        # Test 10: Empty tag filter should return all documents
+        logger.info("Testing empty tag filter")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?tag_ids=",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) >= 6  # Should include all uploaded documents
+        
+    finally:
+        # Cleanup: Delete all uploaded documents
+        for doc_id in document_ids:
+            try:
+                delete_response = client.delete(
+                    f"/v0/orgs/{TEST_ORG_ID}/documents/{doc_id}",
+                    headers=get_auth_headers()
+                )
+            except Exception as e:
+                logger.warning(f"Failed to cleanup document {doc_id}: {e}")
+        
+        # Cleanup: Delete all created tags
+        for tag_id in tag_ids:
+            try:
+                delete_response = client.delete(
+                    f"/v0/orgs/{TEST_ORG_ID}/tags/{tag_id}",
+                    headers=get_auth_headers()
+                )
+            except Exception as e:
+                logger.warning(f"Failed to cleanup tag {tag_id}: {e}")
+                
+    logger.info("test_document_tag_search() end")
