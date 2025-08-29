@@ -81,7 +81,7 @@ The Smart Document Router is a full-stack document processing platform with huma
 
 ### Starting Development Environment
 1. Run `make setup` to install dependencies
-2. Configure `.env` files in `packages/analytiq_data/` and `frontend/`
+2. Configure the top-level `.env` file
 3. Start MongoDB locally or use cloud instance
 4. Run `make dev` or `./start-all.sh` to start all services
 
@@ -97,8 +97,8 @@ The Smart Document Router is a full-stack document processing platform with huma
 - MongoDB Compass recommended for database management
 
 ### Environment Configuration
-- Backend: `packages/analytiq_data/.env` (MongoDB, AWS, LLM API keys)
-- Frontend: `frontend/.env.local` (NextAuth, API URLs)
+- Single `.env` file at project root (MongoDB, AWS, LLM API keys, NextAuth, API URLs)
+- Next.js automatically reads from the top-level `.env` file
 - Log level controlled via `LOG_LEVEL` environment variable
 
 ### Code Organization

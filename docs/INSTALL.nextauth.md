@@ -37,7 +37,7 @@ This guide explains how to set up Next-Auth with Google and GitHub OAuth provide
 
 ## Environment Variables
 
-Add these variables to your `frontend/.env.local` and `packages/anaytiq_data/.env`:
+Add these variables to your top-level `.env` file:
 
 ```bash
 # For Google:

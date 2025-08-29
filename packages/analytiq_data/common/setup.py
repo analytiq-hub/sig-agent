@@ -9,8 +9,8 @@ def setup() -> None:
     # Get the current directory
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # Load the .env file
-    dotenv_path = os.path.join(current_dir, "../.env")
+    # Load the .env file from the project root (3 levels up from common/setup.py)
+    dotenv_path = os.path.join(current_dir, "../../../.env")
     load_dotenv(dotenv_path=dotenv_path, override=True)
 
     # Configure logging

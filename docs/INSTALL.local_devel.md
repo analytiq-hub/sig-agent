@@ -5,7 +5,7 @@
   * [Install MongoDB](https://medium.com/@nkav2447/how-to-download-and-install-mongodb-on-fedora-40-2db148a7c2f0)
   * [Install MongoDB Compass](https://www.mongodb.com/try/download/compass)
   * Create a `dev` database
-* Create a `packages/analytiq-data/.env` file, taking [.env.example](../packages/analytiq_data/.env.example) as a template
+* Create a `.env` file at the project root, taking [.env.example.local](.env.example.local) as a template
   * For production, point MONGODB_URI to your production MongoDB server, and set ENV to `prod`.
 * Create `venv` for doc-router, install `packages/requirements.txt`
   * During setup
@@ -21,7 +21,7 @@
   cd frontend
   npm install
   ```
-* Set up the `frontend/.env.local` file, taking [.env.example](../frontend/.env.example) as a template
+* The Next.js gets its config from the top-level `.env` not `frontend/.env.local`
 
 ### Using `start-all.sh`
 * Cd to the top of the project directory, and run `./start-all.sh`
