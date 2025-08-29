@@ -694,3 +694,289 @@ async def test_upload_document_base64_formats(test_db, small_pdf, mock_auth):
     
     assert upload_response.status_code == 400
     assert "Invalid base64 content" in upload_response.json()["detail"]
+
+@pytest.mark.asyncio
+async def test_document_metadata_search(test_db, small_pdf, mock_auth):
+    """Test metadata search functionality including URL encoding"""
+    logger.info("test_document_metadata_search() start")
+    
+    # Step 1: Upload multiple documents with different metadata
+    test_documents = [
+        {
+            "name": "doc1.pdf",
+            "content": small_pdf["content"], 
+            "metadata": {"author": "John Smith", "type": "invoice", "department": "finance"}
+        },
+        {
+            "name": "doc2.pdf", 
+            "content": small_pdf["content"],
+            "metadata": {"author": "Jane Doe", "type": "receipt", "department": "finance"}
+        },
+        {
+            "name": "doc3.pdf",
+            "content": small_pdf["content"], 
+            "metadata": {"author": "John Smith", "type": "contract", "department": "legal"}
+        },
+        {
+            "name": "doc4.pdf",
+            "content": small_pdf["content"],
+            "metadata": {"author": "Bob Wilson", "type": "invoice", "special": "comma,value"}
+        },
+        {
+            "name": "doc5.pdf",
+            "content": small_pdf["content"],
+            "metadata": {"title": "Project=Alpha", "status": "complete", "notes": "Has = and , chars"}
+        }
+    ]
+    
+    document_ids = []
+    
+    try:
+        # Upload all documents
+        for doc in test_documents:
+            upload_data = {"documents": [doc]}
+            upload_response = client.post(
+                f"/v0/orgs/{TEST_ORG_ID}/documents",
+                json=upload_data,
+                headers=get_auth_headers()
+            )
+            assert upload_response.status_code == 200
+            upload_result = upload_response.json()
+            document_ids.append(upload_result["documents"][0]["document_id"])
+        
+        # Test 1: Basic metadata search - single key=value
+        logger.info("Testing basic metadata search: author=John Smith")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=author%3DJohn%20Smith",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 2  # doc1 and doc3
+        doc_names = [doc["document_name"] for doc in data["documents"]]
+        assert "doc1.pdf" in doc_names
+        assert "doc3.pdf" in doc_names
+        
+        # Test 2: Multiple metadata criteria - AND logic
+        logger.info("Testing multiple metadata criteria: author=John Smith,department=finance")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=author%3DJohn%20Smith%2Cdepartment%3Dfinance",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1  # Only doc1 matches both criteria
+        assert data["documents"][0]["document_name"] == "doc1.pdf"
+        
+        # Test 3: Search by type
+        logger.info("Testing search by type: type=invoice")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=type%3Dinvoice",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 2  # doc1 and doc4
+        doc_names = [doc["document_name"] for doc in data["documents"]]
+        assert "doc1.pdf" in doc_names
+        assert "doc4.pdf" in doc_names
+        
+        # Test 4: URL-encoded comma in value
+        logger.info("Testing URL-encoded comma in value: special=comma,value")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=special%3Dcomma%252Cvalue",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1  # Only doc4
+        assert data["documents"][0]["document_name"] == "doc4.pdf"
+        
+        # Test 5: URL-encoded equals in value
+        logger.info("Testing URL-encoded equals in value: title=Project=Alpha")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=title%3DProject%253DAlpha",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1  # Only doc5
+        assert data["documents"][0]["document_name"] == "doc5.pdf"
+        
+        # Test 6: Complex value with both comma and equals
+        logger.info("Testing complex value with comma and equals: notes=Has = and , chars")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=notes%3DHas%20%253D%20and%20%252C%20chars",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1  # Only doc5
+        assert data["documents"][0]["document_name"] == "doc5.pdf"
+        
+        # Test 7: Non-existent metadata key
+        logger.info("Testing non-existent metadata key")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=nonexistent%3Dvalue",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 0
+        
+        # Test 8: Metadata search combined with name search
+        logger.info("Testing metadata search combined with name search")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?name_search=doc1&metadata_search=author%3DJohn%20Smith",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1  # Only doc1 matches both name and metadata
+        assert data["documents"][0]["document_name"] == "doc1.pdf"
+        
+        # Test 9: Pagination with metadata search
+        logger.info("Testing pagination with metadata search")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=department%3Dfinance&limit=1",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1  # Limited to 1 result
+        assert data["total_count"] == 2  # But total count shows 2 matches
+        
+        # Test 10: Empty metadata search should return all documents
+        logger.info("Testing empty metadata search")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) >= 5  # Should include all uploaded documents
+        
+    finally:
+        # Cleanup: Delete all uploaded documents
+        for doc_id in document_ids:
+            try:
+                delete_response = client.delete(
+                    f"/v0/orgs/{TEST_ORG_ID}/documents/{doc_id}",
+                    headers=get_auth_headers()
+                )
+                # Don't assert delete success as test might have failed earlier
+            except Exception as e:
+                logger.warning(f"Failed to cleanup document {doc_id}: {e}")
+                
+    logger.info("test_document_metadata_search() end")
+
+@pytest.mark.asyncio  
+async def test_document_metadata_search_edge_cases(test_db, small_pdf, mock_auth):
+    """Test edge cases for metadata search functionality"""
+    logger.info("test_document_metadata_search_edge_cases() start")
+    
+    # Upload document with edge case metadata
+    edge_case_metadata = {
+        "empty_value": "",
+        "spaces_only": "   ",
+        "unicode": "café résumé",
+        "numbers": "12345",
+        "boolean_like": "true",
+        "null_like": "null"
+    }
+    
+    upload_data = {
+        "documents": [{
+            "name": "edge_case.pdf",
+            "content": small_pdf["content"],
+            "metadata": edge_case_metadata
+        }]
+    }
+    
+    document_id = None
+    
+    try:
+        # Upload document
+        upload_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/documents",
+            json=upload_data,
+            headers=get_auth_headers()
+        )
+        assert upload_response.status_code == 200
+        upload_result = upload_response.json()
+        document_id = upload_result["documents"][0]["document_id"]
+        
+        # Test 1: Search by empty value
+        logger.info("Testing search by empty value")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=empty_value%3D",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1
+        assert data["documents"][0]["document_name"] == "edge_case.pdf"
+        
+        # Test 2: Search by spaces only value (URL encoded)
+        logger.info("Testing search by spaces-only value")  
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=spaces_only%3D%20%20%20",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1
+        assert data["documents"][0]["document_name"] == "edge_case.pdf"
+        
+        # Test 3: Search by unicode value
+        logger.info("Testing search by unicode value")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=unicode%3Dcaf%C3%A9%20r%C3%A9sum%C3%A9",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1
+        assert data["documents"][0]["document_name"] == "edge_case.pdf"
+        
+        # Test 4: Search by numeric value
+        logger.info("Testing search by numeric value")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=numbers%3D12345",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 1
+        assert data["documents"][0]["document_name"] == "edge_case.pdf"
+        
+        # Test 5: Invalid metadata search format (missing value)
+        logger.info("Testing invalid metadata search format")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=invalid_key",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200  # Should not error, just return no results
+        data = response.json()
+        # Should not match anything since format is invalid
+        
+        # Test 6: Malformed URL encoding
+        logger.info("Testing malformed URL encoding")
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=key%3Dvalue%ZZ",  # %ZZ is invalid
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200  # Should handle gracefully
+        
+    finally:
+        # Cleanup
+        if document_id:
+            try:
+                delete_response = client.delete(
+                    f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
+                    headers=get_auth_headers()
+                )
+            except Exception as e:
+                logger.warning(f"Failed to cleanup document {document_id}: {e}")
+                
+    logger.info("test_document_metadata_search_edge_cases() end")
