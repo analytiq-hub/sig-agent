@@ -185,7 +185,7 @@ def get_llm_providers() -> dict:
             "enabled": False,
             "token" : "",
             "token_created_at": None,
-            "token_env": "AWS_BEDROCK_API_KEY",
+            "token_env": " ",
         },
         "gemini": {
             "display_name": "Gemini",
