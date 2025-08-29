@@ -260,13 +260,102 @@ The following environment variables are used for various LLM providers:
 - Enables test-specific configurations
 - Used for automated testing
 
-## Security Considerations
+## Docker vs Host-Side Development Configuration
 
-1. **Never commit `.env` files** to version control
-2. **Use strong, random secrets** for `FASTAPI_SECRET` and `NEXTAUTH_SECRET`
-3. **Rotate API keys** regularly
-4. **Use environment-specific configurations** for different deployment environments
-5. **Limit CORS origins** in production to only necessary domains
+The following variables need to be configured differently when running in Docker containers versus host-side development:
+
+### `MONGODB_URI`
+- **Host-side Development**: 
+  - Default: `mongodb://localhost:27017`
+  - Points to local MongoDB instance running on the host
+- **Docker Setup**:
+  - **With embedded MongoDB**: `mongodb://admin:admin@mongodb:27017?authSource=admin`
+  - **With external MongoDB**: `mongodb://YOUR_HOST_IP:27017` (replace YOUR_HOST_IP with actual host IP)
+  - Uses Docker service names (`mongodb`) instead of `localhost`
+
+### `NEXT_PUBLIC_FASTAPI_FRONTEND_URL`
+- **Host-side Development**: 
+  - Default: `http://localhost:8000`
+  - Frontend connects to backend on localhost
+- **Docker Setup**:
+  - Default: `http://localhost:8000` (but may need to be `http://backend:8000` for internal container communication)
+  - Frontend container connects to backend container
+
+### `FASTAPI_ROOT_PATH`
+- **Host-side Development**: 
+  - Default: `/`
+  - No path prefix needed
+- **Docker Setup**:
+  - Default: `/fastapi`
+  - Often set to `/fastapi` for reverse proxy configurations
+
+### `NEXTAUTH_URL`
+- **Host-side Development**: 
+  - Default: `http://localhost:3000`
+- **Docker Setup**:
+  - Should match the external URL where the frontend is accessible
+  - May need to be set to the host's public IP or domain
+
+### `CORS_ORIGINS`
+- **Host-side Development**: 
+  - Default: `http://localhost:3000,http://127.0.0.1:3000,http://host.docker.internal:3000`
+- **Docker Setup**:
+  - May need to include additional origins for container-to-container communication
+  - Should include the external frontend URL
+
+### Network-Specific Variables
+
+#### Docker Container Communication
+When running in Docker, containers communicate using service names:
+- `mongodb://mongodb:27017` (instead of `mongodb://localhost:27017`)
+- `http://backend:8000` (for internal container-to-container communication)
+
+#### Host Gateway Access
+Docker containers can access host services using:
+- `host.docker.internal` (on Docker Desktop)
+- Host machine IP address (on Linux)
+
+### Example Configurations
+
+#### Host-Side Development (.env)
+```bash
+ENV=dev
+MONGODB_URI=mongodb://localhost:27017
+NEXT_PUBLIC_FASTAPI_FRONTEND_URL=http://localhost:8000
+FASTAPI_ROOT_PATH=/
+NEXTAUTH_URL=http://localhost:3000
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+```
+
+#### Docker with Embedded MongoDB (.env)
+```bash
+ENV=dev
+MONGODB_URI=mongodb://admin:admin@mongodb:27017?authSource=admin
+NEXT_PUBLIC_FASTAPI_FRONTEND_URL=http://localhost:8000
+FASTAPI_ROOT_PATH=/fastapi
+NEXTAUTH_URL=http://localhost:3000
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://host.docker.internal:3000
+```
+
+#### Docker with External MongoDB (.env)
+```bash
+ENV=dev
+MONGODB_URI=mongodb://YOUR_HOST_IP:27017
+NEXT_PUBLIC_FASTAPI_FRONTEND_URL=http://localhost:8000
+FASTAPI_ROOT_PATH=/fastapi
+NEXTAUTH_URL=http://localhost:3000
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://host.docker.internal:3000
+```
+
+### Key Differences Summary
+
+| Variable | Host Development | Docker Setup |
+|----------|------------------|--------------|
+| `MONGODB_URI` | `localhost:27017` | `mongodb:27017` or `YOUR_HOST_IP:27017` |
+| `FASTAPI_ROOT_PATH` | `/` | `/fastapi` |
+| Container Communication | N/A | Uses service names |
+| Network Access | Direct localhost | Via Docker network |
+| CORS Origins | Localhost only | May include additional origins |
 
 ## File Loading
 
