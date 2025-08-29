@@ -20,6 +20,7 @@ RUN echo "FASTAPI_BACKEND_URL=${FASTAPI_BACKEND_URL}"
 RUN echo "NODE_ENV=${NODE_ENV}"
 # Now copy the rest of the frontend files
 COPY frontend/ ./frontend/
+ENV NODE_OPTIONS=--max-old-space-size=4096
 RUN cd frontend && npm run build
 
 EXPOSE 3000
