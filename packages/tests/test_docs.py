@@ -879,6 +879,8 @@ async def test_document_metadata_search_edge_cases(test_db, small_pdf, mock_auth
     edge_case_metadata = {
         "empty_value": "",
         "spaces_only": "   ",
+        "equal_sign": "=",
+        "comma": ",",
         "unicode": "café résumé",
         "numbers": "12345",
         "boolean_like": "true",
