@@ -489,13 +489,15 @@ async def list_documents(
         from urllib.parse import unquote
         metadata_search_dict = {}
         for pair in metadata_search.split(","):
-            pair = pair.strip()
-            if "=" in pair:
-                key, value = pair.split("=", 1)
-                # URL decode the key and value to handle special characters
-                decoded_key = unquote(key.strip())
-                decoded_value = unquote(value.strip())
-                metadata_search_dict[decoded_key] = decoded_value
+            # Only strip leading whitespace to handle spacing around commas
+            # Don't strip trailing whitespace as it might be part of the search value
+            pair = pair.lstrip()
+            # URL decode the pair first to handle encoded = signs
+            decoded_pair = unquote(pair)
+            if "=" in decoded_pair:
+                key, value = decoded_pair.split("=", 1)
+                # Strip whitespace from key but preserve value as-is
+                metadata_search_dict[key.strip()] = value
     
     docs, total_count = await ad.common.list_docs(
         analytiq_client,
