@@ -307,8 +307,8 @@ export const getDocumentApi = async (params: GetDocumentParams): Promise<GetDocu
 };
 
 export const updateDocumentApi = async (params: UpdateDocumentParams) => {
-  const { organizationId, documentId, documentName, tagIds } = params;
-  const updateData: { tag_ids?: string[]; document_name?: string } = {};
+  const { organizationId, documentId, documentName, tagIds, metadata } = params;
+  const updateData: { tag_ids?: string[]; document_name?: string; metadata?: Record<string, string> } = {};
   
   if (documentName !== undefined) {
     updateData.document_name = documentName;
@@ -316,6 +316,10 @@ export const updateDocumentApi = async (params: UpdateDocumentParams) => {
 
   if (tagIds) {
     updateData.tag_ids = tagIds;
+  }
+
+  if (metadata !== undefined) {
+    updateData.metadata = metadata;
   }
   
   const response = await api.put(`/v0/orgs/${organizationId}/documents/${documentId}`, updateData);

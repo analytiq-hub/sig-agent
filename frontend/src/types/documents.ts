@@ -2,6 +2,7 @@ export interface DocumentWithContent {
   name: string;
   content: string; // Base64 encoded content (can be data URL or plain base64)
   tag_ids?: string[];  // Optional list of tag IDs
+  metadata?: Record<string, string>;  // Optional key-value metadata pairs
 }
 
 export interface UploadDocumentsParams {
@@ -13,6 +14,8 @@ export interface UploadDocumentsResponse {
   documents: Array<{
     document_name: string;
     document_id: string;
+    tag_ids?: string[];
+    metadata?: Record<string, string>;
   }>;
 }
 
@@ -30,6 +33,7 @@ export interface DocumentMetadata {
     state: string;
     tag_ids: string[];  // List of tag IDs
     type?: string;      // MIME type of the returned file
+    metadata?: Record<string, string>;  // Optional key-value metadata pairs
 }
 
 export interface ListDocumentsResponse {
@@ -62,6 +66,7 @@ export interface UpdateDocumentParams {
   documentId: string;
   documentName?: string;
   tagIds?: string[];
+  metadata?: Record<string, string>;
 }
 
 export interface DeleteDocumentParams {
