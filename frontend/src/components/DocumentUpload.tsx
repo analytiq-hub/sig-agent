@@ -10,6 +10,8 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import ArticleIcon from '@mui/icons-material/Article';
 import ImageIcon from '@mui/icons-material/Image';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { 
   uploadDocumentsApi,
   listTagsApi
@@ -30,6 +32,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [metadata, setMetadata] = useState<Record<string, string>>({});
   const [activeStep, setActiveStep] = useState(0);
 
   // Fetch available tags on component mount
@@ -53,7 +56,8 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
           resolve({
             name: file.name,
             content: reader.result as string,
-            tag_ids: selectedTags // Include selected tags with each file
+            tag_ids: selectedTags, // Include selected tags with each file
+            metadata: metadata // Include metadata with each file
           });
         };
         reader.readAsDataURL(file);
@@ -89,10 +93,11 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
   const handleUpload = async () => {
     if (files.length === 0) return;
 
-    // Add selected tags to each file before upload
-    const filesWithTags = files.map(file => ({
+    // Add selected tags and metadata to each file before upload
+    const filesWithTagsAndMetadata = files.map(file => ({
       ...file,
-      tag_ids: selectedTags
+      tag_ids: selectedTags,
+      metadata: metadata
     }));
 
     setUploading(true);
@@ -101,7 +106,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
     try {
       const response = await uploadDocumentsApi({
         organizationId, 
-        documents: filesWithTags
+        documents: filesWithTagsAndMetadata
       });
       
       // Create a more detailed success message
@@ -117,6 +122,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
       
       setFiles([]);
       setSelectedTags([]); // Reset selected tags after successful upload
+      setMetadata({}); // Reset metadata after successful upload
       setActiveStep(0); // Reset to first step
     } catch (error) {
       console.error('Error uploading files:', error);
@@ -125,6 +131,38 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
       setUploading(false);
     }
   };
+
+  const handleAddMetadata = () => {
+    setMetadata(prev => ({ ...prev, '': '' }))
+  }
+
+  const handleRemoveMetadata = (key: string) => {
+    setMetadata(prev => {
+      const newMetadata = { ...prev }
+      delete newMetadata[key]
+      return newMetadata
+    })
+  }
+
+  const handleMetadataKeyChange = (oldKey: string, newKey: string) => {
+    if (oldKey === newKey) return
+    setMetadata(prev => {
+      const newMetadata = { ...prev }
+      const value = newMetadata[oldKey]
+      delete newMetadata[oldKey]
+      if (newKey && !newMetadata[newKey]) {
+        newMetadata[newKey] = value || ''
+      }
+      return newMetadata
+    })
+  }
+
+  const handleMetadataValueChange = (key: string, value: string) => {
+    setMetadata(prev => ({
+      ...prev,
+      [key]: value
+    }))
+  }
 
   const handleNextStep = useCallback(() => {
     setActiveStep((prev) => Math.min(prev + 1, 2));
@@ -202,7 +240,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
             <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${activeStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
               2
             </div>
-            <span className="text-sm">Select Tags (Optional)</span>
+            <span className="text-sm">Tags & Metadata</span>
           </div>
           <div className={`flex-1 h-1 mx-2 ${activeStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
           <div 
@@ -293,16 +331,16 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
           </div>
         )}
         
-        {/* Step 2: Select Tags */}
+        {/* Step 2: Tags & Metadata */}
         {activeStep === 1 && (
           <div>
-            <h3 className="text-lg font-medium mb-4">Select Tags (Optional)</h3>
+            <h3 className="text-lg font-medium mb-4">Tags & Metadata (Optional)</h3>
             
-            <div className="mb-4 bg-gray-50 p-3 rounded-lg">
+            <div className="mb-6 bg-gray-50 p-3 rounded-lg">
               <h4 className="font-medium mb-2">Selected Files:</h4>
-              <div className="max-h-40 overflow-y-auto">
+              <div className="max-h-32 overflow-y-auto text-sm text-gray-600">
                 {files.map((file) => (
-                  <div key={file.name} className="text-left py-1 px-2 odd:bg-gray-50 flex justify-between items-center">
+                  <div key={file.name} className="mb-1 flex justify-between items-center">
                     <span>{file.name}</span>
                     <IconButton 
                       size="small" 
@@ -316,17 +354,68 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
               </div>
             </div>
             
-            <div className="mb-4">
-              <p className="text-gray-600 mb-2">
-                Select appropriate tags for your documents to ensure they&apos;re processed by the right prompts.
-                <span className="italic ml-1">This step is optional.</span>
-              </p>
-              {/* Replace the manual tag selection with TagSelector */}
-              <TagSelector
-                availableTags={availableTags}
-                selectedTagIds={selectedTags}
-                onChange={setSelectedTags}
-              />
+            <div className="space-y-6">
+              {/* Tags Section */}
+              <div>
+                <h4 className="text-md font-medium mb-3">Tags</h4>
+                <p className="text-gray-600 mb-3 text-sm">
+                  Select appropriate tags for your documents to ensure they&apos;re processed by the right prompts.
+                </p>
+                <TagSelector
+                  availableTags={availableTags}
+                  selectedTagIds={selectedTags}
+                  onChange={setSelectedTags}
+                />
+              </div>
+
+              {/* Metadata Section */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-md font-medium">Metadata</h4>
+                  <button
+                    type="button"
+                    onClick={handleAddMetadata}
+                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-500 border border-blue-300 rounded-md hover:bg-blue-50"
+                  >
+                    <AddIcon fontSize="small" className="mr-1" />
+                    Add Field
+                  </button>
+                </div>
+                <p className="text-gray-600 mb-3 text-sm">
+                  Add key-value pairs that will be attached to all uploaded documents.
+                </p>
+                
+                <div className="space-y-2">
+                  {Object.entries(metadata).map(([key, value], index) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        placeholder="Key"
+                        value={key}
+                        onChange={(e) => handleMetadataKeyChange(key, e.target.value)}
+                        className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Value"
+                        value={value}
+                        onChange={(e) => handleMetadataValueChange(key, e.target.value)}
+                        className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={() => handleRemoveMetadata(key)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </div>
+                  ))}
+                  {Object.keys(metadata).length === 0 && (
+                    <p className="text-sm text-gray-500 italic">No metadata fields. Click "Add Field" to add some.</p>
+                  )}
+                </div>
+              </div>
             </div>
             
             <div className="mt-6 flex justify-between">
@@ -371,7 +460,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
                 </div>
               </div>
               
-              <div>
+              <div className="mb-4">
                 <h4 className="font-medium mb-2">Selected Tags:</h4>
                 <div className="flex flex-wrap gap-1">
                   {selectedTags.length > 0 ? (
@@ -390,6 +479,24 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
                       ))
                   ) : (
                     <span className="text-gray-500 text-sm italic">No tags selected</span>
+                  )}
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-medium mb-2">Metadata:</h4>
+                <div className="space-y-1">
+                  {Object.entries(metadata).length > 0 ? (
+                    Object.entries(metadata)
+                      .filter(([key]) => key.trim() !== '')
+                      .map(([key, value]) => (
+                        <div key={key} className="flex items-center text-sm">
+                          <span className="font-medium text-gray-600 mr-2">{key}:</span>
+                          <span className="text-gray-800">{value || '(empty)'}</span>
+                        </div>
+                      ))
+                  ) : (
+                    <span className="text-gray-500 text-sm italic">No metadata fields</span>
                   )}
                 </div>
               </div>

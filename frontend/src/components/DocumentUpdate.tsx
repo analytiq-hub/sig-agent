@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { Tag } from '@/types/index';
 import TagSelector from './TagSelector';
 
@@ -9,8 +9,9 @@ interface DocumentUpdateProps {
   onClose: () => void
   documentName: string
   currentTags: string[]
+  currentMetadata?: Record<string, string>
   availableTags: Tag[]
-  onSave: (tagIds: string[]) => Promise<void>
+  onSave: (tagIds: string[], metadata: Record<string, string>) => Promise<void>
 }
 
 export function DocumentUpdate({ 
@@ -18,13 +19,51 @@ export function DocumentUpdate({
   onClose, 
   documentName, 
   currentTags, 
+  currentMetadata = {},
   availableTags,
   onSave 
 }: DocumentUpdateProps) {
   const [selectedTags, setSelectedTags] = useState(currentTags)
+  const [metadata, setMetadata] = useState<Record<string, string>>(currentMetadata)
+
+  const handleAddMetadata = () => {
+    setMetadata(prev => ({ ...prev, '': '' }))
+  }
+
+  const handleRemoveMetadata = (key: string) => {
+    setMetadata(prev => {
+      const newMetadata = { ...prev }
+      delete newMetadata[key]
+      return newMetadata
+    })
+  }
+
+  const handleMetadataKeyChange = (oldKey: string, newKey: string) => {
+    if (oldKey === newKey) return
+    setMetadata(prev => {
+      const newMetadata = { ...prev }
+      const value = newMetadata[oldKey]
+      delete newMetadata[oldKey]
+      if (newKey && !newMetadata[newKey]) {
+        newMetadata[newKey] = value || ''
+      }
+      return newMetadata
+    })
+  }
+
+  const handleMetadataValueChange = (key: string, value: string) => {
+    setMetadata(prev => ({
+      ...prev,
+      [key]: value
+    }))
+  }
 
   const handleSave = async () => {
-    await onSave(selectedTags);
+    // Filter out empty keys
+    const cleanMetadata = Object.fromEntries(
+      Object.entries(metadata).filter(([key, value]) => key.trim() !== '')
+    )
+    await onSave(selectedTags, cleanMetadata);
     onClose();
   };
 
@@ -53,13 +92,62 @@ export function DocumentUpdate({
                     </div>
                     <span className="text-sm text-gray-500">Click on tags to enable or disable them</span>
                   </div>
-                  <div className="flex-1 overflow-y-auto px-4 sm:px-6">
-                    {/* TagSelector replaces manual tag buttons */}
-                    <TagSelector
-                      availableTags={availableTags}
-                      selectedTagIds={selectedTags}
-                      onChange={setSelectedTags}
-                    />
+                  <div className="flex-1 overflow-y-auto px-4 sm:px-6 space-y-6">
+                    {/* Tags Section */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900 mb-3">Tags</h3>
+                      <TagSelector
+                        availableTags={availableTags}
+                        selectedTagIds={selectedTags}
+                        onChange={setSelectedTags}
+                      />
+                    </div>
+
+                    {/* Metadata Section */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-medium text-gray-900">Metadata</h3>
+                        <button
+                          type="button"
+                          onClick={handleAddMetadata}
+                          className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-500"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-1" />
+                          Add Field
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {Object.entries(metadata).map(([key, value], index) => (
+                          <div key={index} className="flex gap-2 items-center">
+                            <input
+                              type="text"
+                              placeholder="Key"
+                              value={key}
+                              onChange={(e) => handleMetadataKeyChange(key, e.target.value)}
+                              className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Value"
+                              value={value}
+                              onChange={(e) => handleMetadataValueChange(key, e.target.value)}
+                              className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMetadata(key)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                        {Object.keys(metadata).length === 0 && (
+                          <p className="text-sm text-gray-500 italic">No metadata fields. Click "Add Field" to add some.</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex flex-shrink-0 justify-end gap-3 px-4 py-4">
                     <button

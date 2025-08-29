@@ -204,31 +204,34 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     }
   };
 
-  const handleUpdateTags = async (tagIds: string[]) => {
+  const handleUpdateDocument = async (tagIds: string[], metadata: Record<string, string>) => {
     if (!editingDocument) return;
     
     try {
-      console.log('DocumentList - handleUpdateTags:', {
+      console.log('DocumentList - handleUpdateDocument:', {
         documentId: editingDocument.id,
         oldTags: editingDocument.tag_ids,
-        newTags: tagIds
+        newTags: tagIds,
+        oldMetadata: editingDocument.metadata,
+        newMetadata: metadata
       });
       
       await updateDocumentApi(
         {
           organizationId: organizationId,
           documentId: editingDocument.id,
-          tagIds: tagIds
+          tagIds: tagIds,
+          metadata: metadata
         }
       );
-      console.log('Tags updated successfully, refreshing document list');
+      console.log('Document updated successfully, refreshing document list');
       
-      // Refresh the document list to show updated tags
+      // Refresh the document list to show updated document
       await fetchFiles();
       console.log('Document list refreshed');
     } catch (error) {
-      console.error('Error updating document tags:', error);
-      toast.error('Failed to update tags');
+      console.error('Error updating document:', error);
+      toast.error('Failed to update document');
     }
   };
 
@@ -498,7 +501,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
           className="flex items-center gap-2"
         >
           <EditOutlinedIcon fontSize="small" className="text-blue-600" />
-          <span>Edit Tags</span>
+          <span>Edit Tags & Metadata</span>
         </MenuItem>
         <MenuItem 
           onClick={() => {
@@ -527,8 +530,9 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
           onClose={handleCloseTagEditor}
           documentName={editingDocument.document_name}
           currentTags={editingDocument.tag_ids || []}
+          currentMetadata={editingDocument.metadata || {}}
           availableTags={tags}
-          onSave={handleUpdateTags}
+          onSave={handleUpdateDocument}
         />
       )}
       
