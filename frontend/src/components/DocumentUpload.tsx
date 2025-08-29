@@ -32,7 +32,8 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [metadata, setMetadata] = useState<Record<string, string>>({});
+  const [metadataFields, setMetadataFields] = useState<Array<{id: string, key: string, value: string}>>([]);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState(0);
 
   // Fetch available tags on component mount
@@ -57,7 +58,11 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
             name: file.name,
             content: reader.result as string,
             tag_ids: selectedTags, // Include selected tags with each file
-            metadata: metadata // Include metadata with each file
+            metadata: Object.fromEntries(
+              metadataFields
+                .filter(field => field.key.trim() !== '')
+                .map(field => [field.key, field.value])
+            ) // Include metadata with each file
           });
         };
         reader.readAsDataURL(file);
@@ -67,7 +72,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
     Promise.all(readFiles).then(newFiles => {
       setFiles(prevFiles => [...prevFiles, ...newFiles]);
     });
-  }, [selectedTags]); // Add selectedTags as dependency
+  }, [selectedTags, metadataFields]); // Add selectedTags and metadataFields as dependencies
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -97,7 +102,11 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
     const filesWithTagsAndMetadata = files.map(file => ({
       ...file,
       tag_ids: selectedTags,
-      metadata: metadata
+      metadata: Object.fromEntries(
+        metadataFields
+          .filter(field => field.key.trim() !== '')
+          .map(field => [field.key, field.value])
+      )
     }));
 
     setUploading(true);
@@ -122,7 +131,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
       
       setFiles([]);
       setSelectedTags([]); // Reset selected tags after successful upload
-      setMetadata({}); // Reset metadata after successful upload
+      setMetadataFields([]); // Reset metadata after successful upload
       setActiveStep(0); // Reset to first step
     } catch (error) {
       console.error('Error uploading files:', error);
@@ -133,44 +142,56 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
   };
 
   const handleAddMetadata = () => {
-    setMetadata(prev => ({ ...prev, '': '' }))
+    const newId = `field_${Date.now()}`
+    setMetadataFields(prev => [...prev, { id: newId, key: '', value: '' }])
   }
 
-  const handleRemoveMetadata = (key: string) => {
-    setMetadata(prev => {
-      const newMetadata = { ...prev }
-      delete newMetadata[key]
-      return newMetadata
-    })
+  const handleRemoveMetadata = (id: string) => {
+    setMetadataFields(prev => prev.filter(field => field.id !== id))
   }
 
-  const handleMetadataKeyChange = (oldKey: string, newKey: string) => {
-    if (oldKey === newKey) return
-    setMetadata(prev => {
-      const newMetadata = { ...prev }
-      const value = newMetadata[oldKey]
-      delete newMetadata[oldKey]
-      if (newKey && !newMetadata[newKey]) {
-        newMetadata[newKey] = value || ''
-      }
-      return newMetadata
-    })
+  const handleMetadataKeyChange = (id: string, newKey: string) => {
+    setMetadataFields(prev => 
+      prev.map(field => 
+        field.id === id ? { ...field, key: newKey } : field
+      )
+    )
+    // Clear validation error when user makes changes
+    setValidationError(null)
   }
 
-  const handleMetadataValueChange = (key: string, value: string) => {
-    setMetadata(prev => ({
-      ...prev,
-      [key]: value
-    }))
+  const handleMetadataValueChange = (id: string, newValue: string) => {
+    setMetadataFields(prev => 
+      prev.map(field => 
+        field.id === id ? { ...field, value: newValue } : field
+      )
+    )
+    // Clear validation error when user makes changes
+    setValidationError(null)
   }
 
   const handleNextStep = useCallback(() => {
+    // If moving from step 2 (tags & metadata) to step 3 (upload), validate metadata
+    if (activeStep === 1) {
+      // Filter out empty keys and check for duplicates
+      const nonEmptyFields = metadataFields.filter(field => field.key.trim() !== '')
+      const keys = nonEmptyFields.map(field => field.key)
+      const duplicateKeys = keys.filter((key, index) => keys.indexOf(key) !== index)
+      
+      if (duplicateKeys.length > 0) {
+        setValidationError(`Duplicate keys found: ${duplicateKeys.join(', ')}. Please remove or rename duplicate keys.`)
+        return
+      }
+    }
+    
     setActiveStep((prev) => Math.min(prev + 1, 2));
     // Clear upload status when moving between steps
     if (uploadStatus) {
       setUploadStatus(null);
     }
-  }, [uploadStatus]);
+    // Clear validation error when successfully moving to next step
+    setValidationError(null)
+  }, [uploadStatus, activeStep, metadataFields]);
 
   const handlePrevStep = useCallback(() => {
     setActiveStep((prev) => Math.max(prev - 1, 0));
@@ -178,6 +199,8 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
     if (uploadStatus) {
       setUploadStatus(null);
     }
+    // Clear validation error when going back
+    setValidationError(null)
   }, [uploadStatus]);
 
   const handleDeleteFile = useCallback((fileName: string) => {
@@ -386,35 +409,42 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
                 </p>
                 
                 <div className="space-y-2">
-                  {Object.entries(metadata).map(([key, value], index) => (
-                    <div key={index} className="flex gap-2 items-center">
+                  {metadataFields.map((field) => (
+                    <div key={field.id} className="flex gap-2 items-center">
                       <input
                         type="text"
                         placeholder="Key"
-                        value={key}
-                        onChange={(e) => handleMetadataKeyChange(key, e.target.value)}
+                        value={field.key}
+                        onChange={(e) => handleMetadataKeyChange(field.id, e.target.value)}
                         className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                       />
                       <input
                         type="text"
                         placeholder="Value"
-                        value={value}
-                        onChange={(e) => handleMetadataValueChange(key, e.target.value)}
+                        value={field.value}
+                        onChange={(e) => handleMetadataValueChange(field.id, e.target.value)}
                         className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                       />
                       <IconButton
                         size="small"
-                        onClick={() => handleRemoveMetadata(key)}
+                        onClick={() => handleRemoveMetadata(field.id)}
                         className="text-red-500 hover:text-red-700 hover:bg-red-50"
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </div>
                   ))}
-                  {Object.keys(metadata).length === 0 && (
+                  {metadataFields.length === 0 && (
                     <p className="text-sm text-gray-500 italic">No metadata fields. Click "Add Field" to add some.</p>
                   )}
                 </div>
+                
+                {/* Validation Error Display */}
+                {validationError && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <p className="text-sm text-red-600">{validationError}</p>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -486,13 +516,13 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
               <div>
                 <h4 className="font-medium mb-2">Metadata:</h4>
                 <div className="space-y-1">
-                  {Object.entries(metadata).length > 0 ? (
-                    Object.entries(metadata)
-                      .filter(([key]) => key.trim() !== '')
-                      .map(([key, value]) => (
-                        <div key={key} className="flex items-center text-sm">
-                          <span className="font-medium text-gray-600 mr-2">{key}:</span>
-                          <span className="text-gray-800">{value || '(empty)'}</span>
+                  {metadataFields.length > 0 ? (
+                    metadataFields
+                      .filter(field => field.key.trim() !== '')
+                      .map(field => (
+                        <div key={field.id} className="flex items-center text-sm">
+                          <span className="font-medium text-gray-600 mr-2">{field.key}:</span>
+                          <span className="text-gray-800">{field.value || '(empty)'}</span>
                         </div>
                       ))
                   ) : (

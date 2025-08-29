@@ -24,45 +24,63 @@ export function DocumentUpdate({
   onSave 
 }: DocumentUpdateProps) {
   const [selectedTags, setSelectedTags] = useState(currentTags)
-  const [metadata, setMetadata] = useState<Record<string, string>>(currentMetadata)
+  const [metadataFields, setMetadataFields] = useState<Array<{id: string, key: string, value: string}>>(
+    Object.entries(currentMetadata).map(([key, value], index) => ({
+      id: `field_${index}`,
+      key,
+      value
+    }))
+  )
+  const [validationError, setValidationError] = useState<string | null>(null)
 
   const handleAddMetadata = () => {
-    setMetadata(prev => ({ ...prev, '': '' }))
+    const newId = `field_${Date.now()}`
+    setMetadataFields(prev => [...prev, { id: newId, key: '', value: '' }])
   }
 
-  const handleRemoveMetadata = (key: string) => {
-    setMetadata(prev => {
-      const newMetadata = { ...prev }
-      delete newMetadata[key]
-      return newMetadata
-    })
+  const handleRemoveMetadata = (id: string) => {
+    setMetadataFields(prev => prev.filter(field => field.id !== id))
   }
 
-  const handleMetadataKeyChange = (oldKey: string, newKey: string) => {
-    if (oldKey === newKey) return
-    setMetadata(prev => {
-      const newMetadata = { ...prev }
-      const value = newMetadata[oldKey]
-      delete newMetadata[oldKey]
-      if (newKey && !newMetadata[newKey]) {
-        newMetadata[newKey] = value || ''
-      }
-      return newMetadata
-    })
+  const handleMetadataKeyChange = (id: string, newKey: string) => {
+    setMetadataFields(prev => 
+      prev.map(field => 
+        field.id === id ? { ...field, key: newKey } : field
+      )
+    )
+    // Clear validation error when user makes changes
+    setValidationError(null)
   }
 
-  const handleMetadataValueChange = (key: string, value: string) => {
-    setMetadata(prev => ({
-      ...prev,
-      [key]: value
-    }))
+  const handleMetadataValueChange = (id: string, newValue: string) => {
+    setMetadataFields(prev => 
+      prev.map(field => 
+        field.id === id ? { ...field, value: newValue } : field
+      )
+    )
+    // Clear validation error when user makes changes
+    setValidationError(null)
   }
 
   const handleSave = async () => {
-    // Filter out empty keys
-    const cleanMetadata = Object.fromEntries(
-      Object.entries(metadata).filter(([key, value]) => key.trim() !== '')
-    )
+    // Filter out empty keys and convert to object
+    const nonEmptyFields = metadataFields.filter(field => field.key.trim() !== '')
+    const cleanMetadata: Record<string, string> = {}
+    
+    // Check for duplicate keys
+    const keys = nonEmptyFields.map(field => field.key)
+    const duplicateKeys = keys.filter((key, index) => keys.indexOf(key) !== index)
+    
+    if (duplicateKeys.length > 0) {
+      setValidationError(`Duplicate keys found: ${duplicateKeys.join(', ')}. Please remove or rename duplicate keys.`)
+      return
+    }
+    
+    // Convert to object
+    nonEmptyFields.forEach(field => {
+      cleanMetadata[field.key] = field.value
+    })
+    
     await onSave(selectedTags, cleanMetadata);
     onClose();
   };
@@ -118,35 +136,42 @@ export function DocumentUpdate({
                       </div>
                       
                       <div className="space-y-2">
-                        {Object.entries(metadata).map(([key, value], index) => (
-                          <div key={index} className="flex gap-2 items-center">
+                        {metadataFields.map((field) => (
+                          <div key={field.id} className="flex gap-2 items-center">
                             <input
                               type="text"
                               placeholder="Key"
-                              value={key}
-                              onChange={(e) => handleMetadataKeyChange(key, e.target.value)}
+                              value={field.key}
+                              onChange={(e) => handleMetadataKeyChange(field.id, e.target.value)}
                               className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                             />
                             <input
                               type="text"
                               placeholder="Value"
-                              value={value}
-                              onChange={(e) => handleMetadataValueChange(key, e.target.value)}
+                              value={field.value}
+                              onChange={(e) => handleMetadataValueChange(field.id, e.target.value)}
                               className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                             />
                             <button
                               type="button"
-                              onClick={() => handleRemoveMetadata(key)}
+                              onClick={() => handleRemoveMetadata(field.id)}
                               className="text-red-500 hover:text-red-700"
                             >
                               <TrashIcon className="h-4 w-4" />
                             </button>
                           </div>
                         ))}
-                        {Object.keys(metadata).length === 0 && (
+                        {metadataFields.length === 0 && (
                           <p className="text-sm text-gray-500 italic">No metadata fields. Click "Add Field" to add some.</p>
                         )}
                       </div>
+                      
+                      {/* Validation Error Display */}
+                      {validationError && (
+                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                          <p className="text-sm text-red-600">{validationError}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-shrink-0 justify-end gap-3 px-4 py-4">
