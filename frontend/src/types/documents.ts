@@ -48,6 +48,7 @@ export interface ListDocumentsParams {
   limit?: number;
   tagIds?: string;  // Comma-separated list of tag IDs
   nameSearch?: string;  // Search term for document names
+  metadataSearch?: string;  // Metadata search as key=value pairs, comma-separated
 }
 
 export interface GetDocumentParams {

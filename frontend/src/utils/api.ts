@@ -280,6 +280,10 @@ export const listDocumentsApi = async (params?: ListDocumentsParams) => {
     queryParams.name_search = params.nameSearch;
   }
   
+  if (params?.metadataSearch) {
+    queryParams.metadata_search = params.metadataSearch;
+  }
+  
   const response = await api.get(`/v0/orgs/${params?.organizationId}/documents`, { 
     params: queryParams
   });

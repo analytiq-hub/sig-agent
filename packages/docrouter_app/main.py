@@ -474,6 +474,7 @@ async def list_documents(
     limit: int = Query(10, ge=1, le=100),
     tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
     name_search: str = Query(None, description="Search term for document names"),
+    metadata_search: str = Query(None, description="Metadata search as key=value pairs, comma-separated (e.g., 'author=John,type=invoice')"),
     current_user: User = Depends(get_org_user)
 ):
     """List documents within an organization"""
@@ -481,13 +482,25 @@ async def list_documents(
     analytiq_client = ad.common.get_analytiq_client()
     
     tag_id_list = [tid.strip() for tid in tag_ids.split(",")] if tag_ids else None
+    
+    # Parse metadata search parameters
+    metadata_search_dict = None
+    if metadata_search:
+        metadata_search_dict = {}
+        for pair in metadata_search.split(","):
+            pair = pair.strip()
+            if "=" in pair:
+                key, value = pair.split("=", 1)
+                metadata_search_dict[key.strip()] = value.strip()
+    
     docs, total_count = await ad.common.list_docs(
         analytiq_client,
         organization_id=organization_id,
         skip=skip,
         limit=limit,
         tag_ids=tag_id_list,
-        name_search=name_search
+        name_search=name_search,
+        metadata_search=metadata_search_dict
     )
     
     return ListDocumentsResponse(

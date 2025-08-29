@@ -144,7 +144,8 @@ async def list_docs(
     skip: int = 0,
     limit: int = 10,
     tag_ids: list[str] = None,
-    name_search: str = None
+    name_search: str = None,
+    metadata_search: dict[str, str] = None
 ) -> tuple[list, int]:
     """
     List documents with pagination within an organization
@@ -158,6 +159,12 @@ async def list_docs(
             Number of documents to skip
         limit: int
             Maximum number of documents to return
+        tag_ids: list[str], optional
+            List of tag IDs to filter by (all tags must be present)
+        name_search: str, optional
+            Search term for document names (case-insensitive)
+        metadata_search: dict[str, str], optional
+            Key-value pairs to search in metadata (all pairs must match)
 
     Returns:
         tuple[list, int]
@@ -174,6 +181,10 @@ async def list_docs(
     if name_search:
         # Search in user_file_name (case-insensitive)
         query["user_file_name"] = {"$regex": name_search, "$options": "i"}
+    if metadata_search:
+        # Search in metadata key-value pairs (all pairs must match)
+        for key, value in metadata_search.items():
+            query[f"metadata.{key}"] = value
     
     total_count = await collection.count_documents(query)
     cursor = collection.find(query).sort("upload_date", -1).skip(skip).limit(limit)

@@ -35,7 +35,7 @@ class DocumentsAPI:
             json=docs_upload
         )
     
-    def list(self, organization_id: str, skip: int = 0, limit: int = 10, tag_ids: List[str] = None) -> ListDocumentsResponse:
+    def list(self, organization_id: str, skip: int = 0, limit: int = 10, tag_ids: List[str] = None, name_search: str = None, metadata_search: Dict[str, str] = None) -> ListDocumentsResponse:
         """
         List documents
         
@@ -44,6 +44,8 @@ class DocumentsAPI:
             skip: Number of documents to skip
             limit: Maximum number of documents to return
             tag_ids: Optional list of tag IDs to filter by
+            name_search: Optional search term for document names
+            metadata_search: Optional dict of metadata key-value pairs to filter by
             
         Returns:
             ListDocumentsResponse containing documents, total count, and skip
@@ -51,6 +53,12 @@ class DocumentsAPI:
         params = {"skip": skip, "limit": limit}
         if tag_ids:
             params["tag_ids"] = ",".join(tag_ids)
+        if name_search:
+            params["name_search"] = name_search
+        if metadata_search:
+            # Convert dict to comma-separated key=value pairs
+            metadata_pairs = [f"{k}={v}" for k, v in metadata_search.items()]
+            params["metadata_search"] = ",".join(metadata_pairs)
             
         data = self.client.request(
             "GET",

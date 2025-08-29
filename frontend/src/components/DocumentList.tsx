@@ -38,6 +38,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTagFilters, setSelectedTagFilters] = useState<Tag[]>([]);
+  const [metadataSearch, setMetadataSearch] = useState('');
 
   // Add state for menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -66,12 +67,18 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         queryParams.tagIds = selectedTagFilters.map(tag => tag.id).join(',');
       }
       
+      // Add metadata search if provided
+      if (metadataSearch.trim()) {
+        queryParams.metadataSearch = metadataSearch.trim();
+      }
+      
       const response = await listDocumentsApi({
         organizationId,
         skip: paginationModel.page * paginationModel.pageSize,
         limit: paginationModel.pageSize,
         nameSearch: searchTerm.trim() || undefined,
         tagIds: selectedTagFilters.length > 0 ? selectedTagFilters.map(tag => tag.id).join(',') : undefined,
+        metadataSearch: metadataSearch.trim() || undefined,
       });
       
       console.log('Documents response:', response);
@@ -103,7 +110,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     } finally {
       setIsLoading(false);
     }
-  }, [paginationModel, organizationId, searchTerm, selectedTagFilters]);
+  }, [paginationModel, organizationId, searchTerm, selectedTagFilters, metadataSearch]);
 
   useEffect(() => {
     console.log('FileList component mounted or pagination changed');
@@ -448,6 +455,20 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
               margin: 0,
               padding: 0
             }
+          }}
+        />
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Search metadata (key=value,key2=value2)..."
+          value={metadataSearch}
+          onChange={(e) => setMetadataSearch(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
           }}
         />
       </div>
