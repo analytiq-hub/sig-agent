@@ -35,5 +35,5 @@ The Document Router is designed to work with a human-in-the-loop and can process
   * [Docker Setup](./docs/INSTALL.docker.md)
   * [AWS Setup](./docs/INSTALL.aws.md)
 * Development
-  * [Environment Variables Guide](./docs/ENV.md)
+  * [Environment Variables Guide](./docs/env.md)
   * [Database Migrations Guide](./backend/analytiq_data/migrations/MIGRATIONS.md)
