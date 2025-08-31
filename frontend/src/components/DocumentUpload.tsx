@@ -435,7 +435,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
                     </div>
                   ))}
                   {metadataFields.length === 0 && (
-                    <p className="text-sm text-gray-500 italic">No metadata fields. Click "Add Field" to add some.</p>
+                    <p className="text-sm text-gray-500 italic">No metadata fields. Click &quot;Add Field&quot; to add some.</p>
                   )}
                 </div>
                 
