@@ -2797,13 +2797,10 @@ async def create_aws_config(
     update_data = {
         "access_key_id": encrypted_access_key,
         "secret_access_key": encrypted_secret_key,
+        "s3_bucket_name": config.s3_bucket_name,
         "created_at": datetime.now(UTC)
     }
-    
-    # Add S3 bucket name if provided
-    if config.s3_bucket_name:
-        update_data["s3_bucket_name"] = config.s3_bucket_name
-    
+
     await db.aws_config.update_one(
         {"user_id": current_user.user_id},
         {"$set": update_data},

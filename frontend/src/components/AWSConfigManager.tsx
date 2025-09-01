@@ -27,6 +27,7 @@ const AWSConfigManager: React.FC = () => {
   const handleEditCredentials = () => {
     setAccessKeyId('');
     setSecretAccessKey('');
+    // Preserve existing S3 bucket name if available, otherwise leave empty for new config
     setS3BucketName(config?.s3_bucket_name || '');
     setEditModalOpen(true);
   };
