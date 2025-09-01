@@ -32,7 +32,7 @@ const DevelopmentSettingsPage: React.FC = () => {
               Configure your AWS setup.
             </p>
           </div>
-          <Link href="/settings/account/development/aws-credentials" passHref>
+          <Link href="/settings/account/development/aws-config" passHref>
             <Button variant="contained" color="primary">
               Manage
             </Button>

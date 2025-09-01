@@ -98,7 +98,7 @@ def get_aws_keys(analytiq_client) -> dict:
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb[db_name]
-    aws_keys_collection = db["aws_credentials"]
+    aws_keys_collection = db["aws_config"]
 
     aws_keys = aws_keys_collection.find_one()
     

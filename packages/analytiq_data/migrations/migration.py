@@ -1525,6 +1525,61 @@ class AddPromptIdAndVersionToLlmRuns(Migration):
             logger.error(f"Migration revert failed: {e}")
             return False
 
+# Add this new migration class before the MIGRATIONS list
+class RenameAwsCredentialsCollection(Migration):
+    def __init__(self):
+        super().__init__(description="Rename aws_credentials collection to aws_config")
+        
+    async def up(self, db) -> bool:
+        """Rename aws_credentials collection to aws_config"""
+        try:
+            # Check if aws_credentials collection exists
+            collections = await db.list_collection_names()
+            
+            if "aws_credentials" in collections:
+                # Create new collection with data from old one
+                aws_credentials_cursor = db.aws_credentials.find({})
+                async for doc in aws_credentials_cursor:
+                    await db.aws_config.insert_one(doc)
+                
+                # Drop the old collection
+                await db.aws_credentials.drop()
+                
+                logger.info("Successfully renamed aws_credentials collection to aws_config")
+            else:
+                logger.info("aws_credentials collection not found, skipping migration")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Collection rename migration failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """Revert collection renaming: aws_config → aws_credentials"""
+        try:
+            # Check if aws_config collection exists
+            collections = await db.list_collection_names()
+            
+            if "aws_config" in collections:
+                # Create old collection with data from new one
+                aws_config_cursor = db.aws_config.find({})
+                async for doc in aws_config_cursor:
+                    await db.aws_credentials.insert_one(doc)
+                
+                # Drop the new collection
+                await db.aws_config.drop()
+                
+                logger.info("Successfully reverted aws_config collection back to aws_credentials")
+            else:
+                logger.info("aws_config collection not found, skipping revert")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Collection rename migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -1546,6 +1601,7 @@ MIGRATIONS = [
     RenameLlmRunsCollection(),
     RemoveLlmModelsAndTokens(),
     AddPromptIdAndVersionToLlmRuns(),
+    RenameAwsCredentialsCollection(),
     # Add more migrations here
 ]
 

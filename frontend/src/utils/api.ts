@@ -84,7 +84,7 @@ import {
   AcceptInvitationRequest 
 } from '@/types/index';
 import { CreateTokenRequest } from '@/types/index';
-import { AWSCredentials } from '@/types/index';
+import { AWSConfig } from '@/types/index';
 import {
   ListLLMModelsParams,
   ListLLMModelsResponse,
@@ -713,18 +713,18 @@ export const deleteOrganizationTokenApi = async (tokenId: string, organizationId
 };
 
 // AWS APIs
-export const createAWSCredentialsApi = async (credentials: Omit<AWSCredentials, 'created_at'>) => {
-  const response = await api.post('/v0/account/aws_credentials', credentials);
+export const createAWSConfigApi = async (config: Omit<AWSConfig, 'created_at'>) => {
+  const response = await api.post('/v0/account/aws_config', config);
   return response.data;
 };
 
-export const getAWSCredentialsApi = async () => {
-  const response = await api.get('/v0/account/aws_credentials');
+export const getAWSConfigApi = async () => {
+  const response = await api.get('/v0/account/aws_config');
   return response.data;
 };
 
-export const deleteAWSCredentialsApi = async () => {
-  const response = await api.delete('/v0/account/aws_credentials');
+export const deleteAWSConfigApi = async () => {
+  const response = await api.delete('/v0/account/aws_config');
   return response.data;
 };
 

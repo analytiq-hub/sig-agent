@@ -100,17 +100,17 @@ async def setup_api_creds(analytiq_client):
             
         admin_id = str(admin_user["_id"])
         
-        # AWS Credentials. Only store credentials if they don't already exist.
+        # AWS Configuration. Only store configuration if it doesn't already exist.
         aws_access_key = os.getenv("AWS_ACCESS_KEY_ID", "")
         aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY", "")
-        existing_aws_creds = await db.aws_credentials.find_one({"user_id": admin_id})
+        existing_aws_config = await db.aws_config.find_one({"user_id": admin_id})
         
-        if aws_access_key != "" and aws_secret_key != "" and not existing_aws_creds:
-            # Encrypt credentials before storing
+        if aws_access_key != "" and aws_secret_key != "" and not existing_aws_config:
+            # Encrypt configuration before storing
             encrypted_access_key = ad.crypto.encrypt_token(aws_access_key)
             encrypted_secret_key = ad.crypto.encrypt_token(aws_secret_key)
             
-            await db.aws_credentials.update_one(
+            await db.aws_config.update_one(
                 {"user_id": admin_id},
                 {
                     "$set": {
@@ -121,7 +121,7 @@ async def setup_api_creds(analytiq_client):
                 },
                 upsert=True
             )
-            logger.info("AWS credentials configured for admin user")
+            logger.info("AWS configuration configured for admin user")
             
     except Exception as e:
         logger.error(f"Failed to set up API credentials: {e}")

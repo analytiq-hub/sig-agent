@@ -108,7 +108,7 @@ class SetLLMProviderConfigRequest(BaseModel):
     enabled: bool | None = None
     token: str | None = None
 
-class AWSCredentials(BaseModel):
+class AWSConfig(BaseModel):
     access_key_id: str
     secret_access_key: str
 

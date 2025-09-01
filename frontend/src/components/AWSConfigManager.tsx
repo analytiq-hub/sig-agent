@@ -1,27 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
-import { getAWSCredentialsApi, createAWSCredentialsApi, deleteAWSCredentialsApi } from '@/utils/api';
+import { getAWSConfigApi, createAWSConfigApi, deleteAWSConfigApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
-import { AWSCredentials } from '@/types/index';
+import { AWSConfig } from '@/types/index';
 
 const AWSConfigManager: React.FC = () => {
-  const [credentials, setCredentials] = useState<AWSCredentials | null>(null);
+  const [config, setConfig] = useState<AWSConfig | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [accessKeyId, setAccessKeyId] = useState('');
   const [secretAccessKey, setSecretAccessKey] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const getCredentials = async () => {
+    const getConfig = async () => {
       try {
-        const response = await getAWSCredentialsApi();
-        setCredentials(response);
+        const response = await getAWSConfigApi();
+        setConfig(response);
       } catch (error) {
-        console.error('Error fetching AWS credentials:', error);
+        console.error('Error fetching AWS configuration:', error);
       }
     };
 
-    getCredentials();
+    getConfig();
   }, []);
 
   const handleEditCredentials = () => {
@@ -30,31 +30,31 @@ const AWSConfigManager: React.FC = () => {
     setEditModalOpen(true);
   };
 
-  const handleSaveCredentials = async () => {
+  const handleSaveConfig = async () => {
     try {
-      await createAWSCredentialsApi({
+      await createAWSConfigApi({
         access_key_id: accessKeyId,
         secret_access_key: secretAccessKey,
       });
       setEditModalOpen(false);
-      // Refresh the credentials
-      const response = await getAWSCredentialsApi();
-      setCredentials(response);
+      // Refresh the configuration
+      const response = await getAWSConfigApi();
+      setConfig(response);
     } catch (error: unknown) {
       const apiErrorMessage = getApiErrorMsg(error);
-      const errorMessage = apiErrorMessage || 'An error occurred while saving the AWS credentials. Please try again.';
+      const errorMessage = apiErrorMessage || 'An error occurred while saving the AWS configuration. Please try again.';
 
       setError(errorMessage);
     }
   };
 
-  const handleDeleteCredentials = async () => {
+  const handleDeleteConfig = async () => {
     try {
-      await deleteAWSCredentialsApi();
-      setCredentials(null);
+      await deleteAWSConfigApi();
+      setConfig(null);
     } catch (error: unknown) {
       const apiErrorMessage = getApiErrorMsg(error);
-      const errorMessage = apiErrorMessage || 'An error occurred while deleting the AWS credentials. Please try again.';
+      const errorMessage = apiErrorMessage || 'An error occurred while deleting the AWS configuration. Please try again.';
 
       setError(errorMessage);
     }
@@ -69,15 +69,15 @@ const AWSConfigManager: React.FC = () => {
           <div>
             <div className="mb-2">
               <strong>Access Key ID: </strong>
-              {credentials ? (
-                <span>{credentials.access_key_id}</span>
+              {config ? (
+                <span>{config.access_key_id}</span>
               ) : (
                 <span className="text-gray-400">Not set</span>
               )}
             </div>
             <div>
               <strong>Secret Access Key: </strong>
-              {credentials ? (
+              {config ? (
                 <span>••••••••••••••••</span>
               ) : (
                 <span className="text-gray-400">Not set</span>
@@ -92,9 +92,9 @@ const AWSConfigManager: React.FC = () => {
             >
               <EditIcon className="w-5 h-5" />
             </button>
-            {credentials && (
+            {config && (
               <button
-                onClick={handleDeleteCredentials}
+                onClick={handleDeleteConfig}
                 className="p-2 text-gray-600 hover:text-red-600 rounded-full hover:bg-gray-100"
                 aria-label="delete"
               >
@@ -126,7 +126,7 @@ const AWSConfigManager: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Edit AWS Credentials</h2>
+              <h2 className="text-xl font-semibold">Edit AWS Configuration</h2>
               <button
                 onClick={() => setEditModalOpen(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -174,7 +174,7 @@ const AWSConfigManager: React.FC = () => {
                 Cancel
               </button>
               <button
-                onClick={handleSaveCredentials}
+                onClick={handleSaveConfig}
                 disabled={!accessKeyId || !secretAccessKey}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >

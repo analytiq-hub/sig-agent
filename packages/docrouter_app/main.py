@@ -65,7 +65,7 @@ from docrouter_app.models import (
     DocumentUpdate,
     LLMModel, ListLLMModelsResponse,
     LLMProvider, ListLLMProvidersResponse, SetLLMProviderConfigRequest,
-    AWSCredentials,
+    AWSConfig,
     GetOCRMetadataResponse,
     LLMRunResponse,
     LLMResult,
@@ -2751,31 +2751,31 @@ async def set_llm_provider_config(
 
     return {"message": "LLM provider config updated successfully"}
 
-@app.post("/v0/account/aws_credentials", tags=["account/aws_credentials"])
-async def create_aws_credentials(
-    credentials: AWSCredentials,
+@app.post("/v0/account/aws_config", tags=["account/aws_config"])
+async def create_aws_config(
+    config: AWSConfig,
     current_user: User = Depends(get_admin_user)
 ):  
-    """Create or update AWS credentials (admin only)"""
+    """Create or update AWS configuration (admin only)"""
     db = ad.common.get_async_db()
     # Validate AWS Access Key ID format
-    if not re.match(r'^[A-Z0-9]{20}$', credentials.access_key_id):
+    if not re.match(r'^[A-Z0-9]{20}$', config.access_key_id):
         raise HTTPException(
             status_code=400,
             detail="Invalid AWS Access Key ID format. Must be 20 characters long and contain only uppercase letters and numbers."
         )
 
     # Validate AWS Secret Access Key format
-    if not re.match(r'^[A-Za-z0-9+/]{40}$', credentials.secret_access_key):
+    if not re.match(r'^[A-Za-z0-9+/]{40}$', config.secret_access_key):
         raise HTTPException(
             status_code=400,
             detail="Invalid AWS Secret Access Key format. Must be 40 characters long and contain only letters, numbers, and +/."
         )
 
-    encrypted_access_key = ad.crypto.encrypt_token(credentials.access_key_id)
-    encrypted_secret_key = ad.crypto.encrypt_token(credentials.secret_access_key)
+    encrypted_access_key = ad.crypto.encrypt_token(config.access_key_id)
+    encrypted_secret_key = ad.crypto.encrypt_token(config.secret_access_key)
     
-    await db.aws_credentials.update_one(
+    await db.aws_config.update_one(
         {"user_id": current_user.user_id},
         {
             "$set": {
@@ -2787,29 +2787,29 @@ async def create_aws_credentials(
         upsert=True
     )
     
-    return {"message": "AWS credentials saved successfully"}
+    return {"message": "AWS configuration saved successfully"}
 
-@app.get("/v0/account/aws_credentials", tags=["account/aws_credentials"])
-async def get_aws_credentials(current_user: User = Depends(get_admin_user)):
-    """Get AWS credentials (admin only)"""
+@app.get("/v0/account/aws_config", tags=["account/aws_config"])
+async def get_aws_config(current_user: User = Depends(get_admin_user)):
+    """Get AWS configuration (admin only)"""
     db = ad.common.get_async_db()
-    credentials = await db.aws_credentials.find_one({"user_id": current_user.user_id})
-    if not credentials:
-        raise HTTPException(status_code=404, detail="AWS credentials not found")
+    config = await db.aws_config.find_one({"user_id": current_user.user_id})
+    if not config:
+        raise HTTPException(status_code=404, detail="AWS configuration not found")
         
     return {
-        "access_key_id": ad.crypto.decrypt_token(credentials["access_key_id"]),
-        "secret_access_key": ad.crypto.decrypt_token(credentials["secret_access_key"])
+        "access_key_id": ad.crypto.decrypt_token(config["access_key_id"]),
+        "secret_access_key": ad.crypto.decrypt_token(config["secret_access_key"])
     }
 
-@app.delete("/v0/account/aws_credentials", tags=["account/aws_credentials"])
-async def delete_aws_credentials(current_user: User = Depends(get_admin_user)):
-    """Delete AWS credentials (admin only)"""
+@app.delete("/v0/account/aws_config", tags=["account/aws_config"])
+async def delete_aws_config(current_user: User = Depends(get_admin_user)):
+    """Delete AWS configuration (admin only)"""
     db = ad.common.get_async_db()
-    result = await db.aws_credentials.delete_one({"user_id": current_user.user_id})
+    result = await db.aws_config.delete_one({"user_id": current_user.user_id})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="AWS credentials not found")
-    return {"message": "AWS credentials deleted successfully"}
+        raise HTTPException(status_code=404, detail="AWS configuration not found")
+    return {"message": "AWS configuration deleted successfully"}
 
 @app.get("/v0/account/organizations", response_model=ListOrganizationsResponse, tags=["account/organizations"])
 async def list_organizations(
