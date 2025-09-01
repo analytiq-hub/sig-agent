@@ -27,9 +27,9 @@ const DevelopmentSettingsPage: React.FC = () => {
 
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h2 className="text-xl font-semibold">AWS Credentials</h2>
+            <h2 className="text-xl font-semibold">AWS Setup</h2>
             <p className="text-gray-600 mb-2">
-              Configure your AWS access keys.
+              Configure your AWS setup.
             </p>
           </div>
           <Link href="/settings/account/development/aws-credentials" passHref>

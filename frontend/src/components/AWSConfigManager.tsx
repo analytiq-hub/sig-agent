@@ -4,7 +4,7 @@ import { getAWSCredentialsApi, createAWSCredentialsApi, deleteAWSCredentialsApi 
 import { getApiErrorMsg } from '@/utils/api';
 import { AWSCredentials } from '@/types/index';
 
-const AWSCredentialsManager: React.FC = () => {
+const AWSConfigManager: React.FC = () => {
   const [credentials, setCredentials] = useState<AWSCredentials | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [accessKeyId, setAccessKeyId] = useState('');
@@ -211,4 +211,4 @@ const AWSCredentialsManager: React.FC = () => {
   );
 };
 
-export default AWSCredentialsManager;
+export default AWSConfigManager;
