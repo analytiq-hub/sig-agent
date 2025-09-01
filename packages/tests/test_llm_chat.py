@@ -322,7 +322,6 @@ async def test_llm_chat_with_all_parameters(org_and_users, setup_test_models, te
         ],
         "max_tokens": 50,
         "temperature": 0.2,
-        "top_p": 0.9,
         "stream": False
     }
 
@@ -338,7 +337,6 @@ async def test_llm_chat_with_all_parameters(org_and_users, setup_test_models, te
         assert call_args["model"] == "gpt-4o-mini"
         assert call_args["max_tokens"] == 50
         assert call_args["temperature"] == 0.2
-        assert call_args["top_p"] == 0.9
 
 
 @pytest.mark.asyncio

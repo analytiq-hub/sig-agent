@@ -150,8 +150,18 @@ def get_llm_providers() -> dict:
         "anthropic": {
             "display_name": "Anthropic",
             "litellm_provider": "anthropic",
-            "litellm_models_available": ["claude-3-5-sonnet-latest", "claude-3-7-sonnet-latest"],
-            "litellm_models_enabled": ["claude-3-5-sonnet-latest", "claude-3-7-sonnet-latest"],
+            "litellm_models_available": [
+                "claude-3-5-sonnet-latest", 
+                "claude-3-7-sonnet-latest",
+                "claude-sonnet-4-20250514",
+                "claude-opus-4-1-20250805",
+                ],
+            "litellm_models_enabled": [
+                "claude-3-5-sonnet-latest", 
+                "claude-3-7-sonnet-latest",
+                "claude-sonnet-4-20250514",
+                "claude-opus-4-1-20250805",
+                ],
             "enabled": True,
             "token" : "",
             "token_created_at": None,

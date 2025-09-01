@@ -816,7 +816,6 @@ async def _run_llm_chat_impl(
             "model": request.model,
             "messages": messages,
             "temperature": request.temperature,
-            "top_p": request.top_p,
         }
         
         if request.max_tokens:

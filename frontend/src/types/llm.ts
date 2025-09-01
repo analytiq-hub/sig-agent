@@ -89,7 +89,6 @@ export interface LLMChatRequest {
   messages: LLMMessage[];
   max_tokens?: number;
   temperature?: number;
-  top_p?: number;
   stream?: boolean;
 }
 
