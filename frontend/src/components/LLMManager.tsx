@@ -226,7 +226,7 @@ const LLMManager: React.FC = () => {
         />
       </div>
 
-      <div className="flex-1">
+      <div className="flex-1 overflow-hidden">
         <DataGrid
           rows={filteredProviders}
           columns={columns}
@@ -249,7 +249,6 @@ const LLMManager: React.FC = () => {
             '& .MuiDataGrid-row:hover': {
               backgroundColor: `${colors.gray[200]} !important`,
             },
-            height: '100%'
           }}
         />
       </div>
