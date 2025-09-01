@@ -180,12 +180,22 @@ def get_llm_providers() -> dict:
         "bedrock": {
             "display_name": "AWS Bedrock",
             "litellm_provider": "bedrock",
-            "litellm_models_available": ["anthropic.claude-3-5-sonnet-20240620-v1:0"],
-            "litellm_models_enabled": ["anthropic.claude-3-5-sonnet-20240620-v1:0"],
+            "litellm_models_available": [
+                "anthropic.claude-3-5-sonnet-20240620-v1:0",
+                "anthropic.claude-sonnet-4-20250514-v1:0",
+                "anthropic.claude-opus-4-20250514-v1:0",
+                "anthropic.claude-opus-4-1-20250805-v1:0"
+            ],
+            "litellm_models_enabled": [
+                "anthropic.claude-3-5-sonnet-20240620-v1:0",
+                "anthropic.claude-sonnet-4-20250514-v1:0",
+                "anthropic.claude-opus-4-20250514-v1:0",
+                "anthropic.claude-opus-4-1-20250805-v1:0"
+            ],
             "enabled": False,
             "token" : "",
             "token_created_at": None,
-            "token_env": " ",
+            "token_env": "NONE", # No token needed for Bedrock
         },
         "gemini": {
             "display_name": "Gemini",
