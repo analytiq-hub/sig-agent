@@ -484,31 +484,74 @@ export const runLLMChatStreamApi = async (
     // Ensure stream is set to true for streaming requests
     const streamingRequest = { ...request, stream: true };
     
-    const response = await api.post('/v0/llm/run', streamingRequest, {
-      responseType: 'text',
+    // Get the session token for authorization
+    const session = await getCachedSession();
+    if (!session?.apiAccessToken) {
+      throw new Error('No API token available');
+    }
+
+    // Use fetch instead of axios for streaming support
+    // Note: Axios cannot handle true streaming responses because it waits for the entire
+    // response to complete before resolving the promise, even with responseType: 'text'.
+    // In browsers, Axios uses XMLHttpRequest which doesn't expose partial response data.
+    // Only fetch() with ReadableStream provides access to chunks as they arrive in real-time.
+    const response = await fetch(`${NEXT_PUBLIC_FASTAPI_FRONTEND_URL}/v0/llm/run`, {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.apiAccessToken}`,
         'Accept': 'text/plain',
         'Cache-Control': 'no-cache',
       },
+      credentials: 'include',
+      body: JSON.stringify(streamingRequest),
     });
 
-    // Handle Server-Sent Events (SSE) format
-    const lines = response.data.split('\n');
-    
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        try {
-          const data = JSON.parse(line.slice(6));
-          onChunk(data);
-          
-          // Stop if we're done
-          if (data.done) {
-            return;
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    if (!response.body) {
+      throw new Error('Response body is not available for streaming');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          break;
+        }
+
+        // Decode the chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Process complete lines from buffer
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              onChunk(data);
+              
+              // Stop if we're done
+              if (data.done) {
+                return;
+              }
+            } catch (parseError) {
+              console.warn('Failed to parse streaming chunk:', parseError);
+            }
           }
-        } catch (parseError) {
-          console.warn('Failed to parse streaming chunk:', parseError);
         }
       }
+    } finally {
+      reader.releaseLock();
     }
   } catch (error) {
     if (onError) {
