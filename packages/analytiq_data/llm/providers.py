@@ -257,6 +257,16 @@ def get_llm_providers() -> dict:
             "token_created_at": None,
             "token_env": "VERTEX_AI_API_KEY",
         },
+        "xai": {
+            "display_name": "xAI",
+            "litellm_provider": "xai",
+            "litellm_models_available": ["xai/grok-4-0709"],
+            "litellm_models_enabled": ["xai/grok-4-0709"],
+            "enabled": True,
+            "token" : "",
+            "token_created_at": None,
+            "token_env": "XAI_API_KEY",
+        },
     }
 
     return providers

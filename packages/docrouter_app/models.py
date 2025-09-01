@@ -86,7 +86,7 @@ class ListLLMModelsResponse(BaseModel):
 class LLMToken(BaseModel):
     id: str
     user_id: str
-    llm_vendor: Literal["OpenAI", "Anthropic", "Gemini", "Groq", "Mistral"]
+    llm_vendor: Literal["OpenAI", "Anthropic", "Gemini", "Groq", "Mistral", "xAI"]
     token: str
     created_at: datetime
 
