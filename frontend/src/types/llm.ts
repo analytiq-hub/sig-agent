@@ -77,3 +77,51 @@ export interface DeleteLLMResultParams {
   documentId: string;
   promptId: string;
 }
+
+// New interfaces for LLM chat functionality (admin only)
+export interface LLMMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+export interface LLMChatRequest {
+  model: string;
+  messages: LLMMessage[];
+  max_tokens?: number;
+  temperature?: number;
+  top_p?: number;
+  stream?: boolean;
+}
+
+export interface LLMChatChoice {
+  index: number;
+  message: {
+    role: "assistant";
+    content: string;
+  };
+  finish_reason: string;
+}
+
+export interface LLMChatUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+
+export interface LLMChatResponse {
+  id: string;
+  object: "chat.completion";
+  created: number;
+  model: string;
+  choices: LLMChatChoice[];
+  usage: LLMChatUsage;
+}
+
+export interface LLMChatStreamChunk {
+  chunk: string;
+  done: boolean;
+}
+
+export interface LLMChatStreamError {
+  error: string;
+}

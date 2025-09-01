@@ -419,6 +419,23 @@ class ListFlowsResponse(BaseModel):
     total_count: int
     skip: int
 
+# Add these new models for LLM testing (admin only)
+class LLMMessage(BaseModel):
+    role: Literal["system", "user", "assistant"] = Field(..., description="Role of the message sender")
+    content: str = Field(..., description="Content of the message")
+
+class LLMPromptRequest(BaseModel):
+    model: str = Field(..., description="The LLM model to use (e.g., 'gpt-4o-mini')")
+    messages: List[LLMMessage] = Field(..., description="Array of messages for the conversation")
+    max_tokens: Optional[int] = Field(default=None, description="Maximum tokens to generate")
+    temperature: Optional[float] = Field(default=0.7, description="Sampling temperature (0.0 to 2.0)")
+    top_p: Optional[float] = Field(default=1.0, description="Top-p sampling parameter")
+    stream: Optional[bool] = Field(default=False, description="Whether to stream the response")
+
+class LLMStreamResponse(BaseModel):
+    chunk: str
+    done: bool = False
+
 # Add these new models for form submissions
 class FormSubmissionData(BaseModel):
     form_revid: str

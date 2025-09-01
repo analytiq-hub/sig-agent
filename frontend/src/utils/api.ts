@@ -144,6 +144,7 @@ import {
   FormSubmission,
   DeleteFormSubmissionParams
 } from '@/types/forms';
+import { LLMChatRequest, LLMChatResponse, LLMChatStreamChunk, LLMChatStreamError } from '@/types/llm';
 
 // These APIs execute from the frontend
 const NEXT_PUBLIC_FASTAPI_FRONTEND_URL = process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL || "http://localhost:8000";
@@ -465,6 +466,57 @@ export const downloadAllLLMResultsApi = async (params: {
     }
   );
   return response.data;
+};
+
+// LLM Chat API (admin only)
+export const runLLMChatApi = async (request: LLMChatRequest): Promise<LLMChatResponse> => {
+  const response = await api.post<LLMChatResponse>('/v0/llm/run', request);
+  return response.data;
+};
+
+// LLM Chat Streaming API (admin only)
+export const runLLMChatStreamApi = async (
+  request: LLMChatRequest,
+  onChunk: (chunk: LLMChatStreamChunk | LLMChatStreamError) => void,
+  onError?: (error: Error) => void
+): Promise<void> => {
+  try {
+    // Ensure stream is set to true for streaming requests
+    const streamingRequest = { ...request, stream: true };
+    
+    const response = await api.post('/v0/llm/run', streamingRequest, {
+      responseType: 'text',
+      headers: {
+        'Accept': 'text/plain',
+        'Cache-Control': 'no-cache',
+      },
+    });
+
+    // Handle Server-Sent Events (SSE) format
+    const lines = response.data.split('\n');
+    
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          onChunk(data);
+          
+          // Stop if we're done
+          if (data.done) {
+            return;
+          }
+        } catch (parseError) {
+          console.warn('Failed to parse streaming chunk:', parseError);
+        }
+      }
+    }
+  } catch (error) {
+    if (onError) {
+      onError(error instanceof Error ? error : new Error('Streaming request failed'));
+    } else {
+      throw error;
+    }
+  }
 };
 
 // Schema APIs

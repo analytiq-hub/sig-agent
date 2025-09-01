@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import Switch from '@mui/material/Switch';
+import Button from '@mui/material/Button';
 import { listLLMModelsApi, listLLMProvidersApi, setLLMProviderConfigApi } from '@/utils/api';
 import { LLMProvider, LLMModel } from '@/types/index';
 import colors from 'tailwindcss/colors';
+import LLMTestModal from './LLMTestModal';
 
 const LLMModelsConfig: React.FC = () => {
   const [providers, setProviders] = useState<LLMProvider[]>([]);
   const [models, setModels] = useState<LLMModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Test modal state
+  const [testModalOpen, setTestModalOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string>('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,6 +62,16 @@ const LLMModelsConfig: React.FC = () => {
     }
   };
 
+  const handleTestModel = (modelName: string) => {
+    setSelectedModel(modelName);
+    setTestModalOpen(true);
+  };
+
+  const handleCloseTestModal = () => {
+    setTestModalOpen(false);
+    setSelectedModel('');
+  };
+
   const columns: GridColDef[] = [
     { field: 'provider', headerName: 'Provider', flex: 1, minWidth: 120 },
     { field: 'name', headerName: 'Model Name', flex: 1, minWidth: 150 },
@@ -71,6 +87,22 @@ const LLMModelsConfig: React.FC = () => {
           size="small"
           color="primary"
         />
+      ),
+    },
+    {
+      field: 'test',
+      headerName: 'Test',
+      width: 100,
+      minWidth: 100,
+      renderCell: (params: GridRenderCellParams) => (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => handleTestModel(params.row.name)}
+          disabled={!params.row.enabled}
+        >
+          Test
+        </Button>
       ),
     },
     { field: 'max_input_tokens', headerName: 'Max Input Tokens', width: 140, minWidth: 140 },
@@ -136,6 +168,13 @@ const LLMModelsConfig: React.FC = () => {
           }}
         />
       </div>
+
+      {/* Test Modal */}
+      <LLMTestModal
+        open={testModalOpen}
+        onClose={handleCloseTestModal}
+        modelName={selectedModel}
+      />
     </div>
   );
 };

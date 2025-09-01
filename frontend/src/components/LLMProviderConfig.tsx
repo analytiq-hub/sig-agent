@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import Switch from '@mui/material/Switch';
+import Button from '@mui/material/Button';
 import { listLLMProvidersApi, setLLMProviderConfigApi, listLLMModelsApi } from '@/utils/api';
 import { LLMProvider, LLMModel } from '@/types/index';
+import LLMTestModal from './LLMTestModal';
 
 interface LLMProviderConfigProps {
   providerName: string;
@@ -13,6 +15,10 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
   const [models, setModels] = useState<LLMModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Test modal state
+  const [testModalOpen, setTestModalOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string>('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,6 +76,16 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
     }
   };
 
+  const handleTestModel = (modelName: string) => {
+    setSelectedModel(modelName);
+    setTestModalOpen(true);
+  };
+
+  const handleCloseTestModal = () => {
+    setTestModalOpen(false);
+    setSelectedModel('');
+  };
+
   const columns: GridColDef[] = [
     { field: 'litellm_model', headerName: 'Model Name', flex: 1, minWidth: 150 },
     {
@@ -84,6 +100,22 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
           size="small"
           color="primary"
         />
+      ),
+    },
+    {
+      field: 'test',
+      headerName: 'Test',
+      width: 100,
+      minWidth: 100,
+      renderCell: (params: GridRenderCellParams) => (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => handleTestModel(params.row.litellm_model)}
+          disabled={!provider?.litellm_models_enabled.includes(params.row.litellm_model)}
+        >
+          Test
+        </Button>
       ),
     },
     { field: 'max_input_tokens', headerName: 'Max Input Tokens', width: 140, minWidth: 140 },
@@ -111,11 +143,18 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
           disableRowSelectionOnClick
           getRowId={(row) => row.litellm_model}
           sx={{
-            minWidth: 700,
+            minWidth: 800,
             height: 300,
           }}
         />
       </div>
+
+      {/* Test Modal */}
+      <LLMTestModal
+        open={testModalOpen}
+        onClose={handleCloseTestModal}
+        modelName={selectedModel}
+      />
     </div>
   );
 };
