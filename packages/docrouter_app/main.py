@@ -822,6 +822,16 @@ async def _run_llm_chat_impl(
         if request.max_tokens:
             params["max_tokens"] = request.max_tokens
         
+        # Handle Bedrock-specific configuration
+        llm_provider = ad.llm.get_llm_model_provider(request.model)
+        if llm_provider == "bedrock":
+            analytiq_client = ad.common.get_analytiq_client()
+            aws_client = ad.aws.get_aws_client(analytiq_client, region_name="us-east-1")
+            params["aws_access_key_id"] = aws_client.aws_access_key_id
+            params["aws_secret_access_key"] = aws_client.aws_secret_access_key
+            params["aws_region_name"] = aws_client.region_name
+            logger.info(f"Bedrock config: region={aws_client.region_name}")
+        
         if request.stream:
             # Streaming response
             async def generate_stream():
