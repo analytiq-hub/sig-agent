@@ -71,11 +71,12 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
   };
 
   const columns: GridColDef[] = [
-    { field: 'litellm_model', headerName: 'Model Name', flex: 1 },
+    { field: 'litellm_model', headerName: 'Model Name', flex: 1, minWidth: 150 },
     {
       field: 'enabled',
       headerName: 'Enabled',
-      width: 120,
+      width: 100,
+      minWidth: 100,
       renderCell: (params: GridRenderCellParams) => (
         <Switch
           checked={provider?.litellm_models_enabled.includes(params.row.litellm_model)}
@@ -85,10 +86,10 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
         />
       ),
     },
-    { field: 'max_input_tokens', headerName: 'Max Input Tokens', width: 150 },
-    { field: 'max_output_tokens', headerName: 'Max Output Tokens', width: 150 },
-    { field: 'input_cost_per_token', headerName: 'Input Cost', width: 120 },
-    { field: 'output_cost_per_token', headerName: 'Output Cost', width: 120 },
+    { field: 'max_input_tokens', headerName: 'Max Input Tokens', width: 140, minWidth: 140 },
+    { field: 'max_output_tokens', headerName: 'Max Output Tokens', width: 140, minWidth: 140 },
+    { field: 'input_cost_per_token', headerName: 'Input Cost', width: 100, minWidth: 100 },
+    { field: 'output_cost_per_token', headerName: 'Output Cost', width: 100, minWidth: 100 },
   ];
 
   if (loading) return <div>Loading...</div>;
@@ -103,13 +104,18 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
       <p><b>Token:</b> {provider.token ? `${provider.token.slice(0, 16)}••••••••` : 'Not set'}</p>
       </div>
       <h3 className="text-lg font-semibold mb-2">Models</h3>
-      <DataGrid
-        rows={models}
-        columns={columns}
-        autoHeight
-        disableRowSelectionOnClick
-        getRowId={(row) => row.litellm_model}
-      />
+      <div className="w-full overflow-x-auto">
+        <DataGrid
+          rows={models}
+          columns={columns}
+          disableRowSelectionOnClick
+          getRowId={(row) => row.litellm_model}
+          sx={{
+            minWidth: 700,
+            height: 300,
+          }}
+        />
+      </div>
     </div>
   );
 };

@@ -57,12 +57,13 @@ const LLMModelsConfig: React.FC = () => {
   };
 
   const columns: GridColDef[] = [
-    { field: 'provider', headerName: 'Provider', flex: 1 },
-    { field: 'name', headerName: 'Model Name', flex: 1 },
+    { field: 'provider', headerName: 'Provider', flex: 1, minWidth: 120 },
+    { field: 'name', headerName: 'Model Name', flex: 1, minWidth: 150 },
     {
       field: 'enabled',
       headerName: 'Enabled',
-      width: 120,
+      width: 100,
+      minWidth: 100,
       renderCell: (params: GridRenderCellParams) => (
         <Switch
           checked={params.row.enabled}
@@ -72,10 +73,10 @@ const LLMModelsConfig: React.FC = () => {
         />
       ),
     },
-    { field: 'max_input_tokens', headerName: 'Max Input Tokens', width: 150 },
-    { field: 'max_output_tokens', headerName: 'Max Output Tokens', width: 150 },
-    { field: 'input_cost_per_token', headerName: 'Input Cost', width: 120 },
-    { field: 'output_cost_per_token', headerName: 'Output Cost', width: 120 },
+    { field: 'max_input_tokens', headerName: 'Max Input Tokens', width: 140, minWidth: 140 },
+    { field: 'max_output_tokens', headerName: 'Max Output Tokens', width: 140, minWidth: 140 },
+    { field: 'input_cost_per_token', headerName: 'Input Cost', width: 100, minWidth: 100 },
+    { field: 'output_cost_per_token', headerName: 'Output Cost', width: 100, minWidth: 100 },
   ];
 
   if (loading) return <div>Loading...</div>;
@@ -109,29 +110,32 @@ const LLMModelsConfig: React.FC = () => {
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <h2 className="text-2xl font-bold mb-4">All Language Models</h2>
-      <DataGrid
-        rows={rows}
-        columns={columns}
-        autoHeight
-        disableRowSelectionOnClick
-        sx={{
-          '& .MuiDataGrid-cell': {
-            padding: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            height: '100%',
-          },
-          '& .MuiDataGrid-row': {
-            height: '48px !important',
-          },
-          '& .MuiDataGrid-row:nth-of-type(odd)': {
-            backgroundColor: colors.gray[100],
-          },
-          '& .MuiDataGrid-row:hover': {
-            backgroundColor: `${colors.gray[200]} !important`,
-          },
-        }}
-      />
+      <div className="w-full overflow-x-auto">
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          disableRowSelectionOnClick
+          sx={{
+            minWidth: 800,
+            height: 400,
+            '& .MuiDataGrid-cell': {
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              height: '100%',
+            },
+            '& .MuiDataGrid-row': {
+              height: '48px !important',
+            },
+            '& .MuiDataGrid-row:nth-of-type(odd)': {
+              backgroundColor: colors.gray[100],
+            },
+            '& .MuiDataGrid-row:hover': {
+              backgroundColor: `${colors.gray[200]} !important`,
+            },
+          }}
+        />
+      </div>
     </div>
   );
 };
