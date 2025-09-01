@@ -99,7 +99,7 @@ const LLMTestModal: React.FC<LLMTestModalProps> = ({ open, onClose, modelName })
       {/* Modal */}
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
+        <div className="bg-gradient-to-r bg-blue-600 px-6 py-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-white">
               Test LLM Model: {modelName}
