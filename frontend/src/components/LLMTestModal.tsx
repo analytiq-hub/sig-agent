@@ -4,10 +4,6 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -23,21 +19,23 @@ interface LLMTestModalProps {
 
 const LLMTestModal: React.FC<LLMTestModalProps> = ({ open, onClose, modelName }) => {
   const [testPrompt, setTestPrompt] = useState<string>('Hello, how are you?');
-  const [testRole, setTestRole] = useState<'user' | 'system'>('user');
   const [isTesting, setIsTesting] = useState(false);
   const [testResponse, setTestResponse] = useState<string>('');
   const [testError, setTestError] = useState<string | null>(null);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
 
   const handleRunTest = async () => {
     if (!modelName || !testPrompt.trim()) return;
 
+    const controller = new AbortController();
+    setAbortController(controller);
     setIsTesting(true);
     setTestResponse('');
     setTestError(null);
 
     try {
       const messages: LLMMessage[] = [
-        { role: testRole, content: testPrompt.trim() }
+        { role: 'user', content: testPrompt.trim() }
       ];
 
       const request: LLMChatRequest = {
@@ -57,21 +55,43 @@ const LLMTestModal: React.FC<LLMTestModalProps> = ({ open, onClose, modelName })
           }
         },
         (error) => {
-          setTestError(error.message);
-        }
+          if (error.name === 'AbortError') {
+            setTestError('Request was cancelled');
+          } else {
+            setTestError(error.message);
+          }
+        },
+        controller.signal
       );
     } catch (error) {
-      setTestError(error instanceof Error ? error.message : 'An error occurred during testing');
+      if (error instanceof Error && error.name === 'AbortError') {
+        setTestError('Request was cancelled');
+      } else {
+        setTestError(error instanceof Error ? error.message : 'An error occurred during testing');
+      }
     } finally {
       setIsTesting(false);
+      setAbortController(null);
+    }
+  };
+
+  const handleCancel = () => {
+    if (abortController) {
+      abortController.abort();
     }
   };
 
   const handleClose = () => {
+    // Cancel any ongoing request
+    if (abortController) {
+      abortController.abort();
+    }
+    
     setTestPrompt('Hello, how are you?');
-    setTestRole('user');
     setTestResponse('');
     setTestError(null);
+    setAbortController(null);
+    setIsTesting(false);
     onClose();
   };
 
@@ -87,18 +107,6 @@ const LLMTestModal: React.FC<LLMTestModalProps> = ({ open, onClose, modelName })
       </DialogTitle>
       <DialogContent>
         <Box sx={{ mt: 2 }}>
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Message Role</InputLabel>
-            <Select
-              value={testRole}
-              label="Message Role"
-              onChange={(e) => setTestRole(e.target.value as 'user' | 'system')}
-            >
-              <MenuItem value="user">User</MenuItem>
-              <MenuItem value="system">System</MenuItem>
-            </Select>
-          </FormControl>
-          
           <TextField
             fullWidth
             multiline
@@ -145,6 +153,15 @@ const LLMTestModal: React.FC<LLMTestModalProps> = ({ open, onClose, modelName })
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose}>Close</Button>
+        {isTesting && (
+          <Button 
+            onClick={handleCancel}
+            variant="outlined"
+            color="error"
+          >
+            Cancel
+          </Button>
+        )}
         <Button 
           onClick={handleRunTest}
           variant="contained"

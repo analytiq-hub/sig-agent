@@ -478,7 +478,8 @@ export const runLLMChatApi = async (request: LLMChatRequest): Promise<LLMChatRes
 export const runLLMChatStreamApi = async (
   request: LLMChatRequest,
   onChunk: (chunk: LLMChatStreamChunk | LLMChatStreamError) => void,
-  onError?: (error: Error) => void
+  onError?: (error: Error) => void,
+  abortSignal?: AbortSignal
 ): Promise<void> => {
   try {
     // Ensure stream is set to true for streaming requests
@@ -505,6 +506,7 @@ export const runLLMChatStreamApi = async (
       },
       credentials: 'include',
       body: JSON.stringify(streamingRequest),
+      signal: abortSignal,
     });
 
     if (!response.ok) {
