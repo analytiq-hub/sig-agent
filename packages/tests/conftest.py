@@ -156,7 +156,7 @@ async def org_and_users(test_db):
         "updated_at": datetime.now(UTC)
     })
 
-    # Helper to create a token for a user (org-level)
+    # Helper to create a token for a user
     async def create_token(user_id, org_id, name):
         token = secrets.token_urlsafe(32)
         encrypted = ad.crypto.encrypt_token(token)
@@ -171,15 +171,21 @@ async def org_and_users(test_db):
         await test_db.access_tokens.insert_one(token_doc)
         return token
 
+    # Create org-level tokens (backward compatibility - existing tests use these)
     admin_token = await create_token(admin_id, org_id, "admin-token")
     member_token = await create_token(member_id, org_id, "member-token")
     outsider_token = await create_token(outsider_id, org_id, "outsider-token")
+    
+    # Create account-level tokens (for /v0/account/* endpoints)
+    admin_account_token = await create_token(admin_id, None, "admin-account-token")
+    member_account_token = await create_token(member_id, None, "member-account-token")
+    outsider_account_token = await create_token(outsider_id, None, "outsider-account-token")
 
     return {
         "org_id": org_id,
-        "admin": {"id": admin_id, "token": admin_token},
-        "member": {"id": member_id, "token": member_token},
-        "outsider": {"id": outsider_id, "token": outsider_token}
+        "admin": {"id": admin_id, "token": admin_token, "account_token": admin_account_token},
+        "member": {"id": member_id, "token": member_token, "account_token": member_account_token},
+        "outsider": {"id": outsider_id, "token": outsider_token, "account_token": outsider_account_token}
     }
 
 @pytest.fixture

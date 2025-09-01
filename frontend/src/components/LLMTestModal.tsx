@@ -192,7 +192,7 @@ const LLMTestModal: React.FC<LLMTestModalProps> = ({ open, onClose, modelName })
             className={`px-6 py-2 rounded-lg font-medium transition-all transform ${
               isTesting || !testPrompt.trim()
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 hover:shadow-lg hover:scale-105 active:scale-95'
+                : 'bg-gradient-to-r bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:scale-105 active:scale-95'
             }`}
           >
             {isTesting ? (

@@ -755,11 +755,34 @@ async def run_llm_analysis(
             detail=f"Error processing document: {str(e)}"
         )
 
-# Admin-only LLM testing endpoint
-@app.post("/v0/llm/run", tags=["llm"])
-async def run_llm_chat(
+# Admin-only LLM testing endpoint - Account level
+@app.post("/v0/account/llm/run", tags=["account/llm"])
+async def run_llm_chat_account(
     request: LLMPromptRequest,
     current_user: User = Depends(get_admin_user)
+):
+    """
+    Test LLM with arbitrary prompt (admin only) - Account level.
+    Supports both streaming and non-streaming responses.
+    """
+    return await _run_llm_chat_impl(request, current_user)
+
+# Admin-only LLM testing endpoint - Organization level  
+@app.post("/v0/orgs/{organization_id}/llm/run", tags=["llm"])
+async def run_llm_chat_org(
+    organization_id: str,
+    request: LLMPromptRequest,
+    current_user: User = Depends(get_admin_user)
+):
+    """
+    Test LLM with arbitrary prompt (admin or org admin) - Organization level.
+    Supports both streaming and non-streaming responses.
+    """
+    return await _run_llm_chat_impl(request, current_user)
+
+async def _run_llm_chat_impl(
+    request: LLMPromptRequest,
+    current_user: User
 ):
     """
     Test LLM with arbitrary prompt (admin only).

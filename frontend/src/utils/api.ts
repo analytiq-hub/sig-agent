@@ -468,14 +468,42 @@ export const downloadAllLLMResultsApi = async (params: {
   return response.data;
 };
 
-// LLM Chat API (admin only)
+// LLM Chat API (admin only) - Account level
 export const runLLMChatApi = async (request: LLMChatRequest): Promise<LLMChatResponse> => {
-  const response = await api.post<LLMChatResponse>('/v0/llm/run', request);
+  const response = await api.post<LLMChatResponse>('/v0/account/llm/run', request);
   return response.data;
 };
 
-// LLM Chat Streaming API (admin only)
+// LLM Chat API (admin only) - Organization level
+export const runLLMChatOrgApi = async (organizationId: string, request: LLMChatRequest): Promise<LLMChatResponse> => {
+  const response = await api.post<LLMChatResponse>(`/v0/orgs/${organizationId}/llm/run`, request);
+  return response.data;
+};
+
+// LLM Chat Streaming API (admin only) - Account level
 export const runLLMChatStreamApi = async (
+  request: LLMChatRequest,
+  onChunk: (chunk: LLMChatStreamChunk | LLMChatStreamError) => void,
+  onError?: (error: Error) => void,
+  abortSignal?: AbortSignal
+): Promise<void> => {
+  return await _runLLMChatStreamImpl('/v0/account/llm/run', request, onChunk, onError, abortSignal);
+};
+
+// LLM Chat Streaming API (admin only) - Organization level
+export const runLLMChatStreamOrgApi = async (
+  organizationId: string,
+  request: LLMChatRequest,
+  onChunk: (chunk: LLMChatStreamChunk | LLMChatStreamError) => void,
+  onError?: (error: Error) => void,
+  abortSignal?: AbortSignal
+): Promise<void> => {
+  return await _runLLMChatStreamImpl(`/v0/orgs/${organizationId}/llm/run`, request, onChunk, onError, abortSignal);
+};
+
+// Internal implementation for LLM Chat Streaming
+const _runLLMChatStreamImpl = async (
+  endpoint: string,
   request: LLMChatRequest,
   onChunk: (chunk: LLMChatStreamChunk | LLMChatStreamError) => void,
   onError?: (error: Error) => void,
@@ -496,7 +524,7 @@ export const runLLMChatStreamApi = async (
     // response to complete before resolving the promise, even with responseType: 'text'.
     // In browsers, Axios uses XMLHttpRequest which doesn't expose partial response data.
     // Only fetch() with ReadableStream provides access to chunks as they arrive in real-time.
-    const response = await fetch(`${NEXT_PUBLIC_FASTAPI_FRONTEND_URL}/v0/llm/run`, {
+    const response = await fetch(`${NEXT_PUBLIC_FASTAPI_FRONTEND_URL}${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
