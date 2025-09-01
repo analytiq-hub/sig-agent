@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
-import { getAWSConfigApi, createAWSConfigApi, deleteAWSConfigApi } from '@/utils/api';
+import { getAWSConfigApi, createAWSConfigApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
 import { AWSConfig } from '@/types/index';
 
@@ -51,68 +50,63 @@ const AWSConfigManager: React.FC = () => {
     }
   };
 
-  const handleDeleteConfig = async () => {
-    try {
-      await deleteAWSConfigApi();
-      setConfig(null);
-    } catch (error: unknown) {
-      const apiErrorMessage = getApiErrorMsg(error);
-      const errorMessage = apiErrorMessage || 'An error occurred while deleting the AWS configuration. Please try again.';
 
-      setError(errorMessage);
-    }
-  };
 
   return (
     <div className="space-y-4">
       {/* Configuration Section */}
       <div className="bg-white rounded-lg shadow p-4">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">AWS Configuration</h2>
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="mb-2">
-              <strong>Access Key ID: </strong>
-              {config ? (
-                <span>{config.access_key_id}</span>
-              ) : (
-                <span className="text-gray-400">Not set</span>
-              )}
-            </div>
-            <div>
-              <strong>Secret Access Key: </strong>
-              {config ? (
-                <span>••••••••••••••••</span>
-              ) : (
-                <span className="text-gray-400">Not set</span>
-              )}
-            </div>
-            <div>
-              <strong>S3 Bucket Name: </strong>
-              {config?.s3_bucket_name ? (
-                <span>{config.s3_bucket_name}</span>
-              ) : (
-                <span className="text-gray-400">Not set</span>
-              )}
-            </div>
-          </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={handleEditCredentials}
-              className="p-2 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100"
-              aria-label="edit"
-            >
-              <EditIcon className="w-5 h-5" />
-            </button>
-            {config && (
-              <button
-                onClick={handleDeleteConfig}
-                className="p-2 text-gray-600 hover:text-red-600 rounded-full hover:bg-gray-100"
-                aria-label="delete"
-              >
-                <DeleteIcon className="w-5 h-5" />
-              </button>
-            )}
-          </div>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-medium text-gray-900">AWS Configuration</h2>
+          <button
+            onClick={handleEditCredentials}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {config ? 'Edit Configuration' : 'Add Configuration'}
+          </button>
+        </div>
+        
+        <div className="overflow-hidden border border-gray-200 rounded-lg">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Setting
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Value
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              <tr className="bg-white hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  Access Key ID
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                  {config?.access_key_id || 'Not configured'}
+                </td>
+              </tr>
+              
+              <tr className="bg-gray-50 hover:bg-gray-100">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  Secret Access Key
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {config?.access_key_id ? '••••••••••••••••••••••••••••••••••••••••' : 'Not configured'}
+                </td>
+              </tr>
+              
+              <tr className="bg-white hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  S3 Bucket Name
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {config?.s3_bucket_name || 'Not configured'}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
