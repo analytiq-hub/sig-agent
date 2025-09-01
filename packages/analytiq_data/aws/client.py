@@ -8,21 +8,29 @@ import analytiq_data as ad
 
 logger = logging.getLogger(__name__)
 
-def get_s3_bucket_name() -> str:
+def get_s3_bucket_name(analytiq_client) -> str:
     """
-    Get the S3 bucket name from environment variable with fallback to default.
+    Get the S3 bucket name from database configuration or environment variable with fallback to default.
     
+    Args:
+        analytiq_client: Optional AnalytiqClient to check database configuration
+        
     Returns:
         The S3 bucket name to use for AWS operations.
     """
-    return os.getenv("AWS_S3_BUCKET_NAME", "analytiq-data")
+    try:
+        aws_config = get_aws_config(analytiq_client)
+        if aws_config.get("s3_bucket_name"):
+            return aws_config["s3_bucket_name"]
+    except Exception as e:
+        logger.warning(f"Could not get S3 bucket name from database: {e}")
 
 class AWSClient:
     def __init__(self, analytiq_client, region_name: str = "us-east-1"):
         self.env = analytiq_client.env
         self.region_name = region_name
         # Get the AWS keys
-        aws_keys = get_aws_keys(analytiq_client)
+        aws_keys = get_aws_config(analytiq_client)
         self.aws_access_key_id = aws_keys["aws_access_key_id"]
         self.aws_secret_access_key = aws_keys["aws_secret_access_key"]
 
@@ -65,7 +73,7 @@ class AWSClient:
 
             # Create the s3 client
             self.s3 = self.session.client("s3", region_name=region_name)
-            self.s3_bucket_name = get_s3_bucket_name()
+            self.s3_bucket_name = get_s3_bucket_name(analytiq_client)
 
             # Create the textract client
             self.textract = self.session.client("textract", region_name=region_name)
@@ -86,7 +94,7 @@ def get_aws_client(analytiq_client, region_name: str = "us-east-1") -> AWSClient
     """
     return AWSClient(analytiq_client, region_name)
 
-def get_aws_keys(analytiq_client) -> dict:
+def get_aws_config(analytiq_client) -> dict:
     """
     Get the AWS keys.
 
@@ -98,20 +106,21 @@ def get_aws_keys(analytiq_client) -> dict:
     """
     db_name = analytiq_client.env
     db = analytiq_client.mongodb[db_name]
-    aws_keys_collection = db["aws_config"]
+    aws_config_collection = db["aws_config"]
 
-    aws_keys = aws_keys_collection.find_one()
+    aws_config = aws_config_collection.find_one()
     
     # Parse the AWS keys
     access_key_id = ""
     secret_access_key = ""
-    if aws_keys:
-        access_key_id = ad.crypto.decrypt_token(aws_keys.get("access_key_id", ""))
-        secret_access_key = ad.crypto.decrypt_token(aws_keys.get("secret_access_key", ""))
+    if aws_config:
+        access_key_id = ad.crypto.decrypt_token(aws_config.get("access_key_id", ""))
+        secret_access_key = ad.crypto.decrypt_token(aws_config.get("secret_access_key", ""))
 
     return {
         "aws_access_key_id": access_key_id,
-        "aws_secret_access_key": secret_access_key
+        "aws_secret_access_key": secret_access_key,
+        "s3_bucket_name": aws_config.get("s3_bucket_name") if aws_config else None
     }
 
 def get_assume_role_arn(user_arn: str) -> str:

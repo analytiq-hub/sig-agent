@@ -9,6 +9,7 @@ const AWSConfigManager: React.FC = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [accessKeyId, setAccessKeyId] = useState('');
   const [secretAccessKey, setSecretAccessKey] = useState('');
+  const [s3BucketName, setS3BucketName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,6 +28,7 @@ const AWSConfigManager: React.FC = () => {
   const handleEditCredentials = () => {
     setAccessKeyId('');
     setSecretAccessKey('');
+    setS3BucketName(config?.s3_bucket_name || '');
     setEditModalOpen(true);
   };
 
@@ -35,6 +37,7 @@ const AWSConfigManager: React.FC = () => {
       await createAWSConfigApi({
         access_key_id: accessKeyId,
         secret_access_key: secretAccessKey,
+        s3_bucket_name: s3BucketName,
       });
       setEditModalOpen(false);
       // Refresh the configuration
@@ -83,6 +86,14 @@ const AWSConfigManager: React.FC = () => {
                 <span className="text-gray-400">Not set</span>
               )}
             </div>
+            <div>
+              <strong>S3 Bucket Name: </strong>
+              {config?.s3_bucket_name ? (
+                <span>{config.s3_bucket_name}</span>
+              ) : (
+                <span className="text-gray-400">Not set</span>
+              )}
+            </div>
           </div>
           <div className="flex space-x-2">
             <button
@@ -118,6 +129,7 @@ const AWSConfigManager: React.FC = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Edit AWS Configuration</h2>
+              <p className="text-sm text-gray-500">* Required fields</p>
               <button
                 onClick={() => setEditModalOpen(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -131,7 +143,7 @@ const AWSConfigManager: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <label htmlFor="accessKeyId" className="block text-sm font-medium text-gray-700 mb-1">
-                  Access Key ID
+                  Access Key ID *
                 </label>
                 <input
                   id="accessKeyId"
@@ -145,7 +157,7 @@ const AWSConfigManager: React.FC = () => {
               
               <div>
                 <label htmlFor="secretKey" className="block text-sm font-medium text-gray-700 mb-1">
-                  Secret Access Key
+                  Secret Access Key *
                 </label>
                 <input
                   id="secretKey"
@@ -153,6 +165,20 @@ const AWSConfigManager: React.FC = () => {
                   value={secretAccessKey}
                   onChange={(e) => setSecretAccessKey(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="s3BucketName" className="block text-sm font-medium text-gray-700 mb-1">
+                  S3 Bucket Name *
+                </label>
+                <input
+                  id="s3BucketName"
+                  type="text"
+                  value={s3BucketName}
+                  onChange={(e) => setS3BucketName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="my-s3-bucket"
                 />
               </div>
             </div>
@@ -166,7 +192,7 @@ const AWSConfigManager: React.FC = () => {
               </button>
               <button
                 onClick={handleSaveConfig}
-                disabled={!accessKeyId || !secretAccessKey}
+                disabled={!accessKeyId || !secretAccessKey || !s3BucketName}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Save

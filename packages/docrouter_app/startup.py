@@ -103,22 +103,33 @@ async def setup_api_creds(analytiq_client):
         # AWS Configuration. Only store configuration if it doesn't already exist.
         aws_access_key = os.getenv("AWS_ACCESS_KEY_ID", "")
         aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY", "")
-        existing_aws_config = await db.aws_config.find_one({"user_id": admin_id})
+        aws_s3_bucket = os.getenv("AWS_S3_BUCKET_NAME", "")
         
-        if aws_access_key != "" and aws_secret_key != "" and not existing_aws_config:
+        existing_aws_config = await db.aws_config.find_one({"user_id": admin_id})
+
+        if not existing_aws_config:
+            # Check if .env has all the required AWS configuration
+            if len(aws_access_key) == 0:
+                logger.warning("AWS_ACCESS_KEY_ID environment variable not set")
+            if len(aws_secret_key) == 0:
+                logger.warning("AWS_SECRET_ACCESS_KEY environment variable not set")
+            if len(aws_s3_bucket) == 0:
+                logger.warning("AWS_S3_BUCKET_NAME environment variable not set")
+
             # Encrypt configuration before storing
             encrypted_access_key = ad.crypto.encrypt_token(aws_access_key)
             encrypted_secret_key = ad.crypto.encrypt_token(aws_secret_key)
             
+            update_data = {
+                "access_key_id": encrypted_access_key,
+                "secret_access_key": encrypted_secret_key,
+                "s3_bucket_name": aws_s3_bucket,
+                "created_at": datetime.now(UTC)
+            }
+            
             await db.aws_config.update_one(
                 {"user_id": admin_id},
-                {
-                    "$set": {
-                        "access_key_id": encrypted_access_key,
-                        "secret_access_key": encrypted_secret_key,
-                        "created_at": datetime.now(UTC)
-                    }
-                },
+                {"$set": update_data},
                 upsert=True
             )
             logger.info("AWS configuration configured for admin user")

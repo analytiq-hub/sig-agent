@@ -2758,6 +2758,25 @@ async def create_aws_config(
 ):  
     """Create or update AWS configuration (admin only)"""
     db = ad.common.get_async_db()
+    # Validate all fields are non-empty
+    if not config.access_key_id or not config.access_key_id.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="AWS Access Key ID is required and cannot be empty"
+        )
+    
+    if not config.secret_access_key or not config.secret_access_key.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="AWS Secret Access Key is required and cannot be empty"
+        )
+    
+    if not config.s3_bucket_name or not config.s3_bucket_name.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="S3 Bucket Name is required and cannot be empty"
+        )
+
     # Validate AWS Access Key ID format
     if not re.match(r'^[A-Z0-9]{20}$', config.access_key_id):
         raise HTTPException(
@@ -2775,15 +2794,19 @@ async def create_aws_config(
     encrypted_access_key = ad.crypto.encrypt_token(config.access_key_id)
     encrypted_secret_key = ad.crypto.encrypt_token(config.secret_access_key)
     
+    update_data = {
+        "access_key_id": encrypted_access_key,
+        "secret_access_key": encrypted_secret_key,
+        "created_at": datetime.now(UTC)
+    }
+    
+    # Add S3 bucket name if provided
+    if config.s3_bucket_name:
+        update_data["s3_bucket_name"] = config.s3_bucket_name
+    
     await db.aws_config.update_one(
         {"user_id": current_user.user_id},
-        {
-            "$set": {
-                "access_key_id": encrypted_access_key,
-                "secret_access_key": encrypted_secret_key,
-                "created_at": datetime.now(UTC)
-            }
-        },
+        {"$set": update_data},
         upsert=True
     )
     
@@ -2799,7 +2822,8 @@ async def get_aws_config(current_user: User = Depends(get_admin_user)):
         
     return {
         "access_key_id": ad.crypto.decrypt_token(config["access_key_id"]),
-        "secret_access_key": ad.crypto.decrypt_token(config["secret_access_key"])
+        "secret_access_key": ad.crypto.decrypt_token(config["secret_access_key"]),
+        "s3_bucket_name": config.get("s3_bucket_name")
     }
 
 @app.delete("/v0/account/aws_config", tags=["account/aws_config"])

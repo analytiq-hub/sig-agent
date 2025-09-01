@@ -207,9 +207,9 @@ async def run_llm(analytiq_client,
 
     # Bedrock models require aws_access_key_id, aws_secret_access_key, aws_region_name
     if llm_provider == "bedrock":
-        aws_keys = ad.aws.get_aws_keys(analytiq_client)
-        aws_access_key_id = aws_keys["aws_access_key_id"]
-        aws_secret_access_key = aws_keys["aws_secret_access_key"]
+        aws_config = ad.aws.get_aws_config(analytiq_client)
+        aws_access_key_id = aws_config["aws_access_key_id"]
+        aws_secret_access_key = aws_config["aws_secret_access_key"]
         aws_region_name = "us-east-1"
     else:
         aws_access_key_id = None
