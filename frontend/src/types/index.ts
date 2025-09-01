@@ -1,5 +1,5 @@
 export * from './AppSession';
-export * from './aws_credentials';
+export * from './aws_config';
 export * from './documents';
 export * from './flows';
 export * from './forms';
