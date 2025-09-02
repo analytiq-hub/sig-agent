@@ -95,6 +95,10 @@ async def run_llm(analytiq_client,
     
     # Check if this model supports vision and we have a PDF
     use_vision = supports_pdf_input(llm_model, None) and doc.get("pdf_file_name")
+
+    if llm_provider == "xai":
+        # xAI supports vision but litellm doesn't know it yet
+        use_vision = True
     
     if use_vision:
         # Get the PDF file
@@ -204,6 +208,9 @@ async def run_llm(analytiq_client,
         # Groq doesn't support response_format parameter
         response_format = None
         logger.info(f"Disabling response_format for Groq provider")
+    elif llm_provider == "xai":
+        # xAI supports response_format parameter but litellm doesn't know it yet
+        response_format = {"type": "json_object"}
 
     # Bedrock models require aws_access_key_id, aws_secret_access_key, aws_region_name
     if llm_provider == "bedrock":
