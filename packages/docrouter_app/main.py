@@ -765,7 +765,7 @@ async def run_llm_chat_account(
     Test LLM with arbitrary prompt (admin only) - Account level.
     Supports both streaming and non-streaming responses.
     """
-    return await _run_llm_chat_impl(request, current_user)
+    return await ad.llm.run_llm_chat(request, current_user)
 
 # Admin-only LLM testing endpoint - Organization level  
 @app.post("/v0/orgs/{organization_id}/llm/run", tags=["llm"])
@@ -778,118 +778,7 @@ async def run_llm_chat_org(
     Test LLM with arbitrary prompt (admin or org admin) - Organization level.
     Supports both streaming and non-streaming responses.
     """
-    return await _run_llm_chat_impl(request, current_user)
-
-async def _run_llm_chat_impl(
-    request: LLMPromptRequest,
-    current_user: User
-):
-    """
-    Test LLM with arbitrary prompt (admin only).
-    Supports both streaming and non-streaming responses.
-    """
-    
-    logger.info(f"run_llm_chat() start: model: {request.model}, stream: {request.stream}")
-
-    # Verify the model exists and is enabled
-    db = ad.common.get_async_db()
-    found = False
-    for provider in await db.llm_providers.find({}).to_list(None):
-        if request.model in provider["litellm_models_enabled"]:
-            found = True
-            break
-    if not found:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid model: {request.model}"
-        )
-
-    try:
-        # Import litellm here to avoid event loop warnings
-        import litellm
-        
-        # Prepare messages for litellm
-        messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
-        
-        # Prepare parameters
-        params = {
-            "model": request.model,
-            "messages": messages,
-            "temperature": request.temperature,
-        }
-        
-        if request.max_tokens:
-            params["max_tokens"] = request.max_tokens
-        
-        # Get the provider and API key for this model
-        llm_provider = ad.llm.get_llm_model_provider(request.model)
-        analytiq_client = ad.common.get_analytiq_client()
-        
-        # Get the API key for the provider
-        api_key = await ad.llm.get_llm_key(analytiq_client, llm_provider)
-        if api_key:
-            params["api_key"] = api_key
-            logger.info(f"Using API key for provider {llm_provider}: {api_key[:16]}********")
-        
-        # Handle Bedrock-specific configuration
-        if llm_provider == "bedrock":
-            aws_client = ad.aws.get_aws_client(analytiq_client, region_name="us-east-1")
-            params["aws_access_key_id"] = aws_client.aws_access_key_id
-            params["aws_secret_access_key"] = aws_client.aws_secret_access_key
-            params["aws_region_name"] = aws_client.region_name
-            logger.info(f"Bedrock config: region={aws_client.region_name}")
-        
-        if request.stream:
-            # Streaming response
-            async def generate_stream():
-                try:
-                    response = await litellm.acompletion(**params, stream=True)
-                    async for chunk in response:
-                        if chunk.choices[0].delta.content:
-                            yield f"data: {json.dumps({'chunk': chunk.choices[0].delta.content, 'done': False})}\n\n"
-                    # Send final done signal
-                    yield f"data: {json.dumps({'chunk': '', 'done': True})}\n\n"
-                except Exception as e:
-                    logger.error(f"Error in streaming LLM response: {str(e)}")
-                    yield f"data: {json.dumps({'error': str(e)})}\n\n"
-            
-            return StreamingResponse(
-                generate_stream(),
-                media_type="text/plain",
-                headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
-            )
-        else:
-            # Non-streaming response
-            response = await litellm.acompletion(**params)
-            
-            return {
-                "id": response.id,
-                "object": "chat.completion",
-                "created": int(datetime.now(UTC).timestamp()),
-                "model": request.model,
-                "choices": [
-                    {
-                        "index": 0,
-                        "message": {
-                            "role": "assistant",
-                            "content": response.choices[0].message.content
-                        },
-                        "finish_reason": response.choices[0].finish_reason
-                    }
-                ],
-                "usage": {
-                    "prompt_tokens": response.usage.prompt_tokens,
-                    "completion_tokens": response.usage.completion_tokens,
-                    "total_tokens": response.usage.total_tokens
-                }
-            }
-            
-    except Exception as e:
-        logger.error(f"Error in LLM test: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error processing LLM request: {str(e)}"
-        )
+    return await ad.llm.run_llm_chat(request, current_user)
 
 @app.get("/v0/orgs/{organization_id}/llm/result/{document_id}", response_model=LLMResult, tags=["llm"])
 async def get_llm_result(
