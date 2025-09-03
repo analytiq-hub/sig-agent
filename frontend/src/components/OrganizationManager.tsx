@@ -20,9 +20,10 @@ interface AddOrganizationModalProps {
   open: boolean;
   onClose: () => void;
   onAdd: (organization: CreateOrganizationRequest) => Promise<void>;
+  isSysAdmin: boolean;
 }
 
-const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClose, onAdd }) => {
+const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClose, onAdd, isSysAdmin }) => {
   const [name, setName] = useState('');
   const [type, setType] = useState<'individual' | 'team' | 'enterprise'>('individual');
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +37,13 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClo
       setLoading(false);
     }
   }, [open]);
+
+  // Reset type if user is not admin and somehow has enterprise selected
+  useEffect(() => {
+    if (!isSysAdmin && type === 'enterprise') {
+      setType('individual');
+    }
+  }, [isSysAdmin, type]);
 
   const handleClose = () => {
     setError(null);
@@ -102,10 +110,18 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({ open, onClo
               >
                 <option value="individual">Individual</option>
                 <option value="team">Team</option>
-                <option value="enterprise">Enterprise</option>
+                {isSysAdmin ? (
+                  <option value="enterprise">Enterprise</option>
+                ) : (
+                  <option value="enterprise" disabled>Enterprise (Admin Only)</option>
+                )}
               </select>
               <p className="text-sm text-gray-500 mt-1">
-                This will automatically set up the corresponding subscription plan
+                {isSysAdmin ? (
+                  "This will automatically set up the corresponding subscription plan"
+                ) : (
+                  "This will automatically set up the corresponding subscription plan. Enterprise organizations can only be created by system administrators."
+                )}
               </p>
             </div>
           </div>
@@ -429,6 +445,7 @@ const OrganizationManager: React.FC = () => {
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddOrganization}
+        isSysAdmin={isSysAdmin()}
       />
     </div>
   );
