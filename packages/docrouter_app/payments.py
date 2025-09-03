@@ -136,7 +136,7 @@ class SubscriptionPlan(BaseModel):
     plan_id: str
     name: str
     base_price: float
-    metered_price: float
+    included_spus: int  # Monthly SPU allowance
     features: List[str]
     currency: str = "usd"
     interval: str = "month"
@@ -181,82 +181,75 @@ class PurchaseCreditsResponse(BaseModel):
 class CheckoutSessionRequest(BaseModel):
     plan_id: str
 
-# Replace the multiple packages with a single credit configuration
+# Updated credit configuration for new pricing model
 CREDIT_CONFIG = {
-    "default_spu_credits": 100,
-    "price_per_credit": 0.015,  # $0.015 per credit
+    "price_per_credit": 0.045,  # $0.045 per SPU (50% markup over $0.03 cost)
     "currency": "usd",
-    "min_cost": 5.0,  # Minimum purchase amount in USD
-    "max_cost": 100.0,  # Maximum purchase amount in USD
+    "min_purchase": 500,        # Minimum 500 SPUs ($22.50)
+    "max_purchase": 20000,      # Maximum 20,000 SPUs ($900)
 }
 
-# Add this new function to fetch pricing from Stripe
+# SPU limits per tier (monthly allowance)
+TIER_LIMITS = {
+    "individual": 5000,    # 5,000 SPUs/month
+    "team": 25000,         # 25,000 SPUs/month  
+    "enterprise": None     # No limit (custom billing)
+}
+
+# Simplified function to fetch base pricing from Stripe
 async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
     """
-    Fetch tier configuration dynamically from Stripe prices
+    Fetch tier configuration dynamically from Stripe prices (base pricing only)
     """
     if not stripe.api_key:
         logger.warning("Stripe API key not configured - using fallback tier config")
-        return {}
+        return {
+            "individual": {"base_price_id": None, "base_price": 200.0, "included_spus": 5000},
+            "team": {"base_price_id": None, "base_price": 900.0, "included_spus": 25000},
+            "enterprise": {"base_price_id": None, "base_price": 0.0, "included_spus": None}
+        }
 
     try:
-        # Get all prices for our product
+        # Get all active prices for our product
         prices = await StripeAsync._run_in_threadpool(
             stripe.Price.list,
             active=True,
             expand=['data.product']
         )
         
-        dynamic_config = {}
-        product_id = None  # Track the main product ID
+        dynamic_config = {
+            "individual": {"base_price_id": None, "base_price": 200.0, "included_spus": 5000},
+            "team": {"base_price_id": None, "base_price": 900.0, "included_spus": 25000},
+            "enterprise": {"base_price_id": None, "base_price": 0.0, "included_spus": None}
+        }
         
-        for tier in ["individual", "team", "enterprise"]:
-            dynamic_config[tier] = {
-                'base_price_id': None,
-                'metered_price_id': None,
-                'base_price': 0.0,
-                'metered_price': 0.0,
-            }
-        
-            for price in prices.data:
-                metadata = price.metadata
-                tier_list = metadata.get('tier', "").split(",")
-                # Strip whitespace from each tier
-                tier_list2 = [tier.strip() for tier in tier_list]
-                if tier not in tier_list2:
-                    continue
-                
-                price_type = metadata.get('price_type')
-                
-                if not price_type:
-                    continue
-                
-                price_amount = price.unit_amount / 100  # Convert from cents
-                
-                if price_type == 'base':
-                    # Only update if this is a lower price or if no price is set yet
-                    if (dynamic_config[tier]['base_price'] == 0.0 or 
-                        price_amount < dynamic_config[tier]['base_price']):
-                        dynamic_config[tier]['base_price_id'] = price.id
-                        dynamic_config[tier]['base_price'] = price_amount
-                elif price_type == 'metered':
-                    # Only update if this is a lower price or if no price is set yet
-                    if (dynamic_config[tier]['metered_price'] == 0.0 or 
-                        price_amount < dynamic_config[tier]['metered_price']):
-                        dynamic_config[tier]['metered_price_id'] = price.id
-                        dynamic_config[tier]['metered_price'] = price_amount
+        # Find base prices for each tier
+        for price in prices.data:
+            metadata = price.metadata
+            price_type = metadata.get('price_type')
             
-        # Get the main product ID from the first price
-        if prices.data:
-            product_id = prices.data[0].product.id
+            if price_type != 'base':
+                continue
+                
+            tier = metadata.get('tier', '').strip()
+            if tier in dynamic_config:
+                dynamic_config[tier]['base_price_id'] = price.id
+                dynamic_config[tier]['base_price'] = price.unit_amount / 100
+                # Get included SPUs from metadata if available
+                included_spus = metadata.get('included_spus')
+                if included_spus:
+                    dynamic_config[tier]['included_spus'] = int(included_spus)
         
-        dynamic_config['product_id'] = product_id
         return dynamic_config
         
     except Exception as e:
         logger.error(f"Error fetching dynamic tier config: {e}")
         logger.warning("Falling back to static tier config")
-        return {}
+        return {
+            "individual": {"base_price_id": None, "base_price": 200.0, "included_spus": 5000},
+            "team": {"base_price_id": None, "base_price": 900.0, "included_spus": 25000},
+            "enterprise": {"base_price_id": None, "base_price": 0.0, "included_spus": None}
+        }
 
 # Modify the init_payments_env function
 async def init_payments_env():
@@ -783,8 +776,15 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
     if subscription_type not in tier_config.keys():
         raise ValueError(f"Invalid subscription type: {subscription_type}")
 
+    # Skip enterprise - they don't use Stripe
+    if subscription_type == "enterprise":
+        logger.info(f"Skipping Stripe subscription for enterprise org {org_id}")
+        return True
+
     base_price_id = tier_config[subscription_type]["base_price_id"]
-    metered_price_id = tier_config[subscription_type]["metered_price_id"]
+    
+    if not base_price_id:
+        raise ValueError(f"No base price configured for subscription type: {subscription_type}")
 
     # Get the current subscription
     subscription = await get_subscription(customer_id)
@@ -798,63 +798,39 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
         if current_subscription_type != subscription_type:
             update_subscription = True
         
-        # Check if the subscription items match the expected configuration
-        if len(subscription_items) != 2:
+        # Check if the subscription has the correct base price (should have only 1 item now)
+        if len(subscription_items) != 1:
             update_subscription = True
         else:
             current_base_price_id = subscription_items[0].get("price", {}).get("id")
-            current_metered_price_id = subscription_items[1].get("price", {}).get("id")
-
-            if current_base_price_id != base_price_id or current_metered_price_id != metered_price_id:
+            if current_base_price_id != base_price_id:
                 update_subscription = True
 
         if update_subscription:
-            logger.info(f"Updating subscription to {subscription_type} base_price_id {base_price_id} metered_price_id {metered_price_id}")
+            logger.info(f"Updating subscription to {subscription_type} base_price_id {base_price_id}")
 
-            # Build the items array for subscription modification
-            items = []
+            # Update subscription to use only base pricing
+            items = [{'price': base_price_id}]
             
-            # If we have existing subscription items, we need to update them by ID
-            if len(subscription_items) >= 1:
-                # Update the first item (base price)
-                items.append({
-                    'id': subscription_items[0]['id'],
-                    'price': base_price_id,
-                })
-                
-                # If we have a second item, update it (metered price)
-                if len(subscription_items) >= 2:
-                    items.append({
-                        'id': subscription_items[1]['id'],
-                        'price': metered_price_id,
-                    })
-                else:
-                    # Add the metered price item
-                    items.append({
-                        'price': metered_price_id,
-                    })
-            else:
-                # No existing items, add both new items
-                items = [
-                    {'price': base_price_id},
-                    {'price': metered_price_id},
-                ]
+            # If we have existing subscription items, update by ID to avoid creating new items
+            if subscription_items:
+                items = [{'id': subscription_items[0]['id'], 'price': base_price_id}]
 
             # Modify existing subscription with proration and metadata
             await StripeAsync.subscription_modify(
                 subscription.id,
                 items=items,
-                proration_behavior='create_prorations',  # This handles the proration
-                metadata={'subscription_type': subscription_type}  # Add metadata
+                proration_behavior='create_prorations',
+                metadata={'subscription_type': subscription_type}
             )
     else:
-        # Create new subscription for customers without one
+        # Create new subscription for customers without one (base pricing only)
         await StripeAsync.subscription_create(
             customer=customer_id,
-            items=[{'price': base_price_id}, {'price': metered_price_id}],
+            items=[{'price': base_price_id}],
             payment_behavior='default_incomplete',
             expand=['latest_invoice.payment_intent'],
-            metadata={'subscription_type': subscription_type}  # Add metadata
+            metadata={'subscription_type': subscription_type}
         )
 
     return True
@@ -1117,36 +1093,47 @@ async def get_subscription_info(
     
     tier_config = await get_tier_config(organization_id)
     
-    # Define the available plans with metered usage details
+    # Define the available plans with SPU allowances
     plans = [
         SubscriptionPlan(
             plan_id="individual",
             name="Individual",
             base_price=tier_config["individual"]["base_price"],
-            metered_price=tier_config["individual"]["metered_price"],
+            included_spus=tier_config["individual"]["included_spus"],
             features=[
-                "Basic document processing"
+                f"{tier_config['individual']['included_spus']:,} SPUs per month",
+                "Basic document processing",
+                f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.3f} each"
             ]
         ),
         SubscriptionPlan(
             plan_id="team",
-            name="Team",
+            name="Team", 
             base_price=tier_config["team"]["base_price"],
-            metered_price=tier_config["team"]["metered_price"],
+            included_spus=tier_config["team"]["included_spus"],
             features=[
-                "Advanced document processing"
-            ]
-        ),
-        SubscriptionPlan(
-            plan_id="enterprise",
-            name="Enterprise",
-            base_price=tier_config["enterprise"]["base_price"],
-            metered_price=tier_config["enterprise"]["metered_price"],
-            features=[
-                "Custom document processing"
+                f"{tier_config['team']['included_spus']:,} SPUs per month",
+                "Advanced document processing",
+                "Team collaboration features",
+                f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.3f} each"
             ]
         )
     ]
+    
+    # Only add enterprise plan for system admins (it's not sold through Stripe)
+    if await is_system_admin(user_id=current_user.user_id):
+        plans.append(SubscriptionPlan(
+            plan_id="enterprise",
+            name="Enterprise",
+            base_price=0.0,  # Custom pricing
+            included_spus=0,  # Unlimited
+            features=[
+                "Unlimited SPUs",
+                "Custom document processing",
+                "Dedicated support",
+                "Custom pricing - contact sales"
+            ]
+        ))
 
     # Get the customer
     stripe_customer = await get_payments_customer(organization_id)
