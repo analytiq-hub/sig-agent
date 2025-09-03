@@ -3029,6 +3029,11 @@ async def update_organization(
             update=organization_update,
             current_user_id=current_user.user_id
         )
+        # Re-fetch organization after type update to get latest state
+        organization = await db.organizations.find_one({"_id": ObjectId(organization_id)})
+        if not organization:
+            logger.error(f"Organization not found after type update: {organization_id}")
+            raise HTTPException(status_code=404, detail="Organization not found")
 
     update_data = {}
     if organization_update.name is not None:

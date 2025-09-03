@@ -7,7 +7,7 @@ import logging
 # Import shared test utilities
 from .test_utils import (
     client, TEST_ORG_ID, 
-    get_auth_headers
+    get_auth_headers, get_token_headers
 )
 import analytiq_data as ad
 
@@ -349,13 +349,24 @@ async def test_enterprise_upgrade_restriction(org_and_users, test_db, mock_auth)
     try:
         # Get the test organization and users
         org_id = org_and_users["org_id"]
-        admin_user = org_and_users["admin_user"]
-        regular_user = org_and_users["regular_user"]
+        admin_user = org_and_users["admin"]
+        regular_user = org_and_users["member"]
         
-        # Test 1: Regular user (org admin but not system admin) cannot upgrade to Enterprise
-        regular_user_headers = get_auth_headers(regular_user["id"])
+        # Modify the admin user to not be a system admin (only org admin)
+        # This ensures they can update the organization but cannot upgrade to enterprise
+        await test_db.users.update_one(
+            {"_id": ObjectId(admin_user["id"])},
+            {"$set": {"role": "user"}}
+        )
         
-        # Try to upgrade organization to Enterprise as regular user
+        # Test 1: Organization admin (but not system admin) cannot upgrade to Enterprise
+        # Temporarily clear auth mock to use real token authentication
+        from docrouter_app.main import app
+        app.dependency_overrides.clear()
+        
+        org_admin_headers = get_token_headers(admin_user["account_token"])
+        
+        # Try to upgrade organization to Enterprise as organization admin
         upgrade_to_enterprise_data = {
             "type": "enterprise"
         }
@@ -363,16 +374,27 @@ async def test_enterprise_upgrade_restriction(org_and_users, test_db, mock_auth)
         response = client.put(
             f"/v0/account/organizations/{org_id}",
             json=upgrade_to_enterprise_data,
-            headers=regular_user_headers
+            headers=org_admin_headers
         )
         
-        # This should fail with 403 Forbidden
+        # This should fail with 403 Forbidden (enterprise upgrade restriction)
         assert response.status_code == 403
         error_data = response.json()
         assert "Only system administrators can upgrade organizations to Enterprise" in error_data["detail"]
         
         # Test 2: System admin CAN upgrade to Enterprise
-        admin_headers = get_auth_headers(admin_user["id"])
+        # Restore auth mock to use TEST_USER (system admin)
+        from docrouter_app.main import security, get_current_user, get_admin_user
+        from fastapi.security import HTTPAuthorizationCredentials
+        from .test_utils import TEST_USER
+        mock_credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="test_token")
+        app.dependency_overrides = {
+            security: lambda: mock_credentials,
+            get_current_user: lambda: TEST_USER,
+            get_admin_user: lambda: TEST_USER
+        }
+        
+        admin_headers = get_auth_headers()
         
         # First, verify the organization is currently 'team' type
         get_org_response = client.get(
