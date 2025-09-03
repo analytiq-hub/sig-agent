@@ -181,75 +181,169 @@ class PurchaseCreditsResponse(BaseModel):
 class CheckoutSessionRequest(BaseModel):
     plan_id: str
 
-# Updated credit configuration for new pricing model
-CREDIT_CONFIG = {
-    "price_per_credit": 0.045,  # $0.045 per SPU (50% markup over $0.03 cost)
-    "currency": "usd",
-    "min_purchase": 500,        # Minimum 500 SPUs ($22.50)
-    "max_purchase": 20000,      # Maximum 20,000 SPUs ($900)
-}
+# Dynamic configuration - populated from Stripe at startup
+CREDIT_CONFIG = {}
 
-# SPU limits per tier (monthly allowance)
+# SPU limits per tier - populated from Stripe metadata at startup
 TIER_LIMITS = {
-    "individual": 5000,    # 5,000 SPUs/month
-    "team": 25000,         # 25,000 SPUs/month  
-    "enterprise": None     # No limit (custom billing)
+    "enterprise": None     # No limit (custom billing, not in Stripe)
 }
 
-# Simplified function to fetch base pricing from Stripe
+async def get_tier_limits() -> Dict[str, Any]:
+    """
+    Fetch tier limits dynamically from Stripe base price metadata
+    """
+    global TIER_LIMITS
+    
+    if not stripe.api_key:
+        raise ValueError("Stripe API key not configured - cannot fetch tier limits")
+    
+    # Get all active prices for our product
+    prices = await StripeAsync._run_in_threadpool(
+        stripe.Price.list,
+        active=True,
+        expand=['data.product']
+    )
+    
+    # Start with enterprise (not in Stripe)
+    tier_limits = {"enterprise": None}
+    
+    # Find base prices and extract limits from metadata
+    for price in prices.data:
+        metadata = price.metadata
+        price_type = metadata.get('price_type')
+        
+        if price_type == 'base':
+            tier = metadata.get('tier', '').strip()
+            if tier in ['individual', 'team']:
+                included_spus = metadata.get('included_spus')
+                if not included_spus:
+                    raise ValueError(f"Missing included_spus metadata for {tier} base price {price.id}")
+                tier_limits[tier] = int(included_spus)
+                logger.info(f"Loaded {tier} SPU limit from Stripe: {included_spus}")
+    
+    # Ensure we found both individual and team limits
+    if 'individual' not in tier_limits or 'team' not in tier_limits:
+        missing = [t for t in ['individual', 'team'] if t not in tier_limits]
+        raise ValueError(f"Missing base prices in Stripe for tiers: {missing}")
+    
+    # Update global limits
+    TIER_LIMITS = tier_limits
+    return tier_limits
+
+async def load_credit_config() -> Dict[str, Any]:
+    """
+    Fetch credit configuration dynamically from Stripe credit prices
+    """
+    global CREDIT_CONFIG
+    
+    if not stripe.api_key:
+        raise ValueError("Stripe API key not configured - cannot fetch credit config")
+    
+    # Get all active prices for our product
+    prices = await StripeAsync._run_in_threadpool(
+        stripe.Price.list,
+        active=True,
+        expand=['data.product']
+    )
+    
+    credit_config = None
+    
+    # Find credit prices
+    for price in prices.data:
+        metadata = price.metadata
+        price_type = metadata.get('price_type')
+        
+        if price_type == 'credit':
+            # Validate price has unit_amount
+            if price.unit_amount is None:
+                raise ValueError(f"Credit price {price.id} has no unit_amount set in Stripe")
+                
+            # Build config from Stripe price and metadata
+            price_per_credit = price.unit_amount / 100
+            
+            # Get required metadata
+            min_spu_purchase = metadata.get('min_spu_purchase')
+            max_spu_purchase = metadata.get('max_spu_purchase')
+            spu_credit = metadata.get('spu_credit')
+            
+            # Log found price for debugging
+            logger.info(f"Found credit price {price.id}: unit_amount={price.unit_amount}, currency={price.currency}")
+            logger.info(f"Credit price metadata: {dict(metadata)}")
+            
+            if not min_spu_purchase:
+                raise ValueError(f"Missing min_spu_purchase metadata for credit price {price.id}")
+            if not max_spu_purchase:
+                raise ValueError(f"Missing max_spu_purchase metadata for credit price {price.id}")
+            if not spu_credit:
+                raise ValueError(f"Missing spu_credit metadata for credit price {price.id}")
+            
+            credit_config = {
+                'price_per_credit': price_per_credit,
+                'currency': price.currency,
+                'min_spu_purchase': int(min_spu_purchase),
+                'max_spu_purchase': int(max_spu_purchase),
+                'min_cost': int(min_spu_purchase) * price_per_credit,
+                'max_cost': int(max_spu_purchase) * price_per_credit,
+                'spu_credit': int(spu_credit)
+            }
+            
+            logger.info(f"Loaded credit config from Stripe: price=${price_per_credit:.3f}, min={min_spu_purchase}, max={max_spu_purchase}")
+            break
+    
+    if not credit_config:
+        raise ValueError("No credit price found in Stripe with price_type=credit")
+    
+    # Update global config
+    CREDIT_CONFIG = credit_config
+    return credit_config
+
+# Function to fetch base pricing from Stripe
 async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
     """
     Fetch tier configuration dynamically from Stripe prices (base pricing only)
     """
     if not stripe.api_key:
-        logger.warning("Stripe API key not configured - using fallback tier config")
-        return {
-            "individual": {"base_price_id": None, "base_price": 200.0, "included_spus": 5000},
-            "team": {"base_price_id": None, "base_price": 900.0, "included_spus": 25000},
-            "enterprise": {"base_price_id": None, "base_price": 0.0, "included_spus": None}
-        }
+        raise ValueError("Stripe API key not configured - cannot fetch tier config")
 
-    try:
-        # Get all active prices for our product
-        prices = await StripeAsync._run_in_threadpool(
-            stripe.Price.list,
-            active=True,
-            expand=['data.product']
-        )
+    # Get all active prices for our product
+    prices = await StripeAsync._run_in_threadpool(
+        stripe.Price.list,
+        active=True,
+        expand=['data.product']
+    )
+    
+    dynamic_config = {
+        "enterprise": {"base_price_id": None, "base_price": 0.0, "included_spus": None}
+    }
+    
+    # Find base prices for each tier
+    for price in prices.data:
+        metadata = price.metadata
+        price_type = metadata.get('price_type')
         
-        dynamic_config = {
-            "individual": {"base_price_id": None, "base_price": 200.0, "included_spus": 5000},
-            "team": {"base_price_id": None, "base_price": 900.0, "included_spus": 25000},
-            "enterprise": {"base_price_id": None, "base_price": 0.0, "included_spus": None}
-        }
-        
-        # Find base prices for each tier
-        for price in prices.data:
-            metadata = price.metadata
-            price_type = metadata.get('price_type')
+        if price_type != 'base':
+            continue
             
-            if price_type != 'base':
-                continue
+        tier = metadata.get('tier', '').strip()
+        if tier in ['individual', 'team']:
+            included_spus = metadata.get('included_spus')
+            if not included_spus:
+                raise ValueError(f"Missing included_spus metadata for {tier} base price {price.id}")
                 
-            tier = metadata.get('tier', '').strip()
-            if tier in dynamic_config:
-                dynamic_config[tier]['base_price_id'] = price.id
-                dynamic_config[tier]['base_price'] = price.unit_amount / 100
-                # Get included SPUs from metadata if available
-                included_spus = metadata.get('included_spus')
-                if included_spus:
-                    dynamic_config[tier]['included_spus'] = int(included_spus)
-        
-        return dynamic_config
-        
-    except Exception as e:
-        logger.error(f"Error fetching dynamic tier config: {e}")
-        logger.warning("Falling back to static tier config")
-        return {
-            "individual": {"base_price_id": None, "base_price": 200.0, "included_spus": 5000},
-            "team": {"base_price_id": None, "base_price": 900.0, "included_spus": 25000},
-            "enterprise": {"base_price_id": None, "base_price": 0.0, "included_spus": None}
-        }
+            dynamic_config[tier] = {
+                'base_price_id': price.id,
+                'base_price': price.unit_amount / 100,
+                'included_spus': int(included_spus)
+            }
+            logger.info(f"Loaded {tier} tier config from Stripe: ${price.unit_amount / 100}, {included_spus} SPUs")
+    
+    # Ensure we found both individual and team tiers
+    if 'individual' not in dynamic_config or 'team' not in dynamic_config:
+        missing = [t for t in ['individual', 'team'] if t not in dynamic_config]
+        raise ValueError(f"Missing base prices in Stripe for tiers: {missing}")
+    
+    return dynamic_config
 
 # Modify the init_payments_env function
 async def init_payments_env():
@@ -280,6 +374,11 @@ async def init_payments():
     if stripe.api_key:
         ad.payments.set_check_subscription_limits_hook(check_subscription_limits)
         ad.payments.set_record_subscription_usage_hook(record_subscription_usage)
+        
+        # Initialize dynamic configuration from Stripe
+        await load_credit_config()
+        await get_tier_limits()
+        logger.info("Dynamic pricing configuration and limits loaded from Stripe")
 
     await sync_all_customers()
     logger.info("Stripe customers synced")
@@ -680,7 +779,7 @@ async def check_subscription_limits(org_id: str, spus: int) -> Dict[str, Any]:
     purchased_used = customer.get("purchased_credits_used", 0)
     purchased_remaining = max(purchased_credits - purchased_used, 0)
     
-    admin_credits = customer.get("admin_credits", CREDIT_CONFIG["default_spu_credits"])
+    admin_credits = customer.get("admin_credits", CREDIT_CONFIG["spu_credit"])
     admin_used = customer.get("admin_credits_used", 0)
     admin_remaining = max(admin_credits - admin_used, 0)
     
@@ -1456,7 +1555,7 @@ async def get_current_usage(
         purchased_used = stripe_customer.get("purchased_credits_used", 0)
         purchased_remaining = max(purchased_credits - purchased_used, 0)
         
-        admin_credits = stripe_customer.get("admin_credits", CREDIT_CONFIG["default_spu_credits"])
+        admin_credits = stripe_customer.get("admin_credits", CREDIT_CONFIG["spu_credit"])
         admin_used = stripe_customer.get("admin_credits_used", 0)
         admin_remaining = max(admin_credits - admin_used, 0)
         
@@ -1603,7 +1702,7 @@ async def ensure_subscription_credits(stripe_customer_doc):
     if "purchased_credits_used" not in stripe_customer_doc:
         update["purchased_credits_used"] = 0
     if "admin_credits" not in stripe_customer_doc:
-        update["admin_credits"] = CREDIT_CONFIG["default_spu_credits"]
+        update["admin_credits"] = CREDIT_CONFIG["spu_credit"]
     if "admin_credits_used" not in stripe_customer_doc:
         update["admin_credits_used"] = 0
     if update:
@@ -1626,7 +1725,7 @@ async def record_subscription_usage(org_id: str, spus: int):
     purchased_used = stripe_customer.get("purchased_credits_used", 0)
     purchased_remaining = max(purchased_credits - purchased_used, 0)
     
-    admin_credits = stripe_customer.get("admin_credits", CREDIT_CONFIG["default_spu_credits"])
+    admin_credits = stripe_customer.get("admin_credits", CREDIT_CONFIG["spu_credit"])
     admin_used = stripe_customer.get("admin_credits_used", 0)
     admin_remaining = max(admin_credits - admin_used, 0)
     
