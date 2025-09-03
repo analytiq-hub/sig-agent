@@ -1,12 +1,16 @@
 import pytest
 from bson import ObjectId
 import os
+import secrets
 from datetime import datetime, UTC
 import logging
 
+# Third-party imports
+from fastapi.security import HTTPAuthorizationCredentials
+
 # Import shared test utilities
 from .test_utils import (
-    client, TEST_ORG_ID, 
+    client, TEST_ORG_ID, TEST_USER,
     get_auth_headers, get_token_headers
 )
 import analytiq_data as ad
@@ -324,7 +328,6 @@ async def test_user_permission_boundaries(test_db, mock_auth):
         
         # Step 2: Test that regular users can update their own basic info
         # Create an account token for the regular user
-        import secrets
         token = secrets.token_urlsafe(32)
         encrypted = ad.crypto.encrypt_token(token)
         token_doc = {
@@ -393,8 +396,6 @@ async def test_user_permission_boundaries(test_db, mock_auth):
         # Step 4: Verify the permission system correctly enforces role-based access
         # Restore auth mock to use TEST_USER (system admin)
         from docrouter_app.main import security, get_current_user, get_admin_user
-        from fastapi.security import HTTPAuthorizationCredentials
-        from .test_utils import TEST_USER
         mock_credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="test_token")
         app.dependency_overrides = {
             security: lambda: mock_credentials,
