@@ -1,0 +1,1 @@
+When running pytests, always source the top level .venv first
