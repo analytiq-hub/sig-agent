@@ -340,3 +340,74 @@ async def test_user_permission_boundaries(test_db, mock_auth):
         pass  # mock_auth fixture handles cleanup
     
     logger.info(f"test_user_permission_boundaries() end")
+
+@pytest.mark.asyncio
+async def test_enterprise_upgrade_restriction(org_and_users, test_db, mock_auth):
+    """Test that only system admins can upgrade organizations to Enterprise type"""
+    logger.info("test_enterprise_upgrade_restriction() start")
+    
+    try:
+        # Get the test organization and users
+        org_id = org_and_users["org_id"]
+        admin_user = org_and_users["admin_user"]
+        regular_user = org_and_users["regular_user"]
+        
+        # Test 1: Regular user (org admin but not system admin) cannot upgrade to Enterprise
+        regular_user_headers = get_auth_headers(regular_user["id"])
+        
+        # Try to upgrade organization to Enterprise as regular user
+        upgrade_to_enterprise_data = {
+            "type": "enterprise"
+        }
+        
+        response = client.put(
+            f"/v0/account/organizations/{org_id}",
+            json=upgrade_to_enterprise_data,
+            headers=regular_user_headers
+        )
+        
+        # This should fail with 403 Forbidden
+        assert response.status_code == 403
+        error_data = response.json()
+        assert "Only system administrators can upgrade organizations to Enterprise" in error_data["detail"]
+        
+        # Test 2: System admin CAN upgrade to Enterprise
+        admin_headers = get_auth_headers(admin_user["id"])
+        
+        # First, verify the organization is currently 'team' type
+        get_org_response = client.get(
+            f"/v0/account/organizations?organization_id={org_id}",
+            headers=admin_headers
+        )
+        assert get_org_response.status_code == 200
+        org_data = get_org_response.json()
+        assert len(org_data["organizations"]) == 1
+        assert org_data["organizations"][0]["type"] == "team"
+        
+        # Now upgrade to Enterprise as system admin
+        response = client.put(
+            f"/v0/account/organizations/{org_id}",
+            json=upgrade_to_enterprise_data,
+            headers=admin_headers
+        )
+        
+        # This should succeed
+        assert response.status_code == 200
+        updated_org = response.json()
+        assert updated_org["type"] == "enterprise"
+        
+        # Verify the change was persisted
+        get_updated_org_response = client.get(
+            f"/v0/account/organizations?organization_id={org_id}",
+            headers=admin_headers
+        )
+        assert get_updated_org_response.status_code == 200
+        updated_org_data = get_updated_org_response.json()
+        assert len(updated_org_data["organizations"]) == 1
+        assert updated_org_data["organizations"][0]["type"] == "enterprise"
+        
+        logger.info("test_enterprise_upgrade_restriction() completed successfully")
+        
+    except Exception as e:
+        logger.error(f"test_enterprise_upgrade_restriction() failed: {e}")
+        raise

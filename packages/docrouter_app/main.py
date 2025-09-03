@@ -3026,7 +3026,8 @@ async def update_organization(
         await organizations.update_organization_type(
             db=db,
             organization_id=organization_id,
-            update=organization_update
+            update=organization_update,
+            current_user_id=current_user.user_id
         )
 
     update_data = {}

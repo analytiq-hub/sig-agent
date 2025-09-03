@@ -34,7 +34,8 @@ def validate_organization_type_upgrade(current_type: str, new_type: str) -> bool
 async def update_organization_type(
     db, 
     organization_id: str, 
-    update: OrganizationUpdate
+    update: OrganizationUpdate,
+    current_user_id: str = None
 ) -> None:
     """
     Update an organization's type and handle member management.
@@ -43,6 +44,7 @@ async def update_organization_type(
         db: MongoDB database instance
         organization_id: ID of the organization to update
         update: OrganizationUpdate model containing new type and optional members
+        current_user_id: ID of the current user making the request
     """
     logging.info(f"Updating organization {organization_id} to type {update.type}")
 
@@ -61,6 +63,16 @@ async def update_organization_type(
             status_code=400, 
             detail=f"Invalid organization type upgrade. Cannot change from {current_type} to {update.type}"
         )
+
+    # Check if user is trying to upgrade to Enterprise without system admin privileges
+    if (current_type in ['individual', 'team'] and update.type == 'enterprise' and current_user_id):
+        # Check if current user is a system admin
+        user = await db.users.find_one({"_id": ObjectId(current_user_id)})
+        if not user or user.get("role") != "admin":
+            raise HTTPException(
+                status_code=403,
+                detail="Only system administrators can upgrade organizations to Enterprise"
+            )
 
     # Find the first admin in the current organization
     first_admin = next((m for m in organization["members"] if m["role"] == "admin"), None)

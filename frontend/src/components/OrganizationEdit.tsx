@@ -26,16 +26,27 @@ interface OrganizationEditProps {
   organizationId: string
 }
 
-const getAvailableOrganizationTypes = (currentType: OrganizationType): OrganizationType[] => {
+const getAvailableOrganizationTypes = (currentType: OrganizationType, isSystemAdmin: boolean): OrganizationType[] => {
   switch (currentType) {
     case 'individual':
-      return ['individual', 'team', 'enterprise'];
+      // Only system admins can upgrade to enterprise
+      if (isSystemAdmin) {
+        return ['individual', 'team', 'enterprise'];
+      }
+      return ['individual', 'team'];
     case 'team':
-      return ['team', 'enterprise'];
+      // Only system admins can upgrade to enterprise
+      if (isSystemAdmin) {
+        return ['team', 'enterprise'];
+      }
+      return ['team'];
     case 'enterprise':
       return ['enterprise'];
     default:
-      return ['individual', 'team', 'enterprise'];
+      if (isSystemAdmin) {
+        return ['individual', 'team', 'enterprise'];
+      }
+      return ['individual', 'team'];
   }
 };
 
@@ -115,6 +126,12 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     // Validate individual organization member count
     if (type === 'individual' && members.length > 1) {
       toast.error('Individual organizations cannot have multiple members');
+      return;
+    }
+
+    // Check if user is trying to upgrade to Enterprise without admin privileges
+    if ((originalType === 'individual' || originalType === 'team') && type === 'enterprise' && !isSysAdmin(session)) {
+      toast.error('Only system administrators can upgrade organizations to Enterprise');
       return;
     }
 
@@ -371,11 +388,17 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
                   onChange={(e) => setType(e.target.value as OrganizationType)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
-                  {getAvailableOrganizationTypes(originalType).map((orgType) => (
+                  {getAvailableOrganizationTypes(originalType, isSysAdmin(session)).map((orgType) => (
                     <option key={orgType} value={orgType}>
                       {orgType.charAt(0).toUpperCase() + orgType.slice(1)}
                     </option>
                   ))}
+                  {/* Show Enterprise option as disabled for non-admin users */}
+                  {!isSysAdmin(session) && (originalType === 'individual' || originalType === 'team') && (
+                    <option value="enterprise" disabled>
+                      Enterprise (Admin Only)
+                    </option>
+                  )}
                 </select>
               </div>
             </div>
