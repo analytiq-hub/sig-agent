@@ -323,18 +323,118 @@ async def test_user_permission_boundaries(test_db, mock_auth):
         user_id = user_result["id"]
         
         # Step 2: Test that regular users can update their own basic info
-        # (This would be tested with proper user authentication in a real scenario)
+        # Create an account token for the regular user
+        import secrets
+        token = secrets.token_urlsafe(32)
+        encrypted = ad.crypto.encrypt_token(token)
+        token_doc = {
+            "user_id": user_id,
+            "organization_id": None,  # Account-level token
+            "name": "test-user-token",
+            "token": encrypted,
+            "created_at": datetime.now(UTC),
+            "lifetime": 30
+        }
+        await test_db.access_tokens.insert_one(token_doc)
+        
+        # Temporarily clear auth mock to use real token authentication
+        from docrouter_app.main import app
+        app.dependency_overrides.clear()
+        
+        regular_user_headers = get_token_headers(token)
+        
+        # Test that regular user can update their own profile
+        update_profile_data = {
+            "name": "Updated Permission Test User"
+        }
+        
+        update_response = client.put(
+            f"/v0/account/users/{user_id}",
+            json=update_profile_data,
+            headers=regular_user_headers
+        )
+        
+        # This should succeed - users can update their own basic info
+        assert update_response.status_code == 200
+        updated_user = update_response.json()
+        assert updated_user["name"] == "Updated Permission Test User"
         
         # Step 3: Test that regular users cannot access admin-only endpoints
-        # For example, trying to list all users without proper permissions
+        # Try to promote themselves to admin (should fail)
+        promote_self_data = {
+            "role": "admin"
+        }
+        
+        promote_self_response = client.put(
+            f"/v0/account/users/{user_id}",
+            json=promote_self_data,
+            headers=regular_user_headers
+        )
+        
+        # This should fail - regular users cannot change their own role to admin
+        assert promote_self_response.status_code in [400, 403]  # Either is acceptable for this security check
+        
+        # Try to create another user (admin-only action when using system admin auth)
+        new_user_data = {
+            "email": "unauthorized@example.com",
+            "name": "Unauthorized User",
+            "password": "password123"
+        }
+        
+        create_user_response = client.post(
+            "/v0/account/users",
+            json=new_user_data,
+            headers=regular_user_headers
+        )
+        
+        # This should fail - regular users cannot create other users in admin context
+        assert create_user_response.status_code == 403
         
         # Step 4: Verify the permission system correctly enforces role-based access
-        # This test demonstrates the security model where:
-        # - Regular users have limited permissions
-        # - Admin users have full system access
+        # Restore auth mock to use TEST_USER (system admin)
+        from docrouter_app.main import security, get_current_user, get_admin_user
+        from fastapi.security import HTTPAuthorizationCredentials
+        from .test_utils import TEST_USER
+        mock_credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="test_token")
+        app.dependency_overrides = {
+            security: lambda: mock_credentials,
+            get_current_user: lambda: TEST_USER,
+            get_admin_user: lambda: TEST_USER
+        }
+        
+        admin_headers = get_auth_headers()
+        
+        # Test that admin CAN promote users
+        promote_user_response = client.put(
+            f"/v0/account/users/{user_id}",
+            json={"role": "admin"},
+            headers=admin_headers
+        )
+        
+        # This should succeed - admins can promote users
+        assert promote_user_response.status_code == 200
+        promoted_user = promote_user_response.json()
+        assert promoted_user["role"] == "admin"
+        
+        # Test that admin CAN create new users
+        admin_create_response = client.post(
+            "/v0/account/users",
+            json=new_user_data,
+            headers=admin_headers
+        )
+        
+        # This should succeed - admins can create users
+        assert admin_create_response.status_code == 200
+        created_user = admin_create_response.json()
+        assert created_user["email"] == "unauthorized@example.com"
+        
+        # Verify the permission boundaries:
+        # - Regular users have limited permissions (can update own profile)
+        # - Regular users cannot perform admin actions (promote roles, create users)
+        # - Admin users have full system access (can promote users, create users)
         # - Role changes can only be made by existing admins
         
-        # The key security principle is: "Only admins can create other admins"
+        # The key security principle validated: "Only admins can create other admins"
         
     finally:
         pass  # mock_auth fixture handles cleanup
