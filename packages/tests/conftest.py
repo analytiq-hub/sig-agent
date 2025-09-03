@@ -217,6 +217,8 @@ async def setup_test_models(test_db):
     if providers:
         return  # Providers already set up
         
+    import analytiq_data as ad
+    
     # Add test provider
     test_provider = {
         "name": "OpenAI",
@@ -225,7 +227,7 @@ async def setup_test_models(test_db):
         "litellm_models_available": ["gpt-4o-mini", "gpt-4o"],
         "litellm_models_enabled": ["gpt-4o-mini", "gpt-4o"],
         "enabled": True,
-        "token": "test-token",
+        "token": ad.crypto.encrypt_token("test-token"),
         "token_created_at": datetime.now(UTC)
     }
     
