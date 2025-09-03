@@ -23,7 +23,7 @@ From `packages/` directory with activated virtual environment:
 - `python worker/worker.py` - Start background worker process
 
 ### Testing
-- `pytest -n auto packages/tests/` - Run all Python tests with parallel execution
+- `. .venv/bin/activate; pytest -n auto packages/tests/` - Run all Python tests with parallel execution
 - Tests are located in `packages/tests/` with comprehensive coverage of API endpoints
 
 ## Architecture Overview
