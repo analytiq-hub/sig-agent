@@ -2973,6 +2973,14 @@ async def create_organization(
             detail=f"An organization named '{organization.name}' already exists"
         )
 
+    # If creating enterprise organization, verify system admin
+    if organization.type == "enterprise":
+        if not await is_system_admin(current_user.user_id):
+            raise HTTPException(
+                status_code=403,
+                detail="Only system administrators can create Enterprise organizations"
+            )
+
     organization_doc = {
         "name": organization.name,
         "members": [{
