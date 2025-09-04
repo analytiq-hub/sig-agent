@@ -260,7 +260,10 @@ async def load_credit_config() -> Dict[str, Any]:
                 raise ValueError(f"Credit price {price.id} has no unit_amount set in Stripe")
                 
             # Build config from Stripe price and metadata
-            price_per_credit = price.unit_amount / 100
+            # Stripe unit_amount is in the smallest currency unit (cents for USD)
+            # Account for transform_quantity.divide_by if present
+            transform_divide_by = price.get('transform_quantity', {}).get('divide_by', 1)
+            price_per_credit = (price.unit_amount / 100) / transform_divide_by
             
             # Get required metadata
             min_spu_purchase = metadata.get('min_spu_purchase')
