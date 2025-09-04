@@ -212,29 +212,35 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
       </div>
 
       {/* Compact Grid - Original Info */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-gray-700 bg-gray-50 border border-gray-100 rounded-md px-4 py-2 mb-4">
+      <div className={`grid ${usageData.subscription_type ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-2 text-sm text-gray-700 bg-gray-50 border border-gray-100 rounded-md px-4 py-2 mb-4`}>
+        
+        {usageData.subscription_type ? (
+          <div>
+            <div className="text-gray-500">Period Metered SPUs</div>
+            <div className="font-medium">{usageData.period_metered_usage} {usageUnitDisplay}</div>
+          </div>
+        ) : (
+          <div>
+            <div className="text-gray-500">Total Metered SPUs</div>
+            <div className="font-medium">{usageData.total_metered_usage} {usageUnitDisplay}</div>
+          </div>
+        )}
         <div>
           <div className="text-gray-500">Plan</div>
           <div className="font-medium capitalize">
             {usageData.subscription_type || <span className="text-gray-400">No Active Subscription</span>}
           </div>
         </div>
-        <div>
-          <div className="text-gray-500">Billing Period</div>
-          {usageData.period_start && usageData.period_end ? (
-            <div className="font-medium">{formatDate(usageData.period_start)} - {formatDate(usageData.period_end)}</div>
-          ) : (
-            <div className="font-medium text-gray-400">No Active Subscription</div>
-          )}
-        </div>
-        <div>
-          <div className="text-gray-500">Period SPUs</div>
-          <div className="font-medium">{usageData.period_metered_usage} {usageUnitDisplay}</div>
-        </div>
-        <div>
-          <div className="text-gray-500">Total SPUs</div>
-          <div className="font-medium">{usageData.total_metered_usage} {usageUnitDisplay}</div>
-        </div>
+        {usageData.subscription_type && (
+          <div>
+            <div className="text-gray-500">Billing Period</div>
+            {usageData.period_start && usageData.period_end ? (
+              <div className="font-medium">{formatDate(usageData.period_start)} - {formatDate(usageData.period_end)}</div>
+            ) : (
+              <div className="font-medium text-gray-400">No Active Subscription</div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
