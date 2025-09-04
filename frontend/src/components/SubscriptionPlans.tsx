@@ -211,9 +211,9 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                 </div>
                 <ul className="space-y-2 mb-6">
                   {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center">
+                    <li key={index} className="flex items-start">
                       <svg
-                        className="h-5 w-5 text-green-500 mr-2"
+                        className="h-5 w-5 text-green-500 mr-2 mt-0 flex-shrink-0"
                         fill="none"
                         strokeLinecap="round"
                         strokeLinejoin="round"
