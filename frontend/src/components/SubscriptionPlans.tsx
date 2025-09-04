@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { createCheckoutSessionApi, getSubscriptionApi, updateOrganizationApi, activateSubscriptionApi, getOrganizationApi } from '@/utils/api';
 import { toast } from 'react-toastify';
+import { useAppSession } from '@/utils/useAppSession';
 import type { SubscriptionPlan } from '@/types/payments';
 import type { Organization } from '@/types/organizations';
 
@@ -18,6 +19,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   onSubscriptionStatusChange,
   onCancellationInfoChange
 }) => {
+  const { session } = useAppSession();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -219,10 +221,16 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
               <div className="flex-grow">
                 <h3 className="text-xl font-bold mb-4">{plan.name}</h3>
                 <div className="text-3xl font-bold mb-4">
-                  ${plan.base_price}
-                  <span className="text-sm font-normal text-gray-500">
-                    /{plan.interval}
-                  </span>
+                  {plan.plan_id === 'enterprise' ? (
+                    <div className="text-blue-600 text-2xl font-semibold">Contact Sales</div>
+                  ) : (
+                    <>
+                      ${plan.base_price}
+                      <span className="text-sm font-normal text-gray-500">
+                        /{plan.interval}
+                      </span>
+                    </>
+                  )}
                 </div>
                 <ul className="space-y-2 mb-6">
                   {plan.features.map((feature, index) => (
