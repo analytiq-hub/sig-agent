@@ -158,10 +158,10 @@ class SubscriptionResponse(BaseModel):
     current_period_end: Optional[int] = None  # Unix timestamp
 
 class UsageData(BaseModel):
-    metered_usage: int
-    remaining_included: int
     subscription_type: Optional[str]
     usage_unit: str
+    metered_usage: int
+    remaining_included: int
     purchased_credits: int
     purchased_credits_used: int
     purchased_credits_remaining: int
