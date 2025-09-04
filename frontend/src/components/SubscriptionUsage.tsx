@@ -61,13 +61,19 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
     });
   };
 
-  // Check if user can purchase credits (only if not subscribed)
+  // Check if user can purchase credits (individual/team plans and non-subscribed users)
   const canPurchaseCredits = () => {
     if (!subscriptionData) return false;
     
-    // Allow purchase if no subscription or subscription is cancelled/expired
+    // Allow purchase for non-subscribed customers
     const allowedStatuses = ['no_subscription', 'canceled', 'incomplete_expired'];
-    return !subscriptionData.current_plan || allowedStatuses.includes(subscriptionData.subscription_status || '');
+    if (!subscriptionData.current_plan || allowedStatuses.includes(subscriptionData.subscription_status || '')) {
+      return true;
+    }
+    
+    // Allow purchase for Individual and Team plans (for overage)
+    const plansAllowingCredits = ['individual', 'team'];
+    return plansAllowingCredits.includes(subscriptionData.current_plan);
   };
 
   const handlePurchaseCredits = async () => {
