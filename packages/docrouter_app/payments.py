@@ -1526,12 +1526,12 @@ async def get_stripe_usage(org_id: str, start_time: Optional[int] = None, end_ti
         total_usage = usage_result[0]["total_usage"] if usage_result else 0
         
         return {
+            "subscription_type": subscription_type,
+            "usage_unit": "spu",
             "total_usage": total_usage,
             "metered_usage": total_usage,  # All usage is metered
             "period_start": int(period_start.timestamp()),
             "period_end": int(period_end.timestamp()),
-            "subscription_type": subscription_type,
-            "usage_unit": "spu"
         }
         
     except Exception as e:
