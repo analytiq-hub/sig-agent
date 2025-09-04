@@ -27,7 +27,7 @@ export interface SubscriptionHistory {
   subscription_id: string;
   subscription_item_id: string;
   price_id: string;
-  subscription_type: string;
+  subscription_type: string | null;
   status: string;
   start_date: string;  // ISO date string
   end_date: string | null;  // ISO date string
@@ -44,7 +44,7 @@ export interface SubscriptionHistoryResponse {
 export interface UsageData {
   metered_usage: number;
   remaining_included: number;
-  subscription_type: string;
+  subscription_type: string | null;
   usage_unit?: string;
   purchased_credits: number;
   purchased_credits_used: number;
@@ -52,8 +52,8 @@ export interface UsageData {
   admin_credits: number;
   admin_credits_used: number;
   admin_credits_remaining: number;
-  period_start: number;
-  period_end: number;
+  period_start: number | null;
+  period_end: number | null;
 }
 
 export interface UsageResponse {

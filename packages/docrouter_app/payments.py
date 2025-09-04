@@ -160,7 +160,7 @@ class SubscriptionResponse(BaseModel):
 class UsageData(BaseModel):
     metered_usage: int
     remaining_included: int
-    subscription_type: str
+    subscription_type: Optional[str]
     usage_unit: str
     purchased_credits: int
     purchased_credits_used: int
@@ -805,8 +805,8 @@ async def get_billing_period_for_customer(org_id: str) -> tuple:
         # Non-enterprise: get from Stripe subscription
         stripe_customer = await get_payments_customer(org_id)
         if not stripe_customer:
-            # Fallback to calendar month if no Stripe customer
-            return await get_current_billing_period()
+            # No billing period for non-subscribed customers
+            return None, None
             
         subscription = await get_subscription(stripe_customer.id)
         if subscription and subscription.get("status") == "active":
@@ -817,8 +817,8 @@ async def get_billing_period_for_customer(org_id: str) -> tuple:
                 if period_start and period_end:
                     return period_start, period_end
         
-        # Fallback to calendar month if no subscription
-        return await get_current_billing_period()
+        # No billing period for customers without active subscription
+        return None, None
 
 async def get_subscription(customer_id: str) -> Dict[str, Any]:
     """Get a subscription for a customer"""
@@ -1560,7 +1560,7 @@ async def get_current_usage(
         # Get subscription information
         period_start = None
         period_end = None
-        subscription_type = "individual"
+        subscription_type = None  # Default to None (no active plan)
         usage_unit = "spu"
         subscription_spu_allowance = 0
         subscription_spus_used = 0
@@ -1580,9 +1580,9 @@ async def get_current_usage(
                 stripe_api_customer = await get_payments_customer(organization_id)
                 if stripe_api_customer:
                     subscription = await get_subscription(stripe_api_customer.id)
-                    if subscription:
-                        # Get subscription type if available
-                        subscription_type = get_subscription_type(subscription) or subscription_type
+                    if subscription and subscription.get("status") == "active":
+                        # Get subscription type if available and subscription is active
+                        subscription_type = get_subscription_type(subscription)
                         
                         # Get subscription SPU allowance
                         if subscription_type in TIER_LIMITS:
