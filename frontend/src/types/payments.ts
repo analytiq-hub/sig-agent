@@ -44,7 +44,8 @@ export interface SubscriptionHistoryResponse {
 export interface UsageData {
   subscription_type: string | null;
   usage_unit: string;
-  metered_usage: number;
+  period_metered_usage: number;
+  total_metered_usage: number;
   remaining_included: number;
   purchased_credits: number;
   purchased_credits_used: number;

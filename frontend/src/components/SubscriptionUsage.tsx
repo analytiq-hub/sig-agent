@@ -212,16 +212,12 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
       </div>
 
       {/* Compact Grid - Original Info */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-700 bg-gray-50 border border-gray-100 rounded-md px-4 py-2 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-gray-700 bg-gray-50 border border-gray-100 rounded-md px-4 py-2 mb-4">
         <div>
           <div className="text-gray-500">Plan</div>
           <div className="font-medium capitalize">
             {usageData.subscription_type || <span className="text-gray-400">No Active Subscription</span>}
           </div>
-        </div>
-        <div>
-          <div className="text-gray-500">Metered SPUs</div>
-          <div className="font-medium">{usageData.metered_usage} {usageUnitDisplay}</div>
         </div>
         <div>
           <div className="text-gray-500">Billing Period</div>
@@ -230,6 +226,14 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
           ) : (
             <div className="font-medium text-gray-400">No Active Subscription</div>
           )}
+        </div>
+        <div>
+          <div className="text-gray-500">Period SPUs</div>
+          <div className="font-medium">{usageData.period_metered_usage} {usageUnitDisplay}</div>
+        </div>
+        <div>
+          <div className="text-gray-500">Total SPUs</div>
+          <div className="font-medium">{usageData.total_metered_usage} {usageUnitDisplay}</div>
         </div>
       </div>
     </div>

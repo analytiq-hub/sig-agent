@@ -160,7 +160,8 @@ class SubscriptionResponse(BaseModel):
 class UsageData(BaseModel):
     subscription_type: Optional[str]
     usage_unit: str
-    metered_usage: int
+    period_metered_usage: int
+    total_metered_usage: int
     remaining_included: int
     purchased_credits: int
     purchased_credits_used: int
@@ -1535,10 +1536,13 @@ async def get_current_usage(
         admin_used = stripe_customer.get("admin_credits_used", 0)
         admin_remaining = max(admin_credits - admin_used, 0)
 
-        # --- Only count paid usage for the current period ---
-        metered_usage = 0
+        # --- Calculate both period and total metered usage ---
+        period_metered_usage = 0
+        total_metered_usage = 0
+        
+        # Period metered usage (paid usage for current billing period)
         if period_start and period_end:
-            agg = await stripe_usage_records.aggregate([
+            period_agg = await stripe_usage_records.aggregate([
                 {
                     "$match": {
                         "org_id": organization_id,
@@ -1551,21 +1555,22 @@ async def get_current_usage(
                 },
                 {"$group": {"_id": None, "total": {"$sum": "$spus"}}}
             ]).to_list(1)
-            if agg and agg[0].get("total"):
-                metered_usage = agg[0]["total"]
-        else:
-            # fallback: all paid usage (should be rare)
-            agg = await stripe_usage_records.aggregate([
-                {"$match": {"org_id": organization_id, "operation": "paid_usage"}},
-                {"$group": {"_id": None, "total": {"$sum": "$spus"}}}
-            ]).to_list(1)
-            if agg and agg[0].get("total"):
-                metered_usage = agg[0]["total"]
+            if period_agg and period_agg[0].get("total"):
+                period_metered_usage = period_agg[0]["total"]
+        
+        # Total metered usage (all paid usage ever)
+        total_agg = await stripe_usage_records.aggregate([
+            {"$match": {"org_id": organization_id, "operation": "paid_usage"}},
+            {"$group": {"_id": None, "total": {"$sum": "$spus"}}}
+        ]).to_list(1)
+        if total_agg and total_agg[0].get("total"):
+            total_metered_usage = total_agg[0]["total"]
 
         return UsageResponse(
             usage_source="stripe",
             data=UsageData(
-                metered_usage=metered_usage,
+                period_metered_usage=period_metered_usage,
+                total_metered_usage=total_metered_usage,
                 remaining_included=subscription_spus_remaining,  # Now shows subscription SPU remaining
                 subscription_type=subscription_type,
                 usage_unit=usage_unit,
