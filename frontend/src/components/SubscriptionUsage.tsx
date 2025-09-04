@@ -216,7 +216,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
         <div>
           <div className="text-gray-500">Plan</div>
           <div className="font-medium capitalize">
-            {usageData.subscription_type || <span className="text-gray-400">No active subscription</span>}
+            {usageData.subscription_type || <span className="text-gray-400">No Active Subscription</span>}
           </div>
         </div>
         <div>
@@ -228,7 +228,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
           {usageData.period_start && usageData.period_end ? (
             <div className="font-medium">{formatDate(usageData.period_start)} - {formatDate(usageData.period_end)}</div>
           ) : (
-            <div className="font-medium text-gray-400">No active subscription</div>
+            <div className="font-medium text-gray-400">No Active Subscription</div>
           )}
         </div>
       </div>
