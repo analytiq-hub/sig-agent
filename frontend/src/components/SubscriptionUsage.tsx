@@ -202,7 +202,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
                 </button>
               </div>
               <div className="text-xs text-blue-600">
-                Credits are used before paid usage. You currently have <span className="font-semibold">{totalCreditsRemaining}</span> credits remaining.
+                Credits are used after subscription usage. You currently have <span className="font-semibold">{totalCreditsRemaining}</span> credits remaining.
                 <br />
                 Purchase amount must be between ${creditConfig.min_cost} and ${creditConfig.max_cost}.
               </div>

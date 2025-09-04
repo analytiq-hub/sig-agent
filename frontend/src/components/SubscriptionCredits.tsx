@@ -120,7 +120,7 @@ const SubscriptionCredits: React.FC<SubscriptionCreditsProps> = ({ organizationI
           <div className="text-red-600 text-sm">{error || 'Unable to load purchase options.'}</div>
         )}
         <div className="mt-4 text-xs text-gray-500">
-          Credits are used before paid usage. You currently have <span className="font-semibold">{currentCredits}</span> credits remaining.
+          Credits are used after subscription usage. You currently have <span className="font-semibold">{currentCredits}</span> credits remaining.
         </div>
       </div>
     </div>

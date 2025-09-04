@@ -784,15 +784,25 @@ async def check_subscription_limits(org_id: str, spus: int) -> Dict[str, Any]:
     if not customer:
         raise ValueError(f"No customer found for org_id: {org_id}")
 
+    await ensure_subscription_credits(customer)
+
     # Check if they have an active subscription
     stripe_customer = await get_payments_customer(org_id)
     subscription = None
+    subscription_spu_allowance = 0
+    subscription_spus_remaining = 0
+    
     if stripe_customer:
         subscription = await get_subscription(stripe_customer.id)
-    
-    has_active_subscription = subscription and subscription.get("status") == "active"
-    if has_active_subscription:
-        return True
+        if subscription and subscription.get("status") == "active":
+            # Get subscription type and SPU allowance
+            subscription_type = get_subscription_type(subscription)
+            if subscription_type in TIER_LIMITS:
+                subscription_spu_allowance = TIER_LIMITS[subscription_type]
+            
+            # Get current subscription SPU usage
+            subscription_spus_used = customer.get("subscription_spus_used", 0)
+            subscription_spus_remaining = max(subscription_spu_allowance - subscription_spus_used, 0)
     
     # Get separate credit information
     purchased_credits = customer.get("purchased_credits", 0)
@@ -803,7 +813,9 @@ async def check_subscription_limits(org_id: str, spus: int) -> Dict[str, Any]:
     admin_used = customer.get("admin_credits_used", 0)
     admin_remaining = max(admin_credits - admin_used, 0)
     
-    return purchased_remaining + admin_remaining >= spus
+    # Check if total available SPUs (subscription + credits) are sufficient
+    total_available = subscription_spus_remaining + purchased_remaining + admin_remaining
+    return total_available >= spus
 
 async def delete_payments_customer(org_id: str, force: bool = False) -> Dict[str, Any]:
     """
@@ -1562,20 +1574,15 @@ async def get_current_usage(
         
         await ensure_subscription_credits(stripe_customer)
         
-        # Get separate credit information
-        purchased_credits = stripe_customer.get("purchased_credits", 0)
-        purchased_used = stripe_customer.get("purchased_credits_used", 0)
-        purchased_remaining = max(purchased_credits - purchased_used, 0)
-        
-        admin_credits = stripe_customer.get("admin_credits", CREDIT_CONFIG["spu_credit"])
-        admin_used = stripe_customer.get("admin_credits_used", 0)
-        admin_remaining = max(admin_credits - admin_used, 0)
-        
-        # --- NEW: Get period_start and period_end from Stripe subscription ---
+        # Get subscription information
         period_start = None
         period_end = None
         subscription_type = "individual"
         usage_unit = "spu"
+        subscription_spu_allowance = 0
+        subscription_spus_used = 0
+        subscription_spus_remaining = 0
+        
         try:
             stripe_api_customer = await get_payments_customer(organization_id)
             if stripe_api_customer:
@@ -1588,8 +1595,25 @@ async def get_current_usage(
                         period_end = item.get("current_period_end")
                     # Get subscription type if available
                     subscription_type = get_subscription_type(subscription) or subscription_type
+                    
+                    # Get subscription SPU allowance
+                    if subscription_type in TIER_LIMITS:
+                        subscription_spu_allowance = TIER_LIMITS[subscription_type]
         except Exception as e:
             logger.warning(f"Could not fetch subscription period: {e}")
+
+        # Get subscription SPU usage from customer record
+        subscription_spus_used = stripe_customer.get("subscription_spus_used", 0)
+        subscription_spus_remaining = max(subscription_spu_allowance - subscription_spus_used, 0)
+        
+        # Get separate credit information
+        purchased_credits = stripe_customer.get("purchased_credits", 0)
+        purchased_used = stripe_customer.get("purchased_credits_used", 0)
+        purchased_remaining = max(purchased_credits - purchased_used, 0)
+        
+        admin_credits = stripe_customer.get("admin_credits", CREDIT_CONFIG["spu_credit"])
+        admin_used = stripe_customer.get("admin_credits_used", 0)
+        admin_remaining = max(admin_credits - admin_used, 0)
 
         # --- Only count paid usage for the current period ---
         metered_usage = 0
@@ -1622,7 +1646,7 @@ async def get_current_usage(
             usage_source="stripe",
             data=UsageData(
                 metered_usage=metered_usage,
-                remaining_included=0,
+                remaining_included=subscription_spus_remaining,  # Now shows subscription SPU remaining
                 subscription_type=subscription_type,
                 usage_unit=usage_unit,
                 purchased_credits=purchased_credits,
@@ -1717,6 +1741,15 @@ async def ensure_subscription_credits(stripe_customer_doc):
         update["admin_credits"] = CREDIT_CONFIG["spu_credit"]
     if "admin_credits_used" not in stripe_customer_doc:
         update["admin_credits_used"] = 0
+    
+    # Add subscription SPU tracking fields
+    if "subscription_spus_used" not in stripe_customer_doc:
+        update["subscription_spus_used"] = 0
+    if "current_billing_period_start" not in stripe_customer_doc:
+        update["current_billing_period_start"] = None
+    if "current_billing_period_end" not in stripe_customer_doc:
+        update["current_billing_period_end"] = None
+    
     if update:
         await stripe_customers.update_one(
             {"_id": stripe_customer_doc["_id"]},
@@ -1732,6 +1765,48 @@ async def record_subscription_usage(org_id: str, spus: int):
         raise Exception("No stripe_customer for org")
     await ensure_subscription_credits(stripe_customer)
     
+    # Get subscription information
+    stripe_api_customer = await get_payments_customer(org_id)
+    subscription = None
+    subscription_spu_allowance = 0
+    current_period_start = None
+    current_period_end = None
+    
+    if stripe_api_customer:
+        subscription = await get_subscription(stripe_api_customer.id)
+        if subscription and subscription.get("status") == "active":
+            # Get subscription type and SPU allowance
+            subscription_type = get_subscription_type(subscription)
+            if subscription_type in TIER_LIMITS:
+                subscription_spu_allowance = TIER_LIMITS[subscription_type]
+            
+            # Get billing period boundaries
+            if subscription["items"]["data"]:
+                item = subscription["items"]["data"][0]
+                current_period_start = item.get("current_period_start")
+                current_period_end = item.get("current_period_end")
+    
+    # Check if we need to reset subscription SPU usage for new billing period
+    customer_period_start = stripe_customer.get("current_billing_period_start")
+    if (current_period_start and 
+        customer_period_start != current_period_start and 
+        subscription_spu_allowance > 0):
+        # New billing period - reset subscription SPU usage
+        await stripe_customers.update_one(
+            {"_id": stripe_customer["_id"]},
+            {"$set": {
+                "subscription_spus_used": 0,
+                "current_billing_period_start": current_period_start,
+                "current_billing_period_end": current_period_end
+            }}
+        )
+        stripe_customer["subscription_spus_used"] = 0
+        logger.info(f"Reset subscription SPU usage for new billing period: {org_id}")
+    
+    # Get current subscription SPU usage
+    subscription_spus_used = stripe_customer.get("subscription_spus_used", 0)
+    subscription_spus_remaining = max(subscription_spu_allowance - subscription_spus_used, 0)
+    
     # Get available credits
     purchased_credits = stripe_customer.get("purchased_credits", 0)
     purchased_used = stripe_customer.get("purchased_credits_used", 0)
@@ -1741,11 +1816,19 @@ async def record_subscription_usage(org_id: str, spus: int):
     admin_used = stripe_customer.get("admin_credits_used", 0)
     admin_remaining = max(admin_credits - admin_used, 0)
     
-    # Consume purchased credits first, then admin credits
-    from_purchased = min(spus, purchased_remaining)
-    from_admin = min(spus - from_purchased, admin_remaining)
-    from_paid = spus - from_purchased - from_admin
+    # NEW ORDER: Consume subscription SPUs first, then purchased credits, then admin credits, then paid usage
+    from_subscription = min(spus, subscription_spus_remaining)
+    from_purchased = min(spus - from_subscription, purchased_remaining)
+    from_admin = min(spus - from_subscription - from_purchased, admin_remaining)
+    from_paid = spus - from_subscription - from_purchased - from_admin
 
+    # Update subscription SPU usage
+    if from_subscription > 0:
+        await stripe_customers.update_one(
+            {"_id": stripe_customer["_id"]},
+            {"$inc": {"subscription_spus_used": from_subscription}}
+        )
+    
     # Update credit usage
     if from_purchased > 0:
         await stripe_customers.update_one(
@@ -1764,6 +1847,7 @@ async def record_subscription_usage(org_id: str, spus: int):
         await save_usage_record(org_id, from_paid, operation="paid_usage", source="backend")
     
     return {
+        "from_subscription": from_subscription,
         "from_purchased": from_purchased, 
         "from_admin": from_admin, 
         "from_paid": from_paid
