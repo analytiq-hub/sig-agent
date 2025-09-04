@@ -101,14 +101,6 @@ class StripeAsync:
             secret
         )
 
-    @staticmethod
-    async def meter_event_create(*args, **kwargs) -> Dict[str, Any]:
-        """Create a meter event using the new Stripe metered billing system"""
-        return await StripeAsync._run_in_threadpool(
-            stripe.billing.MeterEvent.create,
-            *args,
-            **kwargs
-        )
 
     @staticmethod
     async def subscription_item_list(*args, **kwargs) -> Dict[str, Any]:
@@ -402,10 +394,6 @@ async def init_payments():
 
     await sync_all_customers()
     logger.info("Stripe customers synced")
-    
-    # Start background billing task
-    asyncio.create_task(billing_background_task())
-    logger.info("Background billing task started")
 
 async def sync_all_customers() -> Tuple[int, int, List[str]]:
     """
@@ -659,131 +647,13 @@ async def save_usage_record(org_id: str, spus: int, operation: str, source: str 
         "spus": spus,
         "operation": operation,
         "source": source,
-        "timestamp": datetime.utcnow(),
-        "reported_to_stripe": False
+        "timestamp": datetime.utcnow()
     }
     
     await stripe_usage_records.insert_one(usage_record)
     return usage_record
 
-async def process_all_billing():
-    """Process billing periods and create usage records in Stripe directly from usage records"""
-    
-    logger.info(f"Starting billing processing")
-    
-    if not stripe.api_key:
-        logger.warning("Stripe API key not configured - billing processing aborted")
-        return
-    
-    try:
-        # Get all active subscriptions
-        stripe_customers_list = await stripe_customers.find({"deleted": {"$ne": True}}).to_list(length=None)
-        
-        for customer in stripe_customers_list:
-            org_id = customer["org_id"]
-            try:
-                await process_org_billing(org_id)
-            except Exception as e:
-                logger.error(f"Error processing billing for org {org_id}: {e}")
-                continue
-        
-        logger.info("Billing period processing completed")
-        
-    except Exception as e:
-        logger.error(f"Error in billing period processing: {e}")
 
-async def process_org_billing(org_id: str): 
-    """Process billing for a single organization"""
-
-    if not stripe.api_key:
-        logger.warning("Stripe API key not configured - billing processing aborted")
-        return
-    
-    # Get customer and subscription
-    stripe_customer = await get_payments_customer(org_id)
-    if not stripe_customer:
-        return
-        
-    subscription = await get_subscription(stripe_customer.id)
-    if not subscription or subscription.get("status") != "active":
-        return
-    
-    # Get subscription type to determine if overage billing is applicable
-    subscription_type = get_subscription_type(subscription)
-    
-    # Only process billing for enterprise plans (individual/team plans don't have overage)
-    if subscription_type != "enterprise":
-        logger.info(f"Skipping billing processing for non-enterprise plan {subscription_type} for org {org_id}")
-        return
-    
-    # For enterprise plans, we need to find the overage item (if it exists)
-    subscription_items = subscription["items"]["data"]
-    if len(subscription_items) < 2:
-        logger.info(f"No overage item found for enterprise subscription {subscription['id']}")
-        return
-    
-    subscription_item = subscription_items[1]  # Overage item
-    subscription_item_id = subscription_item["id"]
-    
-    # Get current billing period boundaries
-    current_period_start = datetime.fromtimestamp(subscription_item.get("current_period_start"))
-    current_period_end = datetime.fromtimestamp(subscription_item.get("current_period_end"))
-    
-    # Aggregate unreported usage for this billing period
-    usage_pipeline = [
-        {
-            "$match": {
-                "org_id": org_id,
-                "timestamp": {"$gte": current_period_start, "$lte": current_period_end},
-                "reported_to_stripe": False
-            }
-        },
-        {
-            "$group": {
-                "_id": None,
-                "total_usage": {"$sum": "$spus"},
-                "usage_count": {"$sum": 1}
-            }
-        }
-    ]
-    
-    usage_result = await stripe_usage_records.aggregate(usage_pipeline).to_list(length=1)
-    
-    if not usage_result or usage_result[0]["total_usage"] == 0:
-        logger.info(f"No unreported usage found for org {org_id} in period {current_period_start} to {current_period_end}")
-        return
-    
-    total_usage = usage_result[0]["total_usage"]
-    usage_count = usage_result[0]["usage_count"]
-    
-    logger.info(f"Processing {total_usage} SPUs from {usage_count} usage records for org {org_id}")
-    
-    try:
-        # Report usage to Stripe using the new metered billing system
-        await StripeAsync.meter_event_create(
-            event_name="docrouterspu",
-            payload={
-                "stripe_customer_id": stripe_customer.id,
-                "value": total_usage
-            },
-            timestamp=int(datetime.now().timestamp())
-        )
-        
-        # Mark usage records as reported
-        await stripe_usage_records.update_many(
-            {
-                "org_id": org_id,
-                "timestamp": {"$gte": current_period_start, "$lte": current_period_end},
-                "reported_to_stripe": False
-            },
-            {"$set": {"reported_to_stripe": True, "reported_at": datetime.utcnow()}}
-        )
-        
-        logger.info(f"Successfully reported {total_usage} SPUs to Stripe for org {org_id}")
-        
-    except Exception as e:
-        logger.error(f"Error reporting usage to Stripe for org {org_id}: {e}")
-        raise
 
 async def check_subscription_limits(org_id: str, spus: int) -> bool:
     """Check if organization has hit usage limits and needs to upgrade"""
@@ -1691,16 +1561,6 @@ async def get_current_usage(
         logger.error(f"Error getting usage: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-async def billing_background_task():
-    """Background task that runs billing processing every hour"""
-    while True:
-        try:
-            await process_all_billing()
-        except Exception as e:
-            logger.error(f"Error in background billing task: {e}")
-        
-        # Sleep for 1 hour
-        await asyncio.sleep(3600)  # 3600 seconds = 1 hour
 
 @payments_router.post("/webhook", status_code=200)
 async def webhook_received(
