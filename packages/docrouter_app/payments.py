@@ -774,6 +774,13 @@ async def delete_payments_customer(org_id: str, force: bool = False) -> Dict[str
 
 
 
+async def is_enterprise_customer(org_id: str) -> bool:
+    """Check if an organization is an enterprise customer"""
+    org = await db["organizations"].find_one({"_id": ObjectId(org_id)})
+    if not org:
+        return False
+    return org.get("type") == "enterprise"
+
 async def get_subscription(customer_id: str) -> Dict[str, Any]:
     """Get a subscription for a customer"""
     stripe_subscription_list = await StripeAsync.subscription_list(customer=customer_id)
@@ -902,7 +909,7 @@ async def create_checkout_session(
     """Create a Stripe Checkout session for subscription setup"""
 
     plan_id = request.plan_id
-    logger.info(f"Creating Stripe checkout session for org_id: {organization_id}, plan: {plan_id}")
+    logger.info(f"Creating checkout session for org_id: {organization_id}, plan: {plan_id}")
 
     # Check if user is trying to select Enterprise plan without admin privileges
     if plan_id == 'enterprise':
@@ -913,6 +920,10 @@ async def create_checkout_session(
                 status_code=403, 
                 detail="Enterprise plan requires admin privileges"
             )
+        
+        # Enterprise plans don't use Stripe - redirect to contact sales
+        contact_url = f"{NEXTAUTH_URL}/contact-sales?org_id={organization_id}&plan=enterprise"
+        return PortalSessionResponse(url=contact_url)
 
     try:
         # Get the customer
@@ -962,7 +973,7 @@ async def create_checkout_session(
         return PortalSessionResponse(url=session.url)
         
     except Exception as e:
-        logger.error(f"Error creating Stripe checkout session: {e}")
+        logger.error(f"Error creating checkout session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @payments_router.post("/{organization_id}/usage")
@@ -1155,35 +1166,45 @@ async def get_subscription_info(
         ]
     ))
 
-    # Get the customer
-    stripe_customer = await get_payments_customer(organization_id)
-
-    if not stripe_customer:
-        raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
-
-    # Get the subscription
-    subscription = await get_subscription(stripe_customer.id)
-
-    current_subscription_type = None
-    subscription_status = None
-    cancel_at_period_end = False
-    current_period_end = None
+    # Check if this is an enterprise customer
+    is_enterprise = await is_enterprise_customer(organization_id)
     
-    if not subscription:
-        # No subscription found
-        current_subscription_type = None
-        subscription_status = "no_subscription"
+    if is_enterprise:
+        # Enterprise customers have local subscriptions, not Stripe subscriptions
+        current_subscription_type = "enterprise"
+        subscription_status = "active"  # Enterprise is always active
+        cancel_at_period_end = False
+        current_period_end = None
     else:
-        current_subscription_type = get_subscription_type(subscription)
-        subscription_status = subscription.status
+        # Get the Stripe customer and subscription for non-enterprise customers
+        stripe_customer = await get_payments_customer(organization_id)
+
+        if not stripe_customer:
+            raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
+
+        # Get the subscription
+        subscription = await get_subscription(stripe_customer.id)
+
+        current_subscription_type = None
+        subscription_status = None
+        cancel_at_period_end = False
+        current_period_end = None
         
-        # Check if subscription is set to cancel at period end
-        cancel_at_period_end = subscription.get('cancel_at_period_end', False)
-        current_period_end = subscription.get('current_period_end')
-        
-        # If subscription is active but set to cancel at period end, show as "cancelling"
-        if subscription_status == 'active' and cancel_at_period_end:
-            subscription_status = 'cancelling'
+        if not subscription:
+            # No subscription found
+            current_subscription_type = None
+            subscription_status = "no_subscription"
+        else:
+            current_subscription_type = get_subscription_type(subscription)
+            subscription_status = subscription.status
+            
+            # Check if subscription is set to cancel at period end
+            cancel_at_period_end = subscription.get('cancel_at_period_end', False)
+            current_period_end = subscription.get('current_period_end')
+            
+            # If subscription is active but set to cancel at period end, show as "cancelling"
+            if subscription_status == 'active' and cancel_at_period_end:
+                subscription_status = 'cancelling'
     
     return SubscriptionResponse(
         plans=plans, 
