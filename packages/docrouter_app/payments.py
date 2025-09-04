@@ -708,7 +708,21 @@ async def process_org_billing(org_id: str):
     if not subscription or subscription.get("status") != "active":
         return
     
-    subscription_item = subscription["items"]["data"][1]  # Overage item
+    # Get subscription type to determine if overage billing is applicable
+    subscription_type = get_subscription_type(subscription)
+    
+    # Only process billing for enterprise plans (individual/team plans don't have overage)
+    if subscription_type != "enterprise":
+        logger.info(f"Skipping billing processing for non-enterprise plan {subscription_type} for org {org_id}")
+        return
+    
+    # For enterprise plans, we need to find the overage item (if it exists)
+    subscription_items = subscription["items"]["data"]
+    if len(subscription_items) < 2:
+        logger.info(f"No overage item found for enterprise subscription {subscription['id']}")
+        return
+    
+    subscription_item = subscription_items[1]  # Overage item
     subscription_item_id = subscription_item["id"]
     
     # Get current billing period boundaries
@@ -771,12 +785,12 @@ async def process_org_billing(org_id: str):
         logger.error(f"Error reporting usage to Stripe for org {org_id}: {e}")
         raise
 
-async def check_subscription_limits(org_id: str, spus: int) -> Dict[str, Any]:
+async def check_subscription_limits(org_id: str, spus: int) -> bool:
     """Check if organization has hit usage limits and needs to upgrade"""
 
     if not stripe.api_key:
         # No-op if Stripe is not configured
-        return None
+        return True
 
     logger.info(f"Checking subscription limits for org_id: {org_id} spus: {spus}")
 
@@ -789,6 +803,7 @@ async def check_subscription_limits(org_id: str, spus: int) -> Dict[str, Any]:
     # Check if they have an active subscription
     stripe_customer = await get_payments_customer(org_id)
     subscription = None
+    subscription_type = None
     subscription_spu_allowance = 0
     subscription_spus_remaining = 0
     
@@ -813,9 +828,21 @@ async def check_subscription_limits(org_id: str, spus: int) -> Dict[str, Any]:
     admin_used = customer.get("admin_credits_used", 0)
     admin_remaining = max(admin_credits - admin_used, 0)
     
-    # Check if total available SPUs (subscription + credits) are sufficient
+    # Calculate total available SPUs (subscription + credits)
     total_available = subscription_spus_remaining + purchased_remaining + admin_remaining
-    return total_available >= spus
+    
+    # Enterprise plans allow overage - always return True
+    if subscription_type == "enterprise":
+        logger.info(f"Enterprise plan allows overage for org_id: {org_id}")
+        return True
+    
+    # Individual and team plans block usage when credits are exhausted
+    if total_available >= spus:
+        logger.info(f"Sufficient credits available for org_id: {org_id} (available: {total_available}, requested: {spus})")
+        return True
+    else:
+        logger.warning(f"Insufficient credits for org_id: {org_id} (available: {total_available}, requested: {spus})")
+        return False
 
 async def delete_payments_customer(org_id: str, force: bool = False) -> Dict[str, Any]:
     """
@@ -1768,6 +1795,7 @@ async def record_subscription_usage(org_id: str, spus: int):
     # Get subscription information
     stripe_api_customer = await get_payments_customer(org_id)
     subscription = None
+    subscription_type = None
     subscription_spu_allowance = 0
     current_period_start = None
     current_period_end = None
@@ -1822,6 +1850,13 @@ async def record_subscription_usage(org_id: str, spus: int):
     from_admin = min(spus - from_subscription - from_purchased, admin_remaining)
     from_paid = spus - from_subscription - from_purchased - from_admin
 
+    # For individual/team plans, overage should not occur since it's blocked at limits check
+    # For enterprise plans, overage is allowed and tracked
+    if from_paid > 0 and subscription_type != "enterprise":
+        logger.warning(f"Unexpected overage usage for non-enterprise plan {subscription_type} for org_id: {org_id}")
+        # This should not happen since limits check should have blocked it
+        # But if it does, we'll still record it for safety
+
     # Update subscription SPU usage
     if from_subscription > 0:
         await stripe_customers.update_one(
@@ -1842,7 +1877,8 @@ async def record_subscription_usage(org_id: str, spus: int):
             {"$inc": {"admin_credits_used": from_admin}}
         )
     
-    # Record paid usage for the remainder
+    # Record paid usage for the remainder (overage)
+    # This will only be > 0 for enterprise plans or in unexpected cases
     if from_paid > 0:
         await save_usage_record(org_id, from_paid, operation="paid_usage", source="backend")
     
