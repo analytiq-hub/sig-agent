@@ -781,6 +781,45 @@ async def is_enterprise_customer(org_id: str) -> bool:
         return False
     return org.get("type") == "enterprise"
 
+async def get_current_billing_period() -> tuple:
+    """Get current month billing period boundaries as unix timestamps"""
+    now = datetime.utcnow()
+    period_start = datetime(now.year, now.month, 1)
+    
+    # Next month start
+    if now.month == 12:
+        period_end = datetime(now.year + 1, 1, 1)
+    else:
+        period_end = datetime(now.year, now.month + 1, 1)
+    
+    return int(period_start.timestamp()), int(period_end.timestamp())
+
+async def get_billing_period_for_customer(org_id: str) -> tuple:
+    """Get billing period boundaries for any customer type (enterprise or Stripe)"""
+    is_enterprise = await is_enterprise_customer(org_id)
+    
+    if is_enterprise:
+        # Enterprise: use calendar month boundaries
+        return await get_current_billing_period()
+    else:
+        # Non-enterprise: get from Stripe subscription
+        stripe_customer = await get_payments_customer(org_id)
+        if not stripe_customer:
+            # Fallback to calendar month if no Stripe customer
+            return await get_current_billing_period()
+            
+        subscription = await get_subscription(stripe_customer.id)
+        if subscription and subscription.get("status") == "active":
+            if subscription["items"]["data"]:
+                item = subscription["items"]["data"][0]
+                period_start = item.get("current_period_start")
+                period_end = item.get("current_period_end")
+                if period_start and period_end:
+                    return period_start, period_end
+        
+        # Fallback to calendar month if no subscription
+        return await get_current_billing_period()
+
 async def get_subscription(customer_id: str) -> Dict[str, Any]:
     """Get a subscription for a customer"""
     stripe_subscription_list = await StripeAsync.subscription_list(customer=customer_id)
@@ -875,9 +914,9 @@ async def customer_portal(
     organization_id: str,
     current_user: User = Depends(get_current_user)
 ) -> PortalSessionResponse:
-    """Generate a Stripe Customer Portal link"""
+    """Generate a customer portal link (Stripe for non-enterprise, contact page for enterprise)"""
 
-    logger.info(f"Generating Stripe customer portal for org_id: {organization_id}")
+    logger.info(f"Generating customer portal for org_id: {organization_id}")
 
     is_sys_admin = await is_system_admin(current_user.user_id)
     is_org_member = await is_organization_member(organization_id, current_user.user_id)
@@ -885,7 +924,16 @@ async def customer_portal(
     if not is_sys_admin and not is_org_member:
         raise HTTPException(status_code=403, detail="You are not authorized to generate a customer portal")
 
+    # Check if this is an enterprise customer
+    is_enterprise = await is_enterprise_customer(organization_id)
+    
+    if is_enterprise:
+        # Enterprise customers don't use Stripe portal - redirect to enterprise billing contact
+        enterprise_portal_url = f"{NEXTAUTH_URL}/enterprise-billing?org_id={organization_id}"
+        return PortalSessionResponse(url=enterprise_portal_url)
+
     try:
+        # Get Stripe customer for non-enterprise customers
         customer = await stripe_customers.find_one({"org_id": organization_id})
         if not customer:
             raise HTTPException(status_code=404, detail="Customer not found")
@@ -897,7 +945,7 @@ async def customer_portal(
         logger.info(f"Stripe customer portal URL: {session.url}")
         return PortalSessionResponse(url=session.url)
     except Exception as e:
-        logger.error(f"Error generating Stripe customer portal: {e}")
+        logger.error(f"Error generating customer portal: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @payments_router.post("/{organization_id}/checkout-session")
@@ -1331,13 +1379,13 @@ async def activate_subscription(
 ):
     """Activate a subscription"""
     
-    logger.info(f"Reactivating subscription for org_id: {organization_id}")
+    logger.info(f"Activating subscription for org_id: {organization_id}")
 
     is_sys_admin = await is_system_admin(current_user.user_id)
     is_org_admin = await is_organization_admin(org_id=organization_id, user_id=current_user.user_id)
 
     if not is_sys_admin and not is_org_admin:
-        raise HTTPException(status_code=403, detail="You are not authorized to reactivate a subscription")
+        raise HTTPException(status_code=403, detail="You are not authorized to activate a subscription")
 
     org = await db.organizations.find_one({"_id": ObjectId(organization_id)})
     if not org:
@@ -1345,20 +1393,27 @@ async def activate_subscription(
 
     org_type = org.get("type", "individual")
 
+    # Check if this is an enterprise customer
+    is_enterprise = await is_enterprise_customer(organization_id)
+    
+    if is_enterprise:
+        # Enterprise subscriptions are always active - no action needed
+        return {"status": "success", "message": "Enterprise subscription is always active"}
+
     try:
-        # Get the customer
+        # Get the customer for non-enterprise plans
         stripe_customer = await get_payments_customer(organization_id)
         if not stripe_customer:
             raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
 
         success = await handle_activate_subscription(organization_id, org_type, stripe_customer.id)
         if success:
-            return {"status": "success", "message": "Subscription reactivated successfully"}
+            return {"status": "success", "message": "Subscription activated successfully"}
         else:
-            raise HTTPException(status_code=500, detail="Failed to reactivate subscription")
+            raise HTTPException(status_code=500, detail="Failed to activate subscription")
 
     except Exception as e:
-        logger.error(f"Error reactivating subscription: {e}")
+        logger.error(f"Error activating subscription: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @payments_router.delete("/{organization_id}/subscription")
@@ -1368,7 +1423,7 @@ async def deactivate_subscription(
 ):
     """Cancel a subscription at the end of the current period"""
     
-    logger.info(f"Cancelling subscription for org_id: {organization_id}")
+    logger.info(f"Deactivating subscription for org_id: {organization_id}")
 
     is_sys_admin = await is_system_admin(current_user.user_id)
     is_org_admin = await is_organization_admin(org_id=organization_id, user_id=current_user.user_id)
@@ -1376,8 +1431,18 @@ async def deactivate_subscription(
     if not is_sys_admin and not is_org_admin:
         raise HTTPException(status_code=403, detail="You are not authorized to cancel a subscription")
 
+    # Check if this is an enterprise customer
+    is_enterprise = await is_enterprise_customer(organization_id)
+    
+    if is_enterprise:
+        # Enterprise subscriptions cannot be cancelled via API - contact sales
+        raise HTTPException(
+            status_code=400, 
+            detail="Enterprise subscriptions must be cancelled by contacting sales"
+        )
+
     try:
-        # Get the customer
+        # Get the customer for non-enterprise plans
         stripe_customer = await get_payments_customer(organization_id)
         if not stripe_customer:
             raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
@@ -1501,28 +1566,38 @@ async def get_current_usage(
         subscription_spus_used = 0
         subscription_spus_remaining = 0
         
-        try:
-            stripe_api_customer = await get_payments_customer(organization_id)
-            if stripe_api_customer:
-                subscription = await get_subscription(stripe_api_customer.id)
-                if subscription:
-                    # Use the first subscription item for period boundaries
-                    if subscription["items"]["data"]:
-                        item = subscription["items"]["data"][0]
-                        period_start = item.get("current_period_start")
-                        period_end = item.get("current_period_end")
-                    # Get subscription type if available
-                    subscription_type = get_subscription_type(subscription) or subscription_type
-                    
-                    # Get subscription SPU allowance
-                    if subscription_type in TIER_LIMITS:
-                        subscription_spu_allowance = TIER_LIMITS[subscription_type]
-        except Exception as e:
-            logger.warning(f"Could not fetch subscription period: {e}")
+        # Get billing period boundaries (works for both enterprise and non-enterprise)
+        period_start, period_end = await get_billing_period_for_customer(organization_id)
+        
+        # Check if this is an enterprise customer
+        is_enterprise = await is_enterprise_customer(organization_id)
+        
+        if is_enterprise:
+            subscription_type = "enterprise"
+            subscription_spu_allowance = None  # Unlimited
+        else:
+            try:
+                stripe_api_customer = await get_payments_customer(organization_id)
+                if stripe_api_customer:
+                    subscription = await get_subscription(stripe_api_customer.id)
+                    if subscription:
+                        # Get subscription type if available
+                        subscription_type = get_subscription_type(subscription) or subscription_type
+                        
+                        # Get subscription SPU allowance
+                        if subscription_type in TIER_LIMITS:
+                            subscription_spu_allowance = TIER_LIMITS[subscription_type]
+            except Exception as e:
+                logger.warning(f"Could not fetch subscription info: {e}")
 
         # Get subscription SPU usage from customer record
         subscription_spus_used = stripe_customer.get("subscription_spus_used", 0)
-        subscription_spus_remaining = max(subscription_spu_allowance - subscription_spus_used, 0)
+        
+        # Calculate remaining SPUs (only for non-enterprise plans)
+        if subscription_spu_allowance is not None:
+            subscription_spus_remaining = max(subscription_spu_allowance - subscription_spus_used, 0)
+        else:
+            subscription_spus_remaining = 0  # Enterprise has unlimited
         
         # Get separate credit information
         purchased_credits = stripe_customer.get("purchased_credits", 0)
@@ -1673,44 +1748,52 @@ async def record_subscription_usage(org_id: str, spus: int):
         raise Exception("No stripe_customer for org")
     await ensure_subscription_credits(stripe_customer)
     
+    # Get billing period boundaries (works for both enterprise and non-enterprise)
+    current_period_start, current_period_end = await get_billing_period_for_customer(org_id)
+    
     # Get subscription information
-    stripe_api_customer = await get_payments_customer(org_id)
-    subscription = None
+    is_enterprise = await is_enterprise_customer(org_id)
     subscription_type = None
     subscription_spu_allowance = 0
-    current_period_start = None
-    current_period_end = None
     
-    if stripe_api_customer:
-        subscription = await get_subscription(stripe_api_customer.id)
-        if subscription and subscription.get("status") == "active":
-            # Get subscription type and SPU allowance
-            subscription_type = get_subscription_type(subscription)
-            if subscription_type in TIER_LIMITS:
-                subscription_spu_allowance = TIER_LIMITS[subscription_type]
-            
-            # Get billing period boundaries
-            if subscription["items"]["data"]:
-                item = subscription["items"]["data"][0]
-                current_period_start = item.get("current_period_start")
-                current_period_end = item.get("current_period_end")
+    if is_enterprise:
+        subscription_type = "enterprise"
+        subscription_spu_allowance = None  # Unlimited
+    else:
+        # Get subscription info from Stripe for non-enterprise
+        stripe_api_customer = await get_payments_customer(org_id)
+        if stripe_api_customer:
+            subscription = await get_subscription(stripe_api_customer.id)
+            if subscription and subscription.get("status") == "active":
+                # Get subscription type and SPU allowance
+                subscription_type = get_subscription_type(subscription)
+                if subscription_type in TIER_LIMITS:
+                    subscription_spu_allowance = TIER_LIMITS[subscription_type]
     
     # Check if we need to reset subscription SPU usage for new billing period
+    # This works for both enterprise (calendar month) and non-enterprise (Stripe period)
     customer_period_start = stripe_customer.get("current_billing_period_start")
-    if (current_period_start and 
-        customer_period_start != current_period_start and 
-        subscription_spu_allowance > 0):
+    period_changed = current_period_start and customer_period_start != current_period_start
+    has_spu_allowance = subscription_spu_allowance is not None and subscription_spu_allowance > 0
+    
+    if period_changed and (has_spu_allowance or is_enterprise):
         # New billing period - reset subscription SPU usage
+        update_data = {
+            "current_billing_period_start": current_period_start,
+            "current_billing_period_end": current_period_end
+        }
+        
+        # Only reset SPU usage for plans that have limits (not enterprise)
+        if has_spu_allowance:
+            update_data["subscription_spus_used"] = 0
+            stripe_customer["subscription_spus_used"] = 0
+        
         await stripe_customers.update_one(
             {"_id": stripe_customer["_id"]},
-            {"$set": {
-                "subscription_spus_used": 0,
-                "current_billing_period_start": current_period_start,
-                "current_billing_period_end": current_period_end
-            }}
+            {"$set": update_data}
         )
-        stripe_customer["subscription_spus_used"] = 0
-        logger.info(f"Reset subscription SPU usage for new billing period: {org_id}")
+        
+        logger.info(f"Updated billing period for {subscription_type} org {org_id}: {current_period_start} to {current_period_end}")
     
     # Get current subscription SPU usage
     subscription_spus_used = stripe_customer.get("subscription_spus_used", 0)
