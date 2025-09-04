@@ -995,11 +995,10 @@ async def create_checkout_session(
         if plan_id not in tier_config:
             raise HTTPException(status_code=400, detail=f"Invalid plan: {plan_id}")
         
-        # Get price IDs for the plan
+        # Get price ID for the plan (base pricing only)
         base_price_id = tier_config[plan_id]["base_price_id"]
-        metered_price_id = tier_config[plan_id]["metered_price_id"]
         
-        if not base_price_id or not metered_price_id:
+        if not base_price_id:
             raise HTTPException(status_code=500, detail=f"Price configuration not found for plan: {plan_id}")
         
         # Create checkout session
@@ -1011,10 +1010,6 @@ async def create_checkout_session(
                 {
                     'price': base_price_id,
                     'quantity': 1,
-                },
-                {
-                    'price': metered_price_id,
-                    # Remove quantity for metered usage
                 }
             ],
             mode='subscription',
@@ -1203,9 +1198,10 @@ async def get_subscription_info(
             base_price=tier_config["individual"]["base_price"],
             included_spus=tier_config["individual"]["included_spus"],
             features=[
+                f"${tier_config['individual']['base_price'] / tier_config['individual']['included_spus']:.3f} per SPU",
                 f"{tier_config['individual']['included_spus']:,} SPUs per month",
                 "Basic document processing",
-                f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.3f} each"
+                f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
             ]
         ),
         SubscriptionPlan(
@@ -1214,10 +1210,11 @@ async def get_subscription_info(
             base_price=tier_config["team"]["base_price"],
             included_spus=tier_config["team"]["included_spus"],
             features=[
+                f"${tier_config['team']['base_price'] / tier_config['team']['included_spus']:.3f} per SPU",
                 f"{tier_config['team']['included_spus']:,} SPUs per month",
                 "Advanced document processing",
                 "Team collaboration features",
-                f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.3f} each"
+                f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
             ]
         )
     ]
@@ -1230,7 +1227,6 @@ async def get_subscription_info(
             base_price=0.0,  # Custom pricing
             included_spus=0,  # Unlimited
             features=[
-                "Unlimited SPUs",
                 "Custom document processing",
                 "Dedicated support",
                 "Custom pricing - contact sales"

@@ -7,7 +7,7 @@ export interface SubscriptionPlan {
   plan_id: string;
   name: string;
   base_price: number;
-  metered_price: number;
+  included_spus: number;
   features: string[];
   currency: string;
   interval: string;

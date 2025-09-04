@@ -225,20 +225,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                   </span>
                 </div>
                 <ul className="space-y-2 mb-6">
-                  <li className="flex items-center">
-                    <svg
-                      className="h-5 w-5 text-green-500 mr-2"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    ${plan.metered_price} per SPU
-                  </li>
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-center">
                       <svg
