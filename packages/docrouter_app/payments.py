@@ -25,6 +25,22 @@ import stripe
 from functools import partial
 from typing import Any, Dict, List, Optional
 
+def format_price_per_spu(price: float) -> str:
+    """
+    Format price per SPU to show only necessary decimal places.
+    Shows 3 decimals only if the third decimal is non-zero, otherwise shows 2 decimals.
+    """
+    # Round to 3 decimal places first to handle floating point precision issues
+    rounded_price = round(price, 3)
+    
+    # Check if the third decimal place is significant
+    if rounded_price * 1000 == int(rounded_price * 1000):
+        # No significant third decimal, use 2 decimal places
+        return f"{rounded_price:.2f}"
+    else:
+        # Third decimal is significant, use 3 decimal places
+        return f"{rounded_price:.3f}"
+
 class StripeAsync:
     @staticmethod
     async def _run_in_threadpool(func, *args, **kwargs):
@@ -1196,7 +1212,7 @@ async def get_subscription_info(
             base_price=tier_config["individual"]["base_price"],
             included_spus=tier_config["individual"]["included_spus"],
             features=[
-                f"${tier_config['individual']['base_price'] / tier_config['individual']['included_spus']:.3f} per SPU",
+                f"${format_price_per_spu(tier_config['individual']['base_price'] / tier_config['individual']['included_spus'])} per SPU",
                 f"{tier_config['individual']['included_spus']:,} SPUs per month",
                 "Basic document processing",
                 f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
@@ -1208,7 +1224,7 @@ async def get_subscription_info(
             base_price=tier_config["team"]["base_price"],
             included_spus=tier_config["team"]["included_spus"],
             features=[
-                f"${tier_config['team']['base_price'] / tier_config['team']['included_spus']:.3f} per SPU",
+                f"${format_price_per_spu(tier_config['team']['base_price'] / tier_config['team']['included_spus'])} per SPU",
                 f"{tier_config['team']['included_spus']:,} SPUs per month",
                 "Advanced document processing",
                 "Team collaboration features",
