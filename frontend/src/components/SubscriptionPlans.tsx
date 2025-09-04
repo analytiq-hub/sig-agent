@@ -281,8 +281,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         <h4 className="text-sm font-medium text-blue-900 mb-2">About SPU (Service Processing Unit)</h4>
         <p className="text-sm text-blue-800">
           SPU is our flexible billing unit that allows for different pricing based on the complexity of document processing. 
-          Currently, 1 page = 1 SPU. In the future, different LLM models may consume different SPU amounts per page, 
-          allowing for more granular and fair pricing based on actual processing costs.
         </p>
       </div>
       
