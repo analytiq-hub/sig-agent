@@ -13,6 +13,7 @@ import analytiq_data as ad
 
 from docrouter_app.auth import (
     get_current_user,
+    get_org_user,
     is_organization_admin,
     is_system_admin,
     is_organization_member
@@ -971,18 +972,22 @@ async def customer_portal(
 async def create_checkout_session(
     organization_id: str,
     request: CheckoutSessionRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ) -> PortalSessionResponse:
     """Create a Stripe Checkout session for subscription setup"""
 
     plan_id = request.plan_id
     logger.info(f"Creating Stripe checkout session for org_id: {organization_id}, plan: {plan_id}")
 
-    is_sys_admin = await is_system_admin(current_user.user_id)
-    is_org_member = await is_organization_member(organization_id, current_user.user_id)
-
-    if not is_sys_admin and not is_org_member:
-        raise HTTPException(status_code=403, detail="You are not authorized to create a checkout session")
+    # Check if user is trying to select Enterprise plan without admin privileges
+    if plan_id == 'enterprise':
+        is_sys_admin = await is_system_admin(current_user.user_id)
+        
+        if not is_sys_admin:
+            raise HTTPException(
+                status_code=403, 
+                detail="Enterprise plan requires admin privileges"
+            )
 
     try:
         # Get the customer
@@ -1169,19 +1174,12 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
 @payments_router.get("/{organization_id}/subscription")
 async def get_subscription_info(
     organization_id: str = None,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_user)
 ) -> SubscriptionResponse:
     """Get available subscription plans and user's current plan"""
 
     logger.info(f"THIS METHOD IS CALLED")
     logger.info(f"Getting subscription plans for org_id: {organization_id} user_id: {current_user.user_id}")
-
-    # Is the current user an org admin? Or a system admin?
-    if not await is_organization_admin(org_id=organization_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Access denied, user {current_user.user_id} is not an org admin for org_id {organization_id}, or a sys admin"
-        )
 
     # Get the customer
     customer = await stripe_customers.find_one({"org_id": organization_id})
@@ -1219,19 +1217,18 @@ async def get_subscription_info(
         )
     ]
     
-    # Only add enterprise plan for system admins (it's not sold through Stripe)
-    if await is_system_admin(user_id=current_user.user_id):
-        plans.append(SubscriptionPlan(
-            plan_id="enterprise",
-            name="Enterprise",
-            base_price=0.0,  # Custom pricing
-            included_spus=0,  # Unlimited
-            features=[
-                "Custom document processing",
-                "Dedicated support",
-                "Custom pricing - contact sales"
-            ]
-        ))
+    # Add enterprise plan for all users (access control handled by frontend)
+    plans.append(SubscriptionPlan(
+        plan_id="enterprise",
+        name="Enterprise",
+        base_price=0.0,  # Custom pricing
+        included_spus=0,  # Unlimited
+        features=[
+            "Custom document processing",
+            "Dedicated support",
+            "Custom pricing - contact sales"
+        ]
+    ))
 
     # Get the customer
     stripe_customer = await get_payments_customer(organization_id)

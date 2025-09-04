@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { createCheckoutSessionApi, getSubscriptionApi, updateOrganizationApi, activateSubscriptionApi, getOrganizationApi } from '@/utils/api';
+import { createCheckoutSessionApi, getSubscriptionApi, updateOrganizationApi, activateSubscriptionApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import { useAppSession } from '@/utils/useAppSession';
+import { isSysAdmin } from '@/utils/roles';
 import type { SubscriptionPlan } from '@/types/payments';
-import type { Organization } from '@/types/organizations';
 
 interface SubscriptionPlansProps {
   organizationId: string;
@@ -25,7 +25,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
-  const [reviewedOrganization, setReviewedOrganization] = useState<Organization | null>(null);
   const [stripeEnabled, setStripeEnabled] = useState<boolean>(true); // Add this state
 
   useEffect(() => {
@@ -33,17 +32,13 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       try {
         setLoading(true);
         
-        // Fetch both subscription data and organization data
-        const [subscriptionData, orgData] = await Promise.all([
-          getSubscriptionApi(organizationId),
-          getOrganizationApi(organizationId)
-        ]);
+        // Fetch subscription data
+        const subscriptionData = await getSubscriptionApi(organizationId);
         
         setPlans(subscriptionData.plans);
         setCurrentPlan(subscriptionData.current_plan);
         setSelectedPlan(subscriptionData.current_plan || 'individual');
         setSubscriptionStatus(subscriptionData.subscription_status);
-        setReviewedOrganization(orgData);
         setStripeEnabled(true); // Stripe is available
         
         // Notify parent component about subscription status
@@ -90,6 +85,12 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   };
 
   const handlePlanChange = async (planId: string) => {
+    // Check if user is trying to select Enterprise plan without admin privileges
+    if (planId === 'enterprise' && !isSysAdmin(session)) {
+      toast.error('Enterprise plan requires admin privileges');
+      return;
+    }
+
     // Check if this is a reactivation (same plan, cancelling status)
     if (currentPlan === planId && subscriptionStatus === 'cancelling') {
       try {
@@ -135,44 +136,22 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       
     } catch (error) {
       console.error('Error changing plan:', error);
-      toast.error('Failed to create checkout session');
+      toast.error(`Failed to create checkout session: ${error}`);
       setSelectedPlan(currentPlan || 'individual');
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter plans based on organization type (minimum tier) and current plan tier
-  const getVisiblePlans = (allPlans: SubscriptionPlan[], currentPlanType: string | null): SubscriptionPlan[] => {
-    const planHierarchy = ['individual', 'team', 'enterprise'];
-    
-    // Get the organization type from the reviewed organization, not the current organization context
-    const organizationType = reviewedOrganization?.type || 'individual';
-    
-    // Determine the minimum tier based on organization type
-    const orgTypeIndex = planHierarchy.indexOf(organizationType);
-    const minTierIndex = Math.max(orgTypeIndex, 0); // Ensure we don't go below individual
-    
-    // If there's a current plan, use the higher of organization type or current plan
-    let effectiveMinIndex = minTierIndex;
-    if (currentPlanType) {
-      const currentIndex = planHierarchy.indexOf(currentPlanType);
-      effectiveMinIndex = Math.max(minTierIndex, currentIndex);
+  // Check if user can select a specific plan
+  const canSelectPlan = (planId: string): boolean => {
+    // Enterprise plan requires admin privileges
+    if (planId === 'enterprise') {
+      return isSysAdmin(session);
     }
     
-    // Always show the current plan and plans above it, regardless of organization type
-    // This allows users to see their current plan even if it's below the organization's minimum tier
-    return allPlans.filter(plan => {
-      const planIndex = planHierarchy.indexOf(plan.plan_id);
-      
-      // Always include the current plan
-      if (currentPlanType && plan.plan_id === currentPlanType) {
-        return true;
-      }
-      
-      // Include plans at or above the effective minimum tier
-      return planIndex >= effectiveMinIndex;
-    });
+    // For other plans, use existing logic
+    return canChangeToPlan(currentPlan, planId);
   };
 
   const getGridColsClass = (num: number) => {
@@ -204,14 +183,12 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     );
   }
 
-  const visiblePlans = getVisiblePlans(plans, currentPlan);
-
   return (
     <div className="w-full">
       {/* Plans Display */}
       <div className="flex justify-center">
-        <div className={`grid grid-cols-1 ${getGridColsClass(visiblePlans.length)} gap-8`}>
-          {visiblePlans.map((plan) => (
+        <div className={`grid grid-cols-1 ${getGridColsClass(plans.length)} gap-8`}>
+          {plans.map((plan) => (
             <div
               key={plan.plan_id}
               className={`bg-white rounded-lg shadow-lg p-6 flex flex-col max-w-xs mx-auto ${
@@ -255,15 +232,19 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                 onClick={() => handlePlanChange(plan.plan_id)}
                 disabled={
                   (currentPlan === plan.plan_id && subscriptionStatus !== 'cancelling') || 
-                  !canChangeToPlan(currentPlan, plan.plan_id)
+                  !canSelectPlan(plan.plan_id)
                 }
-                title={getPlanChangeReason(currentPlan, plan.plan_id) || ''}
+                title={
+                  plan.plan_id === 'enterprise' && !isSysAdmin(session)
+                    ? 'Enterprise plan requires admin privileges'
+                    : getPlanChangeReason(currentPlan, plan.plan_id) || ''
+                }
                 className={`w-full py-2 px-4 rounded-md ${
                   currentPlan === plan.plan_id
                     ? subscriptionStatus === 'cancelling' 
                       ? 'bg-green-600 hover:bg-green-700 text-white'
                       : 'bg-gray-300 cursor-not-allowed'
-                    : !canChangeToPlan(currentPlan, plan.plan_id)
+                    : !canSelectPlan(plan.plan_id)
                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     : selectedPlan === plan.plan_id
                     ? 'bg-green-600 hover:bg-green-700 text-white'
@@ -272,8 +253,8 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
               >
                 {currentPlan === plan.plan_id 
                   ? subscriptionStatus === 'cancelling' ? 'Reactivate Plan' : 'Current Plan'
-                  : !canChangeToPlan(currentPlan, plan.plan_id)
-                  ? 'Not Available'
+                  : !canSelectPlan(plan.plan_id)
+                  ? plan.plan_id === 'enterprise' ? 'Admin Only' : 'Not Available'
                   : (selectedPlan === plan.plan_id && subscriptionStatus !== 'canceled' && subscriptionStatus !== 'no_subscription')
                     ? 'Selected Plan'
                     : 'Select Plan'
