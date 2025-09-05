@@ -659,7 +659,7 @@ async def save_usage_record(org_id: str, spus: int, operation: str, source: str 
 
 
 async def check_subscription_limits(org_id: str, spus: int) -> bool:
-    """Check if organization has hit usage limits and needs to upgrade"""
+    """Check if organization has hit usage limits using local data only (no Stripe API calls)"""
 
     if not stripe.api_key:
         # No-op if Stripe is not configured
@@ -673,26 +673,17 @@ async def check_subscription_limits(org_id: str, spus: int) -> bool:
 
     await ensure_subscription_credits(customer)
 
-    # Check if they have an active subscription
-    stripe_customer = await get_payments_customer(org_id)
-    subscription = None
-    subscription_type = None
-    subscription_spu_allowance = 0
+    # Get all subscription and credit data from local customer document (NO Stripe API calls)
+    subscription_type = customer.get("subscription_type")
+    subscription_spu_allowance = customer.get("subscription_spu_allowance", 0)
+    subscription_spus_used = customer.get("subscription_spus_used", 0)
+    
+    # Calculate subscription SPUs remaining
     subscription_spus_remaining = 0
+    if subscription_spu_allowance:
+        subscription_spus_remaining = max(subscription_spu_allowance - subscription_spus_used, 0)
     
-    if stripe_customer:
-        subscription = await get_subscription(stripe_customer.id)
-        if subscription and subscription.get("status") == "active":
-            # Get subscription type and SPU allowance
-            subscription_type = get_subscription_type(subscription)
-            if subscription_type in TIER_LIMITS:
-                subscription_spu_allowance = TIER_LIMITS[subscription_type]
-            
-            # Get current subscription SPU usage
-            subscription_spus_used = customer.get("subscription_spus_used", 0)
-            subscription_spus_remaining = max(subscription_spu_allowance - subscription_spus_used, 0)
-    
-    # Get separate credit information
+    # Get credit information
     purchased_credits = customer.get("purchased_credits", 0)
     purchased_used = customer.get("purchased_credits_used", 0)
     purchased_remaining = max(purchased_credits - purchased_used, 0)
@@ -1685,19 +1676,9 @@ async def get_current_usage(
             subscription_type = "enterprise"
             subscription_spu_allowance = None  # Unlimited
         else:
-            try:
-                stripe_api_customer = await get_payments_customer(organization_id)
-                if stripe_api_customer:
-                    subscription = await get_subscription(stripe_api_customer.id)
-                    if subscription and subscription.get("status") == "active":
-                        # Get subscription type if available and subscription is active
-                        subscription_type = get_subscription_type(subscription)
-                        
-                        # Get subscription SPU allowance
-                        if subscription_type in TIER_LIMITS:
-                            subscription_spu_allowance = TIER_LIMITS[subscription_type]
-            except Exception as e:
-                logger.warning(f"Could not fetch subscription info: {e}")
+            # Get subscription info from local customer data (NO Stripe API calls)
+            subscription_type = stripe_customer.get("subscription_type")
+            subscription_spu_allowance = stripe_customer.get("subscription_spu_allowance", 0)
 
         # Get subscription SPU usage from customer record
         subscription_spus_used = stripe_customer.get("subscription_spus_used", 0)
