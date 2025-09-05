@@ -417,12 +417,18 @@ async def sync_all_customers() -> Tuple[int, int, List[str]]:
         local_org_ids = set(str(org["_id"]) for org in orgs)
         
         # Get all Stripe customers with org_id metadata
-        stripe_org_ids = await _get_stripe_customer_org_ids()
+        stripe_org_ids, stripe_customer_map = await _get_stripe_customer_org_ids()
         
         # Find organizations that need syncing (missing from Stripe)
         missing_from_stripe = local_org_ids - stripe_org_ids
+        orphaned_in_stripe = stripe_org_ids - local_org_ids
         
-        logger.info(f"Total orgs: {total_orgs}, Stripe customers: {len(stripe_org_ids)}, Need sync: {len(missing_from_stripe)}")
+        logger.info(f"Total orgs: {total_orgs}, Stripe customers: {len(stripe_org_ids)}, Need sync: {len(missing_from_stripe)}, Orphaned: {len(orphaned_in_stripe)}")
+        
+        # Clean up orphaned Stripe customers if any exist
+        if orphaned_in_stripe:
+            logger.info(f"Found {len(orphaned_in_stripe)} orphaned Stripe customers - cleaning up")
+            await _cleanup_orphaned_stripe_customers(orphaned_in_stripe, stripe_customer_map)
         
         if not missing_from_stripe:
             logger.info("All organizations already synced with Stripe")
@@ -435,10 +441,11 @@ async def sync_all_customers() -> Tuple[int, int, List[str]]:
         logger.error(f"Error during differential customer sync: {e}")
         return 0, 0, [f"Global error: {str(e)}"]
 
-async def _get_stripe_customer_org_ids() -> set:
-    """Get all org_ids from Stripe customers metadata"""
+async def _get_stripe_customer_org_ids() -> Tuple[set, Dict[str, str]]:
+    """Get all org_ids from Stripe customers metadata and return mapping to customer_ids"""
     try:
         org_ids = set()
+        customer_map = {}  # org_id -> stripe_customer_id
         has_more = True
         starting_after = None
         
@@ -453,16 +460,54 @@ async def _get_stripe_customer_org_ids() -> set:
                 org_id = customer.metadata.get("org_id")
                 if org_id:
                     org_ids.add(org_id)
+                    customer_map[org_id] = customer.id
             
             has_more = customers.has_more
             if has_more and customers.data:
                 starting_after = customers.data[-1].id
         
-        return org_ids
+        return org_ids, customer_map
     
     except Exception as e:
         logger.error(f"Error getting Stripe customer org_ids: {e}")
-        return set()
+        return set(), {}
+
+async def _cleanup_orphaned_stripe_customers(orphaned_org_ids: set, stripe_customer_map: Dict[str, str]) -> Tuple[int, List[str]]:
+    """Delete orphaned Stripe customers that don't have corresponding organizations"""
+    deleted_count = 0
+    errors = []
+    
+    logger.info(f"Starting cleanup of {len(orphaned_org_ids)} orphaned Stripe customers")
+    
+    for org_id in orphaned_org_ids:
+        stripe_customer_id = stripe_customer_map.get(org_id)
+        if not stripe_customer_id:
+            continue
+            
+        try:
+            # Check if customer has any active subscriptions
+            subscriptions = await StripeAsync.subscription_list(customer=stripe_customer_id, status="active")
+            
+            if subscriptions.data:
+                logger.warning(f"Skipping deletion of customer {stripe_customer_id} (org_id: {org_id}) - has active subscriptions")
+                continue
+            
+            # Delete the customer from Stripe
+            await StripeAsync.customer_delete(stripe_customer_id)
+            
+            # Also clean up from local stripe_customers collection
+            await stripe_customers.delete_one({"org_id": org_id})
+            
+            deleted_count += 1
+            logger.info(f"Deleted orphaned Stripe customer {stripe_customer_id} (org_id: {org_id})")
+            
+        except Exception as e:
+            error_msg = f"Error deleting orphaned customer {stripe_customer_id} (org_id: {org_id}): {str(e)}"
+            logger.error(error_msg)
+            errors.append(error_msg)
+    
+    logger.info(f"Cleanup completed: {deleted_count} orphaned customers deleted")
+    return deleted_count, errors
 
 async def _sync_org_ids(org_ids_to_sync: set) -> Tuple[int, int, List[str]]:
     """Sync only the specified organization IDs"""
