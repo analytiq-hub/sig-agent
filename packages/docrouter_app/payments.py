@@ -398,78 +398,113 @@ async def init_payments():
 
 async def sync_all_customers() -> Tuple[int, int, List[str]]:
     """
-    Synchronize all organizations in the database with Stripe by creating customer records
-    in parallel batches of 10 customers at a time.
+    Differential sync: only sync organizations that don't have Stripe customers yet.
     
     Returns:
-        Tuple containing (total_users, successful_syncs, error_messages)
+        Tuple containing (total_orgs, successful_syncs, error_messages)
     """
     if not stripe.api_key:
         # No-op if Stripe is not configured
         logger.warning("Stripe API key not configured - sync_all_payments_customers aborted")
         return 0, 0, ["Stripe API key not configured"]
 
-    logger.info("Starting sync of all customers with Stripe")
+    logger.info("Starting differential sync of customers with Stripe")
     
     try:
-        # Get all users from the database
+        # Get all organizations from MongoDB
         orgs = await db["organizations"].find().to_list(length=None)
         total_orgs = len(orgs)
-        successful = 0
-        errors = []
+        local_org_ids = set(str(org["_id"]) for org in orgs)
         
-        # Process users in batches of 10
-        batch_size = 10
-        for i in range(0, total_orgs, batch_size):
-            batch = orgs[i:i + batch_size]
-            
-            # Create tasks for each user in the batch
-            tasks = []
-            org_map = {}  # Map to store task index to org mapping
-            for idx, org in enumerate(batch):
-                try:
-                    org_id = str(org.get("_id"))
-                    
-                    # Create task for syncing customer
-                    task = sync_payments_customer(org_id=org_id)
-                    tasks.append(task)
-                    org_map[idx] = org  # Store org reference with task index
-                
-                except Exception as e:
-                    error_msg = f"Error preparing sync for organization {org_id}: {str(e)}"
-                    logger.error(error_msg)
-                    errors.append(error_msg)
-            
-            # Execute batch of tasks in parallel
-            if tasks:
-                try:
-                    results = await asyncio.gather(*tasks, return_exceptions=True)
-                    
-                    # Process results
-                    for idx, result in enumerate(results):
-                        if isinstance(result, Exception):
-                            org = org_map.get(idx)
-                            error_msg = f"Error syncing customer for org {org.get('name', 'unknown')}: {str(result)}"
-                            logger.error(error_msg)
-                            errors.append(error_msg)
-                        elif result:
-                            successful += 1
-                        else:
-                            errors.append("Failed to create/get customer")
-                
-                except Exception as e:
-                    error_msg = f"Error processing batch: {str(e)}"
-                    logger.error(error_msg)
-                    errors.append(error_msg)
-            
-            logger.info(f"Processed batch {i//batch_size + 1}/{(total_orgs + batch_size - 1)//batch_size}")
+        # Get all Stripe customers with org_id metadata
+        stripe_org_ids = await _get_stripe_customer_org_ids()
         
-        logger.info(f"{successful}/{total_orgs} customers synchronized with Stripe")
-        return total_orgs, successful, errors
+        # Find organizations that need syncing (missing from Stripe)
+        missing_from_stripe = local_org_ids - stripe_org_ids
+        
+        logger.info(f"Total orgs: {total_orgs}, Stripe customers: {len(stripe_org_ids)}, Need sync: {len(missing_from_stripe)}")
+        
+        if not missing_from_stripe:
+            logger.info("All organizations already synced with Stripe")
+            return total_orgs, 0, []
+        
+        # Sync only the missing organizations
+        return await _sync_org_ids(missing_from_stripe)
     
     except Exception as e:
-        logger.error(f"Error during customer sync with Stripe: {e}")
+        logger.error(f"Error during differential customer sync: {e}")
         return 0, 0, [f"Global error: {str(e)}"]
+
+async def _get_stripe_customer_org_ids() -> set:
+    """Get all org_ids from Stripe customers metadata"""
+    try:
+        org_ids = set()
+        has_more = True
+        starting_after = None
+        
+        while has_more:
+            params = {"limit": 100}
+            if starting_after:
+                params["starting_after"] = starting_after
+                
+            customers = await StripeAsync.customer_list(**params)
+            
+            for customer in customers.data:
+                org_id = customer.metadata.get("org_id")
+                if org_id:
+                    org_ids.add(org_id)
+            
+            has_more = customers.has_more
+            if has_more and customers.data:
+                starting_after = customers.data[-1].id
+        
+        return org_ids
+    
+    except Exception as e:
+        logger.error(f"Error getting Stripe customer org_ids: {e}")
+        return set()
+
+async def _sync_org_ids(org_ids_to_sync: set) -> Tuple[int, int, List[str]]:
+    """Sync only the specified organization IDs"""
+    successful = 0
+    errors = []
+    
+    # Process in batches of 10
+    org_ids_list = list(org_ids_to_sync)
+    batch_size = 10
+    
+    for i in range(0, len(org_ids_list), batch_size):
+        batch = org_ids_list[i:i + batch_size]
+        
+        # Create tasks for each org in the batch
+        tasks = []
+        for org_id in batch:
+            task = sync_payments_customer(org_id=org_id)
+            tasks.append(task)
+        
+        # Execute batch in parallel
+        try:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            for idx, result in enumerate(results):
+                if isinstance(result, Exception):
+                    error_msg = f"Error syncing customer for org {batch[idx]}: {str(result)}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+                elif result:
+                    successful += 1
+                else:
+                    errors.append(f"Failed to create/get customer for org {batch[idx]}")
+        
+        except Exception as e:
+            error_msg = f"Error processing sync batch: {str(e)}"
+            logger.error(error_msg)
+            errors.append(error_msg)
+        
+        logger.info(f"Processed batch {i//batch_size + 1}/{(len(org_ids_list) + batch_size - 1)//batch_size}")
+    
+    logger.info(f"Differential sync completed: {successful}/{len(org_ids_list)} customers synchronized")
+    return len(org_ids_list), successful, errors
 
 async def get_payments_customer(org_id: str) -> Dict[str, Any]:
     """
