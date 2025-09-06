@@ -22,7 +22,6 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
   const [rangeData, setRangeData] = useState<UsageRangeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [granularity, setGranularity] = useState<'daily' | 'monthly'>('daily');
-  const [viewType, setViewType] = useState<'bar' | 'cumulative'>('bar');
   const [processedData, setProcessedData] = useState<ProcessedDataPoint[]>([]);
 
   // Single useEffect that handles both initial fetch and refresh
@@ -161,9 +160,10 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
     );
   }
 
-  const maxValue = Math.max(...processedData.map(dp => 
-    viewType === 'cumulative' ? dp.cumulative_spus : dp.spus
-  ));
+  const maxValue = Math.max(...processedData.map(dp => dp.spus));
+  
+  console.log('Processed data for rendering:', processedData);
+  console.log('Max value:', maxValue);
 
   const averageDailySpus = rangeData.total_spus / Math.max(processedData.length, 1);
 
@@ -202,29 +202,6 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
               Monthly
             </button>
           </div>
-          
-          <div className="flex rounded-md shadow-sm">
-            <button
-              onClick={() => setViewType('bar')}
-              className={`px-3 py-2 text-sm font-medium rounded-l-md border ${
-                viewType === 'bar'
-                  ? 'bg-green-600 text-white border-green-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              Bar
-            </button>
-            <button
-              onClick={() => setViewType('cumulative')}
-              className={`px-3 py-2 text-sm font-medium rounded-r-md border-t border-r border-b ${
-                viewType === 'cumulative'
-                  ? 'bg-green-600 text-white border-green-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              Cumulative
-            </button>
-          </div>
         </div>
       </div>
 
@@ -244,28 +221,23 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
       <div className="bg-gray-50 p-4 rounded-lg">
         <div className="flex items-end h-64 gap-2" style={{ justifyContent: processedData.length === 1 ? 'center' : 'space-between' }}>
           {processedData.map((point, index) => {
-            const value = viewType === 'cumulative' ? point.cumulative_spus : point.spus;
+            const value = point.spus;
             const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
+            console.log(`Bar ${index}: date=${point.date}, spus=${point.spus}, value=${value}, height=${height}%`);
             
             return (
               <div key={index} className={`flex flex-col items-center ${processedData.length === 1 ? 'w-16' : 'flex-1'}`}>
                 <div className="relative group w-full">
                   <div
-                    className={`w-full rounded-t transition-all duration-300 ${
-                      viewType === 'cumulative' 
-                        ? 'bg-gradient-to-t from-blue-500 to-blue-400' 
-                        : 'bg-gradient-to-t from-green-500 to-green-400'
-                    }`}
+                    className="w-full rounded-t transition-all duration-300 bg-gradient-to-t from-green-500 to-green-400"
                     style={{ height: `${Math.max(height, 5)}%`, minHeight: '8px' }}
                   ></div>
                   
                   {/* Tooltip */}
                   <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
                     <div className="font-medium">{formatDate(point.date)}</div>
-                    <div>{viewType === 'cumulative' ? 'Cumulative' : 'Daily'}: {value.toLocaleString()} SPUs</div>
-                    {viewType === 'bar' && (
-                      <div>Operation: {point.operation}</div>
-                    )}
+                    <div>SPUs: {value.toLocaleString()}</div>
+                    <div>Operation: {point.operation}</div>
                   </div>
                 </div>
                 
@@ -280,19 +252,6 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
         
       </div>
 
-      {/* Legend */}
-      <div className="mt-4 flex items-center justify-center space-x-6 text-sm">
-        <div className="flex items-center">
-          <div className={`w-3 h-3 rounded mr-2 ${viewType === 'cumulative' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
-          <span className="text-gray-600">
-            {viewType === 'cumulative' ? 'Cumulative SPUs' : 'Daily SPUs'}
-          </span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-3 h-3 rounded mr-2 bg-gray-400"></div>
-          <span className="text-gray-600">{granularity === 'daily' ? 'Daily View' : 'Monthly View'}</span>
-        </div>
-      </div>
     </div>
   );
 };
