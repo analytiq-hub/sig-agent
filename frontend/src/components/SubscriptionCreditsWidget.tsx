@@ -11,15 +11,97 @@ interface SubscriptionCreditsWidgetProps {
   organizationId: string;
   currentPlan?: string | null;
   subscriptionStatus?: string | null;
+  refreshKey?: number; // Add refresh key to trigger data refetch
+  onCreditsUpdated?: () => void; // Callback when credits are updated
 }
 
 const SubscriptionCreditsWidget: React.FC<SubscriptionCreditsWidgetProps> = ({ 
   organizationId, 
   currentPlan, 
-  subscriptionStatus 
+  subscriptionStatus,
+  refreshKey
+}) => {
+  const [usageData, setUsageData] = useState<UsageData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const usageResponse = await getCurrentUsageApi(organizationId);
+        
+        if (usageResponse.data) {
+          setUsageData(usageResponse.data);
+        }
+      } catch (error) {
+        console.error('Error fetching credits data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [organizationId, refreshKey]); // Add refreshKey to dependency array
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow p-4">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+          <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!usageData) return null;
+
+  const totalCreditsRemaining = usageData.purchased_credits_remaining + usageData.admin_credits_remaining;
+
+  return (
+    <div className="bg-white rounded-lg shadow">
+      <div className="p-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium text-gray-900">SPU Credits</h3>
+            <div className="text-xl font-bold text-gray-800">
+              {totalCreditsRemaining.toLocaleString()} remaining
+            </div>
+            <div className="text-xs text-gray-500">
+              {usageData.purchased_credits_remaining} purchased + {usageData.admin_credits_remaining} granted
+            </div>
+          </div>
+          <div className="text-right">
+            {currentPlan && (
+              <>
+                <div className="text-sm font-medium text-gray-900">Plan: {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}</div>
+                {subscriptionStatus && (
+                  <div className={`text-xs px-2 py-1 rounded-full inline-block ${
+                    subscriptionStatus === 'active' ? 'bg-green-100 text-green-800' :
+                    subscriptionStatus === 'cancelling' ? 'bg-orange-100 text-orange-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {subscriptionStatus}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Separate component for purchase functionality
+export const SubscriptionPurchaseWidget: React.FC<SubscriptionCreditsWidgetProps> = ({ 
+  organizationId, 
+  currentPlan, 
+  subscriptionStatus,
+  refreshKey,
+  onCreditsUpdated 
 }) => {
   const { session } = useAppSession();
-  const [usageData, setUsageData] = useState<UsageData | null>(null);
   const [creditConfig, setCreditConfig] = useState<CreditConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchaseAmount, setPurchaseAmount] = useState<number>(500);
@@ -33,14 +115,7 @@ const SubscriptionCreditsWidget: React.FC<SubscriptionCreditsWidgetProps> = ({
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [usageResponse, configResponse] = await Promise.all([
-          getCurrentUsageApi(organizationId),
-          getCreditConfigApi(organizationId)
-        ]);
-        
-        if (usageResponse.data) {
-          setUsageData(usageResponse.data);
-        }
+        const configResponse = await getCreditConfigApi(organizationId);
         setCreditConfig(configResponse);
       } catch (error) {
         console.error('Error fetching credits data:', error);
@@ -50,7 +125,7 @@ const SubscriptionCreditsWidget: React.FC<SubscriptionCreditsWidgetProps> = ({
     };
 
     fetchData();
-  }, [organizationId]);
+  }, [organizationId, refreshKey]);
 
   const canPurchaseCredits = () => {
     if (!currentPlan) return true; // No subscription, can purchase
@@ -104,11 +179,9 @@ const SubscriptionCreditsWidget: React.FC<SubscriptionCreditsWidgetProps> = ({
       await addCreditsApi(organizationId, adminAmount);
       toast.success(`Added ${adminAmount} credits successfully!`);
       setAdminAmount(100); // Reset to default
-      
-      // Refresh usage data
-      const usageResponse = await getCurrentUsageApi(organizationId);
-      if (usageResponse.data) {
-        setUsageData(usageResponse.data);
+      // Trigger refresh of credits display
+      if (onCreditsUpdated) {
+        onCreditsUpdated();
       }
     } catch (error) {
       console.error('Error adding credits:', error);
@@ -120,7 +193,7 @@ const SubscriptionCreditsWidget: React.FC<SubscriptionCreditsWidgetProps> = ({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-4">
+      <div className="bg-white rounded-lg shadow p-3">
         <div className="animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
           <div className="h-6 bg-gray-200 rounded w-1/2"></div>
@@ -129,47 +202,13 @@ const SubscriptionCreditsWidget: React.FC<SubscriptionCreditsWidgetProps> = ({
     );
   }
 
-  if (!usageData) return null;
-
-  const totalCreditsRemaining = usageData.purchased_credits_remaining + usageData.admin_credits_remaining;
-
   return (
     <div className="bg-white rounded-lg shadow">
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-medium text-gray-900">SPU Credits</h3>
-            <div className="text-2xl font-bold text-gray-800 mt-1">
-              {totalCreditsRemaining.toLocaleString()}
-            </div>
-            <div className="text-xs text-gray-500">
-              {usageData.purchased_credits_remaining} purchased + {usageData.admin_credits_remaining} admin
-            </div>
-          </div>
-          <div className="text-right">
-            {currentPlan && (
-              <>
-                <div className="text-sm font-medium text-gray-900 capitalize">{currentPlan}</div>
-                {subscriptionStatus && (
-                  <div className={`text-xs px-2 py-1 rounded-full inline-block mt-1 ${
-                    subscriptionStatus === 'active' ? 'bg-green-100 text-green-800' :
-                    subscriptionStatus === 'cancelling' ? 'bg-orange-100 text-orange-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {subscriptionStatus}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="p-4 space-y-4">
+      <div className="p-3 space-y-3">
         {/* Admin Section */}
         {isAdmin && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-            <div className="flex items-center justify-between mb-2">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2">
+            <div className="flex items-center justify-between mb-1">
               <h4 className="text-sm font-medium text-yellow-800">
                 <svg className="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -199,12 +238,12 @@ const SubscriptionCreditsWidget: React.FC<SubscriptionCreditsWidgetProps> = ({
 
         {/* Purchase Section */}
         {canPurchaseCredits() && creditConfig && !isAdmin && (
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-            <div className="flex items-center justify-between mb-2">
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-2">
+            <div className="flex items-center justify-between mb-1">
               <h4 className="text-sm font-medium text-blue-900">Purchase Credits</h4>
               <span className="text-xs text-blue-600">${creditConfig.price_per_credit} each</span>
             </div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-1">
               <input
                 type="number"
                 value={purchaseAmount || ''}

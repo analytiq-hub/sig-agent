@@ -1179,7 +1179,7 @@ async def customer_portal(
         logger.info(f"Stripe customer found for org_id: {organization_id}: {customer['stripe_customer_id']}")
         session = await StripeAsync.billing_portal_session_create(
             customer=customer["stripe_customer_id"],
-            return_url=f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription",
+            return_url=f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?tab=plans",
         )
         logger.info(f"Stripe customer portal URL: {session.url}")
         return PortalSessionResponse(url=session.url)
@@ -1255,7 +1255,7 @@ async def create_checkout_session(
             logger.info(f"Updated organization {organization_id} to enterprise plan")
             
             # Return success URL to redirect back to subscription page
-            success_url = f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?success=true"
+            success_url = f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?success=true&tab=plans"
             return PortalSessionResponse(url=success_url)
             
         except Exception as e:
@@ -1284,7 +1284,7 @@ async def create_checkout_session(
                 success = await set_subscription_type(organization_id, stripe_customer_id, plan_id)
                 if success:
                     # Return success URL directly since we modified the subscription
-                    success_url = f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?success=true"
+                    success_url = f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?success=true&tab=plans"
                     return PortalSessionResponse(url=success_url)
                 else:
                     raise HTTPException(status_code=500, detail="Failed to update subscription")
@@ -1323,8 +1323,8 @@ async def create_checkout_session(
                 }
             ],
             mode='subscription',
-            success_url=f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?success=true",
-            cancel_url=f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?canceled=true",
+            success_url=f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?success=true&tab=plans",
+            cancel_url=f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?canceled=true&tab=plans",
             metadata={
                 'org_id': organization_id,
                 'plan_id': plan_id,

@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { getCustomerPortalApi } from '@/utils/api';
 import SubscriptionPlans from './SubscriptionPlans';
 import SubscriptionUsage from './SubscriptionUsage';
 import SubscriptionAdminCredit from './SubscriptionAdminCredit';
-import SubscriptionCreditsWidget from './SubscriptionCreditsWidget';
+import SubscriptionCreditsWidget, { SubscriptionPurchaseWidget } from './SubscriptionCreditsWidget';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
@@ -16,6 +17,7 @@ interface SubscriptionProps {
 }
 
 const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) => {
+  const searchParams = useSearchParams();
   const [customerPortalUrl, setCustomerPortalUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
@@ -26,6 +28,19 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
   const [activeTab, setActiveTab] = useState<'credits' | 'plans' | 'usage'>('credits');
   const [userSelectedTab, setUserSelectedTab] = useState<boolean>(false);
   const [usageRefreshKey, setUsageRefreshKey] = useState<number>(0);
+  const [creditsRefreshKey, setCreditsRefreshKey] = useState<number>(0);
+
+  // Handle URL parameters for tab navigation
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['credits', 'plans', 'usage'].includes(tabParam)) {
+      setActiveTab(tabParam as 'credits' | 'plans' | 'usage');
+      setUserSelectedTab(true);
+    } else {
+      // No tab parameter or invalid tab - use default logic
+      setUserSelectedTab(false);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchPortalUrl = async () => {
@@ -93,6 +108,18 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
     }
   };
 
+  const updateUrlTab = (tab: 'credits' | 'plans' | 'usage') => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    window.history.replaceState({}, '', url.toString());
+  };
+
+  const handleTabChange = (tab: 'credits' | 'plans' | 'usage') => {
+    setActiveTab(tab);
+    setUserSelectedTab(true);
+    updateUrlTab(tab);
+  };
+
 
 
   const handleCancelSubscription = async () => {
@@ -123,20 +150,17 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
+    <div className="bg-white p-4 rounded-lg shadow">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">Billing</h2>
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-gray-200 mb-4">
         <nav className="-mb-px flex space-x-8">
           <button
-            onClick={() => {
-              setActiveTab('credits');
-              setUserSelectedTab(true);
-            }}
+            onClick={() => handleTabChange('credits')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'credits'
                 ? 'border-blue-500 text-blue-600'
@@ -147,10 +171,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
             Credits
           </button>
           <button
-            onClick={() => {
-              setActiveTab('plans');
-              setUserSelectedTab(true);
-            }}
+            onClick={() => handleTabChange('plans')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'plans'
                 ? 'border-blue-500 text-blue-600'
@@ -161,10 +182,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
             Plans
           </button>
           <button
-            onClick={() => {
-              setActiveTab('usage');
-              setUserSelectedTab(true);
-            }}
+            onClick={() => handleTabChange('usage')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'usage'
                 ? 'border-blue-500 text-blue-600'
@@ -179,18 +197,28 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
 
       {/* Tab Content */}
       {activeTab === 'credits' && (
-        <div className="space-y-6">
-          {/* Credits Widget */}
-          <SubscriptionCreditsWidget 
-            organizationId={organizationId}
-            currentPlan={currentPlan}
-            subscriptionStatus={subscriptionStatus}
-          />
+        <div className="space-y-4">
+          {/* Side-by-Side Credits and Purchase Widgets */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <SubscriptionCreditsWidget 
+              organizationId={organizationId}
+              currentPlan={currentPlan}
+              subscriptionStatus={subscriptionStatus}
+              refreshKey={creditsRefreshKey}
+            />
+            <SubscriptionPurchaseWidget 
+              organizationId={organizationId}
+              currentPlan={currentPlan}
+              subscriptionStatus={subscriptionStatus}
+              refreshKey={creditsRefreshKey}
+              onCreditsUpdated={() => setCreditsRefreshKey(prev => prev + 1)}
+            />
+          </div>
           
           {/* Credits Explanation */}
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">When to use Credits</h4>
-            <ul className="text-sm text-blue-800 space-y-1">
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+            <h4 className="text-sm font-medium text-blue-900 mb-1">When to use Credits</h4>
+            <ul className="text-sm text-blue-800 space-y-0.5">
               <li>• Perfect for testing and getting started</li>
               <li>• Ideal for occasional or one-off document processing</li>
               <li>• No monthly commitment required</li>
@@ -200,16 +228,13 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
 
           {/* Consider Plans Suggestion */}
           {currentPlan && (
-            <div className="bg-green-50 border border-green-200 rounded-md p-4">
-              <h4 className="text-sm font-medium text-green-900 mb-2">💡 Consider a Monthly Plan</h4>
-              <p className="text-sm text-green-800 mb-3">
+            <div className="bg-green-50 border border-green-200 rounded-md p-3">
+              <h4 className="text-sm font-medium text-green-900 mb-1">💡 Consider a Monthly Plan</h4>
+              <p className="text-sm text-green-800 mb-2">
                 Using more than 5,000 SPUs per month? Monthly plans offer better value with included SPUs and lower per-unit pricing.
               </p>
               <button
-                onClick={() => {
-                  setActiveTab('plans');
-                  setUserSelectedTab(true);
-                }}
+                onClick={() => handleTabChange('plans')}
                 className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md transition-colors"
               >
                 View Plans →
@@ -220,11 +245,11 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
       )}
 
       {activeTab === 'plans' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Plans Explanation */}
-          <div className="bg-green-50 border border-green-200 rounded-md p-4">
-            <h4 className="text-sm font-medium text-green-900 mb-2">When to use Monthly Plans</h4>
-            <ul className="text-sm text-green-800 space-y-1">
+          <div className="bg-green-50 border border-green-200 rounded-md p-3">
+            <h4 className="text-sm font-medium text-green-900 mb-1">When to use Monthly Plans</h4>
+            <ul className="text-sm text-green-800 space-y-0.5">
               <li>• Best for regular document processing</li>
               <li>• Includes SPUs with better per-unit pricing</li>
               <li>• Team collaboration features</li>
@@ -247,8 +272,8 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
 
           {/* Quick Actions */}
           {stripePaymentsPortal && (
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-900 mb-4">Quick Actions</h3>
+            <div className="bg-white border border-gray-200 rounded-lg p-3">
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Quick Actions</h3>
               <div className="space-y-2">
                 <a 
                   href={customerPortalUrl || undefined} 
@@ -266,16 +291,13 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
           )}
 
           {/* Need Credits Instead */}
-          <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
-            <h4 className="text-sm font-medium text-gray-900 mb-2">Need Credits Instead?</h4>
-            <p className="text-sm text-gray-700 mb-3">
+          <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+            <h4 className="text-sm font-medium text-gray-900 mb-1">Need Credits Instead?</h4>
+            <p className="text-sm text-gray-700 mb-2">
               For occasional use or testing, credits might be more cost-effective.
             </p>
             <button
-              onClick={() => {
-                setActiveTab('credits');
-                setUserSelectedTab(true);
-              }}
+              onClick={() => handleTabChange('credits')}
               className="text-sm bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-md transition-colors"
             >
               View Credits →
@@ -311,7 +333,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
       )}
 
       {activeTab === 'usage' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <SubscriptionUsage 
             organizationId={organizationId} 
             key={usageRefreshKey}
