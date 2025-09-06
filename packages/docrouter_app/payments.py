@@ -1091,9 +1091,24 @@ async def create_checkout_session(
                 detail="Enterprise plan requires admin privileges"
             )
         
-        # Enterprise plans don't use Stripe - redirect to contact sales
-        contact_url = f"{NEXTAUTH_URL}/contact-sales?org_id={organization_id}&plan=enterprise"
-        return PortalSessionResponse(url=contact_url)
+        # Enterprise plans don't use Stripe - handle locally
+        try:
+            # Update organization type to enterprise
+            from docrouter_app.models import UpdateOrganizationRequest
+            await db.organizations.update_one(
+                {"_id": ObjectId(organization_id)},
+                {"$set": {"type": "enterprise"}}
+            )
+            
+            logger.info(f"Updated organization {organization_id} to enterprise plan")
+            
+            # Return success URL to redirect back to subscription page
+            success_url = f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?success=true"
+            return PortalSessionResponse(url=success_url)
+            
+        except Exception as e:
+            logger.error(f"Error updating organization to enterprise: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to update organization: {str(e)}")
 
     try:
         is_org_admin = await is_organization_admin(organization_id, current_user.user_id)
@@ -1421,7 +1436,6 @@ async def get_subscription_info(
 ) -> SubscriptionResponse:
     """Get available subscription plans and user's current plan"""
 
-    logger.info(f"THIS METHOD IS CALLED")
     logger.info(f"Getting subscription plans for org_id: {organization_id} user_id: {current_user.user_id}")
 
     # Get the customer
