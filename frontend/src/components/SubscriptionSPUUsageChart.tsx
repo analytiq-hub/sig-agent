@@ -162,8 +162,6 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
 
   const maxValue = Math.max(...processedData.map(dp => dp.spus));
   
-  console.log('Processed data for rendering:', processedData);
-  console.log('Max value:', maxValue);
 
   const averageDailySpus = rangeData.total_spus / Math.max(processedData.length, 1);
 
@@ -223,14 +221,12 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
           {processedData.map((point, index) => {
             const value = point.spus;
             const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
-            console.log(`Bar ${index}: date=${point.date}, spus=${point.spus}, value=${value}, height=${height}%`);
             
             return (
-              <div key={index} className={`flex flex-col items-center ${processedData.length === 1 ? 'w-16' : 'flex-1'}`}>
-                <div className="relative group w-full">
+              <div key={index} className={`flex flex-col items-center ${processedData.length === 1 ? 'w-16' : 'flex-1'} relative`} style={{ height: '100%' }}>
+                <div className="relative group w-full" style={{ height: `${height}%`, minHeight: '12px', marginTop: 'auto' }}>
                   <div
-                    className="w-full rounded-t transition-all duration-300 bg-gradient-to-t from-green-500 to-green-400"
-                    style={{ height: `${Math.max(height, 5)}%`, minHeight: '8px' }}
+                    className="w-full h-full rounded-t transition-all duration-300 bg-gradient-to-t from-green-500 to-green-400"
                   ></div>
                   
                   {/* Tooltip */}
