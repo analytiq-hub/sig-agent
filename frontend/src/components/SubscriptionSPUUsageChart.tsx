@@ -56,17 +56,11 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
 
   useEffect(() => {
     if (rangeData) {
-      console.log('Range data received:', rangeData);
       const processData = (data: UsageDataPoint[]) => {
-        console.log('Processing data:', data);
-        if (!data || data.length === 0) {
-          console.log('No data to process');
-          return [];
-        }
+        if (!data || data.length === 0) return [];
 
         // Sort data by date
         const sortedData = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        console.log('Sorted data:', sortedData);
 
         let processed: ProcessedDataPoint[] = [];
         let cumulative = 0;
@@ -119,7 +113,6 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
       };
 
       const processed = processData(rangeData.data_points);
-      console.log('Final processed data:', processed);
       setProcessedData(processed);
     }
   }, [rangeData, granularity]);
@@ -171,7 +164,6 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
   const maxValue = Math.max(...processedData.map(dp => 
     viewType === 'cumulative' ? dp.cumulative_spus : dp.spus
   ));
-  console.log('Max value for chart:', maxValue, 'Processed data length:', processedData.length);
 
   const averageDailySpus = rangeData.total_spus / Math.max(processedData.length, 1);
 
@@ -254,18 +246,17 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
           {processedData.map((point, index) => {
             const value = viewType === 'cumulative' ? point.cumulative_spus : point.spus;
             const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
-            console.log(`Bar ${index}: value=${value}, height=${height}%, maxValue=${maxValue}`);
             
             return (
               <div key={index} className={`flex flex-col items-center ${processedData.length === 1 ? 'w-16' : 'flex-1'}`}>
                 <div className="relative group w-full">
                   <div
-                    className={`w-full rounded-t transition-all duration-300 border border-gray-300 ${
+                    className={`w-full rounded-t transition-all duration-300 ${
                       viewType === 'cumulative' 
                         ? 'bg-gradient-to-t from-blue-500 to-blue-400' 
                         : 'bg-gradient-to-t from-green-500 to-green-400'
                     }`}
-                    style={{ height: `${Math.max(height, 5)}%`, minHeight: '20px' }}
+                    style={{ height: `${Math.max(height, 5)}%`, minHeight: '8px' }}
                   ></div>
                   
                   {/* Tooltip */}
@@ -287,12 +278,6 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
           })}
         </div>
         
-        {/* Y-axis labels */}
-        <div className="flex justify-between text-xs text-gray-500 mt-2">
-          <span>0</span>
-          <span>{Math.round(maxValue / 2).toLocaleString()}</span>
-          <span>{maxValue.toLocaleString()}</span>
-        </div>
       </div>
 
       {/* Legend */}
