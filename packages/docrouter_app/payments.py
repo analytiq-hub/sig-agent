@@ -1112,14 +1112,29 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
             items.append({'price': base_price_id})
             logger.info(f"Adding new subscription item with price {base_price_id}")
 
+            # Prepare subscription modification parameters
+            modify_params = {
+                'items': items,
+                'proration_behavior': 'create_prorations',
+                'metadata': {'subscription_type': subscription_type}
+            }
+            
+            # If subscription is set to cancel at period end, reactivate it
+            if subscription.get('cancel_at_period_end', False):
+                modify_params['cancel_at_period_end'] = False
+                logger.info(f"Reactivating subscription {subscription.id} that was set to cancel at period end")
+
             # Modify existing subscription with proration and metadata
-            await StripeAsync.subscription_modify(
-                subscription.id,
-                items=items,
-                proration_behavior='create_prorations',
-                metadata={'subscription_type': subscription_type}
-            )
+            await StripeAsync.subscription_modify(subscription.id, **modify_params)
             logger.info(f"Successfully updated subscription {subscription.id} to {subscription_type}")
+        else:
+            # Even if no subscription update is needed, check if we need to reactivate a cancelling subscription
+            if subscription.get('cancel_at_period_end', False):
+                await StripeAsync.subscription_modify(
+                    subscription.id,
+                    cancel_at_period_end=False
+                )
+                logger.info(f"Reactivated subscription {subscription.id} that was set to cancel at period end")
     else:
         # Create new subscription for customers without one (base pricing only)
         await StripeAsync.subscription_create(
