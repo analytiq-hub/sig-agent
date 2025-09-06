@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { getCurrentUsageApi, getSubscriptionApi, getCreditConfigApi, purchaseCreditsApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import { CreditConfig, UsageData } from '@/types/index';
-import SPUUsageChart from './SPUUsageChart';
+import SubscriptionSPUUsageChart from './SubscriptionSPUUsageChart';
 
 interface SubscriptionUsageProps {
   organizationId: string;
@@ -143,7 +143,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId, r
   return (
     <div className="space-y-6">
       {/* SPU Usage Chart */}
-      <SPUUsageChart organizationId={organizationId} refreshKey={refreshKey} />
+      <SubscriptionSPUUsageChart organizationId={organizationId} refreshKey={refreshKey} />
       
       {/* Credits Section */}
       <div className="bg-white p-6 rounded-lg shadow">

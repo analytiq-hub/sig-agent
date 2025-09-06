@@ -5,7 +5,7 @@ import { getUsageAnalyticsApi } from '@/utils/api';
 import { UsageAnalyticsRequest, UsageAnalyticsResponse, UsageDataPoint } from '@/types/payments';
 import { toast } from 'react-toastify';
 
-interface SPUUsageChartProps {
+interface SubscriptionSPUUsageChartProps {
   organizationId: string;
   refreshKey?: number;
 }
@@ -18,7 +18,7 @@ interface ProcessedDataPoint {
   source: string;
 }
 
-const SPUUsageChart: React.FC<SPUUsageChartProps> = ({ organizationId, refreshKey }) => {
+const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ organizationId, refreshKey }) => {
   const [analyticsData, setAnalyticsData] = useState<UsageAnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [granularity, setGranularity] = useState<'daily' | 'monthly'>('daily');
@@ -303,4 +303,4 @@ const SPUUsageChart: React.FC<SPUUsageChartProps> = ({ organizationId, refreshKe
   );
 };
 
-export default SPUUsageChart;
+export default SubscriptionSPUUsageChart;
