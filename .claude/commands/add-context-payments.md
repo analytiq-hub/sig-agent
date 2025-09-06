@@ -9,7 +9,7 @@ Add these files to your context, then stop:
 @frontend/src/components/SubscriptionManager.tsx
 @frontend/src/components/SubscriptionUsage.tsx
 @frontend/src/components/SubscriptionCredits.tsx
-@frontend/src/components/SubscriptionAdminCredits.tsx
+@frontend/src/components/SubscriptionSPUUsageChart.tsx
 @frontend/src/app/settings/organization/[organizationId]/subscription/
 
 
