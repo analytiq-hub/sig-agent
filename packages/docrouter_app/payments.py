@@ -1174,7 +1174,7 @@ async def customer_portal(
     organization_id: str,
     current_user: User = Depends(get_org_admin_user)
 ) -> PortalSessionResponse:
-    """Generate a customer portal link (Stripe for non-enterprise, contact page for enterprise)"""
+    """Generate a customer portal link or return empty URL if not available"""
 
     logger.info(f"Generating customer portal for org_id: {organization_id}")
 
@@ -1186,10 +1186,11 @@ async def customer_portal(
     # Check if stripe payments portal is available
     stripe_payments_portal = customer.get("stripe_payments_portal", False)
     if not stripe_payments_portal:
-        raise HTTPException(status_code=403, detail="Payment portal is not available")
+        logger.info(f"Payment portal not available for org_id: {organization_id}")
+        return PortalSessionResponse(url="")
 
     try:
-        # Always provide Stripe portal when stripe_payments_portal is true
+        # Generate Stripe portal when stripe_payments_portal is true
         logger.info(f"Stripe customer found for org_id: {organization_id}: {customer['stripe_customer_id']}")
         session = await StripeAsync.billing_portal_session_create(
             customer=customer["stripe_customer_id"],
@@ -1199,7 +1200,7 @@ async def customer_portal(
         return PortalSessionResponse(url=session.url)
     except Exception as e:
         logger.error(f"Error generating customer portal: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return PortalSessionResponse(url="")
 
 @payments_router.post("/{organization_id}/checkout-session")
 async def create_checkout_session(

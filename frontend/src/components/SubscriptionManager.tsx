@@ -46,13 +46,11 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
       try {
         setLoading(true);
         const response = await getCustomerPortalApi(organizationId);
-        setCustomerPortalUrl(response.url);
+        // Set URL only if it's not empty, otherwise leave as null
+        setCustomerPortalUrl(response.url || null);
       } catch (error) {
-        console.info('Could not fetch customer portal URL:', error);
-        // Optionally show a message if this is due to Stripe being disabled
-        if (error instanceof Error && error.message.includes('Not Found')) {
-          console.info('Customer portal unavailable - Stripe may be disabled');
-        }
+        console.error('Error fetching customer portal URL:', error);
+        setCustomerPortalUrl(null);
       } finally {
         setLoading(false);
       }
