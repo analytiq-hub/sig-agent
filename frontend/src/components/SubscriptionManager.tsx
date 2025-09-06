@@ -5,6 +5,7 @@ import { getCustomerPortalApi } from '@/utils/api';
 import SubscriptionPlans from './SubscriptionPlans';
 import SubscriptionUsage from './SubscriptionUsage';
 import SubscriptionAdminCredit from './SubscriptionAdminCredit';
+import SubscriptionCreditsWidget from './SubscriptionCreditsWidget';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import { toast } from 'react-toastify';
@@ -82,26 +83,6 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
   };
 
 
-  const getSubscriptionStatusBadge = (status: string | null) => {
-    if (!status) return null;
-    const statusConfig = {
-      'active': { color: 'bg-green-100 text-green-800', text: 'Active' },
-      'cancelling': { color: 'bg-orange-100 text-orange-800', text: 'Cancelling' },
-      'canceled': { color: 'bg-red-100 text-red-800', text: 'Cancelled' },
-      'past_due': { color: 'bg-yellow-100 text-yellow-800', text: 'Past Due' },
-      'unpaid': { color: 'bg-red-100 text-red-800', text: 'Unpaid' },
-      'incomplete': { color: 'bg-blue-100 text-blue-800', text: 'Incomplete' },
-      'incomplete_expired': { color: 'bg-gray-100 text-gray-800', text: 'Expired' },
-      'trialing': { color: 'bg-purple-100 text-purple-800', text: 'Trial' },
-      'no_subscription': { color: 'bg-gray-100 text-gray-800', text: 'No Subscription' }
-    };
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['no_subscription'];
-    return (
-      <div className={`inline-flex items-center px-2.5 pb-1 pt-1.5 rounded-full text-xs font-medium leading-tight ${config.color}`}>
-        {config.text}
-      </div>
-    );
-  };
 
   const handleCancelSubscription = async () => {
     if (!organizationId) return;
@@ -177,6 +158,46 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
         </>
       ) : (
         <>
+          {/* Top Section: Credits Widget and Quick Actions */}
+          <div className="grid lg:grid-cols-3 gap-6 mb-6">
+            {/* Credits Widget */}
+            <div className="lg:col-span-2">
+              <SubscriptionCreditsWidget 
+                organizationId={organizationId}
+                currentPlan={currentPlan}
+                subscriptionStatus={subscriptionStatus}
+              />
+            </div>
+            
+            {/* Quick Actions */}
+            <div className="bg-white rounded-lg shadow p-4">
+              <h3 className="text-sm font-medium text-gray-900 mb-4">Quick Actions</h3>
+              <div className="space-y-2">
+                {stripePaymentsPortal && (
+                  <a 
+                    href={customerPortalUrl || undefined} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center w-full px-3 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
+                  >
+                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    {currentPlan === 'enterprise' ? 'Previous Plan Billing' : 'Manage Billing'}
+                  </a>
+                )}
+                <button
+                  className="flex items-center w-full px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+                  onClick={() => setView('usage')}
+                >
+                  <BarChartIcon className="mr-2" fontSize="small" />
+                  View Detailed Usage
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Subscription Plans */}
           <SubscriptionPlans 
             organizationId={organizationId}
             onPaymentMethodStatusChange={handlePaymentMethodStatusChange}
@@ -189,50 +210,19 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
             currentPeriodEnd={currentPeriodEnd}
           />
 
-          {/* Subscription status and actions - only shown in billing view */}
-          {subscriptionStatus && (
-            <div className="flex flex-col items-center gap-2 mt-4">
-              <div className="inline-flex items-center gap-2">
-                <span className="text-sm text-gray-600">Subscription Status:</span>
-                {getSubscriptionStatusBadge(subscriptionStatus)}
-              </div>
-              {subscriptionStatus === 'canceled' && (
-                <p className="text-sm text-gray-500">
-                  Your subscription has been cancelled. You can reactivate it by selecting a plan below.
-                </p>
-              )}
-              {subscriptionStatus === 'past_due' && (
-                <p className="text-sm text-yellow-600">
-                  Your payment is past due. Please update your payment method to continue service.
-                </p>
-              )}
-              <div className="flex flex-row gap-2 mt-2">
-                {stripePaymentsPortal && (
-                  <a 
-                    href={customerPortalUrl || undefined} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                  >
-                    <svg 
-                      className="h-4 w-4 text-white -mt-1" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth={2} 
-                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" 
-                      />
-                    </svg>
-                    <span className="flex items-center">
-                      {currentPlan === 'enterprise' ? 'Previous Plan Billing' : 'Manage Billing'}
-                    </span>
-                  </a>
-                )}
-              </div>
+          {/* Special status messages */}
+          {subscriptionStatus === 'canceled' && (
+            <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md text-center">
+              <p className="text-sm text-gray-600">
+                Your subscription has been cancelled. You can reactivate it by selecting a plan above.
+              </p>
+            </div>
+          )}
+          {subscriptionStatus === 'past_due' && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-center">
+              <p className="text-sm text-yellow-700">
+                Your payment is past due. Please update your payment method to continue service.
+              </p>
             </div>
           )}
           <div className="flex flex-col items-center justify-center gap-2 text-sm text-gray-600">
