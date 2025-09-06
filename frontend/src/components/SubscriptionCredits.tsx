@@ -1,130 +1,288 @@
+'use client'
+
 import React, { useEffect, useState } from 'react';
-import { getCreditConfigApi, purchaseCreditsApi } from '@/utils/api';
+import { getCurrentUsageApi, getCreditConfigApi, purchaseCreditsApi, addCreditsApi } from '@/utils/api';
 import { toast } from 'react-toastify';
+import { useAppSession } from '@/utils/useAppSession';
+import { isSysAdmin } from '@/utils/roles';
+import { CreditConfig, UsageData } from '@/types/index';
 
 interface SubscriptionCreditsProps {
   organizationId: string;
-  currentCredits: number;
-  onClose: () => void;
+  currentPlan?: string | null;
+  subscriptionStatus?: string | null;
+  refreshKey?: number; // Add refresh key to trigger data refetch
+  onCreditsUpdated?: () => void; // Callback when credits are updated
 }
 
-const SubscriptionCredits: React.FC<SubscriptionCreditsProps> = ({ organizationId, currentCredits, onClose }) => {
-  const [loading, setLoading] = useState(false);
-  const [config, setConfig] = useState<{ price_per_credit: number; currency: string; min_cost: number; max_cost: number } | null>(null);
-  const [amount, setAmount] = useState<number>(100);
-  const [error, setError] = useState<string | null>(null);
+const SubscriptionCredits: React.FC<SubscriptionCreditsProps> = ({ 
+  organizationId, 
+  currentPlan, 
+  subscriptionStatus,
+  refreshKey
+}) => {
+  const [usageData, setUsageData] = useState<UsageData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchConfig = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await getCreditConfigApi(organizationId);
-        setConfig(response);
-        setAmount(response.min_cost); // Changed from min_credits to min_cost
-      } catch {
-        setError('Failed to load credit purchase config.');
+        const usageResponse = await getCurrentUsageApi(organizationId);
+        
+        if (usageResponse.data) {
+          setUsageData(usageResponse.data);
+        }
+      } catch (error) {
+        console.error('Error fetching credits data:', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchConfig();
-  }, [organizationId]);
 
-  const handlePurchase = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!config) return;
-    
-    // Calculate cost for the requested amount
-    const totalCost = amount * config.price_per_credit;
-    
-    if (totalCost < config.min_cost || totalCost > config.max_cost) {
-      setError(`Purchase amount must be between $${config.min_cost} and $${config.max_cost}`);
-      return;
-    }
-    
-    setLoading(true);
-    setError(null);
-    try {
-      const success_url = window.location.href;
-      const cancel_url = window.location.href;
-      const response = await purchaseCreditsApi(organizationId, { credits: amount, success_url, cancel_url });
-      if (response.checkout_url) {
-        window.location.href = response.checkout_url;
-      } else {
-        toast.error('Failed to start checkout.');
-      }
-    } catch (err: unknown) {
-      let message = 'Failed to start checkout.';
-      if (err instanceof Error) message = err.message;
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchData();
+  }, [organizationId, refreshKey]); // Add refreshKey to dependency array
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow p-4">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+          <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!usageData) return null;
+
+  const totalCreditsRemaining = usageData.purchased_credits_remaining + usageData.admin_credits_remaining;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md relative">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
-          aria-label="Close"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-        <h2 className="text-xl font-semibold mb-4">Purchase SPU Credits</h2>
-        {loading && (
-          <div className="flex justify-center items-center h-20">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-          </div>
-        )}
-        {!loading && config && (
-          <form onSubmit={handlePurchase} className="space-y-4">
-            <div>
-              <label htmlFor="credit-amount" className="block text-sm font-medium text-gray-700 mb-1">
-                Amount to Purchase
-              </label>
-              <input
-                type="number"
-                id="credit-amount"
-                value={amount}
-                onChange={e => setAmount(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter number of credits"
-                disabled={loading}
-                autoFocus
-              />
-            </div>
-            <div className="text-sm text-gray-600">
-              Price per credit: <span className="font-medium">{config.price_per_credit} {config.currency.toUpperCase()}</span>
-            </div>
-            <div className="text-lg font-bold text-blue-700">
-              Total: {(amount * config.price_per_credit).toFixed(2)} {config.currency.toUpperCase()}
+    <div className="bg-white rounded-lg shadow">
+      <div className="p-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium text-gray-900">SPU Credits</h3>
+            <div className="text-xl font-bold text-gray-800">
+              {totalCreditsRemaining.toLocaleString()} remaining
             </div>
             <div className="text-xs text-gray-500">
-              Purchase amount must be between ${config.min_cost} and ${config.max_cost}.
+              {usageData.purchased_credits_remaining} purchased + {usageData.admin_credits_remaining} granted
             </div>
-            {error && <div className="text-red-600 text-sm">{error}</div>}
-            <button
-              type="submit"
-              disabled={loading || amount <= 0 || (amount * config.price_per_credit) < config.min_cost || (amount * config.price_per_credit) > config.max_cost}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 disabled:bg-blue-300 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Processing...' : `Purchase ${amount} Credits`}
-            </button>
-          </form>
-        )}
-        {!loading && !config && (
-          <div className="text-red-600 text-sm">{error || 'Unable to load purchase options.'}</div>
-        )}
-        <div className="mt-4 text-xs text-gray-500">
-          Credits are used after subscription usage. You currently have <span className="font-semibold">{currentCredits}</span> credits remaining.
+          </div>
+          <div className="text-right">
+            {currentPlan && (
+              <>
+                <div className="text-sm font-medium text-gray-900">Plan: {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}</div>
+                {subscriptionStatus && (
+                  <div className={`text-xs px-2 py-1 rounded-full inline-block ${
+                    subscriptionStatus === 'active' ? 'bg-green-100 text-green-800' :
+                    subscriptionStatus === 'cancelling' ? 'bg-orange-100 text-orange-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {subscriptionStatus}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-export default SubscriptionCredits; 
+// Separate component for purchase functionality
+export const SubscriptionPurchase: React.FC<SubscriptionCreditsProps> = ({ 
+  organizationId, 
+  currentPlan, 
+  subscriptionStatus,
+  refreshKey,
+  onCreditsUpdated 
+}) => {
+  const { session } = useAppSession();
+  const [creditConfig, setCreditConfig] = useState<CreditConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [purchaseAmount, setPurchaseAmount] = useState<number>(500);
+  const [adminAmount, setAdminAmount] = useState<number>(100);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
+
+  const isAdmin = isSysAdmin(session);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const configResponse = await getCreditConfigApi(organizationId);
+        setCreditConfig(configResponse);
+      } catch (error) {
+        console.error('Error fetching credits data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [organizationId, refreshKey]);
+
+  const canPurchaseCredits = () => {
+    if (!currentPlan) return true; // No subscription, can purchase
+    const allowedPlans = ['individual', 'team'];
+    return allowedPlans.includes(currentPlan) || 
+           ['no_subscription', 'canceled', 'incomplete_expired'].includes(subscriptionStatus || '');
+  };
+
+  const handlePurchaseCredits = async () => {
+    if (!creditConfig) return;
+    
+    const totalCost = purchaseAmount * creditConfig.price_per_credit;
+    
+    if (totalCost < creditConfig.min_cost || totalCost > creditConfig.max_cost) {
+      toast.error(`Purchase amount must be between $${creditConfig.min_cost} and $${creditConfig.max_cost}`);
+      return;
+    }
+
+    setPurchaseLoading(true);
+    try {
+      const currentUrl = window.location.href;
+      const response = await purchaseCreditsApi(organizationId, { 
+        credits: purchaseAmount,
+        success_url: currentUrl, 
+        cancel_url: currentUrl 
+      });
+      
+      if (response.checkout_url) {
+        window.location.href = response.checkout_url;
+      } else {
+        toast.error('Failed to start checkout - no URL received');
+      }
+    } catch (err: unknown) {
+      console.error('Purchase error:', err);
+      let message = 'Failed to start checkout.';
+      if (err instanceof Error) message = err.message;
+      toast.error(message);
+    } finally {
+      setPurchaseLoading(false);
+    }
+  };
+
+  const handleAddAdminCredits = async () => {
+    if (adminAmount <= 0) {
+      toast.error('Please enter a positive amount');
+      return;
+    }
+
+    setAdminLoading(true);
+    try {
+      await addCreditsApi(organizationId, adminAmount);
+      toast.success(`Added ${adminAmount} credits successfully!`);
+      setAdminAmount(100); // Reset to default
+      // Trigger refresh of credits display
+      if (onCreditsUpdated) {
+        onCreditsUpdated();
+      }
+    } catch (error) {
+      console.error('Error adding credits:', error);
+      toast.error(`Failed to add credits: ${error}`);
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow p-3">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+          <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow">
+      <div className="p-3 space-y-3">
+        {/* Admin Section */}
+        {isAdmin && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2">
+            <div className="flex items-center justify-between mb-1">
+              <h4 className="text-sm font-medium text-yellow-800">
+                <svg className="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Grant Credits
+              </h4>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                value={adminAmount}
+                onChange={(e) => setAdminAmount(parseInt(e.target.value) || 0)}
+                min="1"
+                className="flex-1 px-2 py-1 text-sm border border-yellow-300 rounded focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500"
+                placeholder="Amount"
+              />
+              <button
+                onClick={handleAddAdminCredits}
+                disabled={adminLoading || adminAmount <= 0}
+                className="px-3 py-1 text-sm bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-300 text-white rounded font-medium disabled:cursor-not-allowed"
+              >
+                {adminLoading ? 'Adding...' : 'Grant'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Purchase Section */}
+        {canPurchaseCredits() && creditConfig && !isAdmin && (
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-2">
+            <div className="flex items-center justify-between mb-1">
+              <h4 className="text-sm font-medium text-blue-900">Purchase Credits</h4>
+              <span className="text-xs text-blue-600">${creditConfig.price_per_credit} each</span>
+            </div>
+            <div className="flex items-center gap-2 mb-1">
+              <input
+                type="number"
+                value={purchaseAmount || ''}
+                onChange={e => {
+                  const value = e.target.value;
+                  setPurchaseAmount(value === '' ? 0 : parseInt(value) || 0);
+                }}
+                className="flex-1 px-2 py-1 text-sm border border-blue-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Amount"
+                disabled={purchaseLoading}
+              />
+              <button
+                onClick={handlePurchaseCredits}
+                disabled={
+                  purchaseLoading || 
+                  !purchaseAmount || 
+                  purchaseAmount <= 0 || 
+                  (purchaseAmount * creditConfig.price_per_credit) < creditConfig.min_cost || 
+                  (purchaseAmount * creditConfig.price_per_credit) > creditConfig.max_cost
+                }
+                className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded font-medium disabled:cursor-not-allowed"
+              >
+                {purchaseLoading ? 'Processing...' : 'Buy'}
+              </button>
+            </div>
+            <div className="text-xs text-blue-600">
+              Total: ${purchaseAmount > 0 ? (purchaseAmount * creditConfig.price_per_credit).toFixed(2) : '0.00'}
+            </div>
+          </div>
+        )}
+
+        {currentPlan === 'enterprise' && !isAdmin && (
+          <div className="text-center text-sm text-gray-500">
+            Enterprise plans have unlimited usage
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default SubscriptionCredits;

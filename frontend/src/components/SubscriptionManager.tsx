@@ -6,7 +6,7 @@ import { getCustomerPortalApi } from '@/utils/api';
 import SubscriptionPlans from './SubscriptionPlans';
 import SubscriptionUsage from './SubscriptionUsage';
 import SubscriptionAdminCredit from './SubscriptionAdminCredit';
-import SubscriptionCreditsWidget, { SubscriptionPurchaseWidget } from './SubscriptionCreditsWidget';
+import SubscriptionCredits, { SubscriptionPurchase } from './SubscriptionCredits';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
@@ -200,13 +200,13 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
         <div className="space-y-4">
           {/* Side-by-Side Credits and Purchase Widgets */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <SubscriptionCreditsWidget 
+            <SubscriptionCredits 
               organizationId={organizationId}
               currentPlan={currentPlan}
               subscriptionStatus={subscriptionStatus}
               refreshKey={creditsRefreshKey}
             />
-            <SubscriptionPurchaseWidget 
+            <SubscriptionPurchase 
               organizationId={organizationId}
               currentPlan={currentPlan}
               subscriptionStatus={subscriptionStatus}
