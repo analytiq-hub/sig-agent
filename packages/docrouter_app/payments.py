@@ -82,8 +82,8 @@ class StripeAsync:
         return await StripeAsync._run_in_threadpool(stripe.Subscription.list, *args, **kwargs)
 
     @staticmethod
-    async def subscription_delete(subscription_id: str) -> Dict[str, Any]:
-        return await StripeAsync._run_in_threadpool(stripe.Subscription.delete, subscription_id)
+    async def subscription_delete(subscription_id: str, **kwargs) -> Dict[str, Any]:
+        return await StripeAsync._run_in_threadpool(stripe.Subscription.delete, subscription_id, **kwargs)
 
     @staticmethod
     async def setup_intent_create(*args, **kwargs) -> Dict[str, Any]:
@@ -1200,6 +1200,42 @@ async def create_checkout_session(
         
         # Enterprise plans don't use Stripe - handle locally
         try:
+            # First, check for and cancel any existing Stripe subscription with proration
+            customer = await payments_customers.find_one({"org_id": organization_id})
+            if customer and customer.get("stripe_customer_id"):
+                stripe_customer_id = customer["stripe_customer_id"]
+                try:
+                    existing_subscription = await get_subscription(stripe_customer_id)
+                    if existing_subscription:
+                        # Cancel existing subscription immediately with proration (creates credit)
+                        logger.info(f"Canceling existing subscription {existing_subscription.get('id')} for Enterprise upgrade with proration")
+                        await StripeAsync.subscription_delete(
+                            existing_subscription.get('id'),
+                            prorate=True  # This creates a prorated credit on the customer's account
+                        )
+                        logger.info(f"Successfully canceled subscription {existing_subscription.get('id')} with prorated credit")
+                        
+                        # Update local payment customer to reflect canceled subscription
+                        await payments_customers.update_one(
+                            {"org_id": organization_id},
+                            {"$set": {
+                                "subscription_type": None,
+                                "subscription_status": "canceled",
+                                "subscription_id": None,
+                                "subscription_item_id": None,
+                                "current_billing_period_start": None,
+                                "current_billing_period_end": None,
+                                "subscription_spu_allowance": 0,
+                                "subscription_updated_at": datetime.utcnow()
+                            }}
+                        )
+                except ValueError as e:
+                    if "FATAL" in str(e):
+                        logger.error(f"Multiple subscriptions detected during Enterprise upgrade for customer {stripe_customer_id}")
+                        raise HTTPException(status_code=500, detail="Multiple subscriptions detected. Please contact support before upgrading to Enterprise.")
+                    else:
+                        logger.warning(f"Error checking subscription during Enterprise upgrade: {e}")
+            
             # Update organization type to enterprise
             await db.organizations.update_one(
                 {"_id": ObjectId(organization_id)},
