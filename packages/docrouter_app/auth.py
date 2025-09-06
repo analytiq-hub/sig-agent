@@ -247,3 +247,5 @@ async def get_admin_or_org_user(
     is_member = await is_organization_member(organization_id, current_user.user_id)
     if not is_member:
         raise HTTPException(status_code=403, detail="You are not a member of this organization")
+
+    return current_user
