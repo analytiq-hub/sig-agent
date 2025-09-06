@@ -52,7 +52,7 @@ const SubscriptionCredits: React.FC<SubscriptionCreditsProps> = ({
 
   if (!usageData) return null;
 
-  const totalCreditsRemaining = usageData.purchased_credits_remaining + usageData.admin_credits_remaining;
+  const totalCreditsRemaining = usageData.purchased_credits_remaining + usageData.granted_credits_remaining;
 
   return (
     <div className="bg-white rounded-lg shadow">
@@ -64,7 +64,7 @@ const SubscriptionCredits: React.FC<SubscriptionCreditsProps> = ({
               {totalCreditsRemaining.toLocaleString()} remaining
             </div>
             <div className="text-xs text-gray-500">
-              {usageData.purchased_credits_remaining} purchased + {usageData.admin_credits_remaining} granted
+              {usageData.purchased_credits_remaining} purchased + {usageData.granted_credits_remaining} granted
             </div>
           </div>
           <div className="text-right">

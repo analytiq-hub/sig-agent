@@ -51,9 +51,9 @@ export interface UsageData {
   purchased_credits: number;
   purchased_credits_used: number;
   purchased_credits_remaining: number;
-  admin_credits: number;
-  admin_credits_used: number;
-  admin_credits_remaining: number;
+  granted_credits: number;
+  granted_credits_used: number;
+  granted_credits_remaining: number;
   period_start: number | null;
   period_end: number | null;
 }

@@ -168,9 +168,9 @@ class UsageData(BaseModel):
     purchased_credits: int
     purchased_credits_used: int
     purchased_credits_remaining: int
-    admin_credits: int
-    admin_credits_used: int
-    admin_credits_remaining: int
+    granted_credits: int
+    granted_credits_used: int
+    granted_credits_remaining: int
     period_start: Optional[int] = None  # Unix timestamp
     period_end: Optional[int] = None    # Unix timestamp
 
@@ -851,12 +851,12 @@ async def check_subscription_limits(org_id: str, spus: int) -> bool:
     purchased_used = payment_customer.get("purchased_credits_used", 0)
     purchased_remaining = max(purchased_credits - purchased_used, 0)
     
-    admin_credits = payment_customer.get("admin_credits", CREDIT_CONFIG["spu_credit"])
-    admin_used = payment_customer.get("admin_credits_used", 0)
-    admin_remaining = max(admin_credits - admin_used, 0)
+    granted_credits = payment_customer.get("granted_credits", CREDIT_CONFIG["spu_credit"])
+    granted_used = payment_customer.get("granted_credits_used", 0)
+    granted_remaining = max(granted_credits - granted_used, 0)
     
     # Calculate total available SPUs (subscription + credits)
-    total_available = subscription_spus_remaining + purchased_remaining + admin_remaining
+    total_available = subscription_spus_remaining + purchased_remaining + granted_remaining
     
     # Enterprise plans allow overage - always return True
     if subscription_type == "enterprise":
@@ -2057,9 +2057,9 @@ async def get_current_usage(
         purchased_used = stripe_customer.get("purchased_credits_used", 0)
         purchased_remaining = max(purchased_credits - purchased_used, 0)
         
-        admin_credits = stripe_customer.get("admin_credits", CREDIT_CONFIG["spu_credit"])
-        admin_used = stripe_customer.get("admin_credits_used", 0)
-        admin_remaining = max(admin_credits - admin_used, 0)
+        granted_credits = stripe_customer.get("granted_credits", CREDIT_CONFIG["spu_credit"])
+        granted_used = stripe_customer.get("granted_credits_used", 0)
+        granted_remaining = max(granted_credits - granted_used, 0)
 
         # --- Calculate both period and total metered usage ---
         period_metered_usage = 0
@@ -2102,9 +2102,9 @@ async def get_current_usage(
                 purchased_credits=purchased_credits,
                 purchased_credits_used=purchased_used,
                 purchased_credits_remaining=purchased_remaining,
-                admin_credits=admin_credits,
-                admin_credits_used=admin_used,
-                admin_credits_remaining=admin_remaining,
+                granted_credits=granted_credits,
+                granted_credits_used=granted_used,
+                granted_credits_remaining=granted_remaining,
                 period_start=period_start,
                 period_end=period_end,
             )
@@ -2183,10 +2183,10 @@ async def ensure_subscription_credits(stripe_customer_doc):
         update["purchased_credits"] = 0
     if "purchased_credits_used" not in stripe_customer_doc:
         update["purchased_credits_used"] = 0
-    if "admin_credits" not in stripe_customer_doc:
-        update["admin_credits"] = CREDIT_CONFIG["spu_credit"]
-    if "admin_credits_used" not in stripe_customer_doc:
-        update["admin_credits_used"] = 0
+    if "granted_credits" not in stripe_customer_doc:
+        update["granted_credits"] = CREDIT_CONFIG["spu_credit"]
+    if "granted_credits_used" not in stripe_customer_doc:
+        update["granted_credits_used"] = 0
     
     # Add subscription SPU tracking fields
     if "subscription_spus_used" not in stripe_customer_doc:
@@ -2276,15 +2276,15 @@ async def record_subscription_usage(org_id: str, spus: int):
     purchased_used = stripe_customer.get("purchased_credits_used", 0)
     purchased_remaining = max(purchased_credits - purchased_used, 0)
     
-    admin_credits = stripe_customer.get("admin_credits", CREDIT_CONFIG["spu_credit"])
-    admin_used = stripe_customer.get("admin_credits_used", 0)
-    admin_remaining = max(admin_credits - admin_used, 0)
+    granted_credits = stripe_customer.get("granted_credits", CREDIT_CONFIG["spu_credit"])
+    granted_used = stripe_customer.get("granted_credits_used", 0)
+    granted_remaining = max(granted_credits - granted_used, 0)
     
-    # NEW ORDER: Consume subscription SPUs first, then purchased credits, then admin credits, then paid usage
+    # NEW ORDER: Consume subscription SPUs first, then purchased credits, then granted credits, then paid usage
     from_subscription = min(spus, subscription_spus_remaining)
     from_purchased = min(spus - from_subscription, purchased_remaining)
-    from_admin = min(spus - from_subscription - from_purchased, admin_remaining)
-    from_paid = spus - from_subscription - from_purchased - from_admin
+    from_granted = min(spus - from_subscription - from_purchased, granted_remaining)
+    from_paid = spus - from_subscription - from_purchased - from_granted
 
     # For individual/team plans, overage should not occur since it's blocked at limits check
     # For enterprise plans, overage is allowed and tracked
@@ -2307,10 +2307,10 @@ async def record_subscription_usage(org_id: str, spus: int):
             {"$inc": {"purchased_credits_used": from_purchased}}
         )
     
-    if from_admin > 0:
+    if from_granted > 0:
         await payments_customers.update_one(
             {"_id": stripe_customer["_id"]},
-            {"$inc": {"admin_credits_used": from_admin}}
+            {"$inc": {"granted_credits_used": from_granted}}
         )
     
     # Record paid usage for the remainder (overage)
@@ -2321,7 +2321,7 @@ async def record_subscription_usage(org_id: str, spus: int):
     return {
         "from_subscription": from_subscription,
         "from_purchased": from_purchased, 
-        "from_admin": from_admin, 
+        "from_granted": from_granted, 
         "from_paid": from_paid
     }
 
@@ -2342,7 +2342,7 @@ async def add_spu_credits(
     await ensure_subscription_credits(stripe_customer)
     await payments_customers.update_one(
         {"_id": stripe_customer["_id"]},
-        {"$inc": {"admin_credits": update.amount}}
+        {"$inc": {"granted_credits": update.amount}}
     )
     return {"success": True, "added": update.amount}
 
