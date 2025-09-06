@@ -1226,17 +1226,17 @@ async def create_checkout_session(
                         )
                         logger.info(f"Successfully canceled subscription {existing_subscription.get('id')} with prorated credit")
                         
-                        # Update local payment customer to reflect canceled subscription
+                        # Update local payment customer to reflect enterprise upgrade
                         await payments_customers.update_one(
                             {"org_id": organization_id},
                             {"$set": {
-                                "subscription_type": None,
+                                "subscription_type": "enterprise",
                                 "stripe_subscription_status": "canceled",
                                 "stripe_subscription_id": None,
                                 "stripe_subscription_item_id": None,
                                 "stripe_current_billing_period_start": None,
                                 "stripe_current_billing_period_end": None,
-                                "subscription_spu_allowance": 0,
+                                "subscription_spu_allowance": None,  # Enterprise has no SPU limits
                                 "subscription_updated_at": datetime.utcnow()
                             }}
                         )
@@ -1425,9 +1425,11 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
             logger.error(f"No org_id found for Stripe customer {customer_id}")
             return
         
+        # Check if this is an enterprise customer (don't clear their subscription_type)
+        is_enterprise = await is_enterprise_customer(org_id)
+        
         # Clear subscription data from local customer record
         update_data = {
-            "subscription_type": None,
             "stripe_subscription_status": "canceled",
             "stripe_subscription_id": None,
             "stripe_subscription_item_id": None,
@@ -1436,6 +1438,11 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
             "subscription_spu_allowance": 0,
             "subscription_updated_at": datetime.utcnow()
         }
+        
+        # Only clear subscription_type and allowance for non-enterprise customers
+        if not is_enterprise:
+            update_data["subscription_type"] = None
+        # Enterprise customers keep their subscription_type="enterprise" and unlimited allowance
         
         await payments_customers.update_one(
             {"org_id": org_id},
@@ -1531,72 +1538,6 @@ async def handle_invoice_payment_succeeded(invoice: Dict[str, Any]):
     except Exception as e:
         logger.error(f"Error handling invoice payment succeeded webhook: {e}")
 
-async def sync_existing_customers_billing_data() -> Dict[str, Any]:
-    """One-time function to sync billing period data for existing customers"""
-    logger.info("Starting sync of billing period data for existing customers")
-    
-    total_customers = 0
-    synced_customers = 0
-    errors = []
-    
-    try:
-        # Get all customers that don't have local billing period data
-        customers = await payments_customers.find({
-            "$or": [
-                {"stripe_current_billing_period_start": {"$exists": False}},
-                {"stripe_current_billing_period_start": None},
-                {"subscription_type": {"$exists": False}}
-            ]
-        }).to_list(length=None)
-        
-        total_customers = len(customers)
-        logger.info(f"Found {total_customers} customers needing billing data sync")
-        
-        for customer in customers:
-            try:
-                org_id = customer.get("org_id")
-                stripe_customer_id = customer.get("stripe_customer_id")
-                
-                if not org_id or not stripe_customer_id:
-                    continue
-                
-                # Check if this customer has an active subscription in Stripe
-                subscription = await get_subscription(stripe_customer_id)
-                if subscription and subscription.get("status") == "active":
-                    # Sync the subscription data
-                    await sync_local_subscription_data(org_id, stripe_customer_id, subscription)
-                    synced_customers += 1
-                    logger.info(f"Synced billing data for org {org_id}")
-                else:
-                    # No active subscription - ensure fields are properly set
-                    await payments_customers.update_one(
-                        {"_id": customer["_id"]},
-                        {"$set": {
-                            "subscription_type": None,
-                            "stripe_current_billing_period_start": None,
-                            "stripe_current_billing_period_end": None,
-                            "subscription_spu_allowance": 0
-                        }}
-                    )
-                    logger.info(f"Cleared subscription data for org {org_id} (no active subscription)")
-                
-            except Exception as e:
-                error_msg = f"Error syncing customer {customer.get('org_id', 'unknown')}: {str(e)}"
-                logger.error(error_msg)
-                errors.append(error_msg)
-        
-        logger.info(f"Billing data sync completed: {synced_customers}/{total_customers} customers synced")
-        
-        return {
-            "success": True,
-            "total_customers": total_customers,
-            "synced_customers": synced_customers,
-            "errors": errors
-        }
-        
-    except Exception as e:
-        logger.error(f"Error during billing data sync: {e}")
-        return {"success": False, "error": str(e)}
 
 async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
     """
@@ -1863,51 +1804,6 @@ async def sync_subscription(org_id: str, org_type: str) -> bool:
     except Exception as e:
         logger.error(f"Error syncing organization subscription: {e}")
         return False
-
-async def get_organization_subscription_status(org_id: str) -> dict:
-    """
-    Get the current subscription status for an organization
-    """
-    if not stripe.api_key:
-        return {
-            "stripe_enabled": False,
-            "subscription_type": None,
-            "status": "no_stripe"
-        }
-
-    try:
-        stripe_customer = await get_stripe_customer(org_id)
-        if not stripe_customer:
-            return {
-                "stripe_enabled": True,
-                "subscription_type": None,
-                "status": "no_customer"
-            }
-
-        subscription = await get_subscription(stripe_customer.id)
-        if not subscription:
-            return {
-                "stripe_enabled": True,
-                "subscription_type": None,
-                "status": "no_subscription"
-            }
-
-        # Only return subscription type if customer has a payment method
-        subscription_type = get_subscription_type(subscription)
-            
-        return {
-            "stripe_enabled": True,
-            "subscription_type": subscription_type,
-            "status": subscription.status
-        }
-
-    except Exception as e:
-        logger.error(f"Error getting subscription status: {e}")
-        return {
-            "stripe_enabled": True,
-            "subscription_type": None,
-            "status": "error"
-        }
 
 @payments_router.put("/{organization_id}/subscription")
 async def activate_subscription(
