@@ -601,28 +601,6 @@ async def get_payment_customer(org_id: str) -> Dict[str, Any]:
     """
     return await payments_customers.find_one({"org_id": org_id})
 
-async def get_payment_subscription(org_id: str) -> Dict[str, Any]:
-    """
-    Get local payment subscription data (fast, no Stripe API calls)
-    Returns subscription data from local MongoDB payment customer record
-    """
-    payment_customer = await get_payment_customer(org_id)
-    if not payment_customer or not payment_customer.get("stripe_subscription_id"):
-        return None
-        
-    return {
-        "id": payment_customer.get("stripe_subscription_id"),
-        "status": payment_customer.get("stripe_subscription_status"), 
-        "subscription_type": payment_customer.get("subscription_type"),
-        "current_period_start": payment_customer.get("stripe_current_billing_period_start"),
-        "current_period_end": payment_customer.get("stripe_current_billing_period_end"),
-        "subscription_item_id": payment_customer.get("stripe_subscription_item_id"),
-        "spu_allowance": payment_customer.get("subscription_spu_allowance"),
-        # These require live Stripe API calls:
-        "cancel_at_period_end": None,  # Use get_stripe_subscription() for live data
-        "live_payment_status": None    # Use get_stripe_subscription() for live data
-    }
-
 async def get_stripe_customer(org_id: str) -> Dict[str, Any]:
     """
     Get the Stripe customer for the given org_id (calls Stripe API - use sparingly)
