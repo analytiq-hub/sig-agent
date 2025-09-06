@@ -1096,7 +1096,6 @@ async def create_checkout_session(
         # Enterprise plans don't use Stripe - handle locally
         try:
             # Update organization type to enterprise
-            from docrouter_app.models import UpdateOrganizationRequest
             await db.organizations.update_one(
                 {"_id": ObjectId(organization_id)},
                 {"$set": {"type": "enterprise"}}
