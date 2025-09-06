@@ -579,6 +579,8 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
         # No-op if Stripe is not configured
         return None
 
+    logger.info(f"Syncing payments customer for org_id: {org_id}")
+
     # Get the org_name from the org_id
     org = await db["organizations"].find_one({"_id": ObjectId(org_id)})
     org_name = org.get("name")
