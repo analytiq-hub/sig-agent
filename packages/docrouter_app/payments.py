@@ -157,6 +157,7 @@ class SubscriptionResponse(BaseModel):
     subscription_status: Optional[str] = None
     cancel_at_period_end: bool = False
     current_period_end: Optional[int] = None  # Unix timestamp
+    stripe_payments_portal: bool = False
 
 class UsageData(BaseModel):
     subscription_type: Optional[str]
@@ -910,6 +911,10 @@ async def sync_local_subscription_data(org_id: str, stripe_customer_id: str, sub
             "subscription_updated_at": datetime.utcnow()
         }
         
+        # Set stripe_payments_portal to True for individual/team subscriptions (never revert back to False)
+        if subscription_type in ['individual', 'team']:
+            update_data["stripe_payments_portal"] = True
+        
         await payments_customers.update_one(
             {"org_id": org_id},
             {"$set": update_data}
@@ -1125,36 +1130,37 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
             metadata={'subscription_type': subscription_type}
         )
 
+    # Set stripe_payments_portal to True for individual/team subscriptions (never revert back to False)
+    if subscription_type in ['individual', 'team']:
+        await payments_customers.update_one(
+            {"org_id": org_id},
+            {"$set": {"stripe_payments_portal": True}}
+        )
+        logger.info(f"Set stripe_payments_portal=True for org {org_id} with {subscription_type} subscription")
+
     return True
 
 @payments_router.post("/{organization_id}/customer-portal")
 async def customer_portal(
     organization_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_org_admin_user)
 ) -> PortalSessionResponse:
     """Generate a customer portal link (Stripe for non-enterprise, contact page for enterprise)"""
 
     logger.info(f"Generating customer portal for org_id: {organization_id}")
 
-    is_sys_admin = await is_system_admin(current_user.user_id)
-    is_org_member = await is_organization_member(organization_id, current_user.user_id)
-
-    if not is_sys_admin and not is_org_member:
-        raise HTTPException(status_code=403, detail="You are not authorized to generate a customer portal")
-
-    # Check if this is an enterprise customer
-    is_enterprise = await is_enterprise_customer(organization_id)
+    # Get customer data to check stripe_payments_portal flag
+    customer = await payments_customers.find_one({"org_id": organization_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
     
-    if is_enterprise:
-        # Enterprise customers don't use Stripe portal - redirect to enterprise billing contact
-        enterprise_portal_url = f"{NEXTAUTH_URL}/enterprise-billing?org_id={organization_id}"
-        return PortalSessionResponse(url=enterprise_portal_url)
+    # Check if stripe payments portal is available
+    stripe_payments_portal = customer.get("stripe_payments_portal", False)
+    if not stripe_payments_portal:
+        raise HTTPException(status_code=403, detail="Payment portal is not available")
 
     try:
-        # Get Stripe customer for non-enterprise customers
-        customer = await payments_customers.find_one({"org_id": organization_id})
-        if not customer:
-            raise HTTPException(status_code=404, detail="Customer not found")
+        # Always provide Stripe portal when stripe_payments_portal is true
         logger.info(f"Stripe customer found for org_id: {organization_id}: {customer['stripe_customer_id']}")
         session = await StripeAsync.billing_portal_session_create(
             customer=customer["stripe_customer_id"],
@@ -1710,12 +1716,16 @@ async def get_subscription_info(
             if subscription_status == 'active' and cancel_at_period_end:
                 subscription_status = 'cancelling'
     
+    # Get stripe_payments_portal flag from customer data (defaults to False if not set)
+    stripe_payments_portal = customer.get("stripe_payments_portal", False)
+    
     return SubscriptionResponse(
         plans=plans, 
         current_plan=current_subscription_type,
         subscription_status=subscription_status,
         cancel_at_period_end=cancel_at_period_end,
-        current_period_end=current_period_end
+        current_period_end=current_period_end,
+        stripe_payments_portal=stripe_payments_portal
     )
 
 async def handle_activate_subscription(org_id: str, org_type: str, customer_id: str) -> bool:

@@ -19,6 +19,8 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<number | null>(null);
+  const [stripePaymentsPortal, setStripePaymentsPortal] = useState<boolean>(false);
+  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [view, setView] = useState<'usage' | 'pricing'>('pricing');
   const [usageRefreshKey, setUsageRefreshKey] = useState<number>(0); // Add this state
 
@@ -69,6 +71,14 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
 
   const handleCancellationInfoChange = (cancelAtPeriodEnd: boolean, currentPeriodEnd: number | null) => {
     setCurrentPeriodEnd(currentPeriodEnd);
+  };
+
+  const handleStripePaymentsPortalChange = (stripePaymentsPortal: boolean) => {
+    setStripePaymentsPortal(stripePaymentsPortal);
+  };
+
+  const handleCurrentPlanChange = (currentPlan: string | null) => {
+    setCurrentPlan(currentPlan);
   };
 
   const formatDate = (timestamp: number) => {
@@ -203,6 +213,8 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
             onPaymentMethodStatusChange={handlePaymentMethodStatusChange}
             onSubscriptionStatusChange={handleSubscriptionStatusChange}
             onCancellationInfoChange={handleCancellationInfoChange}
+            onStripePaymentsPortalChange={handleStripePaymentsPortalChange}
+            onCurrentPlanChange={handleCurrentPlanChange}
           />
 
           {/* Subscription status and actions - only shown in billing view */}
@@ -276,27 +288,31 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
                     Subscribe
                   </button>
                 )}
-                <a 
-                  href={customerPortalUrl || undefined} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                >
-                  <svg 
-                    className="h-4 w-4 text-white -mt-1" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
+                {stripePaymentsPortal && (
+                  <a 
+                    href={customerPortalUrl || undefined} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                   >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" 
-                    />
-                  </svg>
-                  <span className="flex items-center">Manage Billing</span>
-                </a>
+                    <svg 
+                      className="h-4 w-4 text-white -mt-1" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" 
+                      />
+                    </svg>
+                    <span className="flex items-center">
+                      {currentPlan === 'enterprise' ? 'Previous Plan Billing' : 'Manage Billing'}
+                    </span>
+                  </a>
+                )}
               </div>
             </div>
           )}

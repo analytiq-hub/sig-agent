@@ -12,12 +12,16 @@ interface SubscriptionPlansProps {
   onPaymentMethodStatusChange?: (hasPaymentMethod: boolean) => void;
   onSubscriptionStatusChange?: (subscriptionStatus: string | null) => void;
   onCancellationInfoChange?: (cancelAtPeriodEnd: boolean, currentPeriodEnd: number | null) => void;
+  onStripePaymentsPortalChange?: (stripePaymentsPortal: boolean) => void;
+  onCurrentPlanChange?: (currentPlan: string | null) => void;
 }
 
 const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ 
   organizationId, 
   onSubscriptionStatusChange,
-  onCancellationInfoChange
+  onCancellationInfoChange,
+  onStripePaymentsPortalChange,
+  onCurrentPlanChange
 }) => {
   const { session } = useAppSession();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -49,6 +53,16 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         // Notify parent component about cancellation info
         if (onCancellationInfoChange) {
           onCancellationInfoChange(subscriptionData.cancel_at_period_end, subscriptionData.current_period_end);
+        }
+        
+        // Notify parent component about stripe payments portal flag
+        if (onStripePaymentsPortalChange) {
+          onStripePaymentsPortalChange(subscriptionData.stripe_payments_portal);
+        }
+        
+        // Notify parent component about current plan
+        if (onCurrentPlanChange) {
+          onCurrentPlanChange(subscriptionData.current_plan);
         }
       } catch (error) {
         console.error('Error fetching subscription plans:', error);
@@ -109,6 +123,12 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         }
         if (onCancellationInfoChange) {
           onCancellationInfoChange(subscriptionResponse.cancel_at_period_end, subscriptionResponse.current_period_end);
+        }
+        if (onStripePaymentsPortalChange) {
+          onStripePaymentsPortalChange(subscriptionResponse.stripe_payments_portal);
+        }
+        if (onCurrentPlanChange) {
+          onCurrentPlanChange(subscriptionResponse.current_plan);
         }
         
         return;
