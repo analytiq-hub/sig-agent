@@ -292,13 +292,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
           SPU is our flexible billing unit that allows for different pricing based on the complexity of document processing. 
         </p>
       </div>
-      
-      {/* Billing Information */}
-      <div className="mt-4 text-center">
-        <p className="text-gray-500 text-xs">
-          View and download past invoices, update payment methods, and manage your billing preferences
-        </p>
-      </div>
     </div>
   );
 };
