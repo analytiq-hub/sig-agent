@@ -13,7 +13,8 @@ import analytiq_data as ad
 
 from docrouter_app.auth import (
     get_current_user,
-    get_org_user,
+    get_org_admin_user,
+    get_admin_or_org_user,
     is_organization_admin,
     is_system_admin,
     is_organization_member
@@ -1073,7 +1074,7 @@ async def customer_portal(
 async def create_checkout_session(
     organization_id: str,
     request: CheckoutSessionRequest,
-    current_user: User = Depends(get_org_user)
+    current_user: User = Depends(get_admin_or_org_user)
 ) -> PortalSessionResponse:
     """Create a Stripe Checkout session for subscription setup"""
 
@@ -1095,6 +1096,11 @@ async def create_checkout_session(
         return PortalSessionResponse(url=contact_url)
 
     try:
+        is_org_admin = await is_organization_admin(organization_id, current_user.user_id)
+
+        if not is_org_admin:
+            raise HTTPException(status_code=403, detail="You are not authorized to create a checkout session")
+
         # Get the customer
         customer = await stripe_customers.find_one({"org_id": organization_id})
         if not customer:
@@ -1411,7 +1417,7 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
 @payments_router.get("/{organization_id}/subscription")
 async def get_subscription_info(
     organization_id: str = None,
-    current_user: User = Depends(get_org_user)
+    current_user: User = Depends(get_admin_or_org_user)
 ) -> SubscriptionResponse:
     """Get available subscription plans and user's current plan"""
 

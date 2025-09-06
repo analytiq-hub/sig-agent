@@ -52,7 +52,6 @@ from docrouter_app.auth import (
     get_admin_user,
     get_session_user,
     get_org_user,
-    get_admin_or_org_user,
     is_system_admin,
     is_organization_admin,
     is_organization_member
