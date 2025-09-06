@@ -74,3 +74,21 @@ export interface CreditUpdateResponse {
   success: boolean;
   added: number;
 }
+
+// New types for SPU usage analytics
+export interface UsageAnalyticsRequest {
+  start_date: string;  // ISO date string (required)
+  end_date: string;    // ISO date string (required)
+}
+
+export interface UsageDataPoint {
+  date: string;                         // ISO date string
+  spus: number;                         // SPUs used on this date
+  operation: string;                    // Type of operation
+  source: string;                       // Source of usage
+}
+
+export interface UsageAnalyticsResponse {
+  data_points: UsageDataPoint[];
+  total_spus: number;                   // Total SPUs in the period
+}

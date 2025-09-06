@@ -193,6 +193,20 @@ class PurchaseCreditsResponse(BaseModel):
 class CheckoutSessionRequest(BaseModel):
     plan_id: str
 
+class UsageAnalyticsRequest(BaseModel):
+    start_date: str                   # ISO date string (required)
+    end_date: str                     # ISO date string (required)
+
+class UsageDataPoint(BaseModel):
+    date: str                         # ISO date string
+    spus: int                         # SPUs used on this date
+    operation: str                    # Type of operation
+    source: str                       # Source of usage
+
+class UsageAnalyticsResponse(BaseModel):
+    data_points: List[UsageDataPoint]
+    total_spus: int                   # Total SPUs in the period
+
 # Dynamic configuration - populated from Stripe at startup
 CREDIT_CONFIG = {}
 
@@ -1899,6 +1913,91 @@ async def deactivate_subscription(
 
     except Exception as e:
         logger.error(f"Error cancelling subscription: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@payments_router.get("/{organization_id}/usage/analytics")
+async def get_usage_analytics(
+    organization_id: str,
+    request: UsageAnalyticsRequest = Depends(),
+    current_user: User = Depends(get_current_user)
+) -> UsageAnalyticsResponse:
+    """Get SPU usage analytics with daily granularity"""
+    
+    # Check if user has access to this organization
+    if not await is_organization_admin(org_id=organization_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Org admin access required for org_id: {organization_id}"
+        )
+
+    try:
+        # Parse start and end dates from request
+        start_dt = datetime.fromisoformat(request.start_date.replace('Z', '+00:00'))
+        end_dt = datetime.fromisoformat(request.end_date.replace('Z', '+00:00'))
+        
+        # Aggregate usage data by day
+        pipeline = [
+            {
+                "$match": {
+                    "org_id": organization_id,
+                    "timestamp": {
+                        "$gte": start_dt,
+                        "$lt": end_dt
+                    }
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "year": {"$year": "$timestamp"},
+                        "month": {"$month": "$timestamp"},
+                        "day": {"$dayOfMonth": "$timestamp"}
+                    },
+                    "total_spus": {"$sum": "$spus"},
+                    "operations": {"$addToSet": "$operation"},
+                    "sources": {"$addToSet": "$source"}
+                }
+            },
+            {
+                "$sort": {
+                    "_id.year": 1,
+                    "_id.month": 1,
+                    "_id.day": 1
+                }
+            }
+        ]
+        
+        results = await payments_usage_records.aggregate(pipeline).to_list(length=None)
+        
+        # Process results
+        data_points = []
+        total_spus = 0
+        
+        for result in results:
+            # Format date as YYYY-MM-DD
+            date_str = f"{result['_id']['year']:04d}-{result['_id']['month']:02d}-{result['_id']['day']:02d}"
+            
+            spus = result['total_spus']
+            total_spus += spus
+            
+            # Get the most common operation and source for this day
+            operation = result['operations'][0] if result['operations'] else 'unknown'
+            source = result['sources'][0] if result['sources'] else 'unknown'
+            
+            data_points.append(UsageDataPoint(
+                date=date_str,
+                spus=spus,
+                operation=operation,
+                source=source
+            ))
+        
+        return UsageAnalyticsResponse(
+            data_points=data_points,
+            total_spus=total_spus
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting usage analytics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @payments_router.get("/{organization_id}/usage")

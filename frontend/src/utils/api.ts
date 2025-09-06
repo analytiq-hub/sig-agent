@@ -128,6 +128,8 @@ import {
   UsageResponse,
   CreditConfig,
   CreditUpdateResponse,
+  UsageAnalyticsRequest,
+  UsageAnalyticsResponse,
 } from '@/types/index';
 import { toast } from 'react-toastify';
 import { JsonValue } from 'type-fest';
@@ -1044,6 +1046,14 @@ export const purchaseCreditsApi = async (orgId: string, request: {
   cancel_url: string;
 }) => {
   const response = await api.post(`/v0/payments/${orgId}/credits/purchase`, request);
+  return response.data;
+};
+
+// Add new API function for usage analytics
+export const getUsageAnalyticsApi = async (orgId: string, request: UsageAnalyticsRequest): Promise<UsageAnalyticsResponse> => {
+  const response = await api.get<UsageAnalyticsResponse>(`/v0/payments/${orgId}/usage/analytics`, {
+    params: request
+  });
   return response.data;
 };
 

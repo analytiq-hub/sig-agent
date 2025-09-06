@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import { getCustomerPortalApi } from '@/utils/api';
 import SubscriptionPlans from './SubscriptionPlans';
 import SubscriptionUsage from './SubscriptionUsage';
-import SubscriptionAdminCredit from './SubscriptionAdminCredit';
 import SubscriptionCredits from './SubscriptionCredits';
 import SubscriptionPurchase from './SubscriptionPurchase';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -331,13 +330,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
         <div className="space-y-4">
           <SubscriptionUsage 
             organizationId={organizationId} 
-            key={usageRefreshKey}
-          />
-          <SubscriptionAdminCredit 
-            organizationId={organizationId}
-            onCreditsAdded={() => {
-              setUsageRefreshKey(prev => prev + 1);
-            }}
+            refreshKey={usageRefreshKey}
           />
         </div>
       )}

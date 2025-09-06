@@ -4,9 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { getCurrentUsageApi, getSubscriptionApi, getCreditConfigApi, purchaseCreditsApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import { CreditConfig, UsageData } from '@/types/index';
+import SPUUsageChart from './SPUUsageChart';
 
 interface SubscriptionUsageProps {
   organizationId: string;
+  refreshKey?: number;
 }
 
 interface SubscriptionData {
@@ -14,7 +16,7 @@ interface SubscriptionData {
   current_plan: string | null;
 }
 
-const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId }) => {
+const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId, refreshKey }) => {
   const [usageData, setUsageData] = useState<UsageData | null>(null);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -139,9 +141,12 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
   const totalCreditsRemaining = usageData.purchased_credits_remaining + usageData.admin_credits_remaining;
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">      
+    <div className="space-y-6">
+      {/* SPU Usage Chart */}
+      <SPUUsageChart organizationId={organizationId} refreshKey={refreshKey} />
+      
       {/* Credits Section */}
-      <div className="mb-6">
+      <div className="bg-white p-6 rounded-lg shadow">
 
         {/* Total Credits Summary */}
         <div className="mt-4 p-3 bg-gray-50 rounded-md">
@@ -153,68 +158,6 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId })
             {usageData.purchased_credits_remaining} purchased + {usageData.admin_credits_remaining} admin
           </div>
         </div>
-
-        {/* Inline Purchase Credits Section */}
-        {canPurchaseCredits() && creditConfig && (
-          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-            <h5 className="text-sm font-medium text-blue-900 mb-3">Purchase Additional Credits</h5>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <label htmlFor="credit-amount" className="block text-xs font-medium text-blue-700 mb-1">
-                    Amount to Purchase
-                  </label>
-                  <input
-                    type="number"
-                    id="credit-amount"
-                    value={purchaseAmount || ''}
-                    onChange={e => {
-                      const value = e.target.value;
-                      if (value === '') {
-                        setPurchaseAmount(0);
-                      } else {
-                        const numValue = parseInt(value);
-                        setPurchaseAmount(isNaN(numValue) ? 0 : numValue);
-                      }
-                    }}
-                    className="w-full px-3 py-2 text-sm border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter number of credits"
-                    disabled={purchaseLoading}
-                  />
-                </div>
-                <div className="text-xs text-blue-600">
-                  <div>Price per credit:</div>
-                  <div className="font-medium">{creditConfig.price_per_credit} {creditConfig.currency.toUpperCase()}</div>
-                </div>
-                <div className="text-xs text-blue-600">
-                  <div>Total:</div>
-                  <div className="font-bold text-blue-800">
-                    {purchaseAmount > 0 ? (purchaseAmount * creditConfig.price_per_credit).toFixed(2) : '0.00'} {creditConfig.currency.toUpperCase()}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handlePurchaseCredits}
-                  disabled={
-                    purchaseLoading || 
-                    !purchaseAmount || 
-                    purchaseAmount <= 0 || 
-                    (purchaseAmount * creditConfig.price_per_credit) < creditConfig.min_cost || 
-                    (purchaseAmount * creditConfig.price_per_credit) > creditConfig.max_cost
-                  }
-                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-200 disabled:bg-blue-300 disabled:cursor-not-allowed"
-                >
-                  {purchaseLoading ? 'Processing...' : 'Purchase'}
-                </button>
-              </div>
-              <div className="text-xs text-blue-600">
-                You currently have <span className="font-semibold">{totalCreditsRemaining}</span> credits remaining.
-                <br />
-                Purchase amount must be between ${creditConfig.min_cost} and ${creditConfig.max_cost}.
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Compact Grid - Original Info */}
