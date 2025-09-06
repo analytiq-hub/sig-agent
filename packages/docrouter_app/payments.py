@@ -2305,12 +2305,6 @@ async def save_complete_usage_record(org_id: str, spus: int, consumption: Dict[s
         "operation": operation,
         "source": source,
         "timestamp": datetime.utcnow(),
-        "breakdown": {
-            "from_subscription": consumption["from_subscription"],
-            "from_purchased": consumption["from_purchased"],
-            "from_granted": consumption["from_granted"],
-            "from_paid": consumption["from_paid"]
-        }
     }
     
     await payments_usage_records.insert_one(usage_record)
