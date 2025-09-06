@@ -1,5 +1,5 @@
 ---
-description: Add payments.py and other related files to context for analysis
+description: Add context files for payments
 ---
 
 Add these files to your context, then stop:
