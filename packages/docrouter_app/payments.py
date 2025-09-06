@@ -2202,128 +2202,195 @@ async def ensure_subscription_credits(stripe_customer_doc):
             {"$set": update}
         )
 
-async def record_payment_usage(org_id: str, spus: int):
-    """Record payment usage for an organization using local billing period data"""
-    logger.info(f"Recording payment usage for org_id: {org_id} spus: {spus}")
+# Helper functions for improved usage tracking
 
-    stripe_customer = await payments_customers.find_one({"org_id": org_id})
-    if not stripe_customer:
-        raise Exception("No stripe_customer for org")
-    await ensure_subscription_credits(stripe_customer)
+async def get_current_balances(org_id: str) -> Dict[str, Any]:
+    """Get current balances for an organization (fresh from database)"""
+    customer = await payments_customers.find_one({"org_id": org_id})
+    if not customer:
+        raise Exception(f"No customer found for org_id: {org_id}")
     
-    # Get subscription information from local customer document (no Stripe API calls needed)
     is_enterprise = await is_enterprise_customer(org_id)
-    subscription_type = stripe_customer.get("subscription_type")
-    subscription_spu_allowance = stripe_customer.get("subscription_spu_allowance", 0)
-    current_period_start = stripe_customer.get("stripe_current_billing_period_start")
-    current_period_end = stripe_customer.get("stripe_current_billing_period_end")
+    subscription_type = customer.get("subscription_type")
+    subscription_spu_allowance = customer.get("subscription_spu_allowance", 0)
     
-    # For enterprise customers, use calendar month if not already set
-    if is_enterprise and not current_period_start:
-        subscription_type = "enterprise"
+    # Handle enterprise unlimited allowance properly
+    if is_enterprise or subscription_spu_allowance is None:
         subscription_spu_allowance = None  # Unlimited
-        # Get current calendar month boundaries
-        now = datetime.utcnow()
-        period_start_dt = datetime(now.year, now.month, 1)
-        if now.month == 12:
-            period_end_dt = datetime(now.year + 1, 1, 1)
-        else:
-            period_end_dt = datetime(now.year, now.month + 1, 1)
-        current_period_start = int(period_start_dt.timestamp())
-        current_period_end = int(period_end_dt.timestamp())
-        
-        # Update customer document with enterprise billing period
-        await payments_customers.update_one(
-            {"_id": stripe_customer["_id"]},
-            {"$set": {
-                "subscription_type": subscription_type,
-                "stripe_current_billing_period_start": current_period_start,
-                "stripe_current_billing_period_end": current_period_end,
-                "subscription_spu_allowance": subscription_spu_allowance
-            }}
-        )
+        subscription_spus_remaining = float('inf')  # Unlimited
+    else:
+        subscription_spus_used = customer.get("subscription_spus_used", 0)
+        subscription_spus_remaining = max(subscription_spu_allowance - subscription_spus_used, 0)
     
-    # Check if we need to reset subscription SPU usage for new billing period
-    customer_period_start = stripe_customer.get("stripe_current_billing_period_start")
-    period_changed = current_period_start and customer_period_start != current_period_start
-    has_spu_allowance = subscription_spu_allowance is not None and subscription_spu_allowance > 0
-    
-    if period_changed and (has_spu_allowance or is_enterprise):
-        # New billing period - reset subscription SPU usage
-        update_data = {
-            "stripe_current_billing_period_start": current_period_start,
-            "stripe_current_billing_period_end": current_period_end
-        }
-        
-        # Only reset SPU usage for plans that have limits (not enterprise)
-        if has_spu_allowance:
-            update_data["subscription_spus_used"] = 0
-            stripe_customer["subscription_spus_used"] = 0
-        
-        await payments_customers.update_one(
-            {"_id": stripe_customer["_id"]},
-            {"$set": update_data}
-        )
-        
-        logger.info(f"Updated billing period for {subscription_type} org {org_id}: {current_period_start} to {current_period_end}")
-    
-    # Get current subscription SPU usage
-    subscription_spus_used = stripe_customer.get("subscription_spus_used", 0)
-    subscription_spus_remaining = max(subscription_spu_allowance - subscription_spus_used, 0)
-    
-    # Get available credits
-    purchased_credits = stripe_customer.get("purchased_credits", 0)
-    purchased_used = stripe_customer.get("purchased_credits_used", 0)
+    # Get credit balances
+    purchased_credits = customer.get("purchased_credits", 0)
+    purchased_used = customer.get("purchased_credits_used", 0)
     purchased_remaining = max(purchased_credits - purchased_used, 0)
     
-    granted_credits = stripe_customer.get("granted_credits", CREDIT_CONFIG["spu_credit"])
-    granted_used = stripe_customer.get("granted_credits_used", 0)
+    granted_credits = customer.get("granted_credits", CREDIT_CONFIG["spu_credit"])
+    granted_used = customer.get("granted_credits_used", 0)
     granted_remaining = max(granted_credits - granted_used, 0)
     
-    # NEW ORDER: Consume subscription SPUs first, then purchased credits, then granted credits, then paid usage
-    from_subscription = min(spus, subscription_spus_remaining)
-    from_purchased = min(spus - from_subscription, purchased_remaining)
-    from_granted = min(spus - from_subscription - from_purchased, granted_remaining)
-    from_paid = spus - from_subscription - from_purchased - from_granted
+    return {
+        "customer_id": customer["_id"],
+        "is_enterprise": is_enterprise,
+        "subscription_type": subscription_type,
+        "subscription_spu_allowance": subscription_spu_allowance,
+        "subscription_spus_remaining": subscription_spus_remaining,
+        "purchased_remaining": purchased_remaining,
+        "granted_remaining": granted_remaining
+    }
 
-    # For individual/team plans, overage should not occur since it's blocked at limits check
-    # For enterprise plans, overage is allowed and tracked
-    if from_paid > 0 and subscription_type != "enterprise":
-        logger.warning(f"Unexpected overage usage for non-enterprise plan {subscription_type} for org_id: {org_id}")
-        # This should not happen since limits check should have blocked it
-        # But if it does, we'll still record it for safety
-
-    # Update subscription SPU usage
-    if from_subscription > 0:
-        await payments_customers.update_one(
-            {"_id": stripe_customer["_id"]},
-            {"$inc": {"subscription_spus_used": from_subscription}}
-        )
+def calculate_consumption_breakdown(spus: int, balances: Dict[str, Any]) -> Dict[str, int]:
+    """Calculate how SPUs should be consumed across different sources"""
+    if spus <= 0:
+        return {"from_subscription": 0, "from_purchased": 0, "from_granted": 0, "from_paid": 0}
     
-    # Update credit usage
-    if from_purchased > 0:
-        await payments_customers.update_one(
-            {"_id": stripe_customer["_id"]},
-            {"$inc": {"purchased_credits_used": from_purchased}}
-        )
+    # Consumption order: subscription → purchased → granted → paid
+    subscription_remaining = balances["subscription_spus_remaining"]
+    purchased_remaining = balances["purchased_remaining"]
+    granted_remaining = balances["granted_remaining"]
     
-    if from_granted > 0:
-        await payments_customers.update_one(
-            {"_id": stripe_customer["_id"]},
-            {"$inc": {"granted_credits_used": from_granted}}
-        )
-    
-    # Record paid usage for the remainder (overage)
-    # This will only be > 0 for enterprise plans or in unexpected cases
-    if from_paid > 0:
-        await save_usage_record(org_id, from_paid, operation="paid_usage", source="backend")
+    # Handle unlimited subscription (enterprise)
+    if subscription_remaining == float('inf'):
+        from_subscription = spus
+        from_purchased = 0
+        from_granted = 0
+        from_paid = 0
+    else:
+        from_subscription = min(spus, subscription_remaining)
+        remaining_after_subscription = spus - from_subscription
+        
+        from_purchased = min(remaining_after_subscription, purchased_remaining)
+        remaining_after_purchased = remaining_after_subscription - from_purchased
+        
+        from_granted = min(remaining_after_purchased, granted_remaining)
+        from_paid = remaining_after_purchased - from_granted
+        
+        # For non-enterprise plans, paid usage (overage) should not occur
+        if from_paid > 0 and not balances["is_enterprise"]:
+            logger.warning(f"Unexpected overage for {balances['subscription_type']} plan: {from_paid} SPUs")
     
     return {
         "from_subscription": from_subscription,
-        "from_purchased": from_purchased, 
-        "from_granted": from_granted, 
+        "from_purchased": from_purchased,
+        "from_granted": from_granted,
         "from_paid": from_paid
     }
+
+async def update_customer_balances(customer_id: str, consumption: Dict[str, int]) -> None:
+    """Update customer balances atomically"""
+    update_operations = {}
+    
+    if consumption["from_subscription"] > 0:
+        update_operations["subscription_spus_used"] = consumption["from_subscription"]
+    
+    if consumption["from_purchased"] > 0:
+        update_operations["purchased_credits_used"] = consumption["from_purchased"]
+    
+    if consumption["from_granted"] > 0:
+        update_operations["granted_credits_used"] = consumption["from_granted"]
+    
+    if update_operations:
+        await payments_customers.update_one(
+            {"_id": customer_id},
+            {"$inc": update_operations}
+        )
+
+async def save_complete_usage_record(org_id: str, spus: int, consumption: Dict[str, int], operation: str = "document_processing", source: str = "backend") -> Dict[str, Any]:
+    """Save complete usage record with breakdown"""
+    usage_record = {
+        "org_id": org_id,
+        "spus": spus,
+        "operation": operation,
+        "source": source,
+        "timestamp": datetime.utcnow(),
+        "breakdown": {
+            "from_subscription": consumption["from_subscription"],
+            "from_purchased": consumption["from_purchased"],
+            "from_granted": consumption["from_granted"],
+            "from_paid": consumption["from_paid"]
+        }
+    }
+    
+    await payments_usage_records.insert_one(usage_record)
+    
+    # Also save paid usage record if there's overage (for compatibility with existing queries)
+    if consumption["from_paid"] > 0:
+        await save_usage_record(org_id, consumption["from_paid"], operation="paid_usage", source=source)
+    
+    return usage_record
+
+def should_reset_billing_period(customer: Dict[str, Any], new_period_start: int) -> bool:
+    """Check if billing period needs to be reset"""
+    if not new_period_start:
+        return False
+    
+    customer_period_start = customer.get("stripe_current_billing_period_start")
+    return customer_period_start != new_period_start
+
+async def reset_billing_period(customer: Dict[str, Any], period_start: int, period_end: int) -> None:
+    """Reset billing period and subscription SPU usage atomically"""
+    subscription_spu_allowance = customer.get("subscription_spu_allowance", 0)
+    has_spu_allowance = subscription_spu_allowance is not None and subscription_spu_allowance > 0
+    
+    update_data = {
+        "stripe_current_billing_period_start": period_start,
+        "stripe_current_billing_period_end": period_end
+    }
+    
+    # Only reset SPU usage for plans that have limits (not enterprise)
+    if has_spu_allowance:
+        update_data["subscription_spus_used"] = 0
+    
+    await payments_customers.update_one(
+        {"_id": customer["_id"]},
+        {"$set": update_data}
+    )
+    
+    logger.info(f"Reset billing period for customer {customer['_id']}: {period_start} to {period_end}")
+
+async def record_payment_usage(org_id: str, spus: int) -> Dict[str, int]:
+    """Record payment usage with proper SPU consumption order and atomic updates"""
+    if spus <= 0:
+        logger.warning(f"Invalid SPU amount: {spus} for org_id: {org_id}")
+        return {"from_subscription": 0, "from_purchased": 0, "from_granted": 0, "from_paid": 0}
+    
+    logger.info(f"Recording payment usage for org_id: {org_id} spus: {spus}")
+    
+    try:
+        # 1. Get customer and ensure fields are initialized
+        customer = await payments_customers.find_one({"org_id": org_id})
+        if not customer:
+            raise Exception(f"No customer found for org_id: {org_id}")
+        
+        await ensure_subscription_credits(customer)
+        
+        # 2. Handle billing period management (enterprise vs subscription)
+        current_period_start, current_period_end = await get_billing_period_for_customer(org_id)
+        
+        # 3. Check for billing period reset (atomic operation)
+        if should_reset_billing_period(customer, current_period_start):
+            await reset_billing_period(customer, current_period_start, current_period_end)
+        
+        # 4. Get current balances (fresh from DB after potential reset)
+        balances = await get_current_balances(org_id)
+        
+        # 5. Calculate consumption order: subscription → purchased → granted → paid
+        consumption = calculate_consumption_breakdown(spus, balances)
+        
+        # 6. Update customer balances atomically
+        await update_customer_balances(balances["customer_id"], consumption)
+        
+        # 7. Record complete usage record with breakdown
+        await save_complete_usage_record(org_id, spus, consumption, operation="document_processing")
+        
+        logger.info(f"Usage recorded for org_id: {org_id} - {consumption}")
+        return consumption
+        
+    except Exception as e:
+        logger.error(f"Error recording payment usage for org_id {org_id}: {e}")
+        raise
 
 # Admin API to add credits
 @payments_router.post("/{organization_id}/credits/add")
