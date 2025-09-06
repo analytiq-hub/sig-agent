@@ -15,6 +15,8 @@ interface SubscriptionPlansProps {
   onStripePaymentsPortalChange?: (stripePaymentsPortal: boolean) => void;
   onCurrentPlanChange?: (currentPlan: string | null) => void;
   onCancelSubscription?: () => void;
+  cancelAtPeriodEnd?: boolean;
+  currentPeriodEnd?: number | null;
 }
 
 const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ 
@@ -23,7 +25,9 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   onCancellationInfoChange,
   onStripePaymentsPortalChange,
   onCurrentPlanChange,
-  onCancelSubscription
+  onCancelSubscription,
+  cancelAtPeriodEnd,
+  currentPeriodEnd
 }) => {
   const { session } = useAppSession();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -249,6 +253,14 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                     </li>
                   ))}
                 </ul>
+                {/* Show cancellation warning for current plan if cancelling */}
+                {currentPlan === plan.plan_id && subscriptionStatus === 'cancelling' && currentPeriodEnd && (
+                  <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded-md">
+                    <p className="text-xs text-orange-700">
+                      Cancels {new Date(currentPeriodEnd * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => {
@@ -271,7 +283,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                     ? subscriptionStatus === 'cancelling' 
                       ? 'bg-green-600 hover:bg-green-700 text-white'
                       : subscriptionStatus === 'active'
-                      ? 'bg-red-600 hover:bg-red-700 text-white'
+                      ? 'bg-white hover:bg-red-50 text-red-600 border border-red-300'
                       : 'bg-gray-300 cursor-not-allowed'
                     : !canSelectPlan(plan.plan_id)
                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'

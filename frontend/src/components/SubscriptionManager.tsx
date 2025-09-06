@@ -81,13 +81,6 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
     setCurrentPlan(currentPlan);
   };
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
 
   const getSubscriptionStatusBadge = (status: string | null) => {
     if (!status) return null;
@@ -192,6 +185,8 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
             onStripePaymentsPortalChange={handleStripePaymentsPortalChange}
             onCurrentPlanChange={handleCurrentPlanChange}
             onCancelSubscription={handleCancelSubscription}
+            cancelAtPeriodEnd={subscriptionStatus === 'cancelling'}
+            currentPeriodEnd={currentPeriodEnd}
           />
 
           {/* Subscription status and actions - only shown in billing view */}
@@ -201,11 +196,6 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
                 <span className="text-sm text-gray-600">Subscription Status:</span>
                 {getSubscriptionStatusBadge(subscriptionStatus)}
               </div>
-              {subscriptionStatus === 'cancelling' && currentPeriodEnd && (
-                <p className="text-sm text-orange-600">
-                  Your subscription will be cancelled on {formatDate(currentPeriodEnd)}. You can reactivate it anytime before then.
-                </p>
-              )}
               {subscriptionStatus === 'canceled' && (
                 <p className="text-sm text-gray-500">
                   Your subscription has been cancelled. You can reactivate it by selecting a plan below.
