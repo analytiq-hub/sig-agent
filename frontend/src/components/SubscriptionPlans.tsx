@@ -26,7 +26,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   onStripePaymentsPortalChange,
   onCurrentPlanChange,
   onCancelSubscription,
-  cancelAtPeriodEnd,
   currentPeriodEnd
 }) => {
   const { session } = useAppSession();
@@ -86,7 +85,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     };
 
     fetchData();
-  }, [organizationId, onSubscriptionStatusChange, onCancellationInfoChange]);
+  }, [organizationId, onSubscriptionStatusChange, onCancellationInfoChange, onCurrentPlanChange, onStripePaymentsPortalChange]);
 
   const canChangeToPlan = (currentPlan: string | null, targetPlan: string): boolean => {
     if (!currentPlan) return true; // No current plan, can select any
