@@ -8,6 +8,7 @@ import SubscriptionAdminCredit from './SubscriptionAdminCredit';
 import SubscriptionCreditsWidget from './SubscriptionCreditsWidget';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import { toast } from 'react-toastify';
 
 interface SubscriptionProps {
@@ -22,8 +23,9 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<number | null>(null);
   const [stripePaymentsPortal, setStripePaymentsPortal] = useState<boolean>(false);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
-  const [view, setView] = useState<'usage' | 'pricing'>('pricing');
-  const [usageRefreshKey, setUsageRefreshKey] = useState<number>(0); // Add this state
+  const [activeTab, setActiveTab] = useState<'credits' | 'plans' | 'usage'>('credits');
+  const [userSelectedTab, setUserSelectedTab] = useState<boolean>(false);
+  const [usageRefreshKey, setUsageRefreshKey] = useState<number>(0);
 
   useEffect(() => {
     const fetchPortalUrl = async () => {
@@ -80,6 +82,15 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
 
   const handleCurrentPlanChange = (currentPlan: string | null) => {
     setCurrentPlan(currentPlan);
+    
+    // Smart defaults: Set initial tab based on user state (only if user hasn't manually selected a tab)
+    if (!userSelectedTab) {
+      if (currentPlan && subscriptionStatus === 'active') {
+        setActiveTab('plans'); // Existing subscribers see plans first
+      } else {
+        setActiveTab('credits'); // New users or no subscription see credits first
+      }
+    }
   };
 
 
@@ -113,88 +124,112 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
-      {/* Top bar: Title + Toggle Links */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold">
-          {view === 'usage' ? 'Usage' : 'Billing'}
-        </h2>
-        <div className="flex gap-2">
-          {view === 'usage' ? (
-            <button
-              className="flex items-center px-3 py-1 rounded-md font-medium text-blue-700 hover:text-gray-800 transition-colors"
-              onClick={() => setView('pricing')}
-            >
-              <CreditCardIcon className="mr-1 mb-[4px]" fontSize="small" />
-              See Pricing
-            </button>
-          ) : (
-            <button
-              className="flex items-center px-3 py-1 rounded-md font-medium text-blue-700 hover:text-gray-800 transition-colors"
-              onClick={() => setView('usage')}
-            >
-              <BarChartIcon className="mr-1 mb-[4px]" fontSize="small" />
-              View Usage
-            </button>
-          )}
-        </div>
+        <h2 className="text-xl font-bold">Billing</h2>
       </div>
 
-      {/* Conditionally Render Views */}
-      {view === 'usage' ? (
-        <>
-          <SubscriptionUsage 
-            organizationId={organizationId} 
-            key={usageRefreshKey} // Add this key to force re-render
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => {
+              setActiveTab('credits');
+              setUserSelectedTab(true);
+            }}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'credits'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <AttachMoneyIcon className="mr-2 mb-1" fontSize="small" />
+            Credits
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('plans');
+              setUserSelectedTab(true);
+            }}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'plans'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <CreditCardIcon className="mr-2 mb-1" fontSize="small" />
+            Plans
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('usage');
+              setUserSelectedTab(true);
+            }}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'usage'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <BarChartIcon className="mr-2 mb-1" fontSize="small" />
+            Usage
+          </button>
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'credits' && (
+        <div className="space-y-6">
+          {/* Credits Widget */}
+          <SubscriptionCreditsWidget 
+            organizationId={organizationId}
+            currentPlan={currentPlan}
+            subscriptionStatus={subscriptionStatus}
           />
-          <div className="mt-6">
-            <SubscriptionAdminCredit 
-              organizationId={organizationId}
-              onCreditsAdded={() => {
-                // Refresh usage data by updating the key
-                setUsageRefreshKey(prev => prev + 1);
-              }}
-            />
+          
+          {/* Credits Explanation */}
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+            <h4 className="text-sm font-medium text-blue-900 mb-2">When to use Credits</h4>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• Perfect for testing and getting started</li>
+              <li>• Ideal for occasional or one-off document processing</li>
+              <li>• No monthly commitment required</li>
+              <li>• Pay only for what you use</li>
+            </ul>
           </div>
-        </>
-      ) : (
-        <>
-          {/* Top Section: Credits Widget and Quick Actions */}
-          <div className="grid lg:grid-cols-3 gap-6 mb-6">
-            {/* Credits Widget */}
-            <div className="lg:col-span-2">
-              <SubscriptionCreditsWidget 
-                organizationId={organizationId}
-                currentPlan={currentPlan}
-                subscriptionStatus={subscriptionStatus}
-              />
+
+          {/* Consider Plans Suggestion */}
+          {currentPlan && (
+            <div className="bg-green-50 border border-green-200 rounded-md p-4">
+              <h4 className="text-sm font-medium text-green-900 mb-2">💡 Consider a Monthly Plan</h4>
+              <p className="text-sm text-green-800 mb-3">
+                Using more than 5,000 SPUs per month? Monthly plans offer better value with included SPUs and lower per-unit pricing.
+              </p>
+              <button
+                onClick={() => {
+                  setActiveTab('plans');
+                  setUserSelectedTab(true);
+                }}
+                className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md transition-colors"
+              >
+                View Plans →
+              </button>
             </div>
-            
-            {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-sm font-medium text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-2">
-                {stripePaymentsPortal && (
-                  <a 
-                    href={customerPortalUrl || undefined} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center w-full px-3 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
-                  >
-                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                    </svg>
-                    {currentPlan === 'enterprise' ? 'Previous Plan Billing' : 'Manage Billing'}
-                  </a>
-                )}
-                <button
-                  className="flex items-center w-full px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
-                  onClick={() => setView('usage')}
-                >
-                  <BarChartIcon className="mr-2" fontSize="small" />
-                  View Detailed Usage
-                </button>
-              </div>
-            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'plans' && (
+        <div className="space-y-6">
+          {/* Plans Explanation */}
+          <div className="bg-green-50 border border-green-200 rounded-md p-4">
+            <h4 className="text-sm font-medium text-green-900 mb-2">When to use Monthly Plans</h4>
+            <ul className="text-sm text-green-800 space-y-1">
+              <li>• Best for regular document processing</li>
+              <li>• Includes SPUs with better per-unit pricing</li>
+              <li>• Team collaboration features</li>
+              <li>• Predictable monthly costs</li>
+            </ul>
           </div>
 
           {/* Subscription Plans */}
@@ -210,34 +245,84 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
             currentPeriodEnd={currentPeriodEnd}
           />
 
+          {/* Quick Actions */}
+          {stripePaymentsPortal && (
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-gray-900 mb-4">Quick Actions</h3>
+              <div className="space-y-2">
+                <a 
+                  href={customerPortalUrl || undefined} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center w-full px-3 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
+                >
+                  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  {currentPlan === 'enterprise' ? 'Previous Plan Billing' : 'Manage Billing'}
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Need Credits Instead */}
+          <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">Need Credits Instead?</h4>
+            <p className="text-sm text-gray-700 mb-3">
+              For occasional use or testing, credits might be more cost-effective.
+            </p>
+            <button
+              onClick={() => {
+                setActiveTab('credits');
+                setUserSelectedTab(true);
+              }}
+              className="text-sm bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-md transition-colors"
+            >
+              View Credits →
+            </button>
+          </div>
+
           {/* Special status messages */}
           {subscriptionStatus === 'canceled' && (
-            <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md text-center">
+            <div className="p-3 bg-gray-50 border border-gray-200 rounded-md text-center">
               <p className="text-sm text-gray-600">
                 Your subscription has been cancelled. You can reactivate it by selecting a plan above.
               </p>
             </div>
           )}
           {subscriptionStatus === 'past_due' && (
-            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-center">
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md text-center">
               <p className="text-sm text-yellow-700">
                 Your payment is past due. Please update your payment method to continue service.
               </p>
             </div>
           )}
-          <div className="flex flex-col items-center justify-center gap-2 text-sm text-gray-600">
-            {hasPaymentMethod === false && (
-              <div className="mb-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md w-full max-w-md">
-                <p className="text-yellow-800 text-sm flex items-center">
-                  <svg className="h-4 w-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                  No payment method configured. Please set up a payment method to manage your subscription.
-                </p>
-              </div>
-            )}
-          </div>
-        </>
+          {hasPaymentMethod === false && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-yellow-800 text-sm flex items-center">
+                <svg className="h-4 w-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                No payment method configured. Please set up a payment method to manage your subscription.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'usage' && (
+        <div className="space-y-6">
+          <SubscriptionUsage 
+            organizationId={organizationId} 
+            key={usageRefreshKey}
+          />
+          <SubscriptionAdminCredit 
+            organizationId={organizationId}
+            onCreditsAdded={() => {
+              setUsageRefreshKey(prev => prev + 1);
+            }}
+          />
+        </div>
       )}
     </div>
   );
