@@ -27,7 +27,6 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'credits' | 'plans' | 'usage'>('credits');
   const [userSelectedTab, setUserSelectedTab] = useState<boolean>(false);
-  const [usageRefreshKey, setUsageRefreshKey] = useState<number>(0);
   const [creditsRefreshKey, setCreditsRefreshKey] = useState<number>(0);
 
   // Handle URL parameters for tab navigation
@@ -330,7 +329,6 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
         <div className="space-y-4">
           <SubscriptionUsage 
             organizationId={organizationId} 
-            refreshKey={usageRefreshKey}
           />
         </div>
       )}

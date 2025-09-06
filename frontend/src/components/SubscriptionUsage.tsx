@@ -1,9 +1,8 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getCurrentUsageApi, getSubscriptionApi, getCreditConfigApi, purchaseCreditsApi } from '@/utils/api';
-import { toast } from 'react-toastify';
-import { CreditConfig, UsageData } from '@/types/index';
+import { getCurrentUsageApi } from '@/utils/api';
+import { UsageData } from '@/types/index';
 import SubscriptionSPUUsageChart from './SubscriptionSPUUsageChart';
 
 interface SubscriptionUsageProps {
@@ -11,40 +10,19 @@ interface SubscriptionUsageProps {
   refreshKey?: number;
 }
 
-interface SubscriptionData {
-  subscription_status: string | null;
-  current_plan: string | null;
-}
-
 const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId, refreshKey }) => {
   const [usageData, setUsageData] = useState<UsageData | null>(null);
-  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [creditConfig, setCreditConfig] = useState<CreditConfig | null>(null);
-  const [purchaseAmount, setPurchaseAmount] = useState<number>(500);
-  const [purchaseLoading, setPurchaseLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [usageResponse, subscriptionResponse, configResponse] = await Promise.all([
-          getCurrentUsageApi(organizationId),
-          getSubscriptionApi(organizationId),
-          getCreditConfigApi(organizationId)
-        ]);
+        const usageResponse = await getCurrentUsageApi(organizationId);
         
         if (usageResponse.data) {
           setUsageData(usageResponse.data);
         }
-        
-        setSubscriptionData({
-          subscription_status: subscriptionResponse.subscription_status,
-          current_plan: subscriptionResponse.current_plan
-        });
-
-        setCreditConfig(configResponse);
-        setPurchaseAmount(500);
       } catch (error) {
         console.error('Error fetching usage and subscription data:', error);
       } finally {
@@ -63,60 +41,6 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId, r
     });
   };
 
-  // Check if user can purchase credits (individual/team plans and non-subscribed users)
-  const canPurchaseCredits = () => {
-    if (!subscriptionData) return false;
-    
-    // Allow purchase for non-subscribed customers
-    const allowedStatuses = ['no_subscription', 'canceled', 'incomplete_expired'];
-    if (!subscriptionData.current_plan || allowedStatuses.includes(subscriptionData.subscription_status || '')) {
-      return true;
-    }
-    
-    // Allow purchase for Individual and Team plans (for overage)
-    const plansAllowingCredits = ['individual', 'team'];
-    return plansAllowingCredits.includes(subscriptionData.current_plan);
-  };
-
-  const handlePurchaseCredits = async () => {
-    if (!creditConfig) return;
-    
-    // Calculate cost for the requested amount
-    const totalCost = purchaseAmount * creditConfig.price_per_credit;
-    
-    if (totalCost < creditConfig.min_cost || totalCost > creditConfig.max_cost) {
-      toast.error(`Purchase amount must be between $${creditConfig.min_cost} and $${creditConfig.max_cost}`);
-      return;
-    }
-
-    setPurchaseLoading(true);
-    try {
-      console.log('Starting credit purchase for:', purchaseAmount, 'credits');
-      
-      const currentUrl = window.location.href;
-      const response = await purchaseCreditsApi(organizationId, { 
-        credits: purchaseAmount,
-        success_url: currentUrl, 
-        cancel_url: currentUrl 
-      });
-      
-      console.log('Purchase response:', response);
-      
-      if (response.checkout_url) {
-        console.log('Redirecting to:', response.checkout_url);
-        window.location.href = response.checkout_url;
-      } else {
-        toast.error('Failed to start checkout - no URL received');
-      }
-    } catch (err: unknown) {
-      console.error('Purchase error:', err);
-      let message = 'Failed to start checkout.';
-      if (err instanceof Error) message = err.message;
-      toast.error(message);
-    } finally {
-      setPurchaseLoading(false);
-    }
-  };
 
   if (loading) {
     return (
