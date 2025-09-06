@@ -402,8 +402,8 @@ async def init_payments():
     logger.info("Stripe initialized")
 
     if stripe.api_key:
-        ad.payments.set_check_subscription_limits_hook(check_subscription_limits)
-        ad.payments.set_record_subscription_usage_hook(record_subscription_usage)
+        ad.payments.set_check_payment_limits_hook(check_payment_limits)
+        ad.payments.set_record_payment_usage_hook(record_payment_usage)
         
         # Initialize dynamic configuration from Stripe
         await load_credit_config()
@@ -821,8 +821,8 @@ async def save_usage_record(org_id: str, spus: int, operation: str, source: str 
 
 
 
-async def check_subscription_limits(org_id: str, spus: int) -> bool:
-    """Check if organization has hit usage limits using local data only (no Stripe API calls)"""
+async def check_payment_limits(org_id: str, spus: int) -> bool:
+    """Check if organization has hit payment limits using local data only (no Stripe API calls)"""
 
     if not stripe.api_key:
         # No-op if Stripe is not configured
@@ -1378,7 +1378,7 @@ async def record_usage(
         )
 
     try:
-        result = await record_subscription_usage(
+        result = await record_payment_usage(
             organization_id,
             usage.spus,
         )
@@ -2202,9 +2202,9 @@ async def ensure_subscription_credits(stripe_customer_doc):
             {"$set": update}
         )
 
-async def record_subscription_usage(org_id: str, spus: int):
-    """Record subscription usage for an organization using local billing period data"""
-    logger.info(f"Recording subscription usage for org_id: {org_id} spus: {spus}")
+async def record_payment_usage(org_id: str, spus: int):
+    """Record payment usage for an organization using local billing period data"""
+    logger.info(f"Recording payment usage for org_id: {org_id} spus: {spus}")
 
     stripe_customer = await payments_customers.find_one({"org_id": org_id})
     if not stripe_customer:
