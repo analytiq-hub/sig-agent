@@ -14,6 +14,7 @@ interface SubscriptionPlansProps {
   onCancellationInfoChange?: (cancelAtPeriodEnd: boolean, currentPeriodEnd: number | null) => void;
   onStripePaymentsPortalChange?: (stripePaymentsPortal: boolean) => void;
   onCurrentPlanChange?: (currentPlan: string | null) => void;
+  onCancelSubscription?: () => void;
 }
 
 const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ 
@@ -21,7 +22,8 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   onSubscriptionStatusChange,
   onCancellationInfoChange,
   onStripePaymentsPortalChange,
-  onCurrentPlanChange
+  onCurrentPlanChange,
+  onCancelSubscription
 }) => {
   const { session } = useAppSession();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -249,10 +251,15 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                 </ul>
               </div>
               <button
-                onClick={() => handlePlanChange(plan.plan_id)}
+                onClick={() => {
+                  if (currentPlan === plan.plan_id && subscriptionStatus === 'active' && onCancelSubscription) {
+                    onCancelSubscription();
+                  } else {
+                    handlePlanChange(plan.plan_id);
+                  }
+                }}
                 disabled={
-                  (currentPlan === plan.plan_id && subscriptionStatus !== 'cancelling') || 
-                  !canSelectPlan(plan.plan_id)
+                  !canSelectPlan(plan.plan_id) && !(currentPlan === plan.plan_id && subscriptionStatus === 'active')
                 }
                 title={
                   plan.plan_id === 'enterprise' && !isSysAdmin(session)
@@ -263,6 +270,8 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                   currentPlan === plan.plan_id
                     ? subscriptionStatus === 'cancelling' 
                       ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : subscriptionStatus === 'active'
+                      ? 'bg-red-600 hover:bg-red-700 text-white'
                       : 'bg-gray-300 cursor-not-allowed'
                     : !canSelectPlan(plan.plan_id)
                     ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
@@ -272,7 +281,11 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                 }`}
               >
                 {currentPlan === plan.plan_id 
-                  ? subscriptionStatus === 'cancelling' ? 'Reactivate Plan' : 'Current Plan'
+                  ? subscriptionStatus === 'cancelling' 
+                    ? 'Reactivate Plan' 
+                    : subscriptionStatus === 'active'
+                    ? 'Cancel Subscription'
+                    : 'Current Plan'
                   : !canSelectPlan(plan.plan_id)
                   ? plan.plan_id === 'enterprise' ? 'Admin Only' : 'Not Available'
                   : (selectedPlan === plan.plan_id && subscriptionStatus !== 'canceled' && subscriptionStatus !== 'no_subscription')

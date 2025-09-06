@@ -127,18 +127,6 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
     }
   };
 
-  const handleReactivateSubscription = async () => {
-    if (!organizationId) return;
-    setLoading(true);
-    try {
-      await import('@/utils/api').then(api => api.activateSubscriptionApi(organizationId));
-      setSubscriptionStatus('active');
-    } catch (e) {
-      console.error('Error activating subscription:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
 
 
   if (loading) {
@@ -203,6 +191,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
             onCancellationInfoChange={handleCancellationInfoChange}
             onStripePaymentsPortalChange={handleStripePaymentsPortalChange}
             onCurrentPlanChange={handleCurrentPlanChange}
+            onCancelSubscription={handleCancelSubscription}
           />
 
           {/* Subscription status and actions - only shown in billing view */}
@@ -228,38 +217,6 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
                 </p>
               )}
               <div className="flex flex-row gap-2 mt-2">
-                {subscriptionStatus === 'active' && (
-                  <button
-                    onClick={handleCancelSubscription}
-                    disabled={loading}
-                    className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md shadow-sm text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-1"></div>
-                    ) : (
-                      <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    )}
-                    Cancel Subscription
-                  </button>
-                )}
-                {subscriptionStatus === 'cancelling' && (
-                  <button
-                    onClick={handleReactivateSubscription}
-                    disabled={loading}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
-                    ) : (
-                      <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    )}
-                    Reactivate Now
-                  </button>
-                )}
                 {stripePaymentsPortal && (
                   <a 
                     href={customerPortalUrl || undefined} 
