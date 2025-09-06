@@ -155,6 +155,19 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">Billing</h2>
+        {stripePaymentsPortal && customerPortalUrl && (
+          <a 
+            href={customerPortalUrl} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center px-3 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
+          >
+            <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+            {currentPlan === 'enterprise' ? 'Previous Plan Billing' : 'Manage Billing'}
+          </a>
+        )}
       </div>
 
       {/* Tab Navigation */}
@@ -253,7 +266,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
             <ul className="text-sm text-green-800 space-y-0.5">
               <li>• Best for regular document processing</li>
               <li>• Includes SPUs with better per-unit pricing</li>
-              <li>• Team collaboration features</li>
+              <li>• Collaboration features in the Team plan</li>
               <li>• Predictable monthly costs</li>
             </ul>
           </div>
@@ -271,25 +284,6 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
             currentPeriodEnd={currentPeriodEnd}
           />
 
-          {/* Quick Actions */}
-          {stripePaymentsPortal && (
-            <div className="bg-white border border-gray-200 rounded-lg p-3">
-              <h3 className="text-sm font-medium text-gray-900 mb-2">Quick Actions</h3>
-              <div className="space-y-2">
-                <a 
-                  href={customerPortalUrl || undefined} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center w-full px-3 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
-                >
-                  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  </svg>
-                  {currentPlan === 'enterprise' ? 'Previous Plan Billing' : 'Manage Billing'}
-                </a>
-              </div>
-            </div>
-          )}
 
           {/* Need Credits Instead */}
           <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
