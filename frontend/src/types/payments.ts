@@ -75,8 +75,8 @@ export interface CreditUpdateResponse {
   added: number;
 }
 
-// New types for SPU usage analytics
-export interface UsageAnalyticsRequest {
+// New types for SPU usage range queries
+export interface UsageRangeRequest {
   start_date: string;  // ISO date string (required)
   end_date: string;    // ISO date string (required)
 }
@@ -88,7 +88,7 @@ export interface UsageDataPoint {
   source: string;                       // Source of usage
 }
 
-export interface UsageAnalyticsResponse {
+export interface UsageRangeResponse {
   data_points: UsageDataPoint[];
   total_spus: number;                   // Total SPUs in the period
 }

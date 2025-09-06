@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getUsageAnalyticsApi } from '@/utils/api';
-import { UsageAnalyticsRequest, UsageAnalyticsResponse, UsageDataPoint } from '@/types/payments';
+import { getUsageRangeApi } from '@/utils/api';
+import { UsageRangeRequest, UsageRangeResponse, UsageDataPoint } from '@/types/payments';
 import { toast } from 'react-toastify';
 
 interface SubscriptionSPUUsageChartProps {
@@ -19,7 +19,7 @@ interface ProcessedDataPoint {
 }
 
 const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ organizationId, refreshKey }) => {
-  const [analyticsData, setAnalyticsData] = useState<UsageAnalyticsResponse | null>(null);
+  const [rangeData, setRangeData] = useState<UsageRangeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [granularity, setGranularity] = useState<'daily' | 'monthly'>('daily');
   const [viewType, setViewType] = useState<'bar' | 'cumulative'>('bar');
@@ -36,16 +36,16 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
         
-        const request: UsageAnalyticsRequest = {
+        const request: UsageRangeRequest = {
           start_date: startOfMonth.toISOString().split('T')[0],
           end_date: endOfMonth.toISOString().split('T')[0]
         };
         
-        const response = await getUsageAnalyticsApi(organizationId, request);
-        setAnalyticsData(response);
+        const response = await getUsageRangeApi(organizationId, request);
+        setRangeData(response);
       } catch (error) {
-        console.error('Error fetching usage analytics:', error);
-        toast.error('Failed to load usage analytics');
+        console.error('Error fetching usage range:', error);
+        toast.error('Failed to load usage range data');
       } finally {
         setLoading(false);
       }
@@ -55,7 +55,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
   }, [organizationId, refreshKey]);
 
   useEffect(() => {
-    if (analyticsData) {
+    if (rangeData) {
       const processData = (data: UsageDataPoint[]) => {
         if (!data || data.length === 0) return [];
 
@@ -112,10 +112,10 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
         return processed;
       };
 
-      const processed = processData(analyticsData.data_points);
+      const processed = processData(rangeData.data_points);
       setProcessedData(processed);
     }
-  }, [analyticsData, granularity]);
+  }, [rangeData, granularity]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -147,7 +147,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
     );
   }
 
-  if (!analyticsData || processedData.length === 0) {
+  if (!rangeData || processedData.length === 0) {
     return (
       <div className="bg-white p-6 rounded-lg shadow">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">SPU Usage Analytics</h3>
@@ -165,7 +165,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
     viewType === 'cumulative' ? dp.cumulative_spus : dp.spus
   ));
 
-  const averageDailySpus = analyticsData.total_spus / Math.max(processedData.length, 1);
+  const averageDailySpus = rangeData.total_spus / Math.max(processedData.length, 1);
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
@@ -232,7 +232,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-blue-50 p-4 rounded-lg">
           <div className="text-sm font-medium text-blue-600">Total SPUs</div>
-          <div className="text-2xl font-bold text-blue-900">{analyticsData.total_spus.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-blue-900">{rangeData.total_spus.toLocaleString()}</div>
         </div>
         <div className="bg-green-50 p-4 rounded-lg">
           <div className="text-sm font-medium text-green-600">Average Daily</div>

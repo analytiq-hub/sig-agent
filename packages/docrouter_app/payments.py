@@ -193,7 +193,7 @@ class PurchaseCreditsResponse(BaseModel):
 class CheckoutSessionRequest(BaseModel):
     plan_id: str
 
-class UsageAnalyticsRequest(BaseModel):
+class UsageRangeRequest(BaseModel):
     start_date: str                   # ISO date string (required)
     end_date: str                     # ISO date string (required)
 
@@ -203,7 +203,7 @@ class UsageDataPoint(BaseModel):
     operation: str                    # Type of operation
     source: str                       # Source of usage
 
-class UsageAnalyticsResponse(BaseModel):
+class UsageRangeResponse(BaseModel):
     data_points: List[UsageDataPoint]
     total_spus: int                   # Total SPUs in the period
 
@@ -1916,13 +1916,13 @@ async def deactivate_subscription(
         logger.error(f"Error cancelling subscription: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@payments_router.get("/{organization_id}/usage/analytics")
-async def get_usage_analytics(
+@payments_router.get("/{organization_id}/usage/range")
+async def get_usage_range(
     organization_id: str,
-    request: UsageAnalyticsRequest = Depends(),
+    request: UsageRangeRequest = Depends(),
     current_user: User = Depends(get_current_user)
-) -> UsageAnalyticsResponse:
-    """Get SPU usage analytics with daily granularity"""
+) -> UsageRangeResponse:
+    """Get SPU usage data for a date range with daily granularity"""
     
     # Check if user has access to this organization
     if not await is_organization_admin(org_id=organization_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
@@ -1992,13 +1992,13 @@ async def get_usage_analytics(
                 source=source
             ))
         
-        return UsageAnalyticsResponse(
+        return UsageRangeResponse(
             data_points=data_points,
             total_spus=total_spus
         )
         
     except Exception as e:
-        logger.error(f"Error getting usage analytics: {e}")
+        logger.error(f"Error getting usage range: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @payments_router.get("/{organization_id}/usage")
