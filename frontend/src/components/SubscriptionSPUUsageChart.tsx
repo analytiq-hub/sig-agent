@@ -56,11 +56,17 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
 
   useEffect(() => {
     if (rangeData) {
+      console.log('Range data received:', rangeData);
       const processData = (data: UsageDataPoint[]) => {
-        if (!data || data.length === 0) return [];
+        console.log('Processing data:', data);
+        if (!data || data.length === 0) {
+          console.log('No data to process');
+          return [];
+        }
 
         // Sort data by date
         const sortedData = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        console.log('Sorted data:', sortedData);
 
         let processed: ProcessedDataPoint[] = [];
         let cumulative = 0;
@@ -113,6 +119,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
       };
 
       const processed = processData(rangeData.data_points);
+      console.log('Final processed data:', processed);
       setProcessedData(processed);
     }
   }, [rangeData, granularity]);
@@ -150,7 +157,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
   if (!rangeData || processedData.length === 0) {
     return (
       <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">SPU Usage Analytics</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">SPU Usage Range</h3>
         <div className="text-center text-gray-500 py-8">
           <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -164,6 +171,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
   const maxValue = Math.max(...processedData.map(dp => 
     viewType === 'cumulative' ? dp.cumulative_spus : dp.spus
   ));
+  console.log('Max value for chart:', maxValue, 'Processed data length:', processedData.length);
 
   const averageDailySpus = rangeData.total_spus / Math.max(processedData.length, 1);
 
@@ -172,7 +180,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">SPU Usage Analytics</h3>
+          <h3 className="text-lg font-semibold text-gray-900">SPU Usage Range</h3>
           <p className="text-sm text-gray-600 mt-1">
             {formatPeriod()}
           </p>
@@ -242,21 +250,22 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
 
       {/* Chart */}
       <div className="bg-gray-50 p-4 rounded-lg">
-        <div className="flex items-end justify-between h-64 gap-1">
+        <div className="flex items-end h-64 gap-2" style={{ justifyContent: processedData.length === 1 ? 'center' : 'space-between' }}>
           {processedData.map((point, index) => {
             const value = viewType === 'cumulative' ? point.cumulative_spus : point.spus;
             const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
+            console.log(`Bar ${index}: value=${value}, height=${height}%, maxValue=${maxValue}`);
             
             return (
-              <div key={index} className="flex flex-col items-center flex-1">
-                <div className="relative group">
+              <div key={index} className={`flex flex-col items-center ${processedData.length === 1 ? 'w-16' : 'flex-1'}`}>
+                <div className="relative group w-full">
                   <div
-                    className={`w-full rounded-t transition-all duration-300 ${
+                    className={`w-full rounded-t transition-all duration-300 border border-gray-300 ${
                       viewType === 'cumulative' 
                         ? 'bg-gradient-to-t from-blue-500 to-blue-400' 
                         : 'bg-gradient-to-t from-green-500 to-green-400'
                     }`}
-                    style={{ height: `${height}%`, minHeight: '4px' }}
+                    style={{ height: `${Math.max(height, 5)}%`, minHeight: '20px' }}
                   ></div>
                   
                   {/* Tooltip */}
