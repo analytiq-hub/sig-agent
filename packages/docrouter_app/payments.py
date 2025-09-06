@@ -1227,6 +1227,33 @@ async def create_checkout_session(
         if not customer:
             raise HTTPException(status_code=404, detail="Customer not found")
         
+        # Check if customer already has an active subscription
+        stripe_customer_id = customer["stripe_customer_id"]
+        try:
+            existing_subscription = await get_subscription(stripe_customer_id)
+            if existing_subscription:
+                # Customer has existing subscription - modify it directly instead of using Checkout
+                logger.info(f"Customer {stripe_customer_id} has existing subscription {existing_subscription.get('id')}, using direct subscription modification instead of Checkout")
+                
+                success = await set_subscription_type(organization_id, stripe_customer_id, plan_id)
+                if success:
+                    # Return success URL directly since we modified the subscription
+                    success_url = f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?success=true"
+                    return PortalSessionResponse(url=success_url)
+                else:
+                    raise HTTPException(status_code=500, detail="Failed to update subscription")
+        except ValueError as e:
+            if "FATAL" in str(e):
+                # Multiple subscriptions detected - this is a critical error
+                logger.error(f"Multiple subscriptions detected for customer {stripe_customer_id}, cannot proceed with checkout")
+                raise HTTPException(status_code=500, detail="Multiple subscriptions detected. Please contact support.")
+            else:
+                # Other subscription errors, continue with checkout
+                logger.warning(f"Error checking existing subscription: {e}")
+        
+        # No existing subscription - proceed with normal Stripe Checkout flow
+        logger.info(f"Customer {stripe_customer_id} has no existing subscription, proceeding with Stripe Checkout")
+        
         # Get tier configuration
         tier_config = await get_tier_config(organization_id)
         if plan_id not in tier_config:
@@ -1238,7 +1265,7 @@ async def create_checkout_session(
         if not base_price_id:
             raise HTTPException(status_code=500, detail=f"Price configuration not found for plan: {plan_id}")
         
-        # Create checkout session
+        # Create checkout session for new subscription
         session = await StripeAsync._run_in_threadpool(
             stripe.checkout.Session.create,
             customer=customer["stripe_customer_id"],
