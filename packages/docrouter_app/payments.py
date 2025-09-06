@@ -607,16 +607,16 @@ async def get_payment_subscription(org_id: str) -> Dict[str, Any]:
     Returns subscription data from local MongoDB payment customer record
     """
     payment_customer = await get_payment_customer(org_id)
-    if not payment_customer or not payment_customer.get("subscription_id"):
+    if not payment_customer or not payment_customer.get("stripe_subscription_id"):
         return None
         
     return {
-        "id": payment_customer.get("subscription_id"),
-        "status": payment_customer.get("subscription_status"), 
+        "id": payment_customer.get("stripe_subscription_id"),
+        "status": payment_customer.get("stripe_subscription_status"), 
         "subscription_type": payment_customer.get("subscription_type"),
-        "current_period_start": payment_customer.get("current_billing_period_start"),
-        "current_period_end": payment_customer.get("current_billing_period_end"),
-        "subscription_item_id": payment_customer.get("subscription_item_id"),
+        "current_period_start": payment_customer.get("stripe_current_billing_period_start"),
+        "current_period_end": payment_customer.get("stripe_current_billing_period_end"),
+        "subscription_item_id": payment_customer.get("stripe_subscription_item_id"),
         "spu_allowance": payment_customer.get("subscription_spu_allowance"),
         # These require live Stripe API calls:
         "cancel_at_period_end": None,  # Use get_stripe_subscription() for live data
@@ -776,7 +776,6 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
             await payments_customers.update_one(
                 {"org_id": org_id},
                 {"$set": {
-                    "name": user_name,
                     "user_id": user_id,
                     "user_name": user_name,
                     "user_email": user_email,
@@ -924,11 +923,11 @@ async def sync_local_subscription_data(org_id: str, stripe_customer_id: str, sub
         # Update local customer document with subscription data
         update_data = {
             "subscription_type": subscription_type,
-            "subscription_status": subscription.get("status"),
-            "subscription_id": subscription.get("id"),
-            "subscription_item_id": subscription_item_id,
-            "current_billing_period_start": current_period_start,
-            "current_billing_period_end": current_period_end,
+            "stripe_subscription_status": subscription.get("status"),
+            "stripe_subscription_id": subscription.get("id"),
+            "stripe_subscription_item_id": subscription_item_id,
+            "stripe_current_billing_period_start": current_period_start,
+            "stripe_current_billing_period_end": current_period_end,
             "subscription_spu_allowance": subscription_spu_allowance,
             "subscription_updated_at": datetime.utcnow()
         }
@@ -1027,8 +1026,8 @@ async def get_billing_period_for_customer(org_id: str) -> tuple:
         return None, None
     
     # Check if we have local billing period data
-    period_start = stripe_customer.get("current_billing_period_start")
-    period_end = stripe_customer.get("current_billing_period_end")
+    period_start = stripe_customer.get("stripe_current_billing_period_start")
+    period_end = stripe_customer.get("stripe_current_billing_period_end")
     subscription_type = stripe_customer.get("subscription_type")
     
     if period_start and period_end:
@@ -1232,11 +1231,11 @@ async def create_checkout_session(
                             {"org_id": organization_id},
                             {"$set": {
                                 "subscription_type": None,
-                                "subscription_status": "canceled",
-                                "subscription_id": None,
-                                "subscription_item_id": None,
-                                "current_billing_period_start": None,
-                                "current_billing_period_end": None,
+                                "stripe_subscription_status": "canceled",
+                                "stripe_subscription_id": None,
+                                "stripe_subscription_item_id": None,
+                                "stripe_current_billing_period_start": None,
+                                "stripe_current_billing_period_end": None,
                                 "subscription_spu_allowance": 0,
                                 "subscription_updated_at": datetime.utcnow()
                             }}
@@ -1429,11 +1428,11 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
         # Clear subscription data from local customer record
         update_data = {
             "subscription_type": None,
-            "subscription_status": "canceled",
-            "subscription_id": None,
-            "subscription_item_id": None,
-            "current_billing_period_start": None,
-            "current_billing_period_end": None,
+            "stripe_subscription_status": "canceled",
+            "stripe_subscription_id": None,
+            "stripe_subscription_item_id": None,
+            "stripe_current_billing_period_start": None,
+            "stripe_current_billing_period_end": None,
             "subscription_spu_allowance": 0,
             "subscription_updated_at": datetime.utcnow()
         }
@@ -1544,8 +1543,8 @@ async def sync_existing_customers_billing_data() -> Dict[str, Any]:
         # Get all customers that don't have local billing period data
         customers = await payments_customers.find({
             "$or": [
-                {"current_billing_period_start": {"$exists": False}},
-                {"current_billing_period_start": None},
+                {"stripe_current_billing_period_start": {"$exists": False}},
+                {"stripe_current_billing_period_start": None},
                 {"subscription_type": {"$exists": False}}
             ]
         }).to_list(length=None)
@@ -1574,8 +1573,8 @@ async def sync_existing_customers_billing_data() -> Dict[str, Any]:
                         {"_id": customer["_id"]},
                         {"$set": {
                             "subscription_type": None,
-                            "current_billing_period_start": None,
-                            "current_billing_period_end": None,
+                            "stripe_current_billing_period_start": None,
+                            "stripe_current_billing_period_end": None,
                             "subscription_spu_allowance": 0
                         }}
                     )
@@ -2193,10 +2192,10 @@ async def ensure_subscription_credits(stripe_customer_doc):
     # Add subscription SPU tracking fields
     if "subscription_spus_used" not in stripe_customer_doc:
         update["subscription_spus_used"] = 0
-    if "current_billing_period_start" not in stripe_customer_doc:
-        update["current_billing_period_start"] = None
-    if "current_billing_period_end" not in stripe_customer_doc:
-        update["current_billing_period_end"] = None
+    if "stripe_current_billing_period_start" not in stripe_customer_doc:
+        update["stripe_current_billing_period_start"] = None
+    if "stripe_current_billing_period_end" not in stripe_customer_doc:
+        update["stripe_current_billing_period_end"] = None
     
     if update:
         await payments_customers.update_one(
@@ -2217,8 +2216,8 @@ async def record_subscription_usage(org_id: str, spus: int):
     is_enterprise = await is_enterprise_customer(org_id)
     subscription_type = stripe_customer.get("subscription_type")
     subscription_spu_allowance = stripe_customer.get("subscription_spu_allowance", 0)
-    current_period_start = stripe_customer.get("current_billing_period_start")
-    current_period_end = stripe_customer.get("current_billing_period_end")
+    current_period_start = stripe_customer.get("stripe_current_billing_period_start")
+    current_period_end = stripe_customer.get("stripe_current_billing_period_end")
     
     # For enterprise customers, use calendar month if not already set
     if is_enterprise and not current_period_start:
@@ -2239,22 +2238,22 @@ async def record_subscription_usage(org_id: str, spus: int):
             {"_id": stripe_customer["_id"]},
             {"$set": {
                 "subscription_type": subscription_type,
-                "current_billing_period_start": current_period_start,
-                "current_billing_period_end": current_period_end,
+                "stripe_current_billing_period_start": current_period_start,
+                "stripe_current_billing_period_end": current_period_end,
                 "subscription_spu_allowance": subscription_spu_allowance
             }}
         )
     
     # Check if we need to reset subscription SPU usage for new billing period
-    customer_period_start = stripe_customer.get("current_billing_period_start")
+    customer_period_start = stripe_customer.get("stripe_current_billing_period_start")
     period_changed = current_period_start and customer_period_start != current_period_start
     has_spu_allowance = subscription_spu_allowance is not None and subscription_spu_allowance > 0
     
     if period_changed and (has_spu_allowance or is_enterprise):
         # New billing period - reset subscription SPU usage
         update_data = {
-            "current_billing_period_start": current_period_start,
-            "current_billing_period_end": current_period_end
+            "stripe_current_billing_period_start": current_period_start,
+            "stripe_current_billing_period_end": current_period_end
         }
         
         # Only reset SPU usage for plans that have limits (not enterprise)
