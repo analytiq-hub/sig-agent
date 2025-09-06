@@ -888,16 +888,32 @@ async def sync_local_subscription_data(org_id: str, stripe_customer_id: str, sub
         # Get subscription details
         subscription_type = get_subscription_type(subscription)
         
-        # Get billing period from subscription items
-        subscription_items = subscription.get("items", {}).get("data", [])
-        if not subscription_items:
+        # Check if this is an enterprise customer (they should not have Stripe subscriptions)
+        is_enterprise = await is_enterprise_customer(org_id)
+        if is_enterprise:
+            logger.warning(f"Enterprise customer {org_id} should not have Stripe subscription {subscription.get('id')}")
             return
-            
-        subscription_item = subscription_items[0]
-        current_period_start = subscription_item.get("current_period_start")
-        current_period_end = subscription_item.get("current_period_end")
+        
+        # Get billing period - try both API versions for compatibility
+        current_period_start = None
+        current_period_end = None
+        subscription_item_id = None
+        
+        # Try new API (2025-03-31+): billing periods in subscription items
+        subscription_items = subscription.get("items", {}).get("data", [])
+        if subscription_items:
+            subscription_item = subscription_items[0]
+            subscription_item_id = subscription_item.get("id")
+            current_period_start = subscription_item.get("current_period_start")
+            current_period_end = subscription_item.get("current_period_end")
+        
+        # Fallback to legacy API (pre-2025-03-31): billing periods in subscription
+        if not current_period_start or not current_period_end:
+            current_period_start = subscription.get("current_period_start")
+            current_period_end = subscription.get("current_period_end")
         
         if not current_period_start or not current_period_end:
+            logger.error(f"No billing period found in subscription {subscription.get('id')} for org {org_id}")
             return
             
         # Get subscription SPU allowance
@@ -910,7 +926,7 @@ async def sync_local_subscription_data(org_id: str, stripe_customer_id: str, sub
             "subscription_type": subscription_type,
             "subscription_status": subscription.get("status"),
             "subscription_id": subscription.get("id"),
-            "subscription_item_id": subscription_item.get("id"),
+            "subscription_item_id": subscription_item_id,
             "current_billing_period_start": current_period_start,
             "current_billing_period_end": current_period_end,
             "subscription_spu_allowance": subscription_spu_allowance,
@@ -927,12 +943,13 @@ async def sync_local_subscription_data(org_id: str, stripe_customer_id: str, sub
     except Exception as e:
         logger.error(f"Error syncing local subscription data for org {org_id}: {e}")
 
-async def delete_payments_customer(org_id: str, force: bool = False) -> Dict[str, Any]:
+async def delete_payments_customer(org_id: str) -> Dict[str, Any]:
     """
-    Mark a Stripe customer as deleted without actually removing them from Stripe
+    Delete a Stripe customer and remove from local collection.
+    The customer remains in Stripe where it's kept forever and can be retrieved later.
     
     Args:
-        org_id: The org ID of the Stripe customer to mark as deleted
+        org_id: The org ID of the Stripe customer to delete
         
     Returns:
         Dictionary with status information about the operation
@@ -942,47 +959,42 @@ async def delete_payments_customer(org_id: str, force: bool = False) -> Dict[str
         # No-op if Stripe is not configured
         return None
 
-    logger.info(f"Marking Stripe customer as deleted for org_id: {org_id}")
+    logger.info(f"Deleting Stripe customer for org_id: {org_id}")
     
     try:
-        # Find Stripe customer
+        # Find local customer record
         stripe_customer = await payments_customers.find_one({"org_id": org_id})
         if not stripe_customer:
-            logger.warning(f"No Stripe customer found for org_id: {org_id}")
+            logger.warning(f"No local customer found for org_id: {org_id}")
             return {"success": False, "reason": "Customer not found"}
             
-        if not force:
-            # Delete the Stripe subscription
-            stripe_subscription = await get_subscription(stripe_customer["stripe_customer_id"])
+        stripe_customer_id = stripe_customer["stripe_customer_id"]
+        
+        # Cancel any active Stripe subscription first
+        try:
+            stripe_subscription = await get_subscription(stripe_customer_id)
             if stripe_subscription:
                 await StripeAsync.subscription_delete(stripe_subscription.id)
+                logger.info(f"Deleted subscription {stripe_subscription.get('id')} for customer {stripe_customer_id}")
+        except Exception as e:
+            logger.warning(f"Error deleting subscription for customer {stripe_customer_id}: {e}")
 
-            # In Stripe, we typically don't delete customers but mark them as deleted
-            await StripeAsync.customer_modify(
-                stripe_customer["stripe_customer_id"],
-                metadata={"deleted": "true", "deleted_at": datetime.utcnow().isoformat()}
-            )
+        # Delete the Stripe customer (it remains recoverable in Stripe)
+        await StripeAsync.customer_delete(stripe_customer_id)
+        logger.info(f"Deleted Stripe customer: {stripe_customer_id}")
         
-            # Update our database record
-            await payments_customers.update_one(
-                {"org_id": org_id},
-                {"$set": {"deleted": True, "deleted_at": datetime.utcnow()}}
-            )
-        else:
-            # Delete the Stripe customer
-            await StripeAsync.customer_delete(stripe_customer["stripe_customer_id"])
-        
-            # Delete the Stripe customer from our database
-            await payments_customers.delete_one({"org_id": org_id})
+        # Remove from our local collection
+        await payments_customers.delete_one({"org_id": org_id})
+        logger.info(f"Removed local customer record for org_id: {org_id}")
         
         return {
             "success": True, 
-            "customer_id": stripe_customer["stripe_customer_id"],
+            "customer_id": stripe_customer_id,
             "deleted_at": datetime.utcnow()
         }
         
     except Exception as e:
-        logger.error(f"Error handling Stripe customer deletion: {e}")
+        logger.error(f"Error deleting Stripe customer: {e}")
         return {"success": False, "error": str(e)}
 
 
@@ -1435,6 +1447,90 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
         
     except Exception as e:
         logger.error(f"Error handling subscription deleted webhook: {e}")
+
+async def handle_invoice_created(invoice: Dict[str, Any]):
+    """Handle invoice.created event - triggers at the start of a new billing period"""
+    logger.info(f"Handling invoice created event for invoice_id {invoice['id']}")
+    
+    try:
+        # Only process subscription invoices (not one-time payments)
+        subscription_id = invoice.get("subscription")
+        if not subscription_id:
+            logger.info(f"Invoice {invoice['id']} is not for a subscription, skipping")
+            return
+            
+        # Get the subscription to access billing period information
+        subscription = await StripeAsync._run_in_threadpool(
+            stripe.Subscription.retrieve, subscription_id
+        )
+        
+        if not subscription:
+            logger.error(f"Could not retrieve subscription {subscription_id} for invoice {invoice['id']}")
+            return
+            
+        # Find our local customer record
+        customer_id = subscription.get("customer")
+        if not customer_id:
+            logger.error(f"No customer_id found in subscription {subscription_id}")
+            return
+            
+        stripe_customer = await payments_customers.find_one({"stripe_customer_id": customer_id})
+        if not stripe_customer:
+            logger.error(f"No local customer found for Stripe customer {customer_id}")
+            return
+            
+        org_id = stripe_customer.get("org_id")
+        if not org_id:
+            logger.error(f"No org_id found for Stripe customer {customer_id}")
+            return
+        
+        # Sync the updated billing period information
+        await sync_local_subscription_data(org_id, customer_id, subscription)
+        logger.info(f"Updated billing period for org {org_id} from invoice.created webhook")
+        
+    except Exception as e:
+        logger.error(f"Error handling invoice created webhook: {e}")
+
+async def handle_invoice_payment_succeeded(invoice: Dict[str, Any]):
+    """Handle invoice.payment_succeeded event - confirms successful billing period payment"""
+    logger.info(f"Handling invoice payment succeeded event for invoice_id {invoice['id']}")
+    
+    try:
+        # Only process subscription invoices
+        subscription_id = invoice.get("subscription")
+        if not subscription_id:
+            logger.info(f"Invoice {invoice['id']} is not for a subscription, skipping")
+            return
+            
+        # Find our local customer record via subscription
+        customer_id = invoice.get("customer")
+        if not customer_id:
+            logger.error(f"No customer_id found in invoice {invoice['id']}")
+            return
+            
+        stripe_customer = await payments_customers.find_one({"stripe_customer_id": customer_id})
+        if not stripe_customer:
+            logger.error(f"No local customer found for Stripe customer {customer_id}")
+            return
+            
+        org_id = stripe_customer.get("org_id")
+        if not org_id:
+            logger.error(f"No org_id found for Stripe customer {customer_id}")
+            return
+        
+        # Reset subscription SPU usage for the new billing period
+        await payments_customers.update_one(
+            {"org_id": org_id},
+            {"$set": {
+                "subscription_spus_used": 0,  # Reset usage for new billing period
+                "subscription_updated_at": datetime.utcnow()
+            }}
+        )
+        
+        logger.info(f"Reset subscription SPU usage for org {org_id} after successful payment")
+        
+    except Exception as e:
+        logger.error(f"Error handling invoice payment succeeded webhook: {e}")
 
 async def sync_existing_customers_billing_data() -> Dict[str, Any]:
     """One-time function to sync billing period data for existing customers"""
@@ -2058,6 +2154,12 @@ async def webhook_received(
     elif event["type"] == "customer.subscription.deleted":
         subscription = event["data"]["object"]
         await handle_subscription_deleted(subscription)
+    elif event["type"] == "invoice.created":
+        invoice = event["data"]["object"]
+        await handle_invoice_created(invoice)
+    elif event["type"] == "invoice.payment_succeeded":
+        invoice = event["data"]["object"]
+        await handle_invoice_payment_succeeded(invoice)
     elif event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
         # Check if this is a subscription checkout or credit purchase
