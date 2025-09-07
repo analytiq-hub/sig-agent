@@ -156,6 +156,7 @@ class SubscriptionResponse(BaseModel):
     current_plan: Optional[str] = None
     subscription_status: Optional[str] = None
     cancel_at_period_end: bool = False
+    current_period_start: Optional[int] = None  # Unix timestamp
     current_period_end: Optional[int] = None  # Unix timestamp
     stripe_payments_portal: bool = False
 
@@ -1709,12 +1710,20 @@ async def get_subscription_info(
     # Check if this is an enterprise customer
     is_enterprise = await is_enterprise_customer(organization_id)
     
+    # Initialize billing period variables
+    current_period_start = None
+    current_period_end = None
+    
     if is_enterprise:
-        # Enterprise customers have local subscriptions, not Stripe subscriptions
+        # Enterprise customers use calendar months
         current_subscription_type = "enterprise"
         subscription_status = "active"  # Enterprise is always active
         cancel_at_period_end = False
-        current_period_end = None
+        
+        # Use current calendar month for enterprise
+        start_ts, end_ts = await get_current_billing_period()
+        current_period_start = start_ts
+        current_period_end = end_ts
     else:
         # Get the Stripe customer and subscription for non-enterprise customers
         stripe_customer = await get_stripe_customer(organization_id)
@@ -1728,19 +1737,43 @@ async def get_subscription_info(
         current_subscription_type = None
         subscription_status = None
         cancel_at_period_end = False
-        current_period_end = None
         
         if not subscription:
-            # No subscription found
+            # No subscription found - use calendar month for unsubscribed organizations
             current_subscription_type = None
             subscription_status = "no_subscription"
+            
+            # Use current calendar month for unsubscribed organizations
+            start_ts, end_ts = await get_current_billing_period()
+            current_period_start = start_ts
+            current_period_end = end_ts
         else:
             current_subscription_type = get_subscription_type(subscription)
             subscription_status = subscription.status
             
             # Check if subscription is set to cancel at period end
             cancel_at_period_end = subscription.get('cancel_at_period_end', False)
-            current_period_end = subscription.get('current_period_end')
+            
+            # For subscribed organizations, use their billing period from Stripe
+            subscription_period_start = subscription.get('current_period_start')
+            subscription_period_end = subscription.get('current_period_end')
+            
+            # Try to get billing period from subscription items (new API)
+            subscription_items = subscription.get("items", {}).get("data", [])
+            if subscription_items and not subscription_period_start:
+                subscription_item = subscription_items[0]
+                subscription_period_start = subscription_item.get("current_period_start")
+                subscription_period_end = subscription_item.get("current_period_end")
+            
+            if subscription_period_start and subscription_period_end:
+                current_period_start = subscription_period_start
+                current_period_end = subscription_period_end
+            else:
+                # Fallback to calendar month if no billing period found
+                logger.warning(f"No billing period found for subscription {subscription.get('id')}, using calendar month")
+                start_ts, end_ts = await get_current_billing_period()
+                current_period_start = start_ts
+                current_period_end = end_ts
             
             # If subscription is active but set to cancel at period end, show as "cancelling"
             if subscription_status == 'active' and cancel_at_period_end:
@@ -1754,6 +1787,7 @@ async def get_subscription_info(
         current_plan=current_subscription_type,
         subscription_status=subscription_status,
         cancel_at_period_end=cancel_at_period_end,
+        current_period_start=current_period_start,
         current_period_end=current_period_end,
         stripe_payments_portal=stripe_payments_portal
     )

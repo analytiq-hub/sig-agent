@@ -18,6 +18,7 @@ export interface SubscriptionResponse {
   current_plan: string | null;
   subscription_status: string | null;
   cancel_at_period_end: boolean;
+  current_period_start: number | null;  // Unix timestamp
   current_period_end: number | null;  // Unix timestamp
   stripe_payments_portal: boolean;
 }
