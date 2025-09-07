@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { createCheckoutSessionApi, getSubscriptionApi, updateOrganizationApi, activateSubscriptionApi } from '@/utils/api';
+import { createCheckoutSessionApi, getSubscriptionApi, updateOrganizationApi, activateSubscriptionApi, getOrganizationApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import { useAppSession } from '@/utils/useAppSession';
 import { isSysAdmin } from '@/utils/roles';
@@ -34,12 +34,17 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
-  const [stripeEnabled, setStripeEnabled] = useState<boolean>(true); // Add this state
+  const [stripeEnabled, setStripeEnabled] = useState<boolean>(true);
+  const [organizationType, setOrganizationType] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        
+        // Fetch organization data to get the organization type
+        const organizationData = await getOrganizationApi(organizationId);
+        setOrganizationType(organizationData.type);
         
         // Fetch subscription data
         const subscriptionData = await getSubscriptionApi(organizationId);
@@ -97,10 +102,10 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     return targetIndex >= currentIndex; // Can only upgrade or stay same
   };
 
-  const getPlanChangeReason = (currentPlan: string | null, targetPlan: string): string | null => {
-    if (canChangeToPlan(currentPlan, targetPlan)) return null;
+  const getPlanChangeReason = (organizationType: string | null, targetPlan: string): string | null => {
+    if (canChangeToPlan(organizationType, targetPlan)) return null;
     
-    return `Cannot downgrade from ${currentPlan} to ${targetPlan}. Contact support if you need to downgrade.`;
+    return `Cannot downgrade from ${organizationType} to ${targetPlan}. Contact support if you need to downgrade.`;
   };
 
   const handlePlanChange = async (planId: string) => {
@@ -175,8 +180,9 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       return isSysAdmin(session);
     }
     
-    // For other plans, use existing logic
-    return canChangeToPlan(currentPlan, planId);
+    // Use organization type as the minimum allowed plan level
+    // Organizations cannot downgrade below their organization type
+    return canChangeToPlan(organizationType, planId);
   };
 
   const getGridColsClass = (num: number) => {
@@ -275,7 +281,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                 title={
                   plan.plan_id === 'enterprise' && !isSysAdmin(session)
                     ? 'Enterprise plan requires admin privileges'
-                    : getPlanChangeReason(currentPlan, plan.plan_id) || ''
+                    : getPlanChangeReason(organizationType, plan.plan_id) || ''
                 }
                 className={`w-full py-2 px-4 rounded-md ${
                   currentPlan === plan.plan_id
