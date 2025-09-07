@@ -23,6 +23,20 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
   const [loading, setLoading] = useState(true);
   const [granularity, setGranularity] = useState<'daily' | 'monthly'>('daily');
   const [processedData, setProcessedData] = useState<ProcessedDataPoint[]>([]);
+  
+  // Date range state
+  const getCurrentBillingPeriod = () => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return {
+      start: startOfMonth.toISOString().split('T')[0],
+      end: endOfMonth.toISOString().split('T')[0]
+    };
+  };
+  
+  const [dateRange, setDateRange] = useState(getCurrentBillingPeriod());
+  const [isCustomRange, setIsCustomRange] = useState(false);
 
   // Single useEffect that handles both initial fetch and refresh
   useEffect(() => {
@@ -30,14 +44,9 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
       try {
         setLoading(true);
         
-        // Calculate billing period inside the effect to avoid dependency issues
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        
         const request: UsageRangeRequest = {
-          start_date: startOfMonth.toISOString().split('T')[0],
-          end_date: endOfMonth.toISOString().split('T')[0]
+          start_date: dateRange.start,
+          end_date: dateRange.end
         };
         
         const response = await getUsageRangeApi(organizationId, request);
@@ -51,7 +60,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
     };
 
     fetchData();
-  }, [organizationId, refreshKey]);
+  }, [organizationId, refreshKey, dateRange]);
 
   useEffect(() => {
     if (rangeData) {
@@ -126,14 +135,52 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
   };
 
   const formatPeriod = () => {
+    const startDate = new Date(dateRange.start);
+    const endDate = new Date(dateRange.end);
+    
+    const startStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const endStr = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    
+    if (isCustomRange) {
+      return `${startStr} - ${endStr} (Custom Range)`;
+    } else {
+      return `${startStr} - ${endStr} (Current Month)`;
+    }
+  };
+
+  const handlePresetRange = (preset: string) => {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    let start: Date, end: Date;
     
-    const startStr = startOfMonth.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const endStr = endOfMonth.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    switch (preset) {
+      case 'current_month':
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        setIsCustomRange(false);
+        break;
+      case 'last_month':
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        end = new Date(now.getFullYear(), now.getMonth(), 0);
+        setIsCustomRange(false);
+        break;
+      case 'last_30_days':
+        end = new Date(now);
+        start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        setIsCustomRange(false);
+        break;
+      case 'last_90_days':
+        end = new Date(now);
+        start = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        setIsCustomRange(false);
+        break;
+      default:
+        return;
+    }
     
-    return `${startStr} - ${endStr} (Calendar Month)`;
+    setDateRange({
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0]
+    });
   };
 
   if (loading) {
@@ -199,6 +246,63 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
             >
               Monthly
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Date Range Controls */}
+      <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          {/* Preset buttons */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => handlePresetRange('current_month')}
+              className="px-3 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
+            >
+              Current Month
+            </button>
+            <button
+              onClick={() => handlePresetRange('last_month')}
+              className="px-3 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
+            >
+              Last Month
+            </button>
+            <button
+              onClick={() => handlePresetRange('last_30_days')}
+              className="px-3 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
+            >
+              Last 30 Days
+            </button>
+            <button
+              onClick={() => handlePresetRange('last_90_days')}
+              className="px-3 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
+            >
+              Last 90 Days
+            </button>
+          </div>
+          
+          {/* Custom date inputs */}
+          <div className="flex items-center gap-2 ml-auto">
+            <label className="text-sm text-gray-600">From:</label>
+            <input
+              type="date"
+              value={dateRange.start}
+              onChange={(e) => {
+                setDateRange(prev => ({ ...prev, start: e.target.value }));
+                setIsCustomRange(true);
+              }}
+              className="px-2 py-1 text-sm border border-gray-300 rounded"
+            />
+            <label className="text-sm text-gray-600">To:</label>
+            <input
+              type="date"
+              value={dateRange.end}
+              onChange={(e) => {
+                setDateRange(prev => ({ ...prev, end: e.target.value }));
+                setIsCustomRange(true);
+              }}
+              className="px-2 py-1 text-sm border border-gray-300 rounded"
+            />
           </div>
         </div>
       </div>
