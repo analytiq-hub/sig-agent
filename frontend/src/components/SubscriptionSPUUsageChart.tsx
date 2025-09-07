@@ -37,6 +37,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
   
   const [dateRange, setDateRange] = useState(getCurrentBillingPeriod());
   const [isCustomRange, setIsCustomRange] = useState(false);
+  const [activePreset, setActivePreset] = useState<string>('current_month');
 
   // Single useEffect that handles both initial fetch and refresh
   useEffect(() => {
@@ -177,6 +178,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
         return;
     }
     
+    setActivePreset(preset);
     setDateRange({
       start: start.toISOString().split('T')[0],
       end: end.toISOString().split('T')[0]
@@ -264,25 +266,41 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => handlePresetRange('current_month')}
-              className="px-3 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
+              className={`px-3 py-1 text-xs font-medium rounded border ${
+                !isCustomRange && activePreset === 'current_month'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white border-gray-300 hover:bg-gray-50'
+              }`}
             >
               Current Month
             </button>
             <button
               onClick={() => handlePresetRange('last_month')}
-              className="px-3 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
+              className={`px-3 py-1 text-xs font-medium rounded border ${
+                !isCustomRange && activePreset === 'last_month'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white border-gray-300 hover:bg-gray-50'
+              }`}
             >
               Last Month
             </button>
             <button
               onClick={() => handlePresetRange('last_30_days')}
-              className="px-3 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
+              className={`px-3 py-1 text-xs font-medium rounded border ${
+                !isCustomRange && activePreset === 'last_30_days'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white border-gray-300 hover:bg-gray-50'
+              }`}
             >
               Last 30 Days
             </button>
             <button
               onClick={() => handlePresetRange('last_90_days')}
-              className="px-3 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
+              className={`px-3 py-1 text-xs font-medium rounded border ${
+                !isCustomRange && activePreset === 'last_90_days'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white border-gray-300 hover:bg-gray-50'
+              }`}
             >
               Last 90 Days
             </button>
@@ -297,6 +315,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
               onChange={(e) => {
                 setDateRange(prev => ({ ...prev, start: e.target.value }));
                 setIsCustomRange(true);
+                setActivePreset('');
               }}
               className="px-2 py-1 text-sm border border-gray-300 rounded"
             />
@@ -307,6 +326,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
               onChange={(e) => {
                 setDateRange(prev => ({ ...prev, end: e.target.value }));
                 setIsCustomRange(true);
+                setActivePreset('');
               }}
               className="px-2 py-1 text-sm border border-gray-300 rounded"
             />
