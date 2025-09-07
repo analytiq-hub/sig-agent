@@ -197,7 +197,27 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
   const maxValue = Math.max(...processedData.map(dp => dp.spus));
   
 
-  const averageDailySpus = rangeData.total_spus / Math.max(processedData.length, 1);
+  // Calculate average over the entire date range
+  const getDateRangeDays = () => {
+    const startDate = new Date(dateRange.start);
+    const endDate = new Date(dateRange.end);
+    const timeDiff = endDate.getTime() - startDate.getTime();
+    return Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1; // +1 to include both start and end dates
+  };
+
+  const getDateRangeMonths = () => {
+    const startDate = new Date(dateRange.start);
+    const endDate = new Date(dateRange.end);
+    const yearDiff = endDate.getFullYear() - startDate.getFullYear();
+    const monthDiff = endDate.getMonth() - startDate.getMonth();
+    return Math.max(1, yearDiff * 12 + monthDiff + 1); // +1 to include both start and end months
+  };
+
+  const averageSpus = rangeData ? (
+    granularity === 'daily' 
+      ? rangeData.total_spus / getDateRangeDays()
+      : rangeData.total_spus / getDateRangeMonths()
+  ) : 0;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
@@ -301,8 +321,8 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
           <div className="text-2xl font-bold text-blue-900">{rangeData ? rangeData.total_spus.toLocaleString() : '0'}</div>
         </div>
         <div className="bg-green-50 p-4 rounded-lg">
-          <div className="text-sm font-medium text-green-600">Average Daily</div>
-          <div className="text-2xl font-bold text-green-900">{rangeData ? averageDailySpus.toFixed(1) : '0'}</div>
+          <div className="text-sm font-medium text-green-600">Average {granularity === 'daily' ? 'Daily' : 'Monthly'}</div>
+          <div className="text-2xl font-bold text-green-900">{rangeData ? averageSpus.toFixed(1) : '0'}</div>
         </div>
       </div>
 
