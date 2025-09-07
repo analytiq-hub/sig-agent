@@ -29,9 +29,18 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    // Use local date formatting to avoid timezone issues
+    const formatLocalDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
     return {
-      start: startOfMonth.toISOString().split('T')[0],
-      end: endOfMonth.toISOString().split('T')[0]
+      start: formatLocalDate(startOfMonth),
+      end: formatLocalDate(endOfMonth)
     };
   };
   
@@ -127,7 +136,13 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
   }, [rangeData, granularity]);
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+    // Parse date strings as local dates to avoid timezone issues
+    const parseLocalDate = (dateStr: string) => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day); // month - 1 because Date constructor expects 0-based months
+    };
+    
+    const date = parseLocalDate(dateStr);
     if (granularity === 'daily') {
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     } else {
@@ -136,8 +151,14 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
   };
 
   const formatPeriod = () => {
-    const startDate = new Date(dateRange.start);
-    const endDate = new Date(dateRange.end);
+    // Parse date strings as local dates to avoid timezone issues
+    const parseLocalDate = (dateStr: string) => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day); // month - 1 because Date constructor expects 0-based months
+    };
+    
+    const startDate = parseLocalDate(dateRange.start);
+    const endDate = parseLocalDate(dateRange.end);
     
     const startStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const endStr = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -152,6 +173,14 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
   const handlePresetRange = (preset: string) => {
     const now = new Date();
     let start: Date, end: Date;
+    
+    // Helper function for local date formatting
+    const formatLocalDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
     
     switch (preset) {
       case 'current_month':
@@ -180,8 +209,8 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
     
     setActivePreset(preset);
     setDateRange({
-      start: start.toISOString().split('T')[0],
-      end: end.toISOString().split('T')[0]
+      start: formatLocalDate(start),
+      end: formatLocalDate(end)
     });
   };
 
