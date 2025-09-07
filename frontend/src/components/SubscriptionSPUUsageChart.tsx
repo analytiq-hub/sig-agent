@@ -193,19 +193,6 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
     );
   }
 
-  if (!rangeData || processedData.length === 0) {
-    return (
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">SPU Usage Range</h3>
-        <div className="text-center text-gray-500 py-8">
-          <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          <p>No usage data available for the selected period.</p>
-        </div>
-      </div>
-    );
-  }
 
   const maxValue = Math.max(...processedData.map(dp => dp.spus));
   
@@ -311,45 +298,53 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-blue-50 p-4 rounded-lg">
           <div className="text-sm font-medium text-blue-600">Total SPUs</div>
-          <div className="text-2xl font-bold text-blue-900">{rangeData.total_spus.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-blue-900">{rangeData ? rangeData.total_spus.toLocaleString() : '0'}</div>
         </div>
         <div className="bg-green-50 p-4 rounded-lg">
           <div className="text-sm font-medium text-green-600">Average Daily</div>
-          <div className="text-2xl font-bold text-green-900">{averageDailySpus.toFixed(1)}</div>
+          <div className="text-2xl font-bold text-green-900">{rangeData ? averageDailySpus.toFixed(1) : '0'}</div>
         </div>
       </div>
 
       {/* Chart */}
       <div className="bg-gray-50 p-4 rounded-lg">
-        <div className="flex items-end h-64 gap-2" style={{ justifyContent: processedData.length === 1 ? 'center' : 'space-between' }}>
-          {processedData.map((point, index) => {
-            const value = point.spus;
-            const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
-            
-            return (
-              <div key={index} className={`flex flex-col items-center ${processedData.length === 1 ? 'w-16' : 'flex-1'} relative`} style={{ height: '100%' }}>
-                <div className="relative group w-full" style={{ height: `${height}%`, minHeight: '12px', marginTop: 'auto' }}>
-                  <div
-                    className="w-full h-full rounded-t transition-all duration-300 bg-gradient-to-t from-green-500 to-green-400"
-                  ></div>
+        {!rangeData || processedData.length === 0 ? (
+          <div className="text-center text-gray-500 py-8">
+            <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <p>No usage data available for the selected period.</p>
+          </div>
+        ) : (
+          <div className="flex items-end h-64 gap-2" style={{ justifyContent: processedData.length === 1 ? 'center' : 'space-between' }}>
+            {processedData.map((point, index) => {
+              const value = point.spus;
+              const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
+              
+              return (
+                <div key={index} className={`flex flex-col items-center ${processedData.length === 1 ? 'w-16' : 'flex-1'} relative`} style={{ height: '100%' }}>
+                  <div className="relative group w-full" style={{ height: `${height}%`, minHeight: '12px', marginTop: 'auto' }}>
+                    <div
+                      className="w-full h-full rounded-t transition-all duration-300 bg-gradient-to-t from-green-500 to-green-400"
+                    ></div>
+                    
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                      <div className="font-medium">{formatDate(point.date)}</div>
+                      <div>SPUs: {value.toLocaleString()}</div>
+                      <div>Operation: {point.operation}</div>
+                    </div>
+                  </div>
                   
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                    <div className="font-medium">{formatDate(point.date)}</div>
-                    <div>SPUs: {value.toLocaleString()}</div>
-                    <div>Operation: {point.operation}</div>
+                  {/* X-axis labels */}
+                  <div className="text-xs text-gray-600 mt-2 text-center">
+                    {formatDate(point.date)}
                   </div>
                 </div>
-                
-                {/* X-axis labels */}
-                <div className="text-xs text-gray-600 mt-2 text-center">
-                  {formatDate(point.date)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        
+              );
+            })}
+          </div>
+        )}
       </div>
 
     </div>
