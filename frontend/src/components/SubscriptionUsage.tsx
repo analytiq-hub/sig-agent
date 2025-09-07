@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { getCurrentUsageApi } from '@/utils/api';
-import { UsageData } from '@/types/index';
+import { getCurrentUsageApi, getSubscriptionApi } from '@/utils/api';
+import { UsageData, SubscriptionResponse } from '@/types/index';
 import SubscriptionSPUUsageChart from './SubscriptionSPUUsageChart';
 
 interface SubscriptionUsageProps {
@@ -12,17 +12,25 @@ interface SubscriptionUsageProps {
 
 const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId, refreshKey }) => {
   const [usageData, setUsageData] = useState<UsageData | null>(null);
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const usageResponse = await getCurrentUsageApi(organizationId);
+        
+        // Fetch both usage and subscription data in parallel
+        const [usageResponse, subscriptionResponse] = await Promise.all([
+          getCurrentUsageApi(organizationId),
+          getSubscriptionApi(organizationId)
+        ]);
         
         if (usageResponse.data) {
           setUsageData(usageResponse.data);
         }
+        
+        setSubscriptionData(subscriptionResponse);
       } catch (error) {
         console.error('Error fetching usage and subscription data:', error);
       } finally {
@@ -31,7 +39,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId, r
     };
 
     fetchData();
-  }, [organizationId]);
+  }, [organizationId, refreshKey]);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString('en-US', {
@@ -39,6 +47,51 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId, r
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  // Helper function to convert UTC timestamp to local date string (YYYY-MM-DD format)
+  const convertUtcTimestampToLocalDateString = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Get billing period from subscription data, fallback to usage data, then to current month
+  const getBillingPeriod = () => {
+    // First try to get from subscription data (most accurate)
+    if (subscriptionData?.current_period_start && subscriptionData?.current_period_end) {
+      return {
+        start: convertUtcTimestampToLocalDateString(subscriptionData.current_period_start),
+        end: convertUtcTimestampToLocalDateString(subscriptionData.current_period_end)
+      };
+    }
+    
+    // Fallback to usage data
+    if (usageData?.period_start && usageData?.period_end) {
+      return {
+        start: convertUtcTimestampToLocalDateString(usageData.period_start),
+        end: convertUtcTimestampToLocalDateString(usageData.period_end)
+      };
+    }
+    
+    // Final fallback to current month
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    const formatLocalDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    return {
+      start: formatLocalDate(startOfMonth),
+      end: formatLocalDate(endOfMonth)
+    };
   };
 
 
@@ -67,7 +120,11 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId, r
   return (
     <div className="space-y-6">
       {/* SPU Usage Chart */}
-      <SubscriptionSPUUsageChart organizationId={organizationId} refreshKey={refreshKey} />
+      <SubscriptionSPUUsageChart 
+        organizationId={organizationId} 
+        refreshKey={refreshKey}
+        defaultBillingPeriod={getBillingPeriod()}
+      />
       
       {/* Credits Section */}
       <div className="bg-white p-6 rounded-lg shadow">

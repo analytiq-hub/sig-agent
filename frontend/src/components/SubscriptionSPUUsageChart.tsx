@@ -8,6 +8,10 @@ import { toast } from 'react-toastify';
 interface SubscriptionSPUUsageChartProps {
   organizationId: string;
   refreshKey?: number;
+  defaultBillingPeriod?: {
+    start: string;
+    end: string;
+  };
 }
 
 interface ProcessedDataPoint {
@@ -18,7 +22,7 @@ interface ProcessedDataPoint {
   source: string;
 }
 
-const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ organizationId, refreshKey }) => {
+const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ organizationId, refreshKey, defaultBillingPeriod }) => {
   const [rangeData, setRangeData] = useState<UsageRangeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [granularity, setGranularity] = useState<'daily' | 'monthly'>('daily');
@@ -44,9 +48,19 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
     };
   };
   
-  const [dateRange, setDateRange] = useState(getCurrentBillingPeriod());
+  const [dateRange, setDateRange] = useState(() => {
+    // Use default billing period if provided, otherwise fall back to current month
+    return defaultBillingPeriod || getCurrentBillingPeriod();
+  });
   const [isCustomRange, setIsCustomRange] = useState(false);
   const [activePreset, setActivePreset] = useState<string>('current_month');
+
+  // Update date range when default billing period changes
+  useEffect(() => {
+    if (defaultBillingPeriod && !isCustomRange) {
+      setDateRange(defaultBillingPeriod);
+    }
+  }, [defaultBillingPeriod, isCustomRange]);
 
   // Single useEffect that handles both initial fetch and refresh
   useEffect(() => {
@@ -170,10 +184,10 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
     } else {
       switch (activePreset) {
         case 'current_month':
-          label = 'Current Month';
+          label = 'Current Period';
           break;
         case 'last_month':
-          label = 'Last Month';
+          label = 'Previous Period';
           break;
         case 'last_30_days':
           label = 'Last 30 Days';
@@ -201,15 +215,35 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
       return `${year}-${month}-${day}`;
     };
     
+    // Helper function to get billing period dates
+    const getBillingPeriodDates = () => {
+      if (defaultBillingPeriod) {
+        return {
+          start: new Date(defaultBillingPeriod.start),
+          end: new Date(defaultBillingPeriod.end)
+        };
+      }
+      // Fallback to current month if no billing period
+      return {
+        start: new Date(now.getFullYear(), now.getMonth(), 1),
+        end: new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      };
+    };
+    
     switch (preset) {
       case 'current_month':
-        start = new Date(now.getFullYear(), now.getMonth(), 1);
-        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        // Use the current billing period
+        const currentBilling = getBillingPeriodDates();
+        start = currentBilling.start;
+        end = currentBilling.end;
         setIsCustomRange(false);
         break;
       case 'last_month':
-        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        end = new Date(now.getFullYear(), now.getMonth(), 0);
+        // Calculate previous billing period
+        const currentBillingForLast = getBillingPeriodDates();
+        const billingDuration = currentBillingForLast.end.getTime() - currentBillingForLast.start.getTime();
+        end = new Date(currentBillingForLast.start.getTime() - 1); // End of previous period
+        start = new Date(end.getTime() - billingDuration); // Start of previous period
         setIsCustomRange(false);
         break;
       case 'last_30_days':
@@ -320,7 +354,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
                   : 'bg-white border-gray-300 hover:bg-gray-50'
               }`}
             >
-              Current Month
+              Current Period
             </button>
             <button
               onClick={() => handlePresetRange('last_month')}
@@ -330,7 +364,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
                   : 'bg-white border-gray-300 hover:bg-gray-50'
               }`}
             >
-              Last Month
+              Previous Period
             </button>
             <button
               onClick={() => handlePresetRange('last_30_days')}
