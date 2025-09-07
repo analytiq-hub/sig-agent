@@ -163,11 +163,30 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
     const startStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const endStr = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     
+    // Determine the correct label based on active preset or custom range
+    let label = '';
     if (isCustomRange) {
-      return `${startStr} - ${endStr} (Custom Range)`;
+      label = 'Custom Range';
     } else {
-      return `${startStr} - ${endStr} (Current Month)`;
+      switch (activePreset) {
+        case 'current_month':
+          label = 'Current Month';
+          break;
+        case 'last_month':
+          label = 'Last Month';
+          break;
+        case 'last_30_days':
+          label = 'Last 30 Days';
+          break;
+        case 'last_90_days':
+          label = 'Last 90 Days';
+          break;
+        default:
+          label = 'Selected Period';
+      }
     }
+    
+    return `${startStr} - ${endStr} (${label})`;
   };
 
   const handlePresetRange = (preset: string) => {
