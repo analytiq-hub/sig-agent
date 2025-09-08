@@ -998,45 +998,45 @@ export const getInvitationApi = async (token: string): Promise<InvitationRespons
 
 // Subscription APIs
 export const getCustomerPortalApi = async (orgId: string): Promise<PortalSessionResponse> => {
-  const response = await api.post<PortalSessionResponse>(`/v0/payments/${orgId}/customer-portal`);
+  const response = await api.post<PortalSessionResponse>(`/v0/orgs/${orgId}/payments/customer-portal`);
   return response.data;
 };
 
 // Add these new API functions
 export const getSubscriptionApi = async (orgId: string): Promise<SubscriptionResponse> => {
-  const response = await api.get<SubscriptionResponse>(`/v0/payments/${orgId}/subscription`);
+  const response = await api.get<SubscriptionResponse>(`/v0/orgs/${orgId}/payments/subscription`);
   return response.data;
 };
 
 export const activateSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
-  const response = await api.put<{ status: string; message: string }>(`/v0/payments/${orgId}/subscription`);
+  const response = await api.put<{ status: string; message: string }>(`/v0/orgs/${orgId}/payments/subscription`);
   return response.data;
 };
 
 export const cancelSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
-  const response = await api.delete<{ status: string; message: string }>(`/v0/payments/${orgId}/subscription`);
+  const response = await api.delete<{ status: string; message: string }>(`/v0/orgs/${orgId}/payments/subscription`);
   return response.data;
 };
 
 // Add new API function to get current usage
 export const getCurrentUsageApi = async (orgId: string): Promise<UsageResponse> => {
-  const response = await api.get<UsageResponse>(`/v0/payments/${orgId}/usage`);
+  const response = await api.get<UsageResponse>(`/v0/orgs/${orgId}/payments/usage`);
   return response.data;
 };
 
 export const createSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
-  const response = await api.post<{ status: string; message: string }>(`/v0/payments/${orgId}/subscription`);
+  const response = await api.post<{ status: string; message: string }>(`/v0/orgs/${orgId}/payments/subscription`);
   return response.data;
 };
 
 // Add new API function to add credits (admin only)
 export const addCreditsApi = async (orgId: string, amount: number): Promise<CreditUpdateResponse> => {
-  const response = await api.post<CreditUpdateResponse>(`/v0/payments/${orgId}/credits/add`, { amount });
+  const response = await api.post<CreditUpdateResponse>(`/v0/orgs/${orgId}/payments/credits/add`, { amount });
   return response.data;
 };
 
 export const getCreditConfigApi = async (orgId: string): Promise<CreditConfig> => {
-  const response = await api.get<CreditConfig>(`/v0/payments/${orgId}/credits/config`);
+  const response = await api.get<CreditConfig>(`/v0/orgs/${orgId}/payments/credits/config`);
   return response.data;
 };
 
@@ -1045,13 +1045,13 @@ export const purchaseCreditsApi = async (orgId: string, request: {
   success_url: string;
   cancel_url: string;
 }) => {
-  const response = await api.post(`/v0/payments/${orgId}/credits/purchase`, request);
+  const response = await api.post(`/v0/orgs/${orgId}/payments/credits/purchase`, request);
   return response.data;
 };
 
 // Add new API function for usage range queries
 export const getUsageRangeApi = async (orgId: string, request: UsageRangeRequest): Promise<UsageRangeResponse> => {
-  const response = await api.get<UsageRangeResponse>(`/v0/payments/${orgId}/usage/range`, {
+  const response = await api.get<UsageRangeResponse>(`/v0/orgs/${orgId}/payments/usage/range`, {
     params: request
   });
   return response.data;
@@ -1059,7 +1059,7 @@ export const getUsageRangeApi = async (orgId: string, request: UsageRangeRequest
 
 // Add this new API function after the existing subscription APIs
 export const createCheckoutSessionApi = async (orgId: string, planId: string): Promise<PortalSessionResponse> => {
-  const response = await api.post<PortalSessionResponse>(`/v0/payments/${orgId}/checkout-session`, { plan_id: planId });
+  const response = await api.post<PortalSessionResponse>(`/v0/orgs/${orgId}/payments/checkout-session`, { plan_id: planId });
   return response.data;
 };
 

@@ -1170,7 +1170,7 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
 
     return True
 
-@payments_router.post("/v0/payments/{organization_id}/customer-portal")
+@payments_router.post("/v0/orgs/{organization_id}/payments/customer-portal")
 async def customer_portal(
     organization_id: str,
     current_user: User = Depends(get_org_admin_user)
@@ -1203,7 +1203,7 @@ async def customer_portal(
         logger.error(f"Error generating customer portal: {e}")
         return PortalSessionResponse(url="")
 
-@payments_router.post("/v0/payments/{organization_id}/checkout-session")
+@payments_router.post("/v0/orgs/{organization_id}/payments/checkout-session")
 async def create_checkout_session(
     organization_id: str,
     request: CheckoutSessionRequest,
@@ -1361,7 +1361,7 @@ async def create_checkout_session(
         logger.error(f"Error creating checkout session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@payments_router.post("/v0/payments/{organization_id}/usage")
+@payments_router.post("/v0/orgs/{organization_id}/payments/usage")
 async def record_usage(
     organization_id: str,
     usage: UsageRecord,
@@ -1649,7 +1649,7 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
         logger.error(f"Error during bulk deletion: {e}")
         return {"success": False, "error": str(e)}
 
-@payments_router.get("/v0/payments/{organization_id}/subscription")
+@payments_router.get("/v0/orgs/{organization_id}/payments/subscription")
 async def get_subscription_info(
     organization_id: str = None,
     current_user: User = Depends(get_admin_or_org_user)
@@ -1857,7 +1857,7 @@ async def sync_subscription(org_id: str, org_type: str) -> bool:
         logger.error(f"Error syncing organization subscription: {e}")
         return False
 
-@payments_router.put("/v0/payments/{organization_id}/subscription")
+@payments_router.put("/v0/orgs/{organization_id}/payments/subscription")
 async def activate_subscription(
     organization_id: str,
     current_user: User = Depends(get_current_user)
@@ -1901,7 +1901,7 @@ async def activate_subscription(
         logger.error(f"Error activating subscription: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@payments_router.delete("/v0/payments/{organization_id}/subscription")
+@payments_router.delete("/v0/orgs/{organization_id}/payments/subscription")
 async def deactivate_subscription(
     organization_id: str,
     current_user: User = Depends(get_current_user)
@@ -1950,7 +1950,7 @@ async def deactivate_subscription(
         logger.error(f"Error cancelling subscription: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@payments_router.get("/v0/payments/{organization_id}/usage/range")
+@payments_router.get("/v0/orgs/{organization_id}/payments/usage/range")
 async def get_usage_range(
     organization_id: str,
     request: UsageRangeRequest = Depends(),
@@ -2035,7 +2035,7 @@ async def get_usage_range(
         logger.error(f"Error getting usage range: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@payments_router.get("/v0/payments/{organization_id}/usage")
+@payments_router.get("/v0/orgs/{organization_id}/payments/usage")
 async def get_current_usage(
     organization_id: str,
     current_user: User = Depends(get_current_user)
@@ -2421,7 +2421,7 @@ async def record_payment_usage(org_id: str, spus: int) -> Dict[str, int]:
         raise
 
 # Admin API to add credits
-@payments_router.post("/v0/payments/{organization_id}/credits/add")
+@payments_router.post("/v0/orgs/{organization_id}/payments/credits/add")
 async def add_spu_credits(
     organization_id: str,
     update: CreditUpdate,
@@ -2441,7 +2441,7 @@ async def add_spu_credits(
     )
     return {"success": True, "added": update.amount}
 
-@payments_router.get("/v0/payments/{organization_id}/credits/config")
+@payments_router.get("/v0/orgs/{organization_id}/payments/credits/config")
 async def get_credit_config(
     organization_id: str,
     current_user: User = Depends(get_current_user)
@@ -2457,7 +2457,7 @@ async def get_credit_config(
         "max_cost": CREDIT_CONFIG["max_cost"]
     }
 
-@payments_router.post("/v0/payments/{organization_id}/credits/purchase")
+@payments_router.post("/v0/orgs/{organization_id}/payments/credits/purchase")
 async def purchase_credits(
     organization_id: str,
     request: PurchaseCreditsRequest,
