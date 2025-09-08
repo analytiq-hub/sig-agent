@@ -330,8 +330,27 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
     """
     Fetch tier configuration dynamically from Stripe prices (base pricing only)
     """
+
+    tier_config = {
+        "individual": {
+            "base_price_id": None, 
+            "base_price": 0.0, 
+            "included_spus": None
+        },
+        "team": {
+            "base_price_id": None, 
+            "base_price": 0.0, 
+            "included_spus": None
+        },
+        "enterprise": {
+            "base_price_id": None, 
+            "base_price": 0.0, 
+            "included_spus": None
+        }
+    }
+
     if not stripe.api_key:
-        raise ValueError("Stripe API key not configured - cannot fetch tier config")
+        return tier_config
 
     # Get all active prices for our product
     prices = await StripeAsync._run_in_threadpool(
@@ -339,10 +358,6 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
         active=True,
         expand=['data.product']
     )
-    
-    dynamic_config = {
-        "enterprise": {"base_price_id": None, "base_price": 0.0, "included_spus": None}
-    }
     
     # Find base prices for each tier
     for price in prices.data:
@@ -358,7 +373,7 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
             if not included_spus:
                 raise ValueError(f"Missing included_spus metadata for {tier} base price {price.id}")
                 
-            dynamic_config[tier] = {
+            tier_config[tier] = {
                 'base_price_id': price.id,
                 'base_price': price.unit_amount / 100,
                 'included_spus': int(included_spus)
@@ -366,11 +381,11 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
             logger.info(f"Loaded {tier} tier config from Stripe: ${price.unit_amount / 100}, {included_spus} SPUs")
     
     # Ensure we found both individual and team tiers
-    if 'individual' not in dynamic_config or 'team' not in dynamic_config:
-        missing = [t for t in ['individual', 'team'] if t not in dynamic_config]
+    if 'individual' not in tier_config or 'team' not in tier_config:
+        missing = [t for t in ['individual', 'team'] if t not in tier_config]
         raise ValueError(f"Missing base prices in Stripe for tiers: {missing}")
     
-    return dynamic_config
+    return tier_config
 
 # Modify the init_payments_env function
 async def init_payments_env():
@@ -1934,6 +1949,20 @@ async def get_subscription_info(
         raise HTTPException(status_code=404, detail=f"Customer not found for org_id: {organization_id}")
     
     tier_config = await get_tier_config(organization_id)
+
+    if tier_config["individual"]["included_spus"] is not None:
+        individual_price_per_spu = tier_config["individual"]["base_price"] / tier_config["individual"]["included_spus"]
+        individual_included_spus = tier_config["individual"]["included_spus"]
+    else:
+        individual_price_per_spu = 0.0
+        individual_included_spus = 0
+
+    if tier_config["team"]["included_spus"] is not None:
+        team_price_per_spu = tier_config["team"]["base_price"] / tier_config["team"]["included_spus"]
+        team_included_spus = tier_config["team"]["included_spus"]
+    else:
+        team_price_per_spu = 0.0
+        team_included_spus = 0
     
     # Define the available plans with SPU allowances
     plans = [
@@ -1941,10 +1970,10 @@ async def get_subscription_info(
             plan_id="individual",
             name="Individual",
             base_price=tier_config["individual"]["base_price"],
-            included_spus=tier_config["individual"]["included_spus"],
+            included_spus=individual_included_spus,
             features=[
-                f"${format_price_per_spu(tier_config['individual']['base_price'] / tier_config['individual']['included_spus'])} per SPU",
-                f"{tier_config['individual']['included_spus']:,} SPUs per month",
+                f"${format_price_per_spu(individual_price_per_spu)} per SPU",
+                f"{individual_included_spus:,} SPUs per month",
                 "Basic document processing",
                 f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
             ]
@@ -1953,10 +1982,10 @@ async def get_subscription_info(
             plan_id="team",
             name="Team", 
             base_price=tier_config["team"]["base_price"],
-            included_spus=tier_config["team"]["included_spus"],
+            included_spus=team_included_spus,
             features=[
-                f"${format_price_per_spu(tier_config['team']['base_price'] / tier_config['team']['included_spus'])} per SPU",
-                f"{tier_config['team']['included_spus']:,} SPUs per month",
+                f"${format_price_per_spu(team_price_per_spu)} per SPU",
+                f"{team_included_spus:,} SPUs per month",
                 "Advanced document processing",
                 "Team collaboration features",
                 f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
@@ -1981,19 +2010,17 @@ async def get_subscription_info(
     is_enterprise = await is_enterprise_customer(organization_id)
     
     # Initialize billing period variables
-    current_period_start = None
-    current_period_end = None
+    current_subscription_type = None
+    subscription_status = None
+    current_period_start, current_period_end = await get_current_billing_period()
+    cancel_at_period_end = False
     
     if is_enterprise:
         # Enterprise customers use calendar months
         current_subscription_type = "enterprise"
         subscription_status = "active"  # Enterprise is always active
-        cancel_at_period_end = False
-        
-        # Use current calendar month for enterprise
-        start_ts, end_ts = await get_current_billing_period()
-        current_period_start = start_ts
-        current_period_end = end_ts
+    elif not stripe.api_key:
+        pass
     else:
         # Get the Stripe customer and subscription for non-enterprise customers
         stripe_customer = await get_stripe_customer(organization_id)
@@ -2003,10 +2030,6 @@ async def get_subscription_info(
 
         # Get the subscription
         subscription = await get_subscription(stripe_customer.id)
-
-        current_subscription_type = None
-        subscription_status = None
-        cancel_at_period_end = False
         
         if not subscription:
             # No subscription found - use calendar month for unsubscribed organizations
@@ -2714,11 +2737,9 @@ async def add_spu_credits(
 @payments_router.get("/v0/orgs/{organization_id}/payments/credits/config")
 async def get_credit_config(
     organization_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_admin_or_org_user)
 ):
     """Get credit purchase configuration"""
-    if not await is_organization_member(org_id=organization_id, user_id=current_user.user_id):
-        raise HTTPException(status_code=403, detail="Access denied")
     
     return {
         "price_per_credit": CREDIT_CONFIG["price_per_credit"],

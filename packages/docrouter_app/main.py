@@ -4019,9 +4019,7 @@ async def delete_account_token(
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
 
-# Include payments router only if STRIPE_SECRET_KEY is set
-if os.getenv("STRIPE_SECRET_KEY"):
-    app.include_router(payments_router)
+app.include_router(payments_router)
 
 # --- Form Schema Versioning Helper ---
 async def get_form_id_and_version(form_id: Optional[str] = None) -> tuple[str, int]:
