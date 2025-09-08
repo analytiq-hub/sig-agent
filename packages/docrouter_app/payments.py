@@ -221,6 +221,8 @@ CREDIT_CONFIG = {
 
 # SPU limits per tier - populated from Stripe metadata at startup
 TIER_LIMITS = {
+    "individual": 0,
+    "team": 0,
     "enterprise": None     # No limit (custom billing, not in Stripe)
 }
 
@@ -231,17 +233,14 @@ async def get_tier_limits() -> Dict[str, Any]:
     global TIER_LIMITS
     
     if not stripe.api_key:
-        raise ValueError("Stripe API key not configured - cannot fetch tier limits")
-    
+        return
+
     # Get all active prices for our product
     prices = await StripeAsync._run_in_threadpool(
         stripe.Price.list,
         active=True,
         expand=['data.product']
     )
-    
-    # Start with enterprise (not in Stripe)
-    tier_limits = {"enterprise": None}
     
     # Find base prices and extract limits from metadata
     for price in prices.data:
@@ -254,26 +253,23 @@ async def get_tier_limits() -> Dict[str, Any]:
                 included_spus = metadata.get('included_spus')
                 if not included_spus:
                     raise ValueError(f"Missing included_spus metadata for {tier} base price {price.id}")
-                tier_limits[tier] = int(included_spus)
+                TIER_LIMITS[tier] = int(included_spus)
                 logger.info(f"Loaded {tier} SPU limit from Stripe: {included_spus}")
     
-    # Ensure we found both individual and team limits
-    if 'individual' not in tier_limits or 'team' not in tier_limits:
-        missing = [t for t in ['individual', 'team'] if t not in tier_limits]
-        raise ValueError(f"Missing base prices in Stripe for tiers: {missing}")
-    
-    # Update global limits
-    TIER_LIMITS = tier_limits
-    return tier_limits
+    # Ensure we have non-zero limits for individual and team
+    if TIER_LIMITS['individual'] == 0:
+        raise ValueError("Individual SPU limit must be non-zero")
+    if TIER_LIMITS['team'] == 0:
+        raise ValueError("Team SPU limit must be non-zero")
 
-async def load_credit_config() -> Dict[str, Any]:
+async def get_credit_config() -> Dict[str, Any]:
     """
     Fetch credit configuration dynamically from Stripe credit prices
     """
     global CREDIT_CONFIG
     
     if not stripe.api_key:
-        raise ValueError("Stripe API key not configured - cannot fetch credit config")
+        return
     
     # Get all active prices for our product
     prices = await StripeAsync._run_in_threadpool(
@@ -414,14 +410,12 @@ async def init_payments():
 
     logger.info("Stripe initialized")
 
-    if stripe.api_key:
-        ad.payments.set_check_payment_limits_hook(check_payment_limits)
-        ad.payments.set_record_payment_usage_hook(record_payment_usage)
-        
-        # Initialize dynamic configuration from Stripe
-        await load_credit_config()
-        await get_tier_limits()
-        logger.info("Dynamic pricing configuration and limits loaded from Stripe")
+    ad.payments.set_check_payment_limits_hook(check_payment_limits)
+    ad.payments.set_record_payment_usage_hook(record_payment_usage)
+    
+    # Initialize dynamic configuration from Stripe
+    await get_credit_config()
+    await get_tier_limits()
 
     await sync_all_customers()
     logger.info("Stripe customers synced")
@@ -1110,10 +1104,6 @@ async def save_usage_record(org_id: str, spus: int, operation: str, source: str 
 async def check_payment_limits(org_id: str, spus: int) -> bool:
     """Check if organization has hit payment limits using local data only (no Stripe API calls)"""
 
-    if not stripe.api_key:
-        # No-op if Stripe is not configured
-        return True
-
     logger.info(f"Checking subscription limits for org_id: {org_id} spus: {spus}")
 
     payment_customer = await payments_customers.find_one({"org_id": org_id})
@@ -1237,10 +1227,6 @@ async def delete_payments_customer(org_id: str) -> Dict[str, Any]:
         Dictionary with status information about the operation
     """
 
-    if not stripe.api_key:
-        # No-op if Stripe is not configured
-        return None
-
     logger.info(f"Deleting Stripe customer for org_id: {org_id}")
     
     try:
@@ -1250,20 +1236,21 @@ async def delete_payments_customer(org_id: str) -> Dict[str, Any]:
             logger.warning(f"No local customer found for org_id: {org_id}")
             return {"success": False, "reason": "Customer not found"}
             
-        stripe_customer_id = customer["stripe_customer_id"]
-        
-        # Cancel any active Stripe subscription first
-        try:
-            stripe_subscription = await get_subscription(stripe_customer_id)
-            if stripe_subscription:
-                await StripeAsync.subscription_delete(stripe_subscription.id)
-                logger.info(f"Deleted subscription {stripe_subscription.get('id')} for customer {stripe_customer_id}")
-        except Exception as e:
-            logger.warning(f"Error deleting subscription for customer {stripe_customer_id}: {e}")
+        if stripe.api_key:
+            stripe_customer_id = customer["stripe_customer_id"]
+            
+            # Cancel any active Stripe subscription first
+            try:
+                stripe_subscription = await get_subscription(stripe_customer_id)
+                if stripe_subscription:
+                    await StripeAsync.subscription_delete(stripe_subscription.id)
+                    logger.info(f"Deleted subscription {stripe_subscription.get('id')} for customer {stripe_customer_id}")
+            except Exception as e:
+                logger.warning(f"Error deleting subscription for customer {stripe_customer_id}: {e}")
 
-        # Delete the Stripe customer (it remains recoverable in Stripe)
-        await StripeAsync.customer_delete(stripe_customer_id)
-        logger.info(f"Deleted Stripe customer: {stripe_customer_id}")
+            # Delete the Stripe customer (it remains recoverable in Stripe)
+            await StripeAsync.customer_delete(stripe_customer_id)
+            logger.info(f"Deleted Stripe customer: {stripe_customer_id}")
         
         # Remove from our local collection
         await payments_customers.delete_one({"org_id": org_id})
@@ -2089,7 +2076,7 @@ async def handle_activate_subscription(org_id: str, org_type: str, customer_id: 
     """Activate a subscription"""
     
     if not stripe.api_key:
-        logger.warning("Stripe API key not configured - handle_activate_subscription aborted")
+        logger.info("Stripe API key not configured - handle_activate_subscription aborted")
         return False
 
     try:
@@ -2735,7 +2722,7 @@ async def add_spu_credits(
     return {"success": True, "added": update.amount}
 
 @payments_router.get("/v0/orgs/{organization_id}/payments/credits/config")
-async def get_credit_config(
+async def get_payments_credit_config(
     organization_id: str,
     current_user: User = Depends(get_admin_or_org_user)
 ):
