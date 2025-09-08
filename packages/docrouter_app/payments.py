@@ -414,20 +414,66 @@ async def init_payments():
     await sync_all_customers()
     logger.info("Stripe customers synced")
 
-async def sync_all_customers() -> Tuple[int, int, List[str]]:
+async def sync_payments_customers() -> Tuple[int, int, List[str]]:
     """
-    Differential sync: sync organizations to both Stripe and payments_customers collection.
-    Ensures all organizations have both Stripe customers and local payment customer records.
+    Initialize payment customers for all organizations without Stripe API calls.
+    Sets up local payment customer records with zero SPU credits, usage, and billing periods.
+    This runs regardless of Stripe configuration.
+    
+    Returns:
+        Tuple containing (total_orgs, successful_syncs, error_messages)
+    """
+    logger.info("Starting sync of local payment customers (no Stripe APIs)")
+    
+    try:
+        # Get all organizations from MongoDB
+        orgs = await db["organizations"].find().to_list(length=None)
+        total_orgs = len(orgs)
+        local_org_ids = set(str(org["_id"]) for org in orgs)
+        
+        # Get all local payment customers
+        payment_customers_list = await payments_customers.find({"org_id": {"$exists": True}}).to_list(length=None)
+        payment_org_ids = set(customer.get("org_id") for customer in payment_customers_list if customer.get("org_id"))
+        
+        # Find organizations that need local payment customer creation
+        missing_from_payments = local_org_ids - payment_org_ids
+        orphaned_in_payments = payment_org_ids - local_org_ids
+        
+        logger.info(f"Total orgs: {total_orgs}")
+        logger.info(f"Payment customers: {len(payment_org_ids)}")
+        logger.info(f"Missing from payments: {len(missing_from_payments)}")
+        logger.info(f"Orphaned in payments: {len(orphaned_in_payments)}")
+        
+        # Clean up orphaned payment customers
+        if orphaned_in_payments:
+            logger.info(f"Cleaning up {len(orphaned_in_payments)} orphaned payment customers")
+            await _cleanup_orphaned_payment_customers(orphaned_in_payments)
+        
+        if not missing_from_payments:
+            logger.info("All organizations already have local payment customers")
+            return total_orgs, 0, []
+        
+        # Create local payment customers for missing organizations
+        return await _create_payments_customer_set(missing_from_payments)
+    
+    except Exception as e:
+        logger.error(f"Error during payment customers sync: {e}")
+        return 0, 0, [f"Global error: {str(e)}"]
+
+
+async def sync_stripe_customers() -> Tuple[int, int, List[str]]:
+    """
+    Sync organizations with Stripe customers and update local records.
+    Skips if Stripe API key is not configured.
     
     Returns:
         Tuple containing (total_orgs, successful_syncs, error_messages)
     """
     if not stripe.api_key:
-        # No-op if Stripe is not configured
-        logger.warning("Stripe API key not configured - sync_all_payments_customers aborted")
+        logger.warning("Stripe API key not configured - sync_stripe_customers skipped")
         return 0, 0, ["Stripe API key not configured"]
 
-    logger.info("Starting differential sync of customers with Stripe and payments_customers")
+    logger.info("Starting sync of Stripe customers")
     
     try:
         # Get all organizations from MongoDB
@@ -438,40 +484,56 @@ async def sync_all_customers() -> Tuple[int, int, List[str]]:
         # Get all Stripe customers with org_id metadata
         stripe_org_ids, stripe_customer_map = await _get_stripe_customer_org_ids()
         
-        # Get all local payment customers
-        payment_customers = await payments_customers.find({"org_id": {"$exists": True}}).to_list(length=None)
-        payment_org_ids = set(customer.get("org_id") for customer in payment_customers if customer.get("org_id"))
-        
-        # Find organizations that need syncing
+        # Find organizations that need Stripe syncing
         missing_from_stripe = local_org_ids - stripe_org_ids
-        missing_from_payments = local_org_ids - payment_org_ids
         orphaned_in_stripe = stripe_org_ids - local_org_ids
-        orphaned_in_payments = payment_org_ids - local_org_ids
-        
-        # Organizations needing any kind of sync
-        need_sync = missing_from_stripe | missing_from_payments
         
         logger.info(f"Total orgs: {total_orgs}")
-        logger.info(f"Stripe customers: {len(stripe_org_ids)}, Payment customers: {len(payment_org_ids)}")
-        logger.info(f"Missing from Stripe: {len(missing_from_stripe)}, Missing from payments: {len(missing_from_payments)}")
-        logger.info(f"Orphaned in Stripe: {len(orphaned_in_stripe)}, Orphaned in payments: {len(orphaned_in_payments)}")
-        logger.info(f"Total needing sync: {len(need_sync)}")
+        logger.info(f"Stripe customers: {len(stripe_org_ids)}")
+        logger.info(f"Missing from Stripe: {len(missing_from_stripe)}")
+        logger.info(f"Orphaned in Stripe: {len(orphaned_in_stripe)}")
         
-        # Clean up orphaned records
+        # Clean up orphaned Stripe customers
         if orphaned_in_stripe:
             logger.info(f"Cleaning up {len(orphaned_in_stripe)} orphaned Stripe customers")
             await _cleanup_orphaned_stripe_customers(orphaned_in_stripe, stripe_customer_map)
-            
-        if orphaned_in_payments:
-            logger.info(f"Cleaning up {len(orphaned_in_payments)} orphaned payment customers")
-            await _cleanup_orphaned_payment_customers(orphaned_in_payments)
         
-        if not need_sync:
-            logger.info("All organizations already synced with both Stripe and payments_customers")
+        if not missing_from_stripe:
+            logger.info("All organizations already have Stripe customers")
             return total_orgs, 0, []
         
-        # Sync the organizations that need it
-        return await _sync_org_ids(need_sync)
+        # Sync the organizations that need Stripe customers
+        return await _create_stripe_customer_set(missing_from_stripe)
+    
+    except Exception as e:
+        logger.error(f"Error during Stripe customer sync: {e}")
+        return 0, 0, [f"Global error: {str(e)}"]
+
+
+async def sync_all_customers() -> Tuple[int, int, List[str]]:
+    """
+    Differential sync: sync organizations to both Stripe and payments_customers collection.
+    Ensures all organizations have both Stripe customers and local payment customer records.
+    
+    Returns:
+        Tuple containing (total_orgs, successful_syncs, error_messages)
+    """
+    logger.info("Starting differential sync of customers with Stripe and payments_customers")
+    
+    try:
+        # First, ensure all orgs have local payment customers
+        payments_result = await sync_payments_customers()
+        
+        # Then, sync with Stripe if configured
+        stripe_result = await sync_stripe_customers()
+        
+        # Combine results
+        total_orgs = max(payments_result[0], stripe_result[0])
+        successful_syncs = payments_result[1] + stripe_result[1]
+        errors = payments_result[2] + stripe_result[2]
+        
+        logger.info(f"Combined sync completed: {successful_syncs} total operations, {len(errors)} errors")
+        return total_orgs, successful_syncs, errors
     
     except Exception as e:
         logger.error(f"Error during differential customer sync: {e}")
@@ -568,8 +630,52 @@ async def _cleanup_orphaned_payment_customers(orphaned_org_ids: set) -> Tuple[in
     logger.info(f"Payment customer cleanup completed: {deleted_count} orphaned records deleted")
     return deleted_count, errors
 
-async def _sync_org_ids(org_ids_to_sync: set) -> Tuple[int, int, List[str]]:
-    """Sync only the specified organization IDs"""
+
+async def _create_payments_customer_set(org_ids_to_create: set) -> Tuple[int, int, List[str]]:
+    """Create local payment customer records for organizations without Stripe API calls"""
+    successful = 0
+    errors = []
+    
+    # Process in batches of 10
+    org_ids_list = list(org_ids_to_create)
+    batch_size = 10
+    
+    for i in range(0, len(org_ids_list), batch_size):
+        batch = org_ids_list[i:i + batch_size]
+        
+        # Create tasks for each org in the batch
+        tasks = []
+        for org_id in batch:
+            task = _create_payments_customer(org_id=org_id)
+            tasks.append(task)
+        
+        # Execute batch in parallel
+        try:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            for idx, result in enumerate(results):
+                if isinstance(result, Exception):
+                    error_msg = f"Error creating local payment customer for org {batch[idx]}: {str(result)}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+                elif result:
+                    successful += 1
+                else:
+                    errors.append(f"Failed to create local payment customer for org {batch[idx]}")
+        
+        except Exception as e:
+            error_msg = f"Error processing local payment customer batch: {str(e)}"
+            logger.error(error_msg)
+            errors.append(error_msg)
+        
+        logger.info(f"Processed batch {i//batch_size + 1}/{(len(org_ids_list) + batch_size - 1)//batch_size}")
+    
+    logger.info(f"Local payment customer creation completed: {successful}/{len(org_ids_list)} customers created")
+    return len(org_ids_list), successful, errors
+
+
+async def _create_stripe_customer_set(org_ids_to_sync: set) -> Tuple[int, int, List[str]]:
+    """Sync only the specified organization IDs with Stripe"""
     successful = 0
     errors = []
     
@@ -583,7 +689,7 @@ async def _sync_org_ids(org_ids_to_sync: set) -> Tuple[int, int, List[str]]:
         # Create tasks for each org in the batch
         tasks = []
         for org_id in batch:
-            task = sync_payments_customer(org_id=org_id)
+            task = sync_customer(org_id=org_id)
             tasks.append(task)
         
         # Execute batch in parallel
@@ -592,23 +698,101 @@ async def _sync_org_ids(org_ids_to_sync: set) -> Tuple[int, int, List[str]]:
             
             for idx, result in enumerate(results):
                 if isinstance(result, Exception):
-                    error_msg = f"Error syncing customer for org {batch[idx]}: {str(result)}"
+                    error_msg = f"Error syncing Stripe customer for org {batch[idx]}: {str(result)}"
                     logger.error(error_msg)
                     errors.append(error_msg)
                 elif result:
                     successful += 1
                 else:
-                    errors.append(f"Failed to create/get customer for org {batch[idx]}")
+                    errors.append(f"Failed to create/get Stripe customer for org {batch[idx]}")
         
         except Exception as e:
-            error_msg = f"Error processing sync batch: {str(e)}"
+            error_msg = f"Error processing Stripe sync batch: {str(e)}"
             logger.error(error_msg)
             errors.append(error_msg)
         
         logger.info(f"Processed batch {i//batch_size + 1}/{(len(org_ids_list) + batch_size - 1)//batch_size}")
     
-    logger.info(f"Differential sync completed: {successful}/{len(org_ids_list)} customers synchronized")
+    logger.info(f"Stripe sync completed: {successful}/{len(org_ids_list)} customers synchronized")
     return len(org_ids_list), successful, errors
+
+
+async def _create_payments_customer(org_id: str) -> Dict[str, Any]:
+    """Create a local payment customer record without Stripe API calls"""
+    logger.info(f"Creating local payment customer for org_id: {org_id}")
+
+    try:
+        # Get the org details
+        org = await db["organizations"].find_one({"_id": ObjectId(org_id)})
+        if not org:
+            logger.error(f"No organization found for org_id: {org_id}")
+            return None
+            
+        org_name = org.get("name")
+
+        # Get the first admin member
+        user_id = None
+        members = org.get("members", [])
+        for member in members:
+            if member.get("role") == "admin":
+                user_id = str(member.get("user_id"))
+                break
+        
+        if not user_id:
+            logger.error(f"No admin member found for org_id: {org_id}")
+            return None
+
+        # Get the user details
+        user = await db["users"].find_one({"_id": ObjectId(user_id)})
+        if not user:
+            logger.error(f"No user found for user_id: {user_id} in org_id: {org_id}")
+            return None
+        
+        user_name = user.get("name")
+        user_email = user.get("email")
+
+        if not user_name:
+            logger.error(f"No user_name found for user_id: {user_id}")
+            return None
+
+        if not user_email:
+            logger.error(f"No email found for user_id: {user_id}")
+            return None
+
+        # Check if customer already exists
+        existing_customer = await payments_customers.find_one({"org_id": org_id})
+        if existing_customer:
+            logger.info(f"Local payment customer already exists for org_id: {org_id}")
+            return existing_customer
+
+        # Create new local payment customer with zero values
+        customer = {
+            "org_id": org_id,
+            "user_id": user_id,
+            "stripe_customer_id": None,  # No Stripe customer yet
+            "user_name": user_name,
+            "user_email": user_email,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            # Initialize credit fields to zero
+            "purchased_credits": 0,
+            "purchased_credits_used": 0,
+            "granted_credits": 0,
+            "granted_credits_used": 0,
+            # Initialize subscription fields to zero
+            "subscription_spus_used": 0,
+            "stripe_current_billing_period_start": None,
+            "stripe_current_billing_period_end": None
+        }
+
+        await payments_customers.insert_one(customer)
+        logger.info(f"Created local payment customer for org_id: {org_id}, user_id: {user_id}")
+
+        return customer
+    
+    except Exception as e:
+        logger.error(f"Error creating local payment customer for org_id {org_id}: {e}")
+        raise e
 
 async def get_payment_customer(org_id: str) -> Dict[str, Any]:
     """
@@ -655,118 +839,55 @@ async def get_stripe_customer(org_id: str) -> Dict[str, Any]:
 
 # Helper functions
 async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
-    """Create or retrieve a Stripe customer for the given user"""
+    """Create or update local payment customer record (no Stripe API calls)"""
 
-    if not stripe.api_key:
-        # No-op if Stripe is not configured
-        return None
-
-    logger.info(f"Syncing payments customer for org_id: {org_id}")
-
-    # Get the org_name from the org_id
-    org = await db["organizations"].find_one({"_id": ObjectId(org_id)})
-    org_name = org.get("name")
-
-    # Get the first admin member
-    user_id = None
-    members = org.get("members", [])
-    for member in members:
-        if member.get("role") == "admin":
-            user_id = str(member.get("user_id"))
-            break
-    
-    if not user_id:
-        logger.error(f"No admin member found for org_id: {org_id}")
-        return None
-
-    # Get the user_name from the user_id
-    user = await db["users"].find_one({"_id": ObjectId(user_id)})
-    if not user:
-        logger.error(f"No user found for user_id: {user_id} in org_id: {org_id}")
-        return None
-    
-    user_name = user.get("name")
-    user_email = user.get("email")
-    user_description = f"{org_name} org admin"
-
-    customer_metadata = {
-        "org_id": org_id,
-        "org_name": org_name,
-        "user_id": user_id,
-        "updated_at": datetime.utcnow().isoformat()
-    }
-
-    if not user_name:
-        logger.error(f"No user_name found for user_id: {user_id}")
-        return None
-
-    if not user_email:
-        logger.error(f"No email found for user_id: {user_id}")
-        return None
-
-    
-    logger.info(f"Sync stripe customer for org_id: {org_id} user_id: {user_id} email: {user_email} name: {user_name} org_name: {org_name}")
+    logger.info(f"Syncing local payments customer for org_id: {org_id}")
 
     try:
-        # Check if customer already exists in our DB
+        # Get organization details
+        org = await db["organizations"].find_one({"_id": ObjectId(org_id)})
+        if not org:
+            logger.error(f"No organization found for org_id: {org_id}")
+            return None
+            
+        org_name = org.get("name")
+
+        # Get the first admin member
+        user_id = None
+        members = org.get("members", [])
+        for member in members:
+            if member.get("role") == "admin":
+                user_id = str(member.get("user_id"))
+                break
+        
+        if not user_id:
+            logger.error(f"No admin member found for org_id: {org_id}")
+            return None
+
+        # Get user details
+        user = await db["users"].find_one({"_id": ObjectId(user_id)})
+        if not user:
+            logger.error(f"No user found for user_id: {user_id} in org_id: {org_id}")
+            return None
+        
+        user_name = user.get("name")
+        user_email = user.get("email")
+
+        if not user_name:
+            logger.error(f"No user_name found for user_id: {user_id}")
+            return None
+
+        if not user_email:
+            logger.error(f"No email found for user_id: {user_id}")
+            return None
+
+        logger.info(f"Syncing local payment customer for org_id: {org_id} user_id: {user_id} email: {user_email} name: {user_name}")
+
+        # Check if local payment customer already exists
         customer = await payments_customers.find_one({"org_id": org_id})
-    
-        # Search for customers in Stripe with the given org_id
-        stripe_customer = await get_stripe_customer(org_id)
-
-        if stripe_customer:            
-            # Get the metadata from the Stripe customer
-            stripe_customer_metadata = stripe_customer.metadata
-
-            update_customer = False
-            if stripe_customer.name != user_name or stripe_customer.email != user_email or stripe_customer.description != user_description:
-                update_customer = True
-
-            for key in ["org_id", "org_name", "user_id"]:
-                if stripe_customer_metadata.get(key) != customer_metadata.get(key):
-                    update_customer = True
-                    break
-
-            if update_customer:
-                # Update the customer in Stripe with additional metadata
-                await StripeAsync.customer_modify(
-                    stripe_customer.id,
-                    name=user_name,
-                    email=user_email,
-                    description=user_description,
-                    metadata=customer_metadata
-                )
-                logger.info(f"Updated Stripe customer {stripe_customer.id} email {user_email} user_name {user_name} metadata {customer_metadata}")
-        else:
-            # Create new customer in Stripe
-            stripe_customer = await StripeAsync.customer_create(
-                name=user_name,
-                email=user_email,
-                description=user_description,
-                metadata=customer_metadata
-            )
-            logger.info(f"Created new Stripe customer {stripe_customer.id} email {user_email} user_name {user_name} metadata {customer_metadata}")
-        
-        # Don't automatically subscribe new customers - let them choose
-        # Only sync subscription if they already have one
-        org_type = org.get("type")
-        existing_subscription = await get_subscription(stripe_customer.id)
-        if existing_subscription:
-            await set_subscription_type(org_id, stripe_customer.id, org_type)
-            # Update local billing period and subscription data
-            await sync_local_subscription_data(org_id, stripe_customer.id, existing_subscription)
-
-        if customer:
-            # Check if the customer_id changed
-            if customer.get("stripe_customer_id") != stripe_customer.id:
-                logger.info(f"Stripe customer_id changed from {customer.get('stripe_customer_id')} to {stripe_customer.id}")
-                
-                # Delete the old customer
-                await payments_customers.delete_one({"org_id": org_id})
-                customer = None
         
         if customer:
-            # Update the customer document with the new subscription and usage data
+            # Update existing local payment customer
             await payments_customers.update_one(
                 {"org_id": org_id},
                 {"$set": {
@@ -776,16 +897,16 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                     "updated_at": datetime.utcnow()
                 }}
             )
-            customer = await payments_customers.find_one({"user_id": user_id})
-            logger.info(f"Updated customer for user_id: {user_id}")
+            customer = await payments_customers.find_one({"org_id": org_id})
+            logger.info(f"Updated local payment customer for org_id: {org_id}")
         else:
-            logger.info(f"Customer {user_id} not found in MongoDB, creating")
-        
-            # Store in our database
+            logger.info(f"Creating new local payment customer for org_id: {org_id}")
+            
+            # Create new local payment customer
             customer = {
                 "org_id": org_id,
                 "user_id": user_id,
-                "stripe_customer_id": stripe_customer.id,
+                "stripe_customer_id": None,  # No Stripe customer yet
                 "user_name": user_name,
                 "user_email": user_email,
                 "created_at": datetime.utcnow(),
@@ -793,8 +914,9 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
             }
 
             await payments_customers.insert_one(customer)
+            customer = await payments_customers.find_one({"org_id": org_id})
 
-        # Ensure credits are initialized for a stripe_customer
+        # Ensure credits are initialized
         await ensure_subscription_credits(customer)
 
         return customer
@@ -802,6 +924,157 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error in sync_payments_customer: {e}")
         raise e
+
+
+async def sync_stripe_customer(org_id: str) -> Dict[str, Any]:
+    """Create or update a Stripe customer for the given org_id"""
+    
+    if not stripe.api_key:
+        logger.warning("Stripe API key not configured - sync_stripe_customer skipped")
+        return None
+
+    logger.info(f"Syncing Stripe customer for org_id: {org_id}")
+
+    try:
+        # Get organization and user details
+        org = await db["organizations"].find_one({"_id": ObjectId(org_id)})
+        if not org:
+            logger.error(f"No organization found for org_id: {org_id}")
+            return None
+            
+        org_name = org.get("name")
+
+        # Get the first admin member
+        user_id = None
+        members = org.get("members", [])
+        for member in members:
+            if member.get("role") == "admin":
+                user_id = str(member.get("user_id"))
+                break
+        
+        if not user_id:
+            logger.error(f"No admin member found for org_id: {org_id}")
+            return None
+
+        # Get user details
+        user = await db["users"].find_one({"_id": ObjectId(user_id)})
+        if not user:
+            logger.error(f"No user found for user_id: {user_id} in org_id: {org_id}")
+            return None
+        
+        user_name = user.get("name")
+        user_email = user.get("email")
+        user_description = f"{org_name} org admin"
+
+        if not user_name or not user_email:
+            logger.error(f"Missing user details for user_id: {user_id}")
+            return None
+
+        customer_metadata = {
+            "org_id": org_id,
+            "org_name": org_name,
+            "user_id": user_id,
+            "updated_at": datetime.utcnow().isoformat()
+        }
+
+        logger.info(f"Syncing Stripe customer for org_id: {org_id} user_id: {user_id} email: {user_email} name: {user_name}")
+
+        # Search for existing Stripe customer
+        stripe_customer = await get_stripe_customer(org_id)
+
+        if stripe_customer:            
+            # Check if customer needs updating
+            stripe_customer_metadata = stripe_customer.metadata
+            update_customer = False
+            
+            if (stripe_customer.name != user_name or 
+                stripe_customer.email != user_email or 
+                stripe_customer.description != user_description):
+                update_customer = True
+
+            for key in ["org_id", "org_name", "user_id"]:
+                if stripe_customer_metadata.get(key) != customer_metadata.get(key):
+                    update_customer = True
+                    break
+
+            if update_customer:
+                # Update the customer in Stripe
+                await StripeAsync.customer_modify(
+                    stripe_customer.id,
+                    name=user_name,
+                    email=user_email,
+                    description=user_description,
+                    metadata=customer_metadata
+                )
+                logger.info(f"Updated Stripe customer {stripe_customer.id}")
+        else:
+            # Create new customer in Stripe
+            stripe_customer = await StripeAsync.customer_create(
+                name=user_name,
+                email=user_email,
+                description=user_description,
+                metadata=customer_metadata
+            )
+            logger.info(f"Created new Stripe customer {stripe_customer.id}")
+        
+        # Handle existing subscriptions
+        org_type = org.get("type")
+        existing_subscription = await get_subscription(stripe_customer.id)
+        if existing_subscription:
+            await set_subscription_type(org_id, stripe_customer.id, org_type)
+            await sync_local_subscription_data(org_id, stripe_customer.id, existing_subscription)
+
+        # Update local payment customer with Stripe customer ID
+        payment_customer = await payments_customers.find_one({"org_id": org_id})
+        if payment_customer:
+            # Check if the stripe_customer_id changed
+            if payment_customer.get("stripe_customer_id") != stripe_customer.id:
+                logger.info(f"Stripe customer_id changed from {payment_customer.get('stripe_customer_id')} to {stripe_customer.id}")
+                
+            # Update with new Stripe customer ID
+            await payments_customers.update_one(
+                {"org_id": org_id},
+                {"$set": {
+                    "stripe_customer_id": stripe_customer.id,
+                    "updated_at": datetime.utcnow()
+                }}
+            )
+            
+            # Get updated customer
+            payment_customer = await payments_customers.find_one({"org_id": org_id})
+            
+            # Ensure credits are initialized
+            await ensure_subscription_credits(payment_customer)
+
+        return stripe_customer
+    
+    except Exception as e:
+        logger.error(f"Error in sync_stripe_customer: {e}")
+        raise e
+
+
+async def sync_customer(org_id: str) -> Dict[str, Any]:
+    """Sync both local payment customer and Stripe customer for an organization"""
+    
+    logger.info(f"Syncing customer (both payments and Stripe) for org_id: {org_id}")
+
+    try:
+        # First, ensure local payment customer exists
+        payment_customer = await sync_payments_customer(org_id)
+        if not payment_customer:
+            logger.error(f"Failed to sync local payment customer for org_id: {org_id}")
+            return None
+
+        # Then sync with Stripe if configured
+        stripe_customer = await sync_stripe_customer(org_id)
+        
+        # Return the updated local payment customer
+        return await payments_customers.find_one({"org_id": org_id})
+    
+    except Exception as e:
+        logger.error(f"Error in sync_customer: {e}")
+        raise e
+
 
 async def save_usage_record(org_id: str, spus: int, operation: str, source: str = "backend") -> Dict[str, Any]:
     """Record usage for an organization locally"""
@@ -2493,7 +2766,7 @@ async def purchase_credits(
     stripe_customer = await get_stripe_customer(organization_id)
     if not stripe_customer:
         logger.info(f"No existing Stripe customer for org {organization_id}, creating one")
-        await sync_payments_customer(organization_id)
+        await sync_customer(organization_id)
         stripe_customer = await get_stripe_customer(organization_id)
     
     if not stripe_customer:
@@ -2600,7 +2873,7 @@ async def handle_checkout_session_completed(session: Dict[str, Any]):
         logger.info(f"Checkout session completed for org {org_id}, plan {plan_id}")
         
         # Refresh the customer data to ensure we have the latest subscription info
-        await sync_payments_customer(org_id)
+        await sync_customer(org_id)
         
     except Exception as e:
         logger.error(f"Error processing checkout session completion: {e}")
