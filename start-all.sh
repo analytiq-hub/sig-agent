@@ -10,10 +10,21 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 MAGENTA='\033[0;35m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Array to store background PIDs
 pids=()
+
+# Check if Stripe webhook is configured and CLI is available
+STRIPE_WEBHOOK_SECRET_SET=$(grep -E "^STRIPE_WEBHOOK_SECRET=" "${PROJECT_ROOT}/.env" 2>/dev/null | cut -d'=' -f2- | sed 's/^"\(.*\)"$/\1/' | sed "s/^'\(.*\)'$/\1/")
+if [ -n "$STRIPE_WEBHOOK_SECRET_SET" ]; then
+    if ! command -v stripe &> /dev/null; then
+        echo "ERROR: STRIPE_WEBHOOK_SECRET is set in .env but stripe CLI is not available."
+        echo "Please install the Stripe CLI: https://stripe.com/docs/stripe-cli"
+        exit 1
+    fi
+fi
 
 # Cleanup function to kill all child processes
 cleanup() {
@@ -74,15 +85,24 @@ cleanup_next_server() {
 cleanup_uvicorn() {
     kill -9 `ps -ef|grep uvicorn | awk '{ print $2}'| head -n 1` >/dev/null 2>&1
 }
+cleanup_stripe_listen() {
+    kill -9 `ps -ef|grep "stripe listen" | awk '{ print $2}'| head -n 1` >/dev/null 2>&1
+}
 
 # Clean up old processes
 cleanup_next_server
 cleanup_uvicorn
-# Run both processes
+cleanup_stripe_listen
+# Run all processes
 run_with_color "uvicorn docrouter_app.main:app --reload --host 0.0.0.0 --port 8000" "$RED" "FASTAPI" "packages"
 run_with_color "python worker.py" "$GREEN" "WORKER" "packages/worker"
 run_with_color "npm run dev" "$MAGENTA" "NEXTJS" "frontend"
 run_with_color "npx http-server -p 8080 --cors -c-1" "$BLUE" "HTTP_SERVER" "public"
+
+# Start Stripe webhook listener if configured
+if [ -n "$STRIPE_WEBHOOK_SECRET_SET" ]; then
+    run_with_color "stripe listen --forward-to localhost:8000/v0/account/payments/webhook" "$CYAN" "STRIPE" ""
+fi
 
 # Wait for any process to exit
 while true; do
