@@ -209,7 +209,15 @@ class UsageRangeResponse(BaseModel):
     total_spus: int                   # Total SPUs in the period
 
 # Dynamic configuration - populated from Stripe at startup
-CREDIT_CONFIG = {}
+CREDIT_CONFIG = {
+    "price_per_credit": 0.0,
+    "currency": "usd",
+    "min_spu_purchase": 0,
+    "max_spu_purchase": 0,
+    "min_cost": 0.0,
+    "max_cost": 0.0,
+    "granted_credits": 100 # Number of credits granted to each user
+}
 
 # SPU limits per tier - populated from Stripe metadata at startup
 TIER_LIMITS = {
@@ -295,7 +303,6 @@ async def load_credit_config() -> Dict[str, Any]:
             # Get required metadata
             min_spu_purchase = metadata.get('min_spu_purchase')
             max_spu_purchase = metadata.get('max_spu_purchase')
-            spu_credit = metadata.get('spu_credit')
             
             # Log found price for debugging
             logger.info(f"Found credit price {price.id}: unit_amount={price.unit_amount}, currency={price.currency}")
@@ -305,28 +312,18 @@ async def load_credit_config() -> Dict[str, Any]:
                 raise ValueError(f"Missing min_spu_purchase metadata for credit price {price.id}")
             if not max_spu_purchase:
                 raise ValueError(f"Missing max_spu_purchase metadata for credit price {price.id}")
-            if not spu_credit:
-                raise ValueError(f"Missing spu_credit metadata for credit price {price.id}")
-            
-            credit_config = {
-                'price_per_credit': price_per_credit,
-                'currency': price.currency,
-                'min_spu_purchase': int(min_spu_purchase),
-                'max_spu_purchase': int(max_spu_purchase),
-                'min_cost': int(min_spu_purchase) * price_per_credit,
-                'max_cost': int(max_spu_purchase) * price_per_credit,
-                'spu_credit': int(spu_credit)
-            }
+
+            CREDIT_CONFIG["price_per_credit"] = price_per_credit
+            CREDIT_CONFIG["currency"] = price.currency
+            CREDIT_CONFIG["min_spu_purchase"] = int(min_spu_purchase)
+            CREDIT_CONFIG["max_spu_purchase"] = int(max_spu_purchase)
+            CREDIT_CONFIG["min_cost"] = int(min_spu_purchase) * price_per_credit
+            CREDIT_CONFIG["max_cost"] = int(max_spu_purchase) * price_per_credit
             
             logger.info(f"Loaded credit config from Stripe: price=${price_per_credit:.3f}, min={min_spu_purchase}, max={max_spu_purchase}")
-            break
+            return
     
-    if not credit_config:
-        raise ValueError("No credit price found in Stripe with price_type=credit")
-    
-    # Update global config
-    CREDIT_CONFIG = credit_config
-    return credit_config
+    raise ValueError("No credit price found in Stripe with price_type=credit")
 
 # Function to fetch base pricing from Stripe
 async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
@@ -777,7 +774,7 @@ async def _create_payments_customer(org_id: str) -> Dict[str, Any]:
             # Initialize credit fields to zero
             "purchased_credits": 0,
             "purchased_credits_used": 0,
-            "granted_credits": 0,
+            "granted_credits": CREDIT_CONFIG["granted_credits"],
             "granted_credits_used": 0,
             # Initialize subscription fields to zero
             "subscription_spus_used": 0,
@@ -1125,7 +1122,7 @@ async def check_payment_limits(org_id: str, spus: int) -> bool:
     purchased_used = payment_customer.get("purchased_credits_used", 0)
     purchased_remaining = max(purchased_credits - purchased_used, 0)
     
-    granted_credits = payment_customer.get("granted_credits", CREDIT_CONFIG["spu_credit"])
+    granted_credits = payment_customer.get("granted_credits", CREDIT_CONFIG["granted_credits"])
     granted_used = payment_customer.get("granted_credits_used", 0)
     granted_remaining = max(granted_credits - granted_used, 0)
     
@@ -2364,7 +2361,7 @@ async def get_current_usage(
         purchased_used = customer.get("purchased_credits_used", 0)
         purchased_remaining = max(purchased_credits - purchased_used, 0)
         
-        granted_credits = customer.get("granted_credits", CREDIT_CONFIG["spu_credit"])
+        granted_credits = customer.get("granted_credits", CREDIT_CONFIG["granted_credits"])
         granted_used = customer.get("granted_credits_used", 0)
         granted_remaining = max(granted_credits - granted_used, 0)
 
@@ -2491,7 +2488,7 @@ async def ensure_subscription_credits(stripe_customer_doc):
     if "purchased_credits_used" not in stripe_customer_doc:
         update["purchased_credits_used"] = 0
     if "granted_credits" not in stripe_customer_doc:
-        update["granted_credits"] = CREDIT_CONFIG["spu_credit"]
+        update["granted_credits"] = CREDIT_CONFIG["granted_credits"]
     if "granted_credits_used" not in stripe_customer_doc:
         update["granted_credits_used"] = 0
     
@@ -2534,7 +2531,7 @@ async def get_current_balances(org_id: str) -> Dict[str, Any]:
     purchased_used = customer.get("purchased_credits_used", 0)
     purchased_remaining = max(purchased_credits - purchased_used, 0)
     
-    granted_credits = customer.get("granted_credits", CREDIT_CONFIG["spu_credit"])
+    granted_credits = customer.get("granted_credits", CREDIT_CONFIG["granted_credits"])
     granted_used = customer.get("granted_credits_used", 0)
     granted_remaining = max(granted_credits - granted_used, 0)
     
