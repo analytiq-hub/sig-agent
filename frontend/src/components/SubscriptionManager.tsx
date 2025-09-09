@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getCustomerPortalApi } from '@/utils/api';
+import { useAppSession } from '@/utils/useAppSession';
+import { isSysAdmin } from '@/utils/roles';
 import SubscriptionPlans from './SubscriptionPlans';
 import SubscriptionUsage from './SubscriptionUsage';
 import SubscriptionCredits from './SubscriptionCredits';
@@ -18,6 +20,7 @@ interface SubscriptionProps {
 
 const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) => {
   const searchParams = useSearchParams();
+  const { session } = useAppSession();
   const [customerPortalUrl, setCustomerPortalUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
@@ -25,6 +28,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<number | null>(null);
   const [stripePaymentsPortal, setStripePaymentsPortal] = useState<boolean>(false);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [stripeEnabled, setStripeEnabled] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'credits' | 'plans' | 'usage'>('credits');
   const [userSelectedTab, setUserSelectedTab] = useState<boolean>(false);
   const [creditsRefreshKey, setCreditsRefreshKey] = useState<number>(0);
@@ -48,6 +52,8 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
         const response = await getCustomerPortalApi(organizationId);
         // Set URL only if it's not empty, otherwise leave as null
         setCustomerPortalUrl(response.payment_portal_url || null);
+        // Set Stripe enabled status
+        setStripeEnabled(response.stripe_enabled);
       } catch (error) {
         console.error('Error fetching customer portal URL:', error);
         setCustomerPortalUrl(null);
@@ -208,7 +214,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
       {/* Tab Content */}
       {activeTab === 'credits' && (
         <div className="space-y-4">
-          {/* Side-by-Side Credits and Purchase Widgets */}
+          {/* Side-by-Side Credits and Purchase/Grant Widgets */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <SubscriptionCredits 
               organizationId={organizationId}
@@ -222,6 +228,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
               subscriptionStatus={subscriptionStatus}
               refreshKey={creditsRefreshKey}
               onCreditsUpdated={() => setCreditsRefreshKey(prev => prev + 1)}
+              disabled={!stripeEnabled}
             />
           </div>
           
