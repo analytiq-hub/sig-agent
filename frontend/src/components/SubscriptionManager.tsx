@@ -3,8 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getCustomerPortalApi } from '@/utils/api';
-import { useAppSession } from '@/utils/useAppSession';
-import { isSysAdmin } from '@/utils/roles';
 import SubscriptionPlans from './SubscriptionPlans';
 import SubscriptionUsage from './SubscriptionUsage';
 import SubscriptionCredits from './SubscriptionCredits';
@@ -20,7 +18,6 @@ interface SubscriptionProps {
 
 const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) => {
   const searchParams = useSearchParams();
-  const { session } = useAppSession();
   const [customerPortalUrl, setCustomerPortalUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
