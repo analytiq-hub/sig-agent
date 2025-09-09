@@ -1,7 +1,7 @@
 import os
 import logging
 from typing import Optional, Dict, Any, List, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from fastapi import APIRouter, Depends, HTTPException, Request, Body, BackgroundTasks
 from pydantic import BaseModel, Field
 import stripe
@@ -783,8 +783,8 @@ async def _create_payments_customer(org_id: str) -> Dict[str, Any]:
             "stripe_customer_id": None,  # No Stripe customer yet
             "user_name": user_name,
             "user_email": user_email,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC),
             # Initialize credit fields to zero
             "purchased_credits": 0,
             "purchased_credits_used": 0,
@@ -905,7 +905,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                     "user_id": user_id,
                     "user_name": user_name,
                     "user_email": user_email,
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(UTC)
                 }}
             )
             customer = await payments_customers.find_one({"org_id": org_id})
@@ -920,8 +920,17 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                 "stripe_customer_id": None,  # No Stripe customer yet
                 "user_name": user_name,
                 "user_email": user_email,
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC),
+                # Initialize credit fields to zero
+                "purchased_credits": 0,
+                "purchased_credits_used": 0,
+                "granted_credits": CREDIT_CONFIG["granted_credits"],
+                "granted_credits_used": 0,
+                # Initialize subscription fields to zero
+                "subscription_spus_used": 0,
+                "stripe_current_billing_period_start": None,
+                "stripe_current_billing_period_end": None
             }
 
             await payments_customers.insert_one(customer)
@@ -985,7 +994,7 @@ async def sync_stripe_customer(org_id: str) -> Dict[str, Any]:
             "org_id": org_id,
             "org_name": org_name,
             "user_id": user_id,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.now(UTC).isoformat()
         }
 
         logger.info(f"Syncing Stripe customer for org_id: {org_id} user_id: {user_id} email: {user_email} name: {user_name}")
@@ -1047,7 +1056,7 @@ async def sync_stripe_customer(org_id: str) -> Dict[str, Any]:
                 {"org_id": org_id},
                 {"$set": {
                     "stripe_customer_id": stripe_customer.id,
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(UTC)
                 }}
             )
             
@@ -1098,7 +1107,7 @@ async def save_usage_record(org_id: str, spus: int, operation: str, source: str 
         "spus": spus,
         "operation": operation,
         "source": source,
-        "timestamp": datetime.utcnow()
+        "timestamp": datetime.now(UTC)
     }
     
     await payments_usage_records.insert_one(usage_record)
@@ -1203,7 +1212,7 @@ async def sync_local_subscription_data(org_id: str, stripe_customer_id: str, sub
             "stripe_current_billing_period_start": current_period_start,
             "stripe_current_billing_period_end": current_period_end,
             "subscription_spu_allowance": subscription_spu_allowance,
-            "subscription_updated_at": datetime.utcnow()
+            "subscription_updated_at": datetime.now(UTC)
         }
         
         # Set stripe_payments_portal_enabled to True for individual/team subscriptions (never revert back to False)
@@ -1264,7 +1273,7 @@ async def delete_payments_customer(org_id: str) -> Dict[str, Any]:
         return {
             "success": True, 
             "customer_id": stripe_customer_id,
-            "deleted_at": datetime.utcnow()
+            "deleted_at": datetime.now(UTC)
         }
         
     except Exception as e:
@@ -1282,7 +1291,7 @@ async def is_enterprise_customer(org_id: str) -> bool:
 
 async def get_current_billing_period() -> tuple:
     """Get current month billing period boundaries as unix timestamps"""
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     period_start = datetime(now.year, now.month, 1)
     
     # Next month start
@@ -1529,7 +1538,7 @@ async def create_checkout_session(
                                 "stripe_current_billing_period_start": None,
                                 "stripe_current_billing_period_end": None,
                                 "subscription_spu_allowance": None,  # Enterprise has no SPU limits
-                                "subscription_updated_at": datetime.utcnow()
+                                "subscription_updated_at": datetime.now(UTC)
                             }}
                         )
                 except ValueError as e:
@@ -1728,7 +1737,7 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
             "stripe_current_billing_period_start": None,
             "stripe_current_billing_period_end": None,
             "subscription_spu_allowance": 0,
-            "subscription_updated_at": datetime.utcnow()
+            "subscription_updated_at": datetime.now(UTC)
         }
         
         # Only clear subscription_type and allowance for non-enterprise customers
@@ -1821,7 +1830,7 @@ async def handle_invoice_payment_succeeded(invoice: Dict[str, Any]):
             {"org_id": org_id},
             {"$set": {
                 "subscription_spus_used": 0,  # Reset usage for new billing period
-                "subscription_updated_at": datetime.utcnow()
+                "subscription_updated_at": datetime.now(UTC)
             }}
         )
         
@@ -2476,7 +2485,7 @@ async def webhook_received(
         "data": event["data"],
         "created": datetime.fromtimestamp(event["created"]),
         "processed": False,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(UTC)
     }
     await stripe_events.insert_one(event_doc)
     
@@ -2505,7 +2514,7 @@ async def webhook_received(
     # Mark event as processed
     await stripe_events.update_one(
         {"stripe_event_id": event["id"]},
-        {"$set": {"processed": True, "processed_at": datetime.utcnow()}}
+        {"$set": {"processed": True, "processed_at": datetime.now(UTC)}}
     )
     
     return {"status": "success"}
@@ -2639,7 +2648,7 @@ async def save_complete_usage_record(org_id: str, spus: int, consumption: Dict[s
         "spus": spus,
         "operation": operation,
         "source": source,
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.now(UTC),
     }
     
     await payments_usage_records.insert_one(usage_record)
