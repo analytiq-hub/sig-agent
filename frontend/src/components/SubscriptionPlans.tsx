@@ -73,7 +73,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         
         // Notify parent component about stripe payments portal flag
         if (onStripePaymentsPortalChange) {
-          onStripePaymentsPortalChange(subscriptionData.stripe_payments_portal);
+          onStripePaymentsPortalChange(subscriptionData.stripe_payments_portal_enabled);
         }
         
         // Notify parent component about current plan
@@ -111,7 +111,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   const getPlanChangeReason = (organizationType: string | null, targetPlan: string): string | null => {
     if (canChangeToPlan(organizationType, targetPlan)) return null;
     
-    return `Cannot downgrade from ${organizationType} to ${targetPlan}. Contact support if you need to downgrade.`;
+    return `Cannot downgrade from ${organizationType} to ${targetPlan}`;
   };
 
   const handlePlanChange = async (planId: string) => {
@@ -172,7 +172,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
           onCancellationInfoChange(subscriptionResponse.cancel_at_period_end, subscriptionResponse.current_period_end);
         }
         if (onStripePaymentsPortalChange) {
-          onStripePaymentsPortalChange(subscriptionResponse.stripe_payments_portal);
+          onStripePaymentsPortalChange(subscriptionResponse.stripe_payments_portal_enabled);
         }
         if (onCurrentPlanChange) {
           onCurrentPlanChange(subscriptionResponse.current_plan);
@@ -325,14 +325,16 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                 }
                 title={
                   !stripeEnabled && currentPlan === plan.plan_id
-                    ? 'Current plan - no changes allowed when billing is disabled'
+                    ? 'Current plan'
                     : plan.plan_id === 'enterprise' && !isSysAdmin(session)
                     ? 'Enterprise plan requires admin privileges'
                     : getPlanChangeReason(organizationType, plan.plan_id) || ''
                 }
                 className={`w-full py-2 px-4 rounded-md ${
                   currentPlan === plan.plan_id
-                    ? subscriptionStatus === 'cancelling' 
+                    ? !stripeEnabled
+                      ? 'bg-gray-300 cursor-not-allowed text-gray-700'
+                      : subscriptionStatus === 'cancelling' 
                       ? 'bg-green-600 hover:bg-green-700 text-white'
                       : subscriptionStatus === 'active'
                       ? 'bg-white hover:bg-red-50 text-red-600 border border-red-300'

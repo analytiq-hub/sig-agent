@@ -158,7 +158,7 @@ class SubscriptionResponse(BaseModel):
     cancel_at_period_end: bool = False
     current_period_start: Optional[int] = None  # Unix timestamp
     current_period_end: Optional[int] = None  # Unix timestamp
-    stripe_payments_portal: bool = False
+    stripe_payments_portal_enabled: bool = False
     stripe_enabled: bool = False
 
 class UsageData(BaseModel):
@@ -1205,9 +1205,9 @@ async def sync_local_subscription_data(org_id: str, stripe_customer_id: str, sub
             "subscription_updated_at": datetime.utcnow()
         }
         
-        # Set stripe_payments_portal to True for individual/team subscriptions (never revert back to False)
+        # Set stripe_payments_portal_enabled to True for individual/team subscriptions (never revert back to False)
         if subscription_type in ['individual', 'team']:
-            update_data["stripe_payments_portal"] = True
+            update_data["stripe_payments_portal_enabled"] = True
         
         await payments_customers.update_one(
             {"org_id": org_id},
@@ -1436,13 +1436,13 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
             metadata={'subscription_type': subscription_type}
         )
 
-    # Set stripe_payments_portal to True for individual/team subscriptions (never revert back to False)
+    # Set stripe_payments_portal_enabled to True for individual/team subscriptions (never revert back to False)
     if subscription_type in ['individual', 'team']:
         await payments_customers.update_one(
             {"org_id": org_id},
-            {"$set": {"stripe_payments_portal": True}}
+            {"$set": {"stripe_payments_portal_enabled": True}}
         )
-        logger.info(f"Set stripe_payments_portal=True for org {org_id} with {subscription_type} subscription")
+        logger.info(f"Set stripe_payments_portal_enabled=True for org {org_id} with {subscription_type} subscription")
 
     return True
 
@@ -1455,14 +1455,14 @@ async def customer_portal(
 
     logger.info(f"Generating customer portal for org_id: {organization_id}")
 
-    # Get customer data to check stripe_payments_portal flag
+    # Get customer data to check stripe_payments_portal_enabled flag
     customer = await payments_customers.find_one({"org_id": organization_id})
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     
     # Check if stripe payments portal is available
-    stripe_payments_portal = customer.get("stripe_payments_portal", False)
-    if not stripe_payments_portal:
+    stripe_payments_portal_enabled = customer.get("stripe_payments_portal_enabled", False)
+    if not stripe_payments_portal_enabled:
         logger.info(f"Payment portal not available for org_id: {organization_id}")
         return PortalSessionResponse(url="")
 
@@ -2077,8 +2077,8 @@ async def get_subscription_info(
             if subscription_status == 'active' and cancel_at_period_end:
                 subscription_status = 'cancelling'
     
-    # Get stripe_payments_portal flag from customer data (defaults to False if not set)
-    stripe_payments_portal = customer.get("stripe_payments_portal", False)
+    # Get stripe_payments_portal_enabled flag from customer data (defaults to False if not set)
+    stripe_payments_portal_enabled = customer.get("stripe_payments_portal_enabled", False)
     
     return SubscriptionResponse(
         plans=plans, 
@@ -2087,7 +2087,7 @@ async def get_subscription_info(
         cancel_at_period_end=cancel_at_period_end,
         current_period_start=current_period_start,
         current_period_end=current_period_end,
-        stripe_payments_portal=stripe_payments_portal,
+        stripe_payments_portal_enabled=stripe_payments_portal_enabled,
         stripe_enabled=stripe_enabled()
     )
 
