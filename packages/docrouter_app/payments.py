@@ -159,6 +159,7 @@ class SubscriptionResponse(BaseModel):
     current_period_start: Optional[int] = None  # Unix timestamp
     current_period_end: Optional[int] = None  # Unix timestamp
     stripe_payments_portal: bool = False
+    stripe_enabled: bool = False
 
 class UsageData(BaseModel):
     subscription_type: Optional[str]
@@ -1947,6 +1948,31 @@ async def get_subscription_info(
         individual_price_per_spu = 0.0
         individual_included_spus = 0
 
+    if stripe_enabled():
+        individual_features = [
+            f"${format_price_per_spu(individual_price_per_spu)} per SPU",
+            f"{individual_included_spus:,} SPUs per month",
+            "Basic document processing",
+            f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
+        ]
+        team_features = [
+            f"${format_price_per_spu(team_price_per_spu)} per SPU",
+            f"{team_included_spus:,} SPUs per month",
+            "Advanced document processing",
+            "Team collaboration features",
+            f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
+        ]
+    else:
+        individual_features = [
+            "Basic document processing",
+            "Custom pricing - contact sales"
+        ]
+        team_features = [
+            "Advanced document processing",
+            "Team collaboration features",
+            "Custom pricing - contact sales"
+        ]
+
     if tier_config["team"]["included_spus"] is not None:
         team_price_per_spu = tier_config["team"]["base_price"] / tier_config["team"]["included_spus"]
         team_included_spus = tier_config["team"]["included_spus"]
@@ -1961,25 +1987,14 @@ async def get_subscription_info(
             name="Individual",
             base_price=tier_config["individual"]["base_price"],
             included_spus=individual_included_spus,
-            features=[
-                f"${format_price_per_spu(individual_price_per_spu)} per SPU",
-                f"{individual_included_spus:,} SPUs per month",
-                "Basic document processing",
-                f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
-            ]
+            features=individual_features
         ),
         SubscriptionPlan(
             plan_id="team",
             name="Team", 
             base_price=tier_config["team"]["base_price"],
             included_spus=team_included_spus,
-            features=[
-                f"${format_price_per_spu(team_price_per_spu)} per SPU",
-                f"{team_included_spus:,} SPUs per month",
-                "Advanced document processing",
-                "Team collaboration features",
-                f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
-            ]
+            features=team_features
         )
     ]
     
@@ -2072,7 +2087,8 @@ async def get_subscription_info(
         cancel_at_period_end=cancel_at_period_end,
         current_period_start=current_period_start,
         current_period_end=current_period_end,
-        stripe_payments_portal=stripe_payments_portal
+        stripe_payments_portal=stripe_payments_portal,
+        stripe_enabled=stripe_enabled()
     )
 
 async def handle_activate_subscription(org_id: str, org_type: str, customer_id: str) -> bool:
