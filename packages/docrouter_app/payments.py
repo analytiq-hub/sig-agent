@@ -158,8 +158,8 @@ class SubscriptionResponse(BaseModel):
     cancel_at_period_end: bool = False
     current_period_start: Optional[int] = None  # Unix timestamp
     current_period_end: Optional[int] = None  # Unix timestamp
-    stripe_payments_portal_enabled: bool = False
     stripe_enabled: bool = False
+    stripe_payments_portal_enabled: bool = False
 
 class UsageData(BaseModel):
     subscription_type: Optional[str]
