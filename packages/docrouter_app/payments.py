@@ -1949,6 +1949,13 @@ async def get_subscription_info(
         individual_price_per_spu = 0.0
         individual_included_spus = 0
 
+    if tier_config["team"]["included_spus"] is not None:
+        team_price_per_spu = tier_config["team"]["base_price"] / tier_config["team"]["included_spus"]
+        team_included_spus = tier_config["team"]["included_spus"]
+    else:
+        team_price_per_spu = 0.0
+        team_included_spus = 0
+
     if stripe_enabled():
         individual_features = [
             f"${format_price_per_spu(individual_price_per_spu)} per SPU",
@@ -1974,12 +1981,6 @@ async def get_subscription_info(
             "Custom pricing - contact sales"
         ]
 
-    if tier_config["team"]["included_spus"] is not None:
-        team_price_per_spu = tier_config["team"]["base_price"] / tier_config["team"]["included_spus"]
-        team_included_spus = tier_config["team"]["included_spus"]
-    else:
-        team_price_per_spu = 0.0
-        team_included_spus = 0
     
     # Define the available plans with SPU allowances
     plans = [
