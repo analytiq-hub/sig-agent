@@ -226,13 +226,16 @@ TIER_LIMITS = {
     "enterprise": None     # No limit (custom billing, not in Stripe)
 }
 
+def stripe_enabled() -> bool:
+    return stripe.api_key is not None
+
 async def get_tier_limits() -> Dict[str, Any]:
     """
     Fetch tier limits dynamically from Stripe base price metadata
     """
     global TIER_LIMITS
     
-    if not stripe.api_key:
+    if not stripe_enabled():
         return
 
     # Get all active prices for our product
@@ -268,7 +271,7 @@ async def get_credit_config() -> Dict[str, Any]:
     """
     global CREDIT_CONFIG
     
-    if not stripe.api_key:
+    if not stripe_enabled():
         return
     
     # Get all active prices for our product
@@ -345,7 +348,7 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
         }
     }
 
-    if not stripe.api_key:
+    if not stripe_enabled():
         return tier_config
 
     # Get all active prices for our product
@@ -475,7 +478,7 @@ async def sync_stripe_customers() -> Tuple[int, int, List[str]]:
     Returns:
         Tuple containing (total_orgs, successful_syncs, error_messages)
     """
-    if not stripe.api_key:
+    if not stripe_enabled():
         logger.warning("Stripe API key not configured - sync_stripe_customers skipped")
         return 0, 0, ["Stripe API key not configured"]
 
@@ -812,7 +815,7 @@ async def get_stripe_customer(org_id: str) -> Dict[str, Any]:
     Get the Stripe customer for the given org_id (calls Stripe API - use sparingly)
     For most use cases, prefer get_payment_customer() which uses local data
     """
-    if not stripe.api_key:
+    if not stripe_enabled():
         # No-op if Stripe is not configured
         return None
 
@@ -935,7 +938,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
 async def sync_stripe_customer(org_id: str) -> Dict[str, Any]:
     """Create or update a Stripe customer for the given org_id"""
     
-    if not stripe.api_key:
+    if not stripe_enabled():
         logger.warning("Stripe API key not configured - sync_stripe_customer skipped")
         return None
 
@@ -1236,7 +1239,7 @@ async def delete_payments_customer(org_id: str) -> Dict[str, Any]:
             logger.warning(f"No local customer found for org_id: {org_id}")
             return {"success": False, "reason": "Customer not found"}
             
-        if stripe.api_key:
+        if stripe_enabled():
             stripe_customer_id = customer["stripe_customer_id"]
             
             # Cancel any active Stripe subscription first
@@ -2006,7 +2009,7 @@ async def get_subscription_info(
         # Enterprise customers use calendar months
         current_subscription_type = "enterprise"
         subscription_status = "active"  # Enterprise is always active
-    elif not stripe.api_key:
+    elif not stripe_enabled():
         pass
     else:
         # Get the Stripe customer and subscription for non-enterprise customers
@@ -2075,7 +2078,7 @@ async def get_subscription_info(
 async def handle_activate_subscription(org_id: str, org_type: str, customer_id: str) -> bool:
     """Activate a subscription"""
     
-    if not stripe.api_key:
+    if not stripe_enabled():
         logger.info("Stripe API key not configured - handle_activate_subscription aborted")
         return False
 
@@ -2112,7 +2115,7 @@ async def sync_subscription(org_id: str, org_type: str) -> bool:
     """
     Sync organization type with subscription type in Stripe
     """
-    if not stripe.api_key:
+    if not stripe_enabled():
         logger.info(f"Stripe not configured - skipping subscription sync for org {org_id}")
         return True
 
