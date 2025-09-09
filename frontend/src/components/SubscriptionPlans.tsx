@@ -199,7 +199,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       const checkoutResponse = await createCheckoutSessionApi(organizationId, planId);
       
       // Redirect to Stripe Checkout
-      window.location.href = checkoutResponse.url;
+      window.location.href = checkoutResponse.payment_portal_url;
       
     } catch (error) {
       console.error('Error changing plan:', error);

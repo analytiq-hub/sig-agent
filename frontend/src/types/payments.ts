@@ -1,5 +1,6 @@
 export interface PortalSessionResponse {
-  url: string;
+  payment_portal_url: string;
+  stripe_enabled: boolean;
 }
 
 // Add these new types

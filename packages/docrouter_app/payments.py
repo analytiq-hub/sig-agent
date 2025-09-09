@@ -140,7 +140,8 @@ class UsageRecord(BaseModel):
     source: str = "backend"
 
 class PortalSessionResponse(BaseModel):
-    url: str
+    payment_portal_url: str
+    stripe_enabled: bool
 
 class SubscriptionPlan(BaseModel):
     plan_id: str
@@ -1464,7 +1465,7 @@ async def customer_portal(
     stripe_payments_portal_enabled = customer.get("stripe_payments_portal_enabled", False)
     if not stripe_payments_portal_enabled:
         logger.info(f"Payment portal not available for org_id: {organization_id}")
-        return PortalSessionResponse(url="")
+        return PortalSessionResponse(payment_portal_url="", stripe_enabled=stripe_enabled())
 
     try:
         # Generate Stripe portal when stripe_payments_portal is true
@@ -1474,10 +1475,10 @@ async def customer_portal(
             return_url=f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?tab=plans",
         )
         logger.info(f"Stripe customer portal URL: {session.url}")
-        return PortalSessionResponse(url=session.url)
+        return PortalSessionResponse(payment_portal_url=session.url, stripe_enabled=stripe_enabled())
     except Exception as e:
         logger.error(f"Error generating customer portal: {e}")
-        return PortalSessionResponse(url="")
+        return PortalSessionResponse(payment_portal_url="", stripe_enabled=stripe_enabled())
 
 @payments_router.post("/v0/orgs/{organization_id}/payments/checkout-session")
 async def create_checkout_session(
@@ -1548,7 +1549,7 @@ async def create_checkout_session(
             
             # Return success URL to redirect back to subscription page
             success_url = f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?success=true&tab=plans"
-            return PortalSessionResponse(url=success_url)
+            return PortalSessionResponse(payment_portal_url=success_url, stripe_enabled=stripe_enabled())
             
         except Exception as e:
             logger.error(f"Error updating organization to enterprise: {e}")
@@ -1577,7 +1578,7 @@ async def create_checkout_session(
                 if success:
                     # Return success URL directly since we modified the subscription
                     success_url = f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?success=true&tab=plans"
-                    return PortalSessionResponse(url=success_url)
+                    return PortalSessionResponse(payment_portal_url=success_url, stripe_enabled=stripe_enabled())
                 else:
                     raise HTTPException(status_code=500, detail="Failed to update subscription")
         except ValueError as e:
@@ -1631,7 +1632,7 @@ async def create_checkout_session(
         )
         
         logger.info(f"Created Stripe checkout session: {session.id}, URL: {session.url}")
-        return PortalSessionResponse(url=session.url)
+        return PortalSessionResponse(payment_portal_url=session.url, stripe_enabled=stripe_enabled())
         
     except Exception as e:
         logger.error(f"Error creating checkout session: {e}")

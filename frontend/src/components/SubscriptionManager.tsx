@@ -47,7 +47,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
         setLoading(true);
         const response = await getCustomerPortalApi(organizationId);
         // Set URL only if it's not empty, otherwise leave as null
-        setCustomerPortalUrl(response.url || null);
+        setCustomerPortalUrl(response.payment_portal_url || null);
       } catch (error) {
         console.error('Error fetching customer portal URL:', error);
         setCustomerPortalUrl(null);
