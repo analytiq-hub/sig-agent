@@ -11,9 +11,86 @@ import logging
 from bson import ObjectId
 import base64
 import re
+import stamina
 from .llm_output_utils import process_llm_resp_content
 
 logger = logging.getLogger(__name__)
+
+def is_retryable_error(exception) -> bool:
+    """
+    Check if an exception is retryable based on error patterns.
+    
+    Args:
+        exception: The exception to check
+        
+    Returns:
+        bool: True if the exception is retryable, False otherwise
+    """
+    # First check if it's an exception
+    if not isinstance(exception, Exception):
+        return False
+    
+    error_message = str(exception).lower()
+    
+    # Check for specific retryable error patterns
+    retryable_patterns = [
+        "503",
+        "model is overloaded",
+        "unavailable",
+        "rate limit",
+        "timeout",
+        "connection error",
+        "internal server error",
+        "service unavailable",
+        "temporarily unavailable"
+    ]
+    
+    for pattern in retryable_patterns:
+        if pattern in error_message:
+            return True
+    
+    return False
+
+@stamina.retry(on=is_retryable_error)
+async def _litellm_acompletion_with_retry(
+    model: str,
+    messages: list,
+    api_key: str,
+    temperature: float = 0.1,
+    response_format: Optional[Dict] = None,
+    aws_access_key_id: Optional[str] = None,
+    aws_secret_access_key: Optional[str] = None,
+    aws_region_name: Optional[str] = None
+):
+    """
+    Make an LLM call with stamina retry mechanism.
+    
+    Args:
+        model: The LLM model to use
+        messages: The messages to send
+        api_key: The API key
+        temperature: The temperature setting
+        response_format: The response format
+        aws_access_key_id: AWS access key (for Bedrock)
+        aws_secret_access_key: AWS secret key (for Bedrock)
+        aws_region_name: AWS region (for Bedrock)
+        
+    Returns:
+        The LLM response
+        
+    Raises:
+        Exception: If the call fails after all retries
+    """
+    return await litellm.acompletion(
+        model=model,
+        messages=messages,
+        api_key=api_key,
+        temperature=temperature,
+        response_format=response_format,
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        aws_region_name=aws_region_name
+    )
 
 async def run_llm(analytiq_client, 
                   document_id: str,
@@ -223,8 +300,8 @@ async def run_llm(analytiq_client,
         aws_secret_access_key = None
         aws_region_name = None
 
-    # 6. Call the LLM
-    response = await litellm.acompletion(
+    # 6. Call the LLM with retry mechanism
+    response = await _litellm_acompletion_with_retry(
         model=llm_model,
         messages=messages,  # Use the vision-aware messages
         api_key=api_key,

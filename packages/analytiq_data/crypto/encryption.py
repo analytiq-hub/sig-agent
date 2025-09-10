@@ -3,6 +3,9 @@ from cryptography.hazmat.backends import default_backend
 import base64
 import hashlib
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_fastapi_secret() -> str:
     """Get FASTAPI_SECRET from environment"""
@@ -32,7 +35,8 @@ def encrypt_token(token: str) -> str:
         # Ensure we're working with bytes
         token_bytes = token.encode('utf-8')
         ciphertext = encryptor.update(token_bytes) + encryptor.finalize()
-        return base64.urlsafe_b64encode(ciphertext).decode('ascii')
+        encrypted_token = base64.urlsafe_b64encode(ciphertext).decode('ascii')
+        return encrypted_token
     except Exception as e:
         raise ValueError(f"Encryption failed: {str(e)}")
 
@@ -45,7 +49,8 @@ def decrypt_token(encrypted_token: str) -> str:
         ciphertext = base64.urlsafe_b64decode(encrypted_token.encode('ascii'))
         decrypted_bytes = decryptor.update(ciphertext) + decryptor.finalize()
         # Use 'utf-8' with error handling
-        return decrypted_bytes.decode('utf-8', errors='strict')
+        decrypted_token = decrypted_bytes.decode('utf-8', errors='strict')
+        return decrypted_token
     except UnicodeDecodeError as e:
         raise ValueError(f"Decryption resulted in invalid UTF-8 data: {str(e)}")
     except Exception as e:
