@@ -30,14 +30,12 @@ def get_cipher():
 def encrypt_token(token: str) -> str:
     """Encrypt a token using AES with fixed IV"""
     try:
-        logger.info(f"Encrypting token: {token}")
         cipher, iv = get_cipher()
         encryptor = cipher.encryptor()
         # Ensure we're working with bytes
         token_bytes = token.encode('utf-8')
         ciphertext = encryptor.update(token_bytes) + encryptor.finalize()
         encrypted_token = base64.urlsafe_b64encode(ciphertext).decode('ascii')
-        logger.info(f"Encrypted token: {encrypted_token}")
         return encrypted_token
     except Exception as e:
         raise ValueError(f"Encryption failed: {str(e)}")
@@ -45,7 +43,6 @@ def encrypt_token(token: str) -> str:
 def decrypt_token(encrypted_token: str) -> str:
     """Decrypt a token using AES with fixed IV"""
     try:
-        logger.info(f"Decrypting token: {encrypted_token}")
         cipher, iv = get_cipher()
         decryptor = cipher.decryptor()
         # Use urlsafe_b64decode to handle URL-safe base64 encoding
@@ -53,7 +50,6 @@ def decrypt_token(encrypted_token: str) -> str:
         decrypted_bytes = decryptor.update(ciphertext) + decryptor.finalize()
         # Use 'utf-8' with error handling
         decrypted_token = decrypted_bytes.decode('utf-8', errors='strict')
-        logger.info(f"Decrypted token: {decrypted_token}")
         return decrypted_token
     except UnicodeDecodeError as e:
         raise ValueError(f"Decryption resulted in invalid UTF-8 data: {str(e)}")
