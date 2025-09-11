@@ -831,7 +831,7 @@ async def get_payment_customer(org_id: str) -> Dict[str, Any]:
     """
     return await payments_customers.find_one({"org_id": org_id})
 
-async def get_stripe_customer(org_id: str) -> Dict[str, Any]:
+async def get_stripe_customer(db, org_id: str) -> Dict[str, Any]:
     """
     Get the Stripe customer for the given org_id (calls Stripe API - use sparingly)
     For most use cases, prefer get_payment_customer() which uses local data
@@ -961,7 +961,7 @@ async def sync_payments_customer(db, org_id: str) -> Dict[str, Any]:
             customer = await db.payments_customers.find_one({"org_id": org_id})
 
         # Ensure credits are initialized
-        await ensure_subscription_credits(customer)
+        await ensure_subscription_credits(db, customer)
 
         return customer
     
@@ -1026,7 +1026,7 @@ async def sync_stripe_customer(org_id: str) -> Dict[str, Any]:
         logger.info(f"Syncing Stripe customer for org_id: {org_id} user_id: {user_id} email: {user_email} name: {user_name}")
 
         # Search for existing Stripe customer
-        stripe_customer = await get_stripe_customer(org_id)
+        stripe_customer = await get_stripe_customer(db, org_id)
 
         if stripe_customer:            
             # Check if customer needs updating
@@ -1090,7 +1090,7 @@ async def sync_stripe_customer(org_id: str) -> Dict[str, Any]:
             payment_customer = await db.payments_customers.find_one({"org_id": org_id})
             
             # Ensure credits are initialized
-            await ensure_subscription_credits(payment_customer)
+            await ensure_subscription_credits(db, payment_customer)
 
         return stripe_customer
     
@@ -1148,11 +1148,13 @@ async def check_payment_limits(org_id: str, spus: int) -> bool:
 
     logger.info(f"Checking subscription limits for org_id: {org_id} spus: {spus}")
 
-    payment_customer = await payments_customers.find_one({"org_id": org_id})
+    db = ad.common.get_async_db()
+
+    payment_customer = await db.payments_customers.find_one({"org_id": org_id})
     if not payment_customer:
         raise ValueError(f"No customer found for org_id: {org_id}")
 
-    await ensure_subscription_credits(payment_customer)
+    await ensure_subscription_credits(db, payment_customer)
 
     # Get all subscription and credit data from local customer document (NO Stripe API calls)
     subscription_type = payment_customer.get("subscription_type")
@@ -1330,10 +1332,10 @@ async def get_current_billing_period() -> tuple:
     
     return int(period_start.timestamp()), int(period_end.timestamp())
 
-async def get_billing_period_for_customer(org_id: str) -> tuple:
+async def get_billing_period_for_customer(db, org_id: str) -> tuple:
     """Get billing period boundaries from local customer data (no Stripe API calls)"""
     # Get local customer data
-    customer = await payments_customers.find_one({"org_id": org_id})
+    customer = await db.payments_customers.find_one({"org_id": org_id})
     if not customer:
         return None, None
     
@@ -1703,7 +1705,7 @@ async def record_usage(
 
 
 # Helper functions for webhook handlers
-async def handle_subscription_updated(subscription: Dict[str, Any]):
+async def handle_subscription_updated(db, subscription: Dict[str, Any]):
     """Handle subscription created or updated event"""
     logger.info(f"Handling subscription updated event for subscription_id {subscription['id']}")
     
@@ -1715,7 +1717,7 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
             return
             
         # Find our local customer record
-        customer = await payments_customers.find_one({"stripe_customer_id": customer_id})
+        customer = await db.payments_customers.find_one({"stripe_customer_id": customer_id})
         if not customer:
             logger.error(f"No local customer found for Stripe customer {customer_id}")
             return
@@ -1726,13 +1728,13 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
             return
         
         # Sync the subscription data locally
-        await sync_local_subscription_data(org_id, customer_id, subscription)
+        await sync_local_subscription_data(db, org_id, customer_id, subscription)
         logger.info(f"Synced subscription data for org {org_id} from webhook")
         
     except Exception as e:
         logger.error(f"Error handling subscription updated webhook: {e}")
 
-async def handle_subscription_deleted(subscription: Dict[str, Any]):
+async def handle_subscription_deleted(db, subscription: Dict[str, Any]):
     """Handle subscription deleted event"""
     logger.info(f"Handling subscription deleted event for subscription_id: {subscription['id']}")
     
@@ -1744,7 +1746,7 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
             return
             
         # Find our local customer record
-        customer = await payments_customers.find_one({"stripe_customer_id": customer_id})
+        customer = await db.payments_customers.find_one({"stripe_customer_id": customer_id})
         if not customer:
             logger.error(f"No local customer found for Stripe customer {customer_id}")
             return
@@ -1773,7 +1775,7 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
             update_data["subscription_type"] = None
         # Enterprise customers keep their subscription_type="enterprise" and unlimited allowance
         
-        await payments_customers.update_one(
+        await db.payments_customers.update_one(
             {"org_id": org_id},
             {"$set": update_data}
         )
@@ -1783,7 +1785,7 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
     except Exception as e:
         logger.error(f"Error handling subscription deleted webhook: {e}")
 
-async def handle_invoice_created(invoice: Dict[str, Any]):
+async def handle_invoice_created(db, invoice: Dict[str, Any]):
     """Handle invoice.created event - triggers at the start of a new billing period"""
     logger.info(f"Handling invoice created event for invoice_id {invoice['id']}")
     
@@ -1809,7 +1811,7 @@ async def handle_invoice_created(invoice: Dict[str, Any]):
             logger.error(f"No customer_id found in subscription {subscription_id}")
             return
             
-        customer = await payments_customers.find_one({"stripe_customer_id": customer_id})
+        customer = await db.payments_customers.find_one({"stripe_customer_id": customer_id})
         if not customer:
             logger.error(f"No local customer found for Stripe customer {customer_id}")
             return
@@ -1820,13 +1822,13 @@ async def handle_invoice_created(invoice: Dict[str, Any]):
             return
         
         # Sync the updated billing period information
-        await sync_local_subscription_data(org_id, customer_id, subscription)
+        await sync_local_subscription_data(db, org_id, customer_id, subscription)
         logger.info(f"Updated billing period for org {org_id} from invoice.created webhook")
         
     except Exception as e:
         logger.error(f"Error handling invoice created webhook: {e}")
 
-async def handle_invoice_payment_succeeded(invoice: Dict[str, Any]):
+async def handle_invoice_payment_succeeded(db, invoice: Dict[str, Any]):
     """Handle invoice.payment_succeeded event - confirms successful billing period payment"""
     logger.info(f"Handling invoice payment succeeded event for invoice_id {invoice['id']}")
     
@@ -1843,7 +1845,7 @@ async def handle_invoice_payment_succeeded(invoice: Dict[str, Any]):
             logger.error(f"No customer_id found in invoice {invoice['id']}")
             return
             
-        customer = await payments_customers.find_one({"stripe_customer_id": customer_id})
+        customer = await db.payments_customers.find_one({"stripe_customer_id": customer_id})
         if not customer:
             logger.error(f"No local customer found for Stripe customer {customer_id}")
             return
@@ -1854,7 +1856,7 @@ async def handle_invoice_payment_succeeded(invoice: Dict[str, Any]):
             return
         
         # Reset subscription SPU usage for the new billing period
-        await payments_customers.update_one(
+        await db.payments_customers.update_one(
             {"org_id": org_id},
             {"$set": {
                 "subscription_spus_used": 0,  # Reset usage for new billing period
@@ -1972,8 +1974,10 @@ async def get_subscription_info(
 
     logger.info(f"Getting subscription plans for org_id: {organization_id} user_id: {current_user.user_id}")
 
+    db = ad.common.get_async_db()
+
     # Get the customer
-    customer = await payments_customers.find_one({"org_id": organization_id})
+    customer = await db.payments_customers.find_one({"org_id": organization_id})
     if not customer:
         raise HTTPException(status_code=404, detail=f"Customer not found for org_id: {organization_id}")
     
@@ -2067,7 +2071,7 @@ async def get_subscription_info(
         pass
     else:
         # Get the Stripe customer and subscription for non-enterprise customers
-        stripe_customer = await get_stripe_customer(organization_id)
+        stripe_customer = await get_stripe_customer(db, organization_id)
 
         if not stripe_customer:
             raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
@@ -2137,6 +2141,8 @@ async def handle_activate_subscription(org_id: str, org_type: str, customer_id: 
         logger.info("Stripe API key not configured - handle_activate_subscription aborted")
         return False
 
+    db = ad.common.get_async_db()
+
     try:
         # Get the current subscription
         subscription = await get_subscription(customer_id)
@@ -2156,7 +2162,7 @@ async def handle_activate_subscription(org_id: str, org_type: str, customer_id: 
 
         else:
             # Sync the subscription type with the organization type
-            await sync_subscription(org_id, org_type)
+            await sync_subscription(db, org_id, org_type)
             
             logger.info(f"Created new subscription for customer_id: {customer_id}")
 
@@ -2166,7 +2172,7 @@ async def handle_activate_subscription(org_id: str, org_type: str, customer_id: 
         logger.error(f"Error reactivating subscription: {e}")
         return False
 
-async def sync_subscription(org_id: str, org_type: str) -> bool:
+async def sync_subscription(db, org_id: str, org_type: str) -> bool:
     """
     Sync organization type with subscription type in Stripe
     """
@@ -2179,7 +2185,7 @@ async def sync_subscription(org_id: str, org_type: str) -> bool:
         subscription_type = org_type
 
         # Get the Stripe customer
-        stripe_customer = await get_stripe_customer(org_id)
+        stripe_customer = await get_stripe_customer(db, org_id)
         if not stripe_customer:
             logger.warning(f"No Stripe customer found for org {org_id}")
             return False
@@ -2209,6 +2215,8 @@ async def activate_subscription(
 
     if not is_sys_admin and not is_org_admin:
         raise HTTPException(status_code=403, detail="You are not authorized to activate a subscription")
+
+    db = ad.common.get_async_db()
 
     org = await db.organizations.find_one({"_id": ObjectId(organization_id)})
     if not org:
@@ -2253,6 +2261,8 @@ async def deactivate_subscription(
 
     if not is_sys_admin and not is_org_admin:
         raise HTTPException(status_code=403, detail="You are not authorized to cancel a subscription")
+
+    db = ad.common.get_async_db()
 
     # Check if this is an enterprise customer
     is_enterprise = await is_enterprise_customer(organization_id)
@@ -2302,6 +2312,8 @@ async def get_usage_range(
             status_code=403,
             detail=f"Org admin access required for org_id: {organization_id}"
         )
+
+    db = ad.common.get_async_db()
 
     try:
         # Parse start and end dates from request
@@ -2385,12 +2397,14 @@ async def get_current_usage(
             detail=f"Org admin access required for org_id: {organization_id}"
         )
 
+    db = ad.common.get_async_db()
+
     try:
-        customer = await payments_customers.find_one({"org_id": organization_id})
+        customer = await db.payments_customers.find_one({"org_id": organization_id})
         if not customer:
             raise HTTPException(status_code=404, detail=f"No customer found for org_id: {organization_id}")
         
-        await ensure_subscription_credits(customer)
+        await ensure_subscription_credits(db, customer)
         
         # Get subscription information
         period_start = None
@@ -2402,7 +2416,7 @@ async def get_current_usage(
         subscription_spus_remaining = 0
         
         # Get billing period boundaries (works for both enterprise and non-enterprise)
-        period_start, period_end = await get_billing_period_for_customer(organization_id)
+        period_start, period_end = await get_billing_period_for_customer(db, organization_id)
         
         # Check if this is an enterprise customer
         is_enterprise = await is_enterprise_customer(organization_id)
@@ -2439,7 +2453,7 @@ async def get_current_usage(
         
         # Period metered usage (paid usage for current billing period)
         if period_start and period_end:
-            period_agg = await payments_usage_records.aggregate([
+            period_agg = await db.payments_usage_records.aggregate([
                 {
                     "$match": {
                         "org_id": organization_id,
@@ -2456,7 +2470,7 @@ async def get_current_usage(
                 period_metered_usage = period_agg[0]["total"]
         
         # Total metered usage (all paid usage ever)
-        total_agg = await payments_usage_records.aggregate([
+        total_agg = await db.payments_usage_records.aggregate([
             {"$match": {"org_id": organization_id, "operation": "paid_usage"}},
             {"$group": {"_id": None, "total": {"$sum": "$spus"}}}
         ]).to_list(1)
@@ -2506,6 +2520,8 @@ async def webhook_received(
     
     logger.info(f"Stripe webhook event received: {event['type']}")
 
+    db = ad.common.get_async_db()
+
     # Store event in database for audit
     event_doc = {
         "stripe_event_id": event["id"],
@@ -2515,32 +2531,32 @@ async def webhook_received(
         "processed": False,
         "created_at": datetime.now(UTC)
     }
-    await stripe_events.insert_one(event_doc)
+    await db.stripe_events.insert_one(event_doc)
     
     # Process different event types
     if event["type"] == "customer.subscription.created" or event["type"] == "customer.subscription.updated":
         subscription = event["data"]["object"]
-        await handle_subscription_updated(subscription)
+        await handle_subscription_updated(db, subscription)
     elif event["type"] == "customer.subscription.deleted":
         subscription = event["data"]["object"]
-        await handle_subscription_deleted(subscription)
+        await handle_subscription_deleted(db, subscription)
     elif event["type"] == "invoice.created":
         invoice = event["data"]["object"]
-        await handle_invoice_created(invoice)
+        await handle_invoice_created(db, invoice)
     elif event["type"] == "invoice.payment_succeeded":
         invoice = event["data"]["object"]
-        await handle_invoice_payment_succeeded(invoice)
+        await handle_invoice_payment_succeeded(db, invoice)
     elif event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
         # Check if this is a subscription checkout or credit purchase
         if session.get("mode") == "subscription":
-            await handle_checkout_session_completed(session)
+            await handle_checkout_session_completed(db, session)
         else:
             # Handle credit purchase
-            await credit_customer_account_from_session(session)
+            await credit_customer_account_from_session(db, session)
     
     # Mark event as processed
-    await stripe_events.update_one(
+    await db.stripe_events.update_one(
         {"stripe_event_id": event["id"]},
         {"$set": {"processed": True, "processed_at": datetime.now(UTC)}}
     )
@@ -2548,7 +2564,7 @@ async def webhook_received(
     return {"status": "success"}
 
 # Ensure credits are initialized for a stripe_customer
-async def ensure_subscription_credits(stripe_customer_doc):
+async def ensure_subscription_credits(db, stripe_customer_doc):
     update = {}
     # Add new fields for separate tracking
     if "purchased_credits" not in stripe_customer_doc:
@@ -2569,16 +2585,16 @@ async def ensure_subscription_credits(stripe_customer_doc):
         update["stripe_current_billing_period_end"] = None
     
     if update:
-        await payments_customers.update_one(
+        await db.payments_customers.update_one(
             {"_id": stripe_customer_doc["_id"]},
             {"$set": update}
         )
 
 # Helper functions for improved usage tracking
 
-async def get_current_balances(org_id: str) -> Dict[str, Any]:
+async def get_current_balances(db, org_id: str) -> Dict[str, Any]:
     """Get current balances for an organization (fresh from database)"""
-    customer = await payments_customers.find_one({"org_id": org_id})
+    customer = await db.payments_customers.find_one({"org_id": org_id})
     if not customer:
         raise Exception(f"No customer found for org_id: {org_id}")
     
@@ -2650,7 +2666,7 @@ def calculate_consumption_breakdown(spus: int, balances: Dict[str, Any]) -> Dict
         "from_paid": from_paid
     }
 
-async def update_customer_balances(customer_id: str, consumption: Dict[str, int]) -> None:
+async def update_customer_balances(db, customer_id: str, consumption: Dict[str, int]) -> None:
     """Update customer balances atomically"""
     update_operations = {}
     
@@ -2664,7 +2680,7 @@ async def update_customer_balances(customer_id: str, consumption: Dict[str, int]
         update_operations["granted_credits_used"] = consumption["from_granted"]
     
     if update_operations:
-        await payments_customers.update_one(
+        await db.payments_customers.update_one(
             {"_id": customer_id},
             {"$inc": update_operations}
         )
@@ -2695,7 +2711,7 @@ def should_reset_billing_period(customer: Dict[str, Any], new_period_start: int)
     customer_period_start = customer.get("stripe_current_billing_period_start")
     return customer_period_start != new_period_start
 
-async def reset_billing_period(customer: Dict[str, Any], period_start: int, period_end: int) -> None:
+async def reset_billing_period(db, customer: Dict[str, Any], period_start: int, period_end: int) -> None:
     """Reset billing period and subscription SPU usage atomically"""
     subscription_spu_allowance = customer.get("subscription_spu_allowance", 0)
     has_spu_allowance = subscription_spu_allowance is not None and subscription_spu_allowance > 0
@@ -2709,7 +2725,7 @@ async def reset_billing_period(customer: Dict[str, Any], period_start: int, peri
     if has_spu_allowance:
         update_data["subscription_spus_used"] = 0
     
-    await payments_customers.update_one(
+    await db.payments_customers.update_one(
         {"_id": customer["_id"]},
         {"$set": update_data}
     )
@@ -2728,27 +2744,27 @@ async def record_payment_usage(org_id: str, spus: int) -> Dict[str, int]:
     
     try:
         # 1. Get customer and ensure fields are initialized
-        customer = await payments_customers.find_one({"org_id": org_id})
+        customer = await db.payments_customers.find_one({"org_id": org_id})
         if not customer:
             raise Exception(f"No customer found for org_id: {org_id}")
         
-        await ensure_subscription_credits(customer)
+        await ensure_subscription_credits(db, customer)
         
         # 2. Handle billing period management (enterprise vs subscription)
-        current_period_start, current_period_end = await get_billing_period_for_customer(org_id)
+        current_period_start, current_period_end = await get_billing_period_for_customer(db, org_id)
         
         # 3. Check for billing period reset (atomic operation)
         if should_reset_billing_period(customer, current_period_start):
-            await reset_billing_period(customer, current_period_start, current_period_end)
+            await reset_billing_period(db, customer, current_period_start, current_period_end)
         
         # 4. Get current balances (fresh from DB after potential reset)
-        balances = await get_current_balances(org_id)
+        balances = await get_current_balances(db, org_id)
         
         # 5. Calculate consumption order: subscription → purchased → granted → paid
         consumption = calculate_consumption_breakdown(spus, balances)
         
         # 6. Update customer balances atomically
-        await update_customer_balances(balances["customer_id"], consumption)
+        await update_customer_balances(db, balances["customer_id"], consumption)
         
         # 7. Record complete usage record with breakdown
         await save_complete_usage_record(db, org_id, spus, consumption, operation="document_processing")
@@ -2771,11 +2787,13 @@ async def add_spu_credits(
 
     if not await is_system_admin(current_user.user_id):
         raise HTTPException(status_code=403, detail="Admin only")
-    customer = await payments_customers.find_one({"org_id": organization_id})
+
+    db = ad.common.get_async_db()   
+    customer = await db.payments_customers.find_one({"org_id": organization_id})
     if not customer:
         raise HTTPException(status_code=404, detail="No customer for org")
-    await ensure_subscription_credits(customer)
-    await payments_customers.update_one(
+    await ensure_subscription_credits(db, customer)
+    await db.payments_customers.update_one(
         {"_id": customer["_id"]},
         {"$inc": {"granted_credits": update.amount}}
     )
@@ -2808,7 +2826,9 @@ async def purchase_credits(
     if not await is_organization_member(org_id=organization_id, user_id=current_user.user_id):
         logger.error(f"Access denied for user {current_user.user_id} to org {organization_id}")
         raise HTTPException(status_code=403, detail="Access denied")
-    
+
+    db = ad.common.get_async_db()
+
     # Calculate total cost for the requested credits
     total_cost = request.credits * CREDIT_CONFIG["price_per_credit"]
     
@@ -2891,7 +2911,7 @@ async def purchase_credits(
         logger.error(f"Error creating checkout session: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
 
-async def credit_customer_account_from_session(session: Dict[str, Any]):
+async def credit_customer_account_from_session(db, session: Dict[str, Any]):
     """Credit customer account after successful Checkout session"""
     
     try:
@@ -2904,13 +2924,13 @@ async def credit_customer_account_from_session(session: Dict[str, Any]):
             return
         
         # Add credits to the organization
-        customer = await payments_customers.find_one({"org_id": org_id})
+        customer = await db.payments_customers.find_one({"org_id": org_id})
         if not customer:
             logger.error(f"No customer found for org: {org_id}")
             return
         
-        await ensure_subscription_credits(customer)
-        await payments_customers.update_one(
+        await ensure_subscription_credits(db, customer)
+        await db.payments_customers.update_one(
             {"_id": customer["_id"]},
             {"$inc": {"purchased_credits": credits}}
         )
@@ -2922,7 +2942,7 @@ async def credit_customer_account_from_session(session: Dict[str, Any]):
         logger.error(f"Error processing checkout session completion: {e}")
 
 # Update the webhook handler to handle checkout.session.completed for subscriptions
-async def handle_checkout_session_completed(session: Dict[str, Any]):
+async def handle_checkout_session_completed(db, session: Dict[str, Any]):
     """Handle checkout session completed event"""
     try:
         metadata = session.get("metadata", {})
@@ -2938,7 +2958,7 @@ async def handle_checkout_session_completed(session: Dict[str, Any]):
         logger.info(f"Checkout session completed for org {org_id}, plan {plan_id}")
         
         # Refresh the customer data to ensure we have the latest subscription info
-        await sync_customer(org_id)
+        await sync_customer(db, org_id)
         
     except Exception as e:
         logger.error(f"Error processing checkout session completion: {e}")
