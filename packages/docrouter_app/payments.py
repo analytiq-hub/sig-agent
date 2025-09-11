@@ -508,22 +508,37 @@ async def sync_stripe_customers(db) -> Tuple[int, int, List[str]]:
         missing_from_stripe = local_org_ids - stripe_org_ids
         orphaned_in_stripe = stripe_org_ids - local_org_ids
         
+        # Find existing payment customers that need stripe_customer_id updated
+        existing_stripe_orgs = local_org_ids & stripe_org_ids
+        payment_customers_needing_update = set()
+        
+        if existing_stripe_orgs:
+            # Check which payment customers are missing stripe_customer_id
+            for org_id in existing_stripe_orgs:
+                payment_customer = await db.payments_customers.find_one({"org_id": org_id})
+                if payment_customer and not payment_customer.get("stripe_customer_id"):
+                    payment_customers_needing_update.add(org_id)
+        
         logger.info(f"Total orgs: {total_orgs}")
         logger.info(f"Stripe customers: {len(stripe_org_ids)}")
         logger.info(f"Missing from Stripe: {len(missing_from_stripe)}")
         logger.info(f"Orphaned in Stripe: {len(orphaned_in_stripe)}")
+        logger.info(f"Payment customers needing stripe_customer_id update: {len(payment_customers_needing_update)}")
         
         # Clean up orphaned Stripe customers
         if orphaned_in_stripe:
             logger.info(f"Cleaning up {len(orphaned_in_stripe)} orphaned Stripe customers")
             await _cleanup_orphaned_stripe_customers(db, orphaned_in_stripe, stripe_customer_map)
         
-        if not missing_from_stripe:
-            logger.info("All organizations already have Stripe customers")
+        # Combine orgs that need syncing: new Stripe customers + existing customers needing update
+        orgs_to_sync = missing_from_stripe | payment_customers_needing_update
+        
+        if not orgs_to_sync:
+            logger.info("All organizations have properly linked Stripe customers")
             return total_orgs, 0, []
         
-        # Sync the organizations that need Stripe customers
-        return await _create_stripe_customer_set(db, missing_from_stripe)
+        # Sync the organizations that need Stripe customers or updates
+        return await _create_stripe_customer_set(db, orgs_to_sync)
     
     except Exception as e:
         logger.error(f"Error during Stripe customer sync: {e}")
