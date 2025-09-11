@@ -1483,8 +1483,10 @@ async def customer_portal(
 
     logger.info(f"Generating customer portal for org_id: {organization_id}")
 
+    db = ad.common.get_async_db()
+
     # Get customer data to check stripe_payments_portal_enabled flag
-    customer = await payments_customers.find_one({"org_id": organization_id})
+    customer = await db.payments_customers.find_one({"org_id": organization_id})
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     
@@ -1877,6 +1879,8 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
     """
     
     logger.warning("Starting deletion of ALL Stripe customers")
+
+    db = ad.common.get_async_db()
     
     deleted_count = 0
     failed_count = 0
@@ -1934,7 +1938,7 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
         try:
             if not dryrun:
                 # Delete all local records
-                await payments_customers.delete_many({"org_id": {"$exists": True}})
+                await db.payments_customers.delete_many({"org_id": {"$exists": True}})
                 logger.info("Deleted all local Stripe customer records")
             else:
                 logger.info("Would have deleted all local Stripe customer records")
