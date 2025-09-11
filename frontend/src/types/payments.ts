@@ -1,5 +1,6 @@
 export interface PortalSessionResponse {
-  url: string;
+  payment_portal_url: string;
+  stripe_enabled: boolean;
 }
 
 // Add these new types
@@ -20,7 +21,8 @@ export interface SubscriptionResponse {
   cancel_at_period_end: boolean;
   current_period_start: number | null;  // Unix timestamp
   current_period_end: number | null;  // Unix timestamp
-  stripe_payments_portal: boolean;
+  stripe_enabled: boolean;
+  stripe_payments_portal_enabled: boolean;
 }
 
 export interface SubscriptionHistory {

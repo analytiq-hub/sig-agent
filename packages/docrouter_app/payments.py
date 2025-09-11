@@ -1,7 +1,7 @@
 import os
 import logging
 from typing import Optional, Dict, Any, List, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from fastapi import APIRouter, Depends, HTTPException, Request, Body, BackgroundTasks
 from pydantic import BaseModel, Field
 import stripe
@@ -26,21 +26,38 @@ import stripe
 from functools import partial
 from typing import Any, Dict, List, Optional
 
-def format_price_per_spu(price: float) -> str:
+# Configure logger
+logger = logging.getLogger(__name__)
+
+# Initialize FastAPI router
+payments_router = APIRouter(tags=["payments"])
+
+stripe_webhook_secret = None
+
+# MongoDB configuration
+MONGO_URI = None
+ENV = None
+
+# Global db variable removed - use dependency injection instead
+
+class SPUCreditException(Exception):
     """
-    Format price per SPU to show only necessary decimal places.
-    Shows 3 decimals only if the third decimal is non-zero, otherwise shows 2 decimals.
-    """
-    # Round to 3 decimal places first to handle floating point precision issues
-    rounded_price = round(price, 3)
+    Raised when an organization has insufficient SPU credits to complete an operation.
     
-    # Check if the third decimal place is significant
-    if rounded_price * 1000 == int(rounded_price * 1000):
-        # No significant third decimal, use 2 decimal places
-        return f"{rounded_price:.2f}"
-    else:
-        # Third decimal is significant, use 3 decimal places
-        return f"{rounded_price:.3f}"
+    This exception should be caught at the API level and converted to HTTP 402 Payment Required.
+    """
+    
+    def __init__(self, org_id: str, required_spus: int, available_spus: int = 0):
+        self.org_id = org_id
+        self.required_spus = required_spus
+        self.available_spus = available_spus
+        
+        message = (
+            f"Insufficient SPU credits for organization {org_id}. "
+            f"Required: {required_spus}, Available: {available_spus}"
+        )
+        super().__init__(message)
+
 
 class StripeAsync:
     @staticmethod
@@ -111,27 +128,6 @@ class StripeAsync:
             **kwargs
         )
 
-# Configure logger
-logger = logging.getLogger(__name__)
-
-# Initialize FastAPI router
-payments_router = APIRouter(tags=["payments"])
-
-stripe_webhook_secret = None
-
-# MongoDB configuration
-MONGO_URI = None
-ENV = None
-
-# Initialize MongoDB client
-client = None
-db = None
-
-# Define payment collections
-payments_customers = None
-stripe_events = None  # Keep stripe_ prefix as these are webhook events from Stripe
-payments_usage_records = None
-payments_billing_periods = None
 
 # Pydantic models for request/response validation
 class UsageRecord(BaseModel):
@@ -140,7 +136,8 @@ class UsageRecord(BaseModel):
     source: str = "backend"
 
 class PortalSessionResponse(BaseModel):
-    url: str
+    payment_portal_url: str
+    stripe_enabled: bool
 
 class SubscriptionPlan(BaseModel):
     plan_id: str
@@ -158,7 +155,8 @@ class SubscriptionResponse(BaseModel):
     cancel_at_period_end: bool = False
     current_period_start: Optional[int] = None  # Unix timestamp
     current_period_end: Optional[int] = None  # Unix timestamp
-    stripe_payments_portal: bool = False
+    stripe_enabled: bool = False
+    stripe_payments_portal_enabled: bool = False
 
 class UsageData(BaseModel):
     subscription_type: Optional[str]
@@ -209,12 +207,57 @@ class UsageRangeResponse(BaseModel):
     total_spus: int                   # Total SPUs in the period
 
 # Dynamic configuration - populated from Stripe at startup
-CREDIT_CONFIG = {}
+CREDIT_CONFIG = {
+    "price_per_credit": 0.0,
+    "currency": "usd",
+    "min_spu_purchase": 0,
+    "max_spu_purchase": 0,
+    "min_cost": 0.0,
+    "max_cost": 0.0,
+    "granted_credits": 100 # Number of credits granted to each user
+}
 
 # SPU limits per tier - populated from Stripe metadata at startup
 TIER_LIMITS = {
+    "individual": 0,
+    "team": 0,
     "enterprise": None     # No limit (custom billing, not in Stripe)
 }
+
+def stripe_enabled() -> bool:
+    return stripe.api_key is not None
+
+# Modify the init_payments_env function
+async def init_payments_env(database):
+    global MONGO_URI, ENV
+    global NEXTAUTH_URL
+    global stripe_webhook_secret
+
+    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+    ENV = os.getenv("ENV", "dev")
+    NEXTAUTH_URL = os.getenv("NEXTAUTH_URL", "http://localhost:3000")
+
+    # Database connection is now passed as parameter to functions that need it
+
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+    stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+    logger.info(f"init_payments_env() completed")
+    
+async def init_payments(db):
+    await init_payments_env(db)
+
+    logger.info("Stripe initialized")
+
+    ad.payments.set_check_payment_limits_hook(check_payment_limits)
+    ad.payments.set_record_payment_usage_hook(record_payment_usage)
+    
+    # Initialize dynamic configuration from Stripe
+    await get_credit_config()
+    await get_tier_limits()
+
+    await sync_all_customers(db)
+    logger.info("Stripe customers synced")
 
 async def get_tier_limits() -> Dict[str, Any]:
     """
@@ -222,18 +265,15 @@ async def get_tier_limits() -> Dict[str, Any]:
     """
     global TIER_LIMITS
     
-    if not stripe.api_key:
-        raise ValueError("Stripe API key not configured - cannot fetch tier limits")
-    
+    if not stripe_enabled():
+        return
+
     # Get all active prices for our product
     prices = await StripeAsync._run_in_threadpool(
         stripe.Price.list,
         active=True,
         expand=['data.product']
     )
-    
-    # Start with enterprise (not in Stripe)
-    tier_limits = {"enterprise": None}
     
     # Find base prices and extract limits from metadata
     for price in prices.data:
@@ -246,26 +286,23 @@ async def get_tier_limits() -> Dict[str, Any]:
                 included_spus = metadata.get('included_spus')
                 if not included_spus:
                     raise ValueError(f"Missing included_spus metadata for {tier} base price {price.id}")
-                tier_limits[tier] = int(included_spus)
+                TIER_LIMITS[tier] = int(included_spus)
                 logger.info(f"Loaded {tier} SPU limit from Stripe: {included_spus}")
     
-    # Ensure we found both individual and team limits
-    if 'individual' not in tier_limits or 'team' not in tier_limits:
-        missing = [t for t in ['individual', 'team'] if t not in tier_limits]
-        raise ValueError(f"Missing base prices in Stripe for tiers: {missing}")
-    
-    # Update global limits
-    TIER_LIMITS = tier_limits
-    return tier_limits
+    # Ensure we have non-zero limits for individual and team
+    if TIER_LIMITS['individual'] == 0:
+        raise ValueError("Individual SPU limit must be non-zero")
+    if TIER_LIMITS['team'] == 0:
+        raise ValueError("Team SPU limit must be non-zero")
 
-async def load_credit_config() -> Dict[str, Any]:
+async def get_credit_config() -> Dict[str, Any]:
     """
     Fetch credit configuration dynamically from Stripe credit prices
     """
     global CREDIT_CONFIG
     
-    if not stripe.api_key:
-        raise ValueError("Stripe API key not configured - cannot fetch credit config")
+    if not stripe_enabled():
+        return
     
     # Get all active prices for our product
     prices = await StripeAsync._run_in_threadpool(
@@ -295,7 +332,6 @@ async def load_credit_config() -> Dict[str, Any]:
             # Get required metadata
             min_spu_purchase = metadata.get('min_spu_purchase')
             max_spu_purchase = metadata.get('max_spu_purchase')
-            spu_credit = metadata.get('spu_credit')
             
             # Log found price for debugging
             logger.info(f"Found credit price {price.id}: unit_amount={price.unit_amount}, currency={price.currency}")
@@ -305,36 +341,45 @@ async def load_credit_config() -> Dict[str, Any]:
                 raise ValueError(f"Missing min_spu_purchase metadata for credit price {price.id}")
             if not max_spu_purchase:
                 raise ValueError(f"Missing max_spu_purchase metadata for credit price {price.id}")
-            if not spu_credit:
-                raise ValueError(f"Missing spu_credit metadata for credit price {price.id}")
-            
-            credit_config = {
-                'price_per_credit': price_per_credit,
-                'currency': price.currency,
-                'min_spu_purchase': int(min_spu_purchase),
-                'max_spu_purchase': int(max_spu_purchase),
-                'min_cost': int(min_spu_purchase) * price_per_credit,
-                'max_cost': int(max_spu_purchase) * price_per_credit,
-                'spu_credit': int(spu_credit)
-            }
+
+            CREDIT_CONFIG["price_per_credit"] = price_per_credit
+            CREDIT_CONFIG["currency"] = price.currency
+            CREDIT_CONFIG["min_spu_purchase"] = int(min_spu_purchase)
+            CREDIT_CONFIG["max_spu_purchase"] = int(max_spu_purchase)
+            CREDIT_CONFIG["min_cost"] = int(min_spu_purchase) * price_per_credit
+            CREDIT_CONFIG["max_cost"] = int(max_spu_purchase) * price_per_credit
             
             logger.info(f"Loaded credit config from Stripe: price=${price_per_credit:.3f}, min={min_spu_purchase}, max={max_spu_purchase}")
-            break
+            return
     
-    if not credit_config:
-        raise ValueError("No credit price found in Stripe with price_type=credit")
-    
-    # Update global config
-    CREDIT_CONFIG = credit_config
-    return credit_config
+    raise ValueError("No credit price found in Stripe with price_type=credit")
 
 # Function to fetch base pricing from Stripe
-async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
+async def get_tier_config(db, org_id: str = None) -> Dict[str, Any]:
     """
     Fetch tier configuration dynamically from Stripe prices (base pricing only)
     """
-    if not stripe.api_key:
-        raise ValueError("Stripe API key not configured - cannot fetch tier config")
+
+    tier_config = {
+        "individual": {
+            "base_price_id": None, 
+            "base_price": 0.0, 
+            "included_spus": None
+        },
+        "team": {
+            "base_price_id": None, 
+            "base_price": 0.0, 
+            "included_spus": None
+        },
+        "enterprise": {
+            "base_price_id": None, 
+            "base_price": 0.0, 
+            "included_spus": None
+        }
+    }
+
+    if not stripe_enabled():
+        return tier_config
 
     # Get all active prices for our product
     prices = await StripeAsync._run_in_threadpool(
@@ -342,10 +387,6 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
         active=True,
         expand=['data.product']
     )
-    
-    dynamic_config = {
-        "enterprise": {"base_price_id": None, "base_price": 0.0, "included_spus": None}
-    }
     
     # Find base prices for each tier
     for price in prices.data:
@@ -361,7 +402,7 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
             if not included_spus:
                 raise ValueError(f"Missing included_spus metadata for {tier} base price {price.id}")
                 
-            dynamic_config[tier] = {
+            tier_config[tier] = {
                 'base_price_id': price.id,
                 'base_price': price.unit_amount / 100,
                 'included_spus': int(included_spus)
@@ -369,65 +410,90 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
             logger.info(f"Loaded {tier} tier config from Stripe: ${price.unit_amount / 100}, {included_spus} SPUs")
     
     # Ensure we found both individual and team tiers
-    if 'individual' not in dynamic_config or 'team' not in dynamic_config:
-        missing = [t for t in ['individual', 'team'] if t not in dynamic_config]
+    if 'individual' not in tier_config or 'team' not in tier_config:
+        missing = [t for t in ['individual', 'team'] if t not in tier_config]
         raise ValueError(f"Missing base prices in Stripe for tiers: {missing}")
     
-    return dynamic_config
+    return tier_config
 
-# Modify the init_payments_env function
-async def init_payments_env():
-    global MONGO_URI, ENV
-    global NEXTAUTH_URL
-    global client, db
-    global payments_customers, stripe_events, payments_usage_records, payments_billing_periods
-    global stripe_webhook_secret
-
-    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-    ENV = os.getenv("ENV", "dev")
-    NEXTAUTH_URL = os.getenv("NEXTAUTH_URL", "http://localhost:3000")
-
-    client = AsyncIOMotorClient(MONGO_URI)
-    db = client[ENV]
-
-    payments_customers = db.payments_customers
-    stripe_events = db.stripe_events
-    payments_usage_records = db.payments_usage_records
-    payments_billing_periods = db.payments_billing_periods
-    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-    stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
-    
-async def init_payments():
-    await init_payments_env()
-
-    logger.info("Stripe initialized")
-
-    if stripe.api_key:
-        ad.payments.set_check_payment_limits_hook(check_payment_limits)
-        ad.payments.set_record_payment_usage_hook(record_payment_usage)
-        
-        # Initialize dynamic configuration from Stripe
-        await load_credit_config()
-        await get_tier_limits()
-        logger.info("Dynamic pricing configuration and limits loaded from Stripe")
-
-    await sync_all_customers()
-    logger.info("Stripe customers synced")
-
-async def sync_all_customers() -> Tuple[int, int, List[str]]:
+def format_price_per_spu(price: float) -> str:
     """
-    Differential sync: sync organizations to both Stripe and payments_customers collection.
-    Ensures all organizations have both Stripe customers and local payment customer records.
+    Format price per SPU to show only necessary decimal places.
+    Shows 3 decimals only if the third decimal is non-zero, otherwise shows 2 decimals.
+    """
+    # Round to 3 decimal places first to handle floating point precision issues
+    rounded_price = round(price, 3)
+    
+    # Check if the third decimal place is significant
+    if rounded_price * 1000 == int(rounded_price * 1000):
+        # No significant third decimal, use 2 decimal places
+        return f"{rounded_price:.2f}"
+    else:
+        # Third decimal is significant, use 3 decimal places
+        return f"{rounded_price:.3f}"
+
+
+
+async def sync_payments_customers(db) -> Tuple[int, int, List[str]]:
+    """
+    Initialize payment customers for all organizations without Stripe API calls.
+    Sets up local payment customer records with zero SPU credits, usage, and billing periods.
+    This runs regardless of Stripe configuration.
     
     Returns:
         Tuple containing (total_orgs, successful_syncs, error_messages)
     """
-    if not stripe.api_key:
-        # No-op if Stripe is not configured
-        logger.warning("Stripe API key not configured - sync_all_payments_customers aborted")
+    logger.info("Starting sync of local payment customers (no Stripe APIs)")
+    
+    try:
+        # Get all organizations from MongoDB
+        orgs = await db["organizations"].find().to_list(length=None)
+        total_orgs = len(orgs)
+        local_org_ids = set(str(org["_id"]) for org in orgs)
+        
+        # Get all local payment customers
+        payment_customers_list = await db.payments_customers.find({"org_id": {"$exists": True}}).to_list(length=None)
+        payment_org_ids = set(customer.get("org_id") for customer in payment_customers_list if customer.get("org_id"))
+        
+        # Find organizations that need local payment customer creation
+        missing_from_payments = local_org_ids - payment_org_ids
+        orphaned_in_payments = payment_org_ids - local_org_ids
+        
+        logger.info(f"Total orgs: {total_orgs}")
+        logger.info(f"Payment customers: {len(payment_org_ids)}")
+        logger.info(f"Missing from payments: {len(missing_from_payments)}")
+        logger.info(f"Orphaned in payments: {len(orphaned_in_payments)}")
+        
+        # Clean up orphaned payment customers
+        if orphaned_in_payments:
+            logger.info(f"Cleaning up {len(orphaned_in_payments)} orphaned payment customers")
+            await _cleanup_orphaned_payment_customers(db, orphaned_in_payments)
+        
+        if not missing_from_payments:
+            logger.info("All organizations already have local payment customers")
+            return total_orgs, 0, []
+        
+        # Create local payment customers for missing organizations
+        return await _create_payments_customer_set(db, missing_from_payments)
+    
+    except Exception as e:
+        logger.error(f"Error during payment customers sync: {e}")
+        return 0, 0, [f"Global error: {str(e)}"]
+
+
+async def sync_stripe_customers(db) -> Tuple[int, int, List[str]]:
+    """
+    Sync organizations with Stripe customers and update local records.
+    Skips if Stripe API key is not configured.
+    
+    Returns:
+        Tuple containing (total_orgs, successful_syncs, error_messages)
+    """
+    if not stripe_enabled():
+        logger.warning("Stripe API key not configured - sync_stripe_customers skipped")
         return 0, 0, ["Stripe API key not configured"]
 
-    logger.info("Starting differential sync of customers with Stripe and payments_customers")
+    logger.info("Starting sync of Stripe customers")
     
     try:
         # Get all organizations from MongoDB
@@ -438,40 +504,56 @@ async def sync_all_customers() -> Tuple[int, int, List[str]]:
         # Get all Stripe customers with org_id metadata
         stripe_org_ids, stripe_customer_map = await _get_stripe_customer_org_ids()
         
-        # Get all local payment customers
-        payment_customers = await payments_customers.find({"org_id": {"$exists": True}}).to_list(length=None)
-        payment_org_ids = set(customer.get("org_id") for customer in payment_customers if customer.get("org_id"))
-        
-        # Find organizations that need syncing
+        # Find organizations that need Stripe syncing
         missing_from_stripe = local_org_ids - stripe_org_ids
-        missing_from_payments = local_org_ids - payment_org_ids
         orphaned_in_stripe = stripe_org_ids - local_org_ids
-        orphaned_in_payments = payment_org_ids - local_org_ids
-        
-        # Organizations needing any kind of sync
-        need_sync = missing_from_stripe | missing_from_payments
         
         logger.info(f"Total orgs: {total_orgs}")
-        logger.info(f"Stripe customers: {len(stripe_org_ids)}, Payment customers: {len(payment_org_ids)}")
-        logger.info(f"Missing from Stripe: {len(missing_from_stripe)}, Missing from payments: {len(missing_from_payments)}")
-        logger.info(f"Orphaned in Stripe: {len(orphaned_in_stripe)}, Orphaned in payments: {len(orphaned_in_payments)}")
-        logger.info(f"Total needing sync: {len(need_sync)}")
+        logger.info(f"Stripe customers: {len(stripe_org_ids)}")
+        logger.info(f"Missing from Stripe: {len(missing_from_stripe)}")
+        logger.info(f"Orphaned in Stripe: {len(orphaned_in_stripe)}")
         
-        # Clean up orphaned records
+        # Clean up orphaned Stripe customers
         if orphaned_in_stripe:
             logger.info(f"Cleaning up {len(orphaned_in_stripe)} orphaned Stripe customers")
-            await _cleanup_orphaned_stripe_customers(orphaned_in_stripe, stripe_customer_map)
-            
-        if orphaned_in_payments:
-            logger.info(f"Cleaning up {len(orphaned_in_payments)} orphaned payment customers")
-            await _cleanup_orphaned_payment_customers(orphaned_in_payments)
+            await _cleanup_orphaned_stripe_customers(db, orphaned_in_stripe, stripe_customer_map)
         
-        if not need_sync:
-            logger.info("All organizations already synced with both Stripe and payments_customers")
+        if not missing_from_stripe:
+            logger.info("All organizations already have Stripe customers")
             return total_orgs, 0, []
         
-        # Sync the organizations that need it
-        return await _sync_org_ids(need_sync)
+        # Sync the organizations that need Stripe customers
+        return await _create_stripe_customer_set(db, missing_from_stripe)
+    
+    except Exception as e:
+        logger.error(f"Error during Stripe customer sync: {e}")
+        return 0, 0, [f"Global error: {str(e)}"]
+
+
+async def sync_all_customers(db) -> Tuple[int, int, List[str]]:
+    """
+    Differential sync: sync organizations to both Stripe and payments_customers collection.
+    Ensures all organizations have both Stripe customers and local payment customer records.
+    
+    Returns:
+        Tuple containing (total_orgs, successful_syncs, error_messages)
+    """
+    logger.info("Starting differential sync of customers with Stripe and payments_customers")
+    
+    try:
+        # First, ensure all orgs have local payment customers
+        payments_result = await sync_payments_customers(db)
+        
+        # Then, sync with Stripe if configured
+        stripe_result = await sync_stripe_customers(db)
+        
+        # Combine results
+        total_orgs = max(payments_result[0], stripe_result[0])
+        successful_syncs = payments_result[1] + stripe_result[1]
+        errors = payments_result[2] + stripe_result[2]
+        
+        logger.info(f"Combined sync completed: {successful_syncs} total operations, {len(errors)} errors")
+        return total_orgs, successful_syncs, errors
     
     except Exception as e:
         logger.error(f"Error during differential customer sync: {e}")
@@ -508,7 +590,7 @@ async def _get_stripe_customer_org_ids() -> Tuple[set, Dict[str, str]]:
         logger.error(f"Error getting Stripe customer org_ids: {e}")
         return set(), {}
 
-async def _cleanup_orphaned_stripe_customers(orphaned_org_ids: set, stripe_customer_map: Dict[str, str]) -> Tuple[int, List[str]]:
+async def _cleanup_orphaned_stripe_customers(db, orphaned_org_ids: set, stripe_customer_map: Dict[str, str]) -> Tuple[int, List[str]]:
     """Delete orphaned Stripe customers that don't have corresponding organizations"""
     deleted_count = 0
     errors = []
@@ -532,7 +614,7 @@ async def _cleanup_orphaned_stripe_customers(orphaned_org_ids: set, stripe_custo
             await StripeAsync.customer_delete(stripe_customer_id)
             
             # Also clean up from local payments_customers collection
-            await payments_customers.delete_one({"org_id": org_id})
+            await db.payments_customers.delete_one({"org_id": org_id})
             
             deleted_count += 1
             logger.info(f"Deleted orphaned Stripe customer {stripe_customer_id} (org_id: {org_id})")
@@ -545,7 +627,7 @@ async def _cleanup_orphaned_stripe_customers(orphaned_org_ids: set, stripe_custo
     logger.info(f"Cleanup completed: {deleted_count} orphaned customers deleted")
     return deleted_count, errors
 
-async def _cleanup_orphaned_payment_customers(orphaned_org_ids: set) -> Tuple[int, List[str]]:
+async def _cleanup_orphaned_payment_customers(db, orphaned_org_ids: set) -> Tuple[int, List[str]]:
     """Delete orphaned payment customers that don't have corresponding organizations"""
     deleted_count = 0
     errors = []
@@ -555,7 +637,7 @@ async def _cleanup_orphaned_payment_customers(orphaned_org_ids: set) -> Tuple[in
     for org_id in orphaned_org_ids:
         try:
             # Delete the payment customer record
-            result = await payments_customers.delete_one({"org_id": org_id})
+            result = await db.payments_customers.delete_one({"org_id": org_id})
             if result.deleted_count > 0:
                 deleted_count += 1
                 logger.info(f"Deleted orphaned payment customer for org_id: {org_id}")
@@ -568,8 +650,52 @@ async def _cleanup_orphaned_payment_customers(orphaned_org_ids: set) -> Tuple[in
     logger.info(f"Payment customer cleanup completed: {deleted_count} orphaned records deleted")
     return deleted_count, errors
 
-async def _sync_org_ids(org_ids_to_sync: set) -> Tuple[int, int, List[str]]:
-    """Sync only the specified organization IDs"""
+
+async def _create_payments_customer_set(org_ids_to_create: set) -> Tuple[int, int, List[str]]:
+    """Create local payment customer records for organizations without Stripe API calls"""
+    successful = 0
+    errors = []
+    
+    # Process in batches of 10
+    org_ids_list = list(org_ids_to_create)
+    batch_size = 10
+    
+    for i in range(0, len(org_ids_list), batch_size):
+        batch = org_ids_list[i:i + batch_size]
+        
+        # Create tasks for each org in the batch
+        tasks = []
+        for org_id in batch:
+            task = _create_payments_customer(org_id=org_id)
+            tasks.append(task)
+        
+        # Execute batch in parallel
+        try:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            for idx, result in enumerate(results):
+                if isinstance(result, Exception):
+                    error_msg = f"Error creating local payment customer for org {batch[idx]}: {str(result)}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+                elif result:
+                    successful += 1
+                else:
+                    errors.append(f"Failed to create local payment customer for org {batch[idx]}")
+        
+        except Exception as e:
+            error_msg = f"Error processing local payment customer batch: {str(e)}"
+            logger.error(error_msg)
+            errors.append(error_msg)
+        
+        logger.info(f"Processed batch {i//batch_size + 1}/{(len(org_ids_list) + batch_size - 1)//batch_size}")
+    
+    logger.info(f"Local payment customer creation completed: {successful}/{len(org_ids_list)} customers created")
+    return len(org_ids_list), successful, errors
+
+
+async def _create_stripe_customer_set(db, org_ids_to_sync: set) -> Tuple[int, int, List[str]]:
+    """Sync only the specified organization IDs with Stripe"""
     successful = 0
     errors = []
     
@@ -583,7 +709,7 @@ async def _sync_org_ids(org_ids_to_sync: set) -> Tuple[int, int, List[str]]:
         # Create tasks for each org in the batch
         tasks = []
         for org_id in batch:
-            task = sync_payments_customer(org_id=org_id)
+            task = sync_customer(db, org_id=org_id)
             tasks.append(task)
         
         # Execute batch in parallel
@@ -592,42 +718,120 @@ async def _sync_org_ids(org_ids_to_sync: set) -> Tuple[int, int, List[str]]:
             
             for idx, result in enumerate(results):
                 if isinstance(result, Exception):
-                    error_msg = f"Error syncing customer for org {batch[idx]}: {str(result)}"
+                    error_msg = f"Error syncing Stripe customer for org {batch[idx]}: {str(result)}"
                     logger.error(error_msg)
                     errors.append(error_msg)
                 elif result:
                     successful += 1
                 else:
-                    errors.append(f"Failed to create/get customer for org {batch[idx]}")
+                    errors.append(f"Failed to create/get Stripe customer for org {batch[idx]}")
         
         except Exception as e:
-            error_msg = f"Error processing sync batch: {str(e)}"
+            error_msg = f"Error processing Stripe sync batch: {str(e)}"
             logger.error(error_msg)
             errors.append(error_msg)
         
         logger.info(f"Processed batch {i//batch_size + 1}/{(len(org_ids_list) + batch_size - 1)//batch_size}")
     
-    logger.info(f"Differential sync completed: {successful}/{len(org_ids_list)} customers synchronized")
+    logger.info(f"Stripe sync completed: {successful}/{len(org_ids_list)} customers synchronized")
     return len(org_ids_list), successful, errors
 
-async def get_payment_customer(org_id: str) -> Dict[str, Any]:
+
+async def _create_payments_customer(db, org_id: str) -> Dict[str, Any]:
+    """Create a local payment customer record without Stripe API calls"""
+    logger.info(f"Creating local payment customer for org_id: {org_id}")
+
+    try:
+        # Get the org details
+        org = await db["organizations"].find_one({"_id": ObjectId(org_id)})
+        if not org:
+            logger.error(f"No organization found for org_id: {org_id}")
+            return None
+            
+        org_name = org.get("name")
+
+        # Get the first admin member
+        user_id = None
+        members = org.get("members", [])
+        for member in members:
+            if member.get("role") == "admin":
+                user_id = str(member.get("user_id"))
+                break
+        
+        if not user_id:
+            logger.error(f"No admin member found for org_id: {org_id}")
+            return None
+
+        # Get the user details
+        user = await db["users"].find_one({"_id": ObjectId(user_id)})
+        if not user:
+            logger.error(f"No user found for user_id: {user_id} in org_id: {org_id}")
+            return None
+        
+        user_name = user.get("name")
+        user_email = user.get("email")
+
+        if not user_name:
+            logger.error(f"No user_name found for user_id: {user_id}")
+            return None
+
+        if not user_email:
+            logger.error(f"No email found for user_id: {user_id}")
+            return None
+
+        # Check if customer already exists
+        existing_customer = await db.payments_customers.find_one({"org_id": org_id})
+        if existing_customer:
+            logger.info(f"Local payment customer already exists for org_id: {org_id}")
+            return existing_customer
+
+        # Create new local payment customer with zero values
+        customer = {
+            "org_id": org_id,
+            "user_id": user_id,
+            "stripe_customer_id": None,  # No Stripe customer yet
+            "user_name": user_name,
+            "user_email": user_email,
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC),
+            # Initialize credit fields to zero
+            "purchased_credits": 0,
+            "purchased_credits_used": 0,
+            "granted_credits": CREDIT_CONFIG["granted_credits"],
+            "granted_credits_used": 0,
+            # Initialize subscription fields to zero
+            "subscription_spus_used": 0,
+            "stripe_current_billing_period_start": None,
+            "stripe_current_billing_period_end": None
+        }
+
+        await db.payments_customers.insert_one(customer)
+        logger.info(f"Created local payment customer for org_id: {org_id}, user_id: {user_id}")
+
+        return customer
+    
+    except Exception as e:
+        logger.error(f"Error creating local payment customer for org_id {org_id}: {e}")
+        raise e
+
+async def get_payment_customer(db, org_id: str) -> Dict[str, Any]:
     """
     Get local payment customer data (fast, no Stripe API calls)
     Returns local MongoDB payment customer record
     """
-    return await payments_customers.find_one({"org_id": org_id})
+    return await db.payments_customers.find_one({"org_id": org_id})
 
-async def get_stripe_customer(org_id: str) -> Dict[str, Any]:
+async def get_stripe_customer(db, org_id: str) -> Dict[str, Any]:
     """
     Get the Stripe customer for the given org_id (calls Stripe API - use sparingly)
     For most use cases, prefer get_payment_customer() which uses local data
     """
-    if not stripe.api_key:
+    if not stripe_enabled():
         # No-op if Stripe is not configured
         return None
 
     # First try local lookup for faster performance
-    payment_customer = await get_payment_customer(org_id)
+    payment_customer = await get_payment_customer(db, org_id)
     if payment_customer and payment_customer.get("stripe_customer_id"):
         stripe_customer_id = payment_customer["stripe_customer_id"]
         try:
@@ -654,72 +858,172 @@ async def get_stripe_customer(org_id: str) -> Dict[str, Any]:
         return None
 
 # Helper functions
-async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
-    """Create or retrieve a Stripe customer for the given user"""
+async def sync_payments_customer(db, org_id: str) -> Dict[str, Any]:
+    """Create or update local payment customer record (no Stripe API calls)"""
 
-    if not stripe.api_key:
-        # No-op if Stripe is not configured
-        return None
-
-    logger.info(f"Syncing payments customer for org_id: {org_id}")
-
-    # Get the org_name from the org_id
-    org = await db["organizations"].find_one({"_id": ObjectId(org_id)})
-    org_name = org.get("name")
-
-    # Get the first admin member
-    user_id = None
-    members = org.get("members", [])
-    for member in members:
-        if member.get("role") == "admin":
-            user_id = str(member.get("user_id"))
-            break
-    
-    if not user_id:
-        logger.error(f"No admin member found for org_id: {org_id}")
-        return None
-
-    # Get the user_name from the user_id
-    user = await db["users"].find_one({"_id": ObjectId(user_id)})
-    if not user:
-        logger.error(f"No user found for user_id: {user_id} in org_id: {org_id}")
-        return None
-    
-    user_name = user.get("name")
-    user_email = user.get("email")
-    user_description = f"{org_name} org admin"
-
-    customer_metadata = {
-        "org_id": org_id,
-        "org_name": org_name,
-        "user_id": user_id,
-        "updated_at": datetime.utcnow().isoformat()
-    }
-
-    if not user_name:
-        logger.error(f"No user_name found for user_id: {user_id}")
-        return None
-
-    if not user_email:
-        logger.error(f"No email found for user_id: {user_id}")
-        return None
-
-    
-    logger.info(f"Sync stripe customer for org_id: {org_id} user_id: {user_id} email: {user_email} name: {user_name} org_name: {org_name}")
+    logger.info(f"Syncing local payments customer for org_id: {org_id}")
 
     try:
-        # Check if customer already exists in our DB
-        customer = await payments_customers.find_one({"org_id": org_id})
+        # Get organization details
+        org = await db["organizations"].find_one({"_id": ObjectId(org_id)})
+        if not org:
+            logger.error(f"No organization found for org_id: {org_id}")
+            return None
+        
+        logger.info(f"Organization: {org}")
+            
+        org_name = org.get("name")
+
+        # Get the first admin member
+        user_id = None
+        members = org.get("members", [])
+        for member in members:
+            if member.get("role") == "admin":
+                user_id = str(member.get("user_id"))
+                break
+        
+        if not user_id:
+            logger.error(f"No admin member found for org_id: {org_id}")
+            return None
+
+        # Get user details
+        user = await db["users"].find_one({"_id": ObjectId(user_id)})
+        if not user:
+            logger.error(f"No user found for user_id: {user_id} in org_id: {org_id}")
+            return None
+        
+        user_name = user.get("name")
+        user_email = user.get("email")
+
+        if not user_name:
+            logger.error(f"No user_name found for user_id: {user_id}")
+            return None
+
+        if not user_email:
+            logger.error(f"No email found for user_id: {user_id}")
+            return None
+
+        logger.info(f"Syncing local payment customer for org_id: {org_id} user_id: {user_id} email: {user_email} name: {user_name}")
+
+        # Check if local payment customer already exists
+        customer = await db.payments_customers.find_one({"org_id": org_id})
+
+        logger.info(f"Local payment customer: {customer}")
+        
+        if customer:
+            logger.info(f"Updating existing local payment customer for org_id: {org_id}")
+            # Update existing local payment customer
+            await db.payments_customers.update_one(
+                {"org_id": org_id},
+                {"$set": {
+                    "user_id": user_id,
+                    "user_name": user_name,
+                    "user_email": user_email,
+                    "updated_at": datetime.now(UTC)
+                }}
+            )
+            customer = await db.payments_customers.find_one({"org_id": org_id})
+            logger.info(f"Updated local payment customer for org_id: {org_id}")
+        else:
+            logger.info(f"Creating new local payment customer for org_id: {org_id}")
+            
+            # Create new local payment customer
+            customer = {
+                "org_id": org_id,
+                "user_id": user_id,
+                "stripe_customer_id": None,  # No Stripe customer yet
+                "user_name": user_name,
+                "user_email": user_email,
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC),
+                # Initialize credit fields to zero
+                "purchased_credits": 0,
+                "purchased_credits_used": 0,
+                "granted_credits": CREDIT_CONFIG["granted_credits"],
+                "granted_credits_used": 0,
+                # Initialize subscription fields to zero
+                "subscription_spus_used": 0,
+                "stripe_current_billing_period_start": None,
+                "stripe_current_billing_period_end": None
+            }
+
+            await db.payments_customers.insert_one(customer)
+            customer = await db.payments_customers.find_one({"org_id": org_id})
+
+        # Ensure credits are initialized
+        await ensure_subscription_credits(db, customer)
+
+        return customer
     
-        # Search for customers in Stripe with the given org_id
-        stripe_customer = await get_stripe_customer(org_id)
+    except Exception as e:
+        logger.error(f"Error in sync_payments_customer: {e}")
+        raise e
+
+
+async def sync_stripe_customer(db, org_id: str) -> Dict[str, Any]:
+    """Create or update a Stripe customer for the given org_id"""
+    
+    if not stripe_enabled():
+        logger.warning("Stripe API key not configured - sync_stripe_customer skipped")
+        return None
+
+    logger.info(f"Syncing Stripe customer for org_id: {org_id}")
+
+    try:
+        # Get organization and user details
+        org = await db["organizations"].find_one({"_id": ObjectId(org_id)})
+        if not org:
+            logger.error(f"No organization found for org_id: {org_id}")
+            return None
+            
+        org_name = org.get("name")
+
+        # Get the first admin member
+        user_id = None
+        members = org.get("members", [])
+        for member in members:
+            if member.get("role") == "admin":
+                user_id = str(member.get("user_id"))
+                break
+        
+        if not user_id:
+            logger.error(f"No admin member found for org_id: {org_id}")
+            return None
+
+        # Get user details
+        user = await db["users"].find_one({"_id": ObjectId(user_id)})
+        if not user:
+            logger.error(f"No user found for user_id: {user_id} in org_id: {org_id}")
+            return None
+        
+        user_name = user.get("name")
+        user_email = user.get("email")
+        user_description = f"{org_name} org admin"
+
+        if not user_name or not user_email:
+            logger.error(f"Missing user details for user_id: {user_id}")
+            return None
+
+        customer_metadata = {
+            "org_id": org_id,
+            "org_name": org_name,
+            "user_id": user_id,
+            "updated_at": datetime.now(UTC).isoformat()
+        }
+
+        logger.info(f"Syncing Stripe customer for org_id: {org_id} user_id: {user_id} email: {user_email} name: {user_name}")
+
+        # Search for existing Stripe customer
+        stripe_customer = await get_stripe_customer(db, org_id)
 
         if stripe_customer:            
-            # Get the metadata from the Stripe customer
+            # Check if customer needs updating
             stripe_customer_metadata = stripe_customer.metadata
-
             update_customer = False
-            if stripe_customer.name != user_name or stripe_customer.email != user_email or stripe_customer.description != user_description:
+            
+            if (stripe_customer.name != user_name or 
+                stripe_customer.email != user_email or 
+                stripe_customer.description != user_description):
                 update_customer = True
 
             for key in ["org_id", "org_name", "user_id"]:
@@ -728,7 +1032,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                     break
 
             if update_customer:
-                # Update the customer in Stripe with additional metadata
+                # Update the customer in Stripe
                 await StripeAsync.customer_modify(
                     stripe_customer.id,
                     name=user_name,
@@ -736,7 +1040,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                     description=user_description,
                     metadata=customer_metadata
                 )
-                logger.info(f"Updated Stripe customer {stripe_customer.id} email {user_email} user_name {user_name} metadata {customer_metadata}")
+                logger.info(f"Updated Stripe customer {stripe_customer.id}")
         else:
             # Create new customer in Stripe
             stripe_customer = await StripeAsync.customer_create(
@@ -745,65 +1049,68 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                 description=user_description,
                 metadata=customer_metadata
             )
-            logger.info(f"Created new Stripe customer {stripe_customer.id} email {user_email} user_name {user_name} metadata {customer_metadata}")
+            logger.info(f"Created new Stripe customer {stripe_customer.id}")
         
-        # Don't automatically subscribe new customers - let them choose
-        # Only sync subscription if they already have one
+        # Handle existing subscriptions
         org_type = org.get("type")
-        existing_subscription = await get_subscription(stripe_customer.id)
+        existing_subscription = await get_subscription(db, stripe_customer.id)
         if existing_subscription:
-            await set_subscription_type(org_id, stripe_customer.id, org_type)
-            # Update local billing period and subscription data
-            await sync_local_subscription_data(org_id, stripe_customer.id, existing_subscription)
+            await set_subscription_type(db, org_id, stripe_customer.id, org_type)
+            await sync_local_subscription_data(db, org_id, stripe_customer.id, existing_subscription)
 
-        if customer:
-            # Check if the customer_id changed
-            if customer.get("stripe_customer_id") != stripe_customer.id:
-                logger.info(f"Stripe customer_id changed from {customer.get('stripe_customer_id')} to {stripe_customer.id}")
+        # Update local payment customer with Stripe customer ID
+        payment_customer = await db.payments_customers.find_one({"org_id": org_id})
+        if payment_customer:
+            # Check if the stripe_customer_id changed
+            if payment_customer.get("stripe_customer_id") != stripe_customer.id:
+                logger.info(f"Stripe customer_id changed from {payment_customer.get('stripe_customer_id')} to {stripe_customer.id}")
                 
-                # Delete the old customer
-                await payments_customers.delete_one({"org_id": org_id})
-                customer = None
-        
-        if customer:
-            # Update the customer document with the new subscription and usage data
-            await payments_customers.update_one(
+            # Update with new Stripe customer ID
+            await db.payments_customers.update_one(
                 {"org_id": org_id},
                 {"$set": {
-                    "user_id": user_id,
-                    "user_name": user_name,
-                    "user_email": user_email,
-                    "updated_at": datetime.utcnow()
+                    "stripe_customer_id": stripe_customer.id,
+                    "updated_at": datetime.now(UTC)
                 }}
             )
-            customer = await payments_customers.find_one({"user_id": user_id})
-            logger.info(f"Updated customer for user_id: {user_id}")
-        else:
-            logger.info(f"Customer {user_id} not found in MongoDB, creating")
-        
-            # Store in our database
-            customer = {
-                "org_id": org_id,
-                "user_id": user_id,
-                "stripe_customer_id": stripe_customer.id,
-                "user_name": user_name,
-                "user_email": user_email,
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
-            }
+            
+            # Get updated customer
+            payment_customer = await db.payments_customers.find_one({"org_id": org_id})
+            
+            # Ensure credits are initialized
+            await ensure_subscription_credits(db, payment_customer)
 
-            await payments_customers.insert_one(customer)
-
-        # Ensure credits are initialized for a stripe_customer
-        await ensure_subscription_credits(customer)
-
-        return customer
+        return stripe_customer
     
     except Exception as e:
-        logger.error(f"Error in sync_payments_customer: {e}")
+        logger.error(f"Error in sync_stripe_customer: {e}")
         raise e
 
-async def save_usage_record(org_id: str, spus: int, operation: str, source: str = "backend") -> Dict[str, Any]:
+
+async def sync_customer(db, org_id: str) -> Dict[str, Any]:
+    """Sync both local payment customer and Stripe customer for an organization"""
+    
+    logger.info(f"Syncing customer (both payments and Stripe) for org_id: {org_id}")
+
+    try:
+        # First, ensure local payment customer exists
+        payment_customer = await sync_payments_customer(db=db, org_id=org_id)
+        if not payment_customer:
+            logger.error(f"Failed to sync local payment customer for org_id: {org_id}")
+            return None
+
+        # Then sync with Stripe if configured
+        stripe_customer = await sync_stripe_customer(db, org_id)
+        
+        # Return the updated local payment customer
+        return await db.payments_customers.find_one({"org_id": org_id})
+    
+    except Exception as e:
+        logger.error(f"Error in sync_customer: {e}")
+        raise e
+
+
+async def save_usage_record(db, org_id: str, spus: int, operation: str, source: str = "backend") -> Dict[str, Any]:
     """Record usage for an organization locally"""
     
     logger.info(f"save_usage_record() called with org_id: {org_id}, spus: {spus}, operation: {operation}, source: {source}")
@@ -814,10 +1121,10 @@ async def save_usage_record(org_id: str, spus: int, operation: str, source: str 
         "spus": spus,
         "operation": operation,
         "source": source,
-        "timestamp": datetime.utcnow()
+        "timestamp": datetime.now(UTC)
     }
     
-    await payments_usage_records.insert_one(usage_record)
+    await db.payments_usage_records.insert_one(usage_record)
     return usage_record
 
 
@@ -825,17 +1132,15 @@ async def save_usage_record(org_id: str, spus: int, operation: str, source: str 
 async def check_payment_limits(org_id: str, spus: int) -> bool:
     """Check if organization has hit payment limits using local data only (no Stripe API calls)"""
 
-    if not stripe.api_key:
-        # No-op if Stripe is not configured
-        return True
-
     logger.info(f"Checking subscription limits for org_id: {org_id} spus: {spus}")
 
-    payment_customer = await payments_customers.find_one({"org_id": org_id})
+    db = ad.common.get_async_db()
+
+    payment_customer = await db.payments_customers.find_one({"org_id": org_id})
     if not payment_customer:
         raise ValueError(f"No customer found for org_id: {org_id}")
 
-    await ensure_subscription_credits(payment_customer)
+    await ensure_subscription_credits(db, payment_customer)
 
     # Get all subscription and credit data from local customer document (NO Stripe API calls)
     subscription_type = payment_customer.get("subscription_type")
@@ -852,7 +1157,7 @@ async def check_payment_limits(org_id: str, spus: int) -> bool:
     purchased_used = payment_customer.get("purchased_credits_used", 0)
     purchased_remaining = max(purchased_credits - purchased_used, 0)
     
-    granted_credits = payment_customer.get("granted_credits", CREDIT_CONFIG["spu_credit"])
+    granted_credits = payment_customer.get("granted_credits", CREDIT_CONFIG["granted_credits"])
     granted_used = payment_customer.get("granted_credits_used", 0)
     granted_remaining = max(granted_credits - granted_used, 0)
     
@@ -870,9 +1175,9 @@ async def check_payment_limits(org_id: str, spus: int) -> bool:
         return True
     else:
         logger.warning(f"Insufficient credits for org_id: {org_id} (available: {total_available}, requested: {spus})")
-        return False
+        raise SPUCreditException(org_id, spus, total_available)
 
-async def sync_local_subscription_data(org_id: str, stripe_customer_id: str, subscription: Dict[str, Any]):
+async def sync_local_subscription_data(db, org_id: str, stripe_customer_id: str, subscription: Dict[str, Any]):
     """Sync subscription billing period and details to local stripe_customer document"""
     try:
         if not subscription or subscription.get("status") != "active":
@@ -882,7 +1187,7 @@ async def sync_local_subscription_data(org_id: str, stripe_customer_id: str, sub
         subscription_type = get_subscription_type(subscription)
         
         # Check if this is an enterprise customer (they should not have Stripe subscriptions)
-        is_enterprise = await is_enterprise_customer(org_id)
+        is_enterprise = await is_enterprise_customer(db, org_id)
         if is_enterprise:
             logger.warning(f"Enterprise customer {org_id} should not have Stripe subscription {subscription.get('id')}")
             return
@@ -923,14 +1228,14 @@ async def sync_local_subscription_data(org_id: str, stripe_customer_id: str, sub
             "stripe_current_billing_period_start": current_period_start,
             "stripe_current_billing_period_end": current_period_end,
             "subscription_spu_allowance": subscription_spu_allowance,
-            "subscription_updated_at": datetime.utcnow()
+            "subscription_updated_at": datetime.now(UTC)
         }
         
-        # Set stripe_payments_portal to True for individual/team subscriptions (never revert back to False)
+        # Set stripe_payments_portal_enabled to True for individual/team subscriptions (never revert back to False)
         if subscription_type in ['individual', 'team']:
-            update_data["stripe_payments_portal"] = True
+            update_data["stripe_payments_portal_enabled"] = True
         
-        await payments_customers.update_one(
+        await db.payments_customers.update_one(
             {"org_id": org_id},
             {"$set": update_data}
         )
@@ -940,54 +1245,53 @@ async def sync_local_subscription_data(org_id: str, stripe_customer_id: str, sub
     except Exception as e:
         logger.error(f"Error syncing local subscription data for org {org_id}: {e}")
 
-async def delete_payments_customer(org_id: str) -> Dict[str, Any]:
+async def delete_payments_customer(db, org_id: str) -> Dict[str, Any]:
     """
     Delete a Stripe customer and remove from local collection.
     The customer remains in Stripe where it's kept forever and can be retrieved later.
     
     Args:
         org_id: The org ID of the Stripe customer to delete
+        force: If True, delete even if there are active subscriptions
+        db: Database connection (optional, will be created if not provided)
         
     Returns:
         Dictionary with status information about the operation
     """
 
-    if not stripe.api_key:
-        # No-op if Stripe is not configured
-        return None
-
     logger.info(f"Deleting Stripe customer for org_id: {org_id}")
     
     try:
         # Find local customer record
-        customer = await payments_customers.find_one({"org_id": org_id})
+        customer = await db.payments_customers.find_one({"org_id": org_id})
         if not customer:
             logger.warning(f"No local customer found for org_id: {org_id}")
             return {"success": False, "reason": "Customer not found"}
             
-        stripe_customer_id = customer["stripe_customer_id"]
-        
-        # Cancel any active Stripe subscription first
-        try:
-            stripe_subscription = await get_subscription(stripe_customer_id)
-            if stripe_subscription:
-                await StripeAsync.subscription_delete(stripe_subscription.id)
-                logger.info(f"Deleted subscription {stripe_subscription.get('id')} for customer {stripe_customer_id}")
-        except Exception as e:
-            logger.warning(f"Error deleting subscription for customer {stripe_customer_id}: {e}")
+        if stripe_enabled():
+            stripe_customer_id = customer["stripe_customer_id"]
+            
+            # Cancel any active Stripe subscription first
+            try:
+                stripe_subscription = await get_subscription(db, stripe_customer_id)
+                if stripe_subscription:
+                    await StripeAsync.subscription_delete(stripe_subscription.id)
+                    logger.info(f"Deleted subscription {stripe_subscription.get('id')} for customer {stripe_customer_id}")
+            except Exception as e:
+                logger.warning(f"Error deleting subscription for customer {stripe_customer_id}: {e}")
 
-        # Delete the Stripe customer (it remains recoverable in Stripe)
-        await StripeAsync.customer_delete(stripe_customer_id)
-        logger.info(f"Deleted Stripe customer: {stripe_customer_id}")
+            # Delete the Stripe customer (it remains recoverable in Stripe)
+            await StripeAsync.customer_delete(stripe_customer_id)
+            logger.info(f"Deleted Stripe customer: {stripe_customer_id}")
         
         # Remove from our local collection
-        await payments_customers.delete_one({"org_id": org_id})
+        await db.payments_customers.delete_one({"org_id": org_id})
         logger.info(f"Removed local customer record for org_id: {org_id}")
         
         return {
             "success": True, 
             "customer_id": stripe_customer_id,
-            "deleted_at": datetime.utcnow()
+            "deleted_at": datetime.now(UTC)
         }
         
     except Exception as e:
@@ -996,7 +1300,7 @@ async def delete_payments_customer(org_id: str) -> Dict[str, Any]:
 
 
 
-async def is_enterprise_customer(org_id: str) -> bool:
+async def is_enterprise_customer(db, org_id: str) -> bool:
     """Check if an organization is an enterprise customer"""
     org = await db["organizations"].find_one({"_id": ObjectId(org_id)})
     if not org:
@@ -1005,7 +1309,7 @@ async def is_enterprise_customer(org_id: str) -> bool:
 
 async def get_current_billing_period() -> tuple:
     """Get current month billing period boundaries as unix timestamps"""
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     period_start = datetime(now.year, now.month, 1)
     
     # Next month start
@@ -1016,10 +1320,10 @@ async def get_current_billing_period() -> tuple:
     
     return int(period_start.timestamp()), int(period_end.timestamp())
 
-async def get_billing_period_for_customer(org_id: str) -> tuple:
+async def get_billing_period_for_customer(db, org_id: str) -> tuple:
     """Get billing period boundaries from local customer data (no Stripe API calls)"""
     # Get local customer data
-    customer = await payments_customers.find_one({"org_id": org_id})
+    customer = await db.payments_customers.find_one({"org_id": org_id})
     if not customer:
         return None, None
     
@@ -1034,14 +1338,14 @@ async def get_billing_period_for_customer(org_id: str) -> tuple:
     # If no local billing period but customer has subscription type, we may need to sync
     if subscription_type:
         # For enterprise, use calendar month
-        is_enterprise = await is_enterprise_customer(org_id)
+        is_enterprise = await is_enterprise_customer(db, org_id)
         if is_enterprise:
             return await get_current_billing_period()
     
     # No active subscription or billing period
     return None, None
 
-async def get_subscription(customer_id: str) -> Dict[str, Any]:
+async def get_subscription(db, customer_id: str) -> Dict[str, Any]:
     """Get a subscription for a customer"""
     stripe_subscription_list = await StripeAsync.subscription_list(customer=customer_id)
     if not stripe_subscription_list or not stripe_subscription_list.get("data"):
@@ -1074,10 +1378,10 @@ def get_subscription_type(subscription: Dict[str, Any]) -> str:
         return subscription_type
 
 
-async def set_subscription_type(org_id: str, customer_id: str, subscription_type: str):
+async def set_subscription_type(db, org_id: str, customer_id: str, subscription_type: str):
     """Enable a subscription for a customer with proper proration"""
 
-    tier_config = await get_tier_config(org_id)
+    tier_config = await get_tier_config(db, org_id)
     
     if subscription_type not in tier_config.keys():
         raise ValueError(f"Invalid subscription type: {subscription_type}")
@@ -1093,14 +1397,14 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
         raise ValueError(f"No base price configured for subscription type: {subscription_type}")
 
     # Get the current subscription
-    subscription = await get_subscription(customer_id)
+    subscription = await get_subscription(db, customer_id)
     
     if subscription:
         update_subscription = False
         subscription_items = subscription.get("items", {}).get("data", [])
         
         # Check if we need to update the subscription
-        current_subscription_type = get_subscription_type(subscription)
+        current_subscription_type = get_subscription_type(db, subscription)
         if current_subscription_type != subscription_type:
             update_subscription = True
         
@@ -1160,13 +1464,13 @@ async def set_subscription_type(org_id: str, customer_id: str, subscription_type
             metadata={'subscription_type': subscription_type}
         )
 
-    # Set stripe_payments_portal to True for individual/team subscriptions (never revert back to False)
+    # Set stripe_payments_portal_enabled to True for individual/team subscriptions (never revert back to False)
     if subscription_type in ['individual', 'team']:
-        await payments_customers.update_one(
+        await db.payments_customers.update_one(
             {"org_id": org_id},
-            {"$set": {"stripe_payments_portal": True}}
+            {"$set": {"stripe_payments_portal_enabled": True}}
         )
-        logger.info(f"Set stripe_payments_portal=True for org {org_id} with {subscription_type} subscription")
+        logger.info(f"Set stripe_payments_portal_enabled=True for org {org_id} with {subscription_type} subscription")
 
     return True
 
@@ -1179,16 +1483,18 @@ async def customer_portal(
 
     logger.info(f"Generating customer portal for org_id: {organization_id}")
 
-    # Get customer data to check stripe_payments_portal flag
-    customer = await payments_customers.find_one({"org_id": organization_id})
+    db = ad.common.get_async_db()
+
+    # Get customer data to check stripe_payments_portal_enabled flag
+    customer = await db.payments_customers.find_one({"org_id": organization_id})
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     
     # Check if stripe payments portal is available
-    stripe_payments_portal = customer.get("stripe_payments_portal", False)
-    if not stripe_payments_portal:
+    stripe_payments_portal_enabled = customer.get("stripe_payments_portal_enabled", False)
+    if not stripe_payments_portal_enabled:
         logger.info(f"Payment portal not available for org_id: {organization_id}")
-        return PortalSessionResponse(url="")
+        return PortalSessionResponse(payment_portal_url="", stripe_enabled=stripe_enabled())
 
     try:
         # Generate Stripe portal when stripe_payments_portal is true
@@ -1198,10 +1504,10 @@ async def customer_portal(
             return_url=f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?tab=plans",
         )
         logger.info(f"Stripe customer portal URL: {session.url}")
-        return PortalSessionResponse(url=session.url)
+        return PortalSessionResponse(payment_portal_url=session.url, stripe_enabled=stripe_enabled())
     except Exception as e:
         logger.error(f"Error generating customer portal: {e}")
-        return PortalSessionResponse(url="")
+        return PortalSessionResponse(payment_portal_url="", stripe_enabled=stripe_enabled())
 
 @payments_router.post("/v0/orgs/{organization_id}/payments/checkout-session")
 async def create_checkout_session(
@@ -1213,6 +1519,8 @@ async def create_checkout_session(
 
     plan_id = request.plan_id
     logger.info(f"Creating checkout session for org_id: {organization_id}, plan: {plan_id}")
+
+    db = ad.common.get_async_db()
 
     # Check if user is trying to select Enterprise plan without admin privileges
     if plan_id == 'enterprise':
@@ -1227,11 +1535,11 @@ async def create_checkout_session(
         # Enterprise plans don't use Stripe - handle locally
         try:
             # First, check for and cancel any existing Stripe subscription with proration
-            customer = await payments_customers.find_one({"org_id": organization_id})
+            customer = await db.payments_customers.find_one({"org_id": organization_id})
             if customer and customer.get("stripe_customer_id"):
                 stripe_customer_id = customer["stripe_customer_id"]
                 try:
-                    existing_subscription = await get_subscription(stripe_customer_id)
+                    existing_subscription = await get_subscription(db, stripe_customer_id)
                     if existing_subscription:
                         # Cancel existing subscription immediately with proration (creates credit)
                         logger.info(f"Canceling existing subscription {existing_subscription.get('id')} for Enterprise upgrade with proration")
@@ -1242,7 +1550,7 @@ async def create_checkout_session(
                         logger.info(f"Successfully canceled subscription {existing_subscription.get('id')} with prorated credit")
                         
                         # Update local payment customer to reflect enterprise upgrade
-                        await payments_customers.update_one(
+                        await db.payments_customers.update_one(
                             {"org_id": organization_id},
                             {"$set": {
                                 "subscription_type": "enterprise",
@@ -1252,7 +1560,7 @@ async def create_checkout_session(
                                 "stripe_current_billing_period_start": None,
                                 "stripe_current_billing_period_end": None,
                                 "subscription_spu_allowance": None,  # Enterprise has no SPU limits
-                                "subscription_updated_at": datetime.utcnow()
+                                "subscription_updated_at": datetime.now(UTC)
                             }}
                         )
                 except ValueError as e:
@@ -1272,7 +1580,7 @@ async def create_checkout_session(
             
             # Return success URL to redirect back to subscription page
             success_url = f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?success=true&tab=plans"
-            return PortalSessionResponse(url=success_url)
+            return PortalSessionResponse(payment_portal_url=success_url, stripe_enabled=stripe_enabled())
             
         except Exception as e:
             logger.error(f"Error updating organization to enterprise: {e}")
@@ -1285,23 +1593,23 @@ async def create_checkout_session(
             raise HTTPException(status_code=403, detail="You are not authorized to create a checkout session")
 
         # Get the customer
-        customer = await payments_customers.find_one({"org_id": organization_id})
+        customer = await db.payments_customers.find_one({"org_id": organization_id})
         if not customer:
             raise HTTPException(status_code=404, detail="Customer not found")
         
         # Check if customer already has an active subscription
         stripe_customer_id = customer["stripe_customer_id"]
         try:
-            existing_subscription = await get_subscription(stripe_customer_id)
+            existing_subscription = await get_subscription(db, stripe_customer_id)
             if existing_subscription:
                 # Customer has existing subscription - modify it directly instead of using Checkout
                 logger.info(f"Customer {stripe_customer_id} has existing subscription {existing_subscription.get('id')}, using direct subscription modification instead of Checkout")
                 
-                success = await set_subscription_type(organization_id, stripe_customer_id, plan_id)
+                success = await set_subscription_type(db, organization_id, stripe_customer_id, plan_id)
                 if success:
                     # Return success URL directly since we modified the subscription
                     success_url = f"{NEXTAUTH_URL}/settings/organizations/{organization_id}/subscription?success=true&tab=plans"
-                    return PortalSessionResponse(url=success_url)
+                    return PortalSessionResponse(payment_portal_url=success_url, stripe_enabled=stripe_enabled())
                 else:
                     raise HTTPException(status_code=500, detail="Failed to update subscription")
         except ValueError as e:
@@ -1317,7 +1625,7 @@ async def create_checkout_session(
         logger.info(f"Customer {stripe_customer_id} has no existing subscription, proceeding with Stripe Checkout")
         
         # Get tier configuration
-        tier_config = await get_tier_config(organization_id)
+        tier_config = await get_tier_config(db, organization_id)
         if plan_id not in tier_config:
             raise HTTPException(status_code=400, detail=f"Invalid plan: {plan_id}")
         
@@ -1355,7 +1663,7 @@ async def create_checkout_session(
         )
         
         logger.info(f"Created Stripe checkout session: {session.id}, URL: {session.url}")
-        return PortalSessionResponse(url=session.url)
+        return PortalSessionResponse(payment_portal_url=session.url, stripe_enabled=stripe_enabled())
         
     except Exception as e:
         logger.error(f"Error creating checkout session: {e}")
@@ -1389,7 +1697,7 @@ async def record_usage(
 
 
 # Helper functions for webhook handlers
-async def handle_subscription_updated(subscription: Dict[str, Any]):
+async def handle_subscription_updated(db, subscription: Dict[str, Any]):
     """Handle subscription created or updated event"""
     logger.info(f"Handling subscription updated event for subscription_id {subscription['id']}")
     
@@ -1401,7 +1709,7 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
             return
             
         # Find our local customer record
-        customer = await payments_customers.find_one({"stripe_customer_id": customer_id})
+        customer = await db.payments_customers.find_one({"stripe_customer_id": customer_id})
         if not customer:
             logger.error(f"No local customer found for Stripe customer {customer_id}")
             return
@@ -1412,13 +1720,13 @@ async def handle_subscription_updated(subscription: Dict[str, Any]):
             return
         
         # Sync the subscription data locally
-        await sync_local_subscription_data(org_id, customer_id, subscription)
+        await sync_local_subscription_data(db, org_id, customer_id, subscription)
         logger.info(f"Synced subscription data for org {org_id} from webhook")
         
     except Exception as e:
         logger.error(f"Error handling subscription updated webhook: {e}")
 
-async def handle_subscription_deleted(subscription: Dict[str, Any]):
+async def handle_subscription_deleted(db, subscription: Dict[str, Any]):
     """Handle subscription deleted event"""
     logger.info(f"Handling subscription deleted event for subscription_id: {subscription['id']}")
     
@@ -1430,7 +1738,7 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
             return
             
         # Find our local customer record
-        customer = await payments_customers.find_one({"stripe_customer_id": customer_id})
+        customer = await db.payments_customers.find_one({"stripe_customer_id": customer_id})
         if not customer:
             logger.error(f"No local customer found for Stripe customer {customer_id}")
             return
@@ -1441,7 +1749,7 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
             return
         
         # Check if this is an enterprise customer (don't clear their subscription_type)
-        is_enterprise = await is_enterprise_customer(org_id)
+        is_enterprise = await is_enterprise_customer(db, org_id)
         
         # Clear subscription data from local customer record
         update_data = {
@@ -1451,7 +1759,7 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
             "stripe_current_billing_period_start": None,
             "stripe_current_billing_period_end": None,
             "subscription_spu_allowance": 0,
-            "subscription_updated_at": datetime.utcnow()
+            "subscription_updated_at": datetime.now(UTC)
         }
         
         # Only clear subscription_type and allowance for non-enterprise customers
@@ -1459,7 +1767,7 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
             update_data["subscription_type"] = None
         # Enterprise customers keep their subscription_type="enterprise" and unlimited allowance
         
-        await payments_customers.update_one(
+        await db.payments_customers.update_one(
             {"org_id": org_id},
             {"$set": update_data}
         )
@@ -1469,7 +1777,7 @@ async def handle_subscription_deleted(subscription: Dict[str, Any]):
     except Exception as e:
         logger.error(f"Error handling subscription deleted webhook: {e}")
 
-async def handle_invoice_created(invoice: Dict[str, Any]):
+async def handle_invoice_created(db, invoice: Dict[str, Any]):
     """Handle invoice.created event - triggers at the start of a new billing period"""
     logger.info(f"Handling invoice created event for invoice_id {invoice['id']}")
     
@@ -1495,7 +1803,7 @@ async def handle_invoice_created(invoice: Dict[str, Any]):
             logger.error(f"No customer_id found in subscription {subscription_id}")
             return
             
-        customer = await payments_customers.find_one({"stripe_customer_id": customer_id})
+        customer = await db.payments_customers.find_one({"stripe_customer_id": customer_id})
         if not customer:
             logger.error(f"No local customer found for Stripe customer {customer_id}")
             return
@@ -1506,13 +1814,13 @@ async def handle_invoice_created(invoice: Dict[str, Any]):
             return
         
         # Sync the updated billing period information
-        await sync_local_subscription_data(org_id, customer_id, subscription)
+        await sync_local_subscription_data(db, org_id, customer_id, subscription)
         logger.info(f"Updated billing period for org {org_id} from invoice.created webhook")
         
     except Exception as e:
         logger.error(f"Error handling invoice created webhook: {e}")
 
-async def handle_invoice_payment_succeeded(invoice: Dict[str, Any]):
+async def handle_invoice_payment_succeeded(db, invoice: Dict[str, Any]):
     """Handle invoice.payment_succeeded event - confirms successful billing period payment"""
     logger.info(f"Handling invoice payment succeeded event for invoice_id {invoice['id']}")
     
@@ -1529,7 +1837,7 @@ async def handle_invoice_payment_succeeded(invoice: Dict[str, Any]):
             logger.error(f"No customer_id found in invoice {invoice['id']}")
             return
             
-        customer = await payments_customers.find_one({"stripe_customer_id": customer_id})
+        customer = await db.payments_customers.find_one({"stripe_customer_id": customer_id})
         if not customer:
             logger.error(f"No local customer found for Stripe customer {customer_id}")
             return
@@ -1540,11 +1848,11 @@ async def handle_invoice_payment_succeeded(invoice: Dict[str, Any]):
             return
         
         # Reset subscription SPU usage for the new billing period
-        await payments_customers.update_one(
+        await db.payments_customers.update_one(
             {"org_id": org_id},
             {"$set": {
                 "subscription_spus_used": 0,  # Reset usage for new billing period
-                "subscription_updated_at": datetime.utcnow()
+                "subscription_updated_at": datetime.now(UTC)
             }}
         )
         
@@ -1571,6 +1879,8 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
     """
     
     logger.warning("Starting deletion of ALL Stripe customers")
+
+    db = ad.common.get_async_db()
     
     deleted_count = 0
     failed_count = 0
@@ -1628,7 +1938,7 @@ async def delete_all_payments_customers(dryrun: bool = True) -> Dict[str, Any]:
         try:
             if not dryrun:
                 # Delete all local records
-                await payments_customers.delete_many({"org_id": {"$exists": True}})
+                await db.payments_customers.delete_many({"org_id": {"$exists": True}})
                 logger.info("Deleted all local Stripe customer records")
             else:
                 logger.info("Would have deleted all local Stripe customer records")
@@ -1658,12 +1968,54 @@ async def get_subscription_info(
 
     logger.info(f"Getting subscription plans for org_id: {organization_id} user_id: {current_user.user_id}")
 
+    db = ad.common.get_async_db()
+
     # Get the customer
-    customer = await payments_customers.find_one({"org_id": organization_id})
+    customer = await db.payments_customers.find_one({"org_id": organization_id})
     if not customer:
         raise HTTPException(status_code=404, detail=f"Customer not found for org_id: {organization_id}")
     
-    tier_config = await get_tier_config(organization_id)
+    tier_config = await get_tier_config(db, organization_id)
+
+    if tier_config["individual"]["included_spus"] is not None:
+        individual_price_per_spu = tier_config["individual"]["base_price"] / tier_config["individual"]["included_spus"]
+        individual_included_spus = tier_config["individual"]["included_spus"]
+    else:
+        individual_price_per_spu = 0.0
+        individual_included_spus = 0
+
+    if tier_config["team"]["included_spus"] is not None:
+        team_price_per_spu = tier_config["team"]["base_price"] / tier_config["team"]["included_spus"]
+        team_included_spus = tier_config["team"]["included_spus"]
+    else:
+        team_price_per_spu = 0.0
+        team_included_spus = 0
+
+    if stripe_enabled():
+        individual_features = [
+            f"${format_price_per_spu(individual_price_per_spu)} per SPU",
+            f"{individual_included_spus:,} SPUs per month",
+            "Basic document processing",
+            f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
+        ]
+        team_features = [
+            f"${format_price_per_spu(team_price_per_spu)} per SPU",
+            f"{team_included_spus:,} SPUs per month",
+            "Advanced document processing",
+            "Team collaboration features",
+            f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
+        ]
+    else:
+        individual_features = [
+            "Basic document processing",
+            "Custom pricing - contact sales"
+        ]
+        team_features = [
+            "Advanced document processing",
+            "Team collaboration features",
+            "Custom pricing - contact sales"
+        ]
+
     
     # Define the available plans with SPU allowances
     plans = [
@@ -1671,26 +2023,15 @@ async def get_subscription_info(
             plan_id="individual",
             name="Individual",
             base_price=tier_config["individual"]["base_price"],
-            included_spus=tier_config["individual"]["included_spus"],
-            features=[
-                f"${format_price_per_spu(tier_config['individual']['base_price'] / tier_config['individual']['included_spus'])} per SPU",
-                f"{tier_config['individual']['included_spus']:,} SPUs per month",
-                "Basic document processing",
-                f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
-            ]
+            included_spus=individual_included_spus,
+            features=individual_features
         ),
         SubscriptionPlan(
             plan_id="team",
             name="Team", 
             base_price=tier_config["team"]["base_price"],
-            included_spus=tier_config["team"]["included_spus"],
-            features=[
-                f"${format_price_per_spu(tier_config['team']['base_price'] / tier_config['team']['included_spus'])} per SPU",
-                f"{tier_config['team']['included_spus']:,} SPUs per month",
-                "Advanced document processing",
-                "Team collaboration features",
-                f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
-            ]
+            included_spus=team_included_spus,
+            features=team_features
         )
     ]
     
@@ -1708,35 +2049,29 @@ async def get_subscription_info(
     ))
 
     # Check if this is an enterprise customer
-    is_enterprise = await is_enterprise_customer(organization_id)
+    is_enterprise = await is_enterprise_customer(db, organization_id)
     
     # Initialize billing period variables
-    current_period_start = None
-    current_period_end = None
+    current_subscription_type = None
+    subscription_status = None
+    current_period_start, current_period_end = await get_current_billing_period()
+    cancel_at_period_end = False
     
     if is_enterprise:
         # Enterprise customers use calendar months
         current_subscription_type = "enterprise"
         subscription_status = "active"  # Enterprise is always active
-        cancel_at_period_end = False
-        
-        # Use current calendar month for enterprise
-        start_ts, end_ts = await get_current_billing_period()
-        current_period_start = start_ts
-        current_period_end = end_ts
+    elif not stripe_enabled():
+        pass
     else:
         # Get the Stripe customer and subscription for non-enterprise customers
-        stripe_customer = await get_stripe_customer(organization_id)
+        stripe_customer = await get_stripe_customer(db, organization_id)
 
         if not stripe_customer:
             raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
 
         # Get the subscription
-        subscription = await get_subscription(stripe_customer.id)
-
-        current_subscription_type = None
-        subscription_status = None
-        cancel_at_period_end = False
+        subscription = await get_subscription(db, stripe_customer.id)
         
         if not subscription:
             # No subscription found - use calendar month for unsubscribed organizations
@@ -1779,8 +2114,8 @@ async def get_subscription_info(
             if subscription_status == 'active' and cancel_at_period_end:
                 subscription_status = 'cancelling'
     
-    # Get stripe_payments_portal flag from customer data (defaults to False if not set)
-    stripe_payments_portal = customer.get("stripe_payments_portal", False)
+    # Get stripe_payments_portal_enabled flag from customer data (defaults to False if not set)
+    stripe_payments_portal_enabled = customer.get("stripe_payments_portal_enabled", False)
     
     return SubscriptionResponse(
         plans=plans, 
@@ -1789,19 +2124,22 @@ async def get_subscription_info(
         cancel_at_period_end=cancel_at_period_end,
         current_period_start=current_period_start,
         current_period_end=current_period_end,
-        stripe_payments_portal=stripe_payments_portal
+        stripe_payments_portal_enabled=stripe_payments_portal_enabled,
+        stripe_enabled=stripe_enabled()
     )
 
 async def handle_activate_subscription(org_id: str, org_type: str, customer_id: str) -> bool:
     """Activate a subscription"""
     
-    if not stripe.api_key:
-        logger.warning("Stripe API key not configured - handle_activate_subscription aborted")
+    if not stripe_enabled():
+        logger.info("Stripe API key not configured - handle_activate_subscription aborted")
         return False
+
+    db = ad.common.get_async_db()
 
     try:
         # Get the current subscription
-        subscription = await get_subscription(customer_id)
+        subscription = await get_subscription(db, customer_id)
         if subscription:       
             # Check if subscription is set to cancel at period end
             if not subscription.get('cancel_at_period_end', False):
@@ -1818,7 +2156,7 @@ async def handle_activate_subscription(org_id: str, org_type: str, customer_id: 
 
         else:
             # Sync the subscription type with the organization type
-            await sync_subscription(org_id, org_type)
+            await sync_subscription(db, org_id, org_type)
             
             logger.info(f"Created new subscription for customer_id: {customer_id}")
 
@@ -1828,11 +2166,11 @@ async def handle_activate_subscription(org_id: str, org_type: str, customer_id: 
         logger.error(f"Error reactivating subscription: {e}")
         return False
 
-async def sync_subscription(org_id: str, org_type: str) -> bool:
+async def sync_subscription(db, org_id: str, org_type: str) -> bool:
     """
     Sync organization type with subscription type in Stripe
     """
-    if not stripe.api_key:
+    if not stripe_enabled():
         logger.info(f"Stripe not configured - skipping subscription sync for org {org_id}")
         return True
 
@@ -1841,13 +2179,13 @@ async def sync_subscription(org_id: str, org_type: str) -> bool:
         subscription_type = org_type
 
         # Get the Stripe customer
-        stripe_customer = await get_stripe_customer(org_id)
+        stripe_customer = await get_stripe_customer(db, org_id)
         if not stripe_customer:
             logger.warning(f"No Stripe customer found for org {org_id}")
             return False
 
         # Set the subscription type in Stripe (this will now include metadata)
-        success = await set_subscription_type(org_id, stripe_customer.id, subscription_type)
+        success = await set_subscription_type(db, org_id, stripe_customer.id, subscription_type)
         if success:
             logger.info(f"Synced org {org_id} type {org_type} to subscription {subscription_type}")
         
@@ -1872,6 +2210,8 @@ async def activate_subscription(
     if not is_sys_admin and not is_org_admin:
         raise HTTPException(status_code=403, detail="You are not authorized to activate a subscription")
 
+    db = ad.common.get_async_db()
+
     org = await db.organizations.find_one({"_id": ObjectId(organization_id)})
     if not org:
         raise HTTPException(status_code=404, detail=f"Organization not found: {organization_id}")
@@ -1879,7 +2219,7 @@ async def activate_subscription(
     org_type = org.get("type", "individual")
 
     # Check if this is an enterprise customer
-    is_enterprise = await is_enterprise_customer(organization_id)
+    is_enterprise = await is_enterprise_customer(db, organization_id)
     
     if is_enterprise:
         # Enterprise subscriptions are always active - no action needed
@@ -1887,7 +2227,7 @@ async def activate_subscription(
 
     try:
         # Get the customer for non-enterprise plans
-        stripe_customer = await get_stripe_customer(organization_id)
+        stripe_customer = await get_stripe_customer(db, organization_id)
         if not stripe_customer:
             raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
 
@@ -1916,8 +2256,10 @@ async def deactivate_subscription(
     if not is_sys_admin and not is_org_admin:
         raise HTTPException(status_code=403, detail="You are not authorized to cancel a subscription")
 
+    db = ad.common.get_async_db()
+
     # Check if this is an enterprise customer
-    is_enterprise = await is_enterprise_customer(organization_id)
+    is_enterprise = await is_enterprise_customer(db, organization_id)
     
     if is_enterprise:
         # Enterprise subscriptions cannot be cancelled via API - contact sales
@@ -1928,12 +2270,12 @@ async def deactivate_subscription(
 
     try:
         # Get the customer for non-enterprise plans
-        stripe_customer = await get_stripe_customer(organization_id)
+        stripe_customer = await get_stripe_customer(db, organization_id)
         if not stripe_customer:
             raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
 
         # Get the current subscription
-        subscription = await get_subscription(stripe_customer.id)
+        subscription = await get_subscription(db, stripe_customer.id)
         if not subscription:
             raise HTTPException(status_code=404, detail=f"No active subscription found for org_id: {organization_id}")
 
@@ -1964,6 +2306,8 @@ async def get_usage_range(
             status_code=403,
             detail=f"Org admin access required for org_id: {organization_id}"
         )
+
+    db = ad.common.get_async_db()
 
     try:
         # Parse start and end dates from request
@@ -2002,7 +2346,7 @@ async def get_usage_range(
             }
         ]
         
-        results = await payments_usage_records.aggregate(pipeline).to_list(length=None)
+        results = await db.payments_usage_records.aggregate(pipeline).to_list(length=None)
         
         # Process results
         data_points = []
@@ -2047,12 +2391,14 @@ async def get_current_usage(
             detail=f"Org admin access required for org_id: {organization_id}"
         )
 
+    db = ad.common.get_async_db()
+
     try:
-        customer = await payments_customers.find_one({"org_id": organization_id})
+        customer = await db.payments_customers.find_one({"org_id": organization_id})
         if not customer:
             raise HTTPException(status_code=404, detail=f"No customer found for org_id: {organization_id}")
         
-        await ensure_subscription_credits(customer)
+        await ensure_subscription_credits(db, customer)
         
         # Get subscription information
         period_start = None
@@ -2064,10 +2410,10 @@ async def get_current_usage(
         subscription_spus_remaining = 0
         
         # Get billing period boundaries (works for both enterprise and non-enterprise)
-        period_start, period_end = await get_billing_period_for_customer(organization_id)
+        period_start, period_end = await get_billing_period_for_customer(db, organization_id)
         
         # Check if this is an enterprise customer
-        is_enterprise = await is_enterprise_customer(organization_id)
+        is_enterprise = await is_enterprise_customer(db, organization_id)
         
         if is_enterprise:
             subscription_type = "enterprise"
@@ -2091,7 +2437,7 @@ async def get_current_usage(
         purchased_used = customer.get("purchased_credits_used", 0)
         purchased_remaining = max(purchased_credits - purchased_used, 0)
         
-        granted_credits = customer.get("granted_credits", CREDIT_CONFIG["spu_credit"])
+        granted_credits = customer.get("granted_credits", CREDIT_CONFIG["granted_credits"])
         granted_used = customer.get("granted_credits_used", 0)
         granted_remaining = max(granted_credits - granted_used, 0)
 
@@ -2101,7 +2447,7 @@ async def get_current_usage(
         
         # Period metered usage (paid usage for current billing period)
         if period_start and period_end:
-            period_agg = await payments_usage_records.aggregate([
+            period_agg = await db.payments_usage_records.aggregate([
                 {
                     "$match": {
                         "org_id": organization_id,
@@ -2118,7 +2464,7 @@ async def get_current_usage(
                 period_metered_usage = period_agg[0]["total"]
         
         # Total metered usage (all paid usage ever)
-        total_agg = await payments_usage_records.aggregate([
+        total_agg = await db.payments_usage_records.aggregate([
             {"$match": {"org_id": organization_id, "operation": "paid_usage"}},
             {"$group": {"_id": None, "total": {"$sum": "$spus"}}}
         ]).to_list(1)
@@ -2168,6 +2514,8 @@ async def webhook_received(
     
     logger.info(f"Stripe webhook event received: {event['type']}")
 
+    db = ad.common.get_async_db()
+
     # Store event in database for audit
     event_doc = {
         "stripe_event_id": event["id"],
@@ -2175,42 +2523,42 @@ async def webhook_received(
         "data": event["data"],
         "created": datetime.fromtimestamp(event["created"]),
         "processed": False,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(UTC)
     }
-    await stripe_events.insert_one(event_doc)
+    await db.stripe_events.insert_one(event_doc)
     
     # Process different event types
     if event["type"] == "customer.subscription.created" or event["type"] == "customer.subscription.updated":
         subscription = event["data"]["object"]
-        await handle_subscription_updated(subscription)
+        await handle_subscription_updated(db, subscription)
     elif event["type"] == "customer.subscription.deleted":
         subscription = event["data"]["object"]
-        await handle_subscription_deleted(subscription)
+        await handle_subscription_deleted(db, subscription)
     elif event["type"] == "invoice.created":
         invoice = event["data"]["object"]
-        await handle_invoice_created(invoice)
+        await handle_invoice_created(db, invoice)
     elif event["type"] == "invoice.payment_succeeded":
         invoice = event["data"]["object"]
-        await handle_invoice_payment_succeeded(invoice)
+        await handle_invoice_payment_succeeded(db, invoice)
     elif event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
         # Check if this is a subscription checkout or credit purchase
         if session.get("mode") == "subscription":
-            await handle_checkout_session_completed(session)
+            await handle_checkout_session_completed(db, session)
         else:
             # Handle credit purchase
-            await credit_customer_account_from_session(session)
+            await credit_customer_account_from_session(db, session)
     
     # Mark event as processed
-    await stripe_events.update_one(
+    await db.stripe_events.update_one(
         {"stripe_event_id": event["id"]},
-        {"$set": {"processed": True, "processed_at": datetime.utcnow()}}
+        {"$set": {"processed": True, "processed_at": datetime.now(UTC)}}
     )
     
     return {"status": "success"}
 
 # Ensure credits are initialized for a stripe_customer
-async def ensure_subscription_credits(stripe_customer_doc):
+async def ensure_subscription_credits(db, stripe_customer_doc):
     update = {}
     # Add new fields for separate tracking
     if "purchased_credits" not in stripe_customer_doc:
@@ -2218,7 +2566,7 @@ async def ensure_subscription_credits(stripe_customer_doc):
     if "purchased_credits_used" not in stripe_customer_doc:
         update["purchased_credits_used"] = 0
     if "granted_credits" not in stripe_customer_doc:
-        update["granted_credits"] = CREDIT_CONFIG["spu_credit"]
+        update["granted_credits"] = CREDIT_CONFIG["granted_credits"]
     if "granted_credits_used" not in stripe_customer_doc:
         update["granted_credits_used"] = 0
     
@@ -2231,20 +2579,20 @@ async def ensure_subscription_credits(stripe_customer_doc):
         update["stripe_current_billing_period_end"] = None
     
     if update:
-        await payments_customers.update_one(
+        await db.payments_customers.update_one(
             {"_id": stripe_customer_doc["_id"]},
             {"$set": update}
         )
 
 # Helper functions for improved usage tracking
 
-async def get_current_balances(org_id: str) -> Dict[str, Any]:
+async def get_current_balances(db, org_id: str) -> Dict[str, Any]:
     """Get current balances for an organization (fresh from database)"""
-    customer = await payments_customers.find_one({"org_id": org_id})
+    customer = await db.payments_customers.find_one({"org_id": org_id})
     if not customer:
         raise Exception(f"No customer found for org_id: {org_id}")
     
-    is_enterprise = await is_enterprise_customer(org_id)
+    is_enterprise = await is_enterprise_customer(db, org_id)
     subscription_type = customer.get("subscription_type")
     subscription_spu_allowance = customer.get("subscription_spu_allowance", 0)
     
@@ -2261,7 +2609,7 @@ async def get_current_balances(org_id: str) -> Dict[str, Any]:
     purchased_used = customer.get("purchased_credits_used", 0)
     purchased_remaining = max(purchased_credits - purchased_used, 0)
     
-    granted_credits = customer.get("granted_credits", CREDIT_CONFIG["spu_credit"])
+    granted_credits = customer.get("granted_credits", CREDIT_CONFIG["granted_credits"])
     granted_used = customer.get("granted_credits_used", 0)
     granted_remaining = max(granted_credits - granted_used, 0)
     
@@ -2312,7 +2660,7 @@ def calculate_consumption_breakdown(spus: int, balances: Dict[str, Any]) -> Dict
         "from_paid": from_paid
     }
 
-async def update_customer_balances(customer_id: str, consumption: Dict[str, int]) -> None:
+async def update_customer_balances(db, customer_id: str, consumption: Dict[str, int]) -> None:
     """Update customer balances atomically"""
     update_operations = {}
     
@@ -2326,26 +2674,26 @@ async def update_customer_balances(customer_id: str, consumption: Dict[str, int]
         update_operations["granted_credits_used"] = consumption["from_granted"]
     
     if update_operations:
-        await payments_customers.update_one(
+        await db.payments_customers.update_one(
             {"_id": customer_id},
             {"$inc": update_operations}
         )
 
-async def save_complete_usage_record(org_id: str, spus: int, consumption: Dict[str, int], operation: str = "document_processing", source: str = "backend") -> Dict[str, Any]:
+async def save_complete_usage_record(db, org_id: str, spus: int, consumption: Dict[str, int], operation: str = "document_processing", source: str = "backend") -> Dict[str, Any]:
     """Save complete usage record with breakdown"""
     usage_record = {
         "org_id": org_id,
         "spus": spus,
         "operation": operation,
         "source": source,
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.now(UTC),
     }
     
-    await payments_usage_records.insert_one(usage_record)
+    await db.payments_usage_records.insert_one(usage_record)
     
     # Also save paid usage record if there's overage (for compatibility with existing queries)
     if consumption["from_paid"] > 0:
-        await save_usage_record(org_id, consumption["from_paid"], operation="paid_usage", source=source)
+        await save_usage_record(db, org_id, consumption["from_paid"], operation="paid_usage", source=source)
     
     return usage_record
 
@@ -2357,7 +2705,7 @@ def should_reset_billing_period(customer: Dict[str, Any], new_period_start: int)
     customer_period_start = customer.get("stripe_current_billing_period_start")
     return customer_period_start != new_period_start
 
-async def reset_billing_period(customer: Dict[str, Any], period_start: int, period_end: int) -> None:
+async def reset_billing_period(db, customer: Dict[str, Any], period_start: int, period_end: int) -> None:
     """Reset billing period and subscription SPU usage atomically"""
     subscription_spu_allowance = customer.get("subscription_spu_allowance", 0)
     has_spu_allowance = subscription_spu_allowance is not None and subscription_spu_allowance > 0
@@ -2371,7 +2719,7 @@ async def reset_billing_period(customer: Dict[str, Any], period_start: int, peri
     if has_spu_allowance:
         update_data["subscription_spus_used"] = 0
     
-    await payments_customers.update_one(
+    await db.payments_customers.update_one(
         {"_id": customer["_id"]},
         {"$set": update_data}
     )
@@ -2385,33 +2733,35 @@ async def record_payment_usage(org_id: str, spus: int) -> Dict[str, int]:
         return {"from_subscription": 0, "from_purchased": 0, "from_granted": 0, "from_paid": 0}
     
     logger.info(f"Recording payment usage for org_id: {org_id} spus: {spus}")
+
+    db = ad.common.get_async_db()
     
     try:
         # 1. Get customer and ensure fields are initialized
-        customer = await payments_customers.find_one({"org_id": org_id})
+        customer = await db.payments_customers.find_one({"org_id": org_id})
         if not customer:
             raise Exception(f"No customer found for org_id: {org_id}")
         
-        await ensure_subscription_credits(customer)
+        await ensure_subscription_credits(db, customer)
         
         # 2. Handle billing period management (enterprise vs subscription)
-        current_period_start, current_period_end = await get_billing_period_for_customer(org_id)
+        current_period_start, current_period_end = await get_billing_period_for_customer(db, org_id)
         
         # 3. Check for billing period reset (atomic operation)
         if should_reset_billing_period(customer, current_period_start):
-            await reset_billing_period(customer, current_period_start, current_period_end)
+            await reset_billing_period(db, customer, current_period_start, current_period_end)
         
         # 4. Get current balances (fresh from DB after potential reset)
-        balances = await get_current_balances(org_id)
+        balances = await get_current_balances(db, org_id)
         
         # 5. Calculate consumption order: subscription → purchased → granted → paid
         consumption = calculate_consumption_breakdown(spus, balances)
         
         # 6. Update customer balances atomically
-        await update_customer_balances(balances["customer_id"], consumption)
+        await update_customer_balances(db, balances["customer_id"], consumption)
         
         # 7. Record complete usage record with breakdown
-        await save_complete_usage_record(org_id, spus, consumption, operation="document_processing")
+        await save_complete_usage_record(db, org_id, spus, consumption, operation="document_processing")
         
         logger.info(f"Usage recorded for org_id: {org_id} - {consumption}")
         return consumption
@@ -2431,24 +2781,24 @@ async def add_spu_credits(
 
     if not await is_system_admin(current_user.user_id):
         raise HTTPException(status_code=403, detail="Admin only")
-    customer = await payments_customers.find_one({"org_id": organization_id})
+
+    db = ad.common.get_async_db()   
+    customer = await db.payments_customers.find_one({"org_id": organization_id})
     if not customer:
         raise HTTPException(status_code=404, detail="No customer for org")
-    await ensure_subscription_credits(customer)
-    await payments_customers.update_one(
+    await ensure_subscription_credits(db, customer)
+    await db.payments_customers.update_one(
         {"_id": customer["_id"]},
         {"$inc": {"granted_credits": update.amount}}
     )
     return {"success": True, "added": update.amount}
 
 @payments_router.get("/v0/orgs/{organization_id}/payments/credits/config")
-async def get_credit_config(
+async def get_payments_credit_config(
     organization_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_admin_or_org_user)
 ):
     """Get credit purchase configuration"""
-    if not await is_organization_member(org_id=organization_id, user_id=current_user.user_id):
-        raise HTTPException(status_code=403, detail="Access denied")
     
     return {
         "price_per_credit": CREDIT_CONFIG["price_per_credit"],
@@ -2470,7 +2820,9 @@ async def purchase_credits(
     if not await is_organization_member(org_id=organization_id, user_id=current_user.user_id):
         logger.error(f"Access denied for user {current_user.user_id} to org {organization_id}")
         raise HTTPException(status_code=403, detail="Access denied")
-    
+
+    db = ad.common.get_async_db()
+
     # Calculate total cost for the requested credits
     total_cost = request.credits * CREDIT_CONFIG["price_per_credit"]
     
@@ -2490,11 +2842,11 @@ async def purchase_credits(
         )
     
     # Get or create Stripe customer
-    stripe_customer = await get_stripe_customer(organization_id)
+    stripe_customer = await get_stripe_customer(db, organization_id)
     if not stripe_customer:
         logger.info(f"No existing Stripe customer for org {organization_id}, creating one")
-        await sync_payments_customer(organization_id)
-        stripe_customer = await get_stripe_customer(organization_id)
+        await sync_customer(db, organization_id)
+        stripe_customer = await get_stripe_customer(db, organization_id)
     
     if not stripe_customer:
         logger.error(f"Failed to create Stripe customer for org {organization_id}")
@@ -2553,7 +2905,7 @@ async def purchase_credits(
         logger.error(f"Error creating checkout session: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
 
-async def credit_customer_account_from_session(session: Dict[str, Any]):
+async def credit_customer_account_from_session(db, session: Dict[str, Any]):
     """Credit customer account after successful Checkout session"""
     
     try:
@@ -2566,13 +2918,13 @@ async def credit_customer_account_from_session(session: Dict[str, Any]):
             return
         
         # Add credits to the organization
-        customer = await payments_customers.find_one({"org_id": org_id})
+        customer = await db.payments_customers.find_one({"org_id": org_id})
         if not customer:
             logger.error(f"No customer found for org: {org_id}")
             return
         
-        await ensure_subscription_credits(customer)
-        await payments_customers.update_one(
+        await ensure_subscription_credits(db, customer)
+        await db.payments_customers.update_one(
             {"_id": customer["_id"]},
             {"$inc": {"purchased_credits": credits}}
         )
@@ -2584,7 +2936,7 @@ async def credit_customer_account_from_session(session: Dict[str, Any]):
         logger.error(f"Error processing checkout session completion: {e}")
 
 # Update the webhook handler to handle checkout.session.completed for subscriptions
-async def handle_checkout_session_completed(session: Dict[str, Any]):
+async def handle_checkout_session_completed(db, session: Dict[str, Any]):
     """Handle checkout session completed event"""
     try:
         metadata = session.get("metadata", {})
@@ -2600,7 +2952,7 @@ async def handle_checkout_session_completed(session: Dict[str, Any]):
         logger.info(f"Checkout session completed for org {org_id}, plan {plan_id}")
         
         # Refresh the customer data to ensure we have the latest subscription info
-        await sync_payments_customer(org_id)
+        await sync_customer(db, org_id)
         
     except Exception as e:
         logger.error(f"Error processing checkout session completion: {e}")

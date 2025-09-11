@@ -13,6 +13,7 @@ interface SubscriptionPurchaseProps {
   subscriptionStatus?: string | null;
   refreshKey?: number;
   onCreditsUpdated?: () => void; // Callback when credits are updated
+  disabled?: boolean; // Whether purchase functionality is disabled
 }
 
 const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({ 
@@ -20,7 +21,8 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
   currentPlan, 
   subscriptionStatus,
   refreshKey,
-  onCreditsUpdated 
+  onCreditsUpdated,
+  disabled = false
 }) => {
   const { session } = useAppSession();
   const [creditConfig, setCreditConfig] = useState<CreditConfig | null>(null);
@@ -172,13 +174,14 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
                   const value = e.target.value;
                   setPurchaseAmount(value === '' ? 0 : parseInt(value) || 0);
                 }}
-                className="flex-1 px-2 py-1 text-sm border border-blue-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 px-2 py-1 text-sm border border-blue-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="Amount"
-                disabled={purchaseLoading}
+                disabled={purchaseLoading || disabled}
               />
               <button
                 onClick={handlePurchaseCredits}
                 disabled={
+                  disabled ||
                   purchaseLoading || 
                   !purchaseAmount || 
                   purchaseAmount <= 0 || 
@@ -193,6 +196,11 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
             <div className="text-xs text-blue-600">
               Total: ${purchaseAmount > 0 ? (purchaseAmount * creditConfig.price_per_credit).toFixed(2) : '0.00'}
             </div>
+            {disabled && (
+              <div className="text-xs text-gray-500 mt-1">
+                Credit purchasing is currently disabled. Contact your administrator for additional credits.
+              </div>
+            )}
           </div>
         )}
 

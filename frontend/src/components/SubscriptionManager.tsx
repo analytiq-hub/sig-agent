@@ -25,6 +25,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<number | null>(null);
   const [stripePaymentsPortal, setStripePaymentsPortal] = useState<boolean>(false);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [stripeEnabled, setStripeEnabled] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'credits' | 'plans' | 'usage'>('credits');
   const [userSelectedTab, setUserSelectedTab] = useState<boolean>(false);
   const [creditsRefreshKey, setCreditsRefreshKey] = useState<number>(0);
@@ -47,7 +48,9 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
         setLoading(true);
         const response = await getCustomerPortalApi(organizationId);
         // Set URL only if it's not empty, otherwise leave as null
-        setCustomerPortalUrl(response.url || null);
+        setCustomerPortalUrl(response.payment_portal_url || null);
+        // Set Stripe enabled status
+        setStripeEnabled(response.stripe_enabled);
       } catch (error) {
         console.error('Error fetching customer portal URL:', error);
         setCustomerPortalUrl(null);
@@ -208,7 +211,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
       {/* Tab Content */}
       {activeTab === 'credits' && (
         <div className="space-y-4">
-          {/* Side-by-Side Credits and Purchase Widgets */}
+          {/* Side-by-Side Credits and Purchase/Grant Widgets */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <SubscriptionCredits 
               organizationId={organizationId}
@@ -222,22 +225,25 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
               subscriptionStatus={subscriptionStatus}
               refreshKey={creditsRefreshKey}
               onCreditsUpdated={() => setCreditsRefreshKey(prev => prev + 1)}
+              disabled={!stripeEnabled}
             />
           </div>
           
           {/* Credits Explanation */}
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-            <h4 className="text-sm font-medium text-blue-900 mb-1">When to use Credits</h4>
-            <ul className="text-sm text-blue-800 space-y-0.5">
-              <li>• Perfect for testing and getting started</li>
-              <li>• Ideal for occasional or one-off document processing</li>
-              <li>• No monthly commitment required</li>
-              <li>• Pay only for what you use</li>
-            </ul>
-          </div>
+          {stripeEnabled && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <h4 className="text-sm font-medium text-blue-900 mb-1">When to use Credits</h4>
+              <ul className="text-sm text-blue-800 space-y-0.5">
+                <li>• Perfect for testing and getting started</li>
+                <li>• Ideal for occasional or one-off document processing</li>
+                <li>• No monthly commitment required</li>
+                <li>• Pay only for what you use</li>
+              </ul>
+            </div>
+          )}
 
           {/* Consider Plans Suggestion */}
-          {currentPlan && (
+          {stripeEnabled && currentPlan && (
             <div className="bg-green-50 border border-green-200 rounded-md p-3">
               <h4 className="text-sm font-medium text-green-900 mb-1">💡 Consider a Monthly Plan</h4>
               <p className="text-sm text-green-800 mb-2">
@@ -257,15 +263,17 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
       {activeTab === 'plans' && (
         <div className="space-y-4">
           {/* Plans Explanation */}
-          <div className="bg-green-50 border border-green-200 rounded-md p-3">
-            <h4 className="text-sm font-medium text-green-900 mb-1">When to use Monthly Plans</h4>
-            <ul className="text-sm text-green-800 space-y-0.5">
-              <li>• Best for regular document processing</li>
-              <li>• Includes SPUs with better per-unit pricing</li>
-              <li>• Collaboration features in the Team plan</li>
-              <li>• Predictable monthly costs</li>
-            </ul>
-          </div>
+          {stripeEnabled && (
+            <div className="bg-green-50 border border-green-200 rounded-md p-3">
+              <h4 className="text-sm font-medium text-green-900 mb-1">When to use Monthly Plans</h4>
+              <ul className="text-sm text-green-800 space-y-0.5">
+                <li>• Best for regular document processing</li>
+                <li>• Includes SPUs with better per-unit pricing</li>
+                <li>• Collaboration features in the Team plan</li>
+                <li>• Predictable monthly costs</li>
+              </ul>
+            </div>
+          )}
 
           {/* Subscription Plans */}
           <SubscriptionPlans 
@@ -282,18 +290,20 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
 
 
           {/* Need Credits Instead */}
-          <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
-            <h4 className="text-sm font-medium text-gray-900 mb-1">Need Credits Instead?</h4>
-            <p className="text-sm text-gray-700 mb-2">
-              For occasional use or testing, credits might be more cost-effective.
-            </p>
-            <button
-              onClick={() => handleTabChange('credits')}
-              className="text-sm bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-md transition-colors"
-            >
-              View Credits →
-            </button>
-          </div>
+          {stripeEnabled && (
+            <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+              <h4 className="text-sm font-medium text-gray-900 mb-1">Need Credits Instead?</h4>
+              <p className="text-sm text-gray-700 mb-2">
+                For occasional use or testing, credits might be more cost-effective.
+              </p>
+              <button
+                onClick={() => handleTabChange('credits')}
+                className="text-sm bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-md transition-colors"
+              >
+                View Credits →
+              </button>
+            </div>
+          )}
 
           {/* Special status messages */}
           {subscriptionStatus === 'canceled' && (

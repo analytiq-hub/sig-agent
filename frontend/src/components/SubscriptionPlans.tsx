@@ -50,10 +50,16 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         const subscriptionData = await getSubscriptionApi(organizationId);
         
         setPlans(subscriptionData.plans);
-        setCurrentPlan(subscriptionData.current_plan);
-        setSelectedPlan(subscriptionData.current_plan || 'individual');
+        
+        // When Stripe is disabled, use organization type as current plan
+        const effectiveCurrentPlan = subscriptionData.stripe_enabled 
+          ? subscriptionData.current_plan 
+          : organizationData.type;
+        
+        setCurrentPlan(effectiveCurrentPlan);
+        setSelectedPlan(effectiveCurrentPlan || 'individual');
         setSubscriptionStatus(subscriptionData.subscription_status);
-        setStripeEnabled(true); // Stripe is available
+        setStripeEnabled(subscriptionData.stripe_enabled);
         
         // Notify parent component about subscription status
         if (onSubscriptionStatusChange) {
@@ -67,12 +73,12 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         
         // Notify parent component about stripe payments portal flag
         if (onStripePaymentsPortalChange) {
-          onStripePaymentsPortalChange(subscriptionData.stripe_payments_portal);
+          onStripePaymentsPortalChange(subscriptionData.stripe_payments_portal_enabled);
         }
         
         // Notify parent component about current plan
         if (onCurrentPlanChange) {
-          onCurrentPlanChange(subscriptionData.current_plan);
+          onCurrentPlanChange(effectiveCurrentPlan);
         }
       } catch (error) {
         console.error('Error fetching subscription plans:', error);
@@ -105,7 +111,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
   const getPlanChangeReason = (organizationType: string | null, targetPlan: string): string | null => {
     if (canChangeToPlan(organizationType, targetPlan)) return null;
     
-    return `Cannot downgrade from ${organizationType} to ${targetPlan}. Contact support if you need to downgrade.`;
+    return `Cannot downgrade from ${organizationType} to ${targetPlan}`;
   };
 
   const handlePlanChange = async (planId: string) => {
@@ -115,6 +121,37 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       return;
     }
 
+    // If Stripe is disabled, simply update organization type
+    if (!stripeEnabled) {
+      try {
+        setLoading(true);
+        setSelectedPlan(planId);
+        
+        // Update the organization type
+        await updateOrganizationApi(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
+        
+        // Update local state
+        setCurrentPlan(planId);
+        setOrganizationType(planId);
+        
+        // Notify parent components
+        if (onCurrentPlanChange) {
+          onCurrentPlanChange(planId);
+        }
+        
+        toast.success(`Organization plan updated to ${planId}`);
+        
+      } catch (error) {
+        console.error('Error updating organization plan:', error);
+        toast.error(`Failed to update organization plan: ${error}`);
+        setSelectedPlan(currentPlan || 'individual');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Stripe-enabled logic (existing functionality)
     // Check if this is a reactivation (same plan, cancelling status)
     if (currentPlan === planId && subscriptionStatus === 'cancelling') {
       try {
@@ -135,7 +172,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
           onCancellationInfoChange(subscriptionResponse.cancel_at_period_end, subscriptionResponse.current_period_end);
         }
         if (onStripePaymentsPortalChange) {
-          onStripePaymentsPortalChange(subscriptionResponse.stripe_payments_portal);
+          onStripePaymentsPortalChange(subscriptionResponse.stripe_payments_portal_enabled);
         }
         if (onCurrentPlanChange) {
           onCurrentPlanChange(subscriptionResponse.current_plan);
@@ -162,7 +199,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       const checkoutResponse = await createCheckoutSessionApi(organizationId, planId);
       
       // Redirect to Stripe Checkout
-      window.location.href = checkoutResponse.url;
+      window.location.href = checkoutResponse.payment_portal_url;
       
     } catch (error) {
       console.error('Error changing plan:', error);
@@ -200,22 +237,24 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     );
   }
 
-  if (!stripeEnabled) {
-    return (
-      <div className="text-center py-8">
-        <div className="text-gray-500 mb-4">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-          </svg>
-        </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Billing Disabled</h3>
-        <p className="text-gray-500">Subscription management is currently disabled. Please contact your administrator.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full">
+      {/* Stripe Disabled Notice */}
+      {!stripeEnabled && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="flex items-center">
+            <svg className="h-5 w-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h4 className="text-sm font-medium text-blue-900">Organization Plan Selection</h4>
+          </div>
+          <p className="text-sm text-blue-800 mt-1">
+            Billing is disabled. Selecting a plan will change your organization type and available features, but no payment processing will occur.
+          </p>
+        </div>
+      )}
+      
       {/* Plans Display */}
       <div className="flex justify-center">
         <div className={`grid grid-cols-1 ${getGridColsClass(plans.length)} gap-8`}>
@@ -269,23 +308,41 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
               </div>
               <button
                 onClick={() => {
+                  // When Stripe is disabled, current plans cannot be changed
+                  if (!stripeEnabled && currentPlan === plan.plan_id) {
+                    return; // Do nothing for current plan when Stripe is disabled
+                  }
+                  
                   if (currentPlan === plan.plan_id && subscriptionStatus === 'active' && onCancelSubscription) {
+                    // Check if user is trying to cancel Enterprise plan without admin privileges
+                    if (plan.plan_id === 'enterprise' && !isSysAdmin(session)) {
+                      toast.error('Enterprise plan cancellation requires admin privileges');
+                      return;
+                    }
                     onCancelSubscription();
                   } else {
                     handlePlanChange(plan.plan_id);
                   }
                 }}
                 disabled={
-                  !canSelectPlan(plan.plan_id) && !(currentPlan === plan.plan_id && subscriptionStatus === 'active')
+                  (!canSelectPlan(plan.plan_id) && !(currentPlan === plan.plan_id && subscriptionStatus === 'active')) ||
+                  (!stripeEnabled && currentPlan === plan.plan_id) ||
+                  (currentPlan === plan.plan_id && subscriptionStatus === 'active' && plan.plan_id === 'enterprise' && !isSysAdmin(session))
                 }
                 title={
-                  plan.plan_id === 'enterprise' && !isSysAdmin(session)
+                  !stripeEnabled && currentPlan === plan.plan_id
+                    ? 'Current plan'
+                    : currentPlan === plan.plan_id && subscriptionStatus === 'active' && plan.plan_id === 'enterprise' && !isSysAdmin(session)
+                    ? 'Enterprise plan cancellation requires admin privileges'
+                    : plan.plan_id === 'enterprise' && !isSysAdmin(session)
                     ? 'Enterprise plan requires admin privileges'
                     : getPlanChangeReason(organizationType, plan.plan_id) || ''
                 }
                 className={`w-full py-2 px-4 rounded-md ${
                   currentPlan === plan.plan_id
-                    ? subscriptionStatus === 'cancelling' 
+                    ? !stripeEnabled
+                      ? 'bg-gray-300 cursor-not-allowed text-gray-700'
+                      : subscriptionStatus === 'cancelling' 
                       ? 'bg-green-600 hover:bg-green-700 text-white'
                       : subscriptionStatus === 'active'
                       ? 'bg-white hover:bg-red-50 text-red-600 border border-red-300'
@@ -298,7 +355,9 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                 }`}
               >
                 {currentPlan === plan.plan_id 
-                  ? subscriptionStatus === 'cancelling' 
+                  ? !stripeEnabled
+                    ? 'Current Plan'
+                    : subscriptionStatus === 'cancelling' 
                     ? 'Reactivate Plan' 
                     : subscriptionStatus === 'active'
                     ? 'Cancel Subscription'

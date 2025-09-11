@@ -206,6 +206,15 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle 402 errors (payment required)
+    if (error.response?.status === 402) {
+      toast.error('Insufficient credits. Please upgrade your plan to continue using AI features.', {
+        toastId: 'payment-required', // Prevent duplicate toasts
+        autoClose: 8000
+      });
+      return Promise.reject(error);
+    }
+
     // Handle 401 errors (unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
