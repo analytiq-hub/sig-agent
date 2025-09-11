@@ -32,7 +32,7 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
     }
 
     const timeoutId = setTimeout(() => {
-      getUsersApi()
+      getUsersApi({ limit: 1000 })
         .then(response => {
           const filteredUsers = response.users.filter(user =>
             !currentMembers.includes(user.id) && (
