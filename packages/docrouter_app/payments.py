@@ -43,7 +43,6 @@ db = None
 
 # Define payment collections
 payments_customers = None
-stripe_events = None  # Keep stripe_ prefix as these are webhook events from Stripe
 payments_usage_records = None
 
 
@@ -239,7 +238,7 @@ async def init_payments_env(database):
     global MONGO_URI, ENV
     global NEXTAUTH_URL
     global db
-    global payments_customers, stripe_events, payments_usage_records
+    global payments_customers, payments_usage_records
     global stripe_webhook_secret
 
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
@@ -250,7 +249,6 @@ async def init_payments_env(database):
     db = database
 
     payments_customers = db.payments_customers
-    stripe_events = db.stripe_events
     payments_usage_records = db.payments_usage_records
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
@@ -1102,12 +1100,10 @@ async def sync_stripe_customer(org_id: str) -> Dict[str, Any]:
         raise e
 
 
-async def sync_customer(org_id: str) -> Dict[str, Any]:
+async def sync_customer(db, org_id: str) -> Dict[str, Any]:
     """Sync both local payment customer and Stripe customer for an organization"""
     
     logger.info(f"Syncing customer (both payments and Stripe) for org_id: {org_id}")
-
-    db = ad.common.get_async_db()
 
     try:
         # First, ensure local payment customer exists
@@ -1117,7 +1113,7 @@ async def sync_customer(org_id: str) -> Dict[str, Any]:
             return None
 
         # Then sync with Stripe if configured
-        stripe_customer = await sync_stripe_customer(org_id)
+        stripe_customer = await sync_stripe_customer(db, org_id)
         
         # Return the updated local payment customer
         return await db.payments_customers.find_one({"org_id": org_id})
@@ -2236,7 +2232,7 @@ async def activate_subscription(
 
     try:
         # Get the customer for non-enterprise plans
-        stripe_customer = await get_stripe_customer(organization_id)
+        stripe_customer = await get_stripe_customer(db, organization_id)
         if not stripe_customer:
             raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
 
@@ -2279,7 +2275,7 @@ async def deactivate_subscription(
 
     try:
         # Get the customer for non-enterprise plans
-        stripe_customer = await get_stripe_customer(organization_id)
+        stripe_customer = await get_stripe_customer(db, organization_id)
         if not stripe_customer:
             raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
 
@@ -2355,7 +2351,7 @@ async def get_usage_range(
             }
         ]
         
-        results = await payments_usage_records.aggregate(pipeline).to_list(length=None)
+        results = await db.payments_usage_records.aggregate(pipeline).to_list(length=None)
         
         # Process results
         data_points = []
@@ -2851,11 +2847,11 @@ async def purchase_credits(
         )
     
     # Get or create Stripe customer
-    stripe_customer = await get_stripe_customer(organization_id)
+    stripe_customer = await get_stripe_customer(db, organization_id)
     if not stripe_customer:
         logger.info(f"No existing Stripe customer for org {organization_id}, creating one")
-        await sync_customer(organization_id)
-        stripe_customer = await get_stripe_customer(organization_id)
+        await sync_customer(db, organization_id)
+        stripe_customer = await get_stripe_customer(db, organization_id)
     
     if not stripe_customer:
         logger.error(f"Failed to create Stripe customer for org {organization_id}")
