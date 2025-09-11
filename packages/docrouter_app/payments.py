@@ -355,7 +355,7 @@ async def get_credit_config() -> Dict[str, Any]:
     raise ValueError("No credit price found in Stripe with price_type=credit")
 
 # Function to fetch base pricing from Stripe
-async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
+async def get_tier_config(db, org_id: str = None) -> Dict[str, Any]:
     """
     Fetch tier configuration dynamically from Stripe prices (base pricing only)
     """
@@ -1345,7 +1345,7 @@ async def get_billing_period_for_customer(db, org_id: str) -> tuple:
     # No active subscription or billing period
     return None, None
 
-async def get_subscription(customer_id: str) -> Dict[str, Any]:
+async def get_subscription(db, customer_id: str) -> Dict[str, Any]:
     """Get a subscription for a customer"""
     stripe_subscription_list = await StripeAsync.subscription_list(customer=customer_id)
     if not stripe_subscription_list or not stripe_subscription_list.get("data"):
@@ -1975,7 +1975,7 @@ async def get_subscription_info(
     if not customer:
         raise HTTPException(status_code=404, detail=f"Customer not found for org_id: {organization_id}")
     
-    tier_config = await get_tier_config(organization_id)
+    tier_config = await get_tier_config(db, organization_id)
 
     if tier_config["individual"]["included_spus"] is not None:
         individual_price_per_spu = tier_config["individual"]["base_price"] / tier_config["individual"]["included_spus"]
@@ -2071,7 +2071,7 @@ async def get_subscription_info(
             raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
 
         # Get the subscription
-        subscription = await get_subscription(stripe_customer.id)
+        subscription = await get_subscription(db, stripe_customer.id)
         
         if not subscription:
             # No subscription found - use calendar month for unsubscribed organizations
@@ -2139,7 +2139,7 @@ async def handle_activate_subscription(org_id: str, org_type: str, customer_id: 
 
     try:
         # Get the current subscription
-        subscription = await get_subscription(customer_id)
+        subscription = await get_subscription(db, customer_id)
         if subscription:       
             # Check if subscription is set to cancel at period end
             if not subscription.get('cancel_at_period_end', False):
@@ -2275,7 +2275,7 @@ async def deactivate_subscription(
             raise HTTPException(status_code=404, detail=f"Stripe customer not found for org_id: {organization_id}")
 
         # Get the current subscription
-        subscription = await get_subscription(stripe_customer.id)
+        subscription = await get_subscription(db, stripe_customer.id)
         if not subscription:
             raise HTTPException(status_code=404, detail=f"No active subscription found for org_id: {organization_id}")
 
