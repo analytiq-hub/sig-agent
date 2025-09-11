@@ -480,14 +480,14 @@ async def sync_payments_customers(db) -> Tuple[int, int, List[str]]:
         # Clean up orphaned payment customers
         if orphaned_in_payments:
             logger.info(f"Cleaning up {len(orphaned_in_payments)} orphaned payment customers")
-            await _cleanup_orphaned_payment_customers(orphaned_in_payments)
+            await _cleanup_orphaned_payment_customers(db, orphaned_in_payments)
         
         if not missing_from_payments:
             logger.info("All organizations already have local payment customers")
             return total_orgs, 0, []
         
         # Create local payment customers for missing organizations
-        return await _create_payments_customer_set(missing_from_payments)
+        return await _create_payments_customer_set(db, missing_from_payments)
     
     except Exception as e:
         logger.error(f"Error during payment customers sync: {e}")
@@ -529,14 +529,14 @@ async def sync_stripe_customers() -> Tuple[int, int, List[str]]:
         # Clean up orphaned Stripe customers
         if orphaned_in_stripe:
             logger.info(f"Cleaning up {len(orphaned_in_stripe)} orphaned Stripe customers")
-            await _cleanup_orphaned_stripe_customers(orphaned_in_stripe, stripe_customer_map)
+            await _cleanup_orphaned_stripe_customers(db, orphaned_in_stripe, stripe_customer_map)
         
         if not missing_from_stripe:
             logger.info("All organizations already have Stripe customers")
             return total_orgs, 0, []
         
         # Sync the organizations that need Stripe customers
-        return await _create_stripe_customer_set(missing_from_stripe)
+        return await _create_stripe_customer_set(db, missing_from_stripe)
     
     except Exception as e:
         logger.error(f"Error during Stripe customer sync: {e}")
@@ -603,7 +603,7 @@ async def _get_stripe_customer_org_ids() -> Tuple[set, Dict[str, str]]:
         logger.error(f"Error getting Stripe customer org_ids: {e}")
         return set(), {}
 
-async def _cleanup_orphaned_stripe_customers(orphaned_org_ids: set, stripe_customer_map: Dict[str, str]) -> Tuple[int, List[str]]:
+async def _cleanup_orphaned_stripe_customers(db, orphaned_org_ids: set, stripe_customer_map: Dict[str, str]) -> Tuple[int, List[str]]:
     """Delete orphaned Stripe customers that don't have corresponding organizations"""
     deleted_count = 0
     errors = []
@@ -627,7 +627,7 @@ async def _cleanup_orphaned_stripe_customers(orphaned_org_ids: set, stripe_custo
             await StripeAsync.customer_delete(stripe_customer_id)
             
             # Also clean up from local payments_customers collection
-            await payments_customers.delete_one({"org_id": org_id})
+            await db.payments_customers.delete_one({"org_id": org_id})
             
             deleted_count += 1
             logger.info(f"Deleted orphaned Stripe customer {stripe_customer_id} (org_id: {org_id})")
@@ -640,7 +640,7 @@ async def _cleanup_orphaned_stripe_customers(orphaned_org_ids: set, stripe_custo
     logger.info(f"Cleanup completed: {deleted_count} orphaned customers deleted")
     return deleted_count, errors
 
-async def _cleanup_orphaned_payment_customers(orphaned_org_ids: set) -> Tuple[int, List[str]]:
+async def _cleanup_orphaned_payment_customers(db, orphaned_org_ids: set) -> Tuple[int, List[str]]:
     """Delete orphaned payment customers that don't have corresponding organizations"""
     deleted_count = 0
     errors = []
@@ -650,7 +650,7 @@ async def _cleanup_orphaned_payment_customers(orphaned_org_ids: set) -> Tuple[in
     for org_id in orphaned_org_ids:
         try:
             # Delete the payment customer record
-            result = await payments_customers.delete_one({"org_id": org_id})
+            result = await db.payments_customers.delete_one({"org_id": org_id})
             if result.deleted_count > 0:
                 deleted_count += 1
                 logger.info(f"Deleted orphaned payment customer for org_id: {org_id}")
@@ -707,7 +707,7 @@ async def _create_payments_customer_set(org_ids_to_create: set) -> Tuple[int, in
     return len(org_ids_list), successful, errors
 
 
-async def _create_stripe_customer_set(org_ids_to_sync: set) -> Tuple[int, int, List[str]]:
+async def _create_stripe_customer_set(db, org_ids_to_sync: set) -> Tuple[int, int, List[str]]:
     """Sync only the specified organization IDs with Stripe"""
     successful = 0
     errors = []
@@ -722,7 +722,7 @@ async def _create_stripe_customer_set(org_ids_to_sync: set) -> Tuple[int, int, L
         # Create tasks for each org in the batch
         tasks = []
         for org_id in batch:
-            task = sync_customer(org_id=org_id)
+            task = sync_customer(db, org_id=org_id)
             tasks.append(task)
         
         # Execute batch in parallel
@@ -750,7 +750,7 @@ async def _create_stripe_customer_set(org_ids_to_sync: set) -> Tuple[int, int, L
     return len(org_ids_list), successful, errors
 
 
-async def _create_payments_customer(org_id: str) -> Dict[str, Any]:
+async def _create_payments_customer(db, org_id: str) -> Dict[str, Any]:
     """Create a local payment customer record without Stripe API calls"""
     logger.info(f"Creating local payment customer for org_id: {org_id}")
 
@@ -793,7 +793,7 @@ async def _create_payments_customer(org_id: str) -> Dict[str, Any]:
             return None
 
         # Check if customer already exists
-        existing_customer = await payments_customers.find_one({"org_id": org_id})
+        existing_customer = await db.payments_customers.find_one({"org_id": org_id})
         if existing_customer:
             logger.info(f"Local payment customer already exists for org_id: {org_id}")
             return existing_customer
@@ -818,7 +818,7 @@ async def _create_payments_customer(org_id: str) -> Dict[str, Any]:
             "stripe_current_billing_period_end": None
         }
 
-        await payments_customers.insert_one(customer)
+        await db.payments_customers.insert_one(customer)
         logger.info(f"Created local payment customer for org_id: {org_id}, user_id: {user_id}")
 
         return customer
@@ -827,12 +827,12 @@ async def _create_payments_customer(org_id: str) -> Dict[str, Any]:
         logger.error(f"Error creating local payment customer for org_id {org_id}: {e}")
         raise e
 
-async def get_payment_customer(org_id: str) -> Dict[str, Any]:
+async def get_payment_customer(db, org_id: str) -> Dict[str, Any]:
     """
     Get local payment customer data (fast, no Stripe API calls)
     Returns local MongoDB payment customer record
     """
-    return await payments_customers.find_one({"org_id": org_id})
+    return await db.payments_customers.find_one({"org_id": org_id})
 
 async def get_stripe_customer(db, org_id: str) -> Dict[str, Any]:
     """
@@ -844,7 +844,7 @@ async def get_stripe_customer(db, org_id: str) -> Dict[str, Any]:
         return None
 
     # First try local lookup for faster performance
-    payment_customer = await get_payment_customer(org_id)
+    payment_customer = await get_payment_customer(db, org_id)
     if payment_customer and payment_customer.get("stripe_customer_id"):
         stripe_customer_id = payment_customer["stripe_customer_id"]
         try:

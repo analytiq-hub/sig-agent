@@ -114,7 +114,7 @@ async def test_get_payment_customer(individual_workspace, test_db):
     await sync_payments_customer(db=test_db, org_id=org_id)
     
     # Get customer
-    customer = await get_payment_customer(org_id)
+    customer = await get_payment_customer(test_db, org_id)
     
     assert customer is not None
     assert customer["org_id"] == org_id
