@@ -314,6 +314,11 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                   }
                   
                   if (currentPlan === plan.plan_id && subscriptionStatus === 'active' && onCancelSubscription) {
+                    // Check if user is trying to cancel Enterprise plan without admin privileges
+                    if (plan.plan_id === 'enterprise' && !isSysAdmin(session)) {
+                      toast.error('Enterprise plan cancellation requires admin privileges');
+                      return;
+                    }
                     onCancelSubscription();
                   } else {
                     handlePlanChange(plan.plan_id);
@@ -321,11 +326,14 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
                 }}
                 disabled={
                   (!canSelectPlan(plan.plan_id) && !(currentPlan === plan.plan_id && subscriptionStatus === 'active')) ||
-                  (!stripeEnabled && currentPlan === plan.plan_id)
+                  (!stripeEnabled && currentPlan === plan.plan_id) ||
+                  (currentPlan === plan.plan_id && subscriptionStatus === 'active' && plan.plan_id === 'enterprise' && !isSysAdmin(session))
                 }
                 title={
                   !stripeEnabled && currentPlan === plan.plan_id
                     ? 'Current plan'
+                    : currentPlan === plan.plan_id && subscriptionStatus === 'active' && plan.plan_id === 'enterprise' && !isSysAdmin(session)
+                    ? 'Enterprise plan cancellation requires admin privileges'
                     : plan.plan_id === 'enterprise' && !isSysAdmin(session)
                     ? 'Enterprise plan requires admin privileges'
                     : getPlanChangeReason(organizationType, plan.plan_id) || ''
