@@ -43,7 +43,6 @@ db = None
 
 # Define payment collections
 payments_customers = None
-payments_usage_records = None
 
 
 class SPUCreditException(Exception):
@@ -238,7 +237,7 @@ async def init_payments_env(database):
     global MONGO_URI, ENV
     global NEXTAUTH_URL
     global db
-    global payments_customers, payments_usage_records
+    global payments_customers
     global stripe_webhook_secret
 
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
@@ -249,7 +248,6 @@ async def init_payments_env(database):
     db = database
 
     payments_customers = db.payments_customers
-    payments_usage_records = db.payments_usage_records
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
@@ -2694,7 +2692,7 @@ async def save_complete_usage_record(db, org_id: str, spus: int, consumption: Di
         "timestamp": datetime.now(UTC),
     }
     
-    await payments_usage_records.insert_one(usage_record)
+    await db.payments_usage_records.insert_one(usage_record)
     
     # Also save paid usage record if there's overage (for compatibility with existing queries)
     if consumption["from_paid"] > 0:
