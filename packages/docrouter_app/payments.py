@@ -150,7 +150,6 @@ db = None
 payments_customers = None
 stripe_events = None  # Keep stripe_ prefix as these are webhook events from Stripe
 payments_usage_records = None
-payments_billing_periods = None
 
 # Pydantic models for request/response validation
 class UsageRecord(BaseModel):
@@ -412,7 +411,7 @@ async def init_payments_env(database):
     global MONGO_URI, ENV
     global NEXTAUTH_URL
     global db
-    global payments_customers, stripe_events, payments_usage_records, payments_billing_periods
+    global payments_customers, stripe_events, payments_usage_records
     global stripe_webhook_secret
 
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
@@ -425,7 +424,6 @@ async def init_payments_env(database):
     payments_customers = db.payments_customers
     stripe_events = db.stripe_events
     payments_usage_records = db.payments_usage_records
-    payments_billing_periods = db.payments_billing_periods
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
