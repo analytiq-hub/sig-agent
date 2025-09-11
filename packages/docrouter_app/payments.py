@@ -26,6 +26,26 @@ import stripe
 from functools import partial
 from typing import Any, Dict, List, Optional
 
+# Configure logger
+logger = logging.getLogger(__name__)
+
+# Initialize FastAPI router
+payments_router = APIRouter(tags=["payments"])
+
+stripe_webhook_secret = None
+
+# MongoDB configuration
+MONGO_URI = None
+ENV = None
+
+# Initialize MongoDB database
+db = None
+
+# Define payment collections
+payments_customers = None
+stripe_events = None  # Keep stripe_ prefix as these are webhook events from Stripe
+payments_usage_records = None
+
 
 class SPUCreditException(Exception):
     """
@@ -45,22 +65,6 @@ class SPUCreditException(Exception):
         )
         super().__init__(message)
 
-
-def format_price_per_spu(price: float) -> str:
-    """
-    Format price per SPU to show only necessary decimal places.
-    Shows 3 decimals only if the third decimal is non-zero, otherwise shows 2 decimals.
-    """
-    # Round to 3 decimal places first to handle floating point precision issues
-    rounded_price = round(price, 3)
-    
-    # Check if the third decimal place is significant
-    if rounded_price * 1000 == int(rounded_price * 1000):
-        # No significant third decimal, use 2 decimal places
-        return f"{rounded_price:.2f}"
-    else:
-        # Third decimal is significant, use 3 decimal places
-        return f"{rounded_price:.3f}"
 
 class StripeAsync:
     @staticmethod
@@ -131,25 +135,6 @@ class StripeAsync:
             **kwargs
         )
 
-# Configure logger
-logger = logging.getLogger(__name__)
-
-# Initialize FastAPI router
-payments_router = APIRouter(tags=["payments"])
-
-stripe_webhook_secret = None
-
-# MongoDB configuration
-MONGO_URI = None
-ENV = None
-
-# Initialize MongoDB database
-db = None
-
-# Define payment collections
-payments_customers = None
-stripe_events = None  # Keep stripe_ prefix as these are webhook events from Stripe
-payments_usage_records = None
 
 # Pydantic models for request/response validation
 class UsageRecord(BaseModel):
@@ -248,6 +233,44 @@ TIER_LIMITS = {
 
 def stripe_enabled() -> bool:
     return stripe.api_key is not None
+
+# Modify the init_payments_env function
+async def init_payments_env(database):
+    global MONGO_URI, ENV
+    global NEXTAUTH_URL
+    global db
+    global payments_customers, stripe_events, payments_usage_records
+    global stripe_webhook_secret
+
+    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+    ENV = os.getenv("ENV", "dev")
+    NEXTAUTH_URL = os.getenv("NEXTAUTH_URL", "http://localhost:3000")
+
+    # Use the provided database connection
+    db = database
+
+    payments_customers = db.payments_customers
+    stripe_events = db.stripe_events
+    payments_usage_records = db.payments_usage_records
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+    stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+    logger.info(f"init_payments_env() completed")
+    
+async def init_payments(db):
+    await init_payments_env(db)
+
+    logger.info("Stripe initialized")
+
+    ad.payments.set_check_payment_limits_hook(check_payment_limits)
+    ad.payments.set_record_payment_usage_hook(record_payment_usage)
+    
+    # Initialize dynamic configuration from Stripe
+    await get_credit_config()
+    await get_tier_limits()
+
+    await sync_all_customers(db)
+    logger.info("Stripe customers synced")
 
 async def get_tier_limits() -> Dict[str, Any]:
     """
@@ -406,43 +429,23 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
     
     return tier_config
 
-# Modify the init_payments_env function
-async def init_payments_env(database):
-    global MONGO_URI, ENV
-    global NEXTAUTH_URL
-    global db
-    global payments_customers, stripe_events, payments_usage_records
-    global stripe_webhook_secret
-
-    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-    ENV = os.getenv("ENV", "dev")
-    NEXTAUTH_URL = os.getenv("NEXTAUTH_URL", "http://localhost:3000")
-
-    # Use the provided database connection
-    db = database
-
-    payments_customers = db.payments_customers
-    stripe_events = db.stripe_events
-    payments_usage_records = db.payments_usage_records
-    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-    stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
-
-    logger.info(f"init_payments_env() completed")
+def format_price_per_spu(price: float) -> str:
+    """
+    Format price per SPU to show only necessary decimal places.
+    Shows 3 decimals only if the third decimal is non-zero, otherwise shows 2 decimals.
+    """
+    # Round to 3 decimal places first to handle floating point precision issues
+    rounded_price = round(price, 3)
     
-async def init_payments(db):
-    await init_payments_env(db)
+    # Check if the third decimal place is significant
+    if rounded_price * 1000 == int(rounded_price * 1000):
+        # No significant third decimal, use 2 decimal places
+        return f"{rounded_price:.2f}"
+    else:
+        # Third decimal is significant, use 3 decimal places
+        return f"{rounded_price:.3f}"
 
-    logger.info("Stripe initialized")
 
-    ad.payments.set_check_payment_limits_hook(check_payment_limits)
-    ad.payments.set_record_payment_usage_hook(record_payment_usage)
-    
-    # Initialize dynamic configuration from Stripe
-    await get_credit_config()
-    await get_tier_limits()
-
-    await sync_all_customers(db)
-    logger.info("Stripe customers synced")
 
 async def sync_payments_customers(db) -> Tuple[int, int, List[str]]:
     """
