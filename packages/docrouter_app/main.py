@@ -3428,7 +3428,7 @@ async def delete_user(
                 logger.info(f"Deleting single-user organization {org['_id']}")
                 # Delete the organization
                 await db.organizations.delete_one({"_id": org["_id"]})
-                await delete_payments_customer(org_id=org["_id"])
+                await delete_payments_customer(db, org_id=org["_id"])
                 continue
             
             # Is this the last admin of the organization?
