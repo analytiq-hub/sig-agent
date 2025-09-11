@@ -651,7 +651,7 @@ async def _cleanup_orphaned_payment_customers(db, orphaned_org_ids: set) -> Tupl
     return deleted_count, errors
 
 
-async def _create_payments_customer_set(org_ids_to_create: set) -> Tuple[int, int, List[str]]:
+async def _create_payments_customer_set(db, org_ids_to_create: set) -> Tuple[int, int, List[str]]:
     """Create local payment customer records for organizations without Stripe API calls"""
     successful = 0
     errors = []
@@ -666,7 +666,7 @@ async def _create_payments_customer_set(org_ids_to_create: set) -> Tuple[int, in
         # Create tasks for each org in the batch
         tasks = []
         for org_id in batch:
-            task = _create_payments_customer(org_id=org_id)
+            task = _create_payments_customer(db, org_id=org_id)
             tasks.append(task)
         
         # Execute batch in parallel
@@ -743,7 +743,7 @@ async def _create_payments_customer(db, org_id: str) -> Dict[str, Any]:
 
     try:
         # Get the org details
-        org = await db["organizations"].find_one({"_id": ObjectId(org_id)})
+        org = await db.organizations.find_one({"_id": ObjectId(org_id)})
         if not org:
             logger.error(f"No organization found for org_id: {org_id}")
             return None
@@ -763,7 +763,7 @@ async def _create_payments_customer(db, org_id: str) -> Dict[str, Any]:
             return None
 
         # Get the user details
-        user = await db["users"].find_one({"_id": ObjectId(user_id)})
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not user:
             logger.error(f"No user found for user_id: {user_id} in org_id: {org_id}")
             return None
