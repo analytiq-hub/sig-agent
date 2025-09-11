@@ -11,22 +11,16 @@ from bson import ObjectId
 
 # Import payment functions
 from docrouter_app.payments import (
-    init_payments_env,
     sync_payments_customer,
     get_payment_customer,
     check_payment_limits,
     save_usage_record,
-    CREDIT_CONFIG
+    CREDIT_CONFIG,
+    SPUCreditException
 )
 
 # Import database utilities
 import analytiq_data as ad
-
-
-@pytest_asyncio.fixture
-async def setup_payments():
-    """Initialize payments system for testing."""
-    await init_payments_env()
 
 
 @pytest_asyncio.fixture
@@ -75,7 +69,7 @@ async def individual_workspace(test_db):
 
 
 @pytest.mark.asyncio
-async def test_payments_initialization(setup_payments):
+async def test_payments_initialization(test_db):
     """Test that payments system initializes correctly."""
     # Check that default credit config is set
     assert CREDIT_CONFIG["granted_credits"] == 100
@@ -83,12 +77,13 @@ async def test_payments_initialization(setup_payments):
 
 
 @pytest.mark.asyncio
-async def test_create_individual_workspace_payment_customer(setup_payments, individual_workspace):
+async def test_create_individual_workspace_payment_customer(individual_workspace, test_db):
     """Test creating a payment customer for an individual workspace."""
     org_id = individual_workspace["org_id"]
     
     # Sync payment customer (creates local record)
-    customer = await sync_payments_customer(org_id)
+
+    customer = await sync_payments_customer(db=test_db, org_id=org_id)
     
     # Verify customer was created
     assert customer is not None
@@ -111,12 +106,12 @@ async def test_create_individual_workspace_payment_customer(setup_payments, indi
 
 
 @pytest.mark.asyncio
-async def test_get_payment_customer(setup_payments, individual_workspace):
+async def test_get_payment_customer(individual_workspace, test_db):
     """Test retrieving payment customer data."""
     org_id = individual_workspace["org_id"]
     
     # Create customer first
-    await sync_payments_customer(org_id)
+    await sync_payments_customer(db=test_db, org_id=org_id)
     
     # Get customer
     customer = await get_payment_customer(org_id)
@@ -127,12 +122,12 @@ async def test_get_payment_customer(setup_payments, individual_workspace):
 
 
 @pytest.mark.asyncio
-async def test_payment_limits_with_granted_credits(setup_payments, individual_workspace):
+async def test_payment_limits_with_granted_credits(individual_workspace, test_db):
     """Test payment limit checking with granted credits."""
     org_id = individual_workspace["org_id"]
     
     # Create customer first
-    await sync_payments_customer(org_id)
+    await sync_payments_customer(db=test_db, org_id=org_id)
     
     # Test with small SPU request (should be allowed)
     can_use_10_spus = await check_payment_limits(org_id, 10)
@@ -143,13 +138,19 @@ async def test_payment_limits_with_granted_credits(setup_payments, individual_wo
     can_use_all_granted = await check_payment_limits(org_id, granted_credits)
     assert can_use_all_granted is True
     
-    # Test with more than granted credits (should be blocked for individual plan)
-    can_use_over_granted = await check_payment_limits(org_id, granted_credits + 1)
-    assert can_use_over_granted is False
+    # Test with more than granted credits (should raise SPUCreditException for individual plan)
+    with pytest.raises(SPUCreditException) as exc_info:
+        await check_payment_limits(org_id, granted_credits + 1)
+    
+    # Verify exception details
+    exception = exc_info.value
+    assert exception.org_id == org_id
+    assert exception.required_spus == granted_credits + 1
+    assert exception.available_spus == granted_credits
 
 
 @pytest.mark.asyncio
-async def test_save_usage_record(setup_payments, individual_workspace):
+async def test_save_usage_record(individual_workspace):
     """Test saving usage records."""
     org_id = individual_workspace["org_id"]
     
@@ -170,12 +171,12 @@ async def test_save_usage_record(setup_payments, individual_workspace):
 
 
 @pytest.mark.asyncio
-async def test_individual_workspace_plan_setup(setup_payments, individual_workspace):
+async def test_individual_workspace_plan_setup(individual_workspace, test_db):
     """Test that an individual workspace is set up correctly for payments."""
     org_id = individual_workspace["org_id"]
     
     # Create payment customer
-    customer = await sync_payments_customer(org_id)
+    customer = await sync_payments_customer(db=test_db, org_id=org_id)
     
     # Verify individual workspace characteristics:
     # 1. Has granted credits for getting started
@@ -194,13 +195,13 @@ async def test_individual_workspace_plan_setup(setup_payments, individual_worksp
     can_process_documents = await check_payment_limits(org_id, 50)
     assert can_process_documents is True
     
-    # 5. Cannot exceed granted credits without payment
-    cannot_exceed_credits = await check_payment_limits(org_id, CREDIT_CONFIG["granted_credits"] + 1)
-    assert cannot_exceed_credits is False
+    # 5. Cannot exceed granted credits without payment (should raise SPUCreditException)
+    with pytest.raises(SPUCreditException):
+        await check_payment_limits(org_id, CREDIT_CONFIG["granted_credits"] + 1)
 
 
 @pytest.mark.asyncio
-async def test_workspace_without_payment_customer_fails(setup_payments):
+async def test_workspace_without_payment_customer_fails(test_db):
     """Test that payment limits fail for non-existent customer."""
     fake_org_id = str(ObjectId())
     

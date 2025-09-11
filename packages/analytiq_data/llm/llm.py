@@ -64,10 +64,8 @@ async def run_llm(analytiq_client,
 
     total_spu_needed = spu_cost * num_pages
 
-    # 5. Check if org has enough credits    
-    spus_available = await ad.payments.check_spu_limits(org_id, total_spu_needed)
-    if not spus_available:
-        raise Exception("Not enough SPU credits to run LLM")
+    # 5. Check if org has enough credits (throws SPUCreditException if insufficient)
+    await ad.payments.check_spu_limits(org_id, total_spu_needed)
 
     if not ad.llm.is_chat_model(llm_model) and not ad.llm.is_supported_model(llm_model):
         logger.info(f"LLM model {llm_model} is not a chat model, falling back to default llm_model")

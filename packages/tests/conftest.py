@@ -17,6 +17,7 @@ sys.path.append(f"{cwd}/..")
 # Now import the FastAPI app and dependencies
 from docrouter_app.main import app, security, get_current_user, get_admin_user
 from docrouter_app.models import User
+from docrouter_app.payments import init_payments
 import analytiq_data as ad
 
 from tests.test_utils import (
@@ -62,6 +63,9 @@ async def test_db(unique_db_name):
     collections = await db.list_collection_names()
     for collection in collections:
         await db.drop_collection(collection)
+    
+    # Initialize payments system for all tests
+    await init_payments(db)
     
     # Create a test user in the database
     await db.users.insert_one({

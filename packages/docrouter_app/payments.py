@@ -26,6 +26,26 @@ import stripe
 from functools import partial
 from typing import Any, Dict, List, Optional
 
+
+class SPUCreditException(Exception):
+    """
+    Raised when an organization has insufficient SPU credits to complete an operation.
+    
+    This exception should be caught at the API level and converted to HTTP 402 Payment Required.
+    """
+    
+    def __init__(self, org_id: str, required_spus: int, available_spus: int = 0):
+        self.org_id = org_id
+        self.required_spus = required_spus
+        self.available_spus = available_spus
+        
+        message = (
+            f"Insufficient SPU credits for organization {org_id}. "
+            f"Required: {required_spus}, Available: {available_spus}"
+        )
+        super().__init__(message)
+
+
 def format_price_per_spu(price: float) -> str:
     """
     Format price per SPU to show only necessary decimal places.
@@ -123,8 +143,7 @@ stripe_webhook_secret = None
 MONGO_URI = None
 ENV = None
 
-# Initialize MongoDB client
-client = None
+# Initialize MongoDB database
 db = None
 
 # Define payment collections
@@ -389,10 +408,10 @@ async def get_tier_config(org_id: str = None) -> Dict[str, Any]:
     return tier_config
 
 # Modify the init_payments_env function
-async def init_payments_env():
+async def init_payments_env(database):
     global MONGO_URI, ENV
     global NEXTAUTH_URL
-    global client, db
+    global db
     global payments_customers, stripe_events, payments_usage_records, payments_billing_periods
     global stripe_webhook_secret
 
@@ -400,8 +419,8 @@ async def init_payments_env():
     ENV = os.getenv("ENV", "dev")
     NEXTAUTH_URL = os.getenv("NEXTAUTH_URL", "http://localhost:3000")
 
-    client = AsyncIOMotorClient(MONGO_URI)
-    db = client[ENV]
+    # Use the provided database connection
+    db = database
 
     payments_customers = db.payments_customers
     stripe_events = db.stripe_events
@@ -409,9 +428,11 @@ async def init_payments_env():
     payments_billing_periods = db.payments_billing_periods
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+    logger.info(f"init_payments_env() completed")
     
-async def init_payments():
-    await init_payments_env()
+async def init_payments(db):
+    await init_payments_env(db)
 
     logger.info("Stripe initialized")
 
@@ -422,10 +443,10 @@ async def init_payments():
     await get_credit_config()
     await get_tier_limits()
 
-    await sync_all_customers()
+    await sync_all_customers(db)
     logger.info("Stripe customers synced")
 
-async def sync_payments_customers() -> Tuple[int, int, List[str]]:
+async def sync_payments_customers(db) -> Tuple[int, int, List[str]]:
     """
     Initialize payment customers for all organizations without Stripe API calls.
     Sets up local payment customer records with zero SPU credits, usage, and billing periods.
@@ -443,7 +464,7 @@ async def sync_payments_customers() -> Tuple[int, int, List[str]]:
         local_org_ids = set(str(org["_id"]) for org in orgs)
         
         # Get all local payment customers
-        payment_customers_list = await payments_customers.find({"org_id": {"$exists": True}}).to_list(length=None)
+        payment_customers_list = await db.payments_customers.find({"org_id": {"$exists": True}}).to_list(length=None)
         payment_org_ids = set(customer.get("org_id") for customer in payment_customers_list if customer.get("org_id"))
         
         # Find organizations that need local payment customer creation
@@ -521,7 +542,7 @@ async def sync_stripe_customers() -> Tuple[int, int, List[str]]:
         return 0, 0, [f"Global error: {str(e)}"]
 
 
-async def sync_all_customers() -> Tuple[int, int, List[str]]:
+async def sync_all_customers(db) -> Tuple[int, int, List[str]]:
     """
     Differential sync: sync organizations to both Stripe and payments_customers collection.
     Ensures all organizations have both Stripe customers and local payment customer records.
@@ -533,7 +554,7 @@ async def sync_all_customers() -> Tuple[int, int, List[str]]:
     
     try:
         # First, ensure all orgs have local payment customers
-        payments_result = await sync_payments_customers()
+        payments_result = await sync_payments_customers(db)
         
         # Then, sync with Stripe if configured
         stripe_result = await sync_stripe_customers()
@@ -849,7 +870,7 @@ async def get_stripe_customer(org_id: str) -> Dict[str, Any]:
         return None
 
 # Helper functions
-async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
+async def sync_payments_customer(db, org_id: str) -> Dict[str, Any]:
     """Create or update local payment customer record (no Stripe API calls)"""
 
     logger.info(f"Syncing local payments customer for org_id: {org_id}")
@@ -860,6 +881,8 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
         if not org:
             logger.error(f"No organization found for org_id: {org_id}")
             return None
+        
+        logger.info(f"Organization: {org}")
             
         org_name = org.get("name")
 
@@ -895,11 +918,14 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
         logger.info(f"Syncing local payment customer for org_id: {org_id} user_id: {user_id} email: {user_email} name: {user_name}")
 
         # Check if local payment customer already exists
-        customer = await payments_customers.find_one({"org_id": org_id})
+        customer = await db.payments_customers.find_one({"org_id": org_id})
+
+        logger.info(f"Local payment customer: {customer}")
         
         if customer:
+            logger.info(f"Updating existing local payment customer for org_id: {org_id}")
             # Update existing local payment customer
-            await payments_customers.update_one(
+            await db.payments_customers.update_one(
                 {"org_id": org_id},
                 {"$set": {
                     "user_id": user_id,
@@ -908,7 +934,7 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                     "updated_at": datetime.now(UTC)
                 }}
             )
-            customer = await payments_customers.find_one({"org_id": org_id})
+            customer = await db.payments_customers.find_one({"org_id": org_id})
             logger.info(f"Updated local payment customer for org_id: {org_id}")
         else:
             logger.info(f"Creating new local payment customer for org_id: {org_id}")
@@ -933,8 +959,8 @@ async def sync_payments_customer(org_id: str) -> Dict[str, Any]:
                 "stripe_current_billing_period_end": None
             }
 
-            await payments_customers.insert_one(customer)
-            customer = await payments_customers.find_one({"org_id": org_id})
+            await db.payments_customers.insert_one(customer)
+            customer = await db.payments_customers.find_one({"org_id": org_id})
 
         # Ensure credits are initialized
         await ensure_subscription_credits(customer)
@@ -954,6 +980,8 @@ async def sync_stripe_customer(org_id: str) -> Dict[str, Any]:
         return None
 
     logger.info(f"Syncing Stripe customer for org_id: {org_id}")
+
+    db = ad.common.get_async_db()
 
     try:
         # Get organization and user details
@@ -1045,14 +1073,14 @@ async def sync_stripe_customer(org_id: str) -> Dict[str, Any]:
             await sync_local_subscription_data(org_id, stripe_customer.id, existing_subscription)
 
         # Update local payment customer with Stripe customer ID
-        payment_customer = await payments_customers.find_one({"org_id": org_id})
+        payment_customer = await db.payments_customers.find_one({"org_id": org_id})
         if payment_customer:
             # Check if the stripe_customer_id changed
             if payment_customer.get("stripe_customer_id") != stripe_customer.id:
                 logger.info(f"Stripe customer_id changed from {payment_customer.get('stripe_customer_id')} to {stripe_customer.id}")
                 
             # Update with new Stripe customer ID
-            await payments_customers.update_one(
+            await db.payments_customers.update_one(
                 {"org_id": org_id},
                 {"$set": {
                     "stripe_customer_id": stripe_customer.id,
@@ -1061,7 +1089,7 @@ async def sync_stripe_customer(org_id: str) -> Dict[str, Any]:
             )
             
             # Get updated customer
-            payment_customer = await payments_customers.find_one({"org_id": org_id})
+            payment_customer = await db.payments_customers.find_one({"org_id": org_id})
             
             # Ensure credits are initialized
             await ensure_subscription_credits(payment_customer)
@@ -1078,9 +1106,11 @@ async def sync_customer(org_id: str) -> Dict[str, Any]:
     
     logger.info(f"Syncing customer (both payments and Stripe) for org_id: {org_id}")
 
+    db = ad.common.get_async_db()
+
     try:
         # First, ensure local payment customer exists
-        payment_customer = await sync_payments_customer(org_id)
+        payment_customer = await sync_payments_customer(db=db, org_id=org_id)
         if not payment_customer:
             logger.error(f"Failed to sync local payment customer for org_id: {org_id}")
             return None
@@ -1089,7 +1119,7 @@ async def sync_customer(org_id: str) -> Dict[str, Any]:
         stripe_customer = await sync_stripe_customer(org_id)
         
         # Return the updated local payment customer
-        return await payments_customers.find_one({"org_id": org_id})
+        return await db.payments_customers.find_one({"org_id": org_id})
     
     except Exception as e:
         logger.error(f"Error in sync_customer: {e}")
@@ -1159,7 +1189,7 @@ async def check_payment_limits(org_id: str, spus: int) -> bool:
         return True
     else:
         logger.warning(f"Insufficient credits for org_id: {org_id} (available: {total_available}, requested: {spus})")
-        return False
+        raise SPUCreditException(org_id, spus, total_available)
 
 async def sync_local_subscription_data(org_id: str, stripe_customer_id: str, subscription: Dict[str, Any]):
     """Sync subscription billing period and details to local stripe_customer document"""

@@ -90,7 +90,7 @@ from docrouter_app.models import (
     ListFlowsResponse,
     LLMPromptRequest,
 )
-from docrouter_app.payments import payments_router
+from docrouter_app.payments import payments_router, SPUCreditException
 from docrouter_app.payments import (
     init_payments,
     sync_payments_customer,
@@ -170,7 +170,8 @@ async def lifespan(app):
     await startup.setup_api_creds(analytiq_client)
     
     # Initialize payments
-    await init_payments()
+    db = ad.common.get_async_db(analytiq_client)
+    await init_payments(db)
     
     yield  # This is where the app runs
     
@@ -747,6 +748,12 @@ async def run_llm_analysis(
             result=result
         )
         
+    except SPUCreditException as e:
+        logger.warning(f"SPU credit exhausted in LLM run: {str(e)}")
+        raise HTTPException(
+            status_code=402,
+            detail=f"Insufficient SPU credits: {str(e)}"
+        )
     except Exception as e:
         logger.error(f"Error in LLM run: {str(e)}")
         raise HTTPException(
@@ -2995,7 +3002,7 @@ async def create_organization(
     org_id = str(result.inserted_id)
 
     # Create corresponding payments customer
-    await sync_payments_customer(org_id=org_id)
+    await sync_payments_customer(db=db, org_id=org_id)
 
     return Organization(**{
         **organization_doc,
@@ -3073,7 +3080,7 @@ async def update_organization(
         updated_organization = organization
 
     # Update the payments customer
-    await sync_payments_customer(org_id=organization_id)
+    await sync_payments_customer(db=db, org_id=organization_id)
 
     return Organization(**{
         "id": str(updated_organization["_id"]),
@@ -3107,7 +3114,7 @@ async def delete_organization(
         )
 
     # Delete the payments customer
-    await delete_payments_customer(org_id=organization_id)
+    await delete_payments_customer(db=db, org_id=organization_id)
         
     await db.organizations.delete_one({"_id": ObjectId(organization_id)})
     return {"status": "success"}
@@ -3312,7 +3319,7 @@ async def create_user(
     logger.info(f"Created new organization {user.email} with id {org_id}")
 
     # Sync the organization
-    await sync_payments_customer(org_id=org_id)
+    await sync_payments_customer(db=db, org_id=org_id)
     
     return UserResponse(**user_doc)
 
@@ -3446,7 +3453,7 @@ async def delete_user(
             )
 
             # Update the payments customer
-            await sync_payments_customer(org_id=org["_id"])
+            await sync_payments_customer(db=db, org_id=org["_id"])
     
     # Don't allow deleting the last admin user
     target_user = await db.users.find_one({"_id": ObjectId(user_id)})
@@ -3936,7 +3943,7 @@ async def accept_invitation(
             org_id = str(result.inserted_id)
 
         # Sync the organization
-        await sync_payments_customer(org_id=org_id)
+        await sync_payments_customer(db=db, org_id=org_id)
         
         # Mark invitation as accepted
         await db.invitations.update_one(
