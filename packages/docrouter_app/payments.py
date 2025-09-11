@@ -447,7 +447,7 @@ async def sync_payments_customers(db) -> Tuple[int, int, List[str]]:
     
     try:
         # Get all organizations from MongoDB
-        orgs = await db["organizations"].find().to_list(length=None)
+        orgs = await db.organizations.find().to_list(length=None)
         total_orgs = len(orgs)
         local_org_ids = set(str(org["_id"]) for org in orgs)
         
@@ -497,7 +497,7 @@ async def sync_stripe_customers(db) -> Tuple[int, int, List[str]]:
     
     try:
         # Get all organizations from MongoDB
-        orgs = await db["organizations"].find().to_list(length=None)
+        orgs = await db.organizations.find().to_list(length=None)
         total_orgs = len(orgs)
         local_org_ids = set(str(org["_id"]) for org in orgs)
         
@@ -971,7 +971,7 @@ async def sync_stripe_customer(db, org_id: str) -> Dict[str, Any]:
 
     try:
         # Get organization and user details
-        org = await db["organizations"].find_one({"_id": ObjectId(org_id)})
+        org = await db.organizations.find_one({"_id": ObjectId(org_id)})
         if not org:
             logger.error(f"No organization found for org_id: {org_id}")
             return None
@@ -991,7 +991,7 @@ async def sync_stripe_customer(db, org_id: str) -> Dict[str, Any]:
             return None
 
         # Get user details
-        user = await db["users"].find_one({"_id": ObjectId(user_id)})
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
         if not user:
             logger.error(f"No user found for user_id: {user_id} in org_id: {org_id}")
             return None
