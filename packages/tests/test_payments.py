@@ -150,12 +150,13 @@ async def test_payment_limits_with_granted_credits(individual_workspace, test_db
 
 
 @pytest.mark.asyncio
-async def test_save_usage_record(individual_workspace):
+async def test_save_usage_record(individual_workspace, test_db):
     """Test saving usage records."""
     org_id = individual_workspace["org_id"]
     
     # Save a usage record
     usage_record = await save_usage_record(
+        db=test_db,
         org_id=org_id,
         spus=25,
         operation="document_processing",

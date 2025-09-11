@@ -1124,7 +1124,7 @@ async def sync_customer(org_id: str) -> Dict[str, Any]:
         raise e
 
 
-async def save_usage_record(org_id: str, spus: int, operation: str, source: str = "backend") -> Dict[str, Any]:
+async def save_usage_record(db, org_id: str, spus: int, operation: str, source: str = "backend") -> Dict[str, Any]:
     """Record usage for an organization locally"""
     
     logger.info(f"save_usage_record() called with org_id: {org_id}, spus: {spus}, operation: {operation}, source: {source}")
@@ -1138,7 +1138,7 @@ async def save_usage_record(org_id: str, spus: int, operation: str, source: str 
         "timestamp": datetime.now(UTC)
     }
     
-    await payments_usage_records.insert_one(usage_record)
+    await db.payments_usage_records.insert_one(usage_record)
     return usage_record
 
 
@@ -2669,7 +2669,7 @@ async def update_customer_balances(customer_id: str, consumption: Dict[str, int]
             {"$inc": update_operations}
         )
 
-async def save_complete_usage_record(org_id: str, spus: int, consumption: Dict[str, int], operation: str = "document_processing", source: str = "backend") -> Dict[str, Any]:
+async def save_complete_usage_record(db, org_id: str, spus: int, consumption: Dict[str, int], operation: str = "document_processing", source: str = "backend") -> Dict[str, Any]:
     """Save complete usage record with breakdown"""
     usage_record = {
         "org_id": org_id,
@@ -2683,7 +2683,7 @@ async def save_complete_usage_record(org_id: str, spus: int, consumption: Dict[s
     
     # Also save paid usage record if there's overage (for compatibility with existing queries)
     if consumption["from_paid"] > 0:
-        await save_usage_record(org_id, consumption["from_paid"], operation="paid_usage", source=source)
+        await save_usage_record(db, org_id, consumption["from_paid"], operation="paid_usage", source=source)
     
     return usage_record
 
@@ -2723,6 +2723,8 @@ async def record_payment_usage(org_id: str, spus: int) -> Dict[str, int]:
         return {"from_subscription": 0, "from_purchased": 0, "from_granted": 0, "from_paid": 0}
     
     logger.info(f"Recording payment usage for org_id: {org_id} spus: {spus}")
+
+    db = ad.common.get_async_db()
     
     try:
         # 1. Get customer and ensure fields are initialized
@@ -2749,7 +2751,7 @@ async def record_payment_usage(org_id: str, spus: int) -> Dict[str, int]:
         await update_customer_balances(balances["customer_id"], consumption)
         
         # 7. Record complete usage record with breakdown
-        await save_complete_usage_record(org_id, spus, consumption, operation="document_processing")
+        await save_complete_usage_record(db, org_id, spus, consumption, operation="document_processing")
         
         logger.info(f"Usage recorded for org_id: {org_id} - {consumption}")
         return consumption
