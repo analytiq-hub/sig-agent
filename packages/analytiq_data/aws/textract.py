@@ -1,4 +1,5 @@
 import boto3, botocore
+import aioboto3
 from collections import defaultdict
 import json
 import re
@@ -28,98 +29,108 @@ async def run_textract(analytiq_client,
     Returns:
         Textract blocks formatted as a dict
     """
-    # Get the AWS client. This will give None for textract if the AWS keys are not set.
-    aws_client = ad.aws.get_aws_client(analytiq_client)
-    if aws_client.textract is None:
-        raise Exception(f"AWS textract client not created. Cannot run OCR.")
-
-    textract = aws_client.textract
+    # Get the async AWS client
+    aws_client = ad.aws.get_aws_client_async(analytiq_client)
     s3_bucket_name = aws_client.s3_bucket_name
 
     # Create a random s3 key
     s3_key = f"textract/tmp/{datetime.now().strftime('%Y-%m-%d')}/{uuid.uuid4()}"
 
-    # Save the blob to s3
-    aws_client.s3.put_object(Bucket=s3_bucket_name, Key=s3_key, Body=blob)
-
     try:
-        if query_list is not None and len(query_list) > 0:
-            query_list = [{'Text': '{}'.format(q)} for q in query_list]
-            response = textract.start_document_analysis(
-                DocumentLocation={
-                    'S3Object': {
-                        'Bucket': s3_bucket_name,
-                        'Name': s3_key
+        # Upload to S3 using async client
+        async with aws_client.session.client('s3') as s3_client:
+            await s3_client.put_object(Bucket=s3_bucket_name, Key=s3_key, Body=blob)
+
+        # Start Textract job using async client
+        async with aws_client.session.client('textract') as textract_client:
+            if query_list is not None and len(query_list) > 0:
+                query_list = [{'Text': '{}'.format(q)} for q in query_list]
+                response = await textract_client.start_document_analysis(
+                    DocumentLocation={
+                        'S3Object': {
+                            'Bucket': s3_bucket_name,
+                            'Name': s3_key
+                        }
+                    },
+                    FeatureTypes=feature_types + ["QUERIES"],
+                    QueriesConfig = {'Queries': query_list}
+                )
+                get_completion_func = textract_client.get_document_analysis
+            elif len(feature_types) > 0:
+                response = await textract_client.start_document_analysis(
+                    DocumentLocation={
+                        'S3Object': {
+                            'Bucket': s3_bucket_name,
+                            'Name': s3_key
+                        }
+                    },
+                    FeatureTypes=feature_types,
+                )
+                get_completion_func = textract_client.get_document_analysis
+            else:
+                response = await textract_client.start_document_text_detection(
+                    DocumentLocation={
+                        'S3Object': {
+                            'Bucket': s3_bucket_name,
+                            'Name': s3_key
+                        }
                     }
-                },
-                FeatureTypes=feature_types + ["QUERIES"],
-                QueriesConfig = {'Queries': query_list}
-            )
-            textract_get_completion= textract.get_document_analysis
-        elif len(feature_types) > 0:
-            response = textract.start_document_analysis(
-                DocumentLocation={
-                    'S3Object': {
-                        'Bucket': s3_bucket_name,
-                        'Name': s3_key
-                    }
-                },
-                FeatureTypes=feature_types,
-            )
-            textract_get_completion=textract.get_document_analysis
-        else:
-            response = textract.start_document_text_detection(
-                DocumentLocation={
-                    'S3Object': {
-                        'Bucket': s3_bucket_name,
-                        'Name': s3_key
-                    }
-                }
-            )
-            textract_get_completion = textract.get_document_text_detection
+                )
+                get_completion_func = textract_client.get_document_text_detection
 
-        job_id = response['JobId']
+            job_id = response['JobId']
 
-        # Check completion status
-        idx = 0
-        while True:
-            status_response = textract_get_completion(JobId=job_id)
-            status = status_response['JobStatus']
-            logger.info(f"{analytiq_client.name}: ocr step {idx}: {status}")
-            idx += 1
-
-            if status in ["SUCCEEDED", "FAILED"]:
-                break
-
-            await asyncio.sleep(1)
-
-        if status == "SUCCEEDED":
-            blocks = []
-
-            next_token = None
+            # Check completion status with async polling and exponential backoff
+            idx = 0
             while True:
-                # Add a next_token if more results are available
-                if next_token:
-                    response = textract_get_completion(JobId=job_id, NextToken=next_token)
-                else:
-                    response = textract_get_completion(JobId=job_id)
+                status_response = await get_completion_func(JobId=job_id)
+                status = status_response['JobStatus']
+                logger.info(f"{analytiq_client.name}: ocr step {idx}: {status}")
+                idx += 1
 
-                blocks.extend(response['Blocks'])
-
-                # Check for more results
-                next_token = response.get('NextToken', None)
-                if not next_token:
+                if status in ["SUCCEEDED", "FAILED"]:
                     break
 
-            return blocks
-        else:
-            raise Exception(f"Textract document analysis failed: {status} for s3://{s3_bucket_name}/{s3_key}")
+                # Use exponential backoff for polling - start with 1s, max 10s
+                sleep_time = min(2 ** min(idx // 5, 3), 10)
+                await asyncio.sleep(sleep_time)
+
+            idx = 0
+            if status == "SUCCEEDED":
+                blocks = []
+
+                next_token = None
+                while True:
+                    # Get results with pagination
+                    if next_token:
+                        response = await get_completion_func(JobId=job_id, NextToken=next_token)
+                    else:
+                        response = await get_completion_func(JobId=job_id)
+
+                    blocks.extend(response['Blocks'])
+
+                    # Check for more results
+                    next_token = response.get('NextToken', None)
+                    
+                    logger.info(f"{analytiq_client.name}: ocr step {idx}: blocks len: {len(blocks)} next_token: {next_token}")
+                    idx += 1
+                    if not next_token:
+                        break
+
+                return blocks
+            else:
+                raise Exception(f"Textract document analysis failed: {status} for s3://{s3_bucket_name}/{s3_key}")
+                
     except Exception as e:
         logger.error(f"Error running textract: {e}")
         raise e
     finally:
-        # Delete the s3 object
-        aws_client.s3.delete_object(Bucket=s3_bucket_name, Key=s3_key)    
+        # Delete the s3 object using async client
+        try:
+            async with aws_client.session.client('s3') as s3_client:
+                await s3_client.delete_object(Bucket=s3_bucket_name, Key=s3_key)
+        except Exception as cleanup_error:
+            logger.warning(f"Failed to cleanup S3 object {s3_key}: {cleanup_error}")    
 
 def get_block_map(blocks: list) -> dict:
     """
