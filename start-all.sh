@@ -30,25 +30,30 @@ fi
 cleanup() {
     echo "Shutting down processes..."
     
-    # First, terminate child processes individually
+    # Kill entire process groups to catch nested processes
     for pid in ${pids[@]}; do
         if kill -0 $pid 2>/dev/null; then
-            kill -TERM $pid 2>/dev/null
+            # Send TERM signal to entire process group
+            kill -TERM -$pid 2>/dev/null
         fi
     done
     
     # Give processes a moment to terminate gracefully
-    sleep 1
+    sleep 2
     
-    # Force kill any remaining processes
+    # Force kill any remaining process groups
     for pid in ${pids[@]}; do
         if kill -0 $pid 2>/dev/null; then
-            kill -9 $pid 2>/dev/null
+            # Send KILL signal to entire process group
+            kill -9 -$pid 2>/dev/null
         fi
     done
     
-    # Cleanup Next.js server specifically
+    # Cleanup specific servers as fallback
     cleanup_next_server
+    cleanup_uvicorn
+    cleanup_worker
+    cleanup_stripe_listen
     
     echo "Shutdown complete"
     exit 0
@@ -67,11 +72,11 @@ run_with_color() {
     
     # Run the command with virtual environment activation and optional directory change
     if [ -n "$dir" ]; then
-        (cd "$dir" && source "${VENV_PATH}/bin/activate" && $command) 2>&1 | while read -r line; do
+        (cd "$dir" && source "${VENV_PATH}/bin/activate" && exec $command) 2>&1 | while read -r line; do
             echo -e "${color}[$name] $line${NC}"
         done &
     else
-        (source "${VENV_PATH}/bin/activate" && $command) 2>&1 | while read -r line; do
+        (source "${VENV_PATH}/bin/activate" && exec $command) 2>&1 | while read -r line; do
             echo -e "${color}[$name] $line${NC}"
         done &
     fi
@@ -80,18 +85,22 @@ run_with_color() {
 }
 
 cleanup_next_server() {
-    kill -9 `ps -ef|grep next-server | awk '{ print $2}'| head -n 1` >/dev/null 2>&1
+    pkill -f "next-server" >/dev/null 2>&1
 }
 cleanup_uvicorn() {
-    kill -9 `ps -ef|grep uvicorn | awk '{ print $2}'| head -n 1` >/dev/null 2>&1
+    pkill -f "uvicorn.*docrouter_app" >/dev/null 2>&1
 }
 cleanup_stripe_listen() {
-    kill -9 `ps -ef|grep "stripe listen" | awk '{ print $2}'| head -n 1` >/dev/null 2>&1
+    pkill -f "stripe listen" >/dev/null 2>&1
+}
+cleanup_worker() {
+    pkill -f "worker.py" >/dev/null 2>&1
 }
 
 # Clean up old processes
 cleanup_next_server
 cleanup_uvicorn
+cleanup_worker
 cleanup_stripe_listen
 # Run all processes
 run_with_color "uvicorn docrouter_app.main:app --reload --host 0.0.0.0 --port 8000" "$RED" "FASTAPI" "packages"
