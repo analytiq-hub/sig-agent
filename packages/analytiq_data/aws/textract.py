@@ -38,11 +38,11 @@ async def run_textract(analytiq_client,
 
     try:
         # Upload to S3 using async client
-        async with aws_client.session.client('s3') as s3_client:
+        async with aws_client.client('s3') as s3_client:
             await s3_client.put_object(Bucket=s3_bucket_name, Key=s3_key, Body=blob)
 
         # Start Textract job using async client
-        async with aws_client.session.client('textract') as textract_client:
+        async with aws_client.client('textract') as textract_client:
             if query_list is not None and len(query_list) > 0:
                 query_list = [{'Text': '{}'.format(q)} for q in query_list]
                 response = await textract_client.start_document_analysis(
@@ -127,7 +127,7 @@ async def run_textract(analytiq_client,
     finally:
         # Delete the s3 object using async client
         try:
-            async with aws_client.session.client('s3') as s3_client:
+            async with aws_client.client('s3') as s3_client:
                 await s3_client.delete_object(Bucket=s3_bucket_name, Key=s3_key)
         except Exception as cleanup_error:
             logger.warning(f"Failed to cleanup S3 object {s3_key}: {cleanup_error}")    
