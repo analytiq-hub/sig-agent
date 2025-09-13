@@ -400,60 +400,52 @@ export function DocumentBulkUpdate({
                     <div className="border border-gray-200 rounded-lg bg-gray-50 p-4">
                       <h3 className="text-sm font-medium text-gray-900 mb-4">Operations</h3>
 
-                      <div className="flex items-center gap-3">
-                        {/* Operation Dropdown */}
-                        <div className="flex-shrink-0">
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Operation:</label>
-                          <select
-                            value={selectedOperation}
-                            onChange={(e) => {
-                              setSelectedOperation(e.target.value)
-                              setSelectedTagIds([]) // Reset selection when changing operation
-                            }}
-                            className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                          >
-                            <option value="addTags">Add Tags</option>
-                            <option value="removeTags">Remove Tags</option>
-                            <option value="addMetadata" disabled>Add Metadata</option>
-                            <option value="removeMetadata" disabled>Remove Metadata</option>
-                            <option value="clearMetadata" disabled>Clear All Metadata</option>
-                            <option value="runLLM" disabled>Run LLM Processing</option>
-                            <option value="exportResults" disabled>Export Results</option>
-                          </select>
-                        </div>
+                      {/* Operation Selector and Apply Button */}
+                      <div className="flex items-center gap-3 mb-4">
+                        <select
+                          value={selectedOperation}
+                          onChange={(e) => {
+                            setSelectedOperation(e.target.value)
+                            setSelectedTagIds([]) // Reset selection when changing operation
+                          }}
+                          className="border border-blue-300 rounded-lg px-3 py-2 text-sm bg-blue-100 font-medium text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-blue-50 shadow-sm"
+                        >
+                          <option value="addTags">Add Tags</option>
+                          <option value="removeTags">Remove Tags</option>
+                          <option value="addMetadata" disabled>Add Metadata</option>
+                          <option value="removeMetadata" disabled>Remove Metadata</option>
+                          <option value="clearMetadata" disabled>Clear All Metadata</option>
+                          <option value="runLLM" disabled>Run LLM Processing</option>
+                          <option value="exportResults" disabled>Export Results</option>
+                        </select>
 
-                        {/* Dynamic Selector */}
-                        <div className="flex-1">
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            {selectedOperation === 'addTags' ? 'Select tags to add:' : 'Select tags to remove:'}
-                          </label>
-                          <div className="w-full">
-                            <TagSelector
-                              availableTags={availableTags}
-                              selectedTagIds={selectedTagIds}
-                              onChange={setSelectedTagIds}
-                            />
-                          </div>
-                        </div>
+                        <button
+                          onClick={handleApplyOperation}
+                          disabled={selectedTagIds.length === 0}
+                          className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                            selectedOperation === 'addTags'
+                              ? 'bg-green-600 hover:bg-green-700 disabled:bg-gray-300 focus:ring-green-500'
+                              : 'bg-red-600 hover:bg-red-700 disabled:bg-gray-300 focus:ring-red-500'
+                          }`}
+                        >
+                          {selectedOperation === 'addTags' ? (
+                            <><PlusIcon className="h-5 w-5" /> Apply</>
+                          ) : (
+                            <><MinusIcon className="h-5 w-5" /> Apply</>
+                          )}
+                        </button>
+                      </div>
 
-                        {/* Apply Button */}
-                        <div className="flex-shrink-0 self-end">
-                          <button
-                            onClick={handleApplyOperation}
-                            disabled={selectedTagIds.length === 0}
-                            className={`inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-md transition-colors ${
-                              selectedOperation === 'addTags'
-                                ? 'bg-green-600 hover:bg-green-700 disabled:bg-gray-300'
-                                : 'bg-red-600 hover:bg-red-700 disabled:bg-gray-300'
-                            }`}
-                          >
-                            {selectedOperation === 'addTags' ? (
-                              <><PlusIcon className="h-4 w-4 mr-1" /> Apply</>
-                            ) : (
-                              <><MinusIcon className="h-4 w-4 mr-1" /> Apply</>
-                            )}
-                          </button>
-                        </div>
+                      {/* Dynamic Content Area */}
+                      <div className="border border-gray-300 rounded-md bg-white p-3">
+                        <label className="block text-xs font-medium text-gray-700 mb-2">
+                          {selectedOperation === 'addTags' ? 'Select tags to add:' : 'Select tags to remove:'}
+                        </label>
+                        <TagSelector
+                          availableTags={availableTags}
+                          selectedTagIds={selectedTagIds}
+                          onChange={setSelectedTagIds}
+                        />
                       </div>
                     </div>
 
