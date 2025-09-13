@@ -320,6 +320,7 @@ async def run_llm(analytiq_client,
     await ad.payments.record_spu_usage(
         org_id, 
         total_spu_needed,
+        llm_provider=llm_provider,
         llm_model=llm_model,
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,

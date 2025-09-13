@@ -2696,6 +2696,7 @@ async def update_customer_balances(db, customer_id: str, consumption: Dict[str, 
 
 async def save_complete_usage_record(db, org_id: str, spus: int, consumption: Dict[str, int], 
                                    operation: str = "document_processing", source: str = "backend",
+                                   llm_provider: str = None,
                                    llm_model: str = None,
                                    prompt_tokens: int = None,
                                    completion_tokens: int = None,
@@ -2711,6 +2712,8 @@ async def save_complete_usage_record(db, org_id: str, spus: int, consumption: Di
     }
     
     # Add LLM metrics if provided
+    if llm_provider is not None:
+        usage_record["llm_provider"] = llm_provider
     if llm_model is not None:
         usage_record["llm_model"] = llm_model
     if prompt_tokens is not None:
@@ -2760,6 +2763,7 @@ async def reset_billing_period(db, customer: Dict[str, Any], period_start: int, 
     logger.info(f"Reset billing period for customer {customer['_id']}: {period_start} to {period_end}")
 
 async def record_payment_usage(org_id: str, spus: int,
+                              llm_provider: str = None,
                               llm_model: str = None,
                               prompt_tokens: int = None, 
                               completion_tokens: int = None, 
@@ -2770,7 +2774,7 @@ async def record_payment_usage(org_id: str, spus: int,
         logger.warning(f"Invalid SPU amount: {spus} for org_id: {org_id}")
         return {"from_subscription": 0, "from_purchased": 0, "from_granted": 0, "from_paid": 0}
     
-    logger.info(f"Recording payment usage for org_id: {org_id} spus: {spus}, model: {llm_model}")
+    logger.info(f"Recording payment usage for org_id: {org_id} spus: {spus}, provider: {llm_provider}, model: {llm_model}")
 
     db = ad.common.get_async_db()
     
@@ -2801,6 +2805,7 @@ async def record_payment_usage(org_id: str, spus: int,
         # 7. Record complete usage record with breakdown and LLM metrics
         await save_complete_usage_record(db, org_id, spus, consumption, 
                                        operation="document_processing",
+                                       llm_provider=llm_provider,
                                        llm_model=llm_model,
                                        prompt_tokens=prompt_tokens,
                                        completion_tokens=completion_tokens,
