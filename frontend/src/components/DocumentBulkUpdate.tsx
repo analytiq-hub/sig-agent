@@ -4,7 +4,8 @@ import { XMarkIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline'
 import { Tag, DocumentMetadata } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
 import TagSelector from './TagSelector';
-import { listDocumentsApi } from '@/utils/api';
+import { listDocumentsApi, updateDocumentApi } from '@/utils/api';
+import { toast } from 'react-hot-toast';
 
 interface DocumentBulkUpdateProps {
   isOpen: boolean
@@ -17,7 +18,7 @@ interface DocumentBulkUpdateProps {
     metadataSearch: string
     paginationModel: { page: number; pageSize: number }
   }
-  onBulkUpdate: (operation: string, tagIds: string[]) => Promise<void>
+  onRefresh?: () => void
 }
 
 export function DocumentBulkUpdate({
@@ -26,7 +27,7 @@ export function DocumentBulkUpdate({
   organizationId,
   availableTags,
   searchParameters,
-  onBulkUpdate
+  onRefresh
 }: DocumentBulkUpdateProps) {
   const [previewDocuments, setPreviewDocuments] = useState<DocumentMetadata[]>([])
   const [selectedTagsToAdd, setSelectedTagsToAdd] = useState<string[]>([])
@@ -91,11 +92,114 @@ export function DocumentBulkUpdate({
     }
   }
 
+  const handleBulkUpdate = async (operation: string, tagIds: string[]) => {
+    try {
+      // Parse and URL-encode metadata search to handle special characters
+      const parseAndEncodeMetadataSearch = (searchStr: string): string | null => {
+        try {
+          const pairs: string[] = [];
+          const rawPairs = searchStr.split(',');
+
+          for (const rawPair of rawPairs) {
+            const trimmed = rawPair.trim();
+            if (!trimmed) continue;
+
+            const equalIndex = trimmed.indexOf('=');
+            if (equalIndex === -1) continue;
+
+            const key = trimmed.substring(0, equalIndex).trim();
+            const value = trimmed.substring(equalIndex + 1).trim();
+
+            if (key && value) {
+              const encodedKey = encodeURIComponent(key);
+              const encodedValue = encodeURIComponent(value);
+              pairs.push(`${encodedKey}=${encodedValue}`);
+            }
+          }
+
+          return pairs.length > 0 ? pairs.join(',') : null;
+        } catch (error) {
+          console.error('Error parsing metadata search:', error);
+          return null;
+        }
+      };
+
+      // First, fetch all matching documents
+      const allMatchingResponse = await listDocumentsApi({
+        organizationId: organizationId,
+        skip: 0,
+        limit: 100, // Maximum allowed by API
+        nameSearch: searchParameters.searchTerm.trim() || undefined,
+        tagIds: searchParameters.selectedTagFilters.length > 0 ? searchParameters.selectedTagFilters.map(tag => tag.id).join(',') : undefined,
+        metadataSearch: searchParameters.metadataSearch.trim() ? parseAndEncodeMetadataSearch(searchParameters.metadataSearch.trim()) || undefined : undefined,
+      });
+
+      const documentsToUpdate = allMatchingResponse.documents;
+
+      if (documentsToUpdate.length === 0) {
+        toast('No documents match the current filters');
+        return;
+      }
+
+      // Update each document individually
+      let successCount = 0;
+      let failureCount = 0;
+
+      for (const doc of documentsToUpdate) {
+        try {
+          let updatedTagIds = [...doc.tag_ids];
+
+          if (operation === 'addTags') {
+            // Add new tags if they don't already exist
+            for (const tagId of tagIds) {
+              if (!updatedTagIds.includes(tagId)) {
+                updatedTagIds.push(tagId);
+              }
+            }
+          } else if (operation === 'removeTags') {
+            // Remove specified tags
+            updatedTagIds = updatedTagIds.filter(tagId => !tagIds.includes(tagId));
+          }
+
+          await updateDocumentApi({
+            organizationId,
+            documentId: doc.id,
+            tagIds: updatedTagIds,
+            metadata: doc.metadata || {}
+          });
+
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to update document ${doc.document_name}:`, error);
+          failureCount++;
+        }
+      }
+
+      // Show results
+      if (successCount > 0) {
+        const actionWord = operation === 'addTags' ? 'added to' : 'removed from';
+        toast.success(`Tags ${actionWord} ${successCount} document${successCount !== 1 ? 's' : ''}`);
+      }
+
+      if (failureCount > 0) {
+        toast.error(`Failed to update ${failureCount} document${failureCount !== 1 ? 's' : ''}`);
+      }
+
+      // Refresh the parent list and preview
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Bulk update error:', error);
+      toast.error('Failed to perform bulk update');
+    }
+  };
+
   const handleAddTags = async () => {
     if (selectedTagsToAdd.length === 0) return
     try {
       setIsOperationLoading(true)
-      await onBulkUpdate('addTags', selectedTagsToAdd)
+      await handleBulkUpdate('addTags', selectedTagsToAdd)
       setSelectedTagsToAdd([])
       // Refresh preview documents
       await fetchPreviewDocuments()
@@ -108,7 +212,7 @@ export function DocumentBulkUpdate({
     if (selectedTagsToRemove.length === 0) return
     try {
       setIsOperationLoading(true)
-      await onBulkUpdate('removeTags', selectedTagsToRemove)
+      await handleBulkUpdate('removeTags', selectedTagsToRemove)
       setSelectedTagsToRemove([])
       // Refresh preview documents
       await fetchPreviewDocuments()

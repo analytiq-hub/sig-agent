@@ -302,77 +302,6 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     }
   };
 
-  const handleBulkUpdate = async (operation: string, tagIds: string[]) => {
-    try {
-      // First, fetch all matching documents (not just the first 3)
-      const allMatchingResponse = await listDocumentsApi({
-        organizationId: organizationId,
-        skip: 0,
-        limit: 1000, // Get a large number to cover most cases
-        nameSearch: searchTerm.trim() || undefined,
-        tagIds: selectedTagFilters.length > 0 ? selectedTagFilters.map(tag => tag.id).join(',') : undefined,
-        metadataSearch: metadataSearch.trim() ? parseAndEncodeMetadataSearch(metadataSearch.trim()) || undefined : undefined,
-      });
-
-      const documentsToUpdate = allMatchingResponse.documents;
-
-      if (documentsToUpdate.length === 0) {
-        toast.info('No documents match the current filters');
-        return;
-      }
-
-      // Update each document individually
-      let successCount = 0;
-      let failureCount = 0;
-
-      for (const document of documentsToUpdate) {
-        try {
-          let newTagIds: string[];
-
-          if (operation === 'addTags') {
-            // Add new tags to existing ones, avoiding duplicates
-            const existingTagIds = document.tag_ids || [];
-            const combinedTags = [...existingTagIds, ...tagIds];
-            newTagIds = Array.from(new Set(combinedTags));
-          } else if (operation === 'removeTags') {
-            // Remove specified tags from existing ones
-            const existingTagIds = document.tag_ids || [];
-            newTagIds = existingTagIds.filter((id: string) => !tagIds.includes(id));
-          } else {
-            continue;
-          }
-
-          await updateDocumentApi({
-            organizationId: organizationId,
-            documentId: document.id,
-            tagIds: newTagIds,
-            metadata: document.metadata || {}
-          });
-
-          successCount++;
-        } catch (error) {
-          console.error(`Error updating document ${document.id}:`, error);
-          failureCount++;
-        }
-      }
-
-      // Show results
-      if (successCount > 0) {
-        const actionText = operation === 'addTags' ? 'added to' : 'removed from';
-        toast.success(`Tags ${actionText} ${successCount} document${successCount === 1 ? '' : 's'}`);
-      }
-
-      if (failureCount > 0) {
-        toast.error(`Failed to update ${failureCount} document${failureCount === 1 ? '' : 's'}`);
-      }
-
-      // Refresh the document list
-      await fetchFiles();
-    } catch (error) {
-      console.error('Error performing bulk update:', error);
-      toast.error('Failed to perform bulk update');
-    }
-  };
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -706,7 +635,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
           metadataSearch,
           paginationModel
         }}
-        onBulkUpdate={handleBulkUpdate}
+        onRefresh={fetchFiles}
       />
     </Box>
   );
