@@ -93,7 +93,17 @@ export function DocumentBulkUpdateMetadata({
 
   const handleKeysToRemoveChange = (value: string) => {
     setMetadataKeysToRemove(value)
-    setTimeout(() => updateData(), 0) // Update data after state change
+    // Call updateData with the new value directly instead of waiting for state
+    const keysToRemove = value
+      .split(',')
+      .map(key => key.trim())
+      .filter(key => key !== '')
+
+    let data: any = null
+    if (keysToRemove.length > 0) {
+      data = keysToRemove
+    }
+    onDataChange(data)
   }
 
   // Update data when operation changes

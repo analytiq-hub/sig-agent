@@ -208,10 +208,14 @@ export function DocumentBulkUpdate({
               updatePayload.metadata = { ...(doc.metadata || {}), ...data };
             } else if (operation === 'removeMetadata') {
               updatePayload.tagIds = doc.tag_ids;
-              const updatedMetadata = { ...(doc.metadata || {}) };
-              // Remove specified keys
-              for (const key of data) {
-                delete updatedMetadata[key];
+              const originalMetadata = doc.metadata || {};
+
+              // Create new object without the specified keys
+              const updatedMetadata: Record<string, any> = {};
+              for (const [key, value] of Object.entries(originalMetadata)) {
+                if (!data.includes(key)) {
+                  updatedMetadata[key] = value;
+                }
               }
               updatePayload.metadata = updatedMetadata;
             } else if (operation === 'clearMetadata') {
