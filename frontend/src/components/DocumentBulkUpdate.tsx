@@ -1,6 +1,6 @@
 import { Fragment, useState, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { XMarkIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, PlusIcon, MinusIcon, BoltIcon } from '@heroicons/react/24/outline'
 import { Tag, DocumentMetadata } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
 import TagSelector from './TagSelector';
@@ -408,7 +408,7 @@ export function DocumentBulkUpdate({
                             setSelectedOperation(e.target.value)
                             setSelectedTagIds([]) // Reset selection when changing operation
                           }}
-                          className="border border-blue-300 rounded-lg px-3 py-2 text-sm bg-blue-100 font-medium text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-blue-50 shadow-sm"
+                          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
                         >
                           <option value="addTags">Add Tags</option>
                           <option value="removeTags">Remove Tags</option>
@@ -422,17 +422,14 @@ export function DocumentBulkUpdate({
                         <button
                           onClick={handleApplyOperation}
                           disabled={selectedTagIds.length === 0}
-                          className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                            selectedOperation === 'addTags'
-                              ? 'bg-green-600 hover:bg-green-700 disabled:bg-gray-300 focus:ring-green-500'
-                              : 'bg-red-600 hover:bg-red-700 disabled:bg-gray-300 focus:ring-red-500'
+                          className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 ${
+                            selectedTagIds.length === 0
+                              ? 'text-blue-600 bg-white border-2 border-blue-600 hover:bg-blue-50'
+                              : 'text-white bg-blue-600 hover:bg-blue-700'
                           }`}
                         >
-                          {selectedOperation === 'addTags' ? (
-                            <><PlusIcon className="h-5 w-5" /> Apply</>
-                          ) : (
-                            <><MinusIcon className="h-5 w-5" /> Apply</>
-                          )}
+                          <BoltIcon className="h-5 w-5" />
+                          Apply
                         </button>
                       </div>
 
