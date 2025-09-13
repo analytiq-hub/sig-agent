@@ -403,7 +403,7 @@ async def update_document(
     current_user: User = Depends(get_org_user)
 ):
     """Update a document"""
-    logger.debug(f"Updating document {document_id} with data: {update}")
+    logger.info(f"Updating document {document_id} with data: {update}")
     analytiq_client = ad.common.get_analytiq_client()
     db = ad.common.get_async_db(analytiq_client)
 
@@ -417,7 +417,7 @@ async def update_document(
         raise HTTPException(status_code=404, detail="Document not found")
     
     # Validate all tag IDs
-    if update.tag_ids:
+    if update.tag_ids is not None:
         tags_cursor = db.tags.find({
             "_id": {"$in": [ObjectId(tag_id) for tag_id in update.tag_ids]},
             "organization_id": organization_id
@@ -434,7 +434,7 @@ async def update_document(
     
     # Prepare update dictionary
     update_dict = {}
-    if update.tag_ids:
+    if update.tag_ids is not None:
         update_dict["tag_ids"] = update.tag_ids
     
     # Add document_name to update if provided
