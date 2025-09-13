@@ -516,7 +516,7 @@ async def list_documents(
                 id=str(doc["_id"]),
                 pdf_id=doc.get("pdf_id", doc.get("document_id", str(doc["_id"]))),  # fallback for old docs
                 document_name=doc.get("user_file_name", doc.get("document_name", "")),
-                upload_date=doc["upload_date"].isoformat() if isinstance(doc["upload_date"], datetime) else doc["upload_date"],
+                upload_date=doc["upload_date"].replace(tzinfo=UTC).isoformat() if isinstance(doc["upload_date"], datetime) else doc["upload_date"],
                 uploaded_by=doc.get("uploaded_by", ""),
                 state=doc.get("state", ""),
                 tag_ids=doc.get("tag_ids", []),
@@ -585,7 +585,7 @@ async def get_document(
         id=str(document["_id"]),
         pdf_id=document.get("pdf_id", document["document_id"]),
         document_name=document["user_file_name"],
-        upload_date=document["upload_date"],
+        upload_date=document["upload_date"].replace(tzinfo=UTC).isoformat(),
         uploaded_by=document["uploaded_by"],
         state=document.get("state", ""),
         tag_ids=document.get("tag_ids", []),
