@@ -26,7 +26,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import { toast } from 'react-toastify';
 import DocumentRenameModal from './DocumentRename';
 import { formatLocalDateWithTZ } from '@/utils/date';
-import SettingsIcon from '@mui/icons-material/Settings';
+import { BoltIcon } from '@heroicons/react/24/outline';
 import { DocumentBulkUpdate } from './DocumentBulkUpdate';
 
 // Helper function to parse and URL-encode metadata search
@@ -520,9 +520,9 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         />
         <button
           onClick={() => setIsBulkUpdateOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 min-w-fit"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
         >
-          <SettingsIcon className="h-5 w-5" />
+          <BoltIcon className="h-5 w-5" />
           Actions
         </button>
       </div>
