@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
+import { Dialog, Transition, Tab } from '@headlessui/react'
 import { XMarkIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline'
 import { Tag, DocumentMetadata } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
@@ -296,6 +296,7 @@ export function DocumentBulkUpdate({
   }
 
   return (
+    <>
     <Transition show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
@@ -378,37 +379,28 @@ export function DocumentBulkUpdate({
 
                     {/* Preview Documents */}
                     <div>
-                      <h3 className="text-sm font-medium text-gray-900 mb-3">
-                        Matching Documents
-                        {totalDocuments > 0 && (
-                          <span className="text-gray-500 font-normal"> ({totalDocuments} total)</span>
-                        )}
-                      </h3>
                       {isLoading ? (
-                        <div className="p-4 bg-gray-50 rounded border text-sm text-gray-600">
-                          Loading preview...
+                        <div className="p-3 bg-gray-50 rounded border text-sm text-gray-600">
+                          <span className="font-medium">Matching Documents:</span> Loading preview...
                         </div>
                       ) : previewDocuments.length > 0 ? (
-                        <div className="border rounded overflow-hidden">
-                          {previewDocuments.map((doc, index) => (
-                            <div
-                              key={doc.id}
-                              className={`p-3 text-sm text-gray-800 border-b border-gray-200 last:border-b-0 ${
-                                index % 2 === 1 ? 'bg-gray-50' : 'bg-white'
-                              }`}
-                            >
-                              {doc.document_name}
-                            </div>
+                        <div className="p-3 bg-gray-50 rounded border text-sm text-gray-600">
+                          <span className="font-medium text-gray-900">
+                            Matching Documents ({totalDocuments} total):
+                          </span>{' '}
+                          {previewDocuments.slice(0, 2).map((doc, index) => (
+                            <span key={doc.id}>
+                              {index > 0 && ', '}
+                              <span className="text-gray-800">{doc.document_name}</span>
+                            </span>
                           ))}
-                          {totalDocuments > 3 && (
-                            <div className="p-3 text-sm text-gray-500 bg-gray-100 italic text-center">
-                              ... and {totalDocuments - 3} more documents
-                            </div>
+                          {totalDocuments > 2 && (
+                            <span className="text-gray-500">, ...</span>
                           )}
                         </div>
                       ) : (
-                        <div className="p-4 bg-gray-50 rounded border text-sm text-gray-600">
-                          No matching documents found
+                        <div className="p-3 bg-gray-50 rounded border text-sm text-gray-600">
+                          <span className="font-medium text-gray-900">Matching Documents (0 total):</span> 0
                         </div>
                       )}
                     </div>
@@ -417,112 +409,111 @@ export function DocumentBulkUpdate({
                     <div>
                       <h3 className="text-sm font-medium text-gray-900 mb-3">Operations</h3>
 
-                      {/* Add Tags */}
-                      <div className="mb-4">
-                        <h4 className="text-sm font-medium text-gray-800 mb-2">Add Tags</h4>
-                        <TagSelector
-                          availableTags={availableTags}
-                          selectedTagIds={selectedTagsToAdd}
-                          onChange={setSelectedTagsToAdd}
-                        />
-                        <button
-                          onClick={handleAddTags}
-                          disabled={selectedTagsToAdd.length === 0 || isOperationLoading}
-                          className="mt-2 inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-300 rounded-md"
-                        >
-                          <PlusIcon className="h-4 w-4 mr-1" />
-                          {isOperationLoading ? 'Adding Tags...' : 'Add Selected Tags'}
-                        </button>
-                      </div>
+                      <Tab.Group>
+                        <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
+                          <Tab className={({ selected }) =>
+                            `w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${
+                              selected
+                                ? 'bg-white shadow'
+                                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
+                            }`
+                          }>
+                            Tags
+                          </Tab>
+                          <Tab className={({ selected }) =>
+                            `w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${
+                              selected
+                                ? 'bg-white shadow'
+                                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
+                            }`
+                          }>
+                            Metadata
+                          </Tab>
+                          <Tab className={({ selected }) =>
+                            `w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${
+                              selected
+                                ? 'bg-white shadow'
+                                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
+                            }`
+                          }>
+                            LLM
+                          </Tab>
+                        </Tab.List>
+                        <Tab.Panels className="mt-4">
+                          {/* Tags Tab */}
+                          <Tab.Panel className="rounded-xl bg-white p-3 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2">
+                            <div className="space-y-4">
+                              {/* Add Tags */}
+                              <div>
+                                <h4 className="text-sm font-medium text-gray-800 mb-2">Add Tags</h4>
+                                <TagSelector
+                                  availableTags={availableTags}
+                                  selectedTagIds={selectedTagsToAdd}
+                                  onChange={setSelectedTagsToAdd}
+                                />
+                              </div>
 
-                      {/* Remove Tags */}
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-800 mb-2">Remove Tags</h4>
-                        <TagSelector
-                          availableTags={availableTags}
-                          selectedTagIds={selectedTagsToRemove}
-                          onChange={setSelectedTagsToRemove}
-                        />
-                        <button
-                          onClick={handleRemoveTags}
-                          disabled={selectedTagsToRemove.length === 0 || isOperationLoading}
-                          className="mt-2 inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-300 rounded-md"
-                        >
-                          <MinusIcon className="h-4 w-4 mr-1" />
-                          {isOperationLoading ? 'Removing Tags...' : 'Remove Selected Tags'}
-                        </button>
-                      </div>
+                              {/* Remove Tags */}
+                              <div>
+                                <h4 className="text-sm font-medium text-gray-800 mb-2">Remove Tags</h4>
+                                <TagSelector
+                                  availableTags={availableTags}
+                                  selectedTagIds={selectedTagsToRemove}
+                                  onChange={setSelectedTagsToRemove}
+                                />
+                              </div>
+
+                              {/* Apply Button */}
+                              <div className="flex gap-2 pt-2">
+                                <button
+                                  onClick={handleAddTags}
+                                  disabled={selectedTagsToAdd.length === 0}
+                                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-300 rounded-md"
+                                >
+                                  <PlusIcon className="h-4 w-4 mr-1" />
+                                  Add Selected Tags
+                                </button>
+                                <button
+                                  onClick={handleRemoveTags}
+                                  disabled={selectedTagsToRemove.length === 0}
+                                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-300 rounded-md"
+                                >
+                                  <MinusIcon className="h-4 w-4 mr-1" />
+                                  Remove Selected Tags
+                                </button>
+                              </div>
+                            </div>
+                          </Tab.Panel>
+
+                          {/* Metadata Tab */}
+                          <Tab.Panel className="rounded-xl bg-white p-3 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2">
+                            <div className="text-center py-8 text-gray-500">
+                              <p className="text-sm">Metadata operations coming soon</p>
+                              <button
+                                disabled
+                                className="mt-4 inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-gray-300 rounded-md cursor-not-allowed"
+                              >
+                                Apply
+                              </button>
+                            </div>
+                          </Tab.Panel>
+
+                          {/* LLM Tab */}
+                          <Tab.Panel className="rounded-xl bg-white p-3 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2">
+                            <div className="text-center py-8 text-gray-500">
+                              <p className="text-sm">LLM operations coming soon</p>
+                              <button
+                                disabled
+                                className="mt-4 inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-gray-300 rounded-md cursor-not-allowed"
+                              >
+                                Apply
+                              </button>
+                            </div>
+                          </Tab.Panel>
+                        </Tab.Panels>
+                      </Tab.Group>
                     </div>
 
-                    {/* Confirmation Dialog */}
-                    {showConfirmation && (
-                      <div className="border-t border-gray-200 p-4 bg-yellow-50">
-                        <div className="flex items-start space-x-3">
-                          <div className="flex-shrink-0">
-                            <svg className="h-5 w-5 text-yellow-600" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.345 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="text-sm font-medium text-yellow-800">
-                              Confirm Bulk Operation
-                            </h3>
-                            <p className="text-sm text-yellow-700 mt-1">
-                              This will {pendingOperation?.operation === 'addTags' ? 'add tags to' : 'remove tags from'} <strong>{totalDocuments}</strong> document{totalDocuments !== 1 ? 's' : ''}. This operation cannot be undone.
-                            </p>
-                            <div className="flex gap-2 mt-3">
-                              <button
-                                onClick={handleConfirmOperation}
-                                className="px-3 py-1.5 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-md"
-                              >
-                                Continue
-                              </button>
-                              <button
-                                onClick={handleCancelOperation}
-                                className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-md"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Progress Indicator */}
-                    {isOperationLoading && totalDocuments > 0 && (
-                      <div className="border-t border-gray-200 p-4 bg-blue-50">
-                        <div className="flex items-center space-x-3">
-                          <div className="flex-shrink-0">
-                            <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-blue-800">
-                                Processing documents...
-                              </span>
-                              <span className="text-sm text-blue-600">
-                                {processedDocuments} / {totalDocuments}
-                              </span>
-                            </div>
-                            <div className="w-full bg-blue-200 rounded-full h-2">
-                              <div
-                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${totalDocuments > 0 ? (processedDocuments / totalDocuments) * 100 : 0}%` }}
-                              ></div>
-                            </div>
-                            <p className="text-xs text-blue-600 mt-1">
-                              {processedDocuments === totalDocuments && processedDocuments > 0
-                                ? 'Finalizing...'
-                                : 'Please wait while we update all documents'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex flex-shrink-0 justify-end gap-3 px-4 py-4">
@@ -530,9 +521,8 @@ export function DocumentBulkUpdate({
                       type="button"
                       className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
                       onClick={onClose}
-                      disabled={isOperationLoading}
                     >
-                      {isOperationLoading ? 'Processing...' : 'Close'}
+                      Close
                     </button>
                   </div>
                 </div>
@@ -542,5 +532,99 @@ export function DocumentBulkUpdate({
         </div>
       </Dialog>
     </Transition>
+
+    {/* Confirmation Modal */}
+    <Transition show={showConfirmation} as={Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={handleCancelOperation}>
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <svg className="h-6 w-6 text-yellow-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.345 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
+                    Confirm Bulk Operation
+                  </Dialog.Title>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">
+                      This will {pendingOperation?.operation === 'addTags' ? 'add tags to' : 'remove tags from'} <strong>{totalDocuments}</strong> document{totalDocuments !== 1 ? 's' : ''}. This operation cannot be undone.
+                    </p>
+                  </div>
+                  <div className="mt-4 flex gap-3">
+                    <button
+                      type="button"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-yellow-600 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2"
+                      onClick={handleConfirmOperation}
+                    >
+                      Continue
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                      onClick={handleCancelOperation}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </Dialog.Panel>
+          </div>
+        </div>
+      </Dialog>
+    </Transition>
+
+    {/* Progress Modal */}
+    <Transition show={isOperationLoading && totalDocuments > 0} as={Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={() => {}}>
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0">
+                  <svg className="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
+                    Processing Documents
+                  </Dialog.Title>
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">
+                        Progress
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        {processedDocuments} / {totalDocuments}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                        style={{ width: `${totalDocuments > 0 ? (processedDocuments / totalDocuments) * 100 : 0}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {processedDocuments === totalDocuments && processedDocuments > 0
+                        ? 'Finalizing...'
+                        : 'Please wait while we update all documents'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Dialog.Panel>
+          </div>
+        </div>
+      </Dialog>
+    </Transition>
+    </>
   )
 }
