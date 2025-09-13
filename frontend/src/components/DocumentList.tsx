@@ -26,6 +26,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import { toast } from 'react-toastify';
 import DocumentRenameModal from './DocumentRename';
 import { formatLocalDateWithTZ } from '@/utils/date';
+import SettingsIcon from '@mui/icons-material/Settings';
+import { DocumentBulkUpdate } from './DocumentBulkUpdate';
 
 // Helper function to parse and URL-encode metadata search
 const parseAndEncodeMetadataSearch = (searchStr: string): string | null => {
@@ -77,6 +79,9 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [selectedDocument, setSelectedDocument] = useState<DocumentMetadata | null>(null);
 
   const [isSmallScreen, setIsSmallScreen] = useState(false);
+
+  // Add state for bulk update modal
+  const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -485,7 +490,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
               );
             })
           }
-          sx={{ 
+          sx={{
             minWidth: 300,
             '& .MuiAutocomplete-tag': {
               margin: 0,
@@ -508,6 +513,13 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
             ),
           }}
         />
+        <button
+          onClick={() => setIsBulkUpdateOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 min-w-fit"
+        >
+          <SettingsIcon className="h-5 w-5" />
+          Actions
+        </button>
       </div>
 
       <DataGrid
@@ -603,6 +615,19 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
           onSubmit={handleRenameSubmit}
         />
       )}
+
+      {/* Bulk Update Modal */}
+      <DocumentBulkUpdate
+        isOpen={isBulkUpdateOpen}
+        onClose={() => setIsBulkUpdateOpen(false)}
+        organizationId={organizationId}
+        searchParameters={{
+          searchTerm,
+          selectedTagFilters,
+          metadataSearch,
+          paginationModel
+        }}
+      />
     </Box>
   );
 };
