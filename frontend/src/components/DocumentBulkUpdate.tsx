@@ -41,6 +41,13 @@ export function DocumentBulkUpdate({
 
   useEffect(() => {
     if (isOpen) {
+      // Reset all state when modal opens to avoid carrying over from previous operations
+      setSelectedTagsToAdd([])
+      setSelectedTagsToRemove([])
+      setTotalDocuments(0)
+      setProcessedDocuments(0)
+      setShowConfirmation(false)
+      setPendingOperation(null)
       fetchPreviewDocuments()
     }
   }, [isOpen, searchParameters])
@@ -281,6 +288,9 @@ export function DocumentBulkUpdate({
 
       // Refresh preview documents
       await fetchPreviewDocuments();
+
+      // Close the modal after successful operation
+      onClose();
     } finally {
       setIsOperationLoading(false);
       setPendingOperation(null);
