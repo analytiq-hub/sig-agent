@@ -330,7 +330,7 @@ export const updateDocumentApi = async (params: UpdateDocumentParams) => {
     updateData.document_name = documentName;
   }
 
-  if (tagIds) {
+  if (tagIds !== undefined) {
     updateData.tag_ids = tagIds;
   }
 
