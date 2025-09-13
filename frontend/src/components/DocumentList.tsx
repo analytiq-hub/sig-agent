@@ -285,20 +285,92 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   const handleRenameSubmit = async (newName: string) => {
     if (!editingDocument) return;
-    
+
     try {
       await updateDocumentApi({
         organizationId: organizationId,
         documentId: editingDocument.id,
         documentName: newName
       });
-      
+
       // Refresh the document list to show the updated name
       await fetchFiles();
     } catch (error) {
       console.error('Error renaming document:', error);
       toast.error('Failed to rename document');
       throw error; // Rethrow to handle in the component
+    }
+  };
+
+  const handleBulkUpdate = async (operation: string, tagIds: string[]) => {
+    try {
+      // First, fetch all matching documents (not just the first 3)
+      const allMatchingResponse = await listDocumentsApi({
+        organizationId: organizationId,
+        skip: 0,
+        limit: 1000, // Get a large number to cover most cases
+        nameSearch: searchTerm.trim() || undefined,
+        tagIds: selectedTagFilters.length > 0 ? selectedTagFilters.map(tag => tag.id).join(',') : undefined,
+        metadataSearch: metadataSearch.trim() ? parseAndEncodeMetadataSearch(metadataSearch.trim()) || undefined : undefined,
+      });
+
+      const documentsToUpdate = allMatchingResponse.documents;
+
+      if (documentsToUpdate.length === 0) {
+        toast.info('No documents match the current filters');
+        return;
+      }
+
+      // Update each document individually
+      let successCount = 0;
+      let failureCount = 0;
+
+      for (const document of documentsToUpdate) {
+        try {
+          let newTagIds: string[];
+
+          if (operation === 'addTags') {
+            // Add new tags to existing ones, avoiding duplicates
+            const existingTagIds = document.tag_ids || [];
+            const combinedTags = [...existingTagIds, ...tagIds];
+            newTagIds = Array.from(new Set(combinedTags));
+          } else if (operation === 'removeTags') {
+            // Remove specified tags from existing ones
+            const existingTagIds = document.tag_ids || [];
+            newTagIds = existingTagIds.filter((id: string) => !tagIds.includes(id));
+          } else {
+            continue;
+          }
+
+          await updateDocumentApi({
+            organizationId: organizationId,
+            documentId: document.id,
+            tagIds: newTagIds,
+            metadata: document.metadata || {}
+          });
+
+          successCount++;
+        } catch (error) {
+          console.error(`Error updating document ${document.id}:`, error);
+          failureCount++;
+        }
+      }
+
+      // Show results
+      if (successCount > 0) {
+        const actionText = operation === 'addTags' ? 'added to' : 'removed from';
+        toast.success(`Tags ${actionText} ${successCount} document${successCount === 1 ? '' : 's'}`);
+      }
+
+      if (failureCount > 0) {
+        toast.error(`Failed to update ${failureCount} document${failureCount === 1 ? '' : 's'}`);
+      }
+
+      // Refresh the document list
+      await fetchFiles();
+    } catch (error) {
+      console.error('Error performing bulk update:', error);
+      toast.error('Failed to perform bulk update');
     }
   };
 
@@ -419,12 +491,12 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   };
 
   return (
-    <Box sx={{ 
-      flex: 1, 
-      width: '100%', 
-      display: 'flex', 
+    <Box sx={{
+      width: '100%',
+      display: 'flex',
       flexDirection: 'column',
-      height: 'calc(100vh - 184px)' // Just header + search + footer
+      height: 'calc(100vh - 200px)', // Account for header, nav, and padding
+      minHeight: '400px' // Ensure minimum height
     }}>
       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800 hidden md:block">
         <p className="text-sm">
@@ -461,21 +533,24 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
               placeholder="Filter by tags..."
             />
           )}
-          renderOption={(props, tag) => (
-            <li {...props}>
-              <div
-                className={`px-2 py-1 rounded text-sm ${
-                  isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
-                }`}
-                style={{ backgroundColor: tag.color }}
-              >
-                {tag.name}
-              </div>
-            </li>
-          )}
+          renderOption={(props, tag) => {
+            const { key, ...otherProps } = props;
+            return (
+              <li key={key} {...otherProps}>
+                <div
+                  className={`px-2 py-1 rounded text-sm ${
+                    isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                  }`}
+                  style={{ backgroundColor: tag.color }}
+                >
+                  {tag.name}
+                </div>
+              </li>
+            );
+          }}
           renderTags={(tagValue, getTagProps) =>
             tagValue.map((tag, index) => {
-              const { key, ...otherProps } = getTagProps({ index });
+              const { key, onDelete, ...otherProps } = getTagProps({ index });
               return (
                 <div
                   key={key}
@@ -484,6 +559,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
                     isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
                   }`}
                   style={{ backgroundColor: tag.color }}
+                  onClick={onDelete}
                 >
                   {tag.name}
                 </div>
@@ -522,29 +598,31 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         </button>
       </div>
 
-      <DataGrid
-        loading={isLoading}
-        rows={documents} // Remove the client-side filtering here
-        columns={columns}
-        paginationModel={paginationModel}
-        onPaginationModelChange={(newModel) => {
-          setPaginationModel(newModel);
-        }}
-        pageSizeOptions={[5, 25, 50, 100]}
-        rowCount={totalRows}
-        paginationMode="server"
-        disableRowSelectionOnClick
-        getRowId={(row) => row.id}
-        sx={{
-          '& .MuiDataGrid-row:nth-of-type(odd)': {
-            backgroundColor: 'rgba(0, 0, 0, 0.04)',
-          },
-          '& .MuiDataGrid-row:hover': {
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-          },
-          flex: 1,
-        }}
-      />
+      <Box sx={{ flex: 1, minHeight: 0 }}>
+        <DataGrid
+          loading={isLoading}
+          rows={documents}
+          columns={columns}
+          paginationModel={paginationModel}
+          onPaginationModelChange={(newModel) => {
+            setPaginationModel(newModel);
+          }}
+          pageSizeOptions={[5, 25, 50, 100]}
+          rowCount={totalRows}
+          paginationMode="server"
+          disableRowSelectionOnClick
+          getRowId={(row) => row.id}
+          sx={{
+            height: '100%',
+            '& .MuiDataGrid-row:nth-of-type(odd)': {
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+            },
+            '& .MuiDataGrid-row:hover': {
+              backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            },
+          }}
+        />
+      </Box>
       <div>
         {isLoading ? 'Loading...' : null}
       </div>
@@ -621,12 +699,14 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         isOpen={isBulkUpdateOpen}
         onClose={() => setIsBulkUpdateOpen(false)}
         organizationId={organizationId}
+        availableTags={tags}
         searchParameters={{
           searchTerm,
           selectedTagFilters,
           metadataSearch,
           paginationModel
         }}
+        onBulkUpdate={handleBulkUpdate}
       />
     </Box>
   );
