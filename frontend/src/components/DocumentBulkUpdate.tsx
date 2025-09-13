@@ -88,6 +88,7 @@ export function DocumentBulkUpdate({
         metadataSearch: searchParameters.metadataSearch.trim() ? parseAndEncodeMetadataSearch(searchParameters.metadataSearch.trim()) || undefined : undefined,
       })
       setPreviewDocuments(response.documents)
+      setTotalDocuments(response.total_count)
     } catch (error) {
       console.error('Error fetching preview documents:', error)
       setPreviewDocuments([])
@@ -323,23 +324,27 @@ export function DocumentBulkUpdate({
                     {/* Current Filters Display */}
                     <div>
                       <h3 className="text-sm font-medium text-gray-900 mb-3">Current Filters</h3>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Search Term</label>
-                          <div className="p-2 bg-gray-50 rounded border text-sm text-gray-600">
-                            {searchParameters.searchTerm || '(none)'}
-                          </div>
-                        </div>
+                      <div className="p-3 bg-gray-50 rounded border text-sm text-gray-600">
+                        <div className="flex flex-wrap items-center gap-4">
+                          {/* Search Term */}
+                          {searchParameters.searchTerm && (
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium text-gray-700">Search:</span>
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
+                                "{searchParameters.searchTerm}"
+                              </span>
+                            </div>
+                          )}
 
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Selected Tag Filters</label>
-                          <div className="p-2 bg-gray-50 rounded border text-sm text-gray-600">
-                            {searchParameters.selectedTagFilters.length > 0 ? (
+                          {/* Tag Filters */}
+                          {searchParameters.selectedTagFilters.length > 0 && (
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium text-gray-700">Tags:</span>
                               <div className="flex flex-wrap gap-1">
                                 {searchParameters.selectedTagFilters.map(tag => (
                                   <span
                                     key={tag.id}
-                                    className={`px-2 py-1 rounded text-xs ${
+                                    className={`px-2 py-0.5 rounded text-xs ${
                                       isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
                                     }`}
                                     style={{ backgroundColor: tag.color }}
@@ -348,33 +353,58 @@ export function DocumentBulkUpdate({
                                   </span>
                                 ))}
                               </div>
-                            ) : '(none)'}
-                          </div>
-                        </div>
+                            </div>
+                          )}
 
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Metadata Search</label>
-                          <div className="p-2 bg-gray-50 rounded border text-sm text-gray-600">
-                            {searchParameters.metadataSearch || '(none)'}
-                          </div>
+                          {/* Metadata Search */}
+                          {searchParameters.metadataSearch && (
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium text-gray-700">Metadata:</span>
+                              <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs">
+                                {searchParameters.metadataSearch}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Show "(none)" if no filters */}
+                          {!searchParameters.searchTerm &&
+                           searchParameters.selectedTagFilters.length === 0 &&
+                           !searchParameters.metadataSearch && (
+                            <span className="text-gray-500 italic">(no active filters)</span>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     {/* Preview Documents */}
                     <div>
-                      <h3 className="text-sm font-medium text-gray-900 mb-3">Matching Documents (first 3)</h3>
+                      <h3 className="text-sm font-medium text-gray-900 mb-3">
+                        Matching Documents
+                        {totalDocuments > 0 && (
+                          <span className="text-gray-500 font-normal"> ({totalDocuments} total)</span>
+                        )}
+                      </h3>
                       {isLoading ? (
                         <div className="p-4 bg-gray-50 rounded border text-sm text-gray-600">
                           Loading preview...
                         </div>
                       ) : previewDocuments.length > 0 ? (
-                        <div className="space-y-2">
-                          {previewDocuments.map(doc => (
-                            <div key={doc.id} className="p-2 bg-gray-50 rounded border text-sm text-gray-600">
+                        <div className="border rounded overflow-hidden">
+                          {previewDocuments.map((doc, index) => (
+                            <div
+                              key={doc.id}
+                              className={`p-3 text-sm text-gray-800 border-b border-gray-200 last:border-b-0 ${
+                                index % 2 === 1 ? 'bg-gray-50' : 'bg-white'
+                              }`}
+                            >
                               {doc.document_name}
                             </div>
                           ))}
+                          {totalDocuments > 3 && (
+                            <div className="p-3 text-sm text-gray-500 bg-gray-100 italic text-center">
+                              ... and {totalDocuments - 3} more documents
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="p-4 bg-gray-50 rounded border text-sm text-gray-600">
