@@ -370,7 +370,7 @@ export const getOCRMetadataApi = async (params: GetOCRMetadataParams) => {
 
 // LLM APIs
 export const listLLMModelsApi = async (params: ListLLMModelsParams): Promise<ListLLMModelsResponse> => {
-  const response = await api.get<ListLLMModelsResponse>('/v0/account/llm_models', {
+  const response = await api.get<ListLLMModelsResponse>('/v0/account/llm/models', {
     params: {
       provider_name: params.providerName,
       provider_enabled: params.providerEnabled,
@@ -381,12 +381,12 @@ export const listLLMModelsApi = async (params: ListLLMModelsParams): Promise<Lis
 };
 
 export const listLLMProvidersApi = async (): Promise<ListLLMProvidersResponse> => {
-  const response = await api.get<ListLLMProvidersResponse>('/v0/account/llm_providers');
+  const response = await api.get<ListLLMProvidersResponse>('/v0/account/llm/providers');
   return response.data;
 };
 
 export const setLLMProviderConfigApi = async (providerName: string, request: SetLLMProviderConfigRequest) => {
-  const response = await api.put<SetLLMProviderConfigRequest>(`/v0/account/llm_provider/${providerName}`, request);
+  const response = await api.put<SetLLMProviderConfigRequest>(`/v0/account/llm/provider/${providerName}`, request);
   return response.data;
 };
 

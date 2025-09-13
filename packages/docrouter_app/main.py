@@ -2635,7 +2635,7 @@ async def create_auth_token(user_data: dict = Body(...)):
     )
     return {"token": token}
 
-@app.get("/v0/account/llm_models", response_model=ListLLMModelsResponse, tags=["account/llm"])
+@app.get("/v0/account/llm/models", response_model=ListLLMModelsResponse, tags=["account/llm"])
 async def list_llm_models(
     current_user: User = Depends(get_current_user),
     provider_name: str | None = Query(None, description="Filter models by provider name"),
@@ -2695,7 +2695,7 @@ async def list_llm_models(
 
     return ListLLMModelsResponse(models=llm_models)
 
-@app.get("/v0/account/llm_providers", response_model=ListLLMProvidersResponse, tags=["account/llm"])
+@app.get("/v0/account/llm/providers", response_model=ListLLMProvidersResponse, tags=["account/llm"])
 async def list_llm_providers(
     current_user: User = Depends(get_admin_user)
 ):
@@ -2734,7 +2734,7 @@ async def list_llm_providers(
     
     return ListLLMProvidersResponse(providers=llm_providers)
 
-@app.put("/v0/account/llm_provider/{provider_name}", tags=["account/llm"])
+@app.put("/v0/account/llm/provider/{provider_name}", tags=["account/llm"])
 async def set_llm_provider_config(
     provider_name: str,
     request: SetLLMProviderConfigRequest,

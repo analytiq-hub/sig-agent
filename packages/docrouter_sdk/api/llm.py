@@ -20,7 +20,7 @@ class LLMAPI:
         """
         data = self.client.request(
             "GET",
-            "/v0/account/llm_models"
+            "/v0/account/llm/models"
         )
         return ListLLMModelsResponse(**data)
     
