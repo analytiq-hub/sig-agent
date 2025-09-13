@@ -1,6 +1,6 @@
 import { Fragment, useState, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { XMarkIcon, PlusIcon, MinusIcon, BoltIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, BoltIcon } from '@heroicons/react/24/outline'
 import { Tag, DocumentMetadata } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
 import TagSelector from './TagSelector';
