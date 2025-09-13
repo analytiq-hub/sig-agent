@@ -150,7 +150,7 @@ export function DocumentBulkUpdate({
           let updatedTagIds = [...doc.tag_ids];
 
           if (operation === 'addTags') {
-            // Add new tags if they don't already exist
+            // Add new tags (avoiding duplicates)
             for (const tagId of tagIds) {
               if (!updatedTagIds.includes(tagId)) {
                 updatedTagIds.push(tagId);
@@ -161,6 +161,7 @@ export function DocumentBulkUpdate({
             updatedTagIds = updatedTagIds.filter(tagId => !tagIds.includes(tagId));
           }
 
+          // Always call the update API for every document
           await updateDocumentApi({
             organizationId,
             documentId: doc.id,
