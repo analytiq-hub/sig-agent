@@ -31,14 +31,19 @@ async def check_spu_limits(org_id: str, spus: int) -> bool:
     # Otherwise, payments are not enabled
     return True
 
-async def record_spu_usage(org_id: str, spus: int) -> bool:
-    """Check if organization has hit usage limits and needs to upgrade"""
+async def record_spu_usage(org_id: str, spus: int, 
+                          llm_model: str = None,
+                          prompt_tokens: int = None, 
+                          completion_tokens: int = None, 
+                          total_tokens: int = None, 
+                          actual_cost: float = None) -> bool:
+    """Record SPU usage with LLM metrics"""
 
-    logger.info(f"Recording {spus} spu usage for org_id: {org_id}")
+    logger.info(f"Recording {spus} spu usage for org_id: {org_id}, model: {llm_model}")
 
     # If a hook is set, use it to record payment usage
     if record_payment_usage:
-        await record_payment_usage(org_id, spus)
+        await record_payment_usage(org_id, spus, llm_model, prompt_tokens, completion_tokens, total_tokens, actual_cost)
 
     # Otherwise, payments are not enabled
     return True

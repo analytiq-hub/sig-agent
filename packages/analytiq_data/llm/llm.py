@@ -310,8 +310,22 @@ async def run_llm(analytiq_client,
         aws_region_name=aws_region_name
     )
 
-    # 7. Deduct credits
-    await ad.payments.record_spu_usage(org_id, total_spu_needed)
+    # 7. Get actual usage and cost from LLM response
+    prompt_tokens = response.usage.prompt_tokens
+    completion_tokens = response.usage.completion_tokens
+    total_tokens = response.usage.total_tokens
+    actual_cost = litellm.completion_cost(completion_response=response)
+
+    # 8. Deduct credits with actual metrics
+    await ad.payments.record_spu_usage(
+        org_id, 
+        total_spu_needed,
+        llm_model=llm_model,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        total_tokens=total_tokens,
+        actual_cost=actual_cost
+    )
 
     # Skip any <think> ... </think> blocks
     resp_content = response.choices[0].message.content
@@ -319,7 +333,7 @@ async def run_llm(analytiq_client,
     # Process response based on LLM provider
     resp_content1 = process_llm_resp_content(resp_content, llm_provider)
 
-    # 8. Return the response
+    # 9. Return the response
     resp_dict = json.loads(resp_content1)
 
     # If this is not the default prompt, reorder the response to match schema
@@ -350,7 +364,7 @@ async def run_llm(analytiq_client,
 
             #logger.info(f"Reordered response: {resp_dict}")
 
-    # 9. Save the new result
+    # 10. Save the new result
     await save_llm_result(analytiq_client, document_id, prompt_rev_id, resp_dict)
     
     return resp_dict
