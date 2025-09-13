@@ -371,11 +371,11 @@ export function DocumentBulkUpdate({
                     {/* Preview Documents */}
                     <div>
                       {isLoading ? (
-                        <div className="p-3 bg-gray-50 rounded border text-sm text-gray-600">
+                        <div className="text-sm text-gray-600">
                           <span className="font-medium">Matching Documents:</span> Loading preview...
                         </div>
                       ) : previewDocuments.length > 0 ? (
-                        <div className="p-3 bg-gray-50 rounded border text-sm text-gray-600">
+                        <div className="text-sm text-gray-600">
                           <span className="font-medium text-gray-900">
                             Matching Documents ({totalDocuments} total):
                           </span>{' '}
@@ -390,7 +390,7 @@ export function DocumentBulkUpdate({
                           )}
                         </div>
                       ) : (
-                        <div className="p-3 bg-gray-50 rounded border text-sm text-gray-600">
+                        <div className="text-sm text-gray-600">
                           <span className="font-medium text-gray-900">Matching Documents (0 total):</span> 0
                         </div>
                       )}
