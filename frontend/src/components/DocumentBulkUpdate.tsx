@@ -3,9 +3,10 @@ import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, BoltIcon } from '@heroicons/react/24/outline'
 import { Tag, DocumentMetadata } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
-import TagSelector from './TagSelector';
 import { listDocumentsApi, updateDocumentApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
+import { DocumentBulkUpdateTags } from './DocumentBulkUpdateTags';
+import { DocumentBulkUpdateMetadata } from './DocumentBulkUpdateMetadata';
 
 interface DocumentBulkUpdateProps {
   isOpen: boolean
@@ -30,20 +31,20 @@ export function DocumentBulkUpdate({
   onRefresh
 }: DocumentBulkUpdateProps) {
   const [previewDocuments, setPreviewDocuments] = useState<DocumentMetadata[]>([])
-  const [selectedOperation, setSelectedOperation] = useState<string>('addTags')
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
+  // Remove individual state - now handled by sub-components
   const [isLoading, setIsLoading] = useState(false)
   const [isOperationLoading, setIsOperationLoading] = useState(false)
   const [totalDocuments, setTotalDocuments] = useState<number>(0)
   const [processedDocuments, setProcessedDocuments] = useState<number>(0)
   const [showConfirmation, setShowConfirmation] = useState(false)
-  const [pendingOperation, setPendingOperation] = useState<{operation: string, tagIds: string[]} | null>(null)
+  const [pendingOperation, setPendingOperation] = useState<{operation: string, data: any} | null>(null)
+  const [selectedOperation, setSelectedOperation] = useState<string>('addTags')
+  const [operationData, setOperationData] = useState<any>(null)
 
   useEffect(() => {
     if (isOpen) {
       // Reset all state when modal opens to avoid carrying over from previous operations
-      setSelectedOperation('addTags')
-      setSelectedTagIds([])
+      // Sub-components handle their own state reset
       setTotalDocuments(0)
       setProcessedDocuments(0)
       setShowConfirmation(false)
@@ -151,7 +152,7 @@ export function DocumentBulkUpdate({
     }
   };
 
-  const handleBulkUpdate = async (operation: string, tagIds: string[]) => {
+  const handleBulkUpdate = async (operation: string, data: any) => {
     try {
       setProcessedDocuments(0);
       let successCount = 0;
@@ -179,27 +180,47 @@ export function DocumentBulkUpdate({
         // Update each document in the current batch
         for (const doc of documentsInBatch) {
           try {
-            let updatedTagIds = [...doc.tag_ids];
+            let updatePayload: any = {
+              organizationId,
+              documentId: doc.id,
+            };
 
+            // Handle tag operations
             if (operation === 'addTags') {
+              let updatedTagIds = [...doc.tag_ids];
               // Add new tags (avoiding duplicates)
-              for (const tagId of tagIds) {
+              for (const tagId of data) {
                 if (!updatedTagIds.includes(tagId)) {
                   updatedTagIds.push(tagId);
                 }
               }
+              updatePayload.tagIds = updatedTagIds;
+              updatePayload.metadata = doc.metadata || {};
             } else if (operation === 'removeTags') {
               // Remove specified tags
-              updatedTagIds = updatedTagIds.filter(tagId => !tagIds.includes(tagId));
+              const updatedTagIds = doc.tag_ids.filter((tagId: string) => !data.includes(tagId));
+              updatePayload.tagIds = updatedTagIds;
+              updatePayload.metadata = doc.metadata || {};
+            }
+            // Handle metadata operations
+            else if (operation === 'addMetadata') {
+              updatePayload.tagIds = doc.tag_ids;
+              updatePayload.metadata = { ...(doc.metadata || {}), ...data };
+            } else if (operation === 'removeMetadata') {
+              updatePayload.tagIds = doc.tag_ids;
+              const updatedMetadata = { ...(doc.metadata || {}) };
+              // Remove specified keys
+              for (const key of data) {
+                delete updatedMetadata[key];
+              }
+              updatePayload.metadata = updatedMetadata;
+            } else if (operation === 'clearMetadata') {
+              updatePayload.tagIds = doc.tag_ids;
+              updatePayload.metadata = {};
             }
 
             // Always call the update API for every document
-            await updateDocumentApi({
-              organizationId,
-              documentId: doc.id,
-              tagIds: updatedTagIds,
-              metadata: doc.metadata || {}
-            });
+            await updateDocumentApi(updatePayload);
 
             successCount++;
           } catch (error) {
@@ -222,8 +243,27 @@ export function DocumentBulkUpdate({
 
       // Show results
       if (successCount > 0) {
-        const actionWord = operation === 'addTags' ? 'added to' : 'removed from';
-        toast.success(`Tags ${actionWord} ${successCount} document${successCount !== 1 ? 's' : ''}`);
+        let message = '';
+        switch (operation) {
+          case 'addTags':
+            message = `Tags added to ${successCount} document${successCount !== 1 ? 's' : ''}`;
+            break;
+          case 'removeTags':
+            message = `Tags removed from ${successCount} document${successCount !== 1 ? 's' : ''}`;
+            break;
+          case 'addMetadata':
+            message = `Metadata added to ${successCount} document${successCount !== 1 ? 's' : ''}`;
+            break;
+          case 'removeMetadata':
+            message = `Metadata removed from ${successCount} document${successCount !== 1 ? 's' : ''}`;
+            break;
+          case 'clearMetadata':
+            message = `All metadata cleared from ${successCount} document${successCount !== 1 ? 's' : ''}`;
+            break;
+          default:
+            message = `Operation completed on ${successCount} document${successCount !== 1 ? 's' : ''}`;
+        }
+        toast.success(message);
       }
 
       if (failureCount > 0) {
@@ -240,9 +280,7 @@ export function DocumentBulkUpdate({
     }
   };
 
-  const handleApplyOperation = async () => {
-    if (selectedTagIds.length === 0) return
-
+  const handleApplyOperation = async (operation: string, data: any) => {
     // Count total documents and show confirmation
     const total = await countTotalMatchingDocuments();
     if (total === 0) {
@@ -251,7 +289,7 @@ export function DocumentBulkUpdate({
     }
 
     setTotalDocuments(total);
-    setPendingOperation({ operation: selectedOperation, tagIds: selectedTagIds });
+    setPendingOperation({ operation, data });
     setShowConfirmation(true);
   }
 
@@ -262,10 +300,9 @@ export function DocumentBulkUpdate({
       setIsOperationLoading(true);
       setShowConfirmation(false);
 
-      await handleBulkUpdate(pendingOperation.operation, pendingOperation.tagIds);
+      await handleBulkUpdate(pendingOperation.operation, pendingOperation.data);
 
-      // Clear selected tags
-      setSelectedTagIds([]);
+      // Sub-components handle their own state clearing
 
       // Refresh preview documents
       await fetchPreviewDocuments();
@@ -284,6 +321,28 @@ export function DocumentBulkUpdate({
     setPendingOperation(null);
     setTotalDocuments(0);
     setProcessedDocuments(0);
+  }
+
+  const getOperationData = () => {
+    return operationData;
+  }
+
+  const canApplyOperation = () => {
+    if (totalDocuments === 0) return false;
+    
+    switch (selectedOperation) {
+      case 'addTags':
+      case 'removeTags':
+        return operationData && Array.isArray(operationData) && operationData.length > 0;
+      case 'addMetadata':
+        return operationData && typeof operationData === 'object' && Object.keys(operationData).length > 0;
+      case 'removeMetadata':
+        return operationData && Array.isArray(operationData) && operationData.length > 0;
+      case 'clearMetadata':
+        return true; // Clear all is always available when there are documents
+      default:
+        return false;
+    }
   }
 
   return (
@@ -404,31 +463,27 @@ export function DocumentBulkUpdate({
                       <div className="flex items-center gap-3 mb-4">
                         <select
                           value={selectedOperation}
-                          onChange={(e) => {
-                            setSelectedOperation(e.target.value)
-                            setSelectedTagIds([]) // Reset selection when changing operation
-                          }}
+                          onChange={(e) => setSelectedOperation(e.target.value)}
                           disabled={totalDocuments === 0}
                           className={`px-4 py-3 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 ${
                             totalDocuments === 0
                               ? 'text-gray-400 bg-gray-200 cursor-not-allowed'
-                              : 'text-white bg-blue-600 hover:bg-blue-700'
+                              : 'text-gray-900 bg-white border border-gray-300 hover:border-gray-400'
                           }`}
+                          style={{ width: 'fit-content', minWidth: '200px' }}
                         >
                           <option value="addTags">Add Tags</option>
                           <option value="removeTags">Remove Tags</option>
-                          <option value="addMetadata" disabled>Add Metadata</option>
-                          <option value="removeMetadata" disabled>Remove Metadata</option>
-                          <option value="clearMetadata" disabled>Clear All Metadata</option>
-                          <option value="runLLM" disabled>Run LLM Processing</option>
-                          <option value="exportResults" disabled>Export Results</option>
+                          <option value="addMetadata">Add Metadata</option>
+                          <option value="removeMetadata">Remove Metadata</option>
+                          <option value="clearMetadata">Clear All Metadata</option>
                         </select>
 
                         <button
-                          onClick={handleApplyOperation}
-                          disabled={selectedTagIds.length === 0 || totalDocuments === 0}
+                          onClick={() => handleApplyOperation(selectedOperation, getOperationData())}
+                          disabled={totalDocuments === 0 || !canApplyOperation()}
                           className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 ${
-                            selectedTagIds.length === 0 || totalDocuments === 0
+                            totalDocuments === 0 || !canApplyOperation()
                               ? 'text-gray-400 bg-gray-200 cursor-not-allowed border-2 border-gray-200'
                               : 'text-blue-600 bg-white border-2 border-blue-600 hover:bg-blue-50'
                           }`}
@@ -440,14 +495,24 @@ export function DocumentBulkUpdate({
 
                       {/* Dynamic Content Area */}
                       <div className="border border-gray-300 rounded-md bg-white p-3">
-                        <label className="block text-xs font-medium text-gray-700 mb-2">
-                          {selectedOperation === 'addTags' ? 'Select tags to add:' : 'Select tags to remove:'}
-                        </label>
-                        <TagSelector
-                          availableTags={availableTags}
-                          selectedTagIds={selectedTagIds}
-                          onChange={setSelectedTagIds}
-                        />
+                        {(selectedOperation === 'addTags' || selectedOperation === 'removeTags') && (
+                          <DocumentBulkUpdateTags
+                            availableTags={availableTags}
+                            totalDocuments={totalDocuments}
+                            onDataChange={setOperationData}
+                            disabled={isOperationLoading}
+                            selectedOperation={selectedOperation}
+                          />
+                        )}
+                        
+                        {(selectedOperation === 'addMetadata' || selectedOperation === 'removeMetadata' || selectedOperation === 'clearMetadata') && (
+                          <DocumentBulkUpdateMetadata
+                            totalDocuments={totalDocuments}
+                            onDataChange={setOperationData}
+                            disabled={isOperationLoading}
+                            selectedOperation={selectedOperation}
+                          />
+                        )}
                       </div>
                     </div>
 
@@ -489,7 +554,7 @@ export function DocumentBulkUpdate({
                   </Dialog.Title>
                   <div className="mt-2">
                     <p className="text-sm text-gray-500">
-                      This will {pendingOperation?.operation === 'addTags' ? 'add tags to' : 'remove tags from'} <strong>{totalDocuments}</strong> document{totalDocuments !== 1 ? 's' : ''}. This operation cannot be undone.
+                      This will {pendingOperation?.operation.replace(/([A-Z])/g, ' $1').toLowerCase()} <strong>{totalDocuments}</strong> document{totalDocuments !== 1 ? 's' : ''}. This operation cannot be undone.
                     </p>
                   </div>
                   <div className="mt-4 flex gap-3">
