@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect } from 'react'
-import { Dialog, Transition, Tab } from '@headlessui/react'
+import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline'
 import { Tag, DocumentMetadata } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
@@ -30,8 +30,8 @@ export function DocumentBulkUpdate({
   onRefresh
 }: DocumentBulkUpdateProps) {
   const [previewDocuments, setPreviewDocuments] = useState<DocumentMetadata[]>([])
-  const [selectedTagsToAdd, setSelectedTagsToAdd] = useState<string[]>([])
-  const [selectedTagsToRemove, setSelectedTagsToRemove] = useState<string[]>([])
+  const [selectedOperation, setSelectedOperation] = useState<string>('addTags')
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isOperationLoading, setIsOperationLoading] = useState(false)
   const [totalDocuments, setTotalDocuments] = useState<number>(0)
@@ -42,8 +42,8 @@ export function DocumentBulkUpdate({
   useEffect(() => {
     if (isOpen) {
       // Reset all state when modal opens to avoid carrying over from previous operations
-      setSelectedTagsToAdd([])
-      setSelectedTagsToRemove([])
+      setSelectedOperation('addTags')
+      setSelectedTagIds([])
       setTotalDocuments(0)
       setProcessedDocuments(0)
       setShowConfirmation(false)
@@ -240,8 +240,8 @@ export function DocumentBulkUpdate({
     }
   };
 
-  const handleAddTags = async () => {
-    if (selectedTagsToAdd.length === 0) return
+  const handleApplyOperation = async () => {
+    if (selectedTagIds.length === 0) return
 
     // Count total documents and show confirmation
     const total = await countTotalMatchingDocuments();
@@ -251,22 +251,7 @@ export function DocumentBulkUpdate({
     }
 
     setTotalDocuments(total);
-    setPendingOperation({ operation: 'addTags', tagIds: selectedTagsToAdd });
-    setShowConfirmation(true);
-  }
-
-  const handleRemoveTags = async () => {
-    if (selectedTagsToRemove.length === 0) return
-
-    // Count total documents and show confirmation
-    const total = await countTotalMatchingDocuments();
-    if (total === 0) {
-      toast('No documents match the current filters');
-      return;
-    }
-
-    setTotalDocuments(total);
-    setPendingOperation({ operation: 'removeTags', tagIds: selectedTagsToRemove });
+    setPendingOperation({ operation: selectedOperation, tagIds: selectedTagIds });
     setShowConfirmation(true);
   }
 
@@ -280,11 +265,7 @@ export function DocumentBulkUpdate({
       await handleBulkUpdate(pendingOperation.operation, pendingOperation.tagIds);
 
       // Clear selected tags
-      if (pendingOperation.operation === 'addTags') {
-        setSelectedTagsToAdd([]);
-      } else {
-        setSelectedTagsToRemove([]);
-      }
+      setSelectedTagIds([]);
 
       // Refresh preview documents
       await fetchPreviewDocuments();
@@ -416,114 +397,64 @@ export function DocumentBulkUpdate({
                     </div>
 
                     {/* Operations */}
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900 mb-3">Operations</h3>
+                    <div className="border border-gray-200 rounded-lg bg-gray-50 p-4">
+                      <h3 className="text-sm font-medium text-gray-900 mb-4">Operations</h3>
 
-                      <Tab.Group>
-                        <div className="border-b border-gray-200 mb-6">
-                          <Tab.List className="flex gap-8">
-                            <Tab className={({ selected }) =>
-                              `pb-4 px-1 relative font-semibold text-base focus:outline-none ${
-                                selected
-                                  ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
-                                  : 'text-gray-500 hover:text-gray-700'
-                              }`
-                            }>
-                              Tags
-                            </Tab>
-                            <Tab className={({ selected }) =>
-                              `pb-4 px-1 relative font-semibold text-base focus:outline-none ${
-                                selected
-                                  ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
-                                  : 'text-gray-500 hover:text-gray-700'
-                              }`
-                            }>
-                              Metadata
-                            </Tab>
-                            <Tab className={({ selected }) =>
-                              `pb-4 px-1 relative font-semibold text-base focus:outline-none ${
-                                selected
-                                  ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
-                                  : 'text-gray-500 hover:text-gray-700'
-                              }`
-                            }>
-                              LLM
-                            </Tab>
-                          </Tab.List>
+                      <div className="flex items-center gap-3">
+                        {/* Operation Dropdown */}
+                        <div className="flex-shrink-0">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Operation:</label>
+                          <select
+                            value={selectedOperation}
+                            onChange={(e) => {
+                              setSelectedOperation(e.target.value)
+                              setSelectedTagIds([]) // Reset selection when changing operation
+                            }}
+                            className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          >
+                            <option value="addTags">Add Tags</option>
+                            <option value="removeTags">Remove Tags</option>
+                            <option value="addMetadata" disabled>Add Metadata</option>
+                            <option value="removeMetadata" disabled>Remove Metadata</option>
+                            <option value="clearMetadata" disabled>Clear All Metadata</option>
+                            <option value="runLLM" disabled>Run LLM Processing</option>
+                            <option value="exportResults" disabled>Export Results</option>
+                          </select>
                         </div>
-                        <Tab.Panels>
-                          {/* Tags Tab */}
-                          <Tab.Panel className="focus:outline-none">
-                            <div className="space-y-4">
-                              {/* Add Tags */}
-                              <div>
-                                <h4 className="text-sm font-medium text-gray-800 mb-2">Add Tags</h4>
-                                <TagSelector
-                                  availableTags={availableTags}
-                                  selectedTagIds={selectedTagsToAdd}
-                                  onChange={setSelectedTagsToAdd}
-                                />
-                              </div>
 
-                              {/* Remove Tags */}
-                              <div>
-                                <h4 className="text-sm font-medium text-gray-800 mb-2">Remove Tags</h4>
-                                <TagSelector
-                                  availableTags={availableTags}
-                                  selectedTagIds={selectedTagsToRemove}
-                                  onChange={setSelectedTagsToRemove}
-                                />
-                              </div>
+                        {/* Dynamic Selector */}
+                        <div className="flex-1">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            {selectedOperation === 'addTags' ? 'Select tags to add:' : 'Select tags to remove:'}
+                          </label>
+                          <div className="w-full">
+                            <TagSelector
+                              availableTags={availableTags}
+                              selectedTagIds={selectedTagIds}
+                              onChange={setSelectedTagIds}
+                            />
+                          </div>
+                        </div>
 
-                              {/* Apply Button */}
-                              <div className="flex gap-2 pt-2">
-                                <button
-                                  onClick={handleAddTags}
-                                  disabled={selectedTagsToAdd.length === 0}
-                                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-300 rounded-md"
-                                >
-                                  <PlusIcon className="h-4 w-4 mr-1" />
-                                  Add Selected Tags
-                                </button>
-                                <button
-                                  onClick={handleRemoveTags}
-                                  disabled={selectedTagsToRemove.length === 0}
-                                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-300 rounded-md"
-                                >
-                                  <MinusIcon className="h-4 w-4 mr-1" />
-                                  Remove Selected Tags
-                                </button>
-                              </div>
-                            </div>
-                          </Tab.Panel>
-
-                          {/* Metadata Tab */}
-                          <Tab.Panel className="focus:outline-none">
-                            <div className="text-center py-8 text-gray-500">
-                              <p className="text-sm">Metadata operations coming soon</p>
-                              <button
-                                disabled
-                                className="mt-4 inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-gray-300 rounded-md cursor-not-allowed"
-                              >
-                                Apply
-                              </button>
-                            </div>
-                          </Tab.Panel>
-
-                          {/* LLM Tab */}
-                          <Tab.Panel className="focus:outline-none">
-                            <div className="text-center py-8 text-gray-500">
-                              <p className="text-sm">LLM operations coming soon</p>
-                              <button
-                                disabled
-                                className="mt-4 inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-gray-300 rounded-md cursor-not-allowed"
-                              >
-                                Apply
-                              </button>
-                            </div>
-                          </Tab.Panel>
-                        </Tab.Panels>
-                      </Tab.Group>
+                        {/* Apply Button */}
+                        <div className="flex-shrink-0 self-end">
+                          <button
+                            onClick={handleApplyOperation}
+                            disabled={selectedTagIds.length === 0}
+                            className={`inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-md transition-colors ${
+                              selectedOperation === 'addTags'
+                                ? 'bg-green-600 hover:bg-green-700 disabled:bg-gray-300'
+                                : 'bg-red-600 hover:bg-red-700 disabled:bg-gray-300'
+                            }`}
+                          >
+                            {selectedOperation === 'addTags' ? (
+                              <><PlusIcon className="h-4 w-4 mr-1" /> Apply</>
+                            ) : (
+                              <><MinusIcon className="h-4 w-4 mr-1" /> Apply</>
+                            )}
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
                   </div>
