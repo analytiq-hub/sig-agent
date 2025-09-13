@@ -420,38 +420,40 @@ export function DocumentBulkUpdate({
                       <h3 className="text-sm font-medium text-gray-900 mb-3">Operations</h3>
 
                       <Tab.Group>
-                        <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
-                          <Tab className={({ selected }) =>
-                            `w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${
-                              selected
-                                ? 'bg-white shadow'
-                                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-                            }`
-                          }>
-                            Tags
-                          </Tab>
-                          <Tab className={({ selected }) =>
-                            `w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${
-                              selected
-                                ? 'bg-white shadow'
-                                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-                            }`
-                          }>
-                            Metadata
-                          </Tab>
-                          <Tab className={({ selected }) =>
-                            `w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${
-                              selected
-                                ? 'bg-white shadow'
-                                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-                            }`
-                          }>
-                            LLM
-                          </Tab>
-                        </Tab.List>
-                        <Tab.Panels className="mt-4">
+                        <div className="border-b border-gray-200 mb-6">
+                          <Tab.List className="flex gap-8">
+                            <Tab className={({ selected }) =>
+                              `pb-4 px-1 relative font-semibold text-base focus:outline-none ${
+                                selected
+                                  ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                                  : 'text-gray-500 hover:text-gray-700'
+                              }`
+                            }>
+                              Tags
+                            </Tab>
+                            <Tab className={({ selected }) =>
+                              `pb-4 px-1 relative font-semibold text-base focus:outline-none ${
+                                selected
+                                  ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                                  : 'text-gray-500 hover:text-gray-700'
+                              }`
+                            }>
+                              Metadata
+                            </Tab>
+                            <Tab className={({ selected }) =>
+                              `pb-4 px-1 relative font-semibold text-base focus:outline-none ${
+                                selected
+                                  ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                                  : 'text-gray-500 hover:text-gray-700'
+                              }`
+                            }>
+                              LLM
+                            </Tab>
+                          </Tab.List>
+                        </div>
+                        <Tab.Panels>
                           {/* Tags Tab */}
-                          <Tab.Panel className="rounded-xl bg-white p-3 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2">
+                          <Tab.Panel className="focus:outline-none">
                             <div className="space-y-4">
                               {/* Add Tags */}
                               <div>
@@ -496,7 +498,7 @@ export function DocumentBulkUpdate({
                           </Tab.Panel>
 
                           {/* Metadata Tab */}
-                          <Tab.Panel className="rounded-xl bg-white p-3 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2">
+                          <Tab.Panel className="focus:outline-none">
                             <div className="text-center py-8 text-gray-500">
                               <p className="text-sm">Metadata operations coming soon</p>
                               <button
@@ -509,7 +511,7 @@ export function DocumentBulkUpdate({
                           </Tab.Panel>
 
                           {/* LLM Tab */}
-                          <Tab.Panel className="rounded-xl bg-white p-3 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2">
+                          <Tab.Panel className="focus:outline-none">
                             <div className="text-center py-8 text-gray-500">
                               <p className="text-sm">LLM operations coming soon</p>
                               <button
