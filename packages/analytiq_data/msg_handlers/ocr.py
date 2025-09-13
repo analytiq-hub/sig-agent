@@ -2,8 +2,20 @@ import asyncio
 import json
 import logging
 import analytiq_data as ad
+import stamina
 
 logger = logging.getLogger(__name__)
+
+@stamina.retry(on=FileNotFoundError)
+def _ocr_get_file(analytiq_client, file_name: str):
+    """
+    Get file with retry mechanism for file not found errors.
+    This handles race conditions where large files may not be fully committed to GridFS yet.
+    """
+    file = ad.common.get_file(analytiq_client, file_name)
+    if file is None:
+        raise FileNotFoundError(f"File {file_name} not found")
+    return file
 
 async def process_ocr_msg(analytiq_client, msg, force:bool=False):
     """
@@ -56,7 +68,7 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
                 await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_FAILED)
                 return
 
-            file = ad.common.get_file(analytiq_client, pdf_file_name)
+            file = _ocr_get_file(analytiq_client, pdf_file_name)
             if file is None:
                 logger.error(f"File for {document_id} not found. Skipping OCR.")
                 await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_FAILED)
