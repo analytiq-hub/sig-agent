@@ -182,3 +182,5 @@ export const DocumentBulkUpdateTags = forwardRef<DocumentBulkUpdateTagsRef, Docu
     </div>
   )
 });
+
+DocumentBulkUpdateTags.displayName = 'DocumentBulkUpdateTags';
