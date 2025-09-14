@@ -4,6 +4,7 @@ import { Prompt } from '@/types/prompts';
 import { listPromptsApi, getLLMResultApi, runLLMApi, listDocumentsApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
+import SingleTagSelector from './SingleTagSelector';
 
 // Batch size constant - will be increased to 25 later
 const BATCH_SIZE = 3;
@@ -373,27 +374,14 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
     return (
       <div className="space-y-4">
         {/* Tag Selection */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Tag for LLM Operations
-          </label>
-          <select
-            value={selectedTag?.id || ''}
-            onChange={(e) => {
-              const tag = availableTags.find(t => t.id === e.target.value);
-              setSelectedTag(tag || null);
-            }}
-            disabled={disabled || isExecuting}
-            className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100"
-          >
-            <option value="">Select a tag...</option>
-            {availableTags.map(tag => (
-              <option key={tag.id} value={tag.id}>
-                {tag.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <SingleTagSelector
+          availableTags={availableTags}
+          selectedTag={selectedTag}
+          onChange={setSelectedTag}
+          disabled={disabled || isExecuting}
+          placeholder="Select a tag for LLM operations..."
+          label="Select Tag for LLM Operations"
+        />
 
         {/* Analysis Status */}
         {isAnalyzing && (
