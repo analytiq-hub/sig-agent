@@ -2,6 +2,30 @@ import { Fragment, useState, useEffect, useRef } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, BoltIcon, PlusIcon, MinusIcon, DocumentArrowDownIcon, TrashIcon, CpuChipIcon } from '@heroicons/react/24/outline'
 import { Tag, DocumentMetadata } from '@/types/index';
+
+// Operation data types
+type TagsOperationData = Tag[];
+type MetadataOperationData = Record<string, string>;
+type MetadataKeysOperationData = string[];
+type LLMOperationData = {
+  selectedTag: Tag | null;
+  executionCount?: number;
+  isCompleted?: boolean;
+  isCancelling?: boolean;
+  isCancelled?: boolean;
+};
+
+type OperationData = TagsOperationData | MetadataOperationData | MetadataKeysOperationData | LLMOperationData | null;
+
+type PendingOperation = {
+  operation: string;
+  data: OperationData;
+};
+
+// Type guard functions
+const isLLMOperationData = (data: OperationData): data is LLMOperationData => {
+  return data !== null && typeof data === 'object' && 'selectedTag' in data;
+};
 import { isColorLight } from '@/utils/colors';
 import { listDocumentsApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
@@ -40,9 +64,9 @@ export function DocumentBulkUpdate({
   const [totalDocuments, setTotalDocuments] = useState<number>(0)
   const [processedDocuments, setProcessedDocuments] = useState<number>(0)
   const [showConfirmation, setShowConfirmation] = useState(false)
-  const [pendingOperation, setPendingOperation] = useState<{operation: string, data: any} | null>(null)
+  const [pendingOperation, setPendingOperation] = useState<PendingOperation | null>(null)
   const [selectedOperation, setSelectedOperation] = useState<string>('addTags')
-  const [operationData, setOperationData] = useState<any>(null)
+  const [operationData, setOperationData] = useState<OperationData>(null)
 
   // Refs for all components
   const tagsRef = useRef<DocumentBulkUpdateTagsRef>(null)
@@ -82,18 +106,6 @@ export function DocumentBulkUpdate({
       ]
     }
   ]
-
-  useEffect(() => {
-    if (isOpen) {
-      // Reset all state when modal opens to avoid carrying over from previous operations
-      // Sub-components handle their own state reset
-      setTotalDocuments(0)
-      setProcessedDocuments(0)
-      setShowConfirmation(false)
-      setPendingOperation(null)
-      fetchPreviewDocuments()
-    }
-  }, [isOpen, searchParameters])
 
   const fetchPreviewDocuments = async () => {
     try {
@@ -147,6 +159,18 @@ export function DocumentBulkUpdate({
     }
   }
 
+  useEffect(() => {
+    if (isOpen) {
+      // Reset all state when modal opens to avoid carrying over from previous operations
+      // Sub-components handle their own state reset
+      setTotalDocuments(0)
+      setProcessedDocuments(0)
+      setShowConfirmation(false)
+      setPendingOperation(null)
+      fetchPreviewDocuments()
+    }
+  }, [isOpen, searchParameters, organizationId, fetchPreviewDocuments])
+
   // Parse and URL-encode metadata search to handle special characters
   const parseAndEncodeMetadataSearch = (searchStr: string): string | null => {
     try {
@@ -194,7 +218,7 @@ export function DocumentBulkUpdate({
     }
   };
 
-  const handleBulkUpdate = async (operation: string, _data: any) => {
+  const handleBulkUpdate = async (operation: string, _data: OperationData) => {
     try {
       // Handle all operations via component refs
       if (operation === 'addTags' || operation === 'removeTags') {
@@ -230,10 +254,10 @@ export function DocumentBulkUpdate({
     }
   };
 
-  const handleApplyOperation = async (operation: string, data: any) => {
+  const handleApplyOperation = async (operation: string, data: OperationData) => {
     // For LLM operations, use execution count instead of document count
     if (operation === 'runLLMOperations') {
-      const executionCount = data?.executionCount || 0;
+      const executionCount = (isLLMOperationData(data) ? data.executionCount : 0) || 0;
       if (executionCount === 0) {
         toast('No executions needed - all documents already have the latest prompt results');
         return;
@@ -305,7 +329,7 @@ export function DocumentBulkUpdate({
       case 'deleteDocuments':
         return true; // These operations are always available when there are documents
       case 'runLLMOperations':
-        return operationData?.selectedTag !== null; // Available when a tag is selected
+        return isLLMOperationData(operationData) ? operationData.selectedTag !== null : false; // Available when a tag is selected
       default:
         return false;
     }
@@ -555,7 +579,7 @@ export function DocumentBulkUpdate({
 
                       {/* Execute Button */}
                       <div className="flex justify-center pt-4">
-                        {selectedOperation === 'runLLMOperations' && operationData?.isCompleted ? (
+                        {selectedOperation === 'runLLMOperations' && isLLMOperationData(operationData) && operationData.isCompleted ? (
                           <button
                             onClick={() => {
                               if (runLLMRef.current) {
@@ -697,9 +721,9 @@ export function DocumentBulkUpdate({
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
                       {pendingOperation?.operation === 'runLLMOperations' ? (
-                        operationData?.isCancelling
+                        isLLMOperationData(operationData) && operationData.isCancelling
                           ? 'Cancelling - waiting for running operations to complete...'
-                          : operationData?.isCancelled
+                          : isLLMOperationData(operationData) && operationData.isCancelled
                           ? 'Cancelled'
                           : processedDocuments === totalDocuments && processedDocuments > 0
                           ? 'Finalizing...'
