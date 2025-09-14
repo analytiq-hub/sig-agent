@@ -1,6 +1,6 @@
 import { Fragment, useState, useEffect, useRef } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { XMarkIcon, BoltIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, BoltIcon, PlusIcon, MinusIcon, DocumentArrowDownIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { Tag, DocumentMetadata } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
 import { listDocumentsApi } from '@/utils/api';
@@ -42,14 +42,38 @@ export function DocumentBulkUpdate({
   const [pendingOperation, setPendingOperation] = useState<{operation: string, data: any} | null>(null)
   const [selectedOperation, setSelectedOperation] = useState<string>('addTags')
   const [operationData, setOperationData] = useState<any>(null)
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
   // Refs for all components
   const tagsRef = useRef<DocumentBulkUpdateTagsRef>(null)
   const metadataRef = useRef<DocumentBulkUpdateMetadataRef>(null)
   const downloadRef = useRef<DocumentBulkDownloadRef>(null)
   const deleteRef = useRef<DocumentBulkDeleteRef>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Operation definitions with icons and grouping
+  const operationGroups = [
+    {
+      title: 'Tags',
+      operations: [
+        { value: 'addTags', label: 'Add', icon: PlusIcon, description: 'Add tags to documents' },
+        { value: 'removeTags', label: 'Remove', icon: MinusIcon, description: 'Remove tags from documents' }
+      ]
+    },
+    {
+      title: 'Metadata',
+      operations: [
+        { value: 'addMetadata', label: 'Add', icon: PlusIcon, description: 'Add metadata fields' },
+        { value: 'removeMetadata', label: 'Remove', icon: MinusIcon, description: 'Remove metadata fields' },
+        { value: 'clearMetadata', label: 'Clear All', icon: TrashIcon, description: 'Clear all metadata' }
+      ]
+    },
+    {
+      title: 'Documents',
+      operations: [
+        { value: 'downloadDocuments', label: 'Download', icon: DocumentArrowDownIcon, description: 'Download documents' },
+        { value: 'deleteDocuments', label: 'Delete', icon: TrashIcon, description: 'Delete documents' }
+      ]
+    }
+  ]
 
   useEffect(() => {
     if (isOpen) {
@@ -59,27 +83,9 @@ export function DocumentBulkUpdate({
       setProcessedDocuments(0)
       setShowConfirmation(false)
       setPendingOperation(null)
-      setIsDropdownOpen(false)
       fetchPreviewDocuments()
     }
   }, [isOpen, searchParameters])
-
-  // Handle click outside dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false)
-      }
-    }
-
-    if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isDropdownOpen])
 
   const fetchPreviewDocuments = async () => {
     try {
@@ -390,66 +396,8 @@ export function DocumentBulkUpdate({
 
                     {/* Operations */}
                     <div className="border border-gray-200 rounded-lg bg-gray-50 p-4">
-                      <h3 className="text-sm font-medium text-gray-900 mb-4">Operations</h3>
-
-                      {/* Operation Selector and Apply Button */}
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="relative" ref={dropdownRef}>
-                          <button
-                            onClick={() => totalDocuments > 0 && setIsDropdownOpen(!isDropdownOpen)}
-                            disabled={totalDocuments === 0}
-                            className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 min-w-[200px] ${
-                              totalDocuments === 0
-                                ? 'text-gray-400 bg-gray-200 cursor-not-allowed'
-                                : 'text-white bg-blue-600 hover:bg-blue-700'
-                            }`}
-                          >
-                            <span>
-                              {selectedOperation === 'addTags' && 'Add Tags'}
-                              {selectedOperation === 'removeTags' && 'Remove Tags'}
-                              {selectedOperation === 'addMetadata' && 'Add Metadata'}
-                              {selectedOperation === 'removeMetadata' && 'Remove Metadata'}
-                              {selectedOperation === 'clearMetadata' && 'Clear All Metadata'}
-                              {selectedOperation === 'downloadDocuments' && 'Download Documents'}
-                              {selectedOperation === 'deleteDocuments' && 'Delete Documents'}
-                            </span>
-                            <ChevronDownIcon
-                              className={`h-4 w-4 ml-2 transition-transform duration-200 ${
-                                isDropdownOpen ? 'rotate-180' : ''
-                              }`}
-                            />
-                          </button>
-
-                          {isDropdownOpen && totalDocuments > 0 && (
-                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
-                              {[
-                                { value: 'addTags', label: 'Add Tags' },
-                                { value: 'removeTags', label: 'Remove Tags' },
-                                { value: 'addMetadata', label: 'Add Metadata' },
-                                { value: 'removeMetadata', label: 'Remove Metadata' },
-                                { value: 'clearMetadata', label: 'Clear All Metadata' },
-                                { value: 'downloadDocuments', label: 'Download Documents' },
-                                { value: 'deleteDocuments', label: 'Delete Documents' }
-                              ].map((option) => (
-                                <button
-                                  key={option.value}
-                                  onClick={() => {
-                                    setSelectedOperation(option.value)
-                                    setIsDropdownOpen(false)
-                                  }}
-                                  className={`w-full text-left px-4 py-3 text-sm font-medium hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg transition-colors duration-150 ${
-                                    selectedOperation === option.value
-                                      ? 'bg-blue-50 text-blue-600'
-                                      : 'text-gray-700'
-                                  }`}
-                                >
-                                  {option.label}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-medium text-gray-900">Operations</h3>
                         <button
                           onClick={() => handleApplyOperation(selectedOperation, getOperationData())}
                           disabled={totalDocuments === 0 || !canApplyOperation()}
@@ -462,6 +410,45 @@ export function DocumentBulkUpdate({
                           <BoltIcon className="h-5 w-5" />
                           Execute
                         </button>
+                      </div>
+
+                      {/* Operation Grid */}
+                      <div className="flex flex-wrap gap-3 mb-4">
+                        {operationGroups.map((group) => (
+                          <div key={group.title} className="border border-gray-200 rounded-lg p-3 bg-white">
+                            <h4 className="text-xs font-medium text-gray-600 uppercase tracking-wider mb-2">
+                              {group.title}
+                            </h4>
+                            <div className="flex flex-wrap gap-1.5">
+                              {group.operations.map((operation) => {
+                                const Icon = operation.icon
+                                const isSelected = selectedOperation === operation.value
+                                const isDisabled = totalDocuments === 0
+
+                                return (
+                                  <button
+                                    key={operation.value}
+                                    onClick={() => !isDisabled && setSelectedOperation(operation.value)}
+                                    disabled={isDisabled}
+                                    className={`flex flex-col items-center px-2 py-1.5 rounded-md border transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 min-w-0 ${
+                                      isDisabled
+                                        ? 'text-gray-300 bg-gray-100 border-gray-200 cursor-not-allowed'
+                                        : isSelected
+                                        ? 'text-blue-700 bg-blue-50 border-blue-300 shadow-sm'
+                                        : 'text-gray-600 bg-gray-50 border-gray-300 hover:bg-gray-100 hover:border-gray-400'
+                                    }`}
+                                    title={operation.description}
+                                  >
+                                    <Icon className="h-4 w-4 mb-0.5" />
+                                    <span className="text-xs font-medium text-center leading-tight whitespace-nowrap">
+                                      {operation.label}
+                                    </span>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
                       {/* Dynamic Content Area */}
