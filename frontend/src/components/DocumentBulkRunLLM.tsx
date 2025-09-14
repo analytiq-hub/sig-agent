@@ -42,6 +42,7 @@ interface PromptExecutionGroup {
 
 export interface DocumentBulkRunLLMRef {
   executeRunLLM: () => Promise<void>;
+  cancelRunLLM: () => void;
 }
 
 type ExecutionMode = 'all' | 'missing' | 'outdated';
@@ -53,6 +54,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
     const [promptGroups, setPromptGroups] = useState<PromptExecutionGroup[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isExecuting, setIsExecuting] = useState(false);
+    const [isCancelled, setIsCancelled] = useState(false);
     const [totalExecutions, setTotalExecutions] = useState(0);
     const [completedExecutions, setCompletedExecutions] = useState(0);
 
@@ -285,6 +287,11 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       }
     };
 
+    const cancelRunLLM = () => {
+      setIsCancelled(true);
+      toast('LLM execution cancelled - remaining operations will be skipped');
+    };
+
     const executeRunLLM = async () => {
       if (!selectedTag || promptGroups.length === 0) {
         toast('Please select a tag and ensure there are executions to run');
@@ -292,15 +299,21 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       }
 
       setIsExecuting(true);
+      setIsCancelled(false);
       setCompletedExecutions(0);
 
       try {
         // Process all executions in batches
-        for (const group of promptGroups) {
+        groupLoop: for (const group of promptGroups) {
           const executions = [...group.executions];
 
           // Process in batches of BATCH_SIZE
           for (let i = 0; i < executions.length; i += BATCH_SIZE) {
+            // Check for cancellation before each batch
+            if (isCancelled) {
+              break groupLoop;
+            }
+
             const batch = executions.slice(i, i + BATCH_SIZE);
 
             // Execute batch in parallel
@@ -389,7 +402,11 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
           }
         }
 
-        toast.success(`Completed LLM execution on ${totalExecutions} document-prompt combinations`);
+        if (isCancelled) {
+          toast(`LLM execution cancelled - completed ${completedExecutions} out of ${totalExecutions} executions`);
+        } else {
+          toast.success(`Completed LLM execution on ${totalExecutions} document-prompt combinations`);
+        }
 
         if (onComplete) {
           onComplete();
@@ -404,7 +421,8 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
     };
 
     useImperativeHandle(ref, () => ({
-      executeRunLLM
+      executeRunLLM,
+      cancelRunLLM
     }));
 
     const getStatusIcon = (status: string) => {

@@ -270,8 +270,7 @@ export function DocumentBulkUpdate({
       // Refresh preview documents
       await fetchPreviewDocuments();
 
-      // Close the modal after successful operation
-      onClose();
+      // Keep the modal open after operations complete so user can see results
     } finally {
       setIsOperationLoading(false);
       setPendingOperation(null);
@@ -686,6 +685,22 @@ export function DocumentBulkUpdate({
                         : 'Please wait while we update all documents'}
                     </p>
                   </div>
+                  {/* Cancel button for LLM operations */}
+                  {pendingOperation?.operation === 'runLLMOperations' && (
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        className="w-full inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                        onClick={() => {
+                          if (runLLMRef.current) {
+                            runLLMRef.current.cancelRunLLM();
+                          }
+                        }}
+                      >
+                        Cancel Remaining Operations
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </Dialog.Panel>
