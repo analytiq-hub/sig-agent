@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useRef } from 'react'
+import { Fragment, useState, useEffect, useRef, useCallback } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, BoltIcon, PlusIcon, MinusIcon, DocumentArrowDownIcon, TrashIcon, CpuChipIcon } from '@heroicons/react/24/outline'
 import { Tag, DocumentMetadata } from '@/types/index';
@@ -107,7 +107,7 @@ export function DocumentBulkUpdate({
     }
   ]
 
-  const fetchPreviewDocuments = async () => {
+  const fetchPreviewDocuments = useCallback(async () => {
     try {
       setIsLoading(true)
 
@@ -157,7 +157,7 @@ export function DocumentBulkUpdate({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [organizationId, searchParameters])
 
   useEffect(() => {
     if (isOpen) {
@@ -218,7 +218,7 @@ export function DocumentBulkUpdate({
     }
   };
 
-  const handleBulkUpdate = async (operation: string, _data: OperationData) => {
+  const handleBulkUpdate = async (operation: string) => {
     try {
       // Handle all operations via component refs
       if (operation === 'addTags' || operation === 'removeTags') {
@@ -287,7 +287,7 @@ export function DocumentBulkUpdate({
       setIsOperationLoading(true);
       setShowConfirmation(false);
 
-      await handleBulkUpdate(pendingOperation.operation, pendingOperation.data);
+      await handleBulkUpdate(pendingOperation.operation);
 
       // Sub-components handle their own state clearing
 
