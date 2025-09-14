@@ -396,21 +396,7 @@ export function DocumentBulkUpdate({
 
                     {/* Operations */}
                     <div className="border border-gray-200 rounded-lg bg-gray-50 p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-medium text-gray-900">Operations</h3>
-                        <button
-                          onClick={() => handleApplyOperation(selectedOperation, getOperationData())}
-                          disabled={totalDocuments === 0 || !canApplyOperation()}
-                          className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 ${
-                            totalDocuments === 0 || !canApplyOperation()
-                              ? 'text-gray-400 bg-gray-200 cursor-not-allowed border-2 border-gray-200'
-                              : 'text-blue-600 bg-white border-2 border-blue-600 hover:bg-blue-50'
-                          }`}
-                        >
-                          <BoltIcon className="h-5 w-5" />
-                          Execute
-                        </button>
-                      </div>
+                      <h3 className="text-sm font-medium text-gray-900 mb-4">Operations</h3>
 
                       {/* Operation Grid */}
                       <div className="flex flex-wrap gap-3 mb-4">
@@ -519,6 +505,28 @@ export function DocumentBulkUpdate({
                             }}
                           />
                         )}
+                      </div>
+
+                      {/* Execute Button */}
+                      <div className="flex justify-center pt-4">
+                        <button
+                          onClick={() => handleApplyOperation(selectedOperation, getOperationData())}
+                          disabled={totalDocuments === 0 || !canApplyOperation()}
+                          className={`inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 ${
+                            totalDocuments === 0 || !canApplyOperation()
+                              ? 'text-gray-400 bg-gray-200 cursor-not-allowed'
+                              : 'text-white bg-blue-600 hover:bg-blue-700'
+                          }`}
+                        >
+                          <BoltIcon className="h-5 w-5" />
+                          {selectedOperation === 'addTags' && 'Add Tags'}
+                          {selectedOperation === 'removeTags' && 'Remove Tags'}
+                          {selectedOperation === 'addMetadata' && 'Add Metadata'}
+                          {selectedOperation === 'removeMetadata' && 'Remove Metadata'}
+                          {selectedOperation === 'clearMetadata' && 'Clear All Metadata'}
+                          {selectedOperation === 'downloadDocuments' && 'Download Documents'}
+                          {selectedOperation === 'deleteDocuments' && 'Delete Documents'}
+                        </button>
                       </div>
                     </div>
 
