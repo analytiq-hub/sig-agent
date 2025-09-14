@@ -99,30 +99,44 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       }
     }, [selectedTag, onDataChange]);
 
-    const analyzeExecutions = async () => {
-      if (!selectedTag) return;
+    // Helper function to fetch all prompts with pagination
+    const fetchAllPrompts = async () => {
+      const allPrompts: Prompt[] = [];
+      let skip = 0;
+      const limit = 100; // API maximum
 
-      setIsAnalyzing(true);
-      try {
-        // Get all prompts for the selected tag
-        const promptsResponse = await listPromptsApi({
+      while (true) {
+        const response = await listPromptsApi({
           organizationId,
-          tag_ids: selectedTag.id,
-          limit: 1000 // Get all prompts
+          tag_ids: selectedTag!.id,
+          skip,
+          limit
         });
 
-        if (promptsResponse.prompts.length === 0) {
-          toast('No prompts found for the selected tag');
-          setPromptGroups([]);
-          setTotalExecutions(0);
-          return;
+        allPrompts.push(...response.prompts);
+
+        // If we got less than the limit, we've reached the end
+        if (response.prompts.length < limit) {
+          break;
         }
 
-        // Get all documents that match the current filters
-        const documentsResponse = await listDocumentsApi({
+        skip += limit;
+      }
+
+      return allPrompts;
+    };
+
+    // Helper function to fetch all documents with pagination
+    const fetchAllDocuments = async () => {
+      const allDocuments: any[] = [];
+      let skip = 0;
+      const limit = 100; // API maximum
+
+      while (true) {
+        const response = await listDocumentsApi({
           organizationId,
-          skip: 0,
-          limit: 10000, // Get all documents
+          skip,
+          limit,
           nameSearch: searchParameters.searchTerm.trim() || undefined,
           tagIds: searchParameters.selectedTagFilters.length > 0
             ? searchParameters.selectedTagFilters.map(tag => tag.id).join(',')
@@ -132,7 +146,38 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
             : undefined,
         });
 
-        if (documentsResponse.documents.length === 0) {
+        allDocuments.push(...response.documents);
+
+        // If we got less than the limit, we've reached the end
+        if (response.documents.length < limit) {
+          break;
+        }
+
+        skip += limit;
+      }
+
+      return allDocuments;
+    };
+
+    const analyzeExecutions = async () => {
+      if (!selectedTag) return;
+
+      setIsAnalyzing(true);
+      try {
+        // Get all prompts for the selected tag using pagination
+        const allPrompts = await fetchAllPrompts();
+
+        if (allPrompts.length === 0) {
+          toast('No prompts found for the selected tag');
+          setPromptGroups([]);
+          setTotalExecutions(0);
+          return;
+        }
+
+        // Get all documents that match the current filters using pagination
+        const allDocuments = await fetchAllDocuments();
+
+        if (allDocuments.length === 0) {
           toast('No documents match the current filters');
           setPromptGroups([]);
           setTotalExecutions(0);
@@ -143,11 +188,11 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
         const groups: PromptExecutionGroup[] = [];
         let totalExecs = 0;
 
-        for (const prompt of promptsResponse.prompts) {
+        for (const prompt of allPrompts) {
           const executions: PromptExecution[] = [];
 
           // Check each document to see if it needs this prompt executed
-          for (const document of documentsResponse.documents) {
+          for (const document of allDocuments) {
             try {
               // Try to get existing LLM result
               await getLLMResultApi({
