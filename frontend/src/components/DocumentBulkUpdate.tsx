@@ -1,6 +1,6 @@
 import { Fragment, useState, useEffect, useRef } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { XMarkIcon, BoltIcon, PlusIcon, MinusIcon, DocumentArrowDownIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, BoltIcon, PlusIcon, MinusIcon, DocumentArrowDownIcon, TrashIcon, CpuChipIcon } from '@heroicons/react/24/outline'
 import { Tag, DocumentMetadata } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
 import { listDocumentsApi } from '@/utils/api';
@@ -9,6 +9,7 @@ import { DocumentBulkUpdateTags, DocumentBulkUpdateTagsRef } from './DocumentBul
 import { DocumentBulkUpdateMetadata, DocumentBulkUpdateMetadataRef } from './DocumentBulkUpdateMetadata';
 import { DocumentBulkDownload, DocumentBulkDownloadRef } from './DocumentBulkDownload';
 import { DocumentBulkDelete, DocumentBulkDeleteRef } from './DocumentBulkDelete';
+import { DocumentBulkRunLLM, DocumentBulkRunLLMRef } from './DocumentBulkRunLLM';
 
 interface DocumentBulkUpdateProps {
   isOpen: boolean
@@ -48,6 +49,7 @@ export function DocumentBulkUpdate({
   const metadataRef = useRef<DocumentBulkUpdateMetadataRef>(null)
   const downloadRef = useRef<DocumentBulkDownloadRef>(null)
   const deleteRef = useRef<DocumentBulkDeleteRef>(null)
+  const runLLMRef = useRef<DocumentBulkRunLLMRef>(null)
 
   // Operation definitions with icons and grouping
   const operationGroups = [
@@ -71,6 +73,12 @@ export function DocumentBulkUpdate({
       operations: [
         { value: 'downloadDocuments', label: 'Download', icon: DocumentArrowDownIcon, description: 'Download documents' },
         { value: 'deleteDocuments', label: 'Delete', icon: TrashIcon, description: 'Delete documents' }
+      ]
+    },
+    {
+      title: 'LLM',
+      operations: [
+        { value: 'runLLMOperations', label: 'Run LLM', icon: CpuChipIcon, description: 'Run all LLM operations for tag' }
       ]
     }
   ]
@@ -209,6 +217,11 @@ export function DocumentBulkUpdate({
         return;
       }
 
+      if (operation === 'runLLMOperations') {
+        await runLLMRef.current?.executeRunLLM();
+        return;
+      }
+
       // This should not happen since all operations are now handled by components
       console.warn('Unknown operation:', operation);
     } catch (error) {
@@ -279,6 +292,8 @@ export function DocumentBulkUpdate({
       case 'downloadDocuments':
       case 'deleteDocuments':
         return true; // These operations are always available when there are documents
+      case 'runLLMOperations':
+        return operationData !== null; // Available when a tag is selected
       default:
         return false;
     }
@@ -505,6 +520,25 @@ export function DocumentBulkUpdate({
                             }}
                           />
                         )}
+
+                        {selectedOperation === 'runLLMOperations' && (
+                          <DocumentBulkRunLLM
+                            ref={runLLMRef}
+                            organizationId={organizationId}
+                            searchParameters={searchParameters}
+                            totalDocuments={totalDocuments}
+                            disabled={isOperationLoading}
+                            onProgress={(processed) => setProcessedDocuments(processed)}
+                            onComplete={() => {
+                              if (onRefresh) {
+                                onRefresh();
+                              }
+                              fetchPreviewDocuments();
+                            }}
+                            availableTags={availableTags}
+                            onDataChange={setOperationData}
+                          />
+                        )}
                       </div>
 
                       {/* Execute Button */}
@@ -526,6 +560,7 @@ export function DocumentBulkUpdate({
                           {selectedOperation === 'clearMetadata' && 'Clear All Metadata'}
                           {selectedOperation === 'downloadDocuments' && 'Download Documents'}
                           {selectedOperation === 'deleteDocuments' && 'Delete Documents'}
+                          {selectedOperation === 'runLLMOperations' && 'Run LLM Operations'}
                         </button>
                       </div>
                     </div>
