@@ -1,13 +1,13 @@
 import { useState, forwardRef, useImperativeHandle } from 'react'
 import { getDocumentApi, listDocumentsApi } from '@/utils/api'
-import { DocumentMetadata } from '@/types/index'
+import { DocumentMetadata, Tag } from '@/types/index'
 import { toast } from 'react-hot-toast'
 
 interface DocumentBulkDownloadProps {
   organizationId: string
   searchParameters: {
     searchTerm: string
-    selectedTagFilters: any[]
+    selectedTagFilters: Tag[]
     metadataSearch: string
     paginationModel: { page: number; pageSize: number }
   }
@@ -135,7 +135,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
         for (let i = 0; i < documentsInBatch.length; i += BATCH_SIZE) {
           const batch = documentsInBatch.slice(i, i + BATCH_SIZE);
 
-          const downloadPromises = batch.map((doc: any) => downloadDocument(doc));
+          const downloadPromises = batch.map((doc: DocumentMetadata) => downloadDocument(doc));
           const results = await Promise.all(downloadPromises);
 
           // Count successes and failures
@@ -225,3 +225,5 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
     </div>
   )
 });
+
+DocumentBulkDownload.displayName = 'DocumentBulkDownload';
