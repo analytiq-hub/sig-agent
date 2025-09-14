@@ -1,6 +1,7 @@
-import { forwardRef, useImperativeHandle, useState, useEffect } from 'react';
+import { forwardRef, useImperativeHandle, useState, useEffect, useCallback } from 'react';
 import { Tag } from '@/types/index';
 import { Prompt } from '@/types/prompts';
+import { DocumentMetadata } from '@/types/documents';
 import { listPromptsApi, getLLMResultApi, runLLMApi, listDocumentsApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
@@ -22,7 +23,13 @@ interface DocumentBulkRunLLMProps {
   onProgress?: (processed: number) => void;
   onComplete?: () => void;
   availableTags: Tag[];
-  onDataChange?: (data: any) => void;
+  onDataChange?: (data: {
+    selectedTag: Tag | null;
+    executionCount: number;
+    isCancelling: boolean;
+    isCancelled: boolean;
+    isCompleted: boolean;
+  }) => void;
 }
 
 interface PromptExecution {
@@ -91,31 +98,8 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       }
     };
 
-    // Analyze what needs to be executed when tag selection or mode changes
-    useEffect(() => {
-      if (selectedTag) {
-        analyzeExecutions();
-      } else {
-        setPromptGroups([]);
-        setTotalExecutions(0);
-      }
-    }, [selectedTag, executionMode]);
-
-    // Update parent component with data changes
-    useEffect(() => {
-      if (onDataChange) {
-        onDataChange({
-          selectedTag,
-          executionCount: totalExecutions,
-          isCancelling,
-          isCancelled,
-          isCompleted
-        });
-      }
-    }, [selectedTag, totalExecutions, isCancelling, isCancelled, isCompleted, onDataChange]);
-
     // Helper function to fetch all prompts with pagination
-    const fetchAllPrompts = async () => {
+    const fetchAllPrompts = useCallback(async () => {
       const allPrompts: Prompt[] = [];
       let skip = 0;
       const limit = 100; // API maximum
@@ -139,11 +123,11 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       }
 
       return allPrompts;
-    };
+    }, [organizationId, selectedTag]);
 
     // Helper function to fetch all documents with pagination
-    const fetchAllDocuments = async () => {
-      const allDocuments: any[] = [];
+    const fetchAllDocuments = useCallback(async () => {
+      const allDocuments: DocumentMetadata[] = [];
       let skip = 0;
       const limit = 100; // API maximum
 
@@ -176,9 +160,9 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       }
 
       return allDocuments;
-    };
+    }, [organizationId, selectedTag, searchParameters.searchTerm, searchParameters.selectedTagFilters, searchParameters.metadataSearch]);
 
-    const analyzeExecutions = async () => {
+    const analyzeExecutions = useCallback(async () => {
       if (!selectedTag) return;
 
       setIsAnalyzing(true);
@@ -240,7 +224,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                 });
                 // If we get here, some result exists - skip execution
                 needsExecution = false;
-              } catch (error) {
+              } catch {
                 // No result exists - needs execution
                 needsExecution = true;
               }
@@ -255,7 +239,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                 });
                 // Result exists - check if it's for the latest version
                 needsExecution = existingResult.prompt_version < prompt.prompt_version;
-              } catch (error) {
+              } catch {
                 // No result exists - needs execution
                 needsExecution = true;
               }
@@ -291,7 +275,30 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       } finally {
         setIsAnalyzing(false);
       }
-    };
+    }, [selectedTag, executionMode, organizationId, fetchAllPrompts, fetchAllDocuments]);
+
+    // Analyze what needs to be executed when tag selection, mode, or search parameters change
+    useEffect(() => {
+      if (selectedTag) {
+        analyzeExecutions();
+      } else {
+        setPromptGroups([]);
+        setTotalExecutions(0);
+      }
+    }, [selectedTag, executionMode, searchParameters.searchTerm, searchParameters.selectedTagFilters, searchParameters.metadataSearch, analyzeExecutions]);
+
+    // Update parent component with data changes
+    useEffect(() => {
+      if (onDataChange) {
+        onDataChange({
+          selectedTag,
+          executionCount: totalExecutions,
+          isCancelling,
+          isCancelled,
+          isCompleted
+        });
+      }
+    }, [selectedTag, totalExecutions, isCancelling, isCancelled, isCompleted, onDataChange]);
 
     const cancelRunLLM = () => {
       setIsCancelling(true);
