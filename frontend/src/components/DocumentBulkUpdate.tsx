@@ -555,25 +555,41 @@ export function DocumentBulkUpdate({
 
                       {/* Execute Button */}
                       <div className="flex justify-center pt-4">
-                        <button
-                          onClick={() => handleApplyOperation(selectedOperation, getOperationData())}
-                          disabled={totalDocuments === 0 || !canApplyOperation()}
-                          className={`inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 ${
-                            totalDocuments === 0 || !canApplyOperation()
-                              ? 'text-gray-400 bg-gray-200 cursor-not-allowed'
-                              : 'text-white bg-blue-600 hover:bg-blue-700'
-                          }`}
-                        >
-                          <BoltIcon className="h-5 w-5" />
-                          {selectedOperation === 'addTags' && 'Add Tags'}
-                          {selectedOperation === 'removeTags' && 'Remove Tags'}
-                          {selectedOperation === 'addMetadata' && 'Add Metadata'}
-                          {selectedOperation === 'removeMetadata' && 'Remove Metadata'}
-                          {selectedOperation === 'clearMetadata' && 'Clear All Metadata'}
-                          {selectedOperation === 'downloadDocuments' && 'Download Documents'}
-                          {selectedOperation === 'deleteDocuments' && 'Delete Documents'}
-                          {selectedOperation === 'runLLMOperations' && 'Run LLM Operations'}
-                        </button>
+                        {selectedOperation === 'runLLMOperations' && operationData?.isCompleted ? (
+                          <button
+                            onClick={() => {
+                              if (runLLMRef.current) {
+                                runLLMRef.current.resetRunLLM();
+                              }
+                            }}
+                            className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200 text-white bg-green-600 hover:bg-green-700"
+                          >
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Reset for New Run
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleApplyOperation(selectedOperation, getOperationData())}
+                            disabled={totalDocuments === 0 || !canApplyOperation()}
+                            className={`inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 ${
+                              totalDocuments === 0 || !canApplyOperation()
+                                ? 'text-gray-400 bg-gray-200 cursor-not-allowed'
+                                : 'text-white bg-blue-600 hover:bg-blue-700'
+                            }`}
+                          >
+                            <BoltIcon className="h-5 w-5" />
+                            {selectedOperation === 'addTags' && 'Add Tags'}
+                            {selectedOperation === 'removeTags' && 'Remove Tags'}
+                            {selectedOperation === 'addMetadata' && 'Add Metadata'}
+                            {selectedOperation === 'removeMetadata' && 'Remove Metadata'}
+                            {selectedOperation === 'clearMetadata' && 'Clear All Metadata'}
+                            {selectedOperation === 'downloadDocuments' && 'Download Documents'}
+                            {selectedOperation === 'deleteDocuments' && 'Delete Documents'}
+                            {selectedOperation === 'runLLMOperations' && 'Run LLM Operations'}
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -680,9 +696,19 @@ export function DocumentBulkUpdate({
                       ></div>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
-                      {processedDocuments === totalDocuments && processedDocuments > 0
-                        ? 'Finalizing...'
-                        : 'Please wait while we update all documents'}
+                      {pendingOperation?.operation === 'runLLMOperations' ? (
+                        operationData?.isCancelling
+                          ? 'Cancelling - waiting for running operations to complete...'
+                          : operationData?.isCancelled
+                          ? 'Cancelled'
+                          : processedDocuments === totalDocuments && processedDocuments > 0
+                          ? 'Finalizing...'
+                          : 'Please wait while we run LLM operations'
+                      ) : (
+                        processedDocuments === totalDocuments && processedDocuments > 0
+                          ? 'Finalizing...'
+                          : 'Please wait while we update all documents'
+                      )}
                     </p>
                   </div>
                   {/* Cancel button for LLM operations */}

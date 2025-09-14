@@ -29,7 +29,7 @@ interface PromptExecution {
   prompt: Prompt;
   documentId: string;
   documentName: string;
-  status: 'pending' | 'running' | 'completed' | 'error';
+  status: 'pending' | 'running' | 'completed' | 'error' | 'cancelled';
   error?: string;
 }
 
@@ -43,6 +43,7 @@ interface PromptExecutionGroup {
 export interface DocumentBulkRunLLMRef {
   executeRunLLM: () => Promise<void>;
   cancelRunLLM: () => void;
+  resetRunLLM: () => void;
 }
 
 type ExecutionMode = 'all' | 'missing' | 'outdated';
@@ -54,7 +55,9 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
     const [promptGroups, setPromptGroups] = useState<PromptExecutionGroup[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isExecuting, setIsExecuting] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
     const [isCancelled, setIsCancelled] = useState(false);
+    const [isCompleted, setIsCompleted] = useState(false);
     const [totalExecutions, setTotalExecutions] = useState(0);
     const [completedExecutions, setCompletedExecutions] = useState(0);
 
@@ -103,10 +106,13 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       if (onDataChange) {
         onDataChange({
           selectedTag,
-          executionCount: totalExecutions
+          executionCount: totalExecutions,
+          isCancelling,
+          isCancelled,
+          isCompleted
         });
       }
-    }, [selectedTag, totalExecutions, onDataChange]);
+    }, [selectedTag, totalExecutions, isCancelling, isCancelled, isCompleted, onDataChange]);
 
     // Helper function to fetch all prompts with pagination
     const fetchAllPrompts = async () => {
@@ -288,8 +294,36 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
     };
 
     const cancelRunLLM = () => {
+      setIsCancelling(true);
       setIsCancelled(true);
+
+      // Mark all pending executions as cancelled
+      setPromptGroups(prev => prev.map(group => ({
+        ...group,
+        executions: group.executions.map(exec =>
+          exec.status === 'pending'
+            ? { ...exec, status: 'cancelled' as const }
+            : exec
+        )
+      })));
+
       toast('LLM execution cancelled - remaining operations will be skipped');
+    };
+
+    const resetRunLLM = () => {
+      setIsCompleted(false);
+      setIsCancelled(false);
+      setIsCancelling(false);
+      setCompletedExecutions(0);
+      setPromptGroups([]);
+      setTotalExecutions(0);
+
+      // Re-analyze executions for the current tag and mode
+      if (selectedTag) {
+        analyzeExecutions();
+      }
+
+      toast('LLM run state reset - ready for new execution');
     };
 
     const executeRunLLM = async () => {
@@ -299,7 +333,9 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       }
 
       setIsExecuting(true);
+      setIsCancelling(false);
       setIsCancelled(false);
+      setIsCompleted(false);
       setCompletedExecutions(0);
 
       try {
@@ -319,6 +355,24 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
             // Execute batch in parallel
             const batchPromises = batch.map(async (execution) => {
               try {
+                // Check if cancelled before starting this specific execution
+                if (isCancelled) {
+                  // Mark as cancelled instead of running
+                  setPromptGroups(prev => prev.map(g =>
+                    g.prompt.prompt_revid === group.prompt.prompt_revid
+                      ? {
+                          ...g,
+                          executions: g.executions.map(e =>
+                            e.documentId === execution.documentId
+                              ? { ...e, status: 'cancelled' as const }
+                              : e
+                          )
+                        }
+                      : g
+                  ));
+                  return; // Don't execute the LLM call
+                }
+
                 // Update status to running
                 setPromptGroups(prev => prev.map(g =>
                   g.prompt.prompt_revid === group.prompt.prompt_revid
@@ -333,12 +387,12 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                     : g
                 ));
 
-                // Run the LLM
+                // Run the LLM (force=true for 'all' mode to rerun existing results)
                 await runLLMApi({
                   organizationId,
                   documentId: execution.documentId,
                   promptRevId: execution.prompt.prompt_revid,
-                  force: false
+                  force: executionMode === 'all'
                 });
 
                 // Update status to completed
@@ -406,6 +460,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
           toast(`LLM execution cancelled - completed ${completedExecutions} out of ${totalExecutions} executions`);
         } else {
           toast.success(`Completed LLM execution on ${totalExecutions} document-prompt combinations`);
+          setIsCompleted(true);
         }
 
         if (onComplete) {
@@ -417,12 +472,15 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
         toast.error('Failed to complete bulk LLM execution');
       } finally {
         setIsExecuting(false);
+        // Reset cancelling state when execution is fully done
+        setIsCancelling(false);
       }
     };
 
     useImperativeHandle(ref, () => ({
       executeRunLLM,
-      cancelRunLLM
+      cancelRunLLM,
+      resetRunLLM
     }));
 
     const getStatusIcon = (status: string) => {
@@ -433,6 +491,8 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
           return <div className="w-3 h-3 bg-green-500 rounded-full" />;
         case 'error':
           return <div className="w-3 h-3 bg-red-500 rounded-full" />;
+        case 'cancelled':
+          return <div className="w-3 h-3 bg-orange-500 rounded-full" />;
         default:
           return <div className="w-3 h-3 bg-gray-300 rounded-full" />;
       }
@@ -593,6 +653,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                             execution.status === 'completed' ? 'text-green-600' :
                             execution.status === 'error' ? 'text-red-600' :
                             execution.status === 'running' ? 'text-blue-600' :
+                            execution.status === 'cancelled' ? 'text-orange-600' :
                             'text-gray-500'
                           }`}>
                             {execution.status}
