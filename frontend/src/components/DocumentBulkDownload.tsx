@@ -59,7 +59,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
     }
   };
 
-  const downloadDocument = async (doc: DocumentMetadata, folderName: string): Promise<boolean> => {
+  const downloadDocument = async (doc: DocumentMetadata): Promise<boolean> => {
     try {
       const response = await getDocumentApi({
         organizationId,
@@ -68,13 +68,20 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
       });
 
       const fileName = doc.document_name || response.metadata.document_name;
+
+      // Create filename in format: prefix_id.suffix
+      const lastDotIndex = fileName.lastIndexOf('.');
+      const prefix = lastDotIndex !== -1 ? fileName.substring(0, lastDotIndex) : fileName;
+      const suffix = lastDotIndex !== -1 ? fileName.substring(lastDotIndex) : '';
+      const downloadFileName = `${prefix}_${doc.id}${suffix}`;
+
       const serverType: string | undefined = response.metadata?.type as string | undefined;
       const blob = new Blob([response.content], { type: serverType });
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${folderName}/${doc.id}/${fileName}`;
+      a.download = downloadFileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -97,9 +104,6 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
     setDownloadedCount(0);
 
     try {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      const folderName = `DocumentBulkDownload_${timestamp}`;
-
       let successCount = 0;
       let failureCount = 0;
       let skip = 0;
@@ -131,7 +135,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
         for (let i = 0; i < documentsInBatch.length; i += BATCH_SIZE) {
           const batch = documentsInBatch.slice(i, i + BATCH_SIZE);
 
-          const downloadPromises = batch.map((doc: any) => downloadDocument(doc, folderName));
+          const downloadPromises = batch.map((doc: any) => downloadDocument(doc));
           const results = await Promise.all(downloadPromises);
 
           // Count successes and failures
@@ -163,7 +167,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
       }
 
       if (successCount > 0) {
-        toast.success(`Successfully downloaded ${successCount} document${successCount !== 1 ? 's' : ''} to ${folderName}`);
+        toast.success(`Successfully downloaded ${successCount} document${successCount !== 1 ? 's' : ''}`);
       }
 
       if (failureCount > 0) {
@@ -188,10 +192,10 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
       <div className="flex items-center justify-between mb-3">
         <div>
           <p className="text-sm text-gray-700">
-            Download all matching documents to your Downloads folder in organized subfolders.
+            Download all matching documents to your Downloads folder.
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            Documents will be saved as: Downloads/DocumentBulkDownload_[timestamp]/[document_id]/[filename]
+            Files will be named: [filename]_[document_id].[extension]
           </p>
           <p className="text-xs text-gray-500 mt-1">
             Downloads are processed in batches of 10 to avoid overwhelming your browser.
