@@ -1,6 +1,6 @@
 import { Fragment, useState, useEffect, useRef } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { XMarkIcon, BoltIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, BoltIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 import { Tag, DocumentMetadata } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
 import { listDocumentsApi } from '@/utils/api';
@@ -42,12 +42,14 @@ export function DocumentBulkUpdate({
   const [pendingOperation, setPendingOperation] = useState<{operation: string, data: any} | null>(null)
   const [selectedOperation, setSelectedOperation] = useState<string>('addTags')
   const [operationData, setOperationData] = useState<any>(null)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
   // Refs for all components
   const tagsRef = useRef<DocumentBulkUpdateTagsRef>(null)
   const metadataRef = useRef<DocumentBulkUpdateMetadataRef>(null)
   const downloadRef = useRef<DocumentBulkDownloadRef>(null)
   const deleteRef = useRef<DocumentBulkDeleteRef>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -57,9 +59,27 @@ export function DocumentBulkUpdate({
       setProcessedDocuments(0)
       setShowConfirmation(false)
       setPendingOperation(null)
+      setIsDropdownOpen(false)
       fetchPreviewDocuments()
     }
   }, [isOpen, searchParameters])
+
+  // Handle click outside dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false)
+      }
+    }
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isDropdownOpen])
 
   const fetchPreviewDocuments = async () => {
     try {
@@ -160,7 +180,7 @@ export function DocumentBulkUpdate({
     }
   };
 
-  const handleBulkUpdate = async (operation: string, data: any) => {
+  const handleBulkUpdate = async (operation: string, _data: any) => {
     try {
       // Handle all operations via component refs
       if (operation === 'addTags' || operation === 'removeTags') {
@@ -295,7 +315,7 @@ export function DocumentBulkUpdate({
                             <div className="flex items-center gap-1">
                               <span className="font-medium text-gray-700">Search:</span>
                               <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
-                                "{searchParameters.searchTerm}"
+                                &quot;{searchParameters.searchTerm}&quot;
                               </span>
                             </div>
                           )}
@@ -374,25 +394,61 @@ export function DocumentBulkUpdate({
 
                       {/* Operation Selector and Apply Button */}
                       <div className="flex items-center gap-3 mb-4">
-                        <select
-                          value={selectedOperation}
-                          onChange={(e) => setSelectedOperation(e.target.value)}
-                          disabled={totalDocuments === 0}
-                          className={`px-4 py-3 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 ${
-                            totalDocuments === 0
-                              ? 'text-gray-400 bg-gray-200 cursor-not-allowed'
-                              : 'text-white bg-blue-600 hover:bg-blue-700'
-                          }`}
-                          style={{ width: 'fit-content', minWidth: '200px' }}
-                        >
-                          <option value="addTags">Add Tags</option>
-                          <option value="removeTags">Remove Tags</option>
-                          <option value="addMetadata">Add Metadata</option>
-                          <option value="removeMetadata">Remove Metadata</option>
-                          <option value="clearMetadata">Clear All Metadata</option>
-                          <option value="downloadDocuments">Download Documents</option>
-                          <option value="deleteDocuments">Delete Documents</option>
-                        </select>
+                        <div className="relative" ref={dropdownRef}>
+                          <button
+                            onClick={() => totalDocuments > 0 && setIsDropdownOpen(!isDropdownOpen)}
+                            disabled={totalDocuments === 0}
+                            className={`flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 min-w-[200px] ${
+                              totalDocuments === 0
+                                ? 'text-gray-400 bg-gray-200 cursor-not-allowed'
+                                : 'text-white bg-blue-600 hover:bg-blue-700'
+                            }`}
+                          >
+                            <span>
+                              {selectedOperation === 'addTags' && 'Add Tags'}
+                              {selectedOperation === 'removeTags' && 'Remove Tags'}
+                              {selectedOperation === 'addMetadata' && 'Add Metadata'}
+                              {selectedOperation === 'removeMetadata' && 'Remove Metadata'}
+                              {selectedOperation === 'clearMetadata' && 'Clear All Metadata'}
+                              {selectedOperation === 'downloadDocuments' && 'Download Documents'}
+                              {selectedOperation === 'deleteDocuments' && 'Delete Documents'}
+                            </span>
+                            <ChevronDownIcon
+                              className={`h-4 w-4 ml-2 transition-transform duration-200 ${
+                                isDropdownOpen ? 'rotate-180' : ''
+                              }`}
+                            />
+                          </button>
+
+                          {isDropdownOpen && totalDocuments > 0 && (
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+                              {[
+                                { value: 'addTags', label: 'Add Tags' },
+                                { value: 'removeTags', label: 'Remove Tags' },
+                                { value: 'addMetadata', label: 'Add Metadata' },
+                                { value: 'removeMetadata', label: 'Remove Metadata' },
+                                { value: 'clearMetadata', label: 'Clear All Metadata' },
+                                { value: 'downloadDocuments', label: 'Download Documents' },
+                                { value: 'deleteDocuments', label: 'Delete Documents' }
+                              ].map((option) => (
+                                <button
+                                  key={option.value}
+                                  onClick={() => {
+                                    setSelectedOperation(option.value)
+                                    setIsDropdownOpen(false)
+                                  }}
+                                  className={`w-full text-left px-4 py-3 text-sm font-medium hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg transition-colors duration-150 ${
+                                    selectedOperation === option.value
+                                      ? 'bg-blue-50 text-blue-600'
+                                      : 'text-gray-700'
+                                  }`}
+                                >
+                                  {option.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
                         <button
                           onClick={() => handleApplyOperation(selectedOperation, getOperationData())}
@@ -420,7 +476,7 @@ export function DocumentBulkUpdate({
                             selectedOperation={selectedOperation}
                             organizationId={organizationId}
                             searchParameters={searchParameters}
-                            onProgress={(processed, total) => setProcessedDocuments(processed)}
+                            onProgress={(processed) => setProcessedDocuments(processed)}
                             onComplete={() => {
                               if (onRefresh) {
                                 onRefresh();
@@ -439,7 +495,7 @@ export function DocumentBulkUpdate({
                             selectedOperation={selectedOperation}
                             organizationId={organizationId}
                             searchParameters={searchParameters}
-                            onProgress={(processed, total) => setProcessedDocuments(processed)}
+                            onProgress={(processed) => setProcessedDocuments(processed)}
                             onComplete={() => {
                               if (onRefresh) {
                                 onRefresh();
@@ -456,7 +512,7 @@ export function DocumentBulkUpdate({
                             searchParameters={searchParameters}
                             totalDocuments={totalDocuments}
                             disabled={isOperationLoading}
-                            onProgress={(processed, total) => setProcessedDocuments(processed)}
+                            onProgress={(processed) => setProcessedDocuments(processed)}
                           />
                         )}
 
@@ -467,7 +523,7 @@ export function DocumentBulkUpdate({
                             searchParameters={searchParameters}
                             totalDocuments={totalDocuments}
                             disabled={isOperationLoading}
-                            onProgress={(processed, total) => setProcessedDocuments(processed)}
+                            onProgress={(processed) => setProcessedDocuments(processed)}
                             onComplete={() => {
                               if (onRefresh) {
                                 onRefresh();
