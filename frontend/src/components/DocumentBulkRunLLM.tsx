@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useState, useEffect, useCallback } from 'react';
+import { forwardRef, useImperativeHandle, useState, useEffect, useCallback, useRef } from 'react';
 import { Tag } from '@/types/index';
 import { Prompt } from '@/types/prompts';
 import { DocumentMetadata } from '@/types/documents';
@@ -67,6 +67,9 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
     const [isCompleted, setIsCompleted] = useState(false);
     const [totalExecutions, setTotalExecutions] = useState(0);
     const [completedExecutions, setCompletedExecutions] = useState(0);
+
+    // Use ref for immediate cancellation without waiting for state updates
+    const isCancelledRef = useRef(false);
 
     // Parse and URL-encode metadata search to handle special characters
     const parseAndEncodeMetadataSearch = (searchStr: string): string | null => {
@@ -301,6 +304,8 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
     }, [selectedTag, totalExecutions, isCancelling, isCancelled, isCompleted, onDataChange]);
 
     const cancelRunLLM = () => {
+      // Set ref immediately for synchronous cancellation check
+      isCancelledRef.current = true;
       setIsCancelling(true);
       setIsCancelled(true);
 
@@ -318,6 +323,8 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
     };
 
     const resetRunLLM = () => {
+      // Reset ref as well
+      isCancelledRef.current = false;
       setIsCompleted(false);
       setIsCancelled(false);
       setIsCancelling(false);
@@ -339,6 +346,8 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
         return;
       }
 
+      // Reset cancellation ref at start of execution
+      isCancelledRef.current = false;
       setIsExecuting(true);
       setIsCancelling(false);
       setIsCancelled(false);
@@ -352,8 +361,8 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
 
           // Process in batches of BATCH_SIZE
           for (let i = 0; i < executions.length; i += BATCH_SIZE) {
-            // Check for cancellation before each batch
-            if (isCancelled) {
+            // Check for cancellation before each batch using ref for immediate response
+            if (isCancelledRef.current) {
               break groupLoop;
             }
 
@@ -362,8 +371,8 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
             // Execute batch in parallel
             const batchPromises = batch.map(async (execution) => {
               try {
-                // Check if cancelled before starting this specific execution
-                if (isCancelled) {
+                // Check if cancelled before starting this specific execution using ref
+                if (isCancelledRef.current) {
                   // Mark as cancelled instead of running
                   setPromptGroups(prev => prev.map(g =>
                     g.prompt.prompt_revid === group.prompt.prompt_revid
@@ -463,7 +472,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
           }
         }
 
-        if (isCancelled) {
+        if (isCancelledRef.current) {
           toast(`LLM execution cancelled - completed ${completedExecutions} out of ${totalExecutions} executions`);
         } else {
           toast.success(`Completed LLM execution on ${totalExecutions} document-prompt combinations`);
