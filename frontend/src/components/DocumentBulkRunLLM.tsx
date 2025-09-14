@@ -96,9 +96,12 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
     // Update parent component with data changes
     useEffect(() => {
       if (onDataChange) {
-        onDataChange(selectedTag);
+        onDataChange({
+          selectedTag,
+          executionCount: totalExecutions
+        });
       }
-    }, [selectedTag, onDataChange]);
+    }, [selectedTag, totalExecutions, onDataChange]);
 
     // Helper function to fetch all prompts with pagination
     const fetchAllPrompts = async () => {

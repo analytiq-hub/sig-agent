@@ -231,7 +231,20 @@ export function DocumentBulkUpdate({
   };
 
   const handleApplyOperation = async (operation: string, data: any) => {
-    // Count total documents and show confirmation
+    // For LLM operations, use execution count instead of document count
+    if (operation === 'runLLMOperations') {
+      const executionCount = data?.executionCount || 0;
+      if (executionCount === 0) {
+        toast('No executions needed - all documents already have the latest prompt results');
+        return;
+      }
+      setTotalDocuments(executionCount);
+      setPendingOperation({ operation, data });
+      setShowConfirmation(true);
+      return;
+    }
+
+    // For other operations, count total documents and show confirmation
     const total = await countTotalMatchingDocuments();
     if (total === 0) {
       toast('No documents match the current filters');
@@ -293,7 +306,7 @@ export function DocumentBulkUpdate({
       case 'deleteDocuments':
         return true; // These operations are always available when there are documents
       case 'runLLMOperations':
-        return operationData !== null; // Available when a tag is selected
+        return operationData?.selectedTag !== null; // Available when a tag is selected
       default:
         return false;
     }
@@ -603,7 +616,11 @@ export function DocumentBulkUpdate({
                   </Dialog.Title>
                   <div className="mt-2">
                     <p className="text-sm text-gray-500">
-                      This will {pendingOperation?.operation.replace(/([A-Z])/g, ' $1').toLowerCase()} <strong>{totalDocuments}</strong> document{totalDocuments !== 1 ? 's' : ''}. This operation cannot be undone.
+                      {pendingOperation?.operation === 'runLLMOperations' ? (
+                        <>This will run <strong>{totalDocuments}</strong> LLM execution{totalDocuments !== 1 ? 's' : ''} (document-prompt combinations). This operation cannot be undone.</>
+                      ) : (
+                        <>This will {pendingOperation?.operation.replace(/([A-Z])/g, ' $1').toLowerCase()} <strong>{totalDocuments}</strong> document{totalDocuments !== 1 ? 's' : ''}. This operation cannot be undone.</>
+                      )}
                     </p>
                   </div>
                   <div className="mt-4 flex gap-3">
