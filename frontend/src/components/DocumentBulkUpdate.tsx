@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect } from 'react'
+import { Fragment, useState, useEffect, useRef } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, BoltIcon } from '@heroicons/react/24/outline'
 import { Tag, DocumentMetadata } from '@/types/index';
@@ -7,6 +7,8 @@ import { listDocumentsApi, updateDocumentApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
 import { DocumentBulkUpdateTags } from './DocumentBulkUpdateTags';
 import { DocumentBulkUpdateMetadata } from './DocumentBulkUpdateMetadata';
+import { DocumentBulkDownload, DocumentBulkDownloadRef } from './DocumentBulkDownload';
+import { DocumentBulkDelete, DocumentBulkDeleteRef } from './DocumentBulkDelete';
 
 interface DocumentBulkUpdateProps {
   isOpen: boolean
@@ -40,6 +42,10 @@ export function DocumentBulkUpdate({
   const [pendingOperation, setPendingOperation] = useState<{operation: string, data: any} | null>(null)
   const [selectedOperation, setSelectedOperation] = useState<string>('addTags')
   const [operationData, setOperationData] = useState<any>(null)
+
+  // Refs for the new components
+  const downloadRef = useRef<DocumentBulkDownloadRef>(null)
+  const deleteRef = useRef<DocumentBulkDeleteRef>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -154,6 +160,17 @@ export function DocumentBulkUpdate({
 
   const handleBulkUpdate = async (operation: string, data: any) => {
     try {
+      // Handle download and delete operations via component refs
+      if (operation === 'downloadDocuments') {
+        await downloadRef.current?.executeDownload();
+        return;
+      }
+
+      if (operation === 'deleteDocuments') {
+        await deleteRef.current?.executeDelete();
+        return;
+      }
+
       setProcessedDocuments(0);
       let successCount = 0;
       let failureCount = 0;
@@ -343,7 +360,9 @@ export function DocumentBulkUpdate({
       case 'removeMetadata':
         return operationData && Array.isArray(operationData) && operationData.length > 0;
       case 'clearMetadata':
-        return true; // Clear all is always available when there are documents
+      case 'downloadDocuments':
+      case 'deleteDocuments':
+        return true; // These operations are always available when there are documents
       default:
         return false;
     }
@@ -481,6 +500,8 @@ export function DocumentBulkUpdate({
                           <option value="addMetadata">Add Metadata</option>
                           <option value="removeMetadata">Remove Metadata</option>
                           <option value="clearMetadata">Clear All Metadata</option>
+                          <option value="downloadDocuments">Download Documents</option>
+                          <option value="deleteDocuments">Delete Documents</option>
                         </select>
 
                         <button
@@ -515,6 +536,34 @@ export function DocumentBulkUpdate({
                             onDataChange={setOperationData}
                             disabled={isOperationLoading}
                             selectedOperation={selectedOperation}
+                          />
+                        )}
+
+                        {selectedOperation === 'downloadDocuments' && (
+                          <DocumentBulkDownload
+                            ref={downloadRef}
+                            organizationId={organizationId}
+                            searchParameters={searchParameters}
+                            totalDocuments={totalDocuments}
+                            disabled={isOperationLoading}
+                            onProgress={(processed, total) => setProcessedDocuments(processed)}
+                          />
+                        )}
+
+                        {selectedOperation === 'deleteDocuments' && (
+                          <DocumentBulkDelete
+                            ref={deleteRef}
+                            organizationId={organizationId}
+                            searchParameters={searchParameters}
+                            totalDocuments={totalDocuments}
+                            disabled={isOperationLoading}
+                            onProgress={(processed, total) => setProcessedDocuments(processed)}
+                            onComplete={() => {
+                              if (onRefresh) {
+                                onRefresh();
+                              }
+                              fetchPreviewDocuments();
+                            }}
                           />
                         )}
                       </div>
