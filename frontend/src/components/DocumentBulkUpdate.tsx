@@ -3,10 +3,10 @@ import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, BoltIcon } from '@heroicons/react/24/outline'
 import { Tag, DocumentMetadata } from '@/types/index';
 import { isColorLight } from '@/utils/colors';
-import { listDocumentsApi, updateDocumentApi } from '@/utils/api';
+import { listDocumentsApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
-import { DocumentBulkUpdateTags } from './DocumentBulkUpdateTags';
-import { DocumentBulkUpdateMetadata } from './DocumentBulkUpdateMetadata';
+import { DocumentBulkUpdateTags, DocumentBulkUpdateTagsRef } from './DocumentBulkUpdateTags';
+import { DocumentBulkUpdateMetadata, DocumentBulkUpdateMetadataRef } from './DocumentBulkUpdateMetadata';
 import { DocumentBulkDownload, DocumentBulkDownloadRef } from './DocumentBulkDownload';
 import { DocumentBulkDelete, DocumentBulkDeleteRef } from './DocumentBulkDelete';
 
@@ -43,7 +43,9 @@ export function DocumentBulkUpdate({
   const [selectedOperation, setSelectedOperation] = useState<string>('addTags')
   const [operationData, setOperationData] = useState<any>(null)
 
-  // Refs for the new components
+  // Refs for all components
+  const tagsRef = useRef<DocumentBulkUpdateTagsRef>(null)
+  const metadataRef = useRef<DocumentBulkUpdateMetadataRef>(null)
   const downloadRef = useRef<DocumentBulkDownloadRef>(null)
   const deleteRef = useRef<DocumentBulkDeleteRef>(null)
 
@@ -160,7 +162,17 @@ export function DocumentBulkUpdate({
 
   const handleBulkUpdate = async (operation: string, data: any) => {
     try {
-      // Handle download and delete operations via component refs
+      // Handle all operations via component refs
+      if (operation === 'addTags' || operation === 'removeTags') {
+        await tagsRef.current?.executeTags(operation);
+        return;
+      }
+
+      if (operation === 'addMetadata' || operation === 'removeMetadata' || operation === 'clearMetadata') {
+        await metadataRef.current?.executeMetadata(operation);
+        return;
+      }
+
       if (operation === 'downloadDocuments') {
         await downloadRef.current?.executeDownload();
         return;
@@ -171,130 +183,8 @@ export function DocumentBulkUpdate({
         return;
       }
 
-      setProcessedDocuments(0);
-      let successCount = 0;
-      let failureCount = 0;
-      let skip = 0;
-      const limit = 100; // Maximum allowed by API
-
-      while (true) {
-        // Fetch next batch of documents
-        const batchResponse = await listDocumentsApi({
-          organizationId,
-          skip,
-          limit,
-          nameSearch: searchParameters.searchTerm.trim() || undefined,
-          tagIds: searchParameters.selectedTagFilters.length > 0 ? searchParameters.selectedTagFilters.map(tag => tag.id).join(',') : undefined,
-          metadataSearch: searchParameters.metadataSearch.trim() ? parseAndEncodeMetadataSearch(searchParameters.metadataSearch.trim()) || undefined : undefined,
-        });
-
-        const documentsInBatch = batchResponse.documents;
-
-        if (documentsInBatch.length === 0) {
-          break; // No more documents
-        }
-
-        // Update each document in the current batch
-        for (const doc of documentsInBatch) {
-          try {
-            let updatePayload: any = {
-              organizationId,
-              documentId: doc.id,
-            };
-
-            // Handle tag operations
-            if (operation === 'addTags') {
-              let updatedTagIds = [...doc.tag_ids];
-              // Add new tags (avoiding duplicates)
-              for (const tagId of data) {
-                if (!updatedTagIds.includes(tagId)) {
-                  updatedTagIds.push(tagId);
-                }
-              }
-              updatePayload.tagIds = updatedTagIds;
-              updatePayload.metadata = doc.metadata || {};
-            } else if (operation === 'removeTags') {
-              // Remove specified tags
-              const updatedTagIds = doc.tag_ids.filter((tagId: string) => !data.includes(tagId));
-              updatePayload.tagIds = updatedTagIds;
-              updatePayload.metadata = doc.metadata || {};
-            }
-            // Handle metadata operations
-            else if (operation === 'addMetadata') {
-              updatePayload.tagIds = doc.tag_ids;
-              updatePayload.metadata = { ...(doc.metadata || {}), ...data };
-            } else if (operation === 'removeMetadata') {
-              updatePayload.tagIds = doc.tag_ids;
-              const originalMetadata = doc.metadata || {};
-
-              // Create new object without the specified keys
-              const updatedMetadata: Record<string, any> = {};
-              for (const [key, value] of Object.entries(originalMetadata)) {
-                if (!data.includes(key)) {
-                  updatedMetadata[key] = value;
-                }
-              }
-              updatePayload.metadata = updatedMetadata;
-            } else if (operation === 'clearMetadata') {
-              updatePayload.tagIds = doc.tag_ids;
-              updatePayload.metadata = {};
-            }
-
-            // Always call the update API for every document
-            await updateDocumentApi(updatePayload);
-
-            successCount++;
-          } catch (error) {
-            console.error(`Failed to update document ${doc.document_name}:`, error);
-            failureCount++;
-          }
-
-          // Update progress
-          setProcessedDocuments(successCount + failureCount);
-        }
-
-        // If we got less than the limit, we've reached the end
-        if (documentsInBatch.length < limit) {
-          break;
-        }
-
-        // Move to next batch
-        skip += limit;
-      }
-
-      // Show results
-      if (successCount > 0) {
-        let message = '';
-        switch (operation) {
-          case 'addTags':
-            message = `Tags added to ${successCount} document${successCount !== 1 ? 's' : ''}`;
-            break;
-          case 'removeTags':
-            message = `Tags removed from ${successCount} document${successCount !== 1 ? 's' : ''}`;
-            break;
-          case 'addMetadata':
-            message = `Metadata added to ${successCount} document${successCount !== 1 ? 's' : ''}`;
-            break;
-          case 'removeMetadata':
-            message = `Metadata removed from ${successCount} document${successCount !== 1 ? 's' : ''}`;
-            break;
-          case 'clearMetadata':
-            message = `All metadata cleared from ${successCount} document${successCount !== 1 ? 's' : ''}`;
-            break;
-          default:
-            message = `Operation completed on ${successCount} document${successCount !== 1 ? 's' : ''}`;
-        }
-        toast.success(message);
-      }
-
-      if (failureCount > 0) {
-        toast.error(`Failed to update ${failureCount} document${failureCount !== 1 ? 's' : ''}`);
-      }
-
-      // Refresh the parent list and preview
-      if (onRefresh) {
-        onRefresh();
-      }
+      // This should not happen since all operations are now handled by components
+      console.warn('Unknown operation:', operation);
     } catch (error) {
       console.error('Bulk update error:', error);
       toast.error('Failed to perform bulk update');
@@ -522,20 +412,40 @@ export function DocumentBulkUpdate({
                       <div className="border border-gray-300 rounded-md bg-white p-3">
                         {(selectedOperation === 'addTags' || selectedOperation === 'removeTags') && (
                           <DocumentBulkUpdateTags
+                            ref={tagsRef}
                             availableTags={availableTags}
                             totalDocuments={totalDocuments}
                             onDataChange={setOperationData}
                             disabled={isOperationLoading}
                             selectedOperation={selectedOperation}
+                            organizationId={organizationId}
+                            searchParameters={searchParameters}
+                            onProgress={(processed, total) => setProcessedDocuments(processed)}
+                            onComplete={() => {
+                              if (onRefresh) {
+                                onRefresh();
+                              }
+                              fetchPreviewDocuments();
+                            }}
                           />
                         )}
                         
                         {(selectedOperation === 'addMetadata' || selectedOperation === 'removeMetadata' || selectedOperation === 'clearMetadata') && (
                           <DocumentBulkUpdateMetadata
+                            ref={metadataRef}
                             totalDocuments={totalDocuments}
                             onDataChange={setOperationData}
                             disabled={isOperationLoading}
                             selectedOperation={selectedOperation}
+                            organizationId={organizationId}
+                            searchParameters={searchParameters}
+                            onProgress={(processed, total) => setProcessedDocuments(processed)}
+                            onComplete={() => {
+                              if (onRefresh) {
+                                onRefresh();
+                              }
+                              fetchPreviewDocuments();
+                            }}
                           />
                         )}
 

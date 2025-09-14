@@ -1,5 +1,5 @@
 import { useState, forwardRef, useImperativeHandle } from 'react'
-import { TrashIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { deleteDocumentApi, listDocumentsApi } from '@/utils/api'
 import { toast } from 'react-hot-toast'
 
@@ -25,7 +25,6 @@ export const DocumentBulkDelete = forwardRef<DocumentBulkDeleteRef, DocumentBulk
   organizationId,
   searchParameters,
   totalDocuments,
-  disabled = false,
   onProgress,
   onComplete
 }, ref) => {
@@ -103,7 +102,7 @@ export const DocumentBulkDelete = forwardRef<DocumentBulkDeleteRef, DocumentBulk
         for (let i = 0; i < documentsInBatch.length; i += BATCH_SIZE) {
           const batch = documentsInBatch.slice(i, i + BATCH_SIZE);
 
-          const deletePromises = batch.map(async doc => {
+          const deletePromises = batch.map(async (doc: any) => {
             try {
               await deleteDocumentApi({
                 organizationId,

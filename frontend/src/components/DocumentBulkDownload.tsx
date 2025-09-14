@@ -1,5 +1,4 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
-import { ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+import { useState, forwardRef, useImperativeHandle } from 'react'
 import { getDocumentApi, listDocumentsApi } from '@/utils/api'
 import { DocumentMetadata } from '@/types/index'
 import { toast } from 'react-hot-toast'
@@ -25,7 +24,6 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
   organizationId,
   searchParameters,
   totalDocuments,
-  disabled = false,
   onProgress
 }, ref) => {
   const [isDownloading, setIsDownloading] = useState(false)
@@ -133,7 +131,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
         for (let i = 0; i < documentsInBatch.length; i += BATCH_SIZE) {
           const batch = documentsInBatch.slice(i, i + BATCH_SIZE);
 
-          const downloadPromises = batch.map(doc => downloadDocument(doc, folderName));
+          const downloadPromises = batch.map((doc: any) => downloadDocument(doc, folderName));
           const results = await Promise.all(downloadPromises);
 
           // Count successes and failures
