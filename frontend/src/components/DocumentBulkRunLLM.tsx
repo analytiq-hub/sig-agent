@@ -44,9 +44,12 @@ export interface DocumentBulkRunLLMRef {
   executeRunLLM: () => Promise<void>;
 }
 
+type ExecutionMode = 'all' | 'missing' | 'outdated';
+
 export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulkRunLLMProps>(
   ({ organizationId, searchParameters, disabled, onProgress, onComplete, availableTags, onDataChange }, ref) => {
     const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
+    const [executionMode, setExecutionMode] = useState<ExecutionMode>('outdated');
     const [promptGroups, setPromptGroups] = useState<PromptExecutionGroup[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isExecuting, setIsExecuting] = useState(false);
@@ -83,7 +86,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       }
     };
 
-    // Analyze what needs to be executed when tag selection changes
+    // Analyze what needs to be executed when tag selection or mode changes
     useEffect(() => {
       if (selectedTag) {
         analyzeExecutions();
@@ -91,7 +94,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
         setPromptGroups([]);
         setTotalExecutions(0);
       }
-    }, [selectedTag]);
+    }, [selectedTag, executionMode]);
 
     // Update parent component with data changes
     useEffect(() => {
@@ -136,15 +139,19 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       let skip = 0;
       const limit = 100; // API maximum
 
+      // Combine existing tag filters with the selected tag for LLM operations
+      const tagFilters = [...searchParameters.selectedTagFilters.map(tag => tag.id)];
+      if (selectedTag && !tagFilters.includes(selectedTag.id)) {
+        tagFilters.push(selectedTag.id);
+      }
+
       while (true) {
         const response = await listDocumentsApi({
           organizationId,
           skip,
           limit,
           nameSearch: searchParameters.searchTerm.trim() || undefined,
-          tagIds: searchParameters.selectedTagFilters.length > 0
-            ? searchParameters.selectedTagFilters.map(tag => tag.id).join(',')
-            : undefined,
+          tagIds: tagFilters.length > 0 ? tagFilters.join(',') : undefined,
           metadataSearch: searchParameters.metadataSearch.trim()
             ? parseAndEncodeMetadataSearch(searchParameters.metadataSearch.trim()) || undefined
             : undefined,
@@ -178,6 +185,17 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
           return;
         }
 
+        // Group prompts by prompt_id and keep only the latest version of each
+        const promptGroups = allPrompts.reduce((groups: Record<string, Prompt>, prompt) => {
+          const existingPrompt = groups[prompt.prompt_id];
+          if (!existingPrompt || prompt.prompt_version > existingPrompt.prompt_version) {
+            groups[prompt.prompt_id] = prompt;
+          }
+          return groups;
+        }, {});
+
+        const latestPrompts = Object.values(promptGroups);
+
         // Get all documents that match the current filters using pagination
         const allDocuments = await fetchAllDocuments();
 
@@ -192,22 +210,50 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
         const groups: PromptExecutionGroup[] = [];
         let totalExecs = 0;
 
-        for (const prompt of allPrompts) {
+        for (const prompt of latestPrompts) {
           const executions: PromptExecution[] = [];
 
           // Check each document to see if it needs this prompt executed
           for (const document of allDocuments) {
-            try {
-              // Try to get existing LLM result
-              await getLLMResultApi({
-                organizationId,
-                documentId: document.id,
-                promptRevId: prompt.prompt_revid,
-                latest: true
-              });
-              // If we get here, result exists - skip execution
-            } catch (error) {
-              // Result doesn't exist - needs execution
+            let needsExecution = false;
+
+            if (executionMode === 'all') {
+              // Always run on all documents
+              needsExecution = true;
+            } else if (executionMode === 'missing') {
+              // Only run if no result exists for any version of this prompt
+              try {
+                // Try to get any existing LLM result for this prompt_id
+                await getLLMResultApi({
+                  organizationId,
+                  documentId: document.id,
+                  promptRevId: prompt.prompt_revid,
+                  latest: true
+                });
+                // If we get here, some result exists - skip execution
+                needsExecution = false;
+              } catch (error) {
+                // No result exists - needs execution
+                needsExecution = true;
+              }
+            } else if (executionMode === 'outdated') {
+              // Run if no result exists OR if result exists but for older version
+              try {
+                const existingResult = await getLLMResultApi({
+                  organizationId,
+                  documentId: document.id,
+                  promptRevId: prompt.prompt_revid,
+                  latest: true
+                });
+                // Result exists - check if it's for the latest version
+                needsExecution = existingResult.prompt_version < prompt.prompt_version;
+              } catch (error) {
+                // No result exists - needs execution
+                needsExecution = true;
+              }
+            }
+
+            if (needsExecution) {
               executions.push({
                 prompt,
                 documentId: document.id,
@@ -376,15 +422,87 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
 
     return (
       <div className="space-y-4">
-        {/* Tag Selection */}
-        <SingleTagSelector
-          availableTags={availableTags}
-          selectedTag={selectedTag}
-          onChange={setSelectedTag}
-          disabled={disabled || isExecuting}
-          placeholder="Select a tag for LLM operations..."
-          label="Select Tag for LLM Operations"
-        />
+        {/* Tag Selection and Execution Mode Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Tag Selection */}
+          <div>
+            <SingleTagSelector
+              availableTags={availableTags}
+              selectedTag={selectedTag}
+              onChange={setSelectedTag}
+              disabled={disabled || isExecuting}
+              placeholder="Select a tag for LLM operations..."
+              label="Select Tag for LLM Operations"
+            />
+          </div>
+
+          {/* Execution Mode Selection */}
+          {selectedTag && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Execution Strategy
+              </label>
+              <div className="space-y-2">
+                <div className="flex items-start">
+                  <input
+                    id="mode-outdated"
+                    name="executionMode"
+                    type="radio"
+                    value="outdated"
+                    checked={executionMode === 'outdated'}
+                    onChange={(e) => setExecutionMode(e.target.value as ExecutionMode)}
+                    disabled={disabled || isExecuting}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 mt-0.5"
+                  />
+                  <label htmlFor="mode-outdated" className="ml-2 block text-sm text-gray-900">
+                    <span className="font-medium">Run when missing or outdated</span>
+                    <span className="block text-xs text-gray-500 mt-0.5">
+                      Execute only if no result exists or if the prompt version has been updated since last run
+                    </span>
+                  </label>
+                </div>
+
+                <div className="flex items-start">
+                  <input
+                    id="mode-missing"
+                    name="executionMode"
+                    type="radio"
+                    value="missing"
+                    checked={executionMode === 'missing'}
+                    onChange={(e) => setExecutionMode(e.target.value as ExecutionMode)}
+                    disabled={disabled || isExecuting}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 mt-0.5"
+                  />
+                  <label htmlFor="mode-missing" className="ml-2 block text-sm text-gray-900">
+                    <span className="font-medium">Run only when completely missing</span>
+                    <span className="block text-xs text-gray-500 mt-0.5">
+                      Execute only if no result exists at all for this prompt (ignore version differences)
+                    </span>
+                  </label>
+                </div>
+
+                <div className="flex items-start">
+                  <input
+                    id="mode-all"
+                    name="executionMode"
+                    type="radio"
+                    value="all"
+                    checked={executionMode === 'all'}
+                    onChange={(e) => setExecutionMode(e.target.value as ExecutionMode)}
+                    disabled={disabled || isExecuting}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 mt-0.5"
+                  />
+                  <label htmlFor="mode-all" className="ml-2 block text-sm text-gray-900">
+                    <span className="font-medium">Run on all matching documents</span>
+                    <span className="block text-xs text-gray-500 mt-0.5">
+                      Execute on every document with this tag, regardless of existing results (will overwrite previous results)
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Analysis Status */}
         {isAnalyzing && (
