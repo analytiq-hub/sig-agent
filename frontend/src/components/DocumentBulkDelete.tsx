@@ -2,12 +2,13 @@ import { useState, forwardRef, useImperativeHandle } from 'react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { deleteDocumentApi, listDocumentsApi } from '@/utils/api'
 import { toast } from 'react-hot-toast'
+import { Tag, DocumentMetadata } from '@/types'
 
 interface DocumentBulkDeleteProps {
   organizationId: string
   searchParameters: {
     searchTerm: string
-    selectedTagFilters: any[]
+    selectedTagFilters: Tag[]
     metadataSearch: string
     paginationModel: { page: number; pageSize: number }
   }
@@ -102,7 +103,7 @@ export const DocumentBulkDelete = forwardRef<DocumentBulkDeleteRef, DocumentBulk
         for (let i = 0; i < documentsInBatch.length; i += BATCH_SIZE) {
           const batch = documentsInBatch.slice(i, i + BATCH_SIZE);
 
-          const deletePromises = batch.map(async (doc: any) => {
+          const deletePromises = batch.map(async (doc: DocumentMetadata) => {
             try {
               await deleteDocumentApi({
                 organizationId,
@@ -216,3 +217,5 @@ export const DocumentBulkDelete = forwardRef<DocumentBulkDeleteRef, DocumentBulk
     </div>
   )
 });
+
+DocumentBulkDelete.displayName = 'DocumentBulkDelete';
