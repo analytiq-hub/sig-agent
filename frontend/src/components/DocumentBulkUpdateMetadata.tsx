@@ -1,12 +1,15 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react'
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { Tag } from '@/types/index'
 import { listDocumentsApi, updateDocumentApi } from '@/utils/api'
 import { toast } from 'react-hot-toast'
 
+// Type definitions for metadata operations
+type MetadataOperationData = Record<string, string> | string[] | null;
+
 interface DocumentBulkUpdateMetadataProps {
   totalDocuments: number
-  onDataChange: (data: any) => void
+  onDataChange: (data: MetadataOperationData) => void
   disabled?: boolean
   selectedOperation?: string
   organizationId: string
@@ -37,8 +40,8 @@ export const DocumentBulkUpdateMetadata = forwardRef<DocumentBulkUpdateMetadataR
   const [metadataFields, setMetadataFields] = useState<Array<{id: string, key: string, value: string}>>([])
   const [metadataKeysToRemove, setMetadataKeysToRemove] = useState<string>('')
 
-  const updateData = () => {
-    let data: any = null
+  const updateData = useCallback(() => {
+    let data: MetadataOperationData = null
 
     switch (selectedOperation) {
       case 'addMetadata':
@@ -72,7 +75,7 @@ export const DocumentBulkUpdateMetadata = forwardRef<DocumentBulkUpdateMetadataR
     }
 
     onDataChange(data)
-  }
+  }, [selectedOperation, metadataFields, metadataKeysToRemove, onDataChange])
 
   const handleAddMetadataField = () => {
     const newId = `field_${Date.now()}`
@@ -119,7 +122,7 @@ export const DocumentBulkUpdateMetadata = forwardRef<DocumentBulkUpdateMetadataR
       .map(key => key.trim())
       .filter(key => key !== '')
 
-    let data: any = null
+    let data: MetadataOperationData = null
     if (keysToRemove.length > 0) {
       data = keysToRemove
     }
@@ -129,7 +132,7 @@ export const DocumentBulkUpdateMetadata = forwardRef<DocumentBulkUpdateMetadataR
   // Update data when operation changes
   useEffect(() => {
     updateData()
-  }, [selectedOperation])
+  }, [selectedOperation, updateData])
 
   // Parse and URL-encode metadata search to handle special characters
   const parseAndEncodeMetadataSearch = (searchStr: string): string | null => {
@@ -205,10 +208,10 @@ export const DocumentBulkUpdateMetadata = forwardRef<DocumentBulkUpdateMetadataR
                 .filter(key => key !== '');
 
               // Create new object without the specified keys
-              const filteredMetadata: Record<string, any> = {};
+              const filteredMetadata: Record<string, string> = {};
               for (const [key, value] of Object.entries(originalMetadata)) {
                 if (!keysToRemove.includes(key)) {
-                  filteredMetadata[key] = value;
+                  filteredMetadata[key] = String(value);
                 }
               }
               updatedMetadata = filteredMetadata;
@@ -328,7 +331,7 @@ export const DocumentBulkUpdateMetadata = forwardRef<DocumentBulkUpdateMetadataR
                 </div>
               ))}
               {metadataFields.length === 0 && (
-                <p className="text-sm text-gray-500 italic">No metadata fields. Click "Add Field" to add some.</p>
+                <p className="text-sm text-gray-500 italic">No metadata fields. Click &quot;Add Field&quot; to add some.</p>
               )}
             </div>
           </div>
@@ -366,3 +369,5 @@ export const DocumentBulkUpdateMetadata = forwardRef<DocumentBulkUpdateMetadataR
     </div>
   )
 });
+
+DocumentBulkUpdateMetadata.displayName = 'DocumentBulkUpdateMetadata';
