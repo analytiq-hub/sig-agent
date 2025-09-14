@@ -460,7 +460,7 @@ export function DocumentBulkUpdate({
                           }`}
                         >
                           <BoltIcon className="h-5 w-5" />
-                          Apply
+                          Execute
                         </button>
                       </div>
 
