@@ -8,7 +8,7 @@ import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import SingleTagSelector from './SingleTagSelector';
 
 // Batch size constant - will be increased to 25 later
-const BATCH_SIZE = 3;
+const BATCH_SIZE = 10;
 
 interface DocumentBulkRunLLMProps {
   organizationId: string;
