@@ -73,6 +73,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
     const [analysisProgress, setAnalysisProgress] = useState(0);
     const [totalAnalysisItems, setTotalAnalysisItems] = useState(0);
     const [isCancellingAnalysis, setIsCancellingAnalysis] = useState(false);
+    const [isAnalysisCancelled, setIsAnalysisCancelled] = useState(false);
 
     // Use ref for immediate cancellation without waiting for state updates
     const isCancelledRef = useRef(false);
@@ -181,6 +182,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
 
       setIsAnalyzing(true);
       setIsCancellingAnalysis(false);
+      setIsAnalysisCancelled(false);
       setAnalysisProgress(0);
       setTotalAnalysisItems(0);
 
@@ -319,6 +321,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
           // Analysis was cancelled
           setPromptGroups([]);
           setTotalExecutions(0);
+          setIsAnalysisCancelled(true);
         } else {
           console.error('Error analyzing executions:', error);
           toast.error('Failed to analyze required executions');
@@ -359,6 +362,14 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       if (analysisAbortController.current) {
         analysisAbortController.current.abort();
       }
+
+      // Clear execution details
+      setPromptGroups([]);
+      setTotalExecutions(0);
+      setAnalysisProgress(0);
+      setTotalAnalysisItems(0);
+      setIsAnalysisCancelled(true);
+
       toast('Analysis cancelled');
     };
 
@@ -775,10 +786,14 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
           </div>
         )}
 
-        {/* No executions needed */}
+        {/* Analysis cancelled or no executions needed */}
         {selectedTag && !isAnalyzing && promptGroups.length === 0 && totalExecutions === 0 && (
-          <div className="text-sm text-gray-500 text-center py-4">
-            All documents already have the latest prompt results for this tag.
+          <div className="text-sm text-center py-4">
+            {isAnalysisCancelled ? (
+              <span className="text-orange-600">Analysis Cancelled</span>
+            ) : (
+              <span className="text-gray-500">All documents already have the latest prompt results for this tag.</span>
+            )}
           </div>
         )}
       </div>
