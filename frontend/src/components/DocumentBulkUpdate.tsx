@@ -307,6 +307,7 @@ export function DocumentBulkUpdate({
     setPendingOperation(null);
     setTotalDocuments(0);
     setProcessedDocuments(0);
+    onClose();
   }
 
   const getOperationData = () => {
