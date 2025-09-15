@@ -657,8 +657,12 @@ export function DocumentBulkUpdate({
                     <p className="text-sm text-gray-500">
                       {pendingOperation?.operation === 'runLLMOperations' ? (
                         <>This will run <strong>{totalDocuments}</strong> LLM execution{totalDocuments !== 1 ? 's' : ''} (document-prompt combinations). This operation cannot be undone.</>
+                      ) : pendingOperation?.operation === 'downloadDocuments' ? (
+                        <>This will download <strong>{totalDocuments}</strong> document{totalDocuments !== 1 ? 's' : ''}.</>
+                      ) : pendingOperation?.operation === 'deleteDocuments' ? (
+                        <>This will delete <strong>{totalDocuments}</strong> document{totalDocuments !== 1 ? 's' : ''}. This operation cannot be undone.</>
                       ) : (
-                        <>This will {pendingOperation?.operation.replace(/([A-Z])/g, ' $1').toLowerCase()} <strong>{totalDocuments}</strong> document{totalDocuments !== 1 ? 's' : ''}. This operation cannot be undone.</>
+                        <>This will {pendingOperation?.operation.replace(/([A-Z])/g, ' $1').toLowerCase()} on <strong>{totalDocuments}</strong> document{totalDocuments !== 1 ? 's' : ''}. This operation cannot be undone.</>
                       )}
                     </p>
                   </div>
