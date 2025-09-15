@@ -8,7 +8,7 @@ import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import SingleTagSelector from './SingleTagSelector';
 
 // Batch size constant - will be increased to 25 later
-const BATCH_SIZE = 10;
+const BATCH_SIZE = 3;
 
 interface DocumentBulkRunLLMProps {
   organizationId: string;
@@ -29,6 +29,7 @@ interface DocumentBulkRunLLMProps {
     isCancelling: boolean;
     isCancelled: boolean;
     isCompleted: boolean;
+    isAnalyzing: boolean;
   }) => void;
 }
 
@@ -68,8 +69,14 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
     const [totalExecutions, setTotalExecutions] = useState(0);
     const [completedExecutions, setCompletedExecutions] = useState(0);
 
+    // Analysis progress tracking
+    const [analysisProgress, setAnalysisProgress] = useState(0);
+    const [totalAnalysisItems, setTotalAnalysisItems] = useState(0);
+    const [isCancellingAnalysis, setIsCancellingAnalysis] = useState(false);
+
     // Use ref for immediate cancellation without waiting for state updates
     const isCancelledRef = useRef(false);
+    const analysisAbortController = useRef<AbortController | null>(null);
 
     // Parse and URL-encode metadata search to handle special characters
     const parseAndEncodeMetadataSearch = (searchStr: string): string | null => {
@@ -168,10 +175,20 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
     const analyzeExecutions = useCallback(async () => {
       if (!selectedTag) return;
 
+      // Create new abort controller for this analysis
+      analysisAbortController.current = new AbortController();
+      const signal = analysisAbortController.current.signal;
+
       setIsAnalyzing(true);
+      setIsCancellingAnalysis(false);
+      setAnalysisProgress(0);
+      setTotalAnalysisItems(0);
+
       try {
         // Get all prompts for the selected tag using pagination
         const allPrompts = await fetchAllPrompts();
+
+        if (signal.aborted) return;
 
         if (allPrompts.length === 0) {
           toast('No prompts found for the selected tag');
@@ -194,6 +211,8 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
         // Get all documents that match the current filters using pagination
         const allDocuments = await fetchAllDocuments();
 
+        if (signal.aborted) return;
+
         if (allDocuments.length === 0) {
           toast('No documents match the current filters');
           setPromptGroups([]);
@@ -201,61 +220,82 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
           return;
         }
 
-        // For each prompt, check which documents need LLM execution
+        // Calculate total analysis items for progress tracking
+        const totalAnalysisOperations = latestPrompts.length * allDocuments.length;
+        setTotalAnalysisItems(totalAnalysisOperations);
+
+        // For each prompt, check which documents need LLM execution with batching
         const groups: PromptExecutionGroup[] = [];
         let totalExecs = 0;
+        let completedAnalysisItems = 0;
 
         for (const prompt of latestPrompts) {
+          if (signal.aborted) return;
+
           const executions: PromptExecution[] = [];
 
-          // Check each document to see if it needs this prompt executed
-          for (const document of allDocuments) {
-            let needsExecution = false;
+          // Process documents in batches to improve performance
+          for (let i = 0; i < allDocuments.length; i += BATCH_SIZE) {
+            if (signal.aborted) return;
 
-            if (executionMode === 'all') {
-              // Always run on all documents
-              needsExecution = true;
-            } else if (executionMode === 'missing') {
-              // Only run if no result exists for any version of this prompt
-              try {
-                // Try to get any existing LLM result for this prompt_id
-                await getLLMResultApi({
-                  organizationId,
-                  documentId: document.id,
-                  promptRevId: prompt.prompt_revid,
-                  latest: true
-                });
-                // If we get here, some result exists - skip execution
-                needsExecution = false;
-              } catch {
-                // No result exists - needs execution
-                needsExecution = true;
-              }
-            } else if (executionMode === 'outdated') {
-              // Run if no result exists OR if result exists but for older version
-              try {
-                const existingResult = await getLLMResultApi({
-                  organizationId,
-                  documentId: document.id,
-                  promptRevId: prompt.prompt_revid,
-                  latest: true
-                });
-                // Result exists - check if it's for the latest version
-                needsExecution = existingResult.prompt_version < prompt.prompt_version;
-              } catch {
-                // No result exists - needs execution
-                needsExecution = true;
-              }
-            }
+            const batch = allDocuments.slice(i, i + BATCH_SIZE);
 
-            if (needsExecution) {
-              executions.push({
-                prompt,
-                documentId: document.id,
-                documentName: document.document_name,
-                status: 'pending'
-              });
-            }
+            // Process batch in parallel
+            const batchResults = await Promise.all(
+              batch.map(async (document) => {
+                if (signal.aborted) return null;
+
+                let needsExecution = false;
+
+                if (executionMode === 'all') {
+                  // Always run on all documents
+                  needsExecution = true;
+                } else if (executionMode === 'missing') {
+                  // Only run if no result exists for any version of this prompt
+                  try {
+                    await getLLMResultApi({
+                      organizationId,
+                      documentId: document.id,
+                      promptRevId: prompt.prompt_revid,
+                      latest: true
+                    });
+                    // If we get here, some result exists - skip execution
+                    needsExecution = false;
+                  } catch {
+                    // No result exists - needs execution
+                    needsExecution = true;
+                  }
+                } else if (executionMode === 'outdated') {
+                  // Run if no result exists OR if result exists but for older version
+                  try {
+                    const existingResult = await getLLMResultApi({
+                      organizationId,
+                      documentId: document.id,
+                      promptRevId: prompt.prompt_revid,
+                      latest: true
+                    });
+                    // Result exists - check if it's for the latest version
+                    needsExecution = existingResult.prompt_version < prompt.prompt_version;
+                  } catch {
+                    // No result exists - needs execution
+                    needsExecution = true;
+                  }
+                }
+
+                completedAnalysisItems++;
+                setAnalysisProgress(completedAnalysisItems);
+
+                return needsExecution ? {
+                  prompt,
+                  documentId: document.id,
+                  documentName: document.document_name,
+                  status: 'pending' as const
+                } : null;
+              })
+            );
+
+            // Filter out null results and add to executions
+            executions.push(...batchResults.filter(result => result !== null) as PromptExecution[]);
           }
 
           if (executions.length > 0) {
@@ -269,14 +309,24 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
           }
         }
 
-        setPromptGroups(groups);
-        setTotalExecutions(totalExecs);
+        if (!signal.aborted) {
+          setPromptGroups(groups);
+          setTotalExecutions(totalExecs);
+        }
 
       } catch (error) {
-        console.error('Error analyzing executions:', error);
-        toast.error('Failed to analyze required executions');
+        if (signal.aborted) {
+          // Analysis was cancelled
+          setPromptGroups([]);
+          setTotalExecutions(0);
+        } else {
+          console.error('Error analyzing executions:', error);
+          toast.error('Failed to analyze required executions');
+        }
       } finally {
         setIsAnalyzing(false);
+        setIsCancellingAnalysis(false);
+        analysisAbortController.current = null;
       }
     }, [selectedTag, executionMode, organizationId, fetchAllPrompts, fetchAllDocuments]);
 
@@ -298,10 +348,19 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
           executionCount: totalExecutions,
           isCancelling,
           isCancelled,
-          isCompleted
+          isCompleted,
+          isAnalyzing
         });
       }
-    }, [selectedTag, totalExecutions, isCancelling, isCancelled, isCompleted, onDataChange]);
+    }, [selectedTag, totalExecutions, isCancelling, isCancelled, isCompleted, isAnalyzing, onDataChange]);
+
+    const cancelAnalysis = () => {
+      setIsCancellingAnalysis(true);
+      if (analysisAbortController.current) {
+        analysisAbortController.current.abort();
+      }
+      toast('Analysis cancelled');
+    };
 
     const cancelRunLLM = () => {
       // Set ref immediately for synchronous cancellation check
@@ -343,6 +402,11 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
     const executeRunLLM = async () => {
       if (!selectedTag || promptGroups.length === 0) {
         toast('Please select a tag and ensure there are executions to run');
+        return;
+      }
+
+      if (isAnalyzing) {
+        toast('Please wait for analysis to complete before starting execution');
         return;
       }
 
@@ -545,7 +609,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                     value="outdated"
                     checked={executionMode === 'outdated'}
                     onChange={(e) => setExecutionMode(e.target.value as ExecutionMode)}
-                    disabled={disabled || isExecuting}
+                    disabled={disabled || isExecuting || isAnalyzing}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 mt-0.5"
                   />
                   <label htmlFor="mode-outdated" className="ml-2 block text-sm text-gray-900">
@@ -564,7 +628,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                     value="missing"
                     checked={executionMode === 'missing'}
                     onChange={(e) => setExecutionMode(e.target.value as ExecutionMode)}
-                    disabled={disabled || isExecuting}
+                    disabled={disabled || isExecuting || isAnalyzing}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 mt-0.5"
                   />
                   <label htmlFor="mode-missing" className="ml-2 block text-sm text-gray-900">
@@ -583,7 +647,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                     value="all"
                     checked={executionMode === 'all'}
                     onChange={(e) => setExecutionMode(e.target.value as ExecutionMode)}
-                    disabled={disabled || isExecuting}
+                    disabled={disabled || isExecuting || isAnalyzing}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 mt-0.5"
                   />
                   <label htmlFor="mode-all" className="ml-2 block text-sm text-gray-900">
@@ -600,9 +664,36 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
 
         {/* Analysis Status */}
         {isAnalyzing && (
-          <div className="text-sm text-gray-600 flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            Analyzing required executions...
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm font-medium text-blue-900">
+                  Analyzing required executions...
+                </span>
+              </div>
+              <button
+                onClick={cancelAnalysis}
+                disabled={isCancellingAnalysis}
+                className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 border border-red-300 rounded hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCancellingAnalysis ? 'Cancelling...' : 'Cancel'}
+              </button>
+            </div>
+            {totalAnalysisItems > 0 && (
+              <div>
+                <div className="flex items-center justify-between text-xs text-blue-700 mb-1">
+                  <span>Progress</span>
+                  <span>{analysisProgress} / {totalAnalysisItems}</span>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${totalAnalysisItems > 0 ? (analysisProgress / totalAnalysisItems) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
