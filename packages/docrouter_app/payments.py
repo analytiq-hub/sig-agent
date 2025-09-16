@@ -225,6 +225,7 @@ TIER_LIMITS = {
 }
 
 def stripe_enabled() -> bool:
+    # Consider Stripe enabled only if api_key is a non-empty string
     return stripe.api_key is not None
 
 # Modify the init_payments_env function
@@ -239,10 +240,17 @@ async def init_payments_env(database):
 
     # Database connection is now passed as parameter to functions that need it
 
-    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-    stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+    # Normalize empty strings to None for robustness
+    stripe_secret_key = os.getenv("STRIPE_SECRET_KEY", "")
+    if stripe_secret_key != "":
+        stripe.api_key = stripe_secret_key
+    else:
+        stripe.api_key = None
+    stripe_webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    if stripe_webhook_secret == "":
+        stripe_webhook_secret = None
 
-    logger.info(f"init_payments_env() completed")
+    logger.info(f"init_payments_env() completed; stripe_enabled={stripe_enabled()}")
     
 async def init_payments(db):
     await init_payments_env(db)
