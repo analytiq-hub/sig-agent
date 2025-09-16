@@ -1254,8 +1254,8 @@ async def sync_local_subscription_data(db, org_id: str, stripe_customer_id: str,
             "subscription_updated_at": datetime.now(UTC)
         }
         
-        # Set stripe_payments_portal_enabled to True for individual/team subscriptions (never revert back to False)
-        if subscription_type in ['individual', 'team']:
+        # Set stripe_payments_portal_enabled to True for any non-enterprise subscription (never revert back to False)
+        if subscription_type != 'enterprise':
             update_data["stripe_payments_portal_enabled"] = True
         
         await db.payments_customers.update_one(
@@ -1487,8 +1487,8 @@ async def set_subscription_type(db, org_id: str, customer_id: str, subscription_
             metadata={'subscription_type': subscription_type}
         )
 
-    # Set stripe_payments_portal_enabled to True for individual/team subscriptions (never revert back to False)
-    if subscription_type in ['individual', 'team']:
+    # Set stripe_payments_portal_enabled to True for any non-enterprise subscription (never revert back to False)
+    if subscription_type != 'enterprise':
         await db.payments_customers.update_one(
             {"org_id": org_id},
             {"$set": {"stripe_payments_portal_enabled": True}}
@@ -2601,6 +2601,15 @@ async def ensure_subscription_credits(db, stripe_customer_doc):
     if "stripe_current_billing_period_end" not in stripe_customer_doc:
         update["stripe_current_billing_period_end"] = None
     
+    # If the customer has ever purchased credits (now or in the past), enable portal access
+    try:
+        purchased_total = stripe_customer_doc.get("purchased_credits", 0)
+        purchased_used = stripe_customer_doc.get("purchased_credits_used", 0)
+        if (purchased_total and purchased_total > 0) or (purchased_used and purchased_used > 0):
+            update["stripe_payments_portal_enabled"] = True
+    except Exception:
+        pass
+
     if update:
         await db.payments_customers.update_one(
             {"_id": stripe_customer_doc["_id"]},
@@ -2984,6 +2993,12 @@ async def credit_customer_account_from_session(db, session: Dict[str, Any]):
         await db.payments_customers.update_one(
             {"_id": customer["_id"]},
             {"$inc": {"purchased_credits": credits}}
+        )
+
+        # Enable Stripe portal for customers who purchased credits
+        await db.payments_customers.update_one(
+            {"_id": customer["_id"]},
+            {"$set": {"stripe_payments_portal_enabled": True}}
         )
         
         logger.info(f"Credited {credits} purchased SPUs to organization {org_id} from checkout session {session['id']}")
