@@ -24,8 +24,9 @@ dev: setup
 	./start-all.sh
 
 deploy:
-	docker compose down
-	docker compose up -d --build
+	# Use .env for runtime env vars without baking them into images
+	docker compose down ; \
+	docker compose --env-file .env up -d --build
 
 tests: setup
 	. .venv/bin/activate && pytest -n auto packages/tests/
