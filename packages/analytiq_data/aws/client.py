@@ -1,8 +1,11 @@
 import boto3
 import botocore
+import aioboto3
 from botocore.credentials import AssumeRoleCredentialFetcher, DeferredRefreshableCredentials
 import logging
 import os
+import asyncio
+from contextlib import asynccontextmanager
 
 import analytiq_data as ad
 
@@ -138,3 +141,120 @@ def get_assume_role_arn(user_arn: str) -> str:
     account_name = user_name.split("-")[0]
     user_name_base = user_name.split("-")[1]
     return f"arn:aws:iam::{account_id}:role/{account_name}-{user_name_base}-role"
+
+class AsyncAWSClient:
+    def __init__(self, analytiq_client, region_name: str = "us-east-1"):
+        self.env = analytiq_client.env
+        self.region_name = region_name
+        
+        # Get the AWS keys
+        aws_keys = get_aws_config(analytiq_client)
+        self.aws_access_key_id = aws_keys["aws_access_key_id"]
+        self.aws_secret_access_key = aws_keys["aws_secret_access_key"]
+        
+        if not self.aws_access_key_id or not self.aws_secret_access_key:
+            raise Exception(f"AWS credentials not configured. Cannot create async AWS client.")
+        
+        # Create the user session (sync for initial setup)
+        self.user_session = boto3.Session(
+            region_name=region_name,
+            aws_access_key_id=self.aws_access_key_id,
+            aws_secret_access_key=self.aws_secret_access_key
+        )
+
+        # Store credential fetcher for refresh capability
+        self.credential_fetcher = None
+        self.botocore_session = None
+        self.assume_role_arn = None
+
+        # Initialize with user session credentials
+        self.session = aioboto3.Session(
+            aws_access_key_id=self.aws_access_key_id,
+            aws_secret_access_key=self.aws_secret_access_key,
+            region_name=region_name
+        )
+        self.s3_bucket_name = None
+
+        try:
+            # Get the user's identity
+            user_identity = self.user_session.client("sts").get_caller_identity()
+
+            # Get the assume role ARN
+            self.assume_role_arn = get_assume_role_arn(user_identity["Arn"])
+
+            # Create role assumption credentials using the same approach as sync client
+            self.credential_fetcher = AssumeRoleCredentialFetcher(
+                client_creator=self.user_session.client,
+                source_credentials=self.user_session.get_credentials(),
+                role_arn=self.assume_role_arn,
+            )
+            
+            # Create a botocore session with deferred credentials like the sync client
+            self.botocore_session = botocore.session.Session()
+            self.botocore_session._credentials = DeferredRefreshableCredentials(
+                method='assume-role',
+                refresh_using=self.credential_fetcher.fetch_credentials
+            )
+            
+            # Update session with fresh credentials
+            self._refresh_session()
+            
+            # Get S3 bucket name
+            self.s3_bucket_name = get_s3_bucket_name(analytiq_client)
+
+        except Exception as e:
+            logger.error(f"AWS role assumption failed: {e}")
+            logger.info("Async AWS client falling back to basic AWS credentials")
+            # Fall back to basic credentials if role assumption fails
+            self.s3_bucket_name = get_s3_bucket_name(analytiq_client)
+
+    def _refresh_session(self):
+        """Refresh the session with current credentials"""
+        if self.botocore_session and self.botocore_session._credentials:
+            # Get fresh credentials
+            credentials = self.botocore_session.get_credentials()
+            
+            # Create new async session with fresh credentials
+            self.session = aioboto3.Session(
+                aws_access_key_id=credentials.access_key,
+                aws_secret_access_key=credentials.secret_key,
+                aws_session_token=credentials.token,
+                region_name=self.region_name
+            )
+            logger.debug("Refreshed async AWS session with new credentials")
+
+    @asynccontextmanager
+    async def client(self, service_name: str):
+        """Create an async client with automatic credential refresh"""
+        try:
+            # Refresh session to ensure we have current credentials
+            if self.botocore_session:
+                self._refresh_session()
+            
+            async with self.session.client(service_name) as client:
+                yield client
+        except Exception as e:
+            # If we get a signature error, try refreshing credentials once
+            if "InvalidSignatureException" in str(e) or "Signature expired" in str(e):
+                logger.warning(f"AWS signature expired, refreshing credentials and retrying")
+                if self.botocore_session:
+                    self._refresh_session()
+                    async with self.session.client(service_name) as client:
+                        yield client
+                else:
+                    raise e
+            else:
+                raise e
+
+def get_aws_client_async(analytiq_client, region_name: str = "us-east-1") -> AsyncAWSClient:
+    """
+    Get the async AWSClient.
+
+    Args:
+        analytiq_client: The AnalytiqClient.
+        region_name: AWS region name.
+
+    Returns:
+        The AsyncAWSClient.
+    """
+    return AsyncAWSClient(analytiq_client, region_name)

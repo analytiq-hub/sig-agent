@@ -984,6 +984,102 @@ async def test_document_metadata_search_edge_cases(test_db, small_pdf, mock_auth
     logger.info("test_document_metadata_search_edge_cases() end")
 
 @pytest.mark.asyncio
+async def test_document_metadata_removal(test_db, small_pdf, mock_auth):
+    """Test removing all metadata from a document"""
+    logger.info("test_document_metadata_removal() start")
+
+    try:
+        # Step 1: Upload a document with initial metadata
+        initial_metadata = {
+            "author": "John Doe",
+            "department": "finance",
+            "priority": "high",
+            "project": "Q4 Report"
+        }
+
+        upload_data = {
+            "documents": [{
+                "name": "metadata_removal_test.pdf",
+                "content": small_pdf["content"],
+                "metadata": initial_metadata
+            }]
+        }
+
+        response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/documents",
+            json=upload_data,
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+
+        upload_result = response.json()
+        document_id = upload_result["documents"][0]["document_id"]
+
+        # Step 2: Verify initial metadata is present
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        doc_data = response.json()
+        assert doc_data["metadata"]["metadata"] == initial_metadata
+
+        # Step 3: Update document to remove all metadata (empty dict)
+        update_data = {"metadata": {}}
+
+        response = client.put(
+            f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
+            json=update_data,
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+
+        # Step 4: Verify metadata has been removed using GET
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        doc_data = response.json()
+        assert doc_data["metadata"]["metadata"] == {}
+
+        # Step 5: Verify metadata removal using LIST
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        docs_data = response.json()
+
+        test_doc = next((doc for doc in docs_data["documents"] if doc["id"] == document_id), None)
+        assert test_doc is not None
+        assert test_doc["metadata"] == {}
+
+        # Step 6: Verify old metadata searches no longer find the document
+        response = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/documents?metadata_search=author%3DJohn%20Doe",
+            headers=get_auth_headers()
+        )
+        assert response.status_code == 200
+        search_data = response.json()
+
+        # Document should not be found in metadata search since metadata was removed
+        found_doc_ids = [doc["id"] for doc in search_data["documents"]]
+        assert document_id not in found_doc_ids
+
+    finally:
+        # Cleanup
+        try:
+            client.delete(
+                f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}",
+                headers=get_auth_headers()
+            )
+        except Exception as e:
+            logger.warning(f"Failed to cleanup document {document_id}: {e}")
+
+    logger.info("test_document_metadata_removal() end")
+
+@pytest.mark.asyncio
 async def test_document_name_search(test_db, small_pdf, mock_auth):
     """Test document name search functionality"""
     logger.info("test_document_name_search() start")

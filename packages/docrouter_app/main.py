@@ -403,7 +403,7 @@ async def update_document(
     current_user: User = Depends(get_org_user)
 ):
     """Update a document"""
-    logger.debug(f"Updating document {document_id} with data: {update}")
+    logger.info(f"Updating document {document_id} with data: {update}")
     analytiq_client = ad.common.get_analytiq_client()
     db = ad.common.get_async_db(analytiq_client)
 
@@ -417,7 +417,7 @@ async def update_document(
         raise HTTPException(status_code=404, detail="Document not found")
     
     # Validate all tag IDs
-    if update.tag_ids:
+    if update.tag_ids is not None:
         tags_cursor = db.tags.find({
             "_id": {"$in": [ObjectId(tag_id) for tag_id in update.tag_ids]},
             "organization_id": organization_id
@@ -434,7 +434,7 @@ async def update_document(
     
     # Prepare update dictionary
     update_dict = {}
-    if update.tag_ids:
+    if update.tag_ids is not None:
         update_dict["tag_ids"] = update.tag_ids
     
     # Add document_name to update if provided
@@ -516,7 +516,7 @@ async def list_documents(
                 id=str(doc["_id"]),
                 pdf_id=doc.get("pdf_id", doc.get("document_id", str(doc["_id"]))),  # fallback for old docs
                 document_name=doc.get("user_file_name", doc.get("document_name", "")),
-                upload_date=doc["upload_date"].isoformat() if isinstance(doc["upload_date"], datetime) else doc["upload_date"],
+                upload_date=doc["upload_date"].replace(tzinfo=UTC).isoformat() if isinstance(doc["upload_date"], datetime) else doc["upload_date"],
                 uploaded_by=doc.get("uploaded_by", ""),
                 state=doc.get("state", ""),
                 tag_ids=doc.get("tag_ids", []),
@@ -585,7 +585,7 @@ async def get_document(
         id=str(document["_id"]),
         pdf_id=document.get("pdf_id", document["document_id"]),
         document_name=document["user_file_name"],
-        upload_date=document["upload_date"],
+        upload_date=document["upload_date"].replace(tzinfo=UTC).isoformat(),
         uploaded_by=document["uploaded_by"],
         state=document.get("state", ""),
         tag_ids=document.get("tag_ids", []),
@@ -2635,7 +2635,7 @@ async def create_auth_token(user_data: dict = Body(...)):
     )
     return {"token": token}
 
-@app.get("/v0/account/llm_models", response_model=ListLLMModelsResponse, tags=["account/llm"])
+@app.get("/v0/account/llm/models", response_model=ListLLMModelsResponse, tags=["account/llm"])
 async def list_llm_models(
     current_user: User = Depends(get_current_user),
     provider_name: str | None = Query(None, description="Filter models by provider name"),
@@ -2695,7 +2695,7 @@ async def list_llm_models(
 
     return ListLLMModelsResponse(models=llm_models)
 
-@app.get("/v0/account/llm_providers", response_model=ListLLMProvidersResponse, tags=["account/llm"])
+@app.get("/v0/account/llm/providers", response_model=ListLLMProvidersResponse, tags=["account/llm"])
 async def list_llm_providers(
     current_user: User = Depends(get_admin_user)
 ):
@@ -2734,7 +2734,7 @@ async def list_llm_providers(
     
     return ListLLMProvidersResponse(providers=llm_providers)
 
-@app.put("/v0/account/llm_provider/{provider_name}", tags=["account/llm"])
+@app.put("/v0/account/llm/provider/{provider_name}", tags=["account/llm"])
 async def set_llm_provider_config(
     provider_name: str,
     request: SetLLMProviderConfigRequest,

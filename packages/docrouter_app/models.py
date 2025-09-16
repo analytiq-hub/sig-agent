@@ -63,8 +63,8 @@ class DocumentUpdate(BaseModel):
         default=None,
         description="New name for the document"
     )
-    tag_ids: List[str] = Field(
-        default=[],
+    tag_ids: Optional[List[str]] = Field(
+        default=None,
         description="List of tag IDs associated with the document"
     )
     metadata: Optional[Dict[str, str]] = Field(

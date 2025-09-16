@@ -2694,8 +2694,15 @@ async def update_customer_balances(db, customer_id: str, consumption: Dict[str, 
             {"$inc": update_operations}
         )
 
-async def save_complete_usage_record(db, org_id: str, spus: int, consumption: Dict[str, int], operation: str = "document_processing", source: str = "backend") -> Dict[str, Any]:
-    """Save complete usage record with breakdown"""
+async def save_complete_usage_record(db, org_id: str, spus: int, consumption: Dict[str, int], 
+                                   operation: str = "document_processing", source: str = "backend",
+                                   llm_provider: str = None,
+                                   llm_model: str = None,
+                                   prompt_tokens: int = None,
+                                   completion_tokens: int = None,
+                                   total_tokens: int = None,
+                                   actual_cost: float = None) -> Dict[str, Any]:
+    """Save complete usage record with breakdown and LLM metrics"""
     usage_record = {
         "org_id": org_id,
         "spus": spus,
@@ -2703,6 +2710,20 @@ async def save_complete_usage_record(db, org_id: str, spus: int, consumption: Di
         "source": source,
         "timestamp": datetime.now(UTC),
     }
+    
+    # Add LLM metrics if provided
+    if llm_provider is not None:
+        usage_record["llm_provider"] = llm_provider
+    if llm_model is not None:
+        usage_record["llm_model"] = llm_model
+    if prompt_tokens is not None:
+        usage_record["prompt_tokens"] = prompt_tokens
+    if completion_tokens is not None:
+        usage_record["completion_tokens"] = completion_tokens
+    if total_tokens is not None:
+        usage_record["total_tokens"] = total_tokens
+    if actual_cost is not None:
+        usage_record["actual_cost"] = actual_cost
     
     await db.payments_usage_records.insert_one(usage_record)
     
@@ -2741,13 +2762,19 @@ async def reset_billing_period(db, customer: Dict[str, Any], period_start: int, 
     
     logger.info(f"Reset billing period for customer {customer['_id']}: {period_start} to {period_end}")
 
-async def record_payment_usage(org_id: str, spus: int) -> Dict[str, int]:
+async def record_payment_usage(org_id: str, spus: int,
+                              llm_provider: str = None,
+                              llm_model: str = None,
+                              prompt_tokens: int = None, 
+                              completion_tokens: int = None, 
+                              total_tokens: int = None, 
+                              actual_cost: float = None) -> Dict[str, int]:
     """Record payment usage with proper SPU consumption order and atomic updates"""
     if spus <= 0:
         logger.warning(f"Invalid SPU amount: {spus} for org_id: {org_id}")
         return {"from_subscription": 0, "from_purchased": 0, "from_granted": 0, "from_paid": 0}
     
-    logger.info(f"Recording payment usage for org_id: {org_id} spus: {spus}")
+    logger.info(f"Recording payment usage for org_id: {org_id} spus: {spus}, provider: {llm_provider}, model: {llm_model}")
 
     db = ad.common.get_async_db()
     
@@ -2775,8 +2802,15 @@ async def record_payment_usage(org_id: str, spus: int) -> Dict[str, int]:
         # 6. Update customer balances atomically
         await update_customer_balances(db, balances["customer_id"], consumption)
         
-        # 7. Record complete usage record with breakdown
-        await save_complete_usage_record(db, org_id, spus, consumption, operation="document_processing")
+        # 7. Record complete usage record with breakdown and LLM metrics
+        await save_complete_usage_record(db, org_id, spus, consumption, 
+                                       operation="document_processing",
+                                       llm_provider=llm_provider,
+                                       llm_model=llm_model,
+                                       prompt_tokens=prompt_tokens,
+                                       completion_tokens=completion_tokens,
+                                       total_tokens=total_tokens,
+                                       actual_cost=actual_cost)
         
         logger.info(f"Usage recorded for org_id: {org_id} - {consumption}")
         return consumption

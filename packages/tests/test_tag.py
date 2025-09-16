@@ -311,4 +311,102 @@ async def test_tag_with_documents(org_and_users, test_db):
     
     # Now try to delete the tag again (should succeed)
     resp = client.delete(f"/v0/orgs/{org_id}/tags/{tag_id}", headers=get_token_headers(admin["token"]))
-    assert resp.status_code == 200 
+    assert resp.status_code == 200
+
+@pytest.mark.asyncio
+async def test_update_document_tags(org_and_users, test_db):
+    """Test updating tags on a document through the document update API"""
+    org_id = org_and_users["org_id"]
+    admin = org_and_users["admin"]
+
+    # Create three tags
+    tag_data_list = [
+        {"name": "doc-update-tag-1", "color": "#FF0000", "description": "First tag"},
+        {"name": "doc-update-tag-2", "color": "#00FF00", "description": "Second tag"},
+        {"name": "doc-update-tag-3", "color": "#0000FF", "description": "Third tag"}
+    ]
+
+    tag_ids = []
+    for tag_data in tag_data_list:
+        resp = client.post(f"/v0/orgs/{org_id}/tags", json=tag_data, headers=get_token_headers(admin["token"]))
+        assert resp.status_code == 200
+        tag_ids.append(resp.json()["id"])
+
+    # Create a document without tags
+    pdf_content = "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PgplbmRvYmoKMyAwIG9iago8PC9UeXBlL1BhZ2UvUGFyZW50IDIgMCBSL1Jlc291cmNlczw8Pj4vTWVkaWFCb3hbMCAwIDYxMiA3OTJdL0NvbnRlbnRzIDQgMCBSPj4KZW5kb2JqCjQgMCBvYmoKPDwvTGVuZ3RoIDUgPj4Kc3RyZWFtCkJUClRFU1QKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTAgMDAwMDAgbiAKMDAwMDAwMDAyMCAwMDAwMCBuIAowMDAwMDAwMDMwIDAwMDAwIG4gCjAwMDAwMDAwNDAgMDAwMDAgbiAKdHJhaWxlcgo8PC9TaXplIDUvUm9vdCAxIDAgUi9JbmZvIDYgMCBSCj4+CnN0YXJ0eHJlZgo2NTU1CiUlRU9G"
+    upload_data = {
+        "documents": [
+            {
+                "name": "tag-update-test.pdf",
+                "content": pdf_content
+            }
+        ]
+    }
+
+    resp = client.post(f"/v0/orgs/{org_id}/documents", json=upload_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    doc_id = resp.json()["documents"][0]["document_id"]
+
+    # Step 1: Add first tag using PUT
+    update_data = {"tag_ids": [tag_ids[0]]}
+    resp = client.put(f"/v0/orgs/{org_id}/documents/{doc_id}", json=update_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+
+    # Step 2: Check tag is there using GET
+    resp = client.get(f"/v0/orgs/{org_id}/documents/{doc_id}", headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    doc_response = resp.json()
+    doc_metadata = doc_response["metadata"]
+    assert len(doc_metadata["tag_ids"]) == 1
+    assert tag_ids[0] in doc_metadata["tag_ids"]
+
+    # Step 3: Check tag is there using LIST
+    resp = client.get(f"/v0/orgs/{org_id}/documents", headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    docs = resp.json()["documents"]
+    test_doc = next((doc for doc in docs if doc["id"] == doc_id), None)
+    assert test_doc is not None
+    assert len(test_doc["tag_ids"]) == 1
+    assert tag_ids[0] in test_doc["tag_ids"]
+
+    # Step 4: Add second and third tags using PUT
+    update_data = {"tag_ids": [tag_ids[0], tag_ids[1], tag_ids[2]]}
+    resp = client.put(f"/v0/orgs/{org_id}/documents/{doc_id}", json=update_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+
+    # Step 5: Check all three tags are there
+    resp = client.get(f"/v0/orgs/{org_id}/documents/{doc_id}", headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    doc_response = resp.json()
+    doc_metadata = doc_response["metadata"]
+    assert len(doc_metadata["tag_ids"]) == 3
+    assert tag_ids[0] in doc_metadata["tag_ids"]
+    assert tag_ids[1] in doc_metadata["tag_ids"]
+    assert tag_ids[2] in doc_metadata["tag_ids"]
+
+    # Step 6: Remove second and third tags, keep only first
+    update_data = {"tag_ids": [tag_ids[0]]}
+    resp = client.put(f"/v0/orgs/{org_id}/documents/{doc_id}", json=update_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+
+    # Step 7: Check only first tag remains
+    resp = client.get(f"/v0/orgs/{org_id}/documents/{doc_id}", headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    doc_response = resp.json()
+    doc_metadata = doc_response["metadata"]
+    assert len(doc_metadata["tag_ids"]) == 1
+    assert tag_ids[0] in doc_metadata["tag_ids"]
+    assert tag_ids[1] not in doc_metadata["tag_ids"]
+    assert tag_ids[2] not in doc_metadata["tag_ids"]
+
+    # Step 8: Remove the last tag
+    update_data = {"tag_ids": []}
+    resp = client.put(f"/v0/orgs/{org_id}/documents/{doc_id}", json=update_data, headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+
+    # Step 9: Check all tags are removed
+    resp = client.get(f"/v0/orgs/{org_id}/documents/{doc_id}", headers=get_token_headers(admin["token"]))
+    assert resp.status_code == 200
+    doc_response = resp.json()
+    doc_metadata = doc_response["metadata"]
+    assert len(doc_metadata["tag_ids"]) == 0 

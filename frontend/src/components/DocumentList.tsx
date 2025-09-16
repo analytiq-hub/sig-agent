@@ -26,6 +26,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import { toast } from 'react-toastify';
 import DocumentRenameModal from './DocumentRename';
 import { formatLocalDateWithTZ } from '@/utils/date';
+import { BoltIcon } from '@heroicons/react/24/outline';
+import { DocumentBulkUpdate } from './DocumentBulkUpdate';
 
 // Helper function to parse and URL-encode metadata search
 const parseAndEncodeMetadataSearch = (searchStr: string): string | null => {
@@ -77,6 +79,9 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   const [selectedDocument, setSelectedDocument] = useState<DocumentMetadata | null>(null);
 
   const [isSmallScreen, setIsSmallScreen] = useState(false);
+
+  // Add state for bulk update modal
+  const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -280,14 +285,14 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   const handleRenameSubmit = async (newName: string) => {
     if (!editingDocument) return;
-    
+
     try {
       await updateDocumentApi({
         organizationId: organizationId,
         documentId: editingDocument.id,
         documentName: newName
       });
-      
+
       // Refresh the document list to show the updated name
       await fetchFiles();
     } catch (error) {
@@ -296,6 +301,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
       throw error; // Rethrow to handle in the component
     }
   };
+
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -414,12 +420,12 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   };
 
   return (
-    <Box sx={{ 
-      flex: 1, 
-      width: '100%', 
-      display: 'flex', 
+    <Box sx={{
+      width: '100%',
+      display: 'flex',
       flexDirection: 'column',
-      height: 'calc(100vh - 184px)' // Just header + search + footer
+      height: 'calc(100vh - 200px)', // Account for header, nav, and padding
+      minHeight: '400px' // Ensure minimum height
     }}>
       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 text-blue-800 hidden md:block">
         <p className="text-sm">
@@ -456,21 +462,24 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
               placeholder="Filter by tags..."
             />
           )}
-          renderOption={(props, tag) => (
-            <li {...props}>
-              <div
-                className={`px-2 py-1 rounded text-sm ${
-                  isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
-                }`}
-                style={{ backgroundColor: tag.color }}
-              >
-                {tag.name}
-              </div>
-            </li>
-          )}
+          renderOption={(props, tag) => {
+            const { key, ...otherProps } = props;
+            return (
+              <li key={key} {...otherProps}>
+                <div
+                  className={`px-2 py-1 rounded text-sm ${
+                    isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
+                  }`}
+                  style={{ backgroundColor: tag.color }}
+                >
+                  {tag.name}
+                </div>
+              </li>
+            );
+          }}
           renderTags={(tagValue, getTagProps) =>
             tagValue.map((tag, index) => {
-              const { key, ...otherProps } = getTagProps({ index });
+              const { key, onDelete, ...otherProps } = getTagProps({ index });
               return (
                 <div
                   key={key}
@@ -479,13 +488,14 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
                     isColorLight(tag.color) ? 'text-gray-800' : 'text-white'
                   }`}
                   style={{ backgroundColor: tag.color }}
+                  onClick={onDelete}
                 >
                   {tag.name}
                 </div>
               );
             })
           }
-          sx={{ 
+          sx={{
             minWidth: 300,
             '& .MuiAutocomplete-tag': {
               margin: 0,
@@ -508,31 +518,40 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
             ),
           }}
         />
+        <button
+          onClick={() => setIsBulkUpdateOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
+        >
+          <BoltIcon className="h-5 w-5" />
+          Actions
+        </button>
       </div>
 
-      <DataGrid
-        loading={isLoading}
-        rows={documents} // Remove the client-side filtering here
-        columns={columns}
-        paginationModel={paginationModel}
-        onPaginationModelChange={(newModel) => {
-          setPaginationModel(newModel);
-        }}
-        pageSizeOptions={[5, 25, 50, 100]}
-        rowCount={totalRows}
-        paginationMode="server"
-        disableRowSelectionOnClick
-        getRowId={(row) => row.id}
-        sx={{
-          '& .MuiDataGrid-row:nth-of-type(odd)': {
-            backgroundColor: 'rgba(0, 0, 0, 0.04)',
-          },
-          '& .MuiDataGrid-row:hover': {
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-          },
-          flex: 1,
-        }}
-      />
+      <Box sx={{ flex: 1, minHeight: 0 }}>
+        <DataGrid
+          loading={isLoading}
+          rows={documents}
+          columns={columns}
+          paginationModel={paginationModel}
+          onPaginationModelChange={(newModel) => {
+            setPaginationModel(newModel);
+          }}
+          pageSizeOptions={[5, 25, 50, 100]}
+          rowCount={totalRows}
+          paginationMode="server"
+          disableRowSelectionOnClick
+          getRowId={(row) => row.id}
+          sx={{
+            height: '100%',
+            '& .MuiDataGrid-row:nth-of-type(odd)': {
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+            },
+            '& .MuiDataGrid-row:hover': {
+              backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            },
+          }}
+        />
+      </Box>
       <div>
         {isLoading ? 'Loading...' : null}
       </div>
@@ -603,6 +622,21 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
           onSubmit={handleRenameSubmit}
         />
       )}
+
+      {/* Bulk Update Modal */}
+      <DocumentBulkUpdate
+        isOpen={isBulkUpdateOpen}
+        onClose={() => setIsBulkUpdateOpen(false)}
+        organizationId={organizationId}
+        availableTags={tags}
+        searchParameters={{
+          searchTerm,
+          selectedTagFilters,
+          metadataSearch,
+          paginationModel
+        }}
+        onRefresh={fetchFiles}
+      />
     </Box>
   );
 };
