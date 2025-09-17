@@ -2975,6 +2975,17 @@ async def credit_customer_account_from_session(db, session: Dict[str, Any]):
     """Credit customer account after successful Checkout session"""
     
     try:
+        # Idempotency guard: ensure we only credit once per Checkout session
+        session_id = session.get("id")
+        if not session_id:
+            logger.error("Checkout session missing id; skipping crediting")
+            return
+
+        already_processed = await db.payments_credit_transactions.find_one({"session_id": session_id})
+        if already_processed:
+            logger.info(f"Checkout session {session_id} already processed for credits; skipping duplicate credit")
+            return
+
         metadata = session.get("metadata", {})
         org_id = metadata.get("org_id")
         credits = int(metadata.get("credits", 0))
@@ -3000,6 +3011,18 @@ async def credit_customer_account_from_session(db, session: Dict[str, Any]):
             {"_id": customer["_id"]},
             {"$set": {"stripe_payments_portal_enabled": True}}
         )
+        
+        # Record processed transaction for idempotency and audit
+        try:
+            await db.payments_credit_transactions.insert_one({
+                "session_id": session_id,
+                "org_id": org_id,
+                "credits": credits,
+                "created_at": datetime.now(UTC)
+            })
+        except Exception as e:
+            # If insert fails due to race/dup, log and continue
+            logger.warning(f"Could not record credit transaction for session {session_id}: {e}")
         
         logger.info(f"Credited {credits} purchased SPUs to organization {org_id} from checkout session {session['id']}")
         

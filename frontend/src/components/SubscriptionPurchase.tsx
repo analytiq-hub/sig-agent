@@ -166,6 +166,30 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
               <h4 className="text-sm font-medium text-blue-900">Purchase Credits</h4>
               <span className="text-xs text-blue-600">${creditConfig.price_per_credit} each</span>
             </div>
+            {(() => {
+              const totalCost = purchaseAmount * creditConfig.price_per_credit;
+              const underMin = purchaseAmount > 0 && totalCost < creditConfig.min_cost;
+              const overMax = purchaseAmount > 0 && totalCost > creditConfig.max_cost;
+              const minCredits = Math.ceil(creditConfig.min_cost / creditConfig.price_per_credit);
+              const maxCredits = Math.floor(creditConfig.max_cost / creditConfig.price_per_credit);
+              const buttonDisabled =
+                disabled ||
+                purchaseLoading ||
+                !purchaseAmount ||
+                purchaseAmount <= 0 ||
+                underMin ||
+                overMax;
+              const disabledReason = underMin
+                ? `Minimum purchase is $${creditConfig.min_cost.toFixed(2)} (≥ ${minCredits} credits)`
+                : overMax
+                ? `Maximum purchase is $${creditConfig.max_cost.toFixed(2)} (≤ ${maxCredits} credits)`
+                : purchaseAmount <= 0
+                ? 'Enter a positive number of credits'
+                : disabled
+                ? 'Purchasing is disabled'
+                : '';
+              return (
+                <>
             <div className="flex items-center gap-2 mb-1">
               <input
                 type="number"
@@ -180,22 +204,33 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
               />
               <button
                 onClick={handlePurchaseCredits}
-                disabled={
-                  disabled ||
-                  purchaseLoading || 
-                  !purchaseAmount || 
-                  purchaseAmount <= 0 || 
-                  (purchaseAmount * creditConfig.price_per_credit) < creditConfig.min_cost || 
-                  (purchaseAmount * creditConfig.price_per_credit) > creditConfig.max_cost
-                }
+                disabled={buttonDisabled}
+                title={buttonDisabled ? disabledReason : ''}
                 className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded font-medium disabled:cursor-not-allowed"
               >
                 {purchaseLoading ? 'Processing...' : 'Buy'}
               </button>
             </div>
             <div className="text-xs text-blue-600">
-              Total: ${purchaseAmount > 0 ? (purchaseAmount * creditConfig.price_per_credit).toFixed(2) : '0.00'}
+              Total: ${purchaseAmount > 0 ? (totalCost).toFixed(2) : '0.00'}
             </div>
+            {(underMin || overMax) && (
+              <div className="text-xs mt-1">
+                {underMin && (
+                  <div className="text-red-600">
+                    Minimum purchase is ${creditConfig.min_cost.toFixed(2)} (≥ {minCredits} credits)
+                  </div>
+                )}
+                {overMax && (
+                  <div className="text-red-600">
+                    Maximum purchase is ${creditConfig.max_cost.toFixed(2)} (≤ {maxCredits} credits)
+                  </div>
+                )}
+              </div>
+            )}
+                </>
+              );
+            })()}
             {disabled && (
               <div className="text-xs text-gray-500 mt-1">
                 Credit purchasing is currently disabled. Contact your administrator for additional credits.
