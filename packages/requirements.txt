@@ -77,7 +77,6 @@ requests==2.32.5
 rich==14.1.0
 rpds-py==0.27.1
 rsa==4.9.1
-s3transfer==0.14.0
 sentinels==1.1.1
 shellingham==1.5.4
 six==1.17.0
