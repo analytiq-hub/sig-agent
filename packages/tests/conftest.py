@@ -37,7 +37,7 @@ def pytest_addoption(parser):
         default="function",
     )
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 def unique_db_name():
     # Use xdist worker id if available, else use a UUID
     worker_id = os.environ.get("PYTEST_XDIST_WORKER")
