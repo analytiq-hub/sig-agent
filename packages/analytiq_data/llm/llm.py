@@ -16,6 +16,17 @@ from .llm_output_utils import process_llm_resp_content
 
 logger = logging.getLogger(__name__)
 
+# Drop unsupported provider/model params automatically (e.g., O-series temperature)
+litellm.drop_params = True
+
+def is_o_series_model(model_name: str) -> bool:
+    """Return True for OpenAI O-series models (e.g., o1, o1-mini, o3, o4-mini)."""
+    if not model_name:
+        return False
+    name = model_name.strip().lower()
+    # O-series models start with 'o' (not to be confused with gpt-4o which starts with 'gpt')
+    return name.startswith("o") and not name.startswith("gpt")
+
 def is_retryable_error(exception) -> bool:
     """
     Check if an exception is retryable based on error patterns.
@@ -81,6 +92,9 @@ async def _litellm_acompletion_with_retry(
     Raises:
         Exception: If the call fails after all retries
     """
+    # O-series models only support temperature=1
+    if is_o_series_model(model):
+        temperature = 1
     return await litellm.acompletion(
         model=model,
         messages=messages,
@@ -299,11 +313,13 @@ async def run_llm(analytiq_client,
         aws_region_name = None
 
     # 6. Call the LLM with retry mechanism
+    # Ensure temperature is valid for the chosen model
+    call_temperature = 1 if is_o_series_model(llm_model) else 0.1
     response = await _litellm_acompletion_with_retry(
         model=llm_model,
         messages=messages,  # Use the vision-aware messages
         api_key=api_key,
-        temperature=0.1,
+        temperature=call_temperature,
         response_format=response_format,
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
@@ -669,6 +685,9 @@ async def run_llm_chat(
             # Streaming response
             async def generate_stream():
                 try:
+                    # O-series models only support temperature=1
+                    if is_o_series_model(params["model"]):
+                        params["temperature"] = 1
                     response = await litellm.acompletion(**params, stream=True)
                     async for chunk in response:
                         if chunk.choices[0].delta.content:
@@ -687,6 +706,9 @@ async def run_llm_chat(
             )
         else:
             # Non-streaming response
+            # O-series models only support temperature=1
+            if is_o_series_model(params["model"]):
+                params["temperature"] = 1
             response = await litellm.acompletion(**params)
             
             return {

@@ -97,8 +97,15 @@ async def setup_llm_providers(analytiq_client):
                     update = True
 
             # Order the litellm_models_available using same order from litellm.models_by_provider. If order changes, set the update flag
-            models_available_ordered = sorted(provider_config["litellm_models_available"], 
-                                              key=lambda x: litellm.models_by_provider[provider].index(x))
+            # litellm may return a set for models; normalize to an ordered sequence for stable indexing
+            litellm_models_seq = list(litellm.models_by_provider.get(provider, []))
+            if isinstance(litellm.models_by_provider.get(provider, []), set):
+                litellm_models_seq = sorted(litellm.models_by_provider.get(provider, []))
+            model_position = {model_name: idx for idx, model_name in enumerate(litellm_models_seq)}
+            models_available_ordered = sorted(
+                provider_config["litellm_models_available"],
+                key=lambda x: model_position.get(x, float("inf"))
+            )
             if models_available_ordered != provider_config["litellm_models_available"]:
                 logger.info(f"Litellm models available ordered: {models_available_ordered}")
                 logger.info(f"Provider config litellm_models_available: {provider_config['litellm_models_available']}")
@@ -106,8 +113,10 @@ async def setup_llm_providers(analytiq_client):
                 update = True
             
             # Order the litellm_models_enabled using same order from litellm.models_by_provider. If order changes, set the update flag
-            models_ordered = sorted(provider_config["litellm_models_enabled"], 
-                                    key=lambda x: litellm.models_by_provider[provider].index(x))
+            models_ordered = sorted(
+                provider_config["litellm_models_enabled"],
+                key=lambda x: model_position.get(x, float("inf"))
+            )
             if models_ordered != provider_config["litellm_models_enabled"]:
                 logger.info(f"Litellm models ordered: {models_ordered}")
                 logger.info(f"Provider config litellm_models_enabled: {provider_config['litellm_models_enabled']}")
@@ -240,8 +249,8 @@ def get_llm_providers() -> dict:
         "openai": {
             "display_name": "OpenAI",
             "litellm_provider": "openai",
-            "litellm_models_available": ["gpt-4o-mini", "gpt-4.1-2025-04-14", "o4-mini"],
-            "litellm_models_enabled": ["gpt-4o-mini", "gpt-4.1-2025-04-14", "o4-mini"],
+            "litellm_models_available": ["gpt-4o-mini", "gpt-4.1-2025-04-14", "o4-mini", "gpt-5"],
+            "litellm_models_enabled": ["gpt-4o-mini", "gpt-4.1-2025-04-14", "o4-mini", "gpt-5"],
             "enabled": True,
             "token" : "",
             "token_created_at": None,

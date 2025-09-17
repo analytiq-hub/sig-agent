@@ -2692,6 +2692,7 @@ async def list_llm_models(
                 output_cost_per_token=output_cost_per_token,
             )
             llm_models.append(llm_model)
+            logger.info(f"llm_model: {llm_model}")
 
     return ListLLMModelsResponse(models=llm_models)
 
