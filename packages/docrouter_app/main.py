@@ -757,6 +757,9 @@ async def run_llm_analysis(
             force=force
         )
         
+        # Update state to LLM completed
+        await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_LLM_COMPLETED)
+        
         return LLMRunResponse(
             status="success",
             result=result
