@@ -285,10 +285,10 @@ async def run_llm(analytiq_client,
             # For OpenAI, we need to upload the file first
             try:
                 # Upload file to OpenAI
-                file_response = await litellm.afile_upload(
-                    model=llm_model,
-                    file=file_attachment_blob,
-                    file_name=file_attachment_name,
+                file_response = await litellm.acreate_file(
+                    file=(file_attachment_name, file_attachment_blob),
+                    purpose="assistants",
+                    custom_llm_provider="openai",
                     api_key=api_key
                 )
                 file_id = file_response.id
