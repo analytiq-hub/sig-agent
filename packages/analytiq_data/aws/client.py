@@ -113,10 +113,10 @@ async def get_aws_config(analytiq_client) -> dict:
         The AWS keys.
     """
     db_name = analytiq_client.env
-    db = analytiq_client.mongodb[db_name]
+    db = analytiq_client.mongodb_async[db_name]
     aws_config_collection = db["aws_config"]
 
-    aws_config = aws_config_collection.find_one()
+    aws_config = await aws_config_collection.find_one()
     
     # Parse the AWS keys
     access_key_id = ""
