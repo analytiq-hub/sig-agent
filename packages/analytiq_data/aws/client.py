@@ -32,14 +32,17 @@ class AWSClient:
     def __init__(self, analytiq_client, region_name: str = "us-east-1"):
         self.env = analytiq_client.env
         self.region_name = region_name
+        self.analytiq_client = analytiq_client
+
+    def init(self):
         # Get the AWS keys
-        aws_keys = get_aws_config(analytiq_client)
+        aws_keys = get_aws_config(self.analytiq_client)
         self.aws_access_key_id = aws_keys["aws_access_key_id"]
         self.aws_secret_access_key = aws_keys["aws_secret_access_key"]
 
         # Create the session
         self.user_session = boto3.Session(
-            region_name=region_name,
+            region_name=self.region_name,
             aws_access_key_id=self.aws_access_key_id,
             aws_secret_access_key=self.aws_secret_access_key
         )
@@ -75,11 +78,11 @@ class AWSClient:
             self.session = boto3.Session(botocore_session=botocore_session)
 
             # Create the s3 client
-            self.s3 = self.session.client("s3", region_name=region_name)
-            self.s3_bucket_name = get_s3_bucket_name(analytiq_client)
+            self.s3 = self.session.client("s3", region_name=self.region_name)
+            self.s3_bucket_name = get_s3_bucket_name(self.analytiq_client)
 
             # Create the textract client
-            self.textract = self.session.client("textract", region_name=region_name)
+            self.textract = self.session.client("textract", region_name=self.region_name)
 
         except Exception as e:
             logger.info(f"AWS credentials are not correct: {e}")
@@ -95,7 +98,9 @@ def get_aws_client(analytiq_client, region_name: str = "us-east-1") -> AWSClient
     Returns:
         The AWSClient.
     """
-    return AWSClient(analytiq_client, region_name)
+    aws_client = AWSClient(analytiq_client, region_name)
+    aws_client.init()
+    return aws_client
 
 def get_aws_config(analytiq_client) -> dict:
     """
