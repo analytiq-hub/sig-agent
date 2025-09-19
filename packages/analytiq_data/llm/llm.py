@@ -370,9 +370,6 @@ async def run_llm(analytiq_client,
         # Groq doesn't support response_format parameter
         response_format = None
         logger.info(f"Disabling response_format for Groq provider")
-    # elif llm_provider == "xai":
-    #     # xAI supports response_format parameter but litellm doesn't know it yet
-    #     response_format = {"type": "json_object"}
 
     # Bedrock models require aws_access_key_id, aws_secret_access_key, aws_region_name
     if llm_provider == "bedrock":
