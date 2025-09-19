@@ -47,6 +47,11 @@ def unique_db_name():
         db_name = f"pytest_{uuid.uuid4()}"
 
     os.environ["ENV"] = db_name
+
+    # Disable Stripe during all unit tests by clearing the secret key
+    os.environ["STRIPE_SECRET_KEY"] = ""
+    os.environ["STRIPE_WEBHOOK_SECRET"] = ""
+
     return db_name
 
 @pytest_asyncio.fixture

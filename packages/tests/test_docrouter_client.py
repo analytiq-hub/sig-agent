@@ -143,16 +143,32 @@ async def setup_test_models(db):
 async def test_documents_api(test_db, mock_auth, mock_docrouter_client, small_pdf):
     """Test the documents API using the mock DocRouterClient"""
     logger.info(f"test_documents_api() start")
-    
+
     try:
-        # Test 1: Create a document with metadata
-        small_pdf["metadata"] = {"test_client": "sdk", "suite": "integration"}
+        # Test 0: Create test tags for use during upload
+        tag_data_1 = {
+            "name": "Test Tag 1",
+            "color": "#FF0000"
+        }
+        tag_data_2 = {
+            "name": "Test Tag 2",
+            "color": "#00FF00"
+        }
+
+        tag_1 = mock_docrouter_client.tags.create(TEST_ORG_ID, tag_data_1)
+        tag_2 = mock_docrouter_client.tags.create(TEST_ORG_ID, tag_data_2)
+
+        # Test 1: Create a document with metadata and tags
+        small_pdf["metadata"] = {"test_client": "sdk", "suite": "integration", "upload_test": "true"}
+        small_pdf["tag_ids"] = [tag_1.id, tag_2.id]
+
         upload_result = mock_docrouter_client.documents.upload(TEST_ORG_ID, [small_pdf])
         assert "documents" in upload_result
         assert len(upload_result["documents"]) == 1
         assert upload_result["documents"][0]["document_name"] == "small_test.pdf"
-        assert upload_result["documents"][0]["metadata"] == {"test_client": "sdk", "suite": "integration"}
-        
+        assert upload_result["documents"][0]["metadata"] == {"test_client": "sdk", "suite": "integration", "upload_test": "true"}
+        assert upload_result["documents"][0]["tag_ids"] == [tag_1.id, tag_2.id]
+
         document_id = upload_result["documents"][0]["document_id"]
         
         # Test 2: List documents
@@ -161,32 +177,36 @@ async def test_documents_api(test_db, mock_auth, mock_docrouter_client, small_pd
         assert documents.total_count >= 1
         
         # Find our document in the list
-        created_doc = next((doc for doc in documents.documents 
+        created_doc = next((doc for doc in documents.documents
                            if doc.id == document_id), None)
         assert created_doc is not None
         assert created_doc.document_name == "small_test.pdf"
-        assert created_doc.metadata == {"test_client": "sdk", "suite": "integration"}
+        assert created_doc.metadata == {"test_client": "sdk", "suite": "integration", "upload_test": "true"}
+        assert created_doc.tag_ids == [tag_1.id, tag_2.id]
         
         # Test 3: Get a document
         doc = mock_docrouter_client.documents.get(TEST_ORG_ID, document_id)
         assert doc.metadata.id == document_id
         assert doc.metadata.document_name == "small_test.pdf"
-        assert doc.metadata.metadata == {"test_client": "sdk", "suite": "integration"}
+        assert doc.metadata.metadata == {"test_client": "sdk", "suite": "integration", "upload_test": "true"}
+        assert doc.metadata.tag_ids == [tag_1.id, tag_2.id]
         
-        # Test 4: Update a document with metadata
+        # Test 4: Update a document with metadata and tags
         update_result = mock_docrouter_client.documents.update(
             TEST_ORG_ID,
             document_id,
             document_name="small_test_updated.pdf",
+            tag_ids=[tag_1.id],  # Remove one tag
             metadata={"test_client": "sdk", "suite": "integration", "updated": "true"}
         )
         assert "message" in update_result
         assert update_result["message"] == "Document updated successfully"
-        
+
         # Get the document again to verify the update
         updated_doc = mock_docrouter_client.documents.get(TEST_ORG_ID, document_id)
         assert updated_doc.metadata.document_name == "small_test_updated.pdf"
         assert updated_doc.metadata.metadata == {"test_client": "sdk", "suite": "integration", "updated": "true"}
+        assert updated_doc.metadata.tag_ids == [tag_1.id]
         
         # Test 5: Delete a document
         delete_result = mock_docrouter_client.documents.delete(TEST_ORG_ID, document_id)
@@ -195,10 +215,14 @@ async def test_documents_api(test_db, mock_auth, mock_docrouter_client, small_pd
         
         # List documents again to verify it was deleted
         documents_after_delete = mock_docrouter_client.documents.list(TEST_ORG_ID)
-        deleted_doc = next((doc for doc in documents_after_delete.documents 
+        deleted_doc = next((doc for doc in documents_after_delete.documents
                            if doc.id == document_id), None)
         assert deleted_doc is None, "Document should have been deleted"
-        
+
+        # Clean up created tags
+        mock_docrouter_client.tags.delete(TEST_ORG_ID, tag_1.id)
+        mock_docrouter_client.tags.delete(TEST_ORG_ID, tag_2.id)
+
     finally:
         pass  # mock_auth fixture handles cleanup
     
