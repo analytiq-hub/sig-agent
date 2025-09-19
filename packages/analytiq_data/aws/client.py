@@ -22,7 +22,7 @@ async def get_s3_bucket_name(analytiq_client) -> str:
         The S3 bucket name to use for AWS operations.
     """
     try:
-        aws_config = get_aws_config(analytiq_client)
+        aws_config = await get_aws_config(analytiq_client)
         if aws_config.get("s3_bucket_name"):
             return aws_config["s3_bucket_name"]
     except Exception as e:
@@ -36,7 +36,7 @@ class AWSClient:
 
     async def init(self):
         # Get the AWS keys
-        aws_keys = get_aws_config(self.analytiq_client)
+        aws_keys = await get_aws_config(self.analytiq_client)
         self.aws_access_key_id = aws_keys["aws_access_key_id"]
         self.aws_secret_access_key = aws_keys["aws_secret_access_key"]
 
@@ -102,7 +102,7 @@ async def get_aws_client(analytiq_client, region_name: str = "us-east-1") -> AWS
     await aws_client.init()
     return aws_client
 
-def get_aws_config(analytiq_client) -> dict:
+async def get_aws_config(analytiq_client) -> dict:
     """
     Get the AWS keys.
 
@@ -155,7 +155,7 @@ class AsyncAWSClient:
         
     async def init(self):
         # Get the AWS keys
-        aws_keys = get_aws_config(analytiq_client)
+        aws_keys = await get_aws_config(analytiq_client)
         self.aws_access_key_id = aws_keys["aws_access_key_id"]
         self.aws_secret_access_key = aws_keys["aws_secret_access_key"]
         
