@@ -165,17 +165,16 @@ async def get_blob_async(analytiq_client, bucket: str, key: str) -> dict:
     if elem is None:
         return None
     metadata = elem.get("metadata", None)
-    
+
     # Get the blob
-    fs = gridfs.GridFS(db, collection=bucket)
-    elem = await fs.find_one({"filename": key})
+    fs_bucket = AsyncIOMotorGridFSBucket(db, bucket_name=bucket)
+    elem = await fs_bucket.open_download_stream_by_name(key)
     blob = await elem.read()
 
     blob_dict = {
         "blob": blob,
         "metadata": metadata
     }
-
     return blob_dict
 
 async def save_blob_async(analytiq_client, bucket: str, key: str, blob: bytes, metadata: dict, chunk_size_bytes: int = 8*1024*1024):
