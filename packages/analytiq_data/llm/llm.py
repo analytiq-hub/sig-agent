@@ -10,6 +10,7 @@ from collections import OrderedDict
 import logging
 from bson import ObjectId
 import base64
+import os
 import re
 import stamina
 from .llm_output_utils import process_llm_resp_content
@@ -18,6 +19,85 @@ logger = logging.getLogger(__name__)
 
 # Drop unsupported provider/model params automatically (e.g., O-series temperature)
 litellm.drop_params = True
+
+async def get_extracted_text(analytiq_client, document_id: str) -> str | None:
+    """
+    Get extracted text from a document.
+
+    For OCR-supported files, returns OCR text.
+    For txt/md files, returns the original file content as text.
+    For other non-OCR files, returns None.
+
+    Args:
+        analytiq_client: The AnalytiqClient instance
+        document_id: The document ID
+
+    Returns:
+        str | None: The extracted text, or None if file needs to be attached
+    """
+    # Get document info
+    doc = await ad.common.doc.get_doc(analytiq_client, document_id)
+    if not doc:
+        return None
+
+    file_name = doc.get("user_file_name", "")
+
+    # Check if OCR is supported
+    if ad.common.doc.ocr_supported(file_name):
+        # Use OCR text
+        return ad.common.get_ocr_text(analytiq_client, document_id)
+
+    # For non-OCR files, check if it's a text file we can read
+    if file_name:
+        ext = os.path.splitext(file_name)[1].lower()
+        if ext in {'.txt', '.md'}:
+            # Get the original file and decode as text
+            original_file = ad.common.get_file(analytiq_client, doc["mongo_file_name"])
+            if original_file and original_file["blob"]:
+                try:
+                    return original_file["blob"].decode("utf-8")
+                except UnicodeDecodeError:
+                    # Fallback to latin-1 if UTF-8 fails
+                    return original_file["blob"].decode("latin-1")
+
+    # For other files (csv, xls, xlsx), return None to indicate file attachment needed
+    return None
+
+def get_file_attachment(analytiq_client, doc: dict, llm_provider: str, llm_model: str):
+    """
+    Get file attachment for LLM processing.
+
+    Args:
+        analytiq_client: The AnalytiqClient instance
+        doc: Document dictionary
+        llm_provider: LLM provider name
+        llm_model: LLM model name
+
+    Returns:
+        File blob and file name, or None, None
+    """
+    file_name = doc.get("user_file_name", "")
+    if not file_name:
+        return None, None
+
+    ext = os.path.splitext(file_name)[1].lower()
+
+    # Check if model supports vision
+    model_supports_vision = supports_pdf_input(llm_model, None) or llm_provider == "xai"
+
+    if model_supports_vision and doc.get("pdf_file_name"):
+        # For vision-capable models, prefer PDF version
+        pdf_file = ad.common.get_file(analytiq_client, doc["pdf_file_name"])
+        if pdf_file and pdf_file["blob"]:
+            return pdf_file["blob"], doc["pdf_file_name"]
+
+    # For CSV, Excel files, or when PDF not available, use original file
+    if ext in {'.csv', '.xls', '.xlsx'} or not model_supports_vision:
+        original_file = ad.common.get_file(analytiq_client, doc["mongo_file_name"])
+        if original_file and original_file["blob"]:
+            return original_file["blob"], file_name
+
+    return None, None
 
 def is_o_series_model(model_name: str) -> bool:
     """Return True for OpenAI O-series models (e.g., o1, o1-mini, o3, o4-mini)."""
@@ -172,7 +252,12 @@ async def run_llm(analytiq_client,
     api_key = await ad.llm.get_llm_key(analytiq_client, llm_provider)
     logger.info(f"LLM model: {llm_model}, provider: {llm_provider}, api_key: {api_key[:16]}********")
 
-    ocr_text = ad.common.get_ocr_text(analytiq_client, document_id)
+    extracted_text = await get_extracted_text(analytiq_client, document_id)
+    file_attachment_blob, file_attachment_name = get_file_attachment(analytiq_client, doc, llm_provider, llm_model)
+
+    if not extracted_text and not file_attachment_blob:
+        raise Exception(f"Document {document_id} has no extracted text and no file attachment, so cannot use vision")
+
     prompt1 = await ad.common.get_prompt_content(analytiq_client, prompt_rev_id)
     
     # Define system_prompt before using it
@@ -182,73 +267,39 @@ async def run_llm(analytiq_client,
         "Format your entire response as a JSON object."
     )
     
-    # Check if this model supports vision and we have a PDF
-    use_vision = supports_pdf_input(llm_model, None) and doc.get("pdf_file_name")
+    # Determine how to handle the document content
+    if file_attachment_blob:
+        # For vision models, we can pass both the PDF and OCR text
+        # The PDF provides visual context, OCR text provides structured text
+        prompt = f"""{prompt1}
 
-    if llm_provider == "xai":
-        # xAI supports vision but litellm doesn't know it yet
-        use_vision = True
-    
-    if use_vision:
-        # Get the PDF file
-        pdf_file = ad.common.get_file(analytiq_client, doc["pdf_file_name"])
-        if pdf_file and pdf_file["blob"]:
-            # For vision models, we can pass both the PDF and OCR text
-            # The PDF provides visual context, OCR text provides structured text
-            prompt = f"""{prompt1}
-
-            Please analyze this document. You have access to both the visual PDF and the extracted text.
-            
-            Extracted text from the document:
-            {ocr_text}
-            
-            Please provide your analysis based on both the visual content and the text."""
-            
-            # Different approaches for different providers
-            if llm_provider == "openai":
-                # For OpenAI, we need to upload the file first
-                try:
-                    # Upload file to OpenAI
-                    file_response = await litellm.afile_upload(
-                        model=llm_model,
-                        file=pdf_file['blob'],
-                        file_name=doc["pdf_file_name"],
-                        api_key=api_key
-                    )
-                    file_id = file_response.id
-                    
-                    # Create messages with file reference
-                    file_content = [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "file",
-                            "file": {
-                                "file_id": file_id,
-                            }
-                        },
-                    ]
-                    
-                    messages = [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": file_content}
-                    ]
-                    logger.info(f"Attaching OCR and PDF to prompt {prompt_rev_id} using OpenAI file_id: {file_id}")
-                    
-                except Exception as e:
-                    logger.warning(f"Failed to upload file to OpenAI: {e}, falling back to OCR-only")
-                    use_vision = False
-                    
-            else:
-                # For other providers (Anthropic, Gemini), use base64 approach
-                encoded_file = base64.b64encode(pdf_file['blob']).decode("utf-8")
-                base64_url = f"data:application/pdf;base64,{encoded_file}"
+        Please analyze this document. You have access to both the visual PDF and the extracted text.
+        
+        Extracted text from the document:
+        {extracted_text}
+        
+        Please provide your analysis based on both the visual content and the text."""
+        
+        # Different approaches for different providers
+        if llm_provider == "openai":
+            # For OpenAI, we need to upload the file first
+            try:
+                # Upload file to OpenAI
+                file_response = await litellm.afile_upload(
+                    model=llm_model,
+                    file=file_attachment_blob,
+                    file_name=file_attachment_name,
+                    api_key=api_key
+                )
+                file_id = file_response.id
                 
+                # Create messages with file reference
                 file_content = [
                     {"type": "text", "text": prompt},
                     {
                         "type": "file",
                         "file": {
-                            "file_data": base64_url,
+                            "file_id": file_id,
                         }
                     },
                 ]
@@ -257,18 +308,40 @@ async def run_llm(analytiq_client,
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": file_content}
                 ]
-                logger.info(f"Attaching OCR and PDF to prompt {prompt_rev_id} using base64 for {llm_provider}")
+                logger.info(f"Attaching OCR and PDF to prompt {prompt_rev_id} using OpenAI file_id: {file_id}")
+                
+            except Exception as e:
+                logger.error(f"Failed to upload file to OpenAI: {e}, falling back to OCR-only")
+                raise e
+                
         else:
-            # Fallback to OCR-only if PDF not available
-            use_vision = False
+            # For other providers (Anthropic, Gemini), use base64 approach
+            encoded_file = base64.b64encode(pdf_file['blob']).decode("utf-8")
+            base64_url = f"data:application/pdf;base64,{encoded_file}"
+            
+            file_content = [
+                {"type": "text", "text": prompt},
+                {
+                    "type": "file",
+                    "file": {
+                        "file_data": base64_url,
+                    }
+                },
+            ]
+            
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": file_content}
+            ]
+            logger.info(f"Attaching OCR and PDF to prompt {prompt_rev_id} using base64 for {llm_provider}")
     
-    if not use_vision:
+    if not file_attachment_blob:
         # Original OCR-only approach
         prompt = f"""{prompt1}
 
         Now extract from this text: 
         
-        {ocr_text}"""
+        {extracted_text}"""
         
         messages = [
             {"role": "system", "content": system_prompt},

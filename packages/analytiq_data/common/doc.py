@@ -271,3 +271,12 @@ def is_pdf_or_image(mime_type):
         "image/bmp",
         "image/tiff"
     ]
+
+def ocr_supported(file_name: str) -> bool:
+    """Check if OCR is supported for a file based on its extension"""
+    if not file_name:
+        return False
+    ext = os.path.splitext(file_name)[1].lower()
+    # OCR not supported for structured data files
+    skip_extensions = {'.csv', '.xls', '.xlsx', '.txt', '.md'}
+    return ext not in skip_extensions

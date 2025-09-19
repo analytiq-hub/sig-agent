@@ -1,10 +1,12 @@
 import asyncio
 import json
 import logging
+import os
 import analytiq_data as ad
 import stamina
 
 logger = logging.getLogger(__name__)
+
 
 @stamina.retry(on=FileNotFoundError)
 def _ocr_get_file(analytiq_client, file_name: str):
@@ -37,7 +39,23 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
 
     try:
         document_id = msg["msg"]["document_id"]
-        
+
+        # Get document info to check if we should skip OCR
+        doc = await ad.common.doc.get_doc(analytiq_client, document_id)
+        if not doc:
+            logger.error(f"Document {document_id} not found. Skipping OCR.")
+            return
+
+        # Check if OCR is supported for this file
+        if not ad.common.doc.ocr_supported(doc.get("user_file_name", "")):
+            logger.info(f"Skipping OCR processing for structured data file: {document_id} ({doc.get('user_file_name')})")
+            # Update state to OCR completed without doing OCR
+            await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_COMPLETED)
+            # Post a message to the llm job queue
+            msg = {"document_id": document_id}
+            await ad.queue.send_msg(analytiq_client, "llm", msg=msg)
+            return
+
         # Update state to OCR processing
         await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_PROCESSING)
         
