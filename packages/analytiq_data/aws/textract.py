@@ -30,7 +30,7 @@ async def run_textract(analytiq_client,
         Textract blocks formatted as a dict
     """
     # Get the async AWS client
-    aws_client = ad.aws.get_aws_client_async(analytiq_client)
+    aws_client = await ad.aws.get_aws_client_async(analytiq_client)
     s3_bucket_name = aws_client.s3_bucket_name
 
     # Create a random s3 key

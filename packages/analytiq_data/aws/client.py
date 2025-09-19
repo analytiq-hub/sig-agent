@@ -151,7 +151,9 @@ class AsyncAWSClient:
     def __init__(self, analytiq_client, region_name: str = "us-east-1"):
         self.env = analytiq_client.env
         self.region_name = region_name
+        self.analytiq_client = analytiq_client
         
+    async def init(self):
         # Get the AWS keys
         aws_keys = get_aws_config(analytiq_client)
         self.aws_access_key_id = aws_keys["aws_access_key_id"]
@@ -251,7 +253,7 @@ class AsyncAWSClient:
             else:
                 raise e
 
-def get_aws_client_async(analytiq_client, region_name: str = "us-east-1") -> AsyncAWSClient:
+async def get_aws_client_async(analytiq_client, region_name: str = "us-east-1") -> AsyncAWSClient:
     """
     Get the async AWSClient.
 
@@ -262,4 +264,6 @@ def get_aws_client_async(analytiq_client, region_name: str = "us-east-1") -> Asy
     Returns:
         The AsyncAWSClient.
     """
-    return AsyncAWSClient(analytiq_client, region_name)
+    aws_client = AsyncAWSClient(analytiq_client, region_name)
+    await aws_client.init()
+    return aws_client
