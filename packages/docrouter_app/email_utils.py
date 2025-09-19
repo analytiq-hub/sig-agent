@@ -40,7 +40,7 @@ async def send_email(
     """
     try:
         # Create SES client
-        aws_client = ad.aws.get_aws_client(analytiq_client)
+        aws_client = await ad.aws.get_aws_client(analytiq_client)
         ses_client = aws_client.session.client("ses", region_name=aws_client.region_name)
 
         

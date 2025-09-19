@@ -88,7 +88,7 @@ class AWSClient:
             logger.info(f"AWS credentials are not correct: {e}")
             logger.info("AWS client created with empty AWS credentials")
 
-def get_aws_client(analytiq_client, region_name: str = "us-east-1") -> AWSClient:
+async def get_aws_client(analytiq_client, region_name: str = "us-east-1") -> AWSClient:
     """
     Get the AWSClient.
 
