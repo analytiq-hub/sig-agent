@@ -34,7 +34,7 @@ class AWSClient:
         self.region_name = region_name
         self.analytiq_client = analytiq_client
 
-    def init(self):
+    async def init(self):
         # Get the AWS keys
         aws_keys = get_aws_config(self.analytiq_client)
         self.aws_access_key_id = aws_keys["aws_access_key_id"]
@@ -99,7 +99,7 @@ async def get_aws_client(analytiq_client, region_name: str = "us-east-1") -> AWS
         The AWSClient.
     """
     aws_client = AWSClient(analytiq_client, region_name)
-    aws_client.init()
+    await aws_client.init()
     return aws_client
 
 def get_aws_config(analytiq_client) -> dict:
