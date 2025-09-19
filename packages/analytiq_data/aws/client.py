@@ -11,7 +11,7 @@ import analytiq_data as ad
 
 logger = logging.getLogger(__name__)
 
-def get_s3_bucket_name(analytiq_client) -> str:
+async def get_s3_bucket_name(analytiq_client) -> str:
     """
     Get the S3 bucket name from database configuration or environment variable with fallback to default.
     
@@ -79,7 +79,7 @@ class AWSClient:
 
             # Create the s3 client
             self.s3 = self.session.client("s3", region_name=self.region_name)
-            self.s3_bucket_name = get_s3_bucket_name(self.analytiq_client)
+            self.s3_bucket_name = await get_s3_bucket_name(self.analytiq_client)
 
             # Create the textract client
             self.textract = self.session.client("textract", region_name=self.region_name)
@@ -207,13 +207,13 @@ class AsyncAWSClient:
             self._refresh_session()
             
             # Get S3 bucket name
-            self.s3_bucket_name = get_s3_bucket_name(analytiq_client)
+            self.s3_bucket_name = await get_s3_bucket_name(analytiq_client)
 
         except Exception as e:
             logger.error(f"AWS role assumption failed: {e}")
             logger.info("Async AWS client falling back to basic AWS credentials")
             # Fall back to basic credentials if role assumption fails
-            self.s3_bucket_name = get_s3_bucket_name(analytiq_client)
+            self.s3_bucket_name = await get_s3_bucket_name(analytiq_client)
 
     def _refresh_session(self):
         """Refresh the session with current credentials"""
