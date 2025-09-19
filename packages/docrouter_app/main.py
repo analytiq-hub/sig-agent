@@ -651,6 +651,10 @@ async def download_ocr_blocks(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
+    file_name = document.get("user_file_name", "")
+    if not ad.common.doc.ocr_supported(file_name):
+        raise HTTPException(status_code=404, detail="OCR not supported for this document extension")
+
     # Get the OCR JSON data from mongodb
     ocr_json = ad.common.get_ocr_json(analytiq_client, document_id)
     if ocr_json is None:
@@ -674,6 +678,10 @@ async def download_ocr_text(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
+    file_name = document.get("user_file_name", "")
+    if not ad.common.doc.ocr_supported(file_name):
+        raise HTTPException(status_code=404, detail="OCR not supported for this document extension")
+
     # Page number is 1-based, but the OCR text page_idx is 0-based
     page_idx = None
     if page_num is not None:
@@ -700,6 +708,10 @@ async def get_ocr_metadata(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
+    file_name = document.get("user_file_name", "")
+    if not ad.common.doc.ocr_supported(file_name):
+        raise HTTPException(status_code=404, detail="OCR not supported for this document extension")
+
     # Get the OCR metadata from mongodb
     metadata = ad.common.get_ocr_metadata(analytiq_client, document_id)
     if metadata is None:
@@ -722,7 +734,7 @@ async def run_llm_analysis(
     """
     Run LLM on a document, with optional force refresh.
     """
-    logger.debug(f"run_llm_analysis() start: document_id: {document_id}, prompt_rev_id: {prompt_rev_id}, force: {force}")
+    logger.info(f"run_llm_analysis() start: document_id: {document_id}, prompt_rev_id: {prompt_rev_id}, force: {force}")
     analytiq_client = ad.common.get_analytiq_client()
     
     # Verify document exists and user has access
@@ -730,10 +742,12 @@ async def run_llm_analysis(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    # Verify OCR is complete
-    ocr_metadata = ad.common.get_ocr_metadata(analytiq_client, document_id)
-    if ocr_metadata is None:
-        raise HTTPException(status_code=404, detail="OCR metadata not found")
+    # Verify OCR is complete only if the document requires OCR
+    file_name = document.get("user_file_name", "")
+    if ad.common.doc.ocr_supported(file_name):
+        ocr_metadata = ad.common.get_ocr_metadata(analytiq_client, document_id)
+        if ocr_metadata is None:
+            raise HTTPException(status_code=404, detail="OCR metadata not found")
 
     try:
         result = await ad.llm.run_llm(
