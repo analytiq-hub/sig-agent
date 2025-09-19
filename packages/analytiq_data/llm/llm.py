@@ -52,7 +52,7 @@ async def get_extracted_text(analytiq_client, document_id: str) -> str | None:
         ext = os.path.splitext(file_name)[1].lower()
         if ext in {'.txt', '.md'}:
             # Get the original file and decode as text
-            original_file = ad.common.get_file(analytiq_client, doc["mongo_file_name"])
+            original_file = await ad.common.get_file_async(analytiq_client, doc["mongo_file_name"])
             if original_file and original_file["blob"]:
                 try:
                     return original_file["blob"].decode("utf-8")
@@ -63,7 +63,7 @@ async def get_extracted_text(analytiq_client, document_id: str) -> str | None:
     # For other files (csv, xls, xlsx), return None to indicate file attachment needed
     return None
 
-def get_file_attachment(analytiq_client, doc: dict, llm_provider: str, llm_model: str):
+async def get_file_attachment(analytiq_client, doc: dict, llm_provider: str, llm_model: str):
     """
     Get file attachment for LLM processing.
 
@@ -87,13 +87,13 @@ def get_file_attachment(analytiq_client, doc: dict, llm_provider: str, llm_model
 
     if model_supports_vision and doc.get("pdf_file_name"):
         # For vision-capable models, prefer PDF version
-        pdf_file = ad.common.get_file(analytiq_client, doc["pdf_file_name"])
+        pdf_file = await ad.common.get_file_async(analytiq_client, doc["pdf_file_name"])
         if pdf_file and pdf_file["blob"]:
             return pdf_file["blob"], doc["pdf_file_name"]
 
     # For CSV, Excel files, or when PDF not available, use original file
     if ext in {'.csv', '.xls', '.xlsx'} or not model_supports_vision:
-        original_file = ad.common.get_file(analytiq_client, doc["mongo_file_name"])
+        original_file = await ad.common.get_file_async(analytiq_client, doc["mongo_file_name"])
         if original_file and original_file["blob"]:
             return original_file["blob"], file_name
 
@@ -253,7 +253,7 @@ async def run_llm(analytiq_client,
     logger.info(f"LLM model: {llm_model}, provider: {llm_provider}, api_key: {api_key[:16]}********")
 
     extracted_text = await get_extracted_text(analytiq_client, document_id)
-    file_attachment_blob, file_attachment_name = get_file_attachment(analytiq_client, doc, llm_provider, llm_model)
+    file_attachment_blob, file_attachment_name = await get_file_attachment(analytiq_client, doc, llm_provider, llm_model)
 
     if not extracted_text and not file_attachment_blob:
         raise Exception(f"Document {document_id} has no extracted text and no file attachment, so cannot use vision")
@@ -316,7 +316,7 @@ async def run_llm(analytiq_client,
                 
         else:
             # For other providers (Anthropic, Gemini), use base64 approach
-            encoded_file = base64.b64encode(pdf_file['blob']).decode("utf-8")
+            encoded_file = base64.b64encode(file_attachment_blob).decode("utf-8")
             base64_url = f"data:application/pdf;base64,{encoded_file}"
             
             file_content = [
