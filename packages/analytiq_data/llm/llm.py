@@ -186,6 +186,35 @@ async def _litellm_acompletion_with_retry(
         aws_region_name=aws_region_name
     )
 
+@stamina.retry(on=is_retryable_error)
+async def _litellm_acreate_file_with_retry(
+    file: tuple,
+    purpose: str,
+    custom_llm_provider: str,
+    api_key: str
+):
+    """
+    Create a file with litellm with stamina retry mechanism.
+    
+    Args:
+        file: The file tuple (filename, file_content)
+        purpose: The purpose of the file (e.g., "assistants")
+        custom_llm_provider: The LLM provider (e.g., "openai")
+        api_key: The API key
+        
+    Returns:
+        The file creation response
+        
+    Raises:
+        Exception: If the call fails after all retries
+    """
+    return await litellm.acreate_file(
+        file=file,
+        purpose=purpose,
+        custom_llm_provider=custom_llm_provider,
+        api_key=api_key
+    )
+
 async def run_llm(analytiq_client, 
                   document_id: str,
                   prompt_rev_id: str = "default",
@@ -285,7 +314,7 @@ async def run_llm(analytiq_client,
             # For OpenAI, we need to upload the file first
             try:
                 # Upload file to OpenAI
-                file_response = await litellm.acreate_file(
+                file_response = await _litellm_acreate_file_with_retry(
                     file=(file_attachment_name, file_attachment_blob),
                     purpose="assistants",
                     custom_llm_provider="openai",
