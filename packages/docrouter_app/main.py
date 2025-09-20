@@ -734,7 +734,7 @@ async def run_llm_analysis(
     """
     Run LLM on a document, with optional force refresh.
     """
-    logger.info(f"run_llm_analysis() start: document_id: {document_id}, prompt_rev_id: {prompt_rev_id}, force: {force}")
+    logger.info(f"run_llm_analysis(): doc_id/prompt_rev_id {document_id}/{prompt_rev_id}, force: {force}")
     analytiq_client = ad.common.get_analytiq_client()
     
     # Verify document exists and user has access
@@ -766,13 +766,13 @@ async def run_llm_analysis(
         )
         
     except SPUCreditException as e:
-        logger.warning(f"SPU credit exhausted in LLM run: {str(e)}")
+        logger.warning(f"{document_id}/{prompt_rev_id}: SPU credit exhausted in LLM run: {str(e)}")
         raise HTTPException(
             status_code=402,
             detail=f"Insufficient SPU credits: {str(e)}"
         )
     except Exception as e:
-        logger.error(f"Error in LLM run: {str(e)}")
+        logger.error(f"{document_id}/{prompt_rev_id}: Error in LLM run: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error processing document: {str(e)}"

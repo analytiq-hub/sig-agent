@@ -1155,7 +1155,7 @@ async def save_usage_record(db, org_id: str, spus: int, operation: str, source: 
 async def check_payment_limits(org_id: str, spus: int) -> bool:
     """Check if organization has hit payment limits using local data only (no Stripe API calls)"""
 
-    logger.info(f"Checking subscription limits for org_id: {org_id} spus: {spus}")
+    logger.debug(f"Checking spu limits for org_id: {org_id} spus: {spus}")
 
     db = ad.common.get_async_db()
 
@@ -1194,10 +1194,10 @@ async def check_payment_limits(org_id: str, spus: int) -> bool:
     
     # Individual and team plans block usage when credits are exhausted
     if total_available >= spus:
-        logger.info(f"Sufficient credits available for org_id: {org_id} (available: {total_available}, requested: {spus})")
+        logger.info(f"Sufficient spu credits available for org_id: {org_id} (available: {total_available}, requested: {spus})")
         return True
     else:
-        logger.warning(f"Insufficient credits for org_id: {org_id} (available: {total_available}, requested: {spus})")
+        logger.warning(f"Insufficient spu credits for org_id: {org_id} (available: {total_available}, requested: {spus})")
         raise SPUCreditException(org_id, spus, total_available)
 
 async def sync_local_subscription_data(db, org_id: str, stripe_customer_id: str, subscription: Dict[str, Any]):
@@ -2790,8 +2790,6 @@ async def record_payment_usage(org_id: str, spus: int,
     if spus <= 0:
         logger.warning(f"Invalid SPU amount: {spus} for org_id: {org_id}")
         return {"from_subscription": 0, "from_purchased": 0, "from_granted": 0, "from_paid": 0}
-    
-    logger.info(f"Recording payment usage for org_id: {org_id} spus: {spus}, provider: {llm_provider}, model: {llm_model}")
 
     db = ad.common.get_async_db()
     
@@ -2829,7 +2827,6 @@ async def record_payment_usage(org_id: str, spus: int,
                                        total_tokens=total_tokens,
                                        actual_cost=actual_cost)
         
-        logger.info(f"Usage recorded for org_id: {org_id} - {consumption}")
         return consumption
         
     except Exception as e:

@@ -57,7 +57,6 @@ def is_chat_model(llm_model: str) -> bool:
         return False
     
     try:
-        logger.info(f"Checking if {llm_model} is a chat model")
         model_info = litellm.get_model_info(llm_model)
         if model_info.get('mode') == 'chat':
             return True
