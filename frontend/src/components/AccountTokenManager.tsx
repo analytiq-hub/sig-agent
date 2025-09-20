@@ -3,6 +3,7 @@ import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, Dial
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
 import { createAccountTokenApi, getAccountTokensApi, deleteAccountTokenApi } from '@/utils/api';
 import { CreateTokenRequest } from '@/types/index';
+import { copyToClipboard } from '@/utils/clipboard';
 
 export interface AccessToken {
   id: string;
@@ -69,11 +70,6 @@ const AccountTokenManager: React.FC = () => {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      // Optionally, you can show a success message here
-    });
-  };
 
   const handleDeleteToken = (tokenId: string) => {
     deleteAccountTokenApi(tokenId);

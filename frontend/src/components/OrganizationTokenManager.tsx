@@ -4,6 +4,7 @@ import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons
 import { createOrganizationTokenApi, getOrganizationTokensApi, deleteOrganizationTokenApi } from '@/utils/api';
 import { CreateTokenRequest } from '@/types/index';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { copyToClipboard } from '@/utils/clipboard';
 
 export interface AccessToken {
   id: string;
@@ -78,11 +79,6 @@ const OrganizationTokenManager: React.FC = () => {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      // Optionally, you can show a success message here
-    });
-  };
 
   const handleDeleteToken = async (tokenId: string) => {
     if (!currentOrganization?.id) return;
