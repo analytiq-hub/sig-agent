@@ -155,7 +155,7 @@ class AsyncAWSClient:
         
     async def init(self):
         # Get the AWS keys
-        aws_keys = await get_aws_config(analytiq_client)
+        aws_keys = await get_aws_config(self.analytiq_client)
         self.aws_access_key_id = aws_keys["aws_access_key_id"]
         self.aws_secret_access_key = aws_keys["aws_secret_access_key"]
         
@@ -164,7 +164,7 @@ class AsyncAWSClient:
         
         # Create the user session (sync for initial setup)
         self.user_session = boto3.Session(
-            region_name=region_name,
+            region_name=self.region_name,
             aws_access_key_id=self.aws_access_key_id,
             aws_secret_access_key=self.aws_secret_access_key
         )
@@ -178,7 +178,7 @@ class AsyncAWSClient:
         self.session = aioboto3.Session(
             aws_access_key_id=self.aws_access_key_id,
             aws_secret_access_key=self.aws_secret_access_key,
-            region_name=region_name
+            region_name=self.region_name
         )
         self.s3_bucket_name = None
 
@@ -207,13 +207,13 @@ class AsyncAWSClient:
             self._refresh_session()
             
             # Get S3 bucket name
-            self.s3_bucket_name = await get_s3_bucket_name(analytiq_client)
+            self.s3_bucket_name = await get_s3_bucket_name(self.analytiq_client)
 
         except Exception as e:
             logger.error(f"AWS role assumption failed: {e}")
             logger.info("Async AWS client falling back to basic AWS credentials")
             # Fall back to basic credentials if role assumption fails
-            self.s3_bucket_name = await get_s3_bucket_name(analytiq_client)
+            self.s3_bucket_name = await get_s3_bucket_name(self.analytiq_client)
 
     def _refresh_session(self):
         """Refresh the session with current credentials"""
