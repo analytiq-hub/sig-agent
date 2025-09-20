@@ -238,13 +238,13 @@ async def run_llm(analytiq_client,
     if not force:
         existing_result = await get_llm_result(analytiq_client, document_id, prompt_rev_id)
         if existing_result:
-            logger.info(f"Using cached LLM result for document_id: {document_id}, prompt_rev_id: {prompt_rev_id}")
+            logger.info(f"Using cached LLM result for doc_id/prompt_rev_id {document_id}/{prompt_rev_id}")
             return existing_result["llm_result"]
     else:
         # Delete the existing result
         await delete_llm_result(analytiq_client, document_id, prompt_rev_id)
 
-    logger.info(f"Running new LLM analysis for document_id: {document_id}, prompt_rev_id: {prompt_rev_id}")
+    logger.info(f"Running new LLM analysis for doc_id/prompt_rev_id {document_id}/{prompt_rev_id}")
 
     # 1. Get the document and organization_id
     doc = await ad.common.doc.get_doc(analytiq_client, document_id)
@@ -268,24 +268,24 @@ async def run_llm(analytiq_client,
     await ad.payments.check_spu_limits(org_id, total_spu_needed)
 
     if not ad.llm.is_chat_model(llm_model) and not ad.llm.is_supported_model(llm_model):
-        logger.info(f"LLM model {llm_model} is not a chat model, falling back to default llm_model")
+        logger.info(f"{document_id}/{prompt_rev_id}: LLM model {llm_model} is not a chat model, falling back to default llm_model")
         llm_model = "gpt-4o-mini"
 
     # Get the provider for the given LLM model
     llm_provider = ad.llm.get_llm_model_provider(llm_model)
     if llm_provider is None:
-        logger.info(f"LLM model {llm_model} not supported, falling back to default llm_model")
+        logger.info(f"{document_id}/{prompt_rev_id}: LLM model {llm_model} not supported, falling back to default llm_model")
         llm_model = "gpt-4o-mini"
         llm_provider = "openai"
         
     api_key = await ad.llm.get_llm_key(analytiq_client, llm_provider)
-    logger.info(f"LLM model: {llm_model}, provider: {llm_provider}, api_key: {api_key[:16]}********")
+    logger.info(f"{document_id}/{prompt_rev_id}: LLM model: {llm_model}, provider: {llm_provider}, api_key: {api_key[:16]}********")
 
     extracted_text = await get_extracted_text(analytiq_client, document_id)
     file_attachment_blob, file_attachment_name = await get_file_attachment(analytiq_client, doc, llm_provider, llm_model)
 
     if not extracted_text and not file_attachment_blob:
-        raise Exception(f"Document {document_id} has no extracted text and no file attachment, so cannot use vision")
+        raise Exception(f"{document_id}/{prompt_rev_id}: Document has no extracted text and no file attachment, so cannot use vision")
 
     prompt1 = await ad.common.get_prompt_content(analytiq_client, prompt_rev_id)
     
@@ -337,10 +337,10 @@ async def run_llm(analytiq_client,
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": file_content}
                 ]
-                logger.info(f"Attaching OCR and PDF to prompt {prompt_rev_id} using OpenAI file_id: {file_id}")
+                logger.info(f"{document_id}/{prompt_rev_id}: Attaching OCR and PDF to prompt using OpenAI file_id: {file_id}")
                 
             except Exception as e:
-                logger.error(f"Failed to upload file to OpenAI: {e}")
+                logger.error(f"{document_id}/{prompt_rev_id}: Failed to upload file to OpenAI: {e}")
                 raise e
                 
         else:
@@ -362,7 +362,7 @@ async def run_llm(analytiq_client,
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": file_content}
             ]
-            logger.info(f"Attaching OCR and PDF to prompt {prompt_rev_id} using base64 for {llm_provider}")
+            logger.info(f"{document_id}/{prompt_rev_id}: Attaching OCR and PDF to prompt using base64 for {llm_provider}")
     
     if not file_attachment_blob:
         # Original OCR-only approach
@@ -377,7 +377,7 @@ async def run_llm(analytiq_client,
             {"role": "user", "content": prompt}
         ]
 
-        logger.info(f"Attaching OCR-only to prompt {prompt_rev_id}")
+        logger.info(f"{document_id}/{prompt_rev_id}: Attaching OCR-only to prompt")
 
     response_format = None
     
@@ -389,16 +389,10 @@ async def run_llm(analytiq_client,
     elif litellm.supports_response_schema(model=llm_model):
         # Get the prompt response format, if any
         response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_rev_id)
-        logger.info(f"Response format: {response_format}")
+        logger.info(f"{document_id}/{prompt_rev_id}: Response format: {response_format}")
     
     if response_format is None:
-        logger.info(f"No response format found for prompt {prompt_rev_id}")
-
-    # Provider-specific handling for response_format
-    if llm_provider == "groq":
-        # Groq doesn't support response_format parameter
-        response_format = None
-        logger.info(f"Disabling response_format for Groq provider")
+        logger.info(f"{document_id}/{prompt_rev_id}: No response format found for prompt")
 
     # Bedrock models require aws_access_key_id, aws_secret_access_key, aws_region_name
     if llm_provider == "bedrock":
