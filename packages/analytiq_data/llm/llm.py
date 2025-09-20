@@ -311,7 +311,7 @@ async def run_llm(analytiq_client,
                 logger.info(f"Attaching OCR and PDF to prompt {prompt_rev_id} using OpenAI file_id: {file_id}")
                 
             except Exception as e:
-                logger.error(f"Failed to upload file to OpenAI: {e}, falling back to OCR-only")
+                logger.error(f"Failed to upload file to OpenAI: {e}")
                 raise e
                 
         else:
