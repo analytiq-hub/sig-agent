@@ -67,7 +67,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
         fileType: "original"
       });
 
-      const fileName = doc.document_name || response.metadata.document_name;
+      const fileName = doc.document_name || response.document_name;
 
       // Create filename in format: prefix_id.suffix
       const lastDotIndex = fileName.lastIndexOf('.');
@@ -75,7 +75,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
       const suffix = lastDotIndex !== -1 ? fileName.substring(lastDotIndex) : '';
       const downloadFileName = `${prefix}_${doc.id}${suffix}`;
 
-      const serverType: string | undefined = response.metadata?.type as string | undefined;
+      const serverType: string | undefined = response.type as string | undefined;
       const blob = new Blob([response.content], { type: serverType });
 
       const url = URL.createObjectURL(blob);

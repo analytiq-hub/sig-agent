@@ -134,7 +134,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
           setLoading(false);
 
           // Use metadata from the response
-          setFileName(response.metadata.document_name);
+          setFileName(response.document_name);
           setFileSize(blob.size);
         } else {
           if (url) {

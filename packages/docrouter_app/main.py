@@ -580,22 +580,17 @@ async def get_document(
         except Exception:
             returned_mime = None
 
-    # Create metadata response, including MIME type
-    metadata = DocumentMetadata(
+    # Return flattened response
+    return DocumentResponse(
         id=str(document["_id"]),
         pdf_id=document.get("pdf_id", document["document_id"]),
         document_name=document["user_file_name"],
-        upload_date=document["upload_date"].replace(tzinfo=UTC).isoformat(),
+        upload_date=document["upload_date"].replace(tzinfo=UTC),
         uploaded_by=document["uploaded_by"],
         state=document.get("state", ""),
         tag_ids=document.get("tag_ids", []),
         type=returned_mime,
-        metadata=document.get("metadata", {})
-    )
-
-    # Return using the DocumentResponse model
-    return DocumentResponse(
-        metadata=metadata,
+        metadata=document.get("metadata", {}),
         content=base64.b64encode(file["blob"]).decode('utf-8')
     )
 

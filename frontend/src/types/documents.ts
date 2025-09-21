@@ -58,7 +58,15 @@ export interface GetDocumentParams {
 }
 
 export interface GetDocumentResponse {
-  metadata: DocumentMetadata;
+  id: string;
+  pdf_id: string;
+  document_name: string;
+  upload_date: string;
+  uploaded_by: string;
+  state: string;
+  tag_ids: string[];
+  type?: string;
+  metadata?: Record<string, string>;
   content: ArrayBuffer;
 }
 

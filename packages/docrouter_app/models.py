@@ -46,8 +46,16 @@ class DocumentMetadata(BaseModel):
     metadata: Optional[Dict[str, str]] = {}  # Optional key-value metadata pairs
 
 class DocumentResponse(BaseModel):
-    metadata: DocumentMetadata
-    content: str  # Changed from bytes to str since we're using base64 encoded string
+    id: str
+    pdf_id: str
+    document_name: str
+    upload_date: datetime
+    uploaded_by: str
+    state: str
+    tag_ids: List[str] = []  # List of tag IDs
+    type: str | None = None   # MIME type of the returned file (original/pdf)
+    metadata: Optional[Dict[str, str]] = {}  # Optional key-value metadata pairs
+    content: str  # Base64 encoded content
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

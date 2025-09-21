@@ -34,7 +34,7 @@ const PDFSidebar = ({ organizationId, id, onHighlight, onClearHighlight }: Props
           documentId: id,
           fileType: "pdf"
         });
-        setDocumentName(response.metadata.document_name);
+        setDocumentName(response.document_name);
       } catch (error) {
         console.error('Error fetching document name:', error);
         setDocumentName('Untitled Document');

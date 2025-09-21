@@ -26,7 +26,15 @@ class DocumentMetadata(BaseModel):
     metadata: Optional[Dict[str, str]] = {}
 
 class DocumentResponse(BaseModel):
-    metadata: DocumentMetadata
+    id: str
+    pdf_id: str
+    document_name: str
+    upload_date: datetime
+    uploaded_by: str
+    state: str
+    tag_ids: List[str] = []
+    type: Optional[str] = None
+    metadata: Optional[Dict[str, str]] = {}
     content: str
 
 class DocumentUpdate(BaseModel):

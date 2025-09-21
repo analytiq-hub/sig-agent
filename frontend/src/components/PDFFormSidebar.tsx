@@ -52,7 +52,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         fileType: 'original' 
       });
       
-      const documentTags = documentResponse.metadata.tag_ids || [];
+      const documentTags = documentResponse.tag_ids || [];
       setDocumentTags(documentTags);
 
       // Fetch forms that match the document's tags

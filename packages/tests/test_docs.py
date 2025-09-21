@@ -304,10 +304,9 @@ async def test_upload_document(test_db, pdf_fixture, request, mock_auth):
         
         assert get_response.status_code == 200
         doc_data = get_response.json()
-        assert "metadata" in doc_data
-        assert doc_data["metadata"]["id"] == document_id
-        assert doc_data["metadata"]["document_name"] == test_pdf["name"]
-        assert doc_data["metadata"]["metadata"] == test_metadata
+        assert doc_data["id"] == document_id
+        assert doc_data["document_name"] == test_pdf["name"]
+        assert doc_data["metadata"] == test_metadata
         assert "content" in doc_data  # Verify the PDF content is returned
         
         # Verify the content matches what we uploaded
@@ -477,9 +476,9 @@ async def test_document_lifecycle(test_db, small_pdf, mock_auth):
         
         assert get_response.status_code == 200
         doc_data = get_response.json()
-        assert doc_data["metadata"]["document_name"] == new_document_name
-        assert second_tag_id in doc_data["metadata"]["tag_ids"]
-        assert doc_data["metadata"]["metadata"] == updated_metadata
+        assert doc_data["document_name"] == new_document_name
+        assert second_tag_id in doc_data["tag_ids"]
+        assert doc_data["metadata"] == updated_metadata
         
         # Step 10: Filter documents by tag
         filtered_list_response = client.get(
@@ -1022,7 +1021,7 @@ async def test_document_metadata_removal(test_db, small_pdf, mock_auth):
         )
         assert response.status_code == 200
         doc_data = response.json()
-        assert doc_data["metadata"]["metadata"] == initial_metadata
+        assert doc_data["metadata"] == initial_metadata
 
         # Step 3: Update document to remove all metadata (empty dict)
         update_data = {"metadata": {}}
@@ -1041,7 +1040,7 @@ async def test_document_metadata_removal(test_db, small_pdf, mock_auth):
         )
         assert response.status_code == 200
         doc_data = response.json()
-        assert doc_data["metadata"]["metadata"] == {}
+        assert doc_data["metadata"] == {}
 
         # Step 5: Verify metadata removal using LIST
         response = client.get(

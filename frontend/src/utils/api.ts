@@ -307,7 +307,7 @@ export const getDocumentApi = async (params: GetDocumentParams): Promise<GetDocu
   // Always request the associated PDF
   const response = await api.get(`/v0/orgs/${organizationId}/documents/${documentId}?file_type=${fileType}`);
   const data = response.data;
-  
+
   // Convert base64 content back to ArrayBuffer
   const binaryContent = atob(data.content);
   const len = binaryContent.length;
@@ -317,6 +317,14 @@ export const getDocumentApi = async (params: GetDocumentParams): Promise<GetDocu
   }
 
   return {
+    id: data.id,
+    pdf_id: data.pdf_id,
+    document_name: data.document_name,
+    upload_date: data.upload_date,
+    uploaded_by: data.uploaded_by,
+    state: data.state,
+    tag_ids: data.tag_ids,
+    type: data.type,
     metadata: data.metadata,
     content: bytes.buffer
   };

@@ -383,7 +383,7 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
 
         # Verify metadata if present
         if "metadata" in doc_data and doc_data["metadata"]:
-            assert doc_data["metadata"]["metadata"]["test_source"] == "llm_pipeline_test"
+            assert doc_data["metadata"]["test_source"] == "llm_pipeline_test"
 
         # Verify OCR was processed (mock textract should have been called during OCR processing)
         # Note: We can't use assert_called_once() on the mock since we used new= instead of new_callable=

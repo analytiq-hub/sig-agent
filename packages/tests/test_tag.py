@@ -356,9 +356,8 @@ async def test_update_document_tags(org_and_users, test_db):
     resp = client.get(f"/v0/orgs/{org_id}/documents/{doc_id}", headers=get_token_headers(admin["token"]))
     assert resp.status_code == 200
     doc_response = resp.json()
-    doc_metadata = doc_response["metadata"]
-    assert len(doc_metadata["tag_ids"]) == 1
-    assert tag_ids[0] in doc_metadata["tag_ids"]
+    assert len(doc_response["tag_ids"]) == 1
+    assert tag_ids[0] in doc_response["tag_ids"]
 
     # Step 3: Check tag is there using LIST
     resp = client.get(f"/v0/orgs/{org_id}/documents", headers=get_token_headers(admin["token"]))
@@ -378,11 +377,10 @@ async def test_update_document_tags(org_and_users, test_db):
     resp = client.get(f"/v0/orgs/{org_id}/documents/{doc_id}", headers=get_token_headers(admin["token"]))
     assert resp.status_code == 200
     doc_response = resp.json()
-    doc_metadata = doc_response["metadata"]
-    assert len(doc_metadata["tag_ids"]) == 3
-    assert tag_ids[0] in doc_metadata["tag_ids"]
-    assert tag_ids[1] in doc_metadata["tag_ids"]
-    assert tag_ids[2] in doc_metadata["tag_ids"]
+    assert len(doc_response["tag_ids"]) == 3
+    assert tag_ids[0] in doc_response["tag_ids"]
+    assert tag_ids[1] in doc_response["tag_ids"]
+    assert tag_ids[2] in doc_response["tag_ids"]
 
     # Step 6: Remove second and third tags, keep only first
     update_data = {"tag_ids": [tag_ids[0]]}
@@ -393,11 +391,10 @@ async def test_update_document_tags(org_and_users, test_db):
     resp = client.get(f"/v0/orgs/{org_id}/documents/{doc_id}", headers=get_token_headers(admin["token"]))
     assert resp.status_code == 200
     doc_response = resp.json()
-    doc_metadata = doc_response["metadata"]
-    assert len(doc_metadata["tag_ids"]) == 1
-    assert tag_ids[0] in doc_metadata["tag_ids"]
-    assert tag_ids[1] not in doc_metadata["tag_ids"]
-    assert tag_ids[2] not in doc_metadata["tag_ids"]
+    assert len(doc_response["tag_ids"]) == 1
+    assert tag_ids[0] in doc_response["tag_ids"]
+    assert tag_ids[1] not in doc_response["tag_ids"]
+    assert tag_ids[2] not in doc_response["tag_ids"]
 
     # Step 8: Remove the last tag
     update_data = {"tag_ids": []}
@@ -408,5 +405,4 @@ async def test_update_document_tags(org_and_users, test_db):
     resp = client.get(f"/v0/orgs/{org_id}/documents/{doc_id}", headers=get_token_headers(admin["token"]))
     assert resp.status_code == 200
     doc_response = resp.json()
-    doc_metadata = doc_response["metadata"]
-    assert len(doc_metadata["tag_ids"]) == 0 
+    assert len(doc_response["tag_ids"]) == 0 
