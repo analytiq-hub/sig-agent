@@ -10,6 +10,7 @@ from unittest.mock import patch, AsyncMock, Mock
 from datetime import datetime, UTC
 from bson import ObjectId
 from tests.test_utils import client, get_token_headers
+from worker.worker import main as worker_main
 import analytiq_data as ad
 import logging
 
@@ -167,13 +168,15 @@ class WorkerAppliance:
             mock_llm_completion.return_value = mock_llm_response
 
         # Set environment variable for worker count
+        self.original_n_workers = os.environ.get('N_WORKERS')
+        self.original_env = os.environ.get('ENV')
         os.environ['N_WORKERS'] = str(self.n_workers)
+
+        logger.info(f"WorkerAppliance ENV: {os.environ['ENV']}")
 
         # Import and start the worker in a separate thread
         def run_worker():
-            import sys
-            sys.path.append("../worker")
-            from worker.worker import main
+            logger.info(f"WorkerAppliance ENV: {os.environ['ENV']}")
 
             # Create new event loop for the thread
             loop = asyncio.new_event_loop()
@@ -182,7 +185,7 @@ class WorkerAppliance:
             try:
                 # Run until stop event is set
                 async def run_until_stop():
-                    main_task = asyncio.create_task(main())
+                    main_task = asyncio.create_task(worker_main())
                     while not self.stop_event.is_set():
                         await asyncio.sleep(0.1)
                     main_task.cancel()
@@ -214,6 +217,17 @@ class WorkerAppliance:
             except:
                 pass
         self.patches.clear()
+
+        # Restore original environment variables
+        if self.original_n_workers is not None:
+            os.environ['N_WORKERS'] = self.original_n_workers
+        elif 'N_WORKERS' in os.environ:
+            del os.environ['N_WORKERS']
+
+        if self.original_env is not None:
+            os.environ['ENV'] = self.original_env
+        elif 'ENV' in os.environ:
+            del os.environ['ENV']
 
     def __enter__(self):
         self.start()
@@ -327,10 +341,6 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
         upload_result = upload_resp.json()
         document_id = upload_result["documents"][0]["document_id"]
 
-        # Step 5.5: Create payment customer for the organization (required for LLM processing)
-        from docrouter_app.payments import sync_payments_customer
-        await sync_payments_customer(test_db, org_id)
-
         # Step 5.6: Manually process the OCR message since we don't have a real worker running
         analytiq_client = ad.common.get_analytiq_client()
 
@@ -424,3 +434,127 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
 
         # Verify OCR was processed (mock textract should have been called during OCR processing)
         # Note: We can't use assert_called_once() on the mock since we used new= instead of new_callable=
+
+@pytest.mark.asyncio
+async def test_document_textract_pipeline(test_db, mock_auth, setup_test_models):
+    """Test the document Textract pipeline using WorkerAppliance"""
+    from tests.test_utils import TEST_ORG_ID, get_auth_headers
+
+    # Create a test PDF document
+    pdf_content = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
+    test_pdf = {
+        "name": "test_invoice.pdf",
+        "content": f"data:application/pdf;base64,{base64.b64encode(pdf_content).decode()}"
+    }
+
+    # Upload document without tags, schema, or prompts
+    upload_data = {
+        "documents": [{
+            "name": test_pdf["name"],
+            "content": test_pdf["content"],
+            "metadata": {"test_source": "textract_pipeline_test"},
+            "tag_ids": []  # No tags
+        }]
+    }
+
+    # Start the worker appliance with mocked functions
+    with WorkerAppliance(n_workers=1) as worker_appliance:
+        # Upload the document
+        upload_resp = client.post(f"/v0/orgs/{TEST_ORG_ID}/documents", json=upload_data, headers=get_auth_headers())
+        assert upload_resp.status_code == 200, f"Failed to upload document: {upload_resp.text}"
+        upload_result = upload_resp.json()
+        document_id = upload_result["documents"][0]["document_id"]
+
+        # Wait for OCR processing to complete by checking document state
+        max_retries = 20
+        retry_count = 0
+        ocr_completed = False
+
+        while retry_count < max_retries:
+            # Check document status
+            doc_resp = client.get(f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}", headers=get_auth_headers())
+            assert doc_resp.status_code == 200, f"Failed to get document: {doc_resp.text}"
+            doc_data = doc_resp.json()
+
+            logger.info(f"Document state: {doc_data.get('state', 'unknown')}")
+
+            # Check if OCR has completed (state should be "ocr_completed" or later)
+            if doc_data.get("state") in [ad.common.doc.DOCUMENT_STATE_OCR_COMPLETED, ad.common.doc.DOCUMENT_STATE_LLM_COMPLETED]:
+                ocr_completed = True
+                break
+
+            await asyncio.sleep(0.5)
+            retry_count += 1
+
+        assert ocr_completed, f"OCR processing did not complete within expected time. Final state: {doc_data.get('state', 'unknown')}"
+
+        # Test OCR metadata endpoint
+        metadata_resp = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/ocr/download/metadata/{document_id}",
+            headers=get_auth_headers()
+        )
+        assert metadata_resp.status_code == 200, f"Failed to get OCR metadata: {metadata_resp.text}"
+        metadata_data = metadata_resp.json()
+
+        assert "n_pages" in metadata_data, "OCR metadata should contain n_pages"
+        assert "ocr_date" in metadata_data, "OCR metadata should contain ocr_date"
+        assert metadata_data["n_pages"] > 0, "Document should have at least 1 page"
+
+        # Test OCR text endpoint
+        text_resp = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/ocr/download/text/{document_id}",
+            headers=get_auth_headers()
+        )
+        assert text_resp.status_code == 200, f"Failed to get OCR text: {text_resp.text}"
+        ocr_text = text_resp.text
+
+        # Verify we got some text from our mock
+        assert "INVOICE #12345" in ocr_text, "OCR text should contain mocked invoice data"
+        assert "Total: $1,234.56" in ocr_text, "OCR text should contain mocked total amount"
+        assert "Vendor: Acme Corp" in ocr_text, "OCR text should contain mocked vendor"
+
+        # Test OCR text endpoint with specific page
+        text_page_resp = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/ocr/download/text/{document_id}",
+            params={"page_num": 1},
+            headers=get_auth_headers()
+        )
+        assert text_page_resp.status_code == 200, f"Failed to get OCR text for page 1: {text_page_resp.text}"
+        page_text = text_page_resp.text
+        assert "INVOICE #12345" in page_text, "Page 1 OCR text should contain mocked invoice data"
+
+        # Test OCR blocks/JSON endpoint
+        blocks_resp = client.get(
+            f"/v0/orgs/{TEST_ORG_ID}/ocr/download/blocks/{document_id}",
+            headers=get_auth_headers()
+        )
+        assert blocks_resp.status_code == 200, f"Failed to get OCR blocks: {blocks_resp.text}"
+        blocks_data = blocks_resp.json()
+
+        # Verify we got the mocked Textract blocks
+        assert isinstance(blocks_data, list), "OCR blocks should be a list"
+        assert len(blocks_data) > 0, "Should have at least one OCR block"
+
+        # Check for expected block structure from our mock
+        invoice_block = next((b for b in blocks_data if b.get("Text") == "INVOICE #12345"), None)
+        assert invoice_block is not None, "Should find the invoice block in OCR data"
+        assert invoice_block["BlockType"] == "LINE", "Invoice block should be a LINE type"
+        assert invoice_block["Page"] == 1, "Invoice block should be on page 1"
+        assert invoice_block["Confidence"] > 99, "Invoice block should have high confidence"
+
+        # Verify the document status shows OCR processing completed
+        final_doc_resp = client.get(f"/v0/orgs/{TEST_ORG_ID}/documents/{document_id}", headers=get_auth_headers())
+        assert final_doc_resp.status_code == 200
+        final_doc_data = final_doc_resp.json()
+
+        logger.info(f"Final document data: {final_doc_data}")
+
+        # Verify metadata if present
+        if "metadata" in final_doc_data and final_doc_data["metadata"]:
+            assert final_doc_data["metadata"]["test_source"] == "textract_pipeline_test"
+
+        # Verify the document state indicates OCR completion
+        assert final_doc_data.get("state") in [
+            ad.common.doc.DOCUMENT_STATE_OCR_COMPLETED,
+            ad.common.doc.DOCUMENT_STATE_LLM_COMPLETED
+        ], f"Document should be in OCR completed state, got: {final_doc_data.get('state')}"

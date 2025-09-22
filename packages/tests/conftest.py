@@ -17,7 +17,8 @@ sys.path.append(f"{cwd}/..")
 # Now import the FastAPI app and dependencies
 from docrouter_app.main import app, security, get_current_user, get_admin_user
 from docrouter_app.models import User
-from docrouter_app.payments import init_payments
+from docrouter_app.payments import init_payments, sync_payments_customer
+from worker.worker import main as worker_main
 import analytiq_data as ad
 
 from tests.test_utils import (
@@ -96,6 +97,9 @@ async def test_db(unique_db_name):
         "updated_at": datetime.now(UTC)
     })
     
+    # Create payment customer for the organization (required for document processing)
+    await sync_payments_customer(db, TEST_ORG_ID)
+
     yield db
     
     # Clean up after test - ONLY if we're using the test database
@@ -164,6 +168,8 @@ async def org_and_users(test_db):
         "created_at": datetime.now(UTC),
         "updated_at": datetime.now(UTC)
     })
+
+    await sync_payments_customer(test_db, org_id)
 
     # Helper to create a token for a user
     async def create_token(user_id, org_id, name):

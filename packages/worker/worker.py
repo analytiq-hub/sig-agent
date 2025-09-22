@@ -13,13 +13,7 @@ import analytiq_data as ad
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
 
-# Environment variables
-ENV = os.getenv("ENV", "dev")
-N_WORKERS = int(os.getenv("N_WORKERS", "1"))  # Convert to int with default value of 1
-
 logger = logging.getLogger(__name__)
-logger.info(f"ENV: {ENV}")
-logger.info(f"N_WORKERS: {N_WORKERS}")
 
 HEARTBEAT_INTERVAL_SECS = 600  # seconds
 
@@ -30,6 +24,9 @@ async def worker_ocr(worker_id: str) -> None:
     Args:
         worker_id: The worker ID
     """
+    # Re-read the environment variables, in case they were changed by unit tests
+    ENV = os.getenv("ENV", "dev")
+
     # Create a separate client instance for each worker
     analytiq_client = ad.common.get_analytiq_client(env=ENV, name=worker_id)
     logger.info(f"Starting worker {worker_id}")
@@ -67,6 +64,9 @@ async def worker_llm(worker_id: str) -> None:
     Args:
         worker_id: The worker ID
     """
+    # Re-read the environment variables, in case they were changed by unit tests
+    ENV = os.getenv("ENV", "dev")
+
     # Create a separate client instance for each worker
     analytiq_client = ad.common.get_analytiq_client(env=ENV, name=worker_id)
     logger.info(f"Starting worker {worker_id}")
@@ -92,6 +92,9 @@ async def worker_llm(worker_id: str) -> None:
             await asyncio.sleep(1)  # Sleep longer on errors to prevent tight loop
 
 async def main():
+    # Re-read the environment variables, in case they were changed by unit tests
+    N_WORKERS = int(os.getenv("N_WORKERS", "1"))
+
     # Create N_WORKERS workers of worker_ocr and worker_llm
     ocr_workers = [worker_ocr(f"ocr_{i}") for i in range(N_WORKERS)]
     llm_workers = [worker_llm(f"llm_{i}") for i in range(N_WORKERS)]

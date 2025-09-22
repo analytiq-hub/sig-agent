@@ -290,10 +290,6 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
         upload_result = upload_resp.json()
         document_id = upload_result["documents"][0]["document_id"]
 
-        # Step 5.5: Create payment customer for the organization (required for LLM processing)
-        from docrouter_app.payments import sync_payments_customer
-        await sync_payments_customer(test_db, org_id)
-
         # Step 5.6: Manually process the OCR message since we don't have a real worker running
         analytiq_client = ad.common.get_analytiq_client()
 
