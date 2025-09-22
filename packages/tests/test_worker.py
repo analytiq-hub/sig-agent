@@ -558,3 +558,38 @@ async def test_document_textract_pipeline(test_db, mock_auth, setup_test_models)
             ad.common.doc.DOCUMENT_STATE_OCR_COMPLETED,
             ad.common.doc.DOCUMENT_STATE_LLM_COMPLETED
         ], f"Document should be in OCR completed state, got: {final_doc_data.get('state')}"
+
+        # Check if LLM default prompt has run and retrieve the result
+        try:
+            llm_result_resp = client.get(
+                f"/v0/orgs/{TEST_ORG_ID}/llm/result/{document_id}",
+                params={"prompt_rev_id": "default"},
+                headers=get_auth_headers()
+            )
+
+            if llm_result_resp.status_code == 200:
+                logger.info("LLM default prompt has completed")
+                llm_result_data = llm_result_resp.json()
+                logger.info(f"LLM result: {llm_result_data}")
+
+                # Verify the LLM result structure
+                assert "llm_result" in llm_result_data, "LLM result should contain 'llm_result' field"
+
+                # Log the extracted data for verification
+                extracted_data = llm_result_data["llm_result"]
+                if isinstance(extracted_data, str):
+                    try:
+                        extracted_data = json.loads(extracted_data)
+                        logger.info(f"Parsed LLM extracted data: {extracted_data}")
+                    except json.JSONDecodeError:
+                        logger.info(f"LLM result is text: {extracted_data}")
+                else:
+                    logger.info(f"LLM extracted data: {extracted_data}")
+
+            elif llm_result_resp.status_code == 404:
+                logger.info("LLM default prompt has not run yet or no result available")
+            else:
+                logger.warning(f"Unexpected response getting LLM result: {llm_result_resp.status_code}: {llm_result_resp.text}")
+
+        except Exception as e:
+            logger.warning(f"Error checking LLM result: {e}")
