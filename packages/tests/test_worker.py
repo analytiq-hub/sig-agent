@@ -130,10 +130,23 @@ async def mock_litellm_acompletion_with_retry(model, messages, api_key, temperat
 class WorkerAppliance:
     """Test appliance for spawning worker processes with mocked functions"""
 
-    def __init__(self, n_workers=1, supports_response_schema=True, supports_pdf_input=True):
+    def __init__(self, n_workers=1, supports_response_schema=True, supports_pdf_input=True, mock_llm_response=None):
         self.n_workers = n_workers
         self.supports_response_schema = supports_response_schema
         self.supports_pdf_input = supports_pdf_input
+        # Create default mock LLM response if none provided
+        if mock_llm_response is None:
+            default_response = MockLLMResponse()
+            default_response.choices[0].message.content = json.dumps({
+                "invoice_number": "12345",
+                "total_amount": 1234.56,
+                "vendor": {
+                    "name": "Acme Corp"
+                }
+            })
+            self.mock_llm_response = default_response
+        else:
+            self.mock_llm_response = mock_llm_response
         self.worker_thread = None
         self.stop_event = threading.Event()
         self.patches = []
@@ -157,15 +170,7 @@ class WorkerAppliance:
         # Configure the LLM completion mock
         if len(self.patches) >= 2:
             mock_llm_completion = self.patches[1].start()
-            mock_llm_response = MockLLMResponse()
-            mock_llm_response.choices[0].message.content = json.dumps({
-                "invoice_number": "12345",
-                "total_amount": 1234.56,
-                "vendor": {
-                    "name": "Acme Corp"
-                }
-            })
-            mock_llm_completion.return_value = mock_llm_response
+            mock_llm_completion.return_value = self.mock_llm_response
 
         # Set environment variable for worker count
         self.original_n_workers = os.environ.get('N_WORKERS')
@@ -355,11 +360,10 @@ async def test_textract_and_llm_default_pipeline(test_db, mock_auth, setup_test_
         if "metadata" in final_doc_data and final_doc_data["metadata"]:
             assert final_doc_data["metadata"]["test_source"] == "textract_pipeline_test"
 
-        # Verify the document state indicates OCR completion
+        # Verify the document state indicates LLM completion
         assert final_doc_data.get("state") in [
-            ad.common.doc.DOCUMENT_STATE_OCR_COMPLETED,
             ad.common.doc.DOCUMENT_STATE_LLM_COMPLETED
-        ], f"Document should be in OCR completed state, got: {final_doc_data.get('state')}"
+        ], f"Document should be in LLM completed state, got: {final_doc_data.get('state')}"
 
         # Check if LLM default prompt has run and retrieve the result
         try:
@@ -402,137 +406,133 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
     org_id = org_and_users["org_id"]
     admin = org_and_users["admin"]
 
-    # Step 1: Create a JSON schema
-    schema_data = {
-        "name": "Invoice Extraction Schema",
-        "response_format": {
-            "type": "json_schema",
-            "json_schema": {
-                "name": "invoice_extraction",
-                "schema": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "properties": {
-                        "invoice_number": {
-                            "type": "string",
-                            "description": "The invoice identifier"
-                        },
-                        "total_amount": {
-                            "type": "number",
-                            "description": "Total invoice amount"
-                        },
-                        "vendor": {
-                            "type": "object",
-                            "properties": {
-                                "name": {
-                                    "type": "string",
-                                    "description": "Vendor name"
-                                }
+    # Create the mock LLM response for the schema
+    mock_llm_response = MockLLMResponse()
+    mock_llm_response.choices[0].message.content = json.dumps({
+        "invoice_number": "12345",
+        "total_amount": 1234.56,
+        "vendor": {
+            "name": "Acme Corp"
+        }
+    })
+
+    # Start the worker appliance with mocked functions
+    with WorkerAppliance(n_workers=1, mock_llm_response=mock_llm_response) as worker_appliance:
+
+        # Step 1: Create a JSON schema
+        schema_data = {
+            "name": "Invoice Extraction Schema",
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "invoice_extraction",
+                    "schema": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "invoice_number": {
+                                "type": "string",
+                                "description": "The invoice identifier"
                             },
-                            "required": ["name"]
-                        }
+                            "total_amount": {
+                                "type": "number",
+                                "description": "Total invoice amount"
+                            },
+                            "vendor": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Vendor name"
+                                    }
+                                },
+                                "required": ["name"]
+                            }
+                        },
+                        "required": ["invoice_number", "total_amount"]
                     },
-                    "required": ["invoice_number", "total_amount"]
-                },
-                "strict": True
+                    "strict": True
+                }
             }
         }
-    }
 
-    schema_resp = client.post(f"/v0/orgs/{org_id}/schemas", json=schema_data, headers=get_token_headers(admin["token"]))
-    assert schema_resp.status_code == 200, f"Failed to create schema: {schema_resp.text}"
-    schema_result = schema_resp.json()
-    schema_revid = schema_result["schema_revid"]
+        schema_resp = client.post(f"/v0/orgs/{org_id}/schemas", json=schema_data, headers=get_token_headers(admin["token"]))
+        assert schema_resp.status_code == 200, f"Failed to create schema: {schema_resp.text}"
+        schema_result = schema_resp.json()
+        schema_revid = schema_result["schema_revid"]
 
-    # Step 2: Create a tag
-    tag_data = {
-        "name": "invoice-tag",
-        "color": "#FF5722",
-        "description": "Invoice documents"
-    }
+        # Step 2: Create a tag
+        tag_data = {
+            "name": "invoice-tag",
+            "color": "#FF5722",
+            "description": "Invoice documents"
+        }
 
-    tag_resp = client.post(f"/v0/orgs/{org_id}/tags", json=tag_data, headers=get_token_headers(admin["token"]))
-    assert tag_resp.status_code == 200, f"Failed to create tag: {tag_resp.text}"
-    tag_result = tag_resp.json()
-    tag_id = tag_result["id"]
+        tag_resp = client.post(f"/v0/orgs/{org_id}/tags", json=tag_data, headers=get_token_headers(admin["token"]))
+        assert tag_resp.status_code == 200, f"Failed to create tag: {tag_resp.text}"
+        tag_result = tag_resp.json()
+        tag_id = tag_result["id"]
 
-    # Step 3: Create a prompt that uses the tag and schema
-    prompt_data = {
-        "name": "Invoice Processing Prompt",
-        "content": "Extract invoice information from this document. Focus on invoice number, total amount, and vendor details.",
-        "model": "gpt-4o-mini",
-        "tag_ids": [tag_id],
-        "schema_revid": schema_revid
-    }
+        # Step 3: Create a prompt that uses the tag and schema
+        prompt_data = {
+            "name": "Invoice Processing Prompt",
+            "content": "Extract invoice information from this document. Focus on invoice number, total amount, and vendor details.",
+            "model": "gpt-4o-mini",
+            "tag_ids": [tag_id],
+            "schema_revid": schema_revid
+        }
 
-    prompt_resp = client.post(f"/v0/orgs/{org_id}/prompts", json=prompt_data, headers=get_token_headers(admin["token"]))
-    assert prompt_resp.status_code == 200, f"Failed to create prompt: {prompt_resp.text}"
-    prompt_result = prompt_resp.json()
-    prompt_revid = prompt_result["prompt_revid"]
+        prompt_resp = client.post(f"/v0/orgs/{org_id}/prompts", json=prompt_data, headers=get_token_headers(admin["token"]))
+        assert prompt_resp.status_code == 200, f"Failed to create prompt: {prompt_resp.text}"
+        prompt_result = prompt_resp.json()
+        prompt_revid = prompt_result["prompt_revid"]
 
-    # Step 4: Create a test PDF document
-    pdf_content = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
-    test_pdf = {
-        "name": "test_invoice.pdf",
-        "content": f"data:application/pdf;base64,{base64.b64encode(pdf_content).decode()}"
-    }
+        # Step 4: Create a test PDF document
+        pdf_content = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
+        test_pdf = {
+            "name": "test_invoice.pdf",
+            "content": f"data:application/pdf;base64,{base64.b64encode(pdf_content).decode()}"
+        }
 
-    # Step 5: Upload document with the tag
-    upload_data = {
-        "documents": [{
-            "name": test_pdf["name"],
-            "content": test_pdf["content"],
-            "metadata": {"test_source": "llm_pipeline_test"},
-            "tag_ids": [tag_id]
-        }]
-    }
+        # Step 5: Upload document with the tag
+        upload_data = {
+            "documents": [{
+                "name": test_pdf["name"],
+                "content": test_pdf["content"],
+                "metadata": {"test_source": "llm_pipeline_test"},
+                "tag_ids": [tag_id]
+            }]
+        }
 
-    # Mock ALL LiteLLM functions to prevent any real service calls
-    with patch('analytiq_data.aws.textract.run_textract', new=mock_run_textract) as mock_textract, \
-         patch('analytiq_data.llm.llm._litellm_acompletion_with_retry', new_callable=AsyncMock) as mock_llm_completion, \
-         patch('analytiq_data.llm.llm._litellm_acreate_file_with_retry', new=mock_litellm_acreate_file_with_retry) as mock_file_upload, \
-         patch('litellm.completion_cost', return_value=0.001) as mock_completion_cost, \
-         patch('litellm.supports_response_schema', return_value=True) as mock_supports_schema, \
-         patch('litellm.utils.supports_pdf_input', return_value=True) as mock_supports_pdf:
-
+        # Upload the document
         upload_resp = client.post(f"/v0/orgs/{org_id}/documents", json=upload_data, headers=get_token_headers(admin["token"]))
         assert upload_resp.status_code == 200, f"Failed to upload document: {upload_resp.text}"
         upload_result = upload_resp.json()
         document_id = upload_result["documents"][0]["document_id"]
 
-        # Step 5.6: Manually process the OCR message since we don't have a real worker running
-        analytiq_client = ad.common.get_analytiq_client()
+        # Wait for OCR processing to complete
+        max_retries = 20
+        retry_count = 0
+        ocr_completed = False
 
-        # Simulate worker processing the OCR message
-        ocr_msg = {
-            "_id": str(ObjectId()),  # Use a valid ObjectId
-            "msg": {"document_id": document_id}
-        }
+        while retry_count < max_retries:
+            doc_resp = client.get(f"/v0/orgs/{org_id}/documents/{document_id}", headers=get_token_headers(admin["token"]))
+            assert doc_resp.status_code == 200, f"Failed to get document: {doc_resp.text}"
+            doc_data = doc_resp.json()
 
-        # Process the OCR message (this will call our mocked run_textract)
-        await ad.msg_handlers.ocr.process_ocr_msg(analytiq_client, ocr_msg, force=True)
+            logger.info(f"Document state: {doc_data.get('state', 'unknown')}")
 
-        # Configure LLM mock response with structured JSON
-        mock_llm_response = MockLLMResponse()
-        mock_llm_response.choices[0].message.content = json.dumps({
-            "invoice_number": "12345",
-            "total_amount": 1234.56,
-            "vendor": {
-                "name": "Acme Corp"
-            }
-        })
-        mock_llm_completion.return_value = mock_llm_response
+            if doc_data.get("state") in [ad.common.doc.DOCUMENT_STATE_OCR_COMPLETED, ad.common.doc.DOCUMENT_STATE_LLM_COMPLETED]:
+                ocr_completed = True
+                break
 
-        # Step 6: Trigger LLM processing on the document
-        llm_run_resp = client.post(
-            f"/v0/orgs/{org_id}/llm/run/{document_id}",
-            params={"prompt_id": prompt_revid, "force": True},
-            headers=get_token_headers(admin["token"])
-        )
-        assert llm_run_resp.status_code == 200, f"Failed to trigger LLM processing: {llm_run_resp.text}"
+            await asyncio.sleep(0.5)
+            retry_count += 1
 
-        # Step 7: Wait and check for LLM processing completion
-        max_retries = 10
+        assert ocr_completed, f"OCR processing did not complete within expected time. Final state: {doc_data.get('state', 'unknown')}"
+
+        # Wait for LLM processing with the tagged prompt to complete
+        max_retries = 20
         retry_count = 0
         llm_result = None
 
@@ -540,27 +540,27 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
             try:
                 result_resp = client.get(
                     f"/v0/orgs/{org_id}/llm/result/{document_id}",
-                    params={"prompt_id": prompt_revid},
+                    params={"prompt_rev_id": prompt_revid},
                     headers=get_token_headers(admin["token"])
                 )
 
                 if result_resp.status_code == 200:
                     llm_result = result_resp.json()
+                    logger.info(f"LLM result found: {llm_result}")
                     break
                 elif result_resp.status_code == 404:
-                    # LLM processing not complete yet, wait and retry
-                    await asyncio.sleep(1)
+                    logger.info(f"LLM result not ready yet, retry {retry_count + 1}/{max_retries}")
+                    await asyncio.sleep(0.5)
                     retry_count += 1
                 else:
                     pytest.fail(f"Unexpected response getting LLM result: {result_resp.status_code}: {result_resp.text}")
 
             except Exception as e:
-                await asyncio.sleep(1)
+                logger.warning(f"Error checking LLM result: {e}")
+                await asyncio.sleep(0.5)
                 retry_count += 1
-                if retry_count >= max_retries:
-                    pytest.fail(f"Failed to get LLM result after {max_retries} retries: {e}")
 
-        # Step 8: Verify the LLM processing results
+        # Verify the LLM processing results
         assert llm_result is not None, "LLM processing did not complete within expected time"
         assert "llm_result" in llm_result, f"Missing llm_result in response: {llm_result}"
 
@@ -576,20 +576,22 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
         assert extracted_data["total_amount"] == 1234.56
         assert extracted_data["vendor"]["name"] == "Acme Corp"
 
-        # Step 9: Verify document status shows LLM processing completed
-        doc_resp = client.get(f"/v0/orgs/{org_id}/documents/{document_id}", headers=get_token_headers(admin["token"]))
-        assert doc_resp.status_code == 200
-        doc_data = doc_resp.json()
+        # Verify document status and metadata
+        final_doc_resp = client.get(f"/v0/orgs/{org_id}/documents/{document_id}", headers=get_token_headers(admin["token"]))
+        assert final_doc_resp.status_code == 200
+        final_doc_data = final_doc_resp.json()
 
-        logger.info(f"Document data: {doc_data}")
+        logger.info(f"Final document data: {final_doc_data}")
 
         # Check if document has tag_ids field and contains our tag
-        if "tag_ids" in doc_data:
-            assert tag_id in doc_data["tag_ids"], "Document should still have the invoice tag"
+        if "tag_ids" in final_doc_data:
+            assert tag_id in final_doc_data["tag_ids"], "Document should still have the invoice tag"
 
         # Verify metadata if present
-        if "metadata" in doc_data and doc_data["metadata"]:
-            assert doc_data["metadata"]["test_source"] == "llm_pipeline_test"
+        if "metadata" in final_doc_data and final_doc_data["metadata"]:
+            assert final_doc_data["metadata"]["test_source"] == "llm_pipeline_test"
 
-        # Verify OCR was processed (mock textract should have been called during OCR processing)
-        # Note: We can't use assert_called_once() on the mock since we used new= instead of new_callable=
+        # Verify the document state indicates LLM completion
+        assert final_doc_data.get("state") in [
+            ad.common.doc.DOCUMENT_STATE_LLM_COMPLETED
+        ], f"Document should be in LLM completed state, got: {final_doc_data.get('state')}"
