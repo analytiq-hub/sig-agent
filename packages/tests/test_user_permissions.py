@@ -9,7 +9,7 @@ import logging
 from fastapi.security import HTTPAuthorizationCredentials
 
 # Import shared test utilities
-from .test_utils import (
+from .conftest_utils import (
     client, TEST_ORG_ID, TEST_USER,
     get_auth_headers, get_token_headers
 )

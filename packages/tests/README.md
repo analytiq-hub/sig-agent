@@ -8,11 +8,11 @@ This directory contains automated tests for the backend API using pytest and pyt
 
 Tests run in an isolated environment with the following configuration:
 - Database: A dedicated `pytest` database is used to prevent affecting production data
-- Environment variables: Tests use specific environment variables defined in `test_utils.py`
+- Environment variables: Tests use specific environment variables defined in `conftest_utils.py`
 
 ### Shared Test Utilities
 
-Common test utilities are centralized in `test_utils.py`, including:
+Common test utilities are centralized in `conftest_utils.py`, including:
 - Test database setup and teardown
 - Authentication mocking
 - Common test data
@@ -64,7 +64,7 @@ import pytest
 import os
 
 # Import shared test utilities
-from .test_utils import (
+from .conftest_utils import (
     client, TEST_ORG_ID, 
     get_auth_headers
 )
@@ -180,7 +180,7 @@ def small_pdf():
     }
 ```
 
-Shared fixtures can be added to `test_utils.py` for reuse across multiple test files.
+Shared fixtures can be added to `conftest_utils.py` for reuse across multiple test files.
 
 ## Github Actions
 

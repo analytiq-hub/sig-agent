@@ -4,7 +4,7 @@ import secrets
 from unittest.mock import patch, AsyncMock, Mock
 from datetime import datetime, UTC
 from bson import ObjectId
-from tests.test_utils import client, get_token_headers
+from tests.conftest_utils import client, get_token_headers
 import analytiq_data as ad
 
 

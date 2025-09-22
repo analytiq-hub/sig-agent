@@ -4,7 +4,7 @@ import os
 import logging
 
 # Import shared test utilities
-from .test_utils import (
+from .conftest_utils import (
     client, TEST_ORG_ID, 
     get_auth_headers
 )

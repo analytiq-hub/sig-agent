@@ -1,5 +1,5 @@
 import pytest
-from tests.test_utils import client, get_token_headers
+from tests.conftest_utils import client, get_token_headers
 import logging
 
 logger = logging.getLogger(__name__)

@@ -21,7 +21,7 @@ from docrouter_app.payments import init_payments, sync_payments_customer
 from worker.worker import main as worker_main
 import analytiq_data as ad
 
-from tests.test_utils import (
+from tests.conftest_utils import (
     TEST_USER_ID,
     TEST_ORG_ID,
     TEST_USER

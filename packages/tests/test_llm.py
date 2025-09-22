@@ -6,7 +6,7 @@ import base64
 import asyncio
 from datetime import datetime, UTC
 from bson import ObjectId
-from tests.test_utils import client, get_token_headers
+from tests.conftest_utils import client, get_token_headers, TEST_ORG_ID, get_auth_headers
 from tests.conftest_llm import WorkerAppliance, MockLLMResponse
 import analytiq_data as ad
 import logging
@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 @pytest.mark.asyncio
 async def test_textract_and_llm_default_pipeline(test_db, mock_auth, setup_test_models):
     """Test the document Textract pipeline using WorkerAppliance"""
-    from tests.test_utils import TEST_ORG_ID, get_auth_headers
 
     # Create a test PDF document
     pdf_content = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"

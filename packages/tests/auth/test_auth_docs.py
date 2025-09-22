@@ -1,5 +1,5 @@
 import pytest
-from tests.test_utils import client, get_token_headers
+from tests.conftest_utils import client, get_token_headers
 
 @pytest.mark.asyncio
 async def test_doc_permissions(org_and_users, test_db):
