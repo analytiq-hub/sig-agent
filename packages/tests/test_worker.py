@@ -1,8 +1,11 @@
 import pytest
+import os
 import json
 import secrets
 import base64
 import asyncio
+import threading
+import time
 from unittest.mock import patch, AsyncMock, Mock
 from datetime import datetime, UTC
 from bson import ObjectId
@@ -121,6 +124,103 @@ async def mock_litellm_acreate_file_with_retry(file, purpose, custom_llm_provide
 async def mock_litellm_acompletion_with_retry(model, messages, api_key, temperature=0.1, response_format=None, aws_access_key_id=None, aws_secret_access_key=None, aws_region_name=None):
     """Mock implementation of _litellm_acompletion_with_retry"""
     return MockLLMResponse("Mocked LLM response from retry function")
+
+
+class WorkerAppliance:
+    """Test appliance for spawning worker processes with mocked functions"""
+
+    def __init__(self, n_workers=1, supports_response_schema=True, supports_pdf_input=True):
+        self.n_workers = n_workers
+        self.supports_response_schema = supports_response_schema
+        self.supports_pdf_input = supports_pdf_input
+        self.worker_thread = None
+        self.stop_event = threading.Event()
+        self.patches = []
+
+    def start(self):
+        """Start the worker appliance with all necessary patches"""
+        # Apply all patches before starting the worker thread
+        self.patches = [
+            patch('analytiq_data.aws.textract.run_textract', new=mock_run_textract),
+            patch('analytiq_data.llm.llm._litellm_acompletion_with_retry', new_callable=AsyncMock),
+            patch('analytiq_data.llm.llm._litellm_acreate_file_with_retry', new=mock_litellm_acreate_file_with_retry),
+            patch('litellm.completion_cost', return_value=0.001),
+            patch('litellm.supports_response_schema', return_value=self.supports_response_schema),
+            patch('litellm.utils.supports_pdf_input', return_value=self.supports_pdf_input)
+        ]
+
+        # Start all patches
+        for p in self.patches:
+            p.start()
+
+        # Configure the LLM completion mock
+        if len(self.patches) >= 2:
+            mock_llm_completion = self.patches[1].start()
+            mock_llm_response = MockLLMResponse()
+            mock_llm_response.choices[0].message.content = json.dumps({
+                "invoice_number": "12345",
+                "total_amount": 1234.56,
+                "vendor": {
+                    "name": "Acme Corp"
+                }
+            })
+            mock_llm_completion.return_value = mock_llm_response
+
+        # Set environment variable for worker count
+        os.environ['N_WORKERS'] = str(self.n_workers)
+
+        # Import and start the worker in a separate thread
+        def run_worker():
+            import sys
+            sys.path.append("../worker")
+            from worker.worker import main
+
+            # Create new event loop for the thread
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+            try:
+                # Run until stop event is set
+                async def run_until_stop():
+                    main_task = asyncio.create_task(main())
+                    while not self.stop_event.is_set():
+                        await asyncio.sleep(0.1)
+                    main_task.cancel()
+                    try:
+                        await main_task
+                    except asyncio.CancelledError:
+                        pass
+
+                loop.run_until_complete(run_until_stop())
+            finally:
+                loop.close()
+
+        self.worker_thread = threading.Thread(target=run_worker, daemon=True)
+        self.worker_thread.start()
+
+        # Give workers time to start
+        time.sleep(1)
+
+    def stop(self):
+        """Stop the worker appliance and clean up patches"""
+        if self.worker_thread:
+            self.stop_event.set()
+            self.worker_thread.join(timeout=5)
+
+        # Stop all patches
+        for p in self.patches:
+            try:
+                p.stop()
+            except:
+                pass
+        self.patches.clear()
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
 
 
 @pytest.mark.asyncio
