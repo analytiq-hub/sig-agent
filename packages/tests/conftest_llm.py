@@ -147,6 +147,7 @@ class WorkerAppliance:
         self.worker_thread = None
         self.stop_event = threading.Event()
         self.patches = []
+        self.started_mocks = []
 
     def start(self):
         """Start the worker appliance with all necessary patches"""
@@ -161,12 +162,14 @@ class WorkerAppliance:
         ]
 
         # Start all patches
+        self.started_mocks = []
         for p in self.patches:
-            p.start()
+            started = p.start()
+            self.started_mocks.append(started)
 
         # Configure the LLM completion mock
-        if len(self.patches) >= 2:
-            mock_llm_completion = self.patches[1].start()
+        if len(self.started_mocks) >= 2:
+            mock_llm_completion = self.started_mocks[1]
             mock_llm_completion.return_value = self.mock_llm_response
 
         # Set environment variable for worker count
