@@ -14,10 +14,18 @@ import logging
 logger = logging.getLogger(__name__)
 
 @pytest.mark.asyncio
-async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_models, test_db, n_workers: int = 25, n_uploads: int = 25):
+async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_models, test_db, n_workers: int = 25, n_uploads: int = 100):
     """Test the complete document processing pipeline with schema, tag, prompt, upload, and LLM processing"""
     org_id = org_and_users["org_id"]
     admin = org_and_users["admin"]
+
+    # Grant sufficient credits via FastAPI admin endpoint to avoid running out mid-test
+    grant_resp = client.post(
+        f"/v0/orgs/{org_id}/payments/credits/add",
+        json={"amount": 10000},
+        headers=get_token_headers(admin["token"]),
+    )
+    assert grant_resp.status_code == 200, f"Failed to add credits: {grant_resp.text}"
 
     # Create the mock LLM response for the schema
     mock_llm_response = MockLLMResponse()
