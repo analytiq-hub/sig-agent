@@ -31,6 +31,11 @@ deploy:
 tests: setup
 	. .venv/bin/activate && pytest -n auto packages/tests/
 
+tests-scale: setup
+	. .venv/bin/activate && pytest packages/tests_scale
+
+tests-all: tests tests-scale
+
 setup-ui:
 	cd tests-ui && npm install
 
