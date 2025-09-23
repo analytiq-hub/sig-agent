@@ -100,16 +100,18 @@ async def test_db(unique_db_name):
     # Create payment customer for the organization (required for document processing)
     await sync_payments_customer(db, TEST_ORG_ID)
 
-    yield db
-    
-    # Clean up after test - ONLY if we're using the test database
-    if os.environ["ENV"].startswith("pytest"):
-        collections = await db.list_collection_names()
-        for collection in collections:
-            await db.drop_collection(collection)
-    else:
-        # This should never happen, but just in case
-        raise ValueError(f"Attempted to clean up non-test database! ENV={os.environ['ENV']}")
+    try:
+        yield db
+    finally:
+        # Ensure DB cleanup and client close to avoid hanging on Ctrl-C
+        if os.environ["ENV"].startswith("pytest"):
+            collections = await db.list_collection_names()
+            for collection in collections:
+                await db.drop_collection(collection)
+        else:
+            # This should never happen, but just in case
+            raise ValueError(f"Attempted to clean up non-test database! ENV={os.environ['ENV']}")
+        client.close()
 
 @pytest_asyncio.fixture
 async def org_and_users(test_db):
