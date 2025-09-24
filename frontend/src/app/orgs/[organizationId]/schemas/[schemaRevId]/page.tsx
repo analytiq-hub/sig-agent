@@ -17,7 +17,7 @@ export default function SchemaEditPage() {
         ← Back to Schemas
       </button>
 
-      <SchemaCreate organizationId={organizationId as string} schemaId={schemaRevId as string} />
+      <SchemaCreate organizationId={organizationId as string} schemaRevId={schemaRevId as string} />
     </div>
   );
 } 

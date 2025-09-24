@@ -159,7 +159,7 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
   );
 };
 
-const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({ organizationId, schemaId }) => {
+const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> = ({ organizationId, schemaRevId }) => {
   const router = useRouter();
   const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
   const [currentSchema, setCurrentSchema] = useState<SchemaConfig>({
@@ -271,10 +271,10 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({
   // Load editing schema if available
   useEffect(() => {
     async function loadSchema() {
-      if (schemaId) {
+      if (schemaRevId) {
         setIsLoading(true);
         try {
-          const schema = await getSchemaApi({ organizationId, schemaRevId: schemaId });
+          const schema = await getSchemaApi({ organizationId, schemaRevId });
           setCurrentSchemaId(schema.schema_id);
           setCurrentSchema({
             name: schema.name,
@@ -309,7 +309,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({
     }
     loadSchema();
     // Only run when schemaId or organizationId changes
-  }, [schemaId, organizationId, jsonSchemaToFields]);
+  }, [schemaRevId, organizationId, jsonSchemaToFields]);
 
   // Update jsonSchema when currentSchema changes
   useEffect(() => {
