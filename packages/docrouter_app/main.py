@@ -1600,19 +1600,19 @@ async def list_prompts(
     )
     return ret
 
-@app.get("/v0/orgs/{organization_id}/prompts/{prompt_id}", response_model=Prompt, tags=["prompts"])
+@app.get("/v0/orgs/{organization_id}/prompts/{prompt_revid}", response_model=Prompt, tags=["prompts"])
 async def get_prompt(
     organization_id: str,
-    prompt_id: str,
+    prompt_revid: str,
     current_user: User = Depends(get_org_user)
 ):
     """Get a prompt"""
-    logger.info(f"get_prompt() start: organization_id: {organization_id}, prompt_id: {prompt_id}")
+    logger.info(f"get_prompt() start: organization_id: {organization_id}, prompt_revid: {prompt_revid}")
     db = ad.common.get_async_db()
     
     # Get the prompt revision
     revision = await db.prompt_revisions.find_one({
-        "_id": ObjectId(prompt_id)
+        "_id": ObjectId(prompt_revid)
     })
     if not revision:
         raise HTTPException(status_code=404, detail="Prompt not found")

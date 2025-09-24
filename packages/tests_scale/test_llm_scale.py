@@ -156,6 +156,7 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
                 logger.info(f"Document {idx} state: {doc_data.get('state', 'unknown')}")
                 if doc_data.get("state") in [
                     ad.common.doc.DOCUMENT_STATE_OCR_COMPLETED,
+                    ad.common.doc.DOCUMENT_STATE_LLM_PROCESSING,
                     ad.common.doc.DOCUMENT_STATE_LLM_COMPLETED,
                 ]:
                     break
