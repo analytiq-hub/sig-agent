@@ -668,8 +668,8 @@ export const listPromptsApi = async (params: ListPromptsParams): Promise<ListPro
 };
 
 export const getPromptApi = async (params: GetPromptParams): Promise<Prompt> => {
-  const { organizationId, promptId } = params;
-  const response = await api.get<Prompt>(`/v0/orgs/${organizationId}/prompts/${promptId}`);
+  const { organizationId, promptRevId } = params;
+  const response = await api.get<Prompt>(`/v0/orgs/${organizationId}/prompts/${promptRevId}`);
   return response.data;
 };
 

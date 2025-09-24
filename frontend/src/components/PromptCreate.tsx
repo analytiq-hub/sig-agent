@@ -85,7 +85,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
       if (promptId) {
         try {
           setIsLoading(true);
-          const prompt = await getPromptApi({ organizationId, promptId });
+          const prompt = await getPromptApi({ organizationId, promptRevId: promptId });
           setCurrentPromptId(prompt.prompt_id);
           setCurrentPrompt({
             name: prompt.name,

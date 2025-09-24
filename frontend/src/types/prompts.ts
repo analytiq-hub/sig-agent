@@ -41,7 +41,7 @@ export interface ListPromptsResponse {
 
 export interface GetPromptParams {
   organizationId: string;
-  promptId: string;
+  promptRevId: string;
 }
 
 export interface UpdatePromptParams {
