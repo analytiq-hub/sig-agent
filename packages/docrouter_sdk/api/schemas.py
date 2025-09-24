@@ -48,20 +48,20 @@ class SchemasAPI:
         )
         return ListSchemasResponse(**data)
     
-    def get(self, organization_id: str, schema_id: str) -> Schema:
+    def get(self, organization_id: str, schema_revid: str) -> Schema:
         """
         Get a schema
         
         Args:
             organization_id: The organization ID
-            schema_id: The schema ID
+            schema_revid: The schema revision ID
             
         Returns:
             Schema details
         """
         data = self.client.request(
             "GET",
-            f"/v0/orgs/{organization_id}/schemas/{schema_id}"
+            f"/v0/orgs/{organization_id}/schemas/{schema_revid}"
         )
         return Schema(**data)
     

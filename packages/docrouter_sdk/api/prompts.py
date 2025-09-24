@@ -54,20 +54,20 @@ class PromptsAPI:
         )
         return ListPromptsResponse(**data)
     
-    def get(self, organization_id: str, prompt_id: str) -> Prompt:
+    def get(self, organization_id: str, prompt_revid: str) -> Prompt:
         """
         Get a prompt
-        
+
         Args:
             organization_id: The organization ID
-            prompt_id: The prompt ID
-            
+            prompt_revid: The prompt revision ID
+
         Returns:
             Prompt details
         """
         data = self.client.request(
             "GET",
-            f"/v0/orgs/{organization_id}/prompts/{prompt_id}"
+            f"/v0/orgs/{organization_id}/prompts/{prompt_revid}"
         )
         return Prompt(**data)
     
