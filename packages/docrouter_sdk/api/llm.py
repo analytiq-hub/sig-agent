@@ -49,19 +49,19 @@ class LLMAPI:
         )
         return LLMRunResponse(**data)
     
-    def get_result(self, organization_id: str, document_id: str, prompt_id: str = "default") -> LLMResult:
+    def get_result(self, organization_id: str, document_id: str, prompt_revid: str = "default") -> LLMResult:
         """
         Get LLM results for a document
         
         Args:
             organization_id: The organization ID
             document_id: The document ID
-            prompt_id: The prompt ID to retrieve
+            prompt_revid: The prompt revision ID to retrieve
             
         Returns:
             LLMResult with analysis results
         """
-        params = {"prompt_id": prompt_id}
+        params = {"prompt_revid": prompt_revid}
         
         data = self.client.request(
             "GET",
@@ -70,7 +70,7 @@ class LLMAPI:
         )
         return LLMResult(**data)
     
-    def update_result(self, organization_id: str, document_id: str, updated_llm_result: Dict[str, Any], prompt_id: str = "default", is_verified: bool = False) -> LLMResult:
+    def update_result(self, organization_id: str, document_id: str, updated_llm_result: Dict[str, Any], prompt_revid: str = "default", is_verified: bool = False) -> LLMResult:
         """
         Update LLM results for a document
         
@@ -78,13 +78,13 @@ class LLMAPI:
             organization_id: The organization ID
             document_id: The document ID
             updated_llm_result: The updated LLM result
-            prompt_id: The prompt ID to update
+            prompt_revid: The prompt revision ID to update
             is_verified: Whether the result is verified
             
         Returns:
             Updated LLMResult
         """
-        params = {"prompt_id": prompt_id}
+        params = {"prompt_revid": prompt_revid}
         update_data = {
             "updated_llm_result": updated_llm_result,
             "is_verified": is_verified
@@ -98,19 +98,19 @@ class LLMAPI:
         )
         return LLMResult(**data)
     
-    def delete_result(self, organization_id: str, document_id: str, prompt_id: str) -> Dict[str, str]:
+    def delete_result(self, organization_id: str, document_id: str, prompt_revid: str) -> Dict[str, str]:
         """
         Delete LLM results for a document
         
         Args:
             organization_id: The organization ID
             document_id: The document ID
-            prompt_id: The prompt ID to delete
+            prompt_revid: The prompt revision ID to delete
             
         Returns:
             Dict with status message
         """
-        params = {"prompt_id": prompt_id}
+        params = {"prompt_revid": prompt_revid}
         
         return self.client.request(
             "DELETE",
