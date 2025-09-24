@@ -56,7 +56,7 @@ export interface GetLLMResultParams {
   organizationId: string;
   documentId: string;
   promptRevId: string;
-  latest: boolean;
+  fallback: boolean;
 }
 
 export interface GetLLMResultResponse {

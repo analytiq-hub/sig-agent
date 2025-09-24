@@ -482,7 +482,7 @@ async def run_llm(analytiq_client,
 async def get_llm_result(analytiq_client,
                          document_id: str,
                          prompt_rev_id: str,
-                         latest: bool = False) -> dict | None:
+                         fallback: bool = False) -> dict | None:
     """
     Retrieve the latest LLM result from MongoDB.
     
@@ -490,6 +490,7 @@ async def get_llm_result(analytiq_client,
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
         prompt_rev_id: The prompt revision ID
+        fallback: If True, return the latest LLM result available for the prompt_id
     
     Returns:
         dict | None: The latest LLM result if found, None otherwise
@@ -497,8 +498,7 @@ async def get_llm_result(analytiq_client,
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
     
-    if not latest:
-        # Sort by _id in descending order to get the latest document
+    if not fallback:
         result = await db.llm_runs.find_one(
             {
                 "document_id": document_id,
@@ -509,6 +509,7 @@ async def get_llm_result(analytiq_client,
     else:
         # Get the prompt_id and prompt_version from the prompt_rev_id
         prompt_id, _ = await get_prompt_info_from_rev_id(analytiq_client, prompt_rev_id)
+        # Sort by _id in descending order to get the latest available result for the prompt_id
         result = await db.llm_runs.find_one(
             {
                 "document_id": document_id,

@@ -259,7 +259,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                       organizationId,
                       documentId: document.id,
                       promptRevId: prompt.prompt_revid,
-                      latest: true
+                      fallback: true
                     });
                     // If we get here, some result exists - skip execution
                     needsExecution = false;
@@ -274,7 +274,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                       organizationId,
                       documentId: document.id,
                       promptRevId: prompt.prompt_revid,
-                      latest: true
+                      fallback: true
                     });
                     // Result exists - check if it's for the latest version
                     needsExecution = existingResult.prompt_version < prompt.prompt_version;

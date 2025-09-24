@@ -54,7 +54,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
             organizationId: organizationId,
             documentId: id, 
             promptRevId: 'default',
-            latest: false
+            fallback: false
           });
           setLlmResults(prev => ({
             ...prev,
@@ -102,7 +102,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
           organizationId: organizationId,
           documentId: id, 
           promptRevId: promptId,
-          latest: true
+          fallback: true
         });
         setLlmResults(prev => ({
           ...prev,
@@ -140,7 +140,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
         organizationId: organizationId,
         documentId: id,
         promptRevId: promptId,
-        latest: false
+        fallback: false
       });
       
       setLlmResults(prev => ({
@@ -801,7 +801,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
         organizationId: organizationId,
         documentId: id,
         promptRevId: promptId,
-        latest: true
+        fallback: true
       });
 
       // Get prompt name for filename

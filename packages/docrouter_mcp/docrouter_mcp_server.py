@@ -19,13 +19,17 @@ logging.basicConfig(level=logging.WARNING)  # Only show WARNING and above (ERROR
 
 # Add command line argument parsing
 parser = argparse.ArgumentParser(description='DocRouter MCP Server')
-parser.add_argument('--url', help='DocRouter URL. Also accepts DOCROUTER_URL environment variable.')
+parser.add_argument('--url', help='DocRouter URL. Also accepts DOCROUTER_API_URL environment variable.')
 parser.add_argument('--org-id', help='DocRouter Organization ID. Also accepts DOCROUTER_ORG_ID environment variable.')
 parser.add_argument('--org-api-token', help='DocRouter Organization API Token. Also accepts DOCROUTER_ORG_API_TOKEN environment variable.')
 args = parser.parse_args()
 
 # Use command line args if provided, otherwise fall back to environment variables
-DOCROUTER_URL = args.url or os.getenv("DOCROUTER_URL")
+DOCROUTER_API_URL = args.url or os.getenv("DOCROUTER_API_URL")
+if not DOCROUTER_API_URL or DOCROUTER_API_URL == "":
+    # Default to DocRouter API URL
+    DOCROUTER_API_URL = "https://app.docrouter.ai/fastapi"
+
 DOCROUTER_ORG_ID = args.org_id or os.getenv("DOCROUTER_ORG_ID")
 DOCROUTER_ORG_API_TOKEN = args.org_api_token or os.getenv("DOCROUTER_ORG_API_TOKEN")
 
@@ -88,7 +92,7 @@ async def app_lifespan(server: FastMCP):
     # Initialize resources on startup
     db = await Database().connect()
     docrouter_client = DocRouterClient(
-        base_url=DOCROUTER_URL,
+        base_url=DOCROUTER_API_URL,
         api_token=DOCROUTER_ORG_API_TOKEN
     )
     
