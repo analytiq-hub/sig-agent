@@ -19,7 +19,7 @@ const MonacoEditor = dynamic(() => import('./MonacoEditor'), {
   ssr: false,
 });
 
-const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({ organizationId, promptId }) => {
+const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> = ({ organizationId, promptRevId }) => {
   const router = useRouter();
   const [currentPromptId, setCurrentPromptId] = useState<string | null>(null);
   const [currentPrompt, setCurrentPrompt] = useState<PromptConfig>({
@@ -82,10 +82,10 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
   // Load editing prompt if available
   useEffect(() => {
     const loadPrompt = async () => {
-      if (promptId) {
+      if (promptRevId) {
         try {
           setIsLoading(true);
-          const prompt = await getPromptApi({ organizationId, promptRevId: promptId });
+          const prompt = await getPromptApi({ organizationId, promptRevId });
           setCurrentPromptId(prompt.prompt_id);
           setCurrentPrompt({
             name: prompt.name,
@@ -112,7 +112,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
     };
     loadPrompt();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [promptId, organizationId]);
+  }, [promptRevId, organizationId]);
 
   // Initialize schema details when form is loaded with a schema
   useEffect(() => {
