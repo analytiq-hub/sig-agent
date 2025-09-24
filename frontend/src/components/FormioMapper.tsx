@@ -130,7 +130,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
             // Fetch the full schema using schema_revid
             const schema = await getSchemaApi({
               organizationId,
-              schemaId: matchingSchemas[0].schema_revid
+              schemaRevId: matchingSchemas[0].schema_revid
             });
             return { [prompt.schema_id!]: schema };
           } catch (error) {

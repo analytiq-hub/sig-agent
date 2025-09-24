@@ -63,7 +63,7 @@ export interface ListSchemasResponse {
 
 export interface GetSchemaParams {
   organizationId: string;
-  schemaId: string;
+  schemaRevId: string;
 }
 
 export interface UpdateSchemaParams {

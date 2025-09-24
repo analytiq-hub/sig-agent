@@ -630,8 +630,8 @@ export const listSchemasApi = async (params: ListSchemasParams): Promise<ListSch
 };
 
 export const getSchemaApi = async (params: GetSchemaParams): Promise<Schema> => {
-  const { organizationId, schemaId } = params;
-  const response = await api.get<Schema>(`/v0/orgs/${organizationId}/schemas/${schemaId}`);
+  const { organizationId, schemaRevId } = params;
+  const response = await api.get<Schema>(`/v0/orgs/${organizationId}/schemas/${schemaRevId}`);
   return response.data;
 };
 

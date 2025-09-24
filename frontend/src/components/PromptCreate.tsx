@@ -60,7 +60,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
           
           const schema = await getSchemaApi({ 
             organizationId: organizationId, 
-            schemaId: schemaDoc.schema_revid 
+            schemaRevId: schemaDoc.schema_revid 
           });
 
           setSelectedSchemaDetails(schema);
@@ -129,7 +129,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptId?: string }> = ({
           try {
             const schema = await getSchemaApi({ 
               organizationId: organizationId, 
-              schemaId: schemaDoc.schema_revid 
+              schemaRevId: schemaDoc.schema_revid 
             });
             setSelectedSchemaDetails(schema);
             // Ensure currentPrompt has the latest schema_version

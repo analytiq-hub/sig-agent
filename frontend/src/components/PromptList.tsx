@@ -204,7 +204,7 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
         // Fetch the full schema details
         schema = await getSchemaApi({
           organizationId: organizationId,
-          schemaId: matchingSchema.schema_revid
+          schemaRevId: matchingSchema.schema_revid
         });
       }
       

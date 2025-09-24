@@ -274,7 +274,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaId?: string }> = ({
       if (schemaId) {
         setIsLoading(true);
         try {
-          const schema = await getSchemaApi({ organizationId, schemaId });
+          const schema = await getSchemaApi({ organizationId, schemaRevId: schemaId });
           setCurrentSchemaId(schema.schema_id);
           setCurrentSchema({
             name: schema.name,
