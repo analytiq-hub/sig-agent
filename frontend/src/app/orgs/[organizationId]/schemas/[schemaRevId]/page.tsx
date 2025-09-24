@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import SchemaCreate from '@/components/SchemaCreate';
 
 export default function SchemaEditPage() {
-  const { organizationId, schemaId } = useParams();
+  const { organizationId, schemaRevId } = useParams();
   const router = useRouter();
 
   return (
@@ -17,7 +17,7 @@ export default function SchemaEditPage() {
         ← Back to Schemas
       </button>
 
-      <SchemaCreate organizationId={organizationId as string} schemaId={schemaId as string} />
+      <SchemaCreate organizationId={organizationId as string} schemaId={schemaRevId as string} />
     </div>
   );
 } 
