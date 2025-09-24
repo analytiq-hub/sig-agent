@@ -53,7 +53,6 @@ cleanup() {
     cleanup_next_server
     cleanup_uvicorn
     cleanup_worker
-    cleanup_http_server
     cleanup_stripe_listen
     
     echo "Shutdown complete"
@@ -97,22 +96,16 @@ cleanup_stripe_listen() {
 cleanup_worker() {
     pkill -f "worker.py" >/dev/null 2>&1
 }
-cleanup_http_server() {
-    # Kill http-server processes and any process using port 8080
-    pkill -f "http-server" >/dev/null 2>&1
-}
 
 # Clean up old processes
 cleanup_next_server
 cleanup_uvicorn
 cleanup_worker
-cleanup_http_server
 cleanup_stripe_listen
 # Run all processes
 run_with_color "uvicorn docrouter_app.main:app --reload --host 0.0.0.0 --port 8000" "$RED" "FASTAPI" "packages"
 run_with_color "python worker.py" "$GREEN" "WORKER" "packages/worker"
 run_with_color "npm run dev" "$MAGENTA" "NEXTJS" "frontend"
-run_with_color "npx http-server -p 8080 --cors -c-1" "$BLUE" "HTTP_SERVER" "public"
 
 # Start Stripe webhook listener if configured
 if [ -n "$STRIPE_WEBHOOK_SECRET_SET" ]; then
