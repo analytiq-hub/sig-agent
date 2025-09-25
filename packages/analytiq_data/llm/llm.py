@@ -396,7 +396,7 @@ async def run_llm(analytiq_client,
 
     # Bedrock models require aws_access_key_id, aws_secret_access_key, aws_region_name
     if llm_provider == "bedrock":
-        aws_client = await ad.aws.get_aws_client(analytiq_client, region_name="us-east-1")
+        aws_client = await ad.aws.get_aws_client_sync(analytiq_client, region_name="us-east-1")
         aws_access_key_id = aws_client.aws_access_key_id
         aws_secret_access_key = aws_client.aws_secret_access_key
         aws_region_name = aws_client.region_name
@@ -769,7 +769,7 @@ async def run_llm_chat(
         
         # Handle Bedrock-specific configuration
         if llm_provider == "bedrock":
-            aws_client = await ad.aws.get_aws_client(analytiq_client, region_name="us-east-1")
+            aws_client = await ad.aws.get_aws_client_sync(analytiq_client, region_name="us-east-1")
             params["aws_access_key_id"] = aws_client.aws_access_key_id
             params["aws_secret_access_key"] = aws_client.aws_secret_access_key
             params["aws_region_name"] = aws_client.region_name

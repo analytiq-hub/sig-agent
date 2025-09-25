@@ -88,7 +88,7 @@ class SyncAWSClient:
             logger.info(f"AWS credentials are not correct: {e}")
             logger.info("AWS client created with empty AWS credentials")
 
-async def get_aws_client(analytiq_client, region_name: str = "us-east-1") -> SyncAWSClient:
+async def get_aws_client_sync(analytiq_client, region_name: str = "us-east-1") -> SyncAWSClient:
     """
     Get the SyncAWSClient.
 
