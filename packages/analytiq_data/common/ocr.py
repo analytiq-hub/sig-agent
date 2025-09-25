@@ -12,12 +12,12 @@ async def get_ocr_json(analytiq_client, document_id: str) -> list:
     """Get OCR blocks supporting both old and new key formats"""
     # Try new format first
     key = f"{document_id}_json"
-    ocr_blob = ad.mongodb.get_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
+    ocr_blob = await ad.mongodb.get_blob_async(analytiq_client, bucket=OCR_BUCKET, key=key)
     
     # Fall back to old format if not found
     if ocr_blob is None:
         key = f"{document_id}_list"
-        ocr_blob = ad.mongodb.get_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
+        ocr_blob = await ad.mongodb.get_blob_async(analytiq_client, bucket=OCR_BUCKET, key=key)
         
     if ocr_blob is None:
         return None
@@ -31,7 +31,7 @@ async def save_ocr_json(analytiq_client, document_id:str, ocr_json:list, metadat
     ocr_bytes = pickle.dumps(ocr_json)
     size_mb = len(ocr_bytes) / 1024 / 1024
     logger.info(f"Saving OCR json for {document_id} with metadata: {metadata} size: {size_mb:.2f}MB")
-    ad.mongodb.save_blob(analytiq_client, bucket=OCR_BUCKET, key=key, blob=ocr_bytes, metadata=metadata)
+    await ad.mongodb.save_blob_async(analytiq_client, bucket=OCR_BUCKET, key=key, blob=ocr_bytes, metadata=metadata)
     
     logger.info(f"OCR JSON for {document_id} has been saved.")
 
@@ -46,7 +46,7 @@ async def delete_ocr_json(analytiq_client, document_id:str):
             document id
     """
     key = f"{document_id}_json"
-    ad.mongodb.delete_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
+    await ad.mongodb.delete_blob_async(analytiq_client, bucket=OCR_BUCKET, key=key)
 
     logger.debug(f"OCR JSON for {document_id} has been deleted.")
 
@@ -69,7 +69,7 @@ async def get_ocr_text(analytiq_client, document_id:str, page_idx:int=None) -> s
     key = f"{document_id}_text"
     if page_idx is not None:
         key += f"_page_{page_idx}"
-    blob = ad.mongodb.get_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
+    blob = await ad.mongodb.get_blob_async(analytiq_client, bucket=OCR_BUCKET, key=key)
     if blob is None:
         return None
     return blob["blob"].decode("utf-8")
@@ -99,7 +99,7 @@ async def save_ocr_text(analytiq_client, document_id:str, ocr_text:str, page_idx
     ocr_text_bytes = ocr_text.encode("utf-8")
 
     # Save the blob
-    ad.mongodb.save_blob(analytiq_client, bucket=OCR_BUCKET, key=key, blob=ocr_text_bytes, metadata=metadata)
+    await ad.mongodb.save_blob_async(analytiq_client, bucket=OCR_BUCKET, key=key, blob=ocr_text_bytes, metadata=metadata)
     
     logger.debug(f"OCR text for {document_id} page {page_idx} has been saved.")
 
@@ -118,7 +118,7 @@ async def delete_ocr_text(analytiq_client, document_id:str, page_idx:int=None):
     key = f"{document_id}_text"
     if page_idx is not None:
         key += f"_page_{page_idx}"
-    ad.mongodb.delete_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
+    await ad.mongodb.delete_blob_async(analytiq_client, bucket=OCR_BUCKET, key=key)
 
     logger.debug(f"OCR text for {document_id} page {page_idx} has been deleted.")
 
@@ -189,7 +189,7 @@ async def get_ocr_metadata(analytiq_client, document_id:str) -> dict:
     """
     Get the OCR metadata
     """
-    blob = ad.mongodb.get_blob(analytiq_client, bucket=OCR_BUCKET, key=f"{document_id}_text")
+    blob = await ad.mongodb.get_blob_async(analytiq_client, bucket=OCR_BUCKET, key=f"{document_id}_text")
     if blob is None:
         return None
 
@@ -214,7 +214,7 @@ async def get_ocr_n_pages(analytiq_client, document_id:str) -> int:
             Number of pages in the OCR text
     """
     key = f"{document_id}_text"
-    blob = ad.mongodb.get_blob(analytiq_client, bucket=OCR_BUCKET, key=key)
+    blob = await ad.mongodb.get_blob_async(analytiq_client, bucket=OCR_BUCKET, key=key)
     if blob is None:
         return 0
     return blob["metadata"]["n_pages"]

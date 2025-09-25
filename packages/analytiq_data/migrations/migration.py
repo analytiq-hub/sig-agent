@@ -1286,7 +1286,7 @@ class AddPdfIdToDocuments(Migration):
                 pdf_file_name = file_name
             else:
                 # Download original file
-                file_blob = ad.common.get_file(analytiq_client, file_name)["blob"]
+                file_blob = await ad.common.get_file_async(analytiq_client, file_name)["blob"]
                 # Convert to PDF
                 pdf_blob = ad.common.file.convert_to_pdf(file_blob, file_ext)
                 pdf_id = ad.common.create_id()

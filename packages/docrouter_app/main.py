@@ -562,7 +562,7 @@ async def get_document(
         file_name = document.get("mongo_file_name")
 
     # Get the file from mongodb
-    file = ad.common.get_file(analytiq_client, file_name)
+    file = await ad.common.get_file_async(analytiq_client, file_name)
     if file is None:
         raise HTTPException(status_code=404, detail="File not found")
 
