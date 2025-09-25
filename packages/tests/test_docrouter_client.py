@@ -6,7 +6,7 @@ import pathlib
 import base64
 from fastapi.testclient import TestClient
 from bson import ObjectId
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import json
 from typing import Dict, Any, List
 import logging
