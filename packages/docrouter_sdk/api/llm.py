@@ -46,7 +46,7 @@ class LLMAPI:
         )
         return LLMRunResponse(**data)
     
-    def get_result(self, organization_id: str, document_id: str, prompt_revid: str = "default") -> LLMResult:
+    def get_result(self, organization_id: str, document_id: str, prompt_revid: str = "default", fallback: bool = False) -> LLMResult:
         """
         Get LLM results for a document
         
@@ -58,7 +58,7 @@ class LLMAPI:
         Returns:
             LLMResult with analysis results
         """
-        params = {"prompt_revid": prompt_revid}
+        params = {"prompt_revid": prompt_revid, "fallback": fallback}
         
         data = self.client.request(
             "GET",
