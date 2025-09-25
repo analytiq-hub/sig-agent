@@ -58,11 +58,6 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
 
         # Update state to OCR processing
         await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_PROCESSING)
-        
-        # Get the AWS client. This will give None for textract if the AWS keys are not set.
-        aws_client = await ad.aws.get_aws_client(analytiq_client)
-        if aws_client.textract is None:
-            raise Exception(f"AWS textract client not created. Skipping OCR.")
 
         ocr_json = None
         if not force:
