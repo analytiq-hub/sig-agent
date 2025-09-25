@@ -62,7 +62,7 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
         ocr_json = None
         if not force:
             # Check if the OCR text already exists
-            ocr_json = ad.common.get_ocr_json(analytiq_client, document_id)
+            ocr_json = await ad.common.get_ocr_json(analytiq_client, document_id)
             if ocr_json is not None:
                 logger.info(f"OCR list for {document_id} already exists. Skipping OCR.")        
         
@@ -92,11 +92,11 @@ async def process_ocr_msg(analytiq_client, msg, force:bool=False):
             logger.info(f"OCR completed for {document_id}")
 
             # Save the OCR dictionary
-            ad.common.save_ocr_json(analytiq_client, document_id, ocr_json)
+            await ad.common.save_ocr_json(analytiq_client, document_id, ocr_json)
             logger.info(f"OCR list for {document_id} has been saved.")
         
         # Extract the text
-        ad.common.save_ocr_text_from_list(analytiq_client, document_id, ocr_json, force=force)
+        await ad.common.save_ocr_text_from_list(analytiq_client, document_id, ocr_json, force=force)
         logger.info(f"OCR text for {document_id} has been saved.")
         # Update state to OCR completed
         await ad.common.doc.update_doc_state(analytiq_client, document_id, ad.common.doc.DOCUMENT_STATE_OCR_COMPLETED)

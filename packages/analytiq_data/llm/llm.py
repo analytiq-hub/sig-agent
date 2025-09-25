@@ -45,7 +45,7 @@ async def get_extracted_text(analytiq_client, document_id: str) -> str | None:
     # Check if OCR is supported
     if ad.common.doc.ocr_supported(file_name):
         # Use OCR text
-        return ad.common.get_ocr_text(analytiq_client, document_id)
+        return await ad.common.get_ocr_text(analytiq_client, document_id)
 
     # For non-OCR files, check if it's a text file we can read
     if file_name:

@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 OCR_BUCKET = "ocr"
 
-def get_ocr_json(analytiq_client, document_id: str) -> list:
+async def get_ocr_json(analytiq_client, document_id: str) -> list:
     """Get OCR blocks supporting both old and new key formats"""
     # Try new format first
     key = f"{document_id}_json"
@@ -25,7 +25,7 @@ def get_ocr_json(analytiq_client, document_id: str) -> list:
     return pickle.loads(ocr_blob["blob"])
    
 
-def save_ocr_json(analytiq_client, document_id:str, ocr_json:list, metadata:dict=None):
+async def save_ocr_json(analytiq_client, document_id:str, ocr_json:list, metadata:dict=None):
     """Save OCR JSON using new format"""
     key = f"{document_id}_json"
     ocr_bytes = pickle.dumps(ocr_json)
@@ -35,7 +35,7 @@ def save_ocr_json(analytiq_client, document_id:str, ocr_json:list, metadata:dict
     
     logger.info(f"OCR JSON for {document_id} has been saved.")
 
-def delete_ocr_json(analytiq_client, document_id:str):
+async def delete_ocr_json(analytiq_client, document_id:str):
     """
     Delete the OCR JSON
 
@@ -50,7 +50,7 @@ def delete_ocr_json(analytiq_client, document_id:str):
 
     logger.debug(f"OCR JSON for {document_id} has been deleted.")
 
-def get_ocr_text(analytiq_client, document_id:str, page_idx:int=None) -> str:
+async def get_ocr_text(analytiq_client, document_id:str, page_idx:int=None) -> str:
     """
     Get the OCR text
     
@@ -75,7 +75,7 @@ def get_ocr_text(analytiq_client, document_id:str, page_idx:int=None) -> str:
     return blob["blob"].decode("utf-8")
    
 
-def save_ocr_text(analytiq_client, document_id:str, ocr_text:str, page_idx:int=None, metadata:dict=None):
+async def save_ocr_text(analytiq_client, document_id:str, ocr_text:str, page_idx:int=None, metadata:dict=None):
     """
     Save the OCR text
     
@@ -103,7 +103,7 @@ def save_ocr_text(analytiq_client, document_id:str, ocr_text:str, page_idx:int=N
     
     logger.debug(f"OCR text for {document_id} page {page_idx} has been saved.")
 
-def delete_ocr_text(analytiq_client, document_id:str, page_idx:int=None):
+async def delete_ocr_text(analytiq_client, document_id:str, page_idx:int=None):
     """
     Delete the OCR text
 
@@ -122,7 +122,7 @@ def delete_ocr_text(analytiq_client, document_id:str, page_idx:int=None):
 
     logger.debug(f"OCR text for {document_id} page {page_idx} has been deleted.")
 
-def delete_ocr_all(analytiq_client, document_id:str):
+async def delete_ocr_all(analytiq_client, document_id:str):
     """
     Delete the OCR
 
@@ -132,13 +132,13 @@ def delete_ocr_all(analytiq_client, document_id:str):
         document_id : str
             document id
     """
-    n_pages = get_ocr_n_pages(analytiq_client, document_id)
+    n_pages = await get_ocr_n_pages(analytiq_client, document_id)
     for page_idx in range(n_pages):
-        delete_ocr_text(analytiq_client, document_id, page_idx)
-    delete_ocr_text(analytiq_client, document_id)
-    delete_ocr_json(analytiq_client, document_id)
+        await delete_ocr_text(analytiq_client, document_id, page_idx)
+    await delete_ocr_text(analytiq_client, document_id)
+    await delete_ocr_json(analytiq_client, document_id)
 
-def save_ocr_text_from_list(analytiq_client, document_id:str, ocr_json:list, metadata:dict=None, force:bool=False):
+async def save_ocr_text_from_list(analytiq_client, document_id:str, ocr_json:list, metadata:dict=None, force:bool=False):
     """
     Save the OCR text from the OCR list
     
@@ -158,15 +158,15 @@ def save_ocr_text_from_list(analytiq_client, document_id:str, ocr_json:list, met
     page_text_map = ad.aws.textract.get_page_text_map(block_map)
 
     if not force:
-        ocr_text = get_ocr_text(analytiq_client, document_id)
+        ocr_text = await get_ocr_text(analytiq_client, document_id)
         if ocr_text is not None:
             logger.info(f"OCR text for {document_id} already exists. Returning.")
             return
     else:
         # Remove the old OCR text, if any
-        delete_ocr_text(analytiq_client, document_id)
+        await delete_ocr_text(analytiq_client, document_id)
         for page_idx in range(len(page_text_map)):
-            delete_ocr_text(analytiq_client, document_id, page_idx)
+            await delete_ocr_text(analytiq_client, document_id, page_idx)
     
     # Record the number of pages in the metadata
     if metadata is None:
@@ -176,16 +176,16 @@ def save_ocr_text_from_list(analytiq_client, document_id:str, ocr_json:list, met
     # Save the new OCR text
     for page_num, page_text in page_text_map.items():
         page_idx = int(page_num) - 1
-        save_ocr_text(analytiq_client, document_id, page_text, page_idx, metadata)
+        await save_ocr_text(analytiq_client, document_id, page_text, page_idx, metadata)
         logger.info(f"OCR text for {document_id} page {page_idx} has been saved.")
 
     text = "\n".join(page_text_map.values())
     logger.info(f"Saving OCR text for {document_id} with metadata: {metadata} length: {len(text)}")
-    save_ocr_text(analytiq_client, document_id, text, metadata=metadata)
+    await save_ocr_text(analytiq_client, document_id, text, metadata=metadata)
 
     logger.info(f"OCR text for {document_id} has been saved.")
 
-def get_ocr_metadata(analytiq_client, document_id:str) -> dict:
+async def get_ocr_metadata(analytiq_client, document_id:str) -> dict:
     """
     Get the OCR metadata
     """
@@ -199,7 +199,7 @@ def get_ocr_metadata(analytiq_client, document_id:str) -> dict:
     }
     return metadata
 
-def get_ocr_n_pages(analytiq_client, document_id:str) -> int:
+async def get_ocr_n_pages(analytiq_client, document_id:str) -> int:
     """
     Get the number of pages in the OCR text
 

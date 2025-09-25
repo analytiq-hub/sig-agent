@@ -651,7 +651,7 @@ async def download_ocr_blocks(
         raise HTTPException(status_code=404, detail="OCR not supported for this document extension")
 
     # Get the OCR JSON data from mongodb
-    ocr_json = ad.common.get_ocr_json(analytiq_client, document_id)
+    ocr_json = await ad.common.get_ocr_json(analytiq_client, document_id)
     if ocr_json is None:
         raise HTTPException(status_code=404, detail="OCR data not found")
     
@@ -683,7 +683,7 @@ async def download_ocr_text(
         page_idx = page_num - 1
 
     # Get the OCR text data from mongodb
-    text = ad.common.get_ocr_text(analytiq_client, document_id, page_idx)
+    text = await ad.common.get_ocr_text(analytiq_client, document_id, page_idx)
     if text is None:
         raise HTTPException(status_code=404, detail="OCR text not found")
     
@@ -708,7 +708,7 @@ async def get_ocr_metadata(
         raise HTTPException(status_code=404, detail="OCR not supported for this document extension")
 
     # Get the OCR metadata from mongodb
-    metadata = ad.common.get_ocr_metadata(analytiq_client, document_id)
+    metadata = await ad.common.get_ocr_metadata(analytiq_client, document_id)
     if metadata is None:
         raise HTTPException(status_code=404, detail="OCR metadata not found")
     
@@ -740,7 +740,7 @@ async def run_llm_analysis(
     # Verify OCR is complete only if the document requires OCR
     file_name = document.get("user_file_name", "")
     if ad.common.doc.ocr_supported(file_name):
-        ocr_metadata = ad.common.get_ocr_metadata(analytiq_client, document_id)
+        ocr_metadata = await ad.common.get_ocr_metadata(analytiq_client, document_id)
         if ocr_metadata is None:
             raise HTTPException(status_code=404, detail="OCR metadata not found")
 
