@@ -120,8 +120,14 @@ async def mock_litellm_acreate_file_with_retry(file, purpose, custom_llm_provide
 
 
 async def mock_litellm_acompletion_with_retry(model, messages, api_key, temperature=0.1, response_format=None, aws_access_key_id=None, aws_secret_access_key=None, aws_region_name=None):
-    """Mock implementation of _litellm_acompletion_with_retry"""
-    return MockLLMResponse("Mocked LLM response from retry function")
+    """Mock implementation of _litellm_acompletion_with_retry that returns valid JSON."""
+    # Always return a JSON object that looks like structured extraction
+    mocked_json = {
+        "invoice_number": "12345",
+        "total_amount": 1234.56,
+        "vendor": {"name": "Acme Corp"}
+    }
+    return MockLLMResponse(content=json.dumps(mocked_json))
 
 
 class WorkerAppliance:
