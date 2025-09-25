@@ -28,7 +28,7 @@ async def get_s3_bucket_name(analytiq_client) -> str:
     except Exception as e:
         logger.warning(f"Could not get S3 bucket name from database: {e}")
 
-class AWSClient:
+class SyncAWSClient:
     def __init__(self, analytiq_client, region_name: str = "us-east-1"):
         self.env = analytiq_client.env
         self.region_name = region_name
@@ -88,17 +88,17 @@ class AWSClient:
             logger.info(f"AWS credentials are not correct: {e}")
             logger.info("AWS client created with empty AWS credentials")
 
-async def get_aws_client(analytiq_client, region_name: str = "us-east-1") -> AWSClient:
+async def get_aws_client(analytiq_client, region_name: str = "us-east-1") -> SyncAWSClient:
     """
-    Get the AWSClient.
+    Get the SyncAWSClient.
 
     Args:
         analytiq_client: The AnalytiqClient.
 
     Returns:
-        The AWSClient.
+        The SyncAWSClient.
     """
-    aws_client = AWSClient(analytiq_client, region_name)
+    aws_client = SyncAWSClient(analytiq_client, region_name)
     await aws_client.init()
     return aws_client
 
@@ -255,7 +255,7 @@ class AsyncAWSClient:
 
 async def get_aws_client_async(analytiq_client, region_name: str = "us-east-1") -> AsyncAWSClient:
     """
-    Get the async AWSClient.
+    Get the AsyncAWSClient.
 
     Args:
         analytiq_client: The AnalytiqClient.
