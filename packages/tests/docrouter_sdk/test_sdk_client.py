@@ -110,9 +110,6 @@ def small_pdf():
         "content": f"data:application/pdf;base64,{base64.b64encode(pdf_content).decode()}"
     }
 
-
-
-
 @pytest.mark.asyncio
 async def test_documents_api(test_db, mock_auth, mock_docrouter_client, small_pdf):
     """Test the documents API using the mock DocRouterClient"""
