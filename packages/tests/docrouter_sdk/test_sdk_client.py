@@ -115,27 +115,6 @@ def small_pdf():
         "content": f"data:application/pdf;base64,{base64.b64encode(pdf_content).decode()}"
     }
 
-async def setup_test_models(db):
-    """Set up test LLM models in the database"""
-    # Check if the providers already exist
-    providers = await db.llm_providers.find({}).to_list(None)
-    if providers:
-        return  # Providers already set up
-        
-    # Add test provider
-    test_provider = {
-        "name": "OpenAI",
-        "display_name": "OpenAI",
-        "litellm_provider": "openai",
-        "litellm_models_available": ["gpt-4o-mini", "gpt-4o"],
-        "litellm_models_enabled": ["gpt-4o-mini", "gpt-4o"],
-        "enabled": True,
-        "token": "test-token",
-        "token_created_at": datetime.now(UTC)
-    }
-    
-    await db.llm_providers.insert_one(test_provider)
-    logger.info("Added test LLM provider to database")
 
 
 
@@ -463,12 +442,10 @@ async def test_schemas_api(test_db, mock_auth, mock_docrouter_client):
     logger.info(f"test_schemas_api() end")
 
 @pytest.mark.asyncio
-async def test_prompts_api(test_db, mock_auth, mock_docrouter_client):
+async def test_prompts_api(test_db, mock_auth, mock_docrouter_client, setup_test_models):
     """Test the Prompts API using the DocRouterClient"""
     logger.info(f"test_prompts_api() start")
 
-    # Set up test models first
-    await setup_test_models(test_db)
 
     try:
         # Step 1: Create a JSON schema
