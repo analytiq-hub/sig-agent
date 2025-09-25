@@ -405,7 +405,7 @@ export const runLLMApi = async (params: RunLLMParams) => {
     {},
     {
       params: {
-        prompt_rev_id: promptRevId,
+        prompt_revid: promptRevId,
         force: force
       }
     }
@@ -419,7 +419,7 @@ export const getLLMResultApi = async (params: GetLLMResultParams) => {
     `/v0/orgs/${organizationId}/llm/result/${documentId}`,
     {
       params: {
-        prompt_rev_id: promptRevId,
+        prompt_revid: promptRevId,
         fallback: fallback
       }
     }
@@ -448,7 +448,7 @@ export const updateLLMResultApi = async ({
     },
     {
       params: {
-        prompt_rev_id: promptId
+        prompt_revid: promptId
       }
     }
   );
@@ -466,7 +466,7 @@ export const deleteLLMResultApi = async (params: DeleteLLMResultParams) => {
     `/v0/orgs/${organizationId}/llm/result/${documentId}`,
     {
       params: {
-        prompt_rev_id: promptId
+        prompt_revid: promptId
       }
     }
   );

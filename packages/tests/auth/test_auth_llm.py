@@ -48,7 +48,7 @@ async def test_llm_permissions(org_and_users, test_db):
     assert resp.status_code in (401, 403), f"Outsider should NOT be able to get LLM result, got {resp.status_code}: {resp.text}"
 
     # --- LLM RESULT UPDATE ---
-    url_update = f"/v0/orgs/{org_id}/llm/result/{doc_id}?prompt_rev_id=default"
+    url_update = f"/v0/orgs/{org_id}/llm/result/{doc_id}?prompt_revid=default"
     update_data = {
         "updated_llm_result": {"field": "value"},
         "is_verified": True
@@ -63,7 +63,7 @@ async def test_llm_permissions(org_and_users, test_db):
     assert resp.status_code in (401, 403), f"Outsider should NOT be able to update LLM result, got {resp.status_code}: {resp.text}"
 
     # --- LLM RESULT DELETE ---
-    url_delete = f"/v0/orgs/{org_id}/llm/result/{doc_id}?prompt_rev_id=default"
+    url_delete = f"/v0/orgs/{org_id}/llm/result/{doc_id}?prompt_revid=default"
     resp = client.delete(url_delete, headers=get_token_headers(admin["token"]))
     assert resp.status_code in (200, 404), f"Admin should be able to delete LLM result, got {resp.status_code}: {resp.text}"
 

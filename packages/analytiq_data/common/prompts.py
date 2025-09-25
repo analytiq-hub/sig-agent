@@ -30,9 +30,9 @@ async def get_prompt_id(analytiq_client, prompt_name: str, organization_id: str)
         raise ValueError(f"Prompt {prompt_name} not found in organization {organization_id}")
     return str(elem["_id"]), elem["prompt_version"]
 
-async def get_prompt_rev_id(analytiq_client,
-                            prompt_id: str,
-                            prompt_version: int) -> str:
+async def get_prompt_revid(analytiq_client,
+                           prompt_id: str,
+                           prompt_version: int) -> str:
     """
     Get a prompt revision ID by its ID and version
     """

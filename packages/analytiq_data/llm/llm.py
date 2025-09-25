@@ -217,7 +217,7 @@ async def _litellm_acreate_file_with_retry(
 
 async def run_llm(analytiq_client, 
                   document_id: str,
-                  prompt_rev_id: str = "default",
+                  prompt_revid: str = "default",
                   llm_model: str = None,
                   force: bool = False) -> dict:
     """
@@ -226,7 +226,7 @@ async def run_llm(analytiq_client,
     Args:
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
-        prompt_rev_id: The prompt revision ID
+        prompt_revid: The prompt revision ID
         llm_model: The model to use (e.g. "gpt-4", "claude-3-sonnet", "mixtral-8x7b-32768")
                If not provided, the model will be retrieved from the prompt.
         force: If True, run the LLM even if the result is already cached
@@ -236,15 +236,15 @@ async def run_llm(analytiq_client,
     """
     # Check for existing result unless force is True
     if not force:
-        existing_result = await get_llm_result(analytiq_client, document_id, prompt_rev_id)
+        existing_result = await get_llm_result(analytiq_client, document_id, prompt_revid)
         if existing_result:
-            logger.info(f"Using cached LLM result for doc_id/prompt_rev_id {document_id}/{prompt_rev_id}")
+            logger.info(f"Using cached LLM result for doc_id/prompt_revid {document_id}/{prompt_revid}")
             return existing_result["llm_result"]
     else:
         # Delete the existing result
-        await delete_llm_result(analytiq_client, document_id, prompt_rev_id)
+        await delete_llm_result(analytiq_client, document_id, prompt_revid)
 
-    logger.info(f"Running new LLM analysis for doc_id/prompt_rev_id {document_id}/{prompt_rev_id}")
+    logger.info(f"Running new LLM analysis for doc_id/prompt_revid {document_id}/{prompt_revid}")
 
     # 1. Get the document and organization_id
     doc = await ad.common.doc.get_doc(analytiq_client, document_id)
@@ -254,7 +254,7 @@ async def run_llm(analytiq_client,
 
     # 2. Determine LLM model
     if llm_model is None:
-        llm_model = await ad.llm.get_llm_model(analytiq_client, prompt_rev_id)
+        llm_model = await ad.llm.get_llm_model(analytiq_client, prompt_revid)
 
     # 3. Determine SPU cost for this LLM
     spu_cost = await ad.payments.get_spu_cost(llm_model)
@@ -268,26 +268,26 @@ async def run_llm(analytiq_client,
     await ad.payments.check_spu_limits(org_id, total_spu_needed)
 
     if not ad.llm.is_chat_model(llm_model) and not ad.llm.is_supported_model(llm_model):
-        logger.info(f"{document_id}/{prompt_rev_id}: LLM model {llm_model} is not a chat model, falling back to default llm_model")
+        logger.info(f"{document_id}/{prompt_revid}: LLM model {llm_model} is not a chat model, falling back to default llm_model")
         llm_model = "gpt-4o-mini"
 
     # Get the provider for the given LLM model
     llm_provider = ad.llm.get_llm_model_provider(llm_model)
     if llm_provider is None:
-        logger.info(f"{document_id}/{prompt_rev_id}: LLM model {llm_model} not supported, falling back to default llm_model")
+        logger.info(f"{document_id}/{prompt_revid}: LLM model {llm_model} not supported, falling back to default llm_model")
         llm_model = "gpt-4o-mini"
         llm_provider = "openai"
         
     api_key = await ad.llm.get_llm_key(analytiq_client, llm_provider)
-    logger.info(f"{document_id}/{prompt_rev_id}: LLM model: {llm_model}, provider: {llm_provider}, api_key: {api_key[:16]}********")
+    logger.info(f"{document_id}/{prompt_revid}: LLM model: {llm_model}, provider: {llm_provider}, api_key: {api_key[:16]}********")
 
     extracted_text = await get_extracted_text(analytiq_client, document_id)
     file_attachment_blob, file_attachment_name = await get_file_attachment(analytiq_client, doc, llm_provider, llm_model)
 
     if not extracted_text and not file_attachment_blob:
-        raise Exception(f"{document_id}/{prompt_rev_id}: Document has no extracted text and no file attachment, so cannot use vision")
+        raise Exception(f"{document_id}/{prompt_revid}: Document has no extracted text and no file attachment, so cannot use vision")
 
-    prompt1 = await ad.common.get_prompt_content(analytiq_client, prompt_rev_id)
+    prompt1 = await ad.common.get_prompt_content(analytiq_client, prompt_revid)
     
     # Define system_prompt before using it
     system_prompt = (
@@ -337,10 +337,10 @@ async def run_llm(analytiq_client,
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": file_content}
                 ]
-                logger.info(f"{document_id}/{prompt_rev_id}: Attaching OCR and PDF to prompt using OpenAI file_id: {file_id}")
+                logger.info(f"{document_id}/{prompt_revid}: Attaching OCR and PDF to prompt using OpenAI file_id: {file_id}")
                 
             except Exception as e:
-                logger.error(f"{document_id}/{prompt_rev_id}: Failed to upload file to OpenAI: {e}")
+                logger.error(f"{document_id}/{prompt_revid}: Failed to upload file to OpenAI: {e}")
                 raise e
                 
         else:
@@ -362,7 +362,7 @@ async def run_llm(analytiq_client,
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": file_content}
             ]
-            logger.info(f"{document_id}/{prompt_rev_id}: Attaching OCR and PDF to prompt using base64 for {llm_provider}")
+            logger.info(f"{document_id}/{prompt_revid}: Attaching OCR and PDF to prompt using base64 for {llm_provider}")
     
     if not file_attachment_blob:
         # Original OCR-only approach
@@ -377,22 +377,22 @@ async def run_llm(analytiq_client,
             {"role": "user", "content": prompt}
         ]
 
-        logger.info(f"{document_id}/{prompt_rev_id}: Attaching OCR-only to prompt")
+        logger.info(f"{document_id}/{prompt_revid}: Attaching OCR-only to prompt")
 
     response_format = None
     
     # Most but not all models support response_format
     # See https://platform.openai.com/docs/guides/structured-outputs?format=without-parse
-    if prompt_rev_id == "default":
+    if prompt_revid == "default":
         # Use a default response format
         response_format = {"type": "json_object"}
     elif litellm.supports_response_schema(model=llm_model):
         # Get the prompt response format, if any
-        response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_rev_id)
-        logger.info(f"{document_id}/{prompt_rev_id}: Response format: {response_format}")
+        response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_revid)
+        logger.info(f"{document_id}/{prompt_revid}: Response format: {response_format}")
     
     if response_format is None:
-        logger.info(f"{document_id}/{prompt_rev_id}: No response format found for prompt")
+        logger.info(f"{document_id}/{prompt_revid}: No response format found for prompt")
 
     # Bedrock models require aws_access_key_id, aws_secret_access_key, aws_region_name
     if llm_provider == "bedrock":
@@ -447,9 +447,9 @@ async def run_llm(analytiq_client,
     resp_dict = json.loads(resp_content1)
 
     # If this is not the default prompt, reorder the response to match schema
-    if prompt_rev_id != "default":
+    if prompt_revid != "default":
         # Get the prompt response format
-        response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_rev_id)
+        response_format = await ad.common.get_prompt_response_format(analytiq_client, prompt_revid)
         if response_format and response_format.get("type") == "json_schema":
             schema = response_format["json_schema"]["schema"]
             # Get ordered properties from schema
@@ -475,13 +475,13 @@ async def run_llm(analytiq_client,
             #logger.info(f"Reordered response: {resp_dict}")
 
     # 10. Save the new result
-    await save_llm_result(analytiq_client, document_id, prompt_rev_id, resp_dict)
+    await save_llm_result(analytiq_client, document_id, prompt_revid, resp_dict)
     
     return resp_dict
 
 async def get_llm_result(analytiq_client,
                          document_id: str,
-                         prompt_rev_id: str,
+                         prompt_revid: str,
                          fallback: bool = False) -> dict | None:
     """
     Retrieve the latest LLM result from MongoDB.
@@ -489,7 +489,7 @@ async def get_llm_result(analytiq_client,
     Args:
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
-        prompt_rev_id: The prompt revision ID
+        prompt_revid: The prompt revision ID
         fallback: If True, return the latest LLM result available for the prompt_id
     
     Returns:
@@ -502,13 +502,13 @@ async def get_llm_result(analytiq_client,
         result = await db.llm_runs.find_one(
             {
                 "document_id": document_id,
-                "prompt_rev_id": prompt_rev_id
+                "prompt_revid": prompt_revid
             },
             sort=[("_id", -1)]
         )
     else:
-        # Get the prompt_id and prompt_version from the prompt_rev_id
-        prompt_id, _ = await get_prompt_info_from_rev_id(analytiq_client, prompt_rev_id)
+        # Get the prompt_id and prompt_version from the prompt_revid
+        prompt_id, _ = await get_prompt_info_from_rev_id(analytiq_client, prompt_revid)
         # Sort by _id in descending order to get the latest available result for the prompt_id
         result = await db.llm_runs.find_one(
             {
@@ -520,34 +520,34 @@ async def get_llm_result(analytiq_client,
 
     return result
 
-async def get_prompt_info_from_rev_id(analytiq_client, prompt_rev_id: str) -> tuple[str, int]:
+async def get_prompt_info_from_rev_id(analytiq_client, prompt_revid: str) -> tuple[str, int]:
     """
-    Get prompt_id and prompt_version from prompt_rev_id.
+    Get prompt_id and prompt_version from prompt_revid.
     
     Args:
         analytiq_client: The AnalytiqClient instance
-        prompt_rev_id: The prompt revision ID
+        prompt_revid: The prompt revision ID
         
     Returns:
         tuple[str, int]: (prompt_id, prompt_version)
     """
     # Special case for the default prompt
-    if prompt_rev_id == "default":
+    if prompt_revid == "default":
         return "default", 1
     
     db_name = analytiq_client.env
     db = analytiq_client.mongodb_async[db_name]
     
     # Get the prompt revision
-    elem = await db.prompt_revisions.find_one({"_id": ObjectId(prompt_rev_id)})
+    elem = await db.prompt_revisions.find_one({"_id": ObjectId(prompt_revid)})
     if elem is None:
-        raise ValueError(f"Prompt revision {prompt_rev_id} not found")
+        raise ValueError(f"Prompt revision {prompt_revid} not found")
     
     return str(elem["prompt_id"]), elem["prompt_version"]
 
 async def save_llm_result(analytiq_client, 
                           document_id: str,
-                          prompt_rev_id: str, 
+                          prompt_revid: str, 
                           llm_result: dict) -> str:
     """
     Save the LLM result to MongoDB.
@@ -555,7 +555,7 @@ async def save_llm_result(analytiq_client,
     Args:
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
-        prompt_rev_id: The prompt revision ID
+        prompt_revid: The prompt revision ID
         llm_result: The LLM result
     """
 
@@ -564,11 +564,11 @@ async def save_llm_result(analytiq_client,
 
     current_time_utc = datetime.now(UTC)
     
-    # Get prompt_id and prompt_version from prompt_rev_id
-    prompt_id, prompt_version = await get_prompt_info_from_rev_id(analytiq_client, prompt_rev_id)
+    # Get prompt_id and prompt_version from prompt_revid
+    prompt_id, prompt_version = await get_prompt_info_from_rev_id(analytiq_client, prompt_revid)
 
     element = {
-        "prompt_rev_id": prompt_rev_id,
+        "prompt_revid": prompt_revid,
         "prompt_id": prompt_id,
         "prompt_version": prompt_version,
         "document_id": document_id,
@@ -588,14 +588,14 @@ async def save_llm_result(analytiq_client,
 
 async def delete_llm_result(analytiq_client,
                             document_id: str,
-                            prompt_rev_id: str | None = None) -> bool:
+                            prompt_revid: str | None = None) -> bool:
     """
     Delete an LLM result from MongoDB.
     
     Args:
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
-        prompt_rev_id: The prompt revision ID. If None, delete all LLM results for the document.
+        prompt_revid: The prompt revision ID. If None, delete all LLM results for the document.
     
     Returns:
         bool: True if deleted, False if not found
@@ -607,28 +607,28 @@ async def delete_llm_result(analytiq_client,
         "document_id": document_id
     }
 
-    if prompt_rev_id is not None:
-        delete_filter["prompt_rev_id"] = prompt_rev_id
+    if prompt_revid is not None:
+        delete_filter["prompt_revid"] = prompt_revid
 
     result = await db.llm_runs.delete_many(delete_filter)
     
     return result.deleted_count > 0
 
 
-async def run_llm_for_prompt_rev_ids(analytiq_client, document_id: str, prompt_rev_ids: list[str], model: str = "gpt-4o-mini") -> None:
+async def run_llm_for_prompt_revids(analytiq_client, document_id: str, prompt_revids: list[str], model: str = "gpt-4o-mini") -> None:
     """
     Run the LLM for the given prompt IDs.
 
     Args:
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
-        prompt_rev_ids: The prompt revision IDs to run the LLM for
+        prompt_revids: The prompt revision IDs to run the LLM for
     """
 
-    n_prompts = len(prompt_rev_ids)
+    n_prompts = len(prompt_revids)
 
     # Create n_prompts concurrent tasks
-    tasks = [run_llm(analytiq_client, document_id, prompt_rev_id, model) for prompt_rev_id in prompt_rev_ids]
+    tasks = [run_llm(analytiq_client, document_id, prompt_revid, model) for prompt_revid in prompt_revids]
 
     # Run the tasks
     results = await asyncio.gather(*tasks)
@@ -639,7 +639,7 @@ async def run_llm_for_prompt_rev_ids(analytiq_client, document_id: str, prompt_r
 
 async def update_llm_result(analytiq_client,
                             document_id: str,
-                            prompt_rev_id: str,
+                            prompt_revid: str,
                             updated_llm_result: dict,
                             is_verified: bool = False) -> str:
     """
@@ -648,7 +648,7 @@ async def update_llm_result(analytiq_client,
     Args:
         analytiq_client: The AnalytiqClient instance
         document_id: The document ID
-        prompt_rev_id: The prompt revision ID
+        prompt_revid: The prompt revision ID
         updated_llm_result: The updated LLM result
         is_verified: Whether this result has been verified
     
@@ -665,13 +665,13 @@ async def update_llm_result(analytiq_client,
     existing = await db.llm_runs.find_one(
         {
             "document_id": document_id,
-            "prompt_rev_id": prompt_rev_id
+            "prompt_revid": prompt_revid
         },
         sort=[("_id", -1)]
     )
     
     if not existing:
-        raise ValueError(f"No existing LLM result found for document_id: {document_id}, prompt_rev_id: {prompt_rev_id}")
+        raise ValueError(f"No existing LLM result found for document_id: {document_id}, prompt_revid: {prompt_revid}")
     
     # Validate that the updated result has the same structure as the original
     existing_keys = set(existing["llm_result"].keys())

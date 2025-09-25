@@ -722,14 +722,14 @@ async def get_ocr_metadata(
 async def run_llm_analysis(
     organization_id: str,
     document_id: str,
-    prompt_rev_id: str = Query(default="default", description="The prompt revision ID to use"),
+    prompt_revid: str = Query(default="default", description="The prompt revision ID to use"),
     force: bool = Query(default=False, description="Force new run even if result exists"),
     current_user: User = Depends(get_org_user)
 ):
     """
     Run LLM on a document, with optional force refresh.
     """
-    logger.info(f"run_llm_analysis(): doc_id/prompt_rev_id {document_id}/{prompt_rev_id}, force: {force}")
+    logger.info(f"run_llm_analysis(): doc_id/prompt_revid {document_id}/{prompt_revid}, force: {force}")
     analytiq_client = ad.common.get_analytiq_client()
     
     # Verify document exists and user has access
@@ -748,7 +748,7 @@ async def run_llm_analysis(
         result = await ad.llm.run_llm(
             analytiq_client,
             document_id=document_id,
-            prompt_rev_id=prompt_rev_id,
+            prompt_revid=prompt_revid,
             force=force
         )
         
@@ -761,13 +761,13 @@ async def run_llm_analysis(
         )
         
     except SPUCreditException as e:
-        logger.warning(f"{document_id}/{prompt_rev_id}: SPU credit exhausted in LLM run: {str(e)}")
+        logger.warning(f"{document_id}/{prompt_revid}: SPU credit exhausted in LLM run: {str(e)}")
         raise HTTPException(
             status_code=402,
             detail=f"Insufficient SPU credits: {str(e)}"
         )
     except Exception as e:
-        logger.error(f"{document_id}/{prompt_rev_id}: Error in LLM run: {str(e)}")
+        logger.error(f"{document_id}/{prompt_revid}: Error in LLM run: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error processing document: {str(e)}"
@@ -802,14 +802,14 @@ async def run_llm_chat_org(
 async def get_llm_result(
     organization_id: str,
     document_id: str,
-    prompt_rev_id: str = Query(default="default", description="The prompt revision ID to retrieve"),
+    prompt_revid: str = Query(default="default", description="The prompt revision ID to retrieve"),
     fallback: bool = Query(default=False, description="Whether to fallback to the most recent available prompt revision result"),
     current_user: User = Depends(get_org_user)
 ):
     """
     Retrieve existing LLM results for a document.
     """
-    logger.debug(f"get_llm_result() start: document_id: {document_id}, prompt_rev_id: {prompt_rev_id}")
+    logger.debug(f"get_llm_result() start: document_id: {document_id}, prompt_revid: {prompt_revid}")
     analytiq_client = ad.common.get_analytiq_client()
     
     # Verify document exists and user has access
@@ -817,11 +817,11 @@ async def get_llm_result(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    llm_result = await ad.llm.get_llm_result(analytiq_client, document_id, prompt_rev_id, fallback)
+    llm_result = await ad.llm.get_llm_result(analytiq_client, document_id, prompt_revid, fallback)
     if not llm_result:
         raise HTTPException(
             status_code=404,
-            detail=f"LLM result not found for document_id: {document_id} prompt_rev_id: {prompt_rev_id} fallback: {fallback}"
+            detail=f"LLM result not found for document_id: {document_id} prompt_revid: {prompt_revid} fallback: {fallback}"
         )
     
     return llm_result
@@ -830,7 +830,7 @@ async def get_llm_result(
 async def update_llm_result(
     organization_id: str,
     document_id: str,
-    prompt_rev_id: str = Query(..., description="The prompt revision ID to update"),
+    prompt_revid: str = Query(..., description="The prompt revision ID to update"),
     update: UpdateLLMResultRequest = Body(..., description="The update request"),
     current_user: User = Depends(get_org_user)
 ):
@@ -848,12 +848,12 @@ async def update_llm_result(
         await ad.llm.update_llm_result(
             analytiq_client,
             document_id=document_id,
-            prompt_rev_id=prompt_rev_id,
+            prompt_revid=prompt_revid,
             updated_llm_result=update.updated_llm_result,
             is_verified=update.is_verified
         )
         
-        return await ad.llm.get_llm_result(analytiq_client, document_id, prompt_rev_id)
+        return await ad.llm.get_llm_result(analytiq_client, document_id, prompt_revid)
         
     except ValueError as e:
         raise HTTPException(
@@ -870,25 +870,25 @@ async def update_llm_result(
 async def delete_llm_result(
     organization_id: str,
     document_id: str,
-    prompt_rev_id: str = Query(..., description="The prompt revision ID to delete"),
+    prompt_revid: str = Query(..., description="The prompt revision ID to delete"),
     current_user: User = Depends(get_org_user)
 ):
     """
     Delete LLM results for a specific document and prompt.
     """
-    logger.debug(f"delete_llm_result() start: document_id: {document_id}, prompt_rev_id: {prompt_rev_id}")
+    logger.debug(f"delete_llm_result() start: document_id: {document_id}, prompt_revid: {prompt_revid}")
     analytiq_client = ad.common.get_analytiq_client()
     # Verify document exists and user has access
     document = await ad.common.get_doc(analytiq_client, document_id, organization_id)
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    deleted = await ad.llm.delete_llm_result(analytiq_client, document_id, prompt_rev_id)
+    deleted = await ad.llm.delete_llm_result(analytiq_client, document_id, prompt_revid)
     
     if not deleted:
         raise HTTPException(
             status_code=404,
-            detail=f"LLM result not found for document_id: {document_id} and prompt_rev_id: {prompt_rev_id}"
+            detail=f"LLM result not found for document_id: {document_id} and prompt_revid: {prompt_revid}"
         )
     
     return {"status": "success", "message": "LLM result deleted"}
@@ -923,7 +923,7 @@ async def download_all_llm_results(
         )
     
     # Get prompts information for context
-    prompt_ids = list(set(result["prompt_rev_id"] for result in llm_results))
+    prompt_ids = list(set(result["prompt_revid"] for result in llm_results))
     # Filter out non-ObjectId prompt IDs (like "default")
     valid_prompt_ids = []
     for pid in prompt_ids:
@@ -949,15 +949,15 @@ async def download_all_llm_results(
     }
     
     for result in llm_results:
-        prompt_info = prompt_map.get(result["prompt_rev_id"], {})
+        prompt_info = prompt_map.get(result["prompt_revid"], {})
         # Handle special case for "default" prompt
-        if result["prompt_rev_id"] == "default":
+        if result["prompt_revid"] == "default":
             prompt_name = "Default Prompt"
         else:
             prompt_name = prompt_info.get("content", "Unknown")[:100] + "..." if len(prompt_info.get("content", "")) > 100 else prompt_info.get("content", "Unknown")
         
         download_data["results"].append({
-            "prompt_rev_id": result["prompt_rev_id"],
+            "prompt_revid": result["prompt_revid"],
             "prompt_name": prompt_name,
             "prompt_version": result.get("prompt_version", 0),
             "extraction_result": result["updated_llm_result"],

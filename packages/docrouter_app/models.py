@@ -130,7 +130,7 @@ class LLMRunResponse(BaseModel):
     result: dict
 
 class LLMResult(BaseModel):
-    prompt_rev_id: str
+    prompt_revid: str
     prompt_id: str
     prompt_version: int
     document_id: str

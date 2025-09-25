@@ -70,11 +70,12 @@ class DocRouterClient:
                 raise err
                 
         # Parse the response
-        if response.content and response.headers.get("content-type") == "application/json":
+        content_type = response.headers.get("content-type", "").lower()
+        if response.content and content_type.startswith("application/json"):
             return response.json()
         
         # For text content type, return the text
-        if response.content and response.headers.get("content-type") == "text/plain":
+        if response.content and content_type.startswith("text/plain"):
             return response.text
             
         # Return raw response for binary data

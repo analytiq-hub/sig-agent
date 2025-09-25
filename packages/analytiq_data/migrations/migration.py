@@ -1580,6 +1580,50 @@ class RenameAwsCredentialsCollection(Migration):
             logger.error(f"Collection rename migration revert failed: {e}")
             return False
 
+class RenamePromptRevIdToPromptRevid(Migration):
+    def __init__(self):
+        super().__init__(description="Rename prompt_rev_id to prompt_revid in llm_runs collection")
+
+    async def up(self, db) -> bool:
+        try:
+            # Update documents that have prompt_rev_id
+            result = await db.llm_runs.update_many(
+                {"prompt_rev_id": {"$exists": True}},
+                [
+                    {
+                        "$set": {
+                            "prompt_revid": "$prompt_rev_id",
+                            "prompt_rev_id": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            logger.info(f"Renamed prompt_rev_id to prompt_revid in {result.modified_count} llm_runs documents")
+            return True
+        except Exception as e:
+            logger.error(f"Migration failed: {e}")
+            return False
+
+    async def down(self, db) -> bool:
+        try:
+            # Revert documents that have prompt_revid
+            result = await db.llm_runs.update_many(
+                {"prompt_revid": {"$exists": True}},
+                [
+                    {
+                        "$set": {
+                            "prompt_rev_id": "$prompt_revid",
+                            "prompt_revid": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            logger.info(f"Reverted prompt_revid to prompt_rev_id in {result.modified_count} llm_runs documents")
+            return True
+        except Exception as e:
+            logger.error(f"Migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -1602,6 +1646,7 @@ MIGRATIONS = [
     RemoveLlmModelsAndTokens(),
     AddPromptIdAndVersionToLlmRuns(),
     RenameAwsCredentialsCollection(),
+    RenamePromptRevIdToPromptRevid(),
     # Add more migrations here
 ]
 

@@ -173,7 +173,7 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
                 try:
                     result_resp = client.get(
                         f"/v0/orgs/{org_id}/llm/result/{document_id}",
-                        params={"prompt_rev_id": prompt_revid},
+                        params={"prompt_revid": prompt_revid},
                         headers=get_token_headers(admin["token"]),
                     )
                     if result_resp.status_code == 200:

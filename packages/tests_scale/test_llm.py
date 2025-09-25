@@ -157,7 +157,7 @@ async def test_textract_and_llm_default_pipeline(test_db, mock_auth, setup_test_
         try:
             llm_result_resp = client.get(
                 f"/v0/orgs/{TEST_ORG_ID}/llm/result/{document_id}",
-                params={"prompt_rev_id": "default"},
+                params={"prompt_revid": "default"},
                 headers=get_auth_headers()
             )
 
@@ -328,7 +328,7 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
             try:
                 result_resp = client.get(
                     f"/v0/orgs/{org_id}/llm/result/{document_id}",
-                    params={"prompt_rev_id": prompt_revid},
+                    params={"prompt_revid": prompt_revid},
                     headers=get_token_headers(admin["token"])
                 )
 
@@ -402,7 +402,7 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
         
         update_resp = client.put(
             f"/v0/orgs/{org_id}/llm/result/{document_id}",
-            params={"prompt_rev_id": prompt_revid},
+            params={"prompt_revid": prompt_revid},
             json=update_request,
             headers=get_token_headers(admin["token"])
         )
@@ -436,7 +436,7 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
         # Verify our updated result is in the downloaded data
         found_updated_result = False
         for result in downloaded_results["results"]:
-            if result.get("prompt_rev_id") == prompt_revid:
+            if result.get("prompt_revid") == prompt_revid:
                 # Check verification status in metadata
                 metadata = result.get("metadata", {})
                 assert metadata.get("is_verified") == True, "Downloaded result should be verified"
@@ -451,7 +451,7 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
         # Step 4: Delete the LLM result
         delete_resp = client.delete(
             f"/v0/orgs/{org_id}/llm/result/{document_id}",
-            params={"prompt_rev_id": prompt_revid},
+            params={"prompt_revid": prompt_revid},
             headers=get_token_headers(admin["token"])
         )
         assert delete_resp.status_code == 200, f"Failed to delete LLM result: {delete_resp.text}"
@@ -461,7 +461,7 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
         # Verify the LLM result was actually deleted
         verify_delete_resp = client.get(
             f"/v0/orgs/{org_id}/llm/result/{document_id}",
-            params={"prompt_rev_id": prompt_revid},
+            params={"prompt_revid": prompt_revid},
             headers=get_token_headers(admin["token"])
         )
         assert verify_delete_resp.status_code == 404, "LLM result should no longer exist after deletion"

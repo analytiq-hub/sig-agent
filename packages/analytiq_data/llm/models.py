@@ -10,13 +10,13 @@ logger = logging.getLogger(__name__)
 
 import analytiq_data as ad
 
-async def get_llm_model(analytiq_client, prompt_rev_id: str) -> dict:
+async def get_llm_model(analytiq_client, prompt_revid: str) -> dict:
     """
     Get the LLM model for a prompt
 
     Args:
         analytiq_client: The AnalytiqClient instance
-        prompt_rev_id: The prompt revision ID
+        prompt_revid: The prompt revision ID
 
     Returns:
         The LLM model for the prompt
@@ -29,10 +29,10 @@ async def get_llm_model(analytiq_client, prompt_rev_id: str) -> dict:
 
     default_model = "gpt-4o-mini"
 
-    if prompt_rev_id == "default":
+    if prompt_revid == "default":
         return default_model
 
-    prompt = await collection.find_one({"_id": ObjectId(prompt_rev_id)})
+    prompt = await collection.find_one({"_id": ObjectId(prompt_revid)})
     if prompt is None:
         return default_model
     

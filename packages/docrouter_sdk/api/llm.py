@@ -24,23 +24,20 @@ class LLMAPI:
         )
         return ListLLMModelsResponse(**data)
     
-    def run(self, organization_id: str, document_id: str, prompt_id: str = "default", force: bool = False) -> LLMRunResponse:
+    def run(self, organization_id: str, document_id: str, prompt_revid: str = "default", force: bool = False) -> LLMRunResponse:
         """
         Run LLM analysis on a document
         
         Args:
             organization_id: The organization ID
             document_id: The document ID
-            prompt_id: The prompt ID to use
+            prompt_revid: The prompt revision ID to use
             force: Whether to force a new run even if results exist
             
         Returns:
             LLMRunResponse with status and result
         """
-        params = {
-            "prompt_id": prompt_id,
-            "force": force
-        }
+        params = {"prompt_revid": prompt_revid, "force": force}
         
         data = self.client.request(
             "POST",
