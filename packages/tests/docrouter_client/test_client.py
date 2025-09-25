@@ -16,7 +16,6 @@ import pathlib
 # Add the packages directory to the Python path
 TOP_DIR = pathlib.Path(__file__).parent.parent.parent.parent
 sys.path.append(str(TOP_DIR / "packages"))
-sys.path.append(str(TOP_DIR / "backend"))
 
 # Import test utilities using absolute import
 from tests.conftest_utils import (
