@@ -39,11 +39,9 @@ async def send_email(
         Exception: If email sending fails
     """
     try:
-        # Create SES client
-        aws_client = await ad.aws.get_aws_client(analytiq_client)
-        ses_client = aws_client.session.client("ses", region_name=aws_client.region_name)
+        # Create SES client (async)
+        aws_client = await ad.aws.get_aws_client_async(analytiq_client)
 
-        
         # Create email message
         message = {
             'Subject': {
@@ -57,13 +55,14 @@ async def send_email(
         }
         
         # Send email
-        response = ses_client.send_email(
-            Source=from_email,
-            Destination={
-                'ToAddresses': [to_email]
-            },
-            Message=message
-        )
+        async with aws_client.client('ses') as ses_client:
+            response = await ses_client.send_email(
+                Source=from_email,
+                Destination={
+                    'ToAddresses': [to_email]
+                },
+                Message=message
+            )
         
         logging.info(f"Email sent! Message ID: {response['MessageId']}")
         return True
