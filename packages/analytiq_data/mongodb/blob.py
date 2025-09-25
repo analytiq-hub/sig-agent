@@ -152,7 +152,7 @@ async def get_blob_async(analytiq_client, bucket: str, key: str) -> dict:
 
     Returns:
         dict
-            {"blob": bytes, "metadata": dict}
+            {"blob": bytes, "metadata": dict, "upload_date": datetime}
     """
     # Get the provider db
     mongo = analytiq_client.mongodb_async
@@ -165,6 +165,7 @@ async def get_blob_async(analytiq_client, bucket: str, key: str) -> dict:
     if elem is None:
         return None
     metadata = elem.get("metadata", None)
+    upload_date = elem.get("uploadDate", None)
 
     # Get the blob
     fs_bucket = AsyncIOMotorGridFSBucket(db, bucket_name=bucket)
@@ -173,7 +174,8 @@ async def get_blob_async(analytiq_client, bucket: str, key: str) -> dict:
 
     blob_dict = {
         "blob": blob,
-        "metadata": metadata
+        "metadata": metadata,
+        "upload_date": upload_date
     }
     return blob_dict
 
