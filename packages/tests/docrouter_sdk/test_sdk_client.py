@@ -21,11 +21,6 @@ import analytiq_data as ad
 
 logger = logging.getLogger(__name__)
 
-# Add the packages directory to the Python path
-TOP_DIR = pathlib.Path(__file__).parent.parent.parent
-PACKAGES_DIR = TOP_DIR / "packages"
-sys.path.append(str(PACKAGES_DIR))
-
 # Import the DocRouterClient
 from docrouter_sdk import DocRouterClient
 from docrouter_sdk.models.document import ListDocumentsResponse
