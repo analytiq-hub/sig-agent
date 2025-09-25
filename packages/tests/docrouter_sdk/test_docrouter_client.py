@@ -13,7 +13,7 @@ import logging
 from datetime import datetime, UTC
 
 # Import shared test utilities
-from .conftest_utils import (
+from tests.conftest_utils import (
     client, TEST_ORG_ID, 
     get_auth_headers
 )
