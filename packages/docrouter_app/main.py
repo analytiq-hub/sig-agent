@@ -912,7 +912,7 @@ async def download_all_llm_results(
     
     # Get all LLM results for this document
     db = ad.common.get_async_db(analytiq_client)
-    llm_results = await db.llm_results.find({
+    llm_results = await db.llm_runs.find({
         "document_id": document_id
     }).to_list(None)
     
@@ -924,8 +924,17 @@ async def download_all_llm_results(
     
     # Get prompts information for context
     prompt_ids = list(set(result["prompt_rev_id"] for result in llm_results))
+    # Filter out non-ObjectId prompt IDs (like "default")
+    valid_prompt_ids = []
+    for pid in prompt_ids:
+        try:
+            valid_prompt_ids.append(ObjectId(pid))
+        except:
+            # Skip invalid ObjectIds like "default"
+            continue
+    
     prompts = await db.prompt_revisions.find({
-        "_id": {"$in": [ObjectId(pid) for pid in prompt_ids]}
+        "_id": {"$in": valid_prompt_ids}
     }).to_list(None)
     
     prompt_map = {str(p["_id"]): p for p in prompts}
@@ -941,9 +950,15 @@ async def download_all_llm_results(
     
     for result in llm_results:
         prompt_info = prompt_map.get(result["prompt_rev_id"], {})
+        # Handle special case for "default" prompt
+        if result["prompt_rev_id"] == "default":
+            prompt_name = "Default Prompt"
+        else:
+            prompt_name = prompt_info.get("content", "Unknown")[:100] + "..." if len(prompt_info.get("content", "")) > 100 else prompt_info.get("content", "Unknown")
+        
         download_data["results"].append({
             "prompt_rev_id": result["prompt_rev_id"],
-            "prompt_name": prompt_info.get("content", "Unknown")[:100] + "..." if len(prompt_info.get("content", "")) > 100 else prompt_info.get("content", "Unknown"),
+            "prompt_name": prompt_name,
             "prompt_version": result.get("prompt_version", 0),
             "extraction_result": result["updated_llm_result"],
             "metadata": {

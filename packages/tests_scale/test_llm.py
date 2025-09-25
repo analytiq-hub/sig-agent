@@ -383,3 +383,85 @@ async def test_full_document_llm_processing_pipeline(org_and_users, setup_test_m
         assert final_doc_data.get("state") in [
             ad.common.doc.DOCUMENT_STATE_LLM_COMPLETED
         ], f"Document should be in LLM completed state, got: {final_doc_data.get('state')}"
+
+        # Additional test steps: Update, verify, download, and delete LLM result
+        
+        # Step 1: Update the LLM result using the REST API
+        updated_data = {
+            "invoice_number": "UPDATED-12345",
+            "total_amount": 9999.99,
+            "vendor": {
+                "name": "Updated Acme Corp"
+            }
+        }
+        
+        update_request = {
+            "updated_llm_result": updated_data,
+            "is_verified": True
+        }
+        
+        update_resp = client.put(
+            f"/v0/orgs/{org_id}/llm/result/{document_id}",
+            params={"prompt_rev_id": prompt_revid},
+            json=update_request,
+            headers=get_token_headers(admin["token"])
+        )
+        assert update_resp.status_code == 200, f"Failed to update LLM result: {update_resp.text}"
+        updated_result = update_resp.json()
+        
+        # Step 2: Verify the LLM result was updated correctly
+        assert "llm_result" in updated_result, f"Missing llm_result in updated response: {updated_result}"
+        assert "updated_llm_result" in updated_result, f"Missing updated_llm_result in response: {updated_result}"
+        assert updated_result.get("is_verified") == True, "Result should be marked as verified"
+        
+        # Verify the updated data matches what we sent
+        updated_llm_data = updated_result["updated_llm_result"]
+        assert updated_llm_data["invoice_number"] == "UPDATED-12345"
+        assert updated_llm_data["total_amount"] == 9999.99
+        assert updated_llm_data["vendor"]["name"] == "Updated Acme Corp"
+        
+        # Step 3: Download all LLM results and verify them
+        download_resp = client.get(
+            f"/v0/orgs/{org_id}/llm/results/{document_id}/download",
+            headers=get_token_headers(admin["token"])
+        )
+        assert download_resp.status_code == 200, f"Failed to download LLM results: {download_resp.text}"
+        
+        # The download should return a JSON file with all results
+        downloaded_results = download_resp.json()
+        assert isinstance(downloaded_results, dict), "Downloaded results should be a dictionary"
+        assert "results" in downloaded_results, "Downloaded results should contain 'results' key"
+        assert len(downloaded_results["results"]) > 0, "Should have at least one LLM result"
+        
+        # Verify our updated result is in the downloaded data
+        found_updated_result = False
+        for result in downloaded_results["results"]:
+            if result.get("prompt_rev_id") == prompt_revid:
+                # Check verification status in metadata
+                metadata = result.get("metadata", {})
+                assert metadata.get("is_verified") == True, "Downloaded result should be verified"
+                if "extraction_result" in result:
+                    updated_data_in_download = result["extraction_result"]
+                    if updated_data_in_download.get("invoice_number") == "UPDATED-12345":
+                        found_updated_result = True
+                        break
+        
+        assert found_updated_result, "Updated result should be found in downloaded data"
+        
+        # Step 4: Delete the LLM result
+        delete_resp = client.delete(
+            f"/v0/orgs/{org_id}/llm/result/{document_id}",
+            params={"prompt_rev_id": prompt_revid},
+            headers=get_token_headers(admin["token"])
+        )
+        assert delete_resp.status_code == 200, f"Failed to delete LLM result: {delete_resp.text}"
+        delete_result = delete_resp.json()
+        assert delete_result.get("status") == "success", f"Delete should return success status: {delete_result}"
+        
+        # Verify the LLM result was actually deleted
+        verify_delete_resp = client.get(
+            f"/v0/orgs/{org_id}/llm/result/{document_id}",
+            params={"prompt_rev_id": prompt_revid},
+            headers=get_token_headers(admin["token"])
+        )
+        assert verify_delete_resp.status_code == 404, "LLM result should no longer exist after deletion"
