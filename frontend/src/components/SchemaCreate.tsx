@@ -349,12 +349,33 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       // Recursively validate nested objects
       for (const [propName, propValue] of Object.entries(obj.properties)) {
         const nestedPath = `${path}.${propName}`;
-        const nestedError = validateNestedObject(propValue as Record<string, unknown>, nestedPath);
+        const prop = propValue as Record<string, unknown>;
+        
+        // Check that each property has a type
+        if (!prop.type) {
+          return `Error: ${nestedPath} must have a type`;
+        }
+        
+        // Check object type properties have properties element
+        if (prop.type === 'object') {
+          if (!prop.properties || typeof prop.properties !== 'object') {
+            return `Error: ${nestedPath} (object type) must have a properties element`;
+          }
+        }
+        
+        // Check array type properties have items element
+        if (prop.type === 'array') {
+          if (!prop.items) {
+            return `Error: ${nestedPath} (array type) must have an items element`;
+          }
+        }
+        
+        const nestedError = validateNestedObject(prop, nestedPath);
         if (nestedError) return nestedError;
         
         // Check array items if it's an array type
-        if ((propValue as Record<string, unknown>).type === 'array' && (propValue as Record<string, unknown>).items) {
-          const arrayItemError = validateNestedObject((propValue as Record<string, unknown>).items as Record<string, unknown>, `${nestedPath}.items`);
+        if (prop.type === 'array' && prop.items) {
+          const arrayItemError = validateNestedObject(prop.items as Record<string, unknown>, `${nestedPath}.items`);
           if (arrayItemError) return arrayItemError;
         }
       }
