@@ -356,6 +356,12 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
           return `Error: ${nestedPath} must have a type`;
         }
         
+        // Check that type is one of the allowed values
+        const allowedTypes = ['string', 'integer', 'number', 'boolean', 'array', 'object'];
+        if (!allowedTypes.includes(prop.type as string)) {
+          return `Error: ${nestedPath} type must be one of: ${allowedTypes.join(', ')}`;
+        }
+        
         // Check object type properties have properties element
         if (prop.type === 'object') {
           if (!prop.properties || typeof prop.properties !== 'object') {
