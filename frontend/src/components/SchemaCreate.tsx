@@ -317,11 +317,15 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
     setJsonSchema(JSON.stringify(currentSchema.response_format, null, 2));
   }, [currentSchema]);
 
-  // Custom JSON parser that tracks line numbers
+  // Custom JSON parser that tracks line numbers using WeakMap
   const parseJsonWithLineNumbers = (jsonString: string) => {
     let currentLine = 1;
     let currentColumn = 1;
     let index = 0;
+    
+    // Use WeakMap to store line numbers separately from parsed objects
+    const lineNumbers = new WeakMap<object, number>();
+    const propertyLineNumbers = new WeakMap<object, Map<string, number>>();
 
     const skipWhitespace = () => {
       while (index < jsonString.length && /\s/.test(jsonString[index])) {
@@ -361,8 +365,10 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       }
     };
 
-    const parseObject = (): Record<string, unknown> => {
-      const obj: Record<string, unknown> = { _line_nbr: currentLine };
+      const parseObject = (): Record<string, unknown> => {
+        const obj: Record<string, unknown> = {};
+        lineNumbers.set(obj, currentLine);
+        propertyLineNumbers.set(obj, new Map());
       index++; // consume '{'
       currentColumn++;
       
@@ -392,10 +398,13 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
         
         const value = parseValue();
         
-        // Store the property with its line number
+        // Store the property
         obj[key] = value;
-        // Also store line number metadata for this property
-        obj[`${key}_line_nbr`] = currentLine;
+        // Store line number for this property in WeakMap
+        const propMap = propertyLineNumbers.get(obj);
+        if (propMap) {
+          propMap.set(key, currentLine);
+        }
         
         skipWhitespace();
         
@@ -414,9 +423,9 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       return obj;
     };
 
-    const parseArray = (): unknown[] => {
-      const arr: unknown[] = [];
-      (arr as unknown as Record<string, unknown>)._line_nbr = currentLine;
+      const parseArray = (): unknown[] => {
+        const arr: unknown[] = [];
+        lineNumbers.set(arr, currentLine);
       index++; // consume '['
       currentColumn++;
       
@@ -587,15 +596,31 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
         throw new Error(`Unexpected character '${jsonString[index]}' at line ${currentLine}, column ${currentColumn}`);
       }
       
-      return result;
+      return { result, lineNumbers, propertyLineNumbers };
     } catch (error) {
       throw new Error(`JSON parse error at line ${currentLine}, column ${currentColumn}: ${error}`);
     }
   };
 
   // Recursive validation function for nested objects with line number tracking
-  const validateNestedObject = (obj: Record<string, unknown>, path: string = 'root'): Array<{message: string, line: number}> => {
+  const validateNestedObject = (
+    obj: Record<string, unknown>, 
+    path: string = 'root',
+    lineNumbers: WeakMap<object, number>,
+    propertyLineNumbers: WeakMap<object, Map<string, number>>
+  ): Array<{message: string, line: number}> => {
     const errors: Array<{message: string, line: number}> = [];
+    
+    // Helper function to get line number for an object
+    const getLineNumber = (obj: object, fallback: number = 1): number => {
+      return lineNumbers.get(obj) || fallback;
+    };
+    
+    // Helper function to get line number for a property
+    const getPropertyLineNumber = (obj: object, propertyName: string, fallback: number = 1): number => {
+      const propMap = propertyLineNumbers.get(obj);
+      return propMap?.get(propertyName) || getLineNumber(obj, fallback);
+    };
     
     // Check if this is an object type
     if (obj.type === 'object') {
@@ -603,14 +628,14 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       if (typeof obj.additionalProperties !== 'boolean') {
         errors.push({
           message: `${path} must have additionalProperties as a boolean`,
-          line: (obj as Record<string, unknown>).additionalProperties_line_nbr as number || (obj as Record<string, unknown>)._line_nbr as number || 1
+          line: getPropertyLineNumber(obj, 'additionalProperties')
         });
       }
       
       if (obj.additionalProperties !== false) {
         errors.push({
           message: `${path} must have additionalProperties = false`,
-          line: (obj as Record<string, unknown>).additionalProperties_line_nbr as number || (obj as Record<string, unknown>)._line_nbr as number || 1
+          line: getPropertyLineNumber(obj, 'additionalProperties')
         });
       }
       
@@ -618,7 +643,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       if (!obj.properties || typeof obj.properties !== 'object') {
         errors.push({
           message: `${path} must have properties object`,
-          line: (obj as Record<string, unknown>).properties_line_nbr as number || (obj as Record<string, unknown>)._line_nbr as number || 1
+          line: getPropertyLineNumber(obj, 'properties')
         });
       }
       
@@ -626,18 +651,18 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       if (!Array.isArray(obj.required)) {
         errors.push({
           message: `${path} must have required array`,
-          line: (obj as Record<string, unknown>).required_line_nbr as number || (obj as Record<string, unknown>)._line_nbr as number || 1
+          line: getPropertyLineNumber(obj, 'required')
         });
       }
       
-      // Check that all properties are required (excluding _line_nbr metadata)
+      // Check that all properties are required
       if (obj.properties && typeof obj.properties === 'object' && obj.required && Array.isArray(obj.required)) {
-        const propertyNames = Object.keys(obj.properties as Record<string, unknown>).filter(name => !name.endsWith('_line_nbr') && name !== '_line_nbr');
+        const propertyNames = Object.keys(obj.properties as Record<string, unknown>);
         const missingRequired = propertyNames.filter(name => !(obj.required as string[]).includes(name));
         if (missingRequired.length > 0) {
           errors.push({
             message: `${path} has properties that are not required: ${missingRequired.join(', ')}`,
-            line: (obj as Record<string, unknown>)._line_nbr as number || 1
+            line: getLineNumber(obj)
           });
         }
       }
@@ -645,10 +670,6 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       // Recursively validate nested objects
       if (obj.properties && typeof obj.properties === 'object') {
         for (const [propName, propValue] of Object.entries(obj.properties as Record<string, unknown>)) {
-          // Skip _line_nbr properties as they are metadata, not schema properties
-          if (propName.endsWith('_line_nbr') || propName === '_line_nbr') {
-            continue;
-          }
           
           const nestedPath = `${path}.${propName}`;
           const prop = propValue as Record<string, unknown>;
@@ -657,7 +678,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
         if (!prop.type) {
           errors.push({
             message: `${nestedPath} must have a type`,
-            line: (prop as Record<string, unknown>)._line_nbr as number || 1
+            line: getLineNumber(prop)
           });
         }
         
@@ -666,7 +687,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
         if (!allowedTypes.includes(prop.type as string)) {
           errors.push({
             message: `${nestedPath} type must be one of: ${allowedTypes.join(', ')}`,
-            line: (prop as Record<string, unknown>)._line_nbr as number || 1
+            line: getLineNumber(prop)
           });
         }
         
@@ -675,7 +696,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
           if (!prop.properties || typeof prop.properties !== 'object') {
             errors.push({
               message: `${nestedPath} (object type) must have a properties element`,
-              line: (prop as Record<string, unknown>)._line_nbr as number || 1
+              line: getLineNumber(prop)
             });
           }
         }
@@ -685,17 +706,17 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
           if (!prop.items) {
             errors.push({
               message: `${nestedPath} (array type) must have an items element`,
-              line: (prop as Record<string, unknown>)._line_nbr as number || 1
+              line: getLineNumber(prop)
             });
           }
         }
         
-        const nestedErrors = validateNestedObject(prop, nestedPath);
+        const nestedErrors = validateNestedObject(prop, nestedPath, lineNumbers, propertyLineNumbers);
         errors.push(...nestedErrors);
         
         // Check array items if it's an array type
         if (prop.type === 'array' && prop.items) {
-          const arrayItemErrors = validateNestedObject(prop.items as Record<string, unknown>, `${nestedPath}.items`);
+          const arrayItemErrors = validateNestedObject(prop.items as Record<string, unknown>, `${nestedPath}.items`, lineNumbers, propertyLineNumbers);
           errors.push(...arrayItemErrors);
         }
         }
@@ -710,41 +731,52 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
     if (!value) return;
     setJsonSchema(value);
     
-    try {
-      const parsedSchema = parseJsonWithLineNumbers(value) as Record<string, unknown>;
+      try {
+        const { result: parsedSchema, lineNumbers, propertyLineNumbers } = parseJsonWithLineNumbers(value);
       const errors: Array<{message: string, line: number}> = [];
       
+      // Helper functions for line number access
+      const getLineNumber = (obj: object, fallback: number = 1): number => {
+        return lineNumbers.get(obj) || fallback;
+      };
+      
+      const getPropertyLineNumber = (obj: object, propertyName: string, fallback: number = 1): number => {
+        const propMap = propertyLineNumbers.get(obj);
+        return propMap?.get(propertyName) || getLineNumber(obj, fallback);
+      };
+      
       // Validate schema structure
-      if (!parsedSchema.json_schema || !(parsedSchema.json_schema as Record<string, unknown>).schema) {
+      const schemaObj = parsedSchema as Record<string, unknown>;
+      if (!schemaObj.json_schema || !(schemaObj.json_schema as Record<string, unknown>).schema) {
         errors.push({
           message: 'Invalid schema format. Must contain json_schema.schema',
-          line: (parsedSchema as Record<string, unknown>)._line_nbr as number || 1
+          line: getLineNumber(schemaObj)
         });
         setValidationErrors(errors.map(e => `Line ${e.line}: ${e.message}`));
         return;
       }
       
-      const schema = (parsedSchema.json_schema as Record<string, unknown>).schema as Record<string, unknown>;
+      const schema = (schemaObj.json_schema as Record<string, unknown>).schema as Record<string, unknown>;
       
       // Validate required properties
       if (!schema.type || schema.type !== 'object') {
         errors.push({
           message: 'Schema type must be "object"',
-          line: (schema as Record<string, unknown>).type_line_nbr as number || (schema as Record<string, unknown>)._line_nbr as number || 1
+          line: getPropertyLineNumber(schema, 'type')
         });
       }
       
       if (!schema.properties || typeof schema.properties !== 'object') {
         errors.push({
           message: 'Schema must have properties object',
-          line: (schema as Record<string, unknown>).properties_line_nbr as number || (schema as Record<string, unknown>)._line_nbr as number || 1
+          line: getPropertyLineNumber(schema, 'properties')
         });
       }
       
       if (!Array.isArray(schema.required)) {
         errors.push({
           message: 'Schema must have required array',
-          line: (schema as Record<string, unknown>).required_line_nbr as number || (schema as Record<string, unknown>)._line_nbr as number || 1
+          line: getPropertyLineNumber(schema, 'required')
         });
       }
       
@@ -752,32 +784,32 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       if (typeof schema.additionalProperties !== 'boolean') {
         errors.push({
           message: 'additionalProperties must be a boolean',
-          line: (schema as Record<string, unknown>).additionalProperties_line_nbr as number || (schema as Record<string, unknown>)._line_nbr as number || 1
+          line: getPropertyLineNumber(schema, 'additionalProperties')
         });
       }
       
-      // Validate that all properties are required at root level (excluding _line_nbr metadata)
+      // Validate that all properties are required at root level
       if (schema.properties && typeof schema.properties === 'object' && Array.isArray(schema.required)) {
-        const propertyNames = Object.keys(schema.properties as Record<string, unknown>).filter(name => !name.endsWith('_line_nbr') && name !== '_line_nbr');
+        const propertyNames = Object.keys(schema.properties as Record<string, unknown>);
         const missingRequired = propertyNames.filter(name => !(schema.required as string[]).includes(name));
         if (missingRequired.length > 0) {
           errors.push({
             message: `Root schema has properties that are not required: ${missingRequired.join(', ')}`,
-            line: (schema as Record<string, unknown>).required_line_nbr as number || (schema as Record<string, unknown>)._line_nbr as number || 1
+            line: getPropertyLineNumber(schema, 'required')
           });
         }
       }
       
       // Recursively validate all nested objects
-      const validationErrors = validateNestedObject(schema, 'json_schema.schema');
+      const validationErrors = validateNestedObject(schema, 'json_schema.schema', lineNumbers, propertyLineNumbers);
       errors.push(...validationErrors);
       
       setValidationErrors(errors.map(e => `Line ${e.line}: ${e.message}`));
       
       // Only update schema if no errors
       if (errors.length === 0) {
-        // Remove _line_nbr properties before setting the schema
-        const cleanSchema = removeLineNumbers(parsedSchema) as SchemaResponseFormat;
+        // Use the parsed schema directly (no metadata properties to remove)
+        const cleanSchema = schemaObj as unknown as SchemaResponseFormat;
         setCurrentSchema(prev => ({
           ...prev,
           response_format: cleanSchema
@@ -796,21 +828,6 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
     }
   };
 
-  // Helper function to remove _line_nbr properties from parsed object
-  const removeLineNumbers = (obj: unknown): unknown => {
-    if (Array.isArray(obj)) {
-      return obj.map(item => removeLineNumbers(item));
-    } else if (obj && typeof obj === 'object') {
-      const cleaned: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(obj)) {
-        if (key !== '_line_nbr' && !key.endsWith('_line_nbr')) {
-          cleaned[key] = removeLineNumbers(value);
-        }
-      }
-      return cleaned;
-    }
-    return obj;
-  };
 
   const saveSchema = async (schema: SchemaConfig) => {
     try {
