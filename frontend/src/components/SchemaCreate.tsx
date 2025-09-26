@@ -316,6 +316,53 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
     setJsonSchema(JSON.stringify(currentSchema.response_format, null, 2));
   }, [currentSchema]);
 
+  // Recursive validation function for nested objects
+  const validateNestedObject = (obj: any, path: string = 'root'): string | null => {
+    // Check if this is an object type
+    if (obj.type === 'object') {
+      // Check additionalProperties
+      if (typeof obj.additionalProperties !== 'boolean') {
+        return `Error: ${path} must have additionalProperties as a boolean`;
+      }
+      
+      if (obj.additionalProperties !== false) {
+        return `Error: ${path} must have additionalProperties = false`;
+      }
+      
+      // Check properties exist
+      if (!obj.properties || typeof obj.properties !== 'object') {
+        return `Error: ${path} must have properties object`;
+      }
+      
+      // Check required array exists
+      if (!Array.isArray(obj.required)) {
+        return `Error: ${path} must have required array`;
+      }
+      
+      // Check that all properties are required
+      const propertyNames = Object.keys(obj.properties);
+      const missingRequired = propertyNames.filter(name => !obj.required.includes(name));
+      if (missingRequired.length > 0) {
+        return `Error: ${path} has properties that are not required: ${missingRequired.join(', ')}`;
+      }
+      
+      // Recursively validate nested objects
+      for (const [propName, propValue] of Object.entries(obj.properties)) {
+        const nestedPath = `${path}.${propName}`;
+        const nestedError = validateNestedObject(propValue as Record<string, unknown>, nestedPath);
+        if (nestedError) return nestedError;
+        
+        // Check array items if it's an array type
+        if ((propValue as Record<string, unknown>).type === 'array' && (propValue as Record<string, unknown>).items) {
+          const arrayItemError = validateNestedObject((propValue as Record<string, unknown>).items as Record<string, unknown>, `${nestedPath}.items`);
+          if (arrayItemError) return arrayItemError;
+        }
+      }
+    }
+    
+    return null;
+  };
+
   // Add handler for JSON schema changes
   const handleJsonSchemaChange = (value: string | undefined) => {
     if (!value) return;
@@ -349,6 +396,21 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       // Check additionalProperties is present and is boolean
       if (typeof schema.additionalProperties !== 'boolean') {
         toast.error('Error: additionalProperties must be a boolean');
+        return;
+      }
+      
+      // Validate that all properties are required at root level
+      const propertyNames = Object.keys(schema.properties);
+      const missingRequired = propertyNames.filter(name => !schema.required.includes(name));
+      if (missingRequired.length > 0) {
+        toast.error(`Error: Root schema has properties that are not required: ${missingRequired.join(', ')}`);
+        return;
+      }
+      
+      // Recursively validate all nested objects
+      const validationError = validateNestedObject(schema);
+      if (validationError) {
+        toast.error(validationError);
         return;
       }
       
