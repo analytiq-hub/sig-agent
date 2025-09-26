@@ -184,6 +184,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
   const [expandedArrayFields, setExpandedArrayFields] = useState<Record<number, boolean>>({});
   const [activeTab, setActiveTab] = useState<'fields' | 'json'>('fields');
   const [jsonSchema, setJsonSchema] = useState('');
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Define jsonSchemaToFields with useCallback
   const jsonSchemaToFields = useCallback((responseFormat: SchemaResponseFormat): SchemaField[] => {
@@ -393,12 +394,16 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
   // Add handler for JSON schema changes
   const handleJsonSchemaChange = (value: string | undefined) => {
     if (!value) return;
+    setJsonSchema(value);
+    
     try {
       const parsedSchema = JSON.parse(value);
+      const errors: string[] = [];
       
       // Validate schema structure
       if (!parsedSchema.json_schema || !parsedSchema.json_schema.schema) {
-        toast.error('Error: Invalid schema format. Must contain json_schema.schema');
+        errors.push('Invalid schema format. Must contain json_schema.schema');
+        setValidationErrors(errors);
         return;
       }
       
@@ -406,52 +411,52 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       
       // Validate required properties
       if (!schema.type || schema.type !== 'object') {
-        toast.error('Error: Schema type must be "object"');
-        return;
+        errors.push('Schema type must be "object"');
       }
       
       if (!schema.properties || typeof schema.properties !== 'object') {
-        toast.error('Error: Schema must have properties object');
-        return;
+        errors.push('Schema must have properties object');
       }
       
       if (!Array.isArray(schema.required)) {
-        toast.error('Error: Schema must have required array');
-        return;
+        errors.push('Schema must have required array');
       }
       
       // Check additionalProperties is present and is boolean
       if (typeof schema.additionalProperties !== 'boolean') {
-        toast.error('Error: additionalProperties must be a boolean');
-        return;
+        errors.push('additionalProperties must be a boolean');
       }
       
       // Validate that all properties are required at root level
-      const propertyNames = Object.keys(schema.properties);
-      const missingRequired = propertyNames.filter(name => !schema.required.includes(name));
-      if (missingRequired.length > 0) {
-        toast.error(`Error: Root schema has properties that are not required: ${missingRequired.join(', ')}`);
-        return;
+      if (schema.properties && Array.isArray(schema.required)) {
+        const propertyNames = Object.keys(schema.properties);
+        const missingRequired = propertyNames.filter(name => !schema.required.includes(name));
+        if (missingRequired.length > 0) {
+          errors.push(`Root schema has properties that are not required: ${missingRequired.join(', ')}`);
+        }
       }
       
       // Recursively validate all nested objects
       const validationError = validateNestedObject(schema);
       if (validationError) {
-        toast.error(validationError);
-        return;
+        errors.push(validationError);
       }
       
-      // Update schema and fields
-      setCurrentSchema(prev => ({
-        ...prev,
-        response_format: parsedSchema
-      }));
+      setValidationErrors(errors);
       
-      // Update fields based on the new schema
-      setFields(jsonSchemaToFields(parsedSchema));
+      // Only update schema if no errors
+      if (errors.length === 0) {
+        setCurrentSchema(prev => ({
+          ...prev,
+          response_format: parsedSchema
+        }));
+        
+        // Update fields based on the new schema
+        setFields(jsonSchemaToFields(parsedSchema));
+      }
     } catch (error) {
-      // Invalid JSON - don't update
-      toast.error(`Error: Invalid JSON syntax: ${error}`);
+      // Invalid JSON
+      setValidationErrors([`Invalid JSON syntax: ${error}`]);
     }
   };
 
@@ -597,6 +602,13 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check for validation errors first
+    if (validationErrors.length > 0) {
+      validationErrors.forEach(error => toast.error(`Error: ${error}`));
+      return;
+    }
+    
     if (!currentSchema.name || fields.some(f => !f.name)) {
       toast.error('Please fill in all fields');
       return;
