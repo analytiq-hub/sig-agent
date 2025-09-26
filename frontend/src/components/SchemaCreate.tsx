@@ -473,7 +473,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       router.push(`/orgs/${organizationId}/schemas`);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving schema';
-      toast.error('Error: ' + errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -605,7 +605,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
     
     // Check for validation errors first
     if (validationErrors.length > 0) {
-      validationErrors.forEach(error => toast.error(`Error: ${error}`));
+      validationErrors.forEach(error => toast.error(error));
       return;
     }
     
@@ -616,7 +616,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
 
     const fieldError = validateFields(fields);
     if (fieldError) {
-      toast.error(`Error: ${fieldError}`);
+      toast.error(fieldError);
       return;
     }
 

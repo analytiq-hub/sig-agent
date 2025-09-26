@@ -178,7 +178,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
       
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error saving prompt';
-      toast.error('Error: ' + errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -190,7 +190,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
       setSchemas(response.schemas);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
-      toast.error('Error: ' + errorMsg);
+      toast.error(errorMsg);
     }
   }, [organizationId]);
 
@@ -200,7 +200,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
       setAvailableTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
-      toast.error('Error: ' + errorMsg);
+      toast.error(errorMsg);
     }
   }, [organizationId]);
 
@@ -214,7 +214,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
       setLLMModels(response.models);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading LLM models';
-      toast.error('Error: ' + errorMsg);
+      toast.error(errorMsg);
     }
   }, []);
 
