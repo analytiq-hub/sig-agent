@@ -317,78 +317,388 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
     setJsonSchema(JSON.stringify(currentSchema.response_format, null, 2));
   }, [currentSchema]);
 
-  // Recursive validation function for nested objects
-  const validateNestedObject = (obj: Record<string, unknown>, path: string = 'root'): string | null => {
+  // Custom JSON parser that tracks line numbers
+  const parseJsonWithLineNumbers = (jsonString: string) => {
+    let currentLine = 1;
+    let currentColumn = 1;
+    let index = 0;
+
+    const skipWhitespace = () => {
+      while (index < jsonString.length && /\s/.test(jsonString[index])) {
+        if (jsonString[index] === '\n') {
+          currentLine++;
+          currentColumn = 1;
+        } else {
+          currentColumn++;
+        }
+        index++;
+      }
+    };
+
+    const parseValue = (): unknown => {
+      skipWhitespace();
+      
+      if (index >= jsonString.length) {
+        throw new Error(`Unexpected end of input at line ${currentLine}, column ${currentColumn}`);
+      }
+
+      const char = jsonString[index];
+
+      if (char === '{') {
+        return parseObject();
+      } else if (char === '[') {
+        return parseArray();
+      } else if (char === '"') {
+        return parseString();
+      } else if (char === 't' || char === 'f') {
+        return parseBoolean();
+      } else if (char === 'n') {
+        return parseNull();
+      } else if (char === '-' || /\d/.test(char)) {
+        return parseNumber();
+      } else {
+        throw new Error(`Unexpected character '${char}' at line ${currentLine}, column ${currentColumn}`);
+      }
+    };
+
+    const parseObject = (): Record<string, unknown> => {
+      const obj: Record<string, unknown> = { _line_nbr: currentLine };
+      index++; // consume '{'
+      currentColumn++;
+      
+      skipWhitespace();
+      
+      if (jsonString[index] === '}') {
+        index++;
+        currentColumn++;
+        return obj;
+      }
+
+      while (true) {
+        skipWhitespace();
+        
+        if (jsonString[index] !== '"') {
+          throw new Error(`Expected string key at line ${currentLine}, column ${currentColumn}`);
+        }
+        
+        const key = parseString();
+        skipWhitespace();
+        
+        if (jsonString[index] !== ':') {
+          throw new Error(`Expected ':' at line ${currentLine}, column ${currentColumn}`);
+        }
+        index++;
+        currentColumn++;
+        
+        const value = parseValue();
+        
+        // Store the property with its line number
+        obj[key] = value;
+        // Also store line number metadata for this property
+        obj[`${key}_line_nbr`] = currentLine;
+        
+        skipWhitespace();
+        
+        if (jsonString[index] === '}') {
+          index++;
+          currentColumn++;
+          break;
+        } else if (jsonString[index] === ',') {
+          index++;
+          currentColumn++;
+        } else {
+          throw new Error(`Expected ',' or '}' at line ${currentLine}, column ${currentColumn}`);
+        }
+      }
+      
+      return obj;
+    };
+
+    const parseArray = (): unknown[] => {
+      const arr: unknown[] = [];
+      (arr as unknown as Record<string, unknown>)._line_nbr = currentLine;
+      index++; // consume '['
+      currentColumn++;
+      
+      skipWhitespace();
+      
+      if (jsonString[index] === ']') {
+        index++;
+        currentColumn++;
+        return arr;
+      }
+
+      while (true) {
+        const value = parseValue();
+        arr.push(value);
+        
+        skipWhitespace();
+        
+        if (jsonString[index] === ']') {
+          index++;
+          currentColumn++;
+          break;
+        } else if (jsonString[index] === ',') {
+          index++;
+          currentColumn++;
+        } else {
+          throw new Error(`Expected ',' or ']' at line ${currentLine}, column ${currentColumn}`);
+        }
+      }
+      
+      return arr;
+    };
+
+    const parseString = (): string => {
+      let result = '';
+      index++; // consume opening quote
+      currentColumn++;
+      
+      while (index < jsonString.length && jsonString[index] !== '"') {
+        if (jsonString[index] === '\\') {
+          index++;
+          currentColumn++;
+          if (index >= jsonString.length) {
+            throw new Error(`Unexpected end of string at line ${currentLine}, column ${currentColumn}`);
+          }
+          
+          const escapeChar = jsonString[index];
+          switch (escapeChar) {
+            case '"': result += '"'; break;
+            case '\\': result += '\\'; break;
+            case '/': result += '/'; break;
+            case 'b': result += '\b'; break;
+            case 'f': result += '\f'; break;
+            case 'n': result += '\n'; break;
+            case 'r': result += '\r'; break;
+            case 't': result += '\t'; break;
+            case 'u':
+              // Simple unicode handling - just skip 4 characters
+              index += 4;
+              currentColumn += 4;
+              result += '\\u';
+              break;
+            default:
+              result += escapeChar;
+          }
+        } else {
+          if (jsonString[index] === '\n') {
+            currentLine++;
+            currentColumn = 1;
+          } else {
+            currentColumn++;
+          }
+          result += jsonString[index];
+        }
+        index++;
+      }
+      
+      if (index >= jsonString.length) {
+        throw new Error(`Unterminated string at line ${currentLine}, column ${currentColumn}`);
+      }
+      
+      index++; // consume closing quote
+      currentColumn++;
+      return result;
+    };
+
+    const parseNumber = (): number => {
+      let result = '';
+      
+      if (jsonString[index] === '-') {
+        result += jsonString[index];
+        index++;
+        currentColumn++;
+      }
+      
+      while (index < jsonString.length && /\d/.test(jsonString[index])) {
+        result += jsonString[index];
+        index++;
+        currentColumn++;
+      }
+      
+      if (index < jsonString.length && jsonString[index] === '.') {
+        result += jsonString[index];
+        index++;
+        currentColumn++;
+        
+        while (index < jsonString.length && /\d/.test(jsonString[index])) {
+          result += jsonString[index];
+          index++;
+          currentColumn++;
+        }
+      }
+      
+      if (index < jsonString.length && /[eE]/.test(jsonString[index])) {
+        result += jsonString[index];
+        index++;
+        currentColumn++;
+        
+        if (index < jsonString.length && /[+-]/.test(jsonString[index])) {
+          result += jsonString[index];
+          index++;
+          currentColumn++;
+        }
+        
+        while (index < jsonString.length && /\d/.test(jsonString[index])) {
+          result += jsonString[index];
+          index++;
+          currentColumn++;
+        }
+      }
+      
+      const num = parseFloat(result);
+      if (isNaN(num)) {
+        throw new Error(`Invalid number '${result}' at line ${currentLine}, column ${currentColumn}`);
+      }
+      
+      return num;
+    };
+
+    const parseBoolean = (): boolean => {
+      if (jsonString.substr(index, 4) === 'true') {
+        index += 4;
+        currentColumn += 4;
+        return true;
+      } else if (jsonString.substr(index, 5) === 'false') {
+        index += 5;
+        currentColumn += 5;
+        return false;
+      } else {
+        throw new Error(`Invalid boolean at line ${currentLine}, column ${currentColumn}`);
+      }
+    };
+
+    const parseNull = (): null => {
+      if (jsonString.substr(index, 4) === 'null') {
+        index += 4;
+        currentColumn += 4;
+        return null;
+      } else {
+        throw new Error(`Invalid null at line ${currentLine}, column ${currentColumn}`);
+      }
+    };
+
+    try {
+      const result = parseValue();
+      skipWhitespace();
+      
+      if (index < jsonString.length) {
+        throw new Error(`Unexpected character '${jsonString[index]}' at line ${currentLine}, column ${currentColumn}`);
+      }
+      
+      return result;
+    } catch (error) {
+      throw new Error(`JSON parse error at line ${currentLine}, column ${currentColumn}: ${error}`);
+    }
+  };
+
+  // Recursive validation function for nested objects with line number tracking
+  const validateNestedObject = (obj: Record<string, unknown>, path: string = 'root'): Array<{message: string, line: number}> => {
+    const errors: Array<{message: string, line: number}> = [];
+    
     // Check if this is an object type
     if (obj.type === 'object') {
       // Check additionalProperties
       if (typeof obj.additionalProperties !== 'boolean') {
-        return `Error: ${path} must have additionalProperties as a boolean`;
+        errors.push({
+          message: `${path} must have additionalProperties as a boolean`,
+          line: (obj as Record<string, unknown>).additionalProperties_line_nbr as number || (obj as Record<string, unknown>)._line_nbr as number || 1
+        });
       }
       
       if (obj.additionalProperties !== false) {
-        return `Error: ${path} must have additionalProperties = false`;
+        errors.push({
+          message: `${path} must have additionalProperties = false`,
+          line: (obj as Record<string, unknown>).additionalProperties_line_nbr as number || (obj as Record<string, unknown>)._line_nbr as number || 1
+        });
       }
       
       // Check properties exist
       if (!obj.properties || typeof obj.properties !== 'object') {
-        return `Error: ${path} must have properties object`;
+        errors.push({
+          message: `${path} must have properties object`,
+          line: (obj as Record<string, unknown>).properties_line_nbr as number || (obj as Record<string, unknown>)._line_nbr as number || 1
+        });
       }
       
       // Check required array exists
       if (!Array.isArray(obj.required)) {
-        return `Error: ${path} must have required array`;
+        errors.push({
+          message: `${path} must have required array`,
+          line: (obj as Record<string, unknown>).required_line_nbr as number || (obj as Record<string, unknown>)._line_nbr as number || 1
+        });
       }
       
-      // Check that all properties are required
-      const propertyNames = Object.keys(obj.properties);
+      // Check that all properties are required (excluding _line_nbr metadata)
+      const propertyNames = Object.keys(obj.properties as Record<string, unknown>).filter(name => !name.endsWith('_line_nbr') && name !== '_line_nbr');
       const missingRequired = propertyNames.filter(name => !(obj.required as string[]).includes(name));
       if (missingRequired.length > 0) {
-        return `Error: ${path} has properties that are not required: ${missingRequired.join(', ')}`;
+        errors.push({
+          message: `${path} has properties that are not required: ${missingRequired.join(', ')}`,
+          line: (obj as Record<string, unknown>)._line_nbr as number || 1
+        });
       }
       
       // Recursively validate nested objects
-      for (const [propName, propValue] of Object.entries(obj.properties)) {
+      for (const [propName, propValue] of Object.entries(obj.properties as Record<string, unknown>)) {
+        // Skip _line_nbr properties as they are metadata, not schema properties
+        if (propName.endsWith('_line_nbr') || propName === '_line_nbr') {
+          continue;
+        }
+        
         const nestedPath = `${path}.${propName}`;
         const prop = propValue as Record<string, unknown>;
         
         // Check that each property has a type
         if (!prop.type) {
-          return `Error: ${nestedPath} must have a type`;
+          errors.push({
+            message: `${nestedPath} must have a type`,
+            line: (prop as Record<string, unknown>)._line_nbr as number || 1
+          });
         }
         
         // Check that type is one of the allowed values
         const allowedTypes = ['string', 'integer', 'number', 'boolean', 'array', 'object'];
         if (!allowedTypes.includes(prop.type as string)) {
-          return `Error: ${nestedPath} type must be one of: ${allowedTypes.join(', ')}`;
+          errors.push({
+            message: `${nestedPath} type must be one of: ${allowedTypes.join(', ')}`,
+            line: (prop as Record<string, unknown>)._line_nbr as number || 1
+          });
         }
         
         // Check object type properties have properties element
         if (prop.type === 'object') {
           if (!prop.properties || typeof prop.properties !== 'object') {
-            return `Error: ${nestedPath} (object type) must have a properties element`;
+            errors.push({
+              message: `${nestedPath} (object type) must have a properties element`,
+              line: (prop as Record<string, unknown>)._line_nbr as number || 1
+            });
           }
         }
         
         // Check array type properties have items element
         if (prop.type === 'array') {
           if (!prop.items) {
-            return `Error: ${nestedPath} (array type) must have an items element`;
+            errors.push({
+              message: `${nestedPath} (array type) must have an items element`,
+              line: (prop as Record<string, unknown>)._line_nbr as number || 1
+            });
           }
         }
         
-        const nestedError = validateNestedObject(prop, nestedPath);
-        if (nestedError) return nestedError;
+        const nestedErrors = validateNestedObject(prop, nestedPath);
+        errors.push(...nestedErrors);
         
         // Check array items if it's an array type
         if (prop.type === 'array' && prop.items) {
-          const arrayItemError = validateNestedObject(prop.items as Record<string, unknown>, `${nestedPath}.items`);
-          if (arrayItemError) return arrayItemError;
+          const arrayItemErrors = validateNestedObject(prop.items as Record<string, unknown>, `${nestedPath}.items`);
+          errors.push(...arrayItemErrors);
         }
       }
     }
     
-    return null;
+    return errors;
   };
 
   // Add handler for JSON schema changes
@@ -397,67 +707,105 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
     setJsonSchema(value);
     
     try {
-      const parsedSchema = JSON.parse(value);
-      const errors: string[] = [];
+      const parsedSchema = parseJsonWithLineNumbers(value) as Record<string, unknown>;
+      const errors: Array<{message: string, line: number}> = [];
       
       // Validate schema structure
-      if (!parsedSchema.json_schema || !parsedSchema.json_schema.schema) {
-        errors.push('Invalid schema format. Must contain json_schema.schema');
-        setValidationErrors(errors);
+      if (!parsedSchema.json_schema || !(parsedSchema.json_schema as Record<string, unknown>).schema) {
+        errors.push({
+          message: 'Invalid schema format. Must contain json_schema.schema',
+          line: (parsedSchema as Record<string, unknown>)._line_nbr as number || 1
+        });
+        setValidationErrors(errors.map(e => `Line ${e.line}: ${e.message}`));
         return;
       }
       
-      const schema = parsedSchema.json_schema.schema;
+      const schema = (parsedSchema.json_schema as Record<string, unknown>).schema as Record<string, unknown>;
       
       // Validate required properties
       if (!schema.type || schema.type !== 'object') {
-        errors.push('Schema type must be "object"');
+        errors.push({
+          message: 'Schema type must be "object"',
+          line: (schema as Record<string, unknown>).type_line_nbr as number || (schema as Record<string, unknown>)._line_nbr as number || 1
+        });
       }
       
       if (!schema.properties || typeof schema.properties !== 'object') {
-        errors.push('Schema must have properties object');
+        errors.push({
+          message: 'Schema must have properties object',
+          line: (schema as Record<string, unknown>).properties_line_nbr as number || (schema as Record<string, unknown>)._line_nbr as number || 1
+        });
       }
       
       if (!Array.isArray(schema.required)) {
-        errors.push('Schema must have required array');
+        errors.push({
+          message: 'Schema must have required array',
+          line: (schema as Record<string, unknown>).required_line_nbr as number || (schema as Record<string, unknown>)._line_nbr as number || 1
+        });
       }
       
       // Check additionalProperties is present and is boolean
       if (typeof schema.additionalProperties !== 'boolean') {
-        errors.push('additionalProperties must be a boolean');
+        errors.push({
+          message: 'additionalProperties must be a boolean',
+          line: (schema as Record<string, unknown>).additionalProperties_line_nbr as number || (schema as Record<string, unknown>)._line_nbr as number || 1
+        });
       }
       
-      // Validate that all properties are required at root level
+      // Validate that all properties are required at root level (excluding _line_nbr metadata)
       if (schema.properties && Array.isArray(schema.required)) {
-        const propertyNames = Object.keys(schema.properties);
-        const missingRequired = propertyNames.filter(name => !schema.required.includes(name));
+        const propertyNames = Object.keys(schema.properties as Record<string, unknown>).filter(name => !name.endsWith('_line_nbr') && name !== '_line_nbr');
+        const missingRequired = propertyNames.filter(name => !(schema.required as string[]).includes(name));
         if (missingRequired.length > 0) {
-          errors.push(`Root schema has properties that are not required: ${missingRequired.join(', ')}`);
+          errors.push({
+            message: `Root schema has properties that are not required: ${missingRequired.join(', ')}`,
+            line: (schema as Record<string, unknown>).required_line_nbr as number || (schema as Record<string, unknown>)._line_nbr as number || 1
+          });
         }
       }
       
       // Recursively validate all nested objects
-      const validationError = validateNestedObject(schema);
-      if (validationError) {
-        errors.push(validationError);
-      }
+      const validationErrors = validateNestedObject(schema, 'json_schema.schema');
+      errors.push(...validationErrors);
       
-      setValidationErrors(errors);
+      setValidationErrors(errors.map(e => `Line ${e.line}: ${e.message}`));
       
       // Only update schema if no errors
       if (errors.length === 0) {
+        // Remove _line_nbr properties before setting the schema
+        const cleanSchema = removeLineNumbers(parsedSchema) as SchemaResponseFormat;
         setCurrentSchema(prev => ({
           ...prev,
-          response_format: parsedSchema
+          response_format: cleanSchema
         }));
         
         // Update fields based on the new schema
-        setFields(jsonSchemaToFields(parsedSchema));
+        setFields(jsonSchemaToFields(cleanSchema));
       }
     } catch (error) {
-      // Invalid JSON
-      setValidationErrors([`Invalid JSON syntax: ${error}`]);
+      // Invalid JSON - extract line number from error message
+      const errorStr = error instanceof Error ? error.message : String(error);
+      const lineMatch = errorStr.match(/line (\d+)/);
+      const line = lineMatch ? parseInt(lineMatch[1]) : 1;
+      
+      setValidationErrors([`Line ${line}: Invalid JSON syntax: ${errorStr}`]);
     }
+  };
+
+  // Helper function to remove _line_nbr properties from parsed object
+  const removeLineNumbers = (obj: unknown): unknown => {
+    if (Array.isArray(obj)) {
+      return obj.map(item => removeLineNumbers(item));
+    } else if (obj && typeof obj === 'object') {
+      const cleaned: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (key !== '_line_nbr' && !key.endsWith('_line_nbr')) {
+          cleaned[key] = removeLineNumbers(value);
+        }
+      }
+      return cleaned;
+    }
+    return obj;
   };
 
   const saveSchema = async (schema: SchemaConfig) => {
