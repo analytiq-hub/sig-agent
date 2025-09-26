@@ -4,20 +4,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPromptApi, updatePromptApi, listSchemasApi, getSchemaApi, listTagsApi, listLLMModelsApi, getPromptApi } from '@/utils/api';
 import { PromptConfig, Schema, Tag, LLMModel } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
-import dynamic from 'next/dynamic';
 import { SchemaResponseFormat } from '@/types/schemas';
 import InfoTooltip from '@/components/InfoTooltip';
 import TagSelector from './TagSelector';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
+import Editor from "@monaco-editor/react";
 
 // Define default model constant
 const DEFAULT_LLM_MODEL = 'gemini-2.0-flash';
-
-// Dynamically import MonacoEditor with no SSR
-const MonacoEditor = dynamic(() => import('./MonacoEditor'), {
-  ssr: false,
-});
 
 const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> = ({ organizationId, promptRevId }) => {
   const router = useRouter();
@@ -340,11 +335,21 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
           </div>
 
           <div className="border rounded-lg overflow-hidden bg-white">
-            <MonacoEditor
-              value={currentPrompt.content}
-              onChange={(value) => setCurrentPrompt(prev => ({ ...prev, content: value }))}
-              language={isJsonContent(currentPrompt.content) ? 'json' : 'markdown'}
+            <Editor
               height="400px"
+              defaultLanguage={isJsonContent(currentPrompt.content) ? 'json' : 'markdown'}
+              value={currentPrompt.content}
+              onChange={(value) => setCurrentPrompt(prev => ({ ...prev, content: value || '' }))}
+              options={{
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                wordWrap: "on",
+                wrappingIndent: "indent",
+                lineNumbers: "on",
+                folding: true,
+                renderValidationDecorations: "on"
+              }}
+              theme="vs-light"
             />
           </div>
 
