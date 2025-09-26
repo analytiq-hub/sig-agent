@@ -317,7 +317,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
   }, [currentSchema]);
 
   // Recursive validation function for nested objects
-  const validateNestedObject = (obj: any, path: string = 'root'): string | null => {
+  const validateNestedObject = (obj: Record<string, unknown>, path: string = 'root'): string | null => {
     // Check if this is an object type
     if (obj.type === 'object') {
       // Check additionalProperties
@@ -341,7 +341,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       
       // Check that all properties are required
       const propertyNames = Object.keys(obj.properties);
-      const missingRequired = propertyNames.filter(name => !obj.required.includes(name));
+      const missingRequired = propertyNames.filter(name => !(obj.required as string[]).includes(name));
       if (missingRequired.length > 0) {
         return `Error: ${path} has properties that are not required: ${missingRequired.join(', ')}`;
       }
