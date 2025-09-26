@@ -631,24 +631,27 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       }
       
       // Check that all properties are required (excluding _line_nbr metadata)
-      const propertyNames = Object.keys(obj.properties as Record<string, unknown>).filter(name => !name.endsWith('_line_nbr') && name !== '_line_nbr');
-      const missingRequired = propertyNames.filter(name => !(obj.required as string[]).includes(name));
-      if (missingRequired.length > 0) {
-        errors.push({
-          message: `${path} has properties that are not required: ${missingRequired.join(', ')}`,
-          line: (obj as Record<string, unknown>)._line_nbr as number || 1
-        });
+      if (obj.properties && typeof obj.properties === 'object' && obj.required && Array.isArray(obj.required)) {
+        const propertyNames = Object.keys(obj.properties as Record<string, unknown>).filter(name => !name.endsWith('_line_nbr') && name !== '_line_nbr');
+        const missingRequired = propertyNames.filter(name => !(obj.required as string[]).includes(name));
+        if (missingRequired.length > 0) {
+          errors.push({
+            message: `${path} has properties that are not required: ${missingRequired.join(', ')}`,
+            line: (obj as Record<string, unknown>)._line_nbr as number || 1
+          });
+        }
       }
       
       // Recursively validate nested objects
-      for (const [propName, propValue] of Object.entries(obj.properties as Record<string, unknown>)) {
-        // Skip _line_nbr properties as they are metadata, not schema properties
-        if (propName.endsWith('_line_nbr') || propName === '_line_nbr') {
-          continue;
-        }
-        
-        const nestedPath = `${path}.${propName}`;
-        const prop = propValue as Record<string, unknown>;
+      if (obj.properties && typeof obj.properties === 'object') {
+        for (const [propName, propValue] of Object.entries(obj.properties as Record<string, unknown>)) {
+          // Skip _line_nbr properties as they are metadata, not schema properties
+          if (propName.endsWith('_line_nbr') || propName === '_line_nbr') {
+            continue;
+          }
+          
+          const nestedPath = `${path}.${propName}`;
+          const prop = propValue as Record<string, unknown>;
         
         // Check that each property has a type
         if (!prop.type) {
@@ -694,6 +697,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
         if (prop.type === 'array' && prop.items) {
           const arrayItemErrors = validateNestedObject(prop.items as Record<string, unknown>, `${nestedPath}.items`);
           errors.push(...arrayItemErrors);
+        }
         }
       }
     }
@@ -753,7 +757,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       }
       
       // Validate that all properties are required at root level (excluding _line_nbr metadata)
-      if (schema.properties && Array.isArray(schema.required)) {
+      if (schema.properties && typeof schema.properties === 'object' && Array.isArray(schema.required)) {
         const propertyNames = Object.keys(schema.properties as Record<string, unknown>).filter(name => !name.endsWith('_line_nbr') && name !== '_line_nbr');
         const missingRequired = propertyNames.filter(name => !(schema.required as string[]).includes(name));
         if (missingRequired.length > 0) {
