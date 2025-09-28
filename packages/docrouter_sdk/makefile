@@ -4,6 +4,9 @@
 #  username = __token__
 #  password = <testpypi-token>
 
+# To install from testpypi:
+# pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ docrouter-sdk --force-reinstall
+
 .PHONY: build clean testinstall install-deps
 
 # Install build dependencies
