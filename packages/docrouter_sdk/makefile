@@ -30,6 +30,8 @@ testinstall: build
 	@echo "Installing from TestPyPI into .venv-docrouter-sdk..."
 	. .venv-docrouter-sdk/bin/activate; pip install --upgrade pip
 	. .venv-docrouter-sdk/bin/activate; pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ docrouter-sdk --force-reinstall
+	@echo "Running smoke test in .venv-docrouter-sdk..."
+	. .venv-docrouter-sdk/bin/activate; python tests/smoke_test.py
 
 # Upload to production PyPI
 upload: build
@@ -49,7 +51,7 @@ help:
 	@echo "  install-deps  - Install build dependencies (build, twine)"
 	@echo "  clean         - Remove build artifacts"
 	@echo "  build         - Build the package"
-	@echo "  testinstall   - Build, upload to TestPyPI, and install into .venv-docrouter-sdk"
+	@echo "  testinstall   - Build, upload to TestPyPI, install into .venv-docrouter-sdk, run smoke test"
 	@echo "  upload        - Build and upload to production PyPI"
 	@echo "  dev-install   - Install locally in development mode"
 	@echo "  test          - Run tests"
