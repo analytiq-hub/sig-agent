@@ -25,8 +25,11 @@ build: clean
 testinstall: build
 	@echo "Uploading to TestPyPI..."
 	twine upload --repository testpypi dist/*
-	@echo "Installing from TestPyPI..."
-	pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ docrouter-sdk --force-reinstall
+	@echo "Creating local virtual environment .venv-docrouter-sdk..."
+	python -m venv .venv-docrouter-sdk
+	@echo "Installing from TestPyPI into .venv-docrouter-sdk..."
+	. .venv-docrouter-sdk/bin/activate; pip install --upgrade pip
+	. .venv-docrouter-sdk/bin/activate; pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ docrouter-sdk --force-reinstall
 
 # Upload to production PyPI
 upload: build
@@ -46,8 +49,7 @@ help:
 	@echo "  install-deps  - Install build dependencies (build, twine)"
 	@echo "  clean         - Remove build artifacts"
 	@echo "  build         - Build the package"
-	@echo "  testinstall   - Build, upload to TestPyPI, and install from TestPyPI"
+	@echo "  testinstall   - Build, upload to TestPyPI, and install into .venv-docrouter-sdk"
 	@echo "  upload        - Build and upload to production PyPI"
 	@echo "  dev-install   - Install locally in development mode"
 	@echo "  test          - Run tests"
-	@echo "  help          - Show this help message"
