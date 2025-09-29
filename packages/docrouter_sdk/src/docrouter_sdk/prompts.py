@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Any
-from ..models.prompt import (
+from .models.prompt import (
     PromptConfig,
     Prompt,
     ListPromptsResponse

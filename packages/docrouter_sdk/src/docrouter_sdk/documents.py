@@ -1,6 +1,6 @@
 import base64
 from typing import List, Optional, Dict, Any
-from ..models.document import (
+from .models.document import (
     DocumentUpload,
     DocumentsUpload,
     DocumentMetadata,

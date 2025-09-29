@@ -1,5 +1,7 @@
-from typing import Dict, List, Optional, Any
-from ..models.schema import (
+from typing import Dict, Any
+from .models.schema import (
+    SchemaProperty,
+    SchemaResponseFormat,
     SchemaConfig,
     Schema,
     ListSchemasResponse

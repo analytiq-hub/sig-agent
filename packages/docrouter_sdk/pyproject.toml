@@ -8,7 +8,7 @@ version = "0.1.1"
 description = "SDK for interacting with the DocRouter API"
 readme = "README.md"
 requires-python = ">=3.8"
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 authors = [
     { name = "Analytiq" }
 ]
@@ -21,4 +21,7 @@ dependencies = [
 Repository = "https://github.com/analytiq/doc-router"
 
 [tool.hatch.build.targets.wheel]
-packages = ["docrouter_sdk"] 
+packages = ["docrouter_sdk"]
+sources = ["src"]
+include = ["src/docrouter_sdk/py.typed"]
+exclude = ["tests/**", "examples/**"] 
