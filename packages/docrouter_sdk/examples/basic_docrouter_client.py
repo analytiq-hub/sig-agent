@@ -29,7 +29,3 @@ print(f"Found {documents.total_count} documents")
 # Example: List tags
 tags = client.tags.list(organization_id)
 print(f"Found {tags.total_count} tags")
-
-# Example: List available LLM models
-models = client.llm.list_models()
-print(f"Available LLM models: {[model.name for model in models.models]}")
