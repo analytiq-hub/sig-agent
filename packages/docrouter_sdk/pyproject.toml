@@ -21,7 +21,6 @@ dependencies = [
 Repository = "https://github.com/analytiq/doc-router"
 
 [tool.hatch.build.targets.wheel]
-packages = ["docrouter_sdk"]
-sources = ["src"]
+packages = ["src/docrouter_sdk"]
 include = ["src/docrouter_sdk/py.typed"]
 exclude = ["tests/**", "examples/**"] 
