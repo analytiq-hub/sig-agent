@@ -3646,6 +3646,31 @@ async def verify_email(token: str, background_tasks: BackgroundTasks):
     if updated_user.get("emailVerified"):
         return {"message": "Email already verified"}
 
+    # Ensure a default individual organization exists for the verified user
+    # If none exists, create one and sync payments customer
+    existing_org = await db.organizations.find_one({
+        "members.user_id": str(updated_user["_id"]),
+        "type": "individual"
+    })
+    if not existing_org:
+        org_insert_result = await db.organizations.insert_one({
+            "name": updated_user.get("email"),
+            "members": [{
+                "user_id": str(updated_user["_id"]),
+                "role": "admin"
+            }],
+            "type": "individual",
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC)
+        })
+        logger.info(f"Created default individual organization for user {updated_user['_id']}")
+        try:
+            await sync_payments_customer(db=db, org_id=str(org_insert_result.inserted_id))
+        except Exception as e:
+            logger.warning(f"Failed to sync payments customer for org {org_insert_result.inserted_id}: {e}")
+    else:
+        logger.info(f"Default individual organization already exists for user {updated_user['_id']}")
+
     # Allow the user to re-verify their email for 1 minute
     logger.info(f"Scheduling deletion of verification record for token: {token}")
     async def delete_verification_later():

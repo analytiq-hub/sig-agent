@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDatabase } from '@/utils/mongodb';
 import { hash } from 'bcryptjs';
-import { createDefaultOrganization } from '@/utils/organization';
 import { sendRegistrationVerificationEmailApi } from '@/utils/api';
 
 export async function POST(req: Request) {
@@ -28,9 +27,6 @@ export async function POST(req: Request) {
             emailVerified: false,
             createdAt: new Date(),
         });
-
-        // Create default individual organization
-        await createDefaultOrganization(result.insertedId.toString(), email);
 
         // Send verification email using the new endpoint
         await sendRegistrationVerificationEmailApi(result.insertedId.toString());
