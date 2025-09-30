@@ -93,7 +93,7 @@ from docrouter_app.models import (
 from docrouter_app.payments import payments_router, SPUCreditException
 from docrouter_app.payments import (
     init_payments,
-    sync_payments_customer,
+    sync_customer,
     delete_payments_customer,
 )
 import analytiq_data as ad
@@ -3029,8 +3029,8 @@ async def create_organization(
     result = await db.organizations.insert_one(organization_doc)
     org_id = str(result.inserted_id)
 
-    # Create corresponding payments customer
-    await sync_payments_customer(db=db, org_id=org_id)
+    # Create corresponding payments customer (and Stripe if configured)
+    await sync_customer(db=db, org_id=org_id)
 
     return Organization(**{
         **organization_doc,
@@ -3107,8 +3107,8 @@ async def update_organization(
         # If no updates were needed, just return the current organization
         updated_organization = organization
 
-    # Update the payments customer
-    await sync_payments_customer(db=db, org_id=organization_id)
+    # Update the payments customer (and Stripe if configured)
+    await sync_customer(db=db, org_id=organization_id)
 
     return Organization(**{
         "id": str(updated_organization["_id"]),
@@ -3346,8 +3346,8 @@ async def create_user(
     org_id = str(result.inserted_id)
     logger.info(f"Created new organization {user.email} with id {org_id}")
 
-    # Sync the organization
-    await sync_payments_customer(db=db, org_id=org_id)
+    # Sync the organization (local and Stripe if configured)
+    await sync_customer(db=db, org_id=org_id)
     
     return UserResponse(**user_doc)
 
@@ -3480,8 +3480,8 @@ async def delete_user(
                 {"$pull": {"members": {"user_id": user_id}}}
             )
 
-            # Update the payments customer
-            await sync_payments_customer(db=db, org_id=org["_id"])
+            # Update the payments customer (and Stripe if configured)
+            await sync_customer(db=db, org_id=org["_id"])
     
     # Don't allow deleting the last admin user
     target_user = await db.users.find_one({"_id": ObjectId(user_id)})
@@ -3642,9 +3642,6 @@ async def verify_email(token: str, background_tasks: BackgroundTasks):
     if not updated_user:
         logger.info(f"Failed to verify email for user {verification['user_id']}")
         raise HTTPException(status_code=404, detail="User not found")
-    
-    if updated_user.get("emailVerified"):
-        return {"message": "Email already verified"}
 
     # Ensure a default individual organization exists for the verified user
     # If none exists, create one and sync payments customer
@@ -3665,7 +3662,7 @@ async def verify_email(token: str, background_tasks: BackgroundTasks):
         })
         logger.info(f"Created default individual organization for user {updated_user['_id']}")
         try:
-            await sync_payments_customer(db=db, org_id=str(org_insert_result.inserted_id))
+            await sync_customer(db=db, org_id=str(org_insert_result.inserted_id))
         except Exception as e:
             logger.warning(f"Failed to sync payments customer for org {org_insert_result.inserted_id}: {e}")
     else:
@@ -3995,8 +3992,8 @@ async def accept_invitation(
 
             org_id = str(result.inserted_id)
 
-        # Sync the organization
-        await sync_payments_customer(db=db, org_id=org_id)
+        # Sync the organization (local and Stripe if configured)
+        await sync_customer(db=db, org_id=org_id)
         
         # Mark invitation as accepted
         await db.invitations.update_one(
