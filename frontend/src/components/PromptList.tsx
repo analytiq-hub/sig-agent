@@ -61,7 +61,7 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
 
   const loadTags = useCallback(async () => {
     try {
-      const response = await listTagsApi({ organizationId: organizationId, skip: 0, limit: 100, nameSearch: undefined });
+      const response = await listTagsApi({ organizationId: organizationId, limit: 100 });
       setAvailableTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
@@ -71,7 +71,7 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
 
   const loadSchemas = useCallback(async () => {
     try {
-      const response = await listSchemasApi({ organizationId: organizationId, skip: 0, limit: 100, nameSearch: undefined });
+      const response = await listSchemasApi({ organizationId: organizationId, limit: 100 });
       setAvailableSchemas(response.schemas);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';

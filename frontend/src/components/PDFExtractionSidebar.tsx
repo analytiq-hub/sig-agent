@@ -44,7 +44,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const promptsResponse = await listPromptsApi({organizationId: organizationId, document_id: id, skip: 0, limit: 100, nameSearch: undefined });
+        const promptsResponse = await listPromptsApi({organizationId: organizationId, document_id: id, limit: 100 });
         setMatchingPrompts(promptsResponse.prompts);
         
         // Fetch default prompt results

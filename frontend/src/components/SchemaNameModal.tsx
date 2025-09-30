@@ -35,9 +35,7 @@ const SchemaNameModal: React.FC<SchemaNameModalProps> = ({
         try {
           const response = await listSchemasApi({
             organizationId,
-            skip: 0,
-            limit: 1000,
-            nameSearch: undefined
+            limit: 1000
           });
           
           setExistingNames(response.schemas.map(schema => schema.name.toLowerCase()));

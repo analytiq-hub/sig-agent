@@ -40,7 +40,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
   useEffect(() => {
     const fetchTags = async () => {
       try {
-        const response = await listTagsApi({ organizationId, skip: 0, limit: 100, nameSearch: undefined });
+        const response = await listTagsApi({ organizationId, limit: 100 });
         setAvailableTags(response.tags);
       } catch (error) {
         console.error('Error fetching tags:', error);

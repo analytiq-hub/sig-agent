@@ -162,7 +162,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   useEffect(() => {
     const loadTags = async () => {
       try {
-        const response = await listTagsApi({ organizationId: organizationId, skip: 0, limit: 100, nameSearch: undefined });
+        const response = await listTagsApi({ organizationId: organizationId, limit: 100 });
         setTags(response.tags);
       } catch (error) {
         console.error('Error loading tags:', error);
