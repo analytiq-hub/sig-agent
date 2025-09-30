@@ -1071,6 +1071,7 @@ async def list_schemas(
     organization_id: str,
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
+    name_search: str = Query(None, description="Search term for schema names"),
     current_user: User = Depends(get_org_user)
 ):
     """List latest schema revisions within an organization"""
@@ -1078,14 +1079,18 @@ async def list_schemas(
     db = ad.common.get_async_db()
     
     # First, get schemas that belong to the organization
-    org_schemas = await db.schemas.find(
-        {"organization_id": organization_id}
-    ).to_list(None)
+    # Build base query for schemas in org
+    schemas_query = {"organization_id": organization_id}
+    # Optional name search (case-insensitive)
+    if name_search:
+        schemas_query["name"] = {"$regex": name_search, "$options": "i"}
+
+    org_schemas = await db.schemas.find(schemas_query).to_list(None)
     
     if not org_schemas:
         return ListSchemasResponse(schemas=[], total_count=0, skip=skip)
     
-    # Extract schema IDs
+    # Extract schema IDs (restricted to name_search if provided)
     schema_ids = [schema["_id"] for schema in org_schemas]
     schema_id_to_name = {str(schema["_id"]): schema["name"] for schema in org_schemas}
     
@@ -1516,6 +1521,7 @@ async def list_prompts(
     limit: int = Query(10, ge=1, le=100),
     document_id: str = Query(None, description="Filter prompts by document's tags"),
     tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
+    name_search: str = Query(None, description="Search term for prompt names"),
     current_user: User = Depends(get_org_user)
 ):
     """List prompts within an organization"""
@@ -1523,9 +1529,12 @@ async def list_prompts(
     db = ad.common.get_async_db()
     
     # First, get prompts that belong to the organization
-    org_prompts = await db.prompts.find(
-        {"organization_id": organization_id}
-    ).to_list(None)
+    # Base query for prompts in org, with optional name search
+    prompts_query = {"organization_id": organization_id}
+    if name_search:
+        prompts_query["name"] = {"$regex": name_search, "$options": "i"}
+
+    org_prompts = await db.prompts.find(prompts_query).to_list(None)
     
     if not org_prompts:
         return ListPromptsResponse(prompts=[], total_count=0, skip=skip)
@@ -2325,6 +2334,7 @@ async def list_tags(
     organization_id: str,
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
+    name_search: str = Query(None, description="Search term for tag names"),
     current_user: User = Depends(get_org_user)
 ):
     """List tags"""
@@ -2332,10 +2342,13 @@ async def list_tags(
     # Get total count
     total_count = await db.tags.count_documents({"organization_id": organization_id})
     
+    # Build base query with optional name search
+    tags_query = {"organization_id": organization_id}
+    if name_search:
+        tags_query["name"] = {"$regex": name_search, "$options": "i"}
+
     # Get paginated tags with sorting by _id in descending order
-    cursor = db.tags.find(
-        {"organization_id": organization_id}
-    ).sort("_id", -1).skip(skip).limit(limit)  # Sort by _id descending (newest first)
+    cursor = db.tags.find(tags_query).sort("_id", -1).skip(skip).limit(limit)
     
     tags = await cursor.to_list(length=None)
     

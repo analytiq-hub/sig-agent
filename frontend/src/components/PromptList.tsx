@@ -45,7 +45,9 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
       const response = await listPromptsApi({
         organizationId: organizationId,
         skip: page * pageSize,
-        limit: pageSize
+        limit: pageSize,
+        nameSearch: searchTerm || undefined,
+        tag_ids: selectedTagIds.length ? selectedTagIds.join(',') : undefined
       });
       setPrompts(response.prompts);
       setTotal(response.total_count);
@@ -55,11 +57,11 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, organizationId]);
+  }, [page, pageSize, organizationId, searchTerm, selectedTagIds]);
 
   const loadTags = useCallback(async () => {
     try {
-      const response = await listTagsApi({ organizationId: organizationId });
+      const response = await listTagsApi({ organizationId: organizationId, skip: 0, limit: 100, nameSearch: undefined });
       setAvailableTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
@@ -69,7 +71,7 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
 
   const loadSchemas = useCallback(async () => {
     try {
-      const response = await listSchemasApi({ organizationId: organizationId });
+      const response = await listSchemasApi({ organizationId: organizationId, skip: 0, limit: 100, nameSearch: undefined });
       setAvailableSchemas(response.schemas);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
@@ -271,13 +273,7 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
   };
 
   // Add filtered prompts (now also filters by selected tags)
-  const filteredPrompts = prompts.filter(prompt => {
-    const matchesSearch = prompt.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTags =
-      selectedTagIds.length === 0 ||
-      selectedTagIds.every(tagId => (prompt.tag_ids ?? []).includes(tagId));
-    return matchesSearch && matchesTags;
-  });
+  const filteredPrompts = prompts;
 
   // Define columns for the data grid
   const columns: GridColDef[] = [

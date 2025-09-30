@@ -53,6 +53,7 @@ export interface ListSchemasParams {
   organizationId: string;
   skip?: number;
   limit?: number;
+  nameSearch?: string;
 }
 
 export interface ListSchemasResponse {

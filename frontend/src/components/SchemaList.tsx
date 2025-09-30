@@ -37,7 +37,8 @@ const SchemaList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
       const response = await listSchemasApi({
         organizationId: organizationId,
         skip: page * pageSize,
-        limit: pageSize
+        limit: pageSize,
+        nameSearch: searchTerm || undefined
       });
       setSchemas(response.schemas);
       setTotal(response.total_count);
@@ -47,7 +48,7 @@ const SchemaList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, organizationId]);
+  }, [page, pageSize, organizationId, searchTerm]);
 
   const handleDelete = async (schemaId: string) => {
     try {
@@ -171,10 +172,8 @@ const SchemaList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
     handleMenuClose();
   };
 
-  // Add filtered schemas
-  const filteredSchemas = schemas.filter(schema =>
-    schema.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Server-side filtering; no client-side filter
+  const filteredSchemas = schemas;
 
   // Helper function to convert JSON schema to fields for display
   const jsonSchemaToFields = (responseFormat: SchemaResponseFormat): SchemaField[] => {

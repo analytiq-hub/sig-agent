@@ -31,6 +31,7 @@ export interface ListPromptsParams {
   limit?: number;
   document_id?: string;
   tag_ids?: string;
+  nameSearch?: string;
 }
 
 export interface ListPromptsResponse {

@@ -20,6 +20,9 @@ const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(5);
+  const [total, setTotal] = useState(0);
   
   // Add state for menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -28,15 +31,19 @@ const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const loadTags = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await listTagsApi({ organizationId: organizationId });
+      const response = await listTagsApi({ organizationId: organizationId, skip: page * pageSize, limit: pageSize, nameSearch: searchTerm || undefined });
       setTags(response.tags);
+      // @ts-ignore total_count may exist from backend
+      if ((response as any).total_count !== undefined) {
+        setTotal((response as any).total_count);
+      }
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
       setMessage('Error: ' + errorMsg);
     } finally {
       setIsLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationId, page, pageSize, searchTerm]);
 
   useEffect(() => {
     loadTags();
@@ -191,6 +198,12 @@ const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
             disableRowSelectionOnClick
             loading={isLoading}
             getRowId={(row) => row.id}
+            paginationMode="server"
+            rowCount={total}
+            onPaginationModelChange={(model) => {
+              setPage(model.page);
+              setPageSize(model.pageSize);
+            }}
             sx={{
               '& .MuiDataGrid-cell': {
                 padding: '8px',

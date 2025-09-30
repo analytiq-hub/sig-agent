@@ -75,7 +75,9 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
       // First, fetch all schemas to get schema_revid mappings
       const allSchemasResponse = await listSchemasApi({
         organizationId,
-        limit: 100 // Maximum allowed by backend
+        skip: 0,
+        limit: 100,
+        nameSearch: undefined
       });
 
       // Fetch prompts for each tag individually and merge results
@@ -87,7 +89,9 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
           const promptsResponse = await listPromptsApi({
             organizationId,
             tag_ids: tagId, // Single tag ID
-            limit: 100
+            skip: 0,
+            limit: 100,
+            nameSearch: undefined
           });
           
           // Add prompts to map to avoid duplicates
@@ -103,7 +107,9 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
       if (selectedTagIds.length === 0) {
         const promptsResponse = await listPromptsApi({
           organizationId,
-          limit: 100
+          skip: 0,
+          limit: 100,
+          nameSearch: undefined
         });
         promptsResponse.prompts.forEach(prompt => {
           allPrompts.set(prompt.prompt_revid, prompt);

@@ -619,11 +619,12 @@ export const createSchemaApi = async (schema: CreateSchemaParams) => {
 };
 
 export const listSchemasApi = async (params: ListSchemasParams): Promise<ListSchemasResponse> => {
-  const { organizationId, ...rest } = params;
+  const { organizationId, nameSearch, ...rest } = params;
   const response = await api.get<ListSchemasResponse>(`/v0/orgs/${organizationId}/schemas`, {
     params: {
       skip: rest?.skip || 0,
-      limit: rest?.limit || 10
+      limit: rest?.limit || 10,
+      name_search: nameSearch
     }
   });
   return response.data;
@@ -655,13 +656,14 @@ export const createPromptApi = async (params: CreatePromptParams): Promise<Promp
 };
 
 export const listPromptsApi = async (params: ListPromptsParams): Promise<ListPromptsResponse> => {
-  const { organizationId, ...rest } = params;
+  const { organizationId, nameSearch, ...rest } = params;
   const response = await api.get<ListPromptsResponse>(`/v0/orgs/${organizationId}/prompts`, {
     params: {
       skip: rest?.skip || 0,
       limit: rest?.limit || 10,
       document_id: rest?.document_id,
-      tag_ids: rest?.tag_ids
+      tag_ids: rest?.tag_ids,
+      name_search: nameSearch
     }
   });
   return response.data;
@@ -770,8 +772,14 @@ export const getTagApi = async ({
 };
 
 export const listTagsApi = async (params: ListTagsParams): Promise<ListTagsResponse> => {
-    const { organizationId } = params;
-    const response = await api.get<ListTagsResponse>(`/v0/orgs/${organizationId}/tags`);
+    const { organizationId, skip, limit, nameSearch } = params;
+    const response = await api.get<ListTagsResponse>(`/v0/orgs/${organizationId}/tags`, {
+      params: {
+        skip: skip || 0,
+        limit: limit || 10,
+        name_search: nameSearch
+      }
+    });
     return response.data;
 };
 

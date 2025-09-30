@@ -43,8 +43,8 @@ const Flows: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     const loadData = async () => {
       try {
         const [promptsResponse, tagsResponse] = await Promise.all([
-          listPromptsApi({organizationId: organizationId}),
-          listTagsApi({organizationId: organizationId})
+          listPromptsApi({organizationId: organizationId, skip: 0, limit: 100, nameSearch: undefined}),
+          listTagsApi({organizationId: organizationId, skip: 0, limit: 100, nameSearch: undefined})
         ]);
         setPrompts(promptsResponse.prompts);
         setAvailableTags(tagsResponse.tags);

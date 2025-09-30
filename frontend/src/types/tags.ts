@@ -19,10 +19,15 @@ export interface CreateTagParams {
 
 export interface ListTagsParams {
   organizationId: string;
+  skip?: number;
+  limit?: number;
+  nameSearch?: string;
 }
 
 export interface ListTagsResponse {
     tags: Tag[];
+    total_count?: number;
+    skip?: number;
 }
 
 export interface UpdateTagParams {
