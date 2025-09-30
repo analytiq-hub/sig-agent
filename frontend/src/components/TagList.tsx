@@ -33,9 +33,8 @@ const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       setIsLoading(true);
       const response = await listTagsApi({ organizationId: organizationId, skip: page * pageSize, limit: pageSize, nameSearch: searchTerm || undefined });
       setTags(response.tags);
-      // @ts-ignore total_count may exist from backend
-      if ((response as any).total_count !== undefined) {
-        setTotal((response as any).total_count);
+      if (response.total_count !== undefined) {
+        setTotal(response.total_count);
       }
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
