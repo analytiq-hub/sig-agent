@@ -3427,7 +3427,7 @@ async def list_users(
                 role=user.get("role", "user"),
                 email_verified=user.get("email_verified"),
                 created_at=user.get("created_at", datetime.now(UTC)),
-                hasPassword=bool(user.get("password"))
+                has_password=bool(user.get("password"))
             )],
             total_count=1,
             skip=0
@@ -3482,7 +3482,7 @@ async def list_users(
                 role=user.get("role", "user"),
                 email_verified=user.get("email_verified"),
                 created_at=user.get("created_at", datetime.now(UTC)),
-                hasPassword=bool(user.get("password"))
+                has_password=bool(user.get("password"))
             )
             for user in users
         ],
@@ -3537,7 +3537,7 @@ async def create_user(
     
     result = await db.users.insert_one(user_doc)
     user_doc["id"] = str(result.inserted_id)
-    user_doc["hasPassword"] = True
+    user_doc["has_password"] = True
 
     logger.info(f"Created new user {user.email} with id {user_doc['id']}")
     
@@ -3634,7 +3634,7 @@ async def update_user(
         role=result.get("role", "user"),
         email_verified=result.get("email_verified"),
         created_at=result.get("created_at", datetime.now(UTC)),
-        hasPassword=bool(result.get("password"))
+        has_password=bool(result.get("password"))
     )
 
 

@@ -339,7 +339,7 @@ class UserResponse(BaseModel):
     role: str
     email_verified: bool | None
     created_at: datetime
-    hasPassword: bool
+    has_password: bool
     has_seen_tour: bool | None = None
 
 class ListUsersResponse(BaseModel):

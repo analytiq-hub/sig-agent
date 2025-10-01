@@ -83,8 +83,8 @@ async def test_user_lifecycle(test_db, mock_auth):
         assert user_result["name"] == "Test User"
         assert "role" in user_result
         assert "email_verified" in user_result
-        assert "hasPassword" in user_result
-        assert user_result["hasPassword"] is True
+        assert "has_password" in user_result
+        assert user_result["has_password"] is True
         
         user_id = user_result["id"]
         
@@ -131,7 +131,7 @@ async def test_user_lifecycle(test_db, mock_auth):
         
         assert password_update_response.status_code == 200
         password_update_result = password_update_response.json()
-        assert password_update_result["hasPassword"] is True
+        assert password_update_result["has_password"] is True
         
         # Step 5: Update email verification status
         verification_update_data = {

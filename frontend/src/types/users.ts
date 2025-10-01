@@ -20,7 +20,7 @@ export interface UserResponse {
   role: string;
   email_verified: boolean | null;
   created_at: string;
-  hasPassword: boolean;
+  has_password: boolean;
   has_seen_tour: boolean;
 }
 

@@ -1626,11 +1626,11 @@ class RenamePromptRevIdToPromptRevid(Migration):
 
 class RenameUserFields(Migration):
     def __init__(self):
-        super().__init__(description="Rename emailVerified to email_verified, hasSeenTour to has_seen_tour, and createdAt to created_at in users collection")
+        super().__init__(description="Rename user fields to snake_case: emailVerified, hasSeenTour, createdAt, hasPassword")
 
     async def up(self, db) -> bool:
         try:
-            # Update documents that have emailVerified, hasSeenTour, or createdAt
+            # Update documents that have emailVerified, hasSeenTour, createdAt, or hasPassword
             result1 = await db.users.update_many(
                 {"emailVerified": {"$exists": True}},
                 [
@@ -1670,6 +1670,19 @@ class RenameUserFields(Migration):
             )
             logger.info(f"Renamed createdAt to created_at in {result3.modified_count} users documents")
 
+            result4 = await db.users.update_many(
+                {"hasPassword": {"$exists": True}},
+                [
+                    {
+                        "$set": {
+                            "has_password": "$hasPassword",
+                            "hasPassword": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            logger.info(f"Renamed hasPassword to has_password in {result4.modified_count} users documents")
+
             return True
         except Exception as e:
             logger.error(f"Migration failed: {e}")
@@ -1677,7 +1690,7 @@ class RenameUserFields(Migration):
 
     async def down(self, db) -> bool:
         try:
-            # Revert documents that have email_verified, has_seen_tour, or created_at
+            # Revert documents that have email_verified, has_seen_tour, created_at, or has_password
             result1 = await db.users.update_many(
                 {"email_verified": {"$exists": True}},
                 [
@@ -1716,6 +1729,19 @@ class RenameUserFields(Migration):
                 ]
             )
             logger.info(f"Reverted created_at to createdAt in {result3.modified_count} users documents")
+
+            result4 = await db.users.update_many(
+                {"has_password": {"$exists": True}},
+                [
+                    {
+                        "$set": {
+                            "hasPassword": "$has_password",
+                            "has_password": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            logger.info(f"Reverted has_password to hasPassword in {result4.modified_count} users documents")
 
             return True
         except Exception as e:

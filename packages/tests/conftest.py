@@ -84,7 +84,7 @@ async def test_db(unique_db_name):
         "name": "Test User",
         "role": "admin",
         "email_verified": True,
-        "hasPassword": True,
+        "has_password": True,
         "created_at": datetime.now(UTC)
     })
     
@@ -138,7 +138,7 @@ async def org_and_users(test_db):
             "name": "Org Admin",
             "role": "admin",
             "email_verified": True,
-            "hasPassword": True,
+            "has_password": True,
             "created_at": datetime.now(UTC)
         },
         {
@@ -147,7 +147,7 @@ async def org_and_users(test_db):
             "name": "Org Member",
             "role": "user",
             "email_verified": True,
-            "hasPassword": True,
+            "has_password": True,
             "created_at": datetime.now(UTC)
         },
         {
@@ -156,7 +156,7 @@ async def org_and_users(test_db):
             "name": "Not In Org",
             "role": "user",
             "email_verified": True,
-            "hasPassword": True,
+            "has_password": True,
             "created_at": datetime.now(UTC)
         }
     ])

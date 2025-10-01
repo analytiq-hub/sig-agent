@@ -362,7 +362,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
           </>
         )}
 
-        {user.hasPassword && (
+        {user.has_password && (
           <div className="border-t pt-4">
             <button
               type="button"
