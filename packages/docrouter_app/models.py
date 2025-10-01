@@ -470,7 +470,7 @@ class OAuthSignInRequest(BaseModel):
     name: Optional[str] = Field(None, description="User's full name")
     email_verified: bool = Field(False, description="Whether email is verified")
     provider: Literal["google", "github"] = Field(..., description="OAuth provider")
-    providerAccountId: str = Field(..., description="Provider's unique account ID")
+    provider_account_id: str = Field(..., description="Provider's unique account ID")
     account: OAuthAccountData = Field(..., description="OAuth account data")
 
 class OAuthSignInResponse(BaseModel):
