@@ -2845,8 +2845,8 @@ async def oauth_signin(request: Request):
                     "user_id": user_id,
                     "role": "admin"
                 }],
-                "createdAt": datetime.now(UTC),
-                "updatedAt": datetime.now(UTC)
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC)
             })
             org_id = str(org_result.inserted_id)
             logger.info(f"Created organization {org_id} for user {user_id}")
