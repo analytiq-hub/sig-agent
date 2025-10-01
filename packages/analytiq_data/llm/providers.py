@@ -78,7 +78,7 @@ async def setup_llm_providers(analytiq_client):
                 models_enabled = []
                 update = True
 
-            logger.info(f"Litellm models: {litellm_models}")
+            logger.debug(f"Litellm models: {litellm_models}")
             logger.info(f"Models available: {models_available}")
             logger.info(f"Models enabled: {models_enabled}")
 
