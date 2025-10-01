@@ -23,7 +23,7 @@ interface CustomUser extends DefaultUser {
  * Uses NEXTAUTH_SECRET to sign the request payload
  * Uses sorted keys to ensure consistent serialization with Python
  */
-function createRequestSignature(payload: any): string {
+function createRequestSignature(payload: Record<string, unknown>): string {
     const secret = process.env.NEXTAUTH_SECRET;
     if (!secret) {
         throw new Error('NEXTAUTH_SECRET is not configured');
@@ -32,10 +32,10 @@ function createRequestSignature(payload: any): string {
     // Sort keys to match Python's json.dumps(sort_keys=True)
     const sortedPayload = Object.keys(payload)
         .sort()
-        .reduce((acc: any, key: string) => {
+        .reduce((acc: Record<string, unknown>, key: string) => {
             acc[key] = payload[key];
             return acc;
-        }, {});
+        }, {} as Record<string, unknown>);
 
     // Use compact JSON (no extra spaces)
     const message = JSON.stringify(sortedPayload);
