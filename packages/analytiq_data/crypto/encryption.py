@@ -8,17 +8,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 def get_secret() -> str:
-    """Get NEXTAUTH_SECRET from environment"""
-    secret = os.getenv("NEXTAUTH_SECRET")
+    """Get FASTAPI_SECRET from environment (for backward compatibility with AWS credentials)"""
+    secret = os.getenv("FASTAPI_SECRET")
     if not secret:
-        raise ValueError("NEXTAUTH_SECRET not found in environment")
+        raise ValueError("FASTAPI_SECRET not found in environment")
     return secret
 
 def get_cipher():
-    """Create AES cipher using NEXTAUTH_SECRET"""
-    # Use NEXTAUTH_SECRET as key, pad to 32 bytes for AES-256
+    """Create AES cipher using FASTAPI_SECRET (or NEXTAUTH_SECRET as fallback)"""
+    # Use secret as key, pad to 32 bytes for AES-256
     key = get_secret().encode().ljust(32, b'0')[:32]
-    # Use a fixed IV derived from NEXTAUTH_SECRET
+    # Use a fixed IV derived from secret
     iv = hashlib.sha256(key).digest()[:16]
     cipher = Cipher(
         algorithms.AES(key),

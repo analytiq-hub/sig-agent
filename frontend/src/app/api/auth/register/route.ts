@@ -24,8 +24,8 @@ export async function POST(req: Request) {
             password: hashedPassword,
             name,
             role: 'user',
-            emailVerified: false,
-            createdAt: new Date(),
+            email_verified: false,
+            created_at: new Date(),
         });
 
         // Send verification email using the new endpoint
