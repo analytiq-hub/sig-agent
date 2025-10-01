@@ -12,7 +12,6 @@ import { JWT } from "next-auth/jwt";
 import { AppSession } from '@/types/AppSession';
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
-import { createDefaultOrganization } from '@/utils/organization';
 
 interface CustomUser extends DefaultUser {
     emailVerified?: Date | null;
@@ -20,27 +19,16 @@ interface CustomUser extends DefaultUser {
 
 /**
  * Create HMAC signature for request authentication
- * Uses NEXTAUTH_SECRET to sign the request payload
- * Uses sorted keys to ensure consistent serialization with Python
+ * Uses NEXTAUTH_SECRET to sign the raw JSON string
  */
-function createRequestSignature(payload: Record<string, unknown>): string {
+function createRequestSignature(jsonString: string): string {
     const secret = process.env.NEXTAUTH_SECRET;
     if (!secret) {
         throw new Error('NEXTAUTH_SECRET is not configured');
     }
 
-    // Sort keys to match Python's json.dumps(sort_keys=True)
-    const sortedPayload = Object.keys(payload)
-        .sort()
-        .reduce((acc: Record<string, unknown>, key: string) => {
-            acc[key] = payload[key];
-            return acc;
-        }, {} as Record<string, unknown>);
-
-    // Use compact JSON (no extra spaces)
-    const message = JSON.stringify(sortedPayload);
     const hmac = crypto.createHmac('sha256', secret);
-    hmac.update(message);
+    hmac.update(jsonString);
     return hmac.digest('hex');
 }
 
@@ -118,65 +106,39 @@ export const authOptions: NextAuthOptions = {
         async signIn({ user, account }: { user: CustomUser, account: Account | null }) {
             try {
                 if (account?.provider === 'google' || account?.provider === 'github') {
-                    const db = getDatabase();
-                    const users = db.collection("users");
-                    const accounts = db.collection("accounts");
-
-                    const existingUser = await users.findOne({ email: user.email });
-
-                    if (existingUser) {
-                        // Check if this OAuth account already exists
-                        const existingAccount = await accounts.findOne({
-                            provider: account.provider,
-                            providerAccountId: account.providerAccountId
-                        });
-
-                        if (!existingAccount) {
-                            // Create the OAuth account record
-                            await accounts.insertOne({
-                                userId: existingUser._id.toString(),
-                                type: account.type,
-                                provider: account.provider,
-                                providerAccountId: account.providerAccountId,
-                                access_token: account.access_token,
-                                expires_at: account.expires_at,
-                                token_type: account.token_type,
-                                scope: account.scope,
-                                id_token: account.id_token,
-                                refresh_token: account.refresh_token
-                            });
-                        }
-                    } else {
-                        // Create new user
-                        const result = await users.insertOne({
-                            email: user.email,
-                            name: user.name,
-                            role: "user",
-                            emailVerified: user.emailVerified ?? false,
-                            createdAt: new Date()
-                        });
-
-                        // Create the OAuth account record
-                        await accounts.insertOne({
-                            userId: result.insertedId.toString(),
+                    // Call FastAPI to handle user/account/org creation and Stripe sync
+                    const apiUrl = process.env.FASTAPI_BACKEND_URL || 'http://127.0.0.1:8000';
+                    const payload = {
+                        email: user.email,
+                        name: user.name,
+                        emailVerified: user.emailVerified ?? false,
+                        provider: account.provider,
+                        providerAccountId: account.providerAccountId,
+                        account: {
                             type: account.type,
-                            provider: account.provider,
-                            providerAccountId: account.providerAccountId,
                             access_token: account.access_token,
                             expires_at: account.expires_at,
                             token_type: account.token_type,
                             scope: account.scope,
                             id_token: account.id_token,
                             refresh_token: account.refresh_token
-                        });
+                        }
+                    };
+                    const payloadJson = JSON.stringify(payload);
+                    const signature = createRequestSignature(payloadJson);
 
-                        // Create individual organization using email as name
-                        await createDefaultOrganization(result.insertedId.toString(), user.email as string);
-                    }
+                    const response = await axios.post(`${apiUrl}/v0/account/auth/oauth`, payloadJson, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Request-Signature': signature
+                        }
+                    });
+
+                    console.log(`OAuth sign-in processed: ${response.data.is_new_user ? 'new' : 'existing'} user ${response.data.user_id}`);
                 }
                 return true;
             } catch (error) {
-                console.error("Account linking error:", error);
+                console.error("OAuth sign-in error:", error);
                 return false;
             }
         },
@@ -193,10 +155,12 @@ export const authOptions: NextAuthOptions = {
                         name: user.name,
                         email: user.email
                     };
-                    const signature = createRequestSignature(payload);
+                    const payloadJson = JSON.stringify(payload);
+                    const signature = createRequestSignature(payloadJson);
 
-                    const response = await axios.post(`${apiUrl}/v0/account/auth/token`, payload, {
+                    const response = await axios.post(`${apiUrl}/v0/account/auth/token`, payloadJson, {
                         headers: {
+                            'Content-Type': 'application/json',
                             'X-Request-Signature': signature
                         }
                     });

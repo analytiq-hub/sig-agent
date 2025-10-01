@@ -454,3 +454,26 @@ class FormSubmission(FormSubmissionData):
     organization_id: str
     created_at: datetime
     updated_at: datetime
+
+# OAuth sign-in models
+class OAuthAccountData(BaseModel):
+    type: str = "oauth"
+    access_token: Optional[str] = None
+    expires_at: Optional[int] = None
+    token_type: Optional[str] = None
+    scope: Optional[str] = None
+    id_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+
+class OAuthSignInRequest(BaseModel):
+    email: str = Field(..., description="User email address")
+    name: Optional[str] = Field(None, description="User's full name")
+    emailVerified: bool = Field(False, description="Whether email is verified")
+    provider: Literal["google", "github"] = Field(..., description="OAuth provider")
+    providerAccountId: str = Field(..., description="Provider's unique account ID")
+    account: OAuthAccountData = Field(..., description="OAuth account data")
+
+class OAuthSignInResponse(BaseModel):
+    success: bool
+    user_id: str
+    is_new_user: bool
