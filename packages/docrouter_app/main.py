@@ -118,6 +118,7 @@ logger.info(f"MONGODB_URI: {MONGODB_URI}")
 logger.info(f"SES_FROM_EMAIL: {SES_FROM_EMAIL}")
 # JWT settings
 FASTAPI_SECRET = os.getenv("FASTAPI_SECRET")
+NEXTAUTH_SECRET = os.getenv("NEXTAUTH_SECRET")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -2661,9 +2662,50 @@ async def update_flow(
     return Flow(**{**flow_doc, "flow_revid": str(result.inserted_id)})
 
 @app.post("/v0/account/auth/token", tags=["account/auth"])
-async def create_auth_token(user_data: dict = Body(...)):
-    """Create an authentication token"""
+async def create_auth_token(
+    request: Request,
+    user_data: dict = Body(...)
+):
+    """
+    Create an authentication token.
+    Requires HMAC signature in X-Request-Signature header for authentication.
+    """
     logger.debug(f"create_auth_token(): user_data: {user_data}")
+
+    # Verify request signature
+    signature = request.headers.get("X-Request-Signature")
+    if not signature:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing X-Request-Signature header"
+        )
+
+    if not NEXTAUTH_SECRET:
+        logger.error("NEXTAUTH_SECRET not configured")
+        raise HTTPException(
+            status_code=500,
+            detail="Server configuration error"
+        )
+
+    # Verify signature using HMAC-SHA256
+    # Use sort_keys=True and separators to match JavaScript's JSON.stringify()
+    message = json.dumps(user_data, sort_keys=True, separators=(',', ':'))
+    expected_signature = hmac.new(
+        NEXTAUTH_SECRET.encode('utf-8'),
+        message.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(signature, expected_signature):
+        logger.warning(f"Invalid signature for token request: {user_data.get('email')}")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid request signature"
+        )
+
+    logger.debug(f"create_auth_token(): signature verified")
+
+    # Signature is valid, create token
     token = jwt.encode(
         {
             "userId": user_data["id"],
@@ -2673,6 +2715,8 @@ async def create_auth_token(user_data: dict = Body(...)):
         FASTAPI_SECRET,
         algorithm=ALGORITHM
     )
+
+    logger.debug(f"create_auth_token(): {token}")
     return {"token": token}
 
 @app.get("/v0/account/llm/models", response_model=ListLLMModelsResponse, tags=["account/llm"])

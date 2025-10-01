@@ -4,6 +4,7 @@ import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import mongoClient, { getDatabase } from "@/utils/mongodb"
 import { Adapter } from "next-auth/adapters"
 import type { Account, DefaultUser } from "next-auth"
+import crypto from 'crypto';
 
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
@@ -15,6 +16,32 @@ import { createDefaultOrganization } from '@/utils/organization';
 
 interface CustomUser extends DefaultUser {
     emailVerified?: Date | null;
+}
+
+/**
+ * Create HMAC signature for request authentication
+ * Uses NEXTAUTH_SECRET to sign the request payload
+ * Uses sorted keys to ensure consistent serialization with Python
+ */
+function createRequestSignature(payload: any): string {
+    const secret = process.env.NEXTAUTH_SECRET;
+    if (!secret) {
+        throw new Error('NEXTAUTH_SECRET is not configured');
+    }
+
+    // Sort keys to match Python's json.dumps(sort_keys=True)
+    const sortedPayload = Object.keys(payload)
+        .sort()
+        .reduce((acc: any, key: string) => {
+            acc[key] = payload[key];
+            return acc;
+        }, {});
+
+    // Use compact JSON (no extra spaces)
+    const message = JSON.stringify(sortedPayload);
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(message);
+    return hmac.digest('hex');
 }
 
 const customAdapter = MongoDBAdapter(mongoClient) as Adapter
@@ -161,10 +188,17 @@ export const authOptions: NextAuthOptions = {
                 // Only get new FastAPI token on initial sign-in
                 try {
                     const apiUrl = process.env.FASTAPI_BACKEND_URL || 'http://127.0.0.1:8000';
-                    const response = await axios.post(`${apiUrl}/v0/account/auth/token`, {
+                    const payload = {
                         id: user.id,
                         name: user.name,
                         email: user.email
+                    };
+                    const signature = createRequestSignature(payload);
+
+                    const response = await axios.post(`${apiUrl}/v0/account/auth/token`, payload, {
+                        headers: {
+                            'X-Request-Signature': signature
+                        }
                     });
                     token.apiAccessToken = response.data.token;
                 } catch (error) {
