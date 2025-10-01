@@ -32,9 +32,6 @@ async def delete_user(db, user_id: str) -> bool:
         # Delete user's OAuth accounts
         await db.accounts.delete_many({"userId": user_id})
         
-        # Delete user's sessions
-        await db.sessions.delete_many({"userId": user_id})
-        
         # Delete the user
         result = await db.users.delete_one({"_id": ObjectId(user_id)})
         
