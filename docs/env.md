@@ -30,14 +30,6 @@ The DocRouter project uses a single `.env` file at the project root that is shar
   - Used in payments module (`packages/docrouter_app/payments.py`)
 - **Format**: `mongodb://[username:password@]host:port[/database]?authSource=admin`
 
-### `FASTAPI_SECRET`
-- **Purpose**: Secret key for JWT token signing and encryption
-- **Required**: Yes
-- **Usage**:
-  - JWT token signing in authentication (`packages/docrouter_app/auth.py`)
-  - Token encryption/decryption (`packages/analytiq_data/crypto/encryption.py`)
-- **Security**: Must be a strong, random string
-
 ### `FASTAPI_ROOT_PATH`
 - **Purpose**: Root path for FastAPI application (useful for reverse proxies)
 - **Default**: `"/"`
@@ -56,7 +48,10 @@ The DocRouter project uses a single `.env` file at the project root that is shar
 ### `NEXTAUTH_SECRET`
 - **Purpose**: Secret key for NextAuth.js session encryption
 - **Required**: Yes
-- **Usage**: Used in NextAuth configuration (`frontend/src/auth.ts`)
+- **Usage**: 
+  - Used in NextAuth configuration (`frontend/src/auth.ts`)
+  - JWT token signing in authentication (`packages/docrouter_app/auth.py`)
+  - Token encryption/decryption (`packages/analytiq_data/crypto/encryption.py`)
 
 ### `AUTH_GITHUB_ID`
 - **Purpose**: GitHub OAuth application client ID
@@ -370,7 +365,6 @@ The environment variables are loaded from the top-level `.env` file using:
 # Core Application
 ENV=dev
 MONGODB_URI=mongodb://localhost:27017
-FASTAPI_SECRET=your-secret-key-here
 FASTAPI_ROOT_PATH=/
 
 # Authentication

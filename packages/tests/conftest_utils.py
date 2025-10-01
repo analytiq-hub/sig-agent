@@ -36,7 +36,7 @@ def setup_env():
     """Set up the environment variables for the tests"""
     os.environ["ENV"] = "pytest"
     os.environ["MONGODB_URI"] = "mongodb://localhost:27017"
-    os.environ["FASTAPI_SECRET"] = "test_secret_key_for_tests"
+    os.environ["NEXTAUTH_SECRET"] = "test_secret_key_for_tests"
 
 # Set test environment variables
 setup_env()

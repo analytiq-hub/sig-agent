@@ -7,18 +7,18 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def get_fastapi_secret() -> str:
-    """Get FASTAPI_SECRET from environment"""
-    fastapi_secret = os.getenv("FASTAPI_SECRET")
-    if not fastapi_secret:
-        raise ValueError("FASTAPI_SECRET not found in environment")
-    return fastapi_secret
+def get_secret() -> str:
+    """Get NEXTAUTH_SECRET from environment"""
+    secret = os.getenv("NEXTAUTH_SECRET")
+    if not secret:
+        raise ValueError("NEXTAUTH_SECRET not found in environment")
+    return secret
 
 def get_cipher():
-    """Create AES cipher using FASTAPI_SECRET"""
-    # Use FASTAPI_SECRET as key, pad to 32 bytes for AES-256
-    key = get_fastapi_secret().encode().ljust(32, b'0')[:32]
-    # Use a fixed IV derived from FASTAPI_SECRET
+    """Create AES cipher using NEXTAUTH_SECRET"""
+    # Use NEXTAUTH_SECRET as key, pad to 32 bytes for AES-256
+    key = get_secret().encode().ljust(32, b'0')[:32]
+    # Use a fixed IV derived from NEXTAUTH_SECRET
     iv = hashlib.sha256(key).digest()[:16]
     cipher = Cipher(
         algorithms.AES(key),

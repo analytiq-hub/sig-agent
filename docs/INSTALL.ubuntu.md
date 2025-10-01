@@ -98,7 +98,7 @@ AWS_SECRET_ACCESS_KEY=your-secret-access-key-here
 
 # Other required variables
 MONGODB_URI=mongodb://admin:<pw>@<ip>:27017/?authSource=admin
-FASTAPI_SECRET=your-secret-key-here
+NEXTAUTH_SECRET=your-secret-key-here
 ENV=prod
 ```
 

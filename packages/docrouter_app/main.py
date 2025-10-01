@@ -117,7 +117,6 @@ logger.info(f"FASTAPI_ROOT_PATH: {FASTAPI_ROOT_PATH}")
 logger.info(f"MONGODB_URI: {MONGODB_URI}")
 logger.info(f"SES_FROM_EMAIL: {SES_FROM_EMAIL}")
 # JWT settings
-FASTAPI_SECRET = os.getenv("FASTAPI_SECRET")
 NEXTAUTH_SECRET = os.getenv("NEXTAUTH_SECRET")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -2712,7 +2711,7 @@ async def create_auth_token(
             "userName": user_data["name"],
             "email": user_data["email"]
         },
-        FASTAPI_SECRET,
+        NEXTAUTH_SECRET,
         algorithm=ALGORITHM
     )
 

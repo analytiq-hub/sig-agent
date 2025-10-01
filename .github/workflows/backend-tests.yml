@@ -61,6 +61,6 @@ jobs:
       env:
         ENV: pytest
         MONGODB_URI: mongodb://localhost:27017
-        FASTAPI_SECRET: test_secret_key_for_ci
+        NEXTAUTH_SECRET: test_secret_key_for_ci
       run: |
         pytest tests/ -v 

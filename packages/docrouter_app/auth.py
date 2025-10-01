@@ -30,7 +30,7 @@ MONGODB_URI = os.getenv("MONGODB_URI")
 logger = logging.getLogger(__name__)
 
 # JWT settings
-FASTAPI_SECRET = os.getenv("FASTAPI_SECRET")
+NEXTAUTH_SECRET = os.getenv("NEXTAUTH_SECRET")
 ALGORITHM = "HS256"
 
 # Security scheme for JWT authentication
@@ -67,7 +67,7 @@ async def get_session_user(credentials: HTTPAuthorizationCredentials = Security(
     
     try:
         # Only validate as JWT (no API token fallback)
-        payload = jwt.decode(token, FASTAPI_SECRET, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, NEXTAUTH_SECRET, algorithms=[ALGORITHM])
         userId: str = payload.get("userId")
         userName: str = payload.get("userName")
         email: str = payload.get("email")
