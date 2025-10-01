@@ -330,7 +330,7 @@ class UserUpdate(BaseModel):
     password: str | None = None
     role: str | None = None  # Replace isAdmin with role
     email_verified: bool | None = None
-    hasSeenTour: bool | None = None
+    has_seen_tour: bool | None = None
 
 class UserResponse(BaseModel):
     id: str
@@ -338,9 +338,9 @@ class UserResponse(BaseModel):
     name: str | None
     role: str
     email_verified: bool | None
-    createdAt: datetime
+    created_at: datetime
     hasPassword: bool
-    hasSeenTour: bool | None = None
+    has_seen_tour: bool | None = None
 
 class ListUsersResponse(BaseModel):
     users: List[UserResponse]

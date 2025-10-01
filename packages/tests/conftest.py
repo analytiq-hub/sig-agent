@@ -85,7 +85,7 @@ async def test_db(unique_db_name):
         "role": "admin",
         "email_verified": True,
         "hasPassword": True,
-        "createdAt": datetime.now(UTC)
+        "created_at": datetime.now(UTC)
     })
     
     # Create a test organization in the database
@@ -139,7 +139,7 @@ async def org_and_users(test_db):
             "role": "admin",
             "email_verified": True,
             "hasPassword": True,
-            "createdAt": datetime.now(UTC)
+            "created_at": datetime.now(UTC)
         },
         {
             "_id": ObjectId(member_id),
@@ -148,7 +148,7 @@ async def org_and_users(test_db):
             "role": "user",
             "email_verified": True,
             "hasPassword": True,
-            "createdAt": datetime.now(UTC)
+            "created_at": datetime.now(UTC)
         },
         {
             "_id": ObjectId(outsider_id),
@@ -157,7 +157,7 @@ async def org_and_users(test_db):
             "role": "user",
             "email_verified": True,
             "hasPassword": True,
-            "createdAt": datetime.now(UTC)
+            "created_at": datetime.now(UTC)
         }
     ])
 

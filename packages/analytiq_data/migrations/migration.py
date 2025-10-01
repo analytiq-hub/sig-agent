@@ -1624,14 +1624,14 @@ class RenamePromptRevIdToPromptRevid(Migration):
             logger.error(f"Migration revert failed: {e}")
             return False
 
-class RenameEmailVerifiedField(Migration):
+class RenameUserFields(Migration):
     def __init__(self):
-        super().__init__(description="Rename emailVerified to email_verified in users collection")
+        super().__init__(description="Rename emailVerified to email_verified, hasSeenTour to has_seen_tour, and createdAt to created_at in users collection")
 
     async def up(self, db) -> bool:
         try:
-            # Update documents that have emailVerified
-            result = await db.users.update_many(
+            # Update documents that have emailVerified, hasSeenTour, or createdAt
+            result1 = await db.users.update_many(
                 {"emailVerified": {"$exists": True}},
                 [
                     {
@@ -1642,7 +1642,34 @@ class RenameEmailVerifiedField(Migration):
                     }
                 ]
             )
-            logger.info(f"Renamed emailVerified to email_verified in {result.modified_count} users documents")
+            logger.info(f"Renamed emailVerified to email_verified in {result1.modified_count} users documents")
+
+            result2 = await db.users.update_many(
+                {"hasSeenTour": {"$exists": True}},
+                [
+                    {
+                        "$set": {
+                            "has_seen_tour": "$hasSeenTour",
+                            "hasSeenTour": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            logger.info(f"Renamed hasSeenTour to has_seen_tour in {result2.modified_count} users documents")
+
+            result3 = await db.users.update_many(
+                {"createdAt": {"$exists": True}},
+                [
+                    {
+                        "$set": {
+                            "created_at": "$createdAt",
+                            "createdAt": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            logger.info(f"Renamed createdAt to created_at in {result3.modified_count} users documents")
+
             return True
         except Exception as e:
             logger.error(f"Migration failed: {e}")
@@ -1650,8 +1677,8 @@ class RenameEmailVerifiedField(Migration):
 
     async def down(self, db) -> bool:
         try:
-            # Revert documents that have email_verified
-            result = await db.users.update_many(
+            # Revert documents that have email_verified, has_seen_tour, or created_at
+            result1 = await db.users.update_many(
                 {"email_verified": {"$exists": True}},
                 [
                     {
@@ -1662,7 +1689,34 @@ class RenameEmailVerifiedField(Migration):
                     }
                 ]
             )
-            logger.info(f"Reverted email_verified to emailVerified in {result.modified_count} users documents")
+            logger.info(f"Reverted email_verified to emailVerified in {result1.modified_count} users documents")
+
+            result2 = await db.users.update_many(
+                {"has_seen_tour": {"$exists": True}},
+                [
+                    {
+                        "$set": {
+                            "hasSeenTour": "$has_seen_tour",
+                            "has_seen_tour": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            logger.info(f"Reverted has_seen_tour to hasSeenTour in {result2.modified_count} users documents")
+
+            result3 = await db.users.update_many(
+                {"created_at": {"$exists": True}},
+                [
+                    {
+                        "$set": {
+                            "createdAt": "$created_at",
+                            "created_at": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            logger.info(f"Reverted created_at to createdAt in {result3.modified_count} users documents")
+
             return True
         except Exception as e:
             logger.error(f"Migration revert failed: {e}")
@@ -1691,7 +1745,7 @@ MIGRATIONS = [
     AddPromptIdAndVersionToLlmRuns(),
     RenameAwsCredentialsCollection(),
     RenamePromptRevIdToPromptRevid(),
-    RenameEmailVerifiedField(),
+    RenameUserFields(),
     # Add more migrations here
 ]
 

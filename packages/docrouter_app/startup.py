@@ -58,7 +58,7 @@ async def setup_admin(analytiq_client):
             "name": "System Administrator",
             "role": "admin",
             "email_verified": True,
-            "createdAt": datetime.now(UTC)
+            "created_at": datetime.now(UTC)
         })
         
         admin_id = str(result.inserted_id)
@@ -74,7 +74,7 @@ async def setup_admin(analytiq_client):
             }],
             "created_at": datetime.now(UTC),
             "updated_at": datetime.now(UTC),
-            "hasSeenTour": False
+            "has_seen_tour": False
         })
         
         logger.info(f"Created default admin user: {admin_email}")

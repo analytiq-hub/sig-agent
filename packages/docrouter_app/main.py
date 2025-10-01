@@ -2817,7 +2817,7 @@ async def oauth_signin(request: Request):
                 "name": oauth_request.name,
                 "role": "user",
                 "email_verified": oauth_request.email_verified,
-                "createdAt": datetime.now(UTC)
+                "created_at": datetime.now(UTC)
             })
             user_id = str(user_result.inserted_id)
             logger.info(f"Created new user: {user_id}")
@@ -3426,7 +3426,7 @@ async def list_users(
                 name=user.get("name"),
                 role=user.get("role", "user"),
                 email_verified=user.get("email_verified"),
-                createdAt=user.get("createdAt", datetime.now(UTC)),
+                created_at=user.get("created_at", datetime.now(UTC)),
                 hasPassword=bool(user.get("password"))
             )],
             total_count=1,
@@ -3481,7 +3481,7 @@ async def list_users(
                 name=user.get("name"),
                 role=user.get("role", "user"),
                 email_verified=user.get("email_verified"),
-                createdAt=user.get("createdAt", datetime.now(UTC)),
+                created_at=user.get("created_at", datetime.now(UTC)),
                 hasPassword=bool(user.get("password"))
             )
             for user in users
@@ -3531,8 +3531,8 @@ async def create_user(
         "password": hashed_password.decode(),
         "role": "user",  # Always set default role as user
         "email_verified": True,
-        "createdAt": datetime.now(UTC),
-        "hasSeenTour": False
+        "created_at": datetime.now(UTC),
+        "has_seen_tour": False
     }
     
     result = await db.users.insert_one(user_doc)
@@ -3586,8 +3586,8 @@ async def update_user(
             update_data["name"] = user.name
         if user.password is not None:
             update_data["password"] = hashpw(user.password.encode(), gensalt(12)).decode()
-        if user.hasSeenTour is not None:
-            update_data["hasSeenTour"] = user.hasSeenTour
+        if user.has_seen_tour is not None:
+            update_data["has_seen_tour"] = user.has_seen_tour
     else:
         # Admin can update all fields
         update_data = {
@@ -3633,7 +3633,7 @@ async def update_user(
         name=result.get("name"),
         role=result.get("role", "user"),
         email_verified=result.get("email_verified"),
-        createdAt=result.get("createdAt", datetime.now(UTC)),
+        created_at=result.get("created_at", datetime.now(UTC)),
         hasPassword=bool(result.get("password"))
     )
 
@@ -4166,7 +4166,7 @@ async def accept_invitation(
         "password": hashed_password.decode(),
         "role": "user",  # Default all invited users to regular user role
         "email_verified": True,  # Auto-verify since it's from invitation
-        "createdAt": datetime.now(UTC)
+        "created_at": datetime.now(UTC)
     }
     
     try:
