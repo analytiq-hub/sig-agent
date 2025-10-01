@@ -1626,7 +1626,7 @@ class RenamePromptRevIdToPromptRevid(Migration):
 
 class RenameUserFields(Migration):
     def __init__(self):
-        super().__init__(description="Rename user fields to snake_case: emailVerified, hasSeenTour, createdAt, hasPassword")
+        super().__init__(description="Rename user and account fields to snake_case: emailVerified, hasSeenTour, createdAt, hasPassword, userId")
 
     async def up(self, db) -> bool:
         try:
@@ -1682,6 +1682,20 @@ class RenameUserFields(Migration):
                 ]
             )
             logger.info(f"Renamed hasPassword to has_password in {result4.modified_count} users documents")
+
+            # Update accounts collection: userId -> user_id
+            result5 = await db.accounts.update_many(
+                {"userId": {"$exists": True}},
+                [
+                    {
+                        "$set": {
+                            "user_id": "$userId",
+                            "userId": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            logger.info(f"Renamed userId to user_id in {result5.modified_count} accounts documents")
 
             return True
         except Exception as e:
@@ -1742,6 +1756,20 @@ class RenameUserFields(Migration):
                 ]
             )
             logger.info(f"Reverted has_password to hasPassword in {result4.modified_count} users documents")
+
+            # Revert accounts collection: user_id -> userId
+            result5 = await db.accounts.update_many(
+                {"user_id": {"$exists": True}},
+                [
+                    {
+                        "$set": {
+                            "userId": "$user_id",
+                            "user_id": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            logger.info(f"Reverted user_id to userId in {result5.modified_count} accounts documents")
 
             return True
         except Exception as e:

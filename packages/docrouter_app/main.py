@@ -2797,7 +2797,7 @@ async def oauth_signin(request: Request):
             if not existing_account:
                 # Link OAuth account to existing user
                 await db.accounts.insert_one({
-                    "userId": user_id,
+                    "user_id": user_id,
                     "type": oauth_request.account.type,
                     "provider": oauth_request.provider,
                     "providerAccountId": oauth_request.providerAccountId,
@@ -2824,7 +2824,7 @@ async def oauth_signin(request: Request):
 
             # Create OAuth account record
             await db.accounts.insert_one({
-                "userId": user_id,
+                "user_id": user_id,
                 "type": oauth_request.account.type,
                 "provider": oauth_request.provider,
                 "providerAccountId": oauth_request.providerAccountId,
