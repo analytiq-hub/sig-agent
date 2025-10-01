@@ -83,7 +83,7 @@ async def test_db(unique_db_name):
         "email": "test@example.com",
         "name": "Test User",
         "role": "admin",
-        "emailVerified": True,
+        "email_verified": True,
         "hasPassword": True,
         "createdAt": datetime.now(UTC)
     })
@@ -137,7 +137,7 @@ async def org_and_users(test_db):
             "email": "admin@example.com",
             "name": "Org Admin",
             "role": "admin",
-            "emailVerified": True,
+            "email_verified": True,
             "hasPassword": True,
             "createdAt": datetime.now(UTC)
         },
@@ -146,7 +146,7 @@ async def org_and_users(test_db):
             "email": "member@example.com",
             "name": "Org Member",
             "role": "user",
-            "emailVerified": True,
+            "email_verified": True,
             "hasPassword": True,
             "createdAt": datetime.now(UTC)
         },
@@ -155,7 +155,7 @@ async def org_and_users(test_db):
             "email": "outsider@example.com",
             "name": "Not In Org",
             "role": "user",
-            "emailVerified": True,
+            "email_verified": True,
             "hasPassword": True,
             "createdAt": datetime.now(UTC)
         }

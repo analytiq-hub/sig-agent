@@ -166,11 +166,11 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
         setUser(userData);
         setName(userData.name || '');
         setRole(userData.role);
-        setEmailVerified(userData.emailVerified || false);
+        setEmailVerified(userData.email_verified || false);
         setOriginalValues({
           name: userData.name || '',
           role: userData.role,
-          emailVerified: userData.emailVerified || false
+          emailVerified: userData.email_verified || false
         });
       } catch (error) {
         setError('Failed to load user');
@@ -200,7 +200,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
       const update: UserUpdate = {
         name: name || undefined,
         role,
-        emailVerified
+        email_verified: emailVerified
       };
 
       await updateUserApi(userId, update);

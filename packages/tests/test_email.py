@@ -95,7 +95,7 @@ async def test_email_verification(test_db, mock_auth, mock_send_email):
             )
             assert user_check_response.status_code == 200
             user_check_data = user_check_response.json()["users"][0]
-            assert user_check_data["emailVerified"] == True
+            assert user_check_data["email_verified"] == True
             
             # Clean up the user
             client.delete(
@@ -219,7 +219,7 @@ async def test_invitation_lifecycle(test_db, mock_auth, mock_send_email):
         invited_user = next((user for user in users if user["email"] == "invited@example.com"), None)
         assert invited_user is not None
         assert invited_user["name"] == "Invited User"
-        assert invited_user["emailVerified"] == True  # Email should be pre-verified for invited users
+        assert invited_user["email_verified"] == True  # Email should be pre-verified for invited users
         
         # Verify that the invitation status is now "accepted"
         get_invitation_after_accept = client.get(

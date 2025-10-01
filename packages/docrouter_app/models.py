@@ -329,7 +329,7 @@ class UserUpdate(BaseModel):
     name: str | None = None
     password: str | None = None
     role: str | None = None  # Replace isAdmin with role
-    emailVerified: bool | None = None
+    email_verified: bool | None = None
     hasSeenTour: bool | None = None
 
 class UserResponse(BaseModel):
@@ -337,7 +337,7 @@ class UserResponse(BaseModel):
     email: str
     name: str | None
     role: str
-    emailVerified: bool | None
+    email_verified: bool | None
     createdAt: datetime
     hasPassword: bool
     hasSeenTour: bool | None = None
@@ -468,7 +468,7 @@ class OAuthAccountData(BaseModel):
 class OAuthSignInRequest(BaseModel):
     email: str = Field(..., description="User email address")
     name: Optional[str] = Field(None, description="User's full name")
-    emailVerified: bool = Field(False, description="Whether email is verified")
+    email_verified: bool = Field(False, description="Whether email is verified")
     provider: Literal["google", "github"] = Field(..., description="OAuth provider")
     providerAccountId: str = Field(..., description="Provider's unique account ID")
     account: OAuthAccountData = Field(..., description="OAuth account data")

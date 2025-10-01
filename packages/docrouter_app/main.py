@@ -2816,7 +2816,7 @@ async def oauth_signin(request: Request):
                 "email": oauth_request.email,
                 "name": oauth_request.name,
                 "role": "user",
-                "emailVerified": oauth_request.emailVerified,
+                "email_verified": oauth_request.email_verified,
                 "createdAt": datetime.now(UTC)
             })
             user_id = str(user_result.inserted_id)
@@ -3425,7 +3425,7 @@ async def list_users(
                 email=user["email"],
                 name=user.get("name"),
                 role=user.get("role", "user"),
-                emailVerified=user.get("emailVerified"),
+                email_verified=user.get("email_verified"),
                 createdAt=user.get("createdAt", datetime.now(UTC)),
                 hasPassword=bool(user.get("password"))
             )],
@@ -3480,7 +3480,7 @@ async def list_users(
                 email=user["email"],
                 name=user.get("name"),
                 role=user.get("role", "user"),
-                emailVerified=user.get("emailVerified"),
+                email_verified=user.get("email_verified"),
                 createdAt=user.get("createdAt", datetime.now(UTC)),
                 hasPassword=bool(user.get("password"))
             )
@@ -3530,7 +3530,7 @@ async def create_user(
         "name": user.name,
         "password": hashed_password.decode(),
         "role": "user",  # Always set default role as user
-        "emailVerified": True,
+        "email_verified": True,
         "createdAt": datetime.now(UTC),
         "hasSeenTour": False
     }
@@ -3632,7 +3632,7 @@ async def update_user(
         email=result["email"],
         name=result.get("name"),
         role=result.get("role", "user"),
-        emailVerified=result.get("emailVerified"),
+        email_verified=result.get("email_verified"),
         createdAt=result.get("createdAt", datetime.now(UTC)),
         hasPassword=bool(result.get("password"))
     )
@@ -3729,7 +3729,7 @@ async def send_registration_verification_email(user_id: str):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
-    if user.get("emailVerified"):
+    if user.get("email_verified"):
         raise HTTPException(status_code=400, detail="Email already verified")
 
     # Generate verification token
@@ -3782,7 +3782,7 @@ async def send_verification_email(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
-    if user.get("emailVerified"):
+    if user.get("email_verified"):
         raise HTTPException(status_code=400, detail="Email already verified")
 
     # Generate verification token
@@ -3845,7 +3845,7 @@ async def verify_email(token: str, background_tasks: BackgroundTasks):
     # Update user's email verification status
     updated_user = await db.users.find_one_and_update(
         {"_id": ObjectId(verification["user_id"])},
-        {"$set": {"emailVerified": True}},
+        {"$set": {"email_verified": True}},
         return_document=True
     )
 
@@ -4165,7 +4165,7 @@ async def accept_invitation(
         "name": data.name,
         "password": hashed_password.decode(),
         "role": "user",  # Default all invited users to regular user role
-        "emailVerified": True,  # Auto-verify since it's from invitation
+        "email_verified": True,  # Auto-verify since it's from invitation
         "createdAt": datetime.now(UTC)
     }
     

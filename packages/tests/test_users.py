@@ -82,7 +82,7 @@ async def test_user_lifecycle(test_db, mock_auth):
         assert user_result["email"] == "testuser@example.com"
         assert user_result["name"] == "Test User"
         assert "role" in user_result
-        assert "emailVerified" in user_result
+        assert "email_verified" in user_result
         assert "hasPassword" in user_result
         assert user_result["hasPassword"] is True
         
@@ -135,18 +135,18 @@ async def test_user_lifecycle(test_db, mock_auth):
         
         # Step 5: Update email verification status
         verification_update_data = {
-            "emailVerified": True
+            "email_verified": True
         }
-        
+
         verification_update_response = client.put(
             f"/v0/account/users/{user_id}",
             json=verification_update_data,
             headers=get_auth_headers()
         )
-        
+
         assert verification_update_response.status_code == 200
         verification_update_result = verification_update_response.json()
-        assert verification_update_result["emailVerified"] is True
+        assert verification_update_result["email_verified"] is True
         
         # Step 6: Delete the user
         delete_response = client.delete(

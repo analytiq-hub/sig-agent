@@ -1624,6 +1624,50 @@ class RenamePromptRevIdToPromptRevid(Migration):
             logger.error(f"Migration revert failed: {e}")
             return False
 
+class RenameEmailVerifiedField(Migration):
+    def __init__(self):
+        super().__init__(description="Rename emailVerified to email_verified in users collection")
+
+    async def up(self, db) -> bool:
+        try:
+            # Update documents that have emailVerified
+            result = await db.users.update_many(
+                {"emailVerified": {"$exists": True}},
+                [
+                    {
+                        "$set": {
+                            "email_verified": "$emailVerified",
+                            "emailVerified": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            logger.info(f"Renamed emailVerified to email_verified in {result.modified_count} users documents")
+            return True
+        except Exception as e:
+            logger.error(f"Migration failed: {e}")
+            return False
+
+    async def down(self, db) -> bool:
+        try:
+            # Revert documents that have email_verified
+            result = await db.users.update_many(
+                {"email_verified": {"$exists": True}},
+                [
+                    {
+                        "$set": {
+                            "emailVerified": "$email_verified",
+                            "email_verified": "$$REMOVE"
+                        }
+                    }
+                ]
+            )
+            logger.info(f"Reverted email_verified to emailVerified in {result.modified_count} users documents")
+            return True
+        except Exception as e:
+            logger.error(f"Migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -1647,6 +1691,7 @@ MIGRATIONS = [
     AddPromptIdAndVersionToLlmRuns(),
     RenameAwsCredentialsCollection(),
     RenamePromptRevIdToPromptRevid(),
+    RenameEmailVerifiedField(),
     # Add more migrations here
 ]
 

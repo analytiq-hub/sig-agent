@@ -8,7 +8,7 @@ export interface UserCreate {
 export interface UserUpdate {
   name?: string;
   role?: string;
-  emailVerified?: boolean;
+  email_verified?: boolean;
   password?: string;
   hasSeenTour?: boolean;
 }
@@ -18,7 +18,7 @@ export interface UserResponse {
   email: string;
   name: string | null;
   role: string;
-  emailVerified: boolean | null;
+  email_verified: boolean | null;
   createdAt: string;
   hasPassword: boolean;
   hasSeenTour: boolean;

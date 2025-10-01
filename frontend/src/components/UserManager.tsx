@@ -167,7 +167,7 @@ const UserManager: React.FC = () => {
       )
     },
     {
-      field: 'emailVerified',
+      field: 'email_verified',
       headerName: 'Email Verified',
       width: 130,
       renderCell: (params) => (

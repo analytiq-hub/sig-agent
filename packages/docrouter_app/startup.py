@@ -57,7 +57,7 @@ async def setup_admin(analytiq_client):
             "password": hashed_password.decode(),
             "name": "System Administrator",
             "role": "admin",
-            "emailVerified": True,
+            "email_verified": True,
             "createdAt": datetime.now(UTC)
         })
         
