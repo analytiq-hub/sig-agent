@@ -1626,7 +1626,7 @@ class RenamePromptRevIdToPromptRevid(Migration):
 
 class RenameUserFields(Migration):
     def __init__(self):
-        super().__init__(description="Rename user and account fields to snake_case: emailVerified, hasSeenTour, createdAt, hasPassword, userId, providerAccountId")
+        super().__init__(description="Rename user fields to snake_case: emailVerified, hasSeenTour, createdAt, hasPassword")
 
     async def up(self, db) -> bool:
         try:
@@ -1682,34 +1682,6 @@ class RenameUserFields(Migration):
                 ]
             )
             logger.info(f"Renamed hasPassword to has_password in {result4.modified_count} users documents")
-
-            # Update accounts collection: userId -> user_id
-            result5 = await db.accounts.update_many(
-                {"userId": {"$exists": True}},
-                [
-                    {
-                        "$set": {
-                            "user_id": "$userId",
-                            "userId": "$$REMOVE"
-                        }
-                    }
-                ]
-            )
-            logger.info(f"Renamed userId to user_id in {result5.modified_count} accounts documents")
-
-            # Update accounts collection: providerAccountId -> provider_account_id
-            result6 = await db.accounts.update_many(
-                {"providerAccountId": {"$exists": True}},
-                [
-                    {
-                        "$set": {
-                            "provider_account_id": "$providerAccountId",
-                            "providerAccountId": "$$REMOVE"
-                        }
-                    }
-                ]
-            )
-            logger.info(f"Renamed providerAccountId to provider_account_id in {result6.modified_count} accounts documents")
 
             return True
         except Exception as e:
@@ -1770,34 +1742,6 @@ class RenameUserFields(Migration):
                 ]
             )
             logger.info(f"Reverted has_password to hasPassword in {result4.modified_count} users documents")
-
-            # Revert accounts collection: user_id -> userId
-            result5 = await db.accounts.update_many(
-                {"user_id": {"$exists": True}},
-                [
-                    {
-                        "$set": {
-                            "userId": "$user_id",
-                            "user_id": "$$REMOVE"
-                        }
-                    }
-                ]
-            )
-            logger.info(f"Reverted user_id to userId in {result5.modified_count} accounts documents")
-
-            # Revert accounts collection: provider_account_id -> providerAccountId
-            result6 = await db.accounts.update_many(
-                {"provider_account_id": {"$exists": True}},
-                [
-                    {
-                        "$set": {
-                            "providerAccountId": "$provider_account_id",
-                            "provider_account_id": "$$REMOVE"
-                        }
-                    }
-                ]
-            )
-            logger.info(f"Reverted provider_account_id to providerAccountId in {result6.modified_count} accounts documents")
 
             return True
         except Exception as e:

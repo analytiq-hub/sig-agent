@@ -63,7 +63,7 @@ export const authOptions: NextAuthOptions = {
                     }
 
                     // Check email verification status
-                    if (!user.emailVerified) {
+                    if (!user.email_verified) {
                         throw new Error("Please verify your email before logging in");
                     }
 
@@ -111,9 +111,9 @@ export const authOptions: NextAuthOptions = {
                     const payload = {
                         email: user.email,
                         name: user.name,
-                        emailVerified: user.emailVerified ?? false,
+                        email_verified: user.emailVerified ?? false,
                         provider: account.provider,
-                        providerAccountId: account.providerAccountId,
+                        provider_account_id: account.providerAccountId,
                         account: {
                             type: account.type,
                             access_token: account.access_token,

@@ -30,7 +30,7 @@ async def delete_user(db, user_id: str) -> bool:
                 logging.info(f"Removed user {user_id} from organization {org['_id']}")
 
         # Delete user's OAuth accounts
-        await db.accounts.delete_many({"user_id": user_id})
+        await db.accounts.delete_many({"userId": user_id})
         
         # Delete the user
         result = await db.users.delete_one({"_id": ObjectId(user_id)})

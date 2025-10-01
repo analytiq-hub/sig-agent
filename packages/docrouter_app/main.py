@@ -2791,16 +2791,16 @@ async def oauth_signin(request: Request):
             # Check if this OAuth account already exists
             existing_account = await db.accounts.find_one({
                 "provider": oauth_request.provider,
-                "provider_account_id": oauth_request.provider_account_id
+                "providerAccountId": oauth_request.provider_account_id
             })
 
             if not existing_account:
                 # Link OAuth account to existing user
                 await db.accounts.insert_one({
-                    "user_id": user_id,
+                    "userId": user_id,
                     "type": oauth_request.account.type,
                     "provider": oauth_request.provider,
-                    "provider_account_id": oauth_request.provider_account_id,
+                    "providerAccountId": oauth_request.provider_account_id,
                     "access_token": oauth_request.account.access_token,
                     "expires_at": oauth_request.account.expires_at,
                     "token_type": oauth_request.account.token_type,
@@ -2824,10 +2824,10 @@ async def oauth_signin(request: Request):
 
             # Create OAuth account record
             await db.accounts.insert_one({
-                "user_id": user_id,
+                "userId": user_id,
                 "type": oauth_request.account.type,
                 "provider": oauth_request.provider,
-                "provider_account_id": oauth_request.provider_account_id,
+                "providerAccountId": oauth_request.provider_account_id,
                 "access_token": oauth_request.account.access_token,
                 "expires_at": oauth_request.account.expires_at,
                 "token_type": oauth_request.account.token_type,
