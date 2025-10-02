@@ -29,11 +29,13 @@ export class UsersAPI {
   }
 
   async create(user: UserCreate): Promise<UserResponse> {
-    return this.http.post('/v0/account/users', user);
+    const createdUser = await this.http.post('/v0/account/users', user);
+    return { user: createdUser };
   }
 
   async update(userId: string, update: UserUpdate): Promise<UserResponse> {
-    return this.http.put<UserResponse>(`/v0/account/users/${userId}`, update);
+    const updatedUser = await this.http.put(`/v0/account/users/${userId}`, update);
+    return { user: updatedUser };
   }
 
   async delete(userId: string): Promise<void> {

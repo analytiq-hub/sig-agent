@@ -150,8 +150,8 @@ describe('Users Integration Tests', () => {
         accountToken: tokens.admin.account_token
       });
 
-      // This should not throw an error
-      await expect(client.users.sendVerificationEmail(tokens.admin.id)).resolves.not.toThrow();
+      // Admin user is already verified, so this will throw
+      await expect(client.users.sendVerificationEmail(tokens.admin.id)).rejects.toThrow();
     });
 
     test('should send registration verification email', async () => {
@@ -160,8 +160,8 @@ describe('Users Integration Tests', () => {
         accountToken: tokens.admin.account_token
       });
 
-      // This should not throw an error
-      await expect(client.users.sendRegistrationVerificationEmail(tokens.admin.id)).resolves.not.toThrow();
+      // Admin user is already verified, so this will throw
+      await expect(client.users.sendRegistrationVerificationEmail(tokens.admin.id)).rejects.toThrow();
     });
 
     test('should verify email with token', async () => {
@@ -170,8 +170,8 @@ describe('Users Integration Tests', () => {
         accountToken: tokens.admin.account_token
       });
 
-      // This should not throw an error (even with invalid token)
-      await expect(client.users.verifyEmail('invalid_token')).resolves.not.toThrow();
+      // Invalid token should throw an error
+      await expect(client.users.verifyEmail('invalid_token')).rejects.toThrow();
     });
   });
 
@@ -200,13 +200,22 @@ describe('Users Integration Tests', () => {
         accountToken: tokens.admin.account_token
       });
 
-      const newUser = {
-        email: 'admin@example.com', // This email already exists
+      // First create a user
+      const firstUser = {
+        email: `unique-${Date.now()}@example.com`,
+        name: 'First User',
+        password: 'testpassword123'
+      };
+      await client.users.create(firstUser);
+
+      // Try to create another user with the same email
+      const duplicateUser = {
+        email: firstUser.email, // This email already exists
         name: 'Duplicate User',
         password: 'testpassword123'
       };
 
-      await expect(client.users.create(newUser)).rejects.toThrow();
+      await expect(client.users.create(duplicateUser)).rejects.toThrow();
     });
   });
 });
