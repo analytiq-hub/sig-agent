@@ -1291,6 +1291,7 @@ async def delete_payments_customer(db, org_id: str) -> Dict[str, Any]:
             logger.warning(f"No local customer found for org_id: {org_id}")
             return {"success": False, "reason": "Customer not found"}
             
+        stripe_customer_id = None
         if stripe_enabled():
             stripe_customer_id = customer["stripe_customer_id"]
             
@@ -1312,7 +1313,7 @@ async def delete_payments_customer(db, org_id: str) -> Dict[str, Any]:
         logger.info(f"Removed local customer record for org_id: {org_id}")
         
         return {
-            "success": True, 
+            "success": True,
             "customer_id": stripe_customer_id,
             "deleted_at": datetime.now(UTC)
         }

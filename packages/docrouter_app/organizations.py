@@ -54,7 +54,28 @@ async def update_organization_type(
         raise HTTPException(status_code=404, detail="Organization not found")
 
     if update.type is None:
-        raise HTTPException(status_code=400, detail="New organization type is required")
+        # No type change requested, just update members if provided
+        if update.members:
+            # Validate members without changing type
+            if not any(m.role == "admin" for m in update.members):
+                raise HTTPException(status_code=400, detail="Organization must have at least one admin")
+            
+            # For individual organizations, ensure only one member
+            if organization["type"] == "individual" and len(update.members) > 1:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Individual organizations cannot have multiple members"
+                )
+            
+            update_data = {
+                "members": [m.dict() for m in update.members],
+                "updated_at": datetime.now(UTC)
+            }
+            await db.organizations.update_one(
+                {"_id": ObjectId(organization_id)},
+                {"$set": update_data}
+            )
+        return
 
     # Validate organization type upgrade
     current_type = organization["type"]

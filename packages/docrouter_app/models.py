@@ -305,7 +305,7 @@ class OrganizationCreate(BaseModel):
 
 class OrganizationUpdate(BaseModel):
     name: str | None = None
-    type: OrganizationType = "individual"
+    type: OrganizationType | None = None
     members: List[OrganizationMember] | None = None
 
 class Organization(BaseModel):
