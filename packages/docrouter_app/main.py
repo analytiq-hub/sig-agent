@@ -3106,6 +3106,10 @@ async def delete_aws_config(current_user: User = Depends(get_admin_user)):
 async def list_organizations(
     user_id: str | None = Query(None, description="Filter organizations by user ID"),
     organization_id: str | None = Query(None, description="Get a specific organization by ID"),
+    name_search: str | None = Query(None, description="Case-insensitive search on organization name"),
+    member_search: str | None = Query(None, description="Case-insensitive search on member name or email"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -3151,7 +3155,7 @@ async def list_organizations(
                 "id": str(organization["_id"]),
                 "type": organization["type"]
             })
-        ])
+        ], total_count=1, skip=0)
 
     # Handle user filter
     if user_id:
@@ -3164,12 +3168,37 @@ async def list_organizations(
     else:
         filter_user_id = None if is_sys_admin else current_user.user_id
 
-    # Build query for list request
-    query = {}
+    # Build base filters
+    and_filters = []
     if filter_user_id:
-        query["members.user_id"] = filter_user_id
+        and_filters.append({"members.user_id": filter_user_id})
 
-    organizations = await db.organizations.find(query).to_list(None)
+    # Apply organization name search
+    if name_search:
+        and_filters.append({"name": {"$regex": name_search, "$options": "i"}})
+
+    # Apply member name/email search
+    if member_search:
+        # Find users matching by name or email
+        user_cursor = db.users.find({
+            "$or": [
+                {"name": {"$regex": member_search, "$options": "i"}},
+                {"email": {"$regex": member_search, "$options": "i"}},
+            ]
+        }, {"_id": 1})
+        matching_users = await user_cursor.to_list(None)
+        matching_user_ids = [str(u["_id"]) for u in matching_users]
+        if matching_user_ids:
+            and_filters.append({"members.user_id": {"$in": matching_user_ids}})
+        else:
+            # No users matched; return empty result fast
+            return ListOrganizationsResponse(organizations=[], total_count=0, skip=skip)
+
+    final_query = {"$and": and_filters} if and_filters else {}
+
+    total_count = await db.organizations.count_documents(final_query)
+    cursor = db.organizations.find(final_query).sort("_id", -1).skip(skip).limit(limit)
+    organizations = await cursor.to_list(None)
 
     ret = ListOrganizationsResponse(organizations=[
         Organization(**{
@@ -3177,7 +3206,7 @@ async def list_organizations(
             "id": str(org["_id"]),
             "type": org["type"]
         }) for org in organizations
-    ])
+    ], total_count=total_count, skip=skip)
     return ret
 
 @app.post("/v0/account/organizations", response_model=Organization, tags=["account/organizations"])

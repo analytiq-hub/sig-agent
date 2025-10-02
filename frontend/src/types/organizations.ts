@@ -27,4 +27,6 @@ export interface UpdateOrganizationRequest {
 
 export interface ListOrganizationsResponse {
   organizations: Organization[];
+  total_count: number;
+  skip: number;
 }

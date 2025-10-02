@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
@@ -149,18 +149,27 @@ const OrganizationManager: React.FC = () => {
   const { refreshOrganizations } = useOrganization();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
   const [deleteOrganizationId, setDeleteOrganizationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const { session } = useAppSession();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
 
-  const fetchOrganizations = async () => {
+  const fetchOrganizations = useCallback(async () => {
     try {
-      const response = await getOrganizationsApi();
+      const response = await getOrganizationsApi({
+        skip: paginationModel.page * paginationModel.pageSize,
+        limit: paginationModel.pageSize,
+        nameSearch: debouncedSearch || undefined,
+        memberSearch: debouncedSearch || undefined,
+      });
       setOrganizations(response.organizations);
+      setTotalCount(response.total_count || 0);
     } catch (error) {
       if (isAxiosError(error)) {
         console.error('Error fetching organizations:', error.response?.data);
@@ -168,15 +177,20 @@ const OrganizationManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [paginationModel, debouncedSearch]);
 
-  const filteredOrganizations = organizations.filter(org =>
-    org.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Server-side filtered organizations
+  const filteredOrganizations = organizations;
 
   useEffect(() => {
     fetchOrganizations();
-  }, []);
+  }, [paginationModel, debouncedSearch, fetchOrganizations]);
+
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
   const handleDeleteClick = (organizationId: string) => {
     setDeleteOrganizationId(organizationId);
@@ -357,6 +371,10 @@ const OrganizationManager: React.FC = () => {
           rows={filteredOrganizations}
           columns={columns}
           loading={loading}
+          paginationMode="server"
+          rowCount={totalCount}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
           pageSizeOptions={[10, 25, 50]}
           disableRowSelectionOnClick
           getRowId={(row) => row.id}
@@ -407,7 +425,7 @@ const OrganizationManager: React.FC = () => {
       <div className="mt-4 text-sm text-gray-600">
         {loading ? 'Loading...' : 
           organizations.length > 0 ? 
-            `Showing ${filteredOrganizations.length} of ${organizations.length} organizations` : 
+            `Showing ${paginationModel.page * paginationModel.pageSize + 1}-${paginationModel.page * paginationModel.pageSize + organizations.length} of ${totalCount} organizations` : 
             'No organizations found'
         }
       </div>

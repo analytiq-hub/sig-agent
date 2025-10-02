@@ -884,10 +884,18 @@ export const deleteAWSConfigApi = async () => {
 export const getOrganizationsApi = async (params?: { 
   userId?: string;
   organizationId?: string;
+  nameSearch?: string;
+  memberSearch?: string;
+  skip?: number;
+  limit?: number;
 }): Promise<ListOrganizationsResponse> => {
   const queryParams = new URLSearchParams();
   if (params?.userId) queryParams.append('user_id', params.userId);
   if (params?.organizationId) queryParams.append('organization_id', params.organizationId);
+  if (params?.nameSearch) queryParams.append('name_search', params.nameSearch);
+  if (params?.memberSearch) queryParams.append('member_search', params.memberSearch);
+  if (params?.skip !== undefined) queryParams.append('skip', String(params.skip));
+  if (params?.limit !== undefined) queryParams.append('limit', String(params.limit));
   
   const response = await api.get<ListOrganizationsResponse>(
     `/v0/account/organizations?${queryParams.toString()}`

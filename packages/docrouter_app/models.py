@@ -318,6 +318,8 @@ class Organization(BaseModel):
 
 class ListOrganizationsResponse(BaseModel):
     organizations: List[Organization]
+    total_count: int
+    skip: int
 
 # Add these new models after the existing ones
 class UserCreate(BaseModel):
