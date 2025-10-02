@@ -498,7 +498,7 @@ async def sync_stripe_customers(db) -> Tuple[int, int, List[str]]:
         Tuple containing (total_orgs, successful_syncs, error_messages)
     """
     if not stripe_enabled():
-        logger.warning("Stripe API key not configured - sync_stripe_customers skipped")
+        logger.info("Stripe API key not configured - sync_stripe_customers skipped")
         return 0, 0, ["Stripe API key not configured"]
 
     logger.info("Starting sync of Stripe customers")
@@ -987,7 +987,7 @@ async def sync_stripe_customer(db, org_id: str) -> Dict[str, Any]:
     """Create or update a Stripe customer for the given org_id"""
     
     if not stripe_enabled():
-        logger.warning("Stripe API key not configured - sync_stripe_customer skipped")
+        logger.info("Stripe API key not configured - sync_stripe_customer skipped")
         return None
 
     logger.info(f"Syncing Stripe customer for org_id: {org_id}")
