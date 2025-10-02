@@ -67,6 +67,7 @@ const UserManager: React.FC = () => {
     page: 0,
   });
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -76,7 +77,8 @@ const UserManager: React.FC = () => {
     try {
       const response = await getUsersApi({
         skip: paginationModel.page * paginationModel.pageSize,
-        limit: paginationModel.pageSize
+        limit: paginationModel.pageSize,
+        search_name: debouncedSearch || undefined
       });
       setUsers(response.users);
       setTotalCount(response.total_count);
@@ -87,11 +89,17 @@ const UserManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [paginationModel]);
+  }, [paginationModel, debouncedSearch]);
 
   useEffect(() => {
     fetchUsers();
   }, [paginationModel, fetchUsers]);
+
+  // Debounce search input
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(handle);
+  }, [searchQuery]);
 
   const handleDeleteClick = (userId: string) => {
     const user = users.find(u => u.id === userId);
@@ -123,12 +131,8 @@ const UserManager: React.FC = () => {
     }
   };
 
-  // Filter users based on search
-  const filteredUsers = users.filter(user => 
-    searchQuery === '' || 
-    user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Server-side filtering; rows are the fetched users
+  const filteredUsers = users;
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, user: UserResponse) => {
     setAnchorEl(event.currentTarget);
@@ -263,9 +267,9 @@ const UserManager: React.FC = () => {
       </div>
 
       <div className="mt-4 text-sm text-gray-600">
-        {loading ? 'Loading...' : 
-          filteredUsers.length > 0 ? 
-            `Showing ${startRange}-${startRange + filteredUsers.length - 1} of ${totalCount} users` : 
+        {loading ? 'Loading...' :
+          users.length > 0 ?
+            `Showing ${startRange}-${startRange + users.length - 1} of ${totalCount} users` :
             'No users found'
         }
       </div>

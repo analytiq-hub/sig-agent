@@ -3362,6 +3362,7 @@ async def delete_organization(
 async def list_users(
     organization_id: str | None = Query(None, description="Filter users by organization ID"),
     user_id: str | None = Query(None, description="Get a specific user by ID"),
+    search_name: str | None = Query(None, description="Case-insensitive search in name or email"),
     skip: int = Query(0, description="Number of users to skip"),
     limit: int = Query(10, description="Number of users to return"),
     current_user: User = Depends(get_current_user)
@@ -3385,8 +3386,8 @@ async def list_users(
             detail="Cannot specify both user_id and organization_id"
         )
 
-    # Base query
-    query = {}
+    # Build filters and compose final query at the end
+    and_filters = []
     
     # Handle single user request
     if user_id:
@@ -3452,7 +3453,7 @@ async def list_users(
             )
             
         member_ids = [m["user_id"] for m in org["members"]]
-        query["_id"] = {"$in": [ObjectId(uid) for uid in member_ids]}
+        and_filters.append({"_id": {"$in": [ObjectId(uid) for uid in member_ids]}})
     elif not is_sys_admin:
         # List all users in organizations the current user is an admin of
         orgs = await db.organizations.find({
@@ -3465,13 +3466,25 @@ async def list_users(
         if current_user.user_id not in member_ids:
             member_ids.append(current_user.user_id)
         
-        query["_id"] = {"$in": [ObjectId(uid) for uid in member_ids]}
+        and_filters.append({"_id": {"$in": [ObjectId(uid) for uid in member_ids]}})
     else:
         # A system admin can list all users. No need to filter by organization.
         pass
 
-    total_count = await db.users.count_documents(query)
-    users = await db.users.find(query).skip(skip).limit(limit).to_list(None)
+    # Apply search_name filter if provided (search across entire user collection)
+    if search_name:
+        or_filter = {
+            "$or": [
+                {"name": {"$regex": search_name, "$options": "i"}},
+                {"email": {"$regex": search_name, "$options": "i"}},
+            ]
+        }
+        and_filters.append(or_filter)
+
+    final_query = {"$and": and_filters} if and_filters else {}
+
+    total_count = await db.users.count_documents(final_query)
+    users = await db.users.find(final_query).skip(skip).limit(limit).to_list(None)
 
     ret = ListUsersResponse(
         users=[

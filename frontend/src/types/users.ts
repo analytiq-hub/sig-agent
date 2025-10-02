@@ -29,6 +29,7 @@ export interface ListUsersParams {
   limit?: number;
   organization_id?: string;
   user_id?: string;
+  search_name?: string;
 }
 
 export interface ListUsersResponse {

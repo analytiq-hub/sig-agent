@@ -934,6 +934,7 @@ export const getUsersApi = async (params?: ListUsersParams): Promise<ListUsersRe
   if (params?.limit) queryParams.append('limit', params.limit.toString());
   if (params?.organization_id) queryParams.append('organization_id', params.organization_id);
   if (params?.user_id) queryParams.append('user_id', params.user_id);
+  if (params?.search_name) queryParams.append('search_name', params.search_name);
 
   const response = await api.get<ListUsersResponse>(
     `/v0/account/users?${queryParams.toString()}`
