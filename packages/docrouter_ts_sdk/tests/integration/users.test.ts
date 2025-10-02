@@ -12,9 +12,9 @@ describe('Users Integration Tests', () => {
     testDb = setup.testDb;
     baseUrl = setup.baseUrl;
     cleanup = setup.cleanup;
-    
+
     // Create test users and tokens
-    tokens = await createTestFixtures(testDb);
+    tokens = await createTestFixtures(testDb, baseUrl);
   });
 
   afterEach(async () => {

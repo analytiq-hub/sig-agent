@@ -14,16 +14,16 @@ describe('Test Setup Verification', () => {
 
   test('should create test fixtures', async () => {
     const setup = await createTestDatabase();
-    
+
     try {
-      const tokens = await createTestFixtures(setup.testDb);
-      
+      const tokens = await createTestFixtures(setup.testDb, setup.baseUrl);
+
       expect(tokens).toBeDefined();
       expect(tokens.org_id).toBeDefined();
       expect(tokens.admin).toBeDefined();
       expect(tokens.member).toBeDefined();
       expect(tokens.outsider).toBeDefined();
-      
+
       expect(tokens.admin.token).toBeDefined();
       expect(tokens.admin.account_token).toBeDefined();
       expect(tokens.member.token).toBeDefined();

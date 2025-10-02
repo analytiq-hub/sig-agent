@@ -22,30 +22,58 @@ export class MongoDBTestSetup {
     }
 
     const db = this.client.db(env);
-    this.databases.push(db);
 
-    // Clear the database
-    await this.clearDatabase(db);
+    // Only add to databases list once (for cleanup in afterAll)
+    if (!this.databases.includes(db)) {
+      this.databases.push(db);
+    }
 
-    // Initialize payments system
+    // Initialize payments system indexes (idempotent)
     await this.initPayments(db);
-
-    // Create test user and organization
-    await this.createTestData(db);
 
     return {
       db,
       client: this.client,
       cleanup: async () => {
-        await this.clearDatabase(db);
+        // No cleanup between tests - only in afterAll
       }
     };
   }
 
   async cleanup(): Promise<void> {
-    // Clean up all test databases
+    // Clean up all test databases (only called in afterAll)
+    const adminEmail = process.env.ADMIN_EMAIL || 'test-admin@example.com';
+
     for (const db of this.databases) {
-      await this.clearDatabase(db);
+      // Delete test users (but keep admin)
+      await db.collection('users').deleteMany({
+        email: { $ne: adminEmail }
+      }).catch(() => {});
+
+      // Delete test organizations (but keep admin's organization)
+      const adminUser = await db.collection('users').findOne({ email: adminEmail });
+      if (adminUser) {
+        await db.collection('organizations').deleteMany({
+          _id: { $ne: adminUser._id }
+        }).catch(() => {});
+      }
+
+      // Clear other test collections
+      const collectionsToClean = [
+        'access_tokens',
+        'documents',
+        'tags',
+        'forms',
+        'schemas',
+        'prompts',
+        'payments_customers',
+        'payments_subscriptions',
+        'payments_usage'
+      ];
+
+      for (const collectionName of collectionsToClean) {
+        await db.collection(collectionName).deleteMany({}).catch(() => {});
+      }
     }
     this.databases = [];
 
@@ -55,56 +83,22 @@ export class MongoDBTestSetup {
     }
   }
 
-  private async clearDatabase(db: Db): Promise<void> {
-    const collections = await db.listCollections().toArray();
-    for (const collection of collections) {
-      await db.collection(collection.name).drop().catch(() => {
-        // Collection might not exist, ignore error
-      });
-    }
-  }
-
   private async initPayments(db: Db): Promise<void> {
-    // Initialize payments collections (simplified version)
-    await db.collection('payments_customers').createIndex({ organization_id: 1 }, { unique: true });
-    await db.collection('payments_subscriptions').createIndex({ organization_id: 1 }, { unique: true });
-    await db.collection('payments_usage').createIndex({ organization_id: 1, date: 1 }, { unique: true });
-  }
+    // Initialize payments collections indexes (idempotent - won't fail if already exists)
+    await db.collection('payments_customers').createIndex(
+      { organization_id: 1 },
+      { unique: true, sparse: true }
+    ).catch(() => {}); // Ignore if already exists
 
-  private async createTestData(db: Db): Promise<void> {
-    const testUserId = new ObjectId('6579a94b1f1d8f5a8e9c0124');
-    const testOrgId = new ObjectId('6579a94b1f1d8f5a8e9c0123');
+    await db.collection('payments_subscriptions').createIndex(
+      { organization_id: 1 },
+      { unique: true, sparse: true }
+    ).catch(() => {});
 
-    // Create test user
-    await db.collection('users').insertOne({
-      _id: testUserId,
-      email: 'test@example.com',
-      name: 'Test User',
-      role: 'admin',
-      email_verified: true,
-      has_password: true,
-      created_at: new Date()
-    });
-
-    // Create test organization
-    await db.collection('organizations').insertOne({
-      _id: testOrgId,
-      name: 'Test Organization',
-      members: [{
-        user_id: testUserId.toString(),
-        role: 'admin'
-      }],
-      type: 'team',
-      created_at: new Date(),
-      updated_at: new Date()
-    });
-
-    // Create payment customer for the organization
-    await db.collection('payments_customers').insertOne({
-      organization_id: testOrgId.toString(),
-      stripe_customer_id: 'cus_test123',
-      created_at: new Date()
-    });
+    await db.collection('payments_usage').createIndex(
+      { organization_id: 1, date: 1 },
+      { unique: true, sparse: true }
+    ).catch(() => {});
   }
 }
 

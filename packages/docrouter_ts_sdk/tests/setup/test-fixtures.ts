@@ -68,63 +68,27 @@ export class TestFixturesHelper {
     member: { id: string; token: string; account_token: string };
     outsider: { id: string; token: string; account_token: string };
   }> {
-    // Use the admin credentials from jest-setup (these must match what uvicorn uses)
+    // Generate unique identifiers for this test to avoid conflicts when tests run in parallel
+    const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+    // Use the system admin user created during server startup
     const adminEmail = process.env.ADMIN_EMAIL || 'test-admin@example.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'test-admin-password-123';
-    
-    // Check if admin already exists
-    let adminUser = await testDb.collection('users').findOne({ email: adminEmail });
-    
+    const adminUser = await testDb.collection('users').findOne({ email: adminEmail });
+
     if (!adminUser) {
-      // Create admin user with bcrypt hash (like in startup.py)
-      const bcrypt = require('bcrypt');
-      const hashedPassword = await bcrypt.hash(adminPassword, 12);
-      
-      const adminResult = await testDb.collection('users').insertOne({
-        email: adminEmail,
-        password: hashedPassword,
-        name: 'System Administrator',
-        role: 'admin',
-        email_verified: true,
-        has_password: true,
-        created_at: new Date()
-      });
-      
-      adminUser = {
-        _id: adminResult.insertedId,
-        email: adminEmail,
-        name: 'System Administrator',
-        role: 'admin',
-        email_verified: true,
-        has_password: true,
-        created_at: new Date()
-      };
-      
-      // Create organization for admin
-      await testDb.collection('organizations').insertOne({
-        _id: adminResult.insertedId,
-        name: 'Admin',
-        type: 'individual',
-        members: [{
-          user_id: adminResult.insertedId.toString(),
-          role: 'admin'
-        }],
-        created_at: new Date(),
-        updated_at: new Date(),
-        has_seen_tour: false
-      });
+      throw new Error('System admin user not found - server may not have started correctly');
     }
-    
+
     const adminId = adminUser._id.toString();
 
-    // Create additional test users
+    // Create unique test users for this specific test
     const memberId = new ObjectId().toString();
     const outsiderId = new ObjectId().toString();
 
     await testDb.collection('users').insertMany([
       {
         _id: new ObjectId(memberId),
-        email: 'member@example.com',
+        email: `member-${uniqueSuffix}@example.com`,
         name: 'Org Member',
         role: 'user',
         email_verified: true,
@@ -133,7 +97,7 @@ export class TestFixturesHelper {
       },
       {
         _id: new ObjectId(outsiderId),
-        email: 'outsider@example.com',
+        email: `outsider-${uniqueSuffix}@example.com`,
         name: 'Not In Org',
         role: 'user',
         email_verified: true,
@@ -142,11 +106,11 @@ export class TestFixturesHelper {
       }
     ]);
 
-    // Create org with admin and member
+    // Create unique org for this test
     const orgId = new ObjectId().toString();
     await testDb.collection('organizations').insertOne({
       _id: new ObjectId(orgId),
-      name: 'Test Org For Auth',
+      name: `Test Org ${uniqueSuffix}`,
       members: [
         { user_id: adminId, role: 'admin' },
         { user_id: memberId, role: 'user' }
@@ -159,15 +123,14 @@ export class TestFixturesHelper {
     // Create payment customer for the organization
     await testDb.collection('payments_customers').insertOne({
       organization_id: orgId,
-      stripe_customer_id: 'cus_test123',
+      stripe_customer_id: `cus_test_${uniqueSuffix}`,
       created_at: new Date()
     });
 
     // Create JWT tokens using the API (like the frontend does)
-    // Note: The admin user must exist in the database before creating JWT tokens
     const adminToken = await this.createJWTTokenFromAPI(adminId, 'System Administrator', adminEmail, baseURL);
-    const memberToken = await this.createJWTTokenFromAPI(memberId, 'Org Member', 'member@example.com', baseURL);
-    const outsiderToken = await this.createJWTTokenFromAPI(outsiderId, 'Not In Org', 'outsider@example.com', baseURL);
+    const memberToken = await this.createJWTTokenFromAPI(memberId, 'Org Member', `member-${uniqueSuffix}@example.com`, baseURL);
+    const outsiderToken = await this.createJWTTokenFromAPI(outsiderId, 'Not In Org', `outsider-${uniqueSuffix}@example.com`, baseURL);
     
     // For account-level operations, use the same JWT tokens
     const adminAccountToken = adminToken;
