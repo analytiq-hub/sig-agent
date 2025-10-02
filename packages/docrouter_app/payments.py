@@ -498,7 +498,7 @@ async def sync_stripe_customers(db) -> Tuple[int, int, List[str]]:
         Tuple containing (total_orgs, successful_syncs, error_messages)
     """
     if not stripe_enabled():
-        logger.info("Stripe API key not configured - sync_stripe_customers skipped")
+        logger.warning("Stripe API key not configured - sync_stripe_customers skipped")
         return 0, 0, ["Stripe API key not configured"]
 
     logger.info("Starting sync of Stripe customers")
@@ -987,7 +987,7 @@ async def sync_stripe_customer(db, org_id: str) -> Dict[str, Any]:
     """Create or update a Stripe customer for the given org_id"""
     
     if not stripe_enabled():
-        logger.info("Stripe API key not configured - sync_stripe_customer skipped")
+        logger.warning("Stripe API key not configured - sync_stripe_customer skipped")
         return None
 
     logger.info(f"Syncing Stripe customer for org_id: {org_id}")
@@ -1288,9 +1288,9 @@ async def delete_payments_customer(db, org_id: str) -> Dict[str, Any]:
         # Find local customer record
         customer = await db.payments_customers.find_one({"org_id": org_id})
         if not customer:
+            logger.warning(f"No local customer found for org_id: {org_id}")
             return {"success": False, "reason": "Customer not found"}
             
-        stripe_customer_id = None
         if stripe_enabled():
             stripe_customer_id = customer["stripe_customer_id"]
             
@@ -1312,7 +1312,7 @@ async def delete_payments_customer(db, org_id: str) -> Dict[str, Any]:
         logger.info(f"Removed local customer record for org_id: {org_id}")
         
         return {
-            "success": True,
+            "success": True, 
             "customer_id": stripe_customer_id,
             "deleted_at": datetime.now(UTC)
         }
