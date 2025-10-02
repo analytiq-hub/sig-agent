@@ -153,8 +153,10 @@ const OrganizationManager: React.FC = () => {
   const [deleteOrganizationId, setDeleteOrganizationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [orgSearch, setOrgSearch] = useState('');
+  const [memberSearch, setMemberSearch] = useState('');
+  const [debouncedOrgSearch, setDebouncedOrgSearch] = useState('');
+  const [debouncedMemberSearch, setDebouncedMemberSearch] = useState('');
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
   const { session } = useAppSession();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -165,8 +167,8 @@ const OrganizationManager: React.FC = () => {
       const response = await getOrganizationsApi({
         skip: paginationModel.page * paginationModel.pageSize,
         limit: paginationModel.pageSize,
-        nameSearch: debouncedSearch || undefined,
-        memberSearch: debouncedSearch || undefined,
+        nameSearch: debouncedOrgSearch || undefined,
+        memberSearch: debouncedMemberSearch || undefined,
       });
       setOrganizations(response.organizations);
       setTotalCount(response.total_count || 0);
@@ -177,20 +179,26 @@ const OrganizationManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [paginationModel, debouncedSearch]);
+  }, [paginationModel, debouncedOrgSearch, debouncedMemberSearch]);
 
   // Server-side filtered organizations
   const filteredOrganizations = organizations;
 
   useEffect(() => {
     fetchOrganizations();
-  }, [paginationModel, debouncedSearch, fetchOrganizations]);
+  }, [paginationModel, debouncedOrgSearch, debouncedMemberSearch, fetchOrganizations]);
 
-  // Debounce search
+  // Debounce organization name search
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    const t = setTimeout(() => setDebouncedOrgSearch(orgSearch.trim()), 300);
     return () => clearTimeout(t);
-  }, [searchQuery]);
+  }, [orgSearch]);
+
+  // Debounce member search
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedMemberSearch(memberSearch.trim()), 300);
+    return () => clearTimeout(t);
+  }, [memberSearch]);
 
   const handleDeleteClick = (organizationId: string) => {
     setDeleteOrganizationId(organizationId);
@@ -342,27 +350,51 @@ const OrganizationManager: React.FC = () => {
       </div>
 
       <div className="mb-4">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search organizations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white pl-10"
-          />
-          <svg
-            className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        <div className="flex gap-3">
+          <div className="relative w-1/2">
+            <input
+              type="text"
+              placeholder="Search by organization name..."
+              value={orgSearch}
+              onChange={(e) => setOrgSearch(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white pl-10"
             />
-          </svg>
+            <svg
+              className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <div className="relative w-1/2">
+            <input
+              type="text"
+              placeholder="Search by member name or email..."
+              value={memberSearch}
+              onChange={(e) => setMemberSearch(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white pl-10"
+            />
+            <svg
+              className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
         </div>
       </div>
 
