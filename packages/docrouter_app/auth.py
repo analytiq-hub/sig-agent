@@ -64,28 +64,28 @@ async def get_session_user(credentials: HTTPAuthorizationCredentials = Security(
     """
     db = ad.common.get_async_db()
     token = credentials.credentials
-    
+
     try:
         # Only validate as JWT (no API token fallback)
         payload = jwt.decode(token, NEXTAUTH_SECRET, algorithms=[ALGORITHM])
         userId: str = payload.get("userId")
         userName: str = payload.get("userName")
         email: str = payload.get("email")
-        
+
         if userName is None:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials: missing userName")
-        
+
         # Validate that userId exists in database
         user = await db.users.find_one({"_id": ObjectId(userId)})
         if not user:
             raise HTTPException(status_code=401, detail=f"User id '{userId}' not found in database")
-        
+
         return User(
             user_id=userId,
             user_name=userName,
             token_type="jwt"
         )
-                   
+
     except JWTError:
         raise HTTPException(
             status_code=401,
