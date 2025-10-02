@@ -2,6 +2,10 @@ import { TestServer, defaultTestConfig } from './test-server';
 import { MongoDBTestSetup, TEST_USER_ID, TEST_ORG_ID } from './mongodb-setup';
 import { TestFixturesHelper } from './test-fixtures';
 
+// Set test environment variables
+process.env.NEXTAUTH_SECRET = 'test_secret_key_for_tests';
+process.env.ENV = 'pytest';
+
 // Global test setup
 let testServer: TestServer;
 let mongoSetup: MongoDBTestSetup;
@@ -45,8 +49,8 @@ export async function createTestDatabase(): Promise<{
 }
 
 // Helper function to create test fixtures (users, orgs, tokens)
-export async function createTestFixtures(testDb: any) {
-  return await TestFixturesHelper.createOrgAndUsers(testDb);
+export async function createTestFixtures(testDb: any, baseUrl: string) {
+  return await TestFixturesHelper.createOrgAndUsers(testDb, baseUrl);
 }
 
 // Export test constants

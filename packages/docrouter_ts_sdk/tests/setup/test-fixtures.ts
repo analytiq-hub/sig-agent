@@ -1,5 +1,8 @@
 import { ObjectId } from 'mongodb';
 import { DocRouter, DocRouterAccount, DocRouterOrg } from '../../src';
+import * as jwt from 'jsonwebtoken';
+import * as crypto from 'crypto';
+import axios from 'axios';
 
 export interface TestFixtures {
   testDb: any; // MongoDB database
@@ -59,27 +62,66 @@ export const TEST_USER_ID = '6579a94b1f1d8f5a8e9c0124';
 export const TEST_ORG_ID = '6579a94b1f1d8f5a8e9c0123';
 
 export class TestFixturesHelper {
-  static async createOrgAndUsers(testDb: any): Promise<{
+  static async createOrgAndUsers(testDb: any, baseURL: string): Promise<{
     org_id: string;
     admin: { id: string; token: string; account_token: string };
     member: { id: string; token: string; account_token: string };
     outsider: { id: string; token: string; account_token: string };
   }> {
-    // Create users
-    const adminId = new ObjectId().toString();
-    const memberId = new ObjectId().toString();
-    const outsiderId = new ObjectId().toString();
-
-    await testDb.collection('users').insertMany([
-      {
-        _id: new ObjectId(adminId),
-        email: 'admin@example.com',
-        name: 'Org Admin',
+    // First, create an admin user using environment variables (like the real startup process)
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@test.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    
+    // Check if admin already exists
+    let adminUser = await testDb.collection('users').findOne({ email: adminEmail });
+    
+    if (!adminUser) {
+      // Create admin user with bcrypt hash (like in startup.py)
+      const bcrypt = require('bcrypt');
+      const hashedPassword = await bcrypt.hash(adminPassword, 12);
+      
+      const adminResult = await testDb.collection('users').insertOne({
+        email: adminEmail,
+        password: hashedPassword,
+        name: 'System Administrator',
         role: 'admin',
         email_verified: true,
         has_password: true,
         created_at: new Date()
-      },
+      });
+      
+      adminUser = {
+        _id: adminResult.insertedId,
+        email: adminEmail,
+        name: 'System Administrator',
+        role: 'admin',
+        email_verified: true,
+        has_password: true,
+        created_at: new Date()
+      };
+      
+      // Create organization for admin
+      await testDb.collection('organizations').insertOne({
+        _id: adminResult.insertedId,
+        name: 'Admin',
+        type: 'individual',
+        members: [{
+          user_id: adminResult.insertedId.toString(),
+          role: 'admin'
+        }],
+        created_at: new Date(),
+        updated_at: new Date(),
+        has_seen_tour: false
+      });
+    }
+    
+    const adminId = adminUser._id.toString();
+
+    // Create additional test users
+    const memberId = new ObjectId().toString();
+    const outsiderId = new ObjectId().toString();
+
+    await testDb.collection('users').insertMany([
       {
         _id: new ObjectId(memberId),
         email: 'member@example.com',
@@ -121,30 +163,16 @@ export class TestFixturesHelper {
       created_at: new Date()
     });
 
-    // Helper to create a token for a user
-    const createToken = async (userId: string, orgId: string | null, name: string): Promise<string> => {
-      const token = this.generateToken();
-      const tokenDoc = {
-        user_id: userId,
-        organization_id: orgId,
-        name: name,
-        token: token, // In real implementation, this would be encrypted
-        created_at: new Date(),
-        lifetime: 30
-      };
-      await testDb.collection('access_tokens').insertOne(tokenDoc);
-      return token;
-    };
-
-    // Create org-level tokens
-    const adminToken = await createToken(adminId, orgId, 'admin-token');
-    const memberToken = await createToken(memberId, orgId, 'member-token');
-    const outsiderToken = await createToken(outsiderId, orgId, 'outsider-token');
+    // Create JWT tokens using the API (like the frontend does)
+    // Note: The admin user must exist in the database before creating JWT tokens
+    const adminToken = await this.createJWTTokenFromAPI(adminId, 'System Administrator', adminEmail, baseURL);
+    const memberToken = await this.createJWTTokenFromAPI(memberId, 'Org Member', 'member@example.com', baseURL);
+    const outsiderToken = await this.createJWTTokenFromAPI(outsiderId, 'Not In Org', 'outsider@example.com', baseURL);
     
-    // Create account-level tokens
-    const adminAccountToken = await createToken(adminId, null, 'admin-account-token');
-    const memberAccountToken = await createToken(memberId, null, 'member-account-token');
-    const outsiderAccountToken = await createToken(outsiderId, null, 'outsider-account-token');
+    // For account-level operations, use the same JWT tokens
+    const adminAccountToken = adminToken;
+    const memberAccountToken = memberToken;
+    const outsiderAccountToken = outsiderToken;
 
     return {
       org_id: orgId,
@@ -157,6 +185,54 @@ export class TestFixturesHelper {
   static generateToken(): string {
     // Generate a random token (in real implementation, this would be properly encrypted)
     return 'test_token_' + Math.random().toString(36).substring(2, 15);
+  }
+
+  static generateJWTToken(userId: string, userName: string, email: string): string {
+    // Generate a valid JWT token using the same secret as the FastAPI app
+    const payload = {
+      userId: userId,
+      userName: userName,
+      email: email
+    };
+    
+    // Use the same secret as the FastAPI app (from test environment)
+    const secret = 'test_secret_key_for_tests';
+    
+    return jwt.sign(payload, secret, { algorithm: 'HS256' });
+  }
+
+  static createRequestSignature(jsonString: string): string {
+    // The server might load .env file, so we need to use the secret from there
+    // In test environment, we override with test_secret_key_for_tests
+    const secret = process.env.NEXTAUTH_SECRET || 'test_secret_key_for_tests';
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(jsonString);
+    return hmac.digest('hex');
+  }
+
+  static async createJWTTokenFromAPI(userId: string, userName: string, email: string, baseURL: string): Promise<string> {
+    const payload = {
+      id: userId,
+      name: userName,
+      email: email
+    };
+    
+    const payloadJson = JSON.stringify(payload);
+    const signature = this.createRequestSignature(payloadJson);
+
+    try {
+      const response = await axios.post(`${baseURL}/v0/account/auth/token`, payloadJson, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Request-Signature': signature
+        }
+      });
+      
+      return response.data.token;
+    } catch (error) {
+      console.error('Error creating JWT token from API:', error);
+      throw error;
+    }
   }
 
   static createSDKClients(baseUrl: string, tokens: TestTokens) {

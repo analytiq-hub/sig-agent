@@ -14,7 +14,7 @@ describe('Authentication Integration Tests', () => {
     cleanup = setup.cleanup;
     
     // Create test users and tokens
-    tokens = await createTestFixtures(testDb);
+    tokens = await createTestFixtures(testDb, baseUrl);
   });
 
   afterEach(async () => {
