@@ -163,6 +163,6 @@ export class TestServer {
 export const defaultTestConfig: TestServerConfig = {
   port: 8001, // Use different port from main app
   mongodbUri: 'mongodb://localhost:27017',
-  env: 'pytest',
+  env: 'pytest_ts', // Use dedicated database for TypeScript SDK tests
   nextauthSecret: 'test_secret_key_for_tests'
 };

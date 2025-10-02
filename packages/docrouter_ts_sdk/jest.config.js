@@ -17,5 +17,6 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   testTimeout: process.env.TEST_TYPE === 'integration' ? 60000 : 5000, // 60s for integration, 5s for unit
-  ...(process.env.TEST_TYPE === 'integration' && { maxWorkers: 1 }), // Sequential for integration tests
+  // Note: Integration tests run in parallel on shared uvicorn instance using pytest_ts database
+  // Tests must be written to avoid conflicts (separate data, cleanup, etc.)
 };

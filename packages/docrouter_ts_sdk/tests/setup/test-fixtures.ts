@@ -226,8 +226,6 @@ export class TestFixturesHelper {
 
     try {
       const url = `${baseURL}/v0/account/auth/token`;
-      console.log(`Creating JWT token from API: ${url}`);
-
       const response = await axios.post(url, payloadJson, {
         headers: {
           'Content-Type': 'application/json',
