@@ -9,6 +9,7 @@ pnpm-debug.log*
 dist/
 build/
 *.tsbuildinfo
+.tsbuildinfo
 
 # Coverage reports
 coverage/
