@@ -5,6 +5,8 @@ import { TestFixturesHelper } from './test-fixtures';
 // Set test environment variables
 process.env.NEXTAUTH_SECRET = 'test_secret_key_for_tests';
 process.env.ENV = 'pytest';
+process.env.ADMIN_EMAIL = 'test-admin@example.com';
+process.env.ADMIN_PASSWORD = 'test-admin-password-123';
 
 // Global test setup
 let testServer: TestServer;

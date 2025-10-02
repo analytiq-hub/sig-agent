@@ -68,9 +68,9 @@ export class TestFixturesHelper {
     member: { id: string; token: string; account_token: string };
     outsider: { id: string; token: string; account_token: string };
   }> {
-    // First, create an admin user using environment variables (like the real startup process)
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@test.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    // Use the admin credentials from jest-setup (these must match what uvicorn uses)
+    const adminEmail = process.env.ADMIN_EMAIL || 'test-admin@example.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'test-admin-password-123';
     
     // Check if admin already exists
     let adminUser = await testDb.collection('users').findOne({ email: adminEmail });
@@ -211,26 +211,37 @@ export class TestFixturesHelper {
   }
 
   static async createJWTTokenFromAPI(userId: string, userName: string, email: string, baseURL: string): Promise<string> {
+    if (!baseURL) {
+      throw new Error('baseURL is required for createJWTTokenFromAPI');
+    }
+
     const payload = {
       id: userId,
       name: userName,
       email: email
     };
-    
+
     const payloadJson = JSON.stringify(payload);
     const signature = this.createRequestSignature(payloadJson);
 
     try {
-      const response = await axios.post(`${baseURL}/v0/account/auth/token`, payloadJson, {
+      const url = `${baseURL}/v0/account/auth/token`;
+      console.log(`Creating JWT token from API: ${url}`);
+
+      const response = await axios.post(url, payloadJson, {
         headers: {
           'Content-Type': 'application/json',
           'X-Request-Signature': signature
         }
       });
-      
+
       return response.data.token;
-    } catch (error) {
-      console.error('Error creating JWT token from API:', error);
+    } catch (error: any) {
+      console.error('Error creating JWT token from API:', error.message);
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
       throw error;
     }
   }
