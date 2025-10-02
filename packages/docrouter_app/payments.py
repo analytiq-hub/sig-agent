@@ -1288,7 +1288,6 @@ async def delete_payments_customer(db, org_id: str) -> Dict[str, Any]:
         # Find local customer record
         customer = await db.payments_customers.find_one({"org_id": org_id})
         if not customer:
-            logger.warning(f"No local customer found for org_id: {org_id}")
             return {"success": False, "reason": "Customer not found"}
             
         stripe_customer_id = None
