@@ -1,16 +1,29 @@
 import { HttpClient } from './http-client';
-import { DocRouterOrgConfig } from './types';
+import { DocRouterOrgConfig, ListDocumentsParams } from './types';
 import { DocumentsAPI } from './modules/documents';
 import { LLMAPI } from './modules/llm';
 import { OCRAPI } from './modules/ocr';
 import { TagsAPI } from './modules/tags';
 
 /**
+ * Organization-scoped DocumentsAPI wrapper that automatically injects organizationId
+ */
+class OrgDocumentsAPI extends DocumentsAPI {
+  constructor(http: HttpClient, private orgId: string) {
+    super(http);
+  }
+
+  async list(params?: Omit<ListDocumentsParams, 'organizationId'>) {
+    return super.list({ ...params, organizationId: this.orgId });
+  }
+}
+
+/**
  * DocRouterOrg - For organization-scoped operations with org tokens
  * Use this when you have an organization token and want to work within that org
  */
 export class DocRouterOrg {
-  public readonly documents: DocumentsAPI;
+  public readonly documents: OrgDocumentsAPI;
   public readonly llm: LLMAPI;
   public readonly ocr: OCRAPI;
   public readonly tags: TagsAPI;
@@ -27,7 +40,7 @@ export class DocRouterOrg {
       onAuthError: config.onAuthError,
     });
 
-    this.documents = new DocumentsAPI(this.http);
+    this.documents = new OrgDocumentsAPI(this.http, this.organizationId);
     this.llm = new LLMAPI(this.http);
     this.ocr = new OCRAPI(this.http);
     this.tags = new TagsAPI(this.http);

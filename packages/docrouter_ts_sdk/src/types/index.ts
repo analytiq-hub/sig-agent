@@ -47,6 +47,10 @@ export interface AccessToken {
   lifetime: number;
 }
 
+export interface ListAccessTokensResponse {
+  access_tokens: AccessToken[];
+}
+
 // Organization types
 export interface OrganizationMember {
   user_id: string;
