@@ -38,10 +38,11 @@ export class TestServer {
     };
 
     const packagesDir = path.join(__dirname, '../../..'); // Go up to packages directory
-    const venvPython = path.join(packagesDir, '.venv/bin/python');
+    const sdkDir = path.join(__dirname, '../..'); // docrouter_ts_sdk directory
+    const venvPython = path.join(sdkDir, '.venv/bin/python');
 
     // Check if virtual environment exists, if not create it
-    await this.ensureVenv(packagesDir);
+    await this.ensureVenv(sdkDir);
 
     // Start the FastAPI server using the virtual environment
     // The server needs to run from the packages directory where docrouter_app is located
@@ -94,21 +95,24 @@ export class TestServer {
     return this.baseUrl;
   }
 
-  private async ensureVenv(packagesDir: string): Promise<void> {
-    const venvDir = path.join(packagesDir, '.venv');
+  private async ensureVenv(sdkDir: string): Promise<void> {
+    const venvDir = path.join(sdkDir, '.venv');
     const venvPython = path.join(venvDir, 'bin/python');
+    const packagesDir = path.join(sdkDir, '..');
 
-    // Check if virtual environment exists
-    if (!fs.existsSync(venvPython)) {
-      console.log('Creating virtual environment...');
-
-      // Create virtual environment
-      await this.execCommand('python3 -m venv .venv', packagesDir);
-
-      // Install requirements
-      console.log('Installing Python dependencies...');
-      await this.execCommand('.venv/bin/pip install -r requirements.txt', packagesDir);
+    // Remove existing virtual environment if it exists
+    if (fs.existsSync(venvDir)) {
+      console.log('Removing existing virtual environment...');
+      fs.rmSync(venvDir, { recursive: true, force: true });
     }
+
+    console.log('Creating virtual environment...');
+    // Create virtual environment in docrouter_ts_sdk directory
+    await this.execCommand('python3 -m venv .venv', sdkDir);
+
+    // Install requirements from packages directory
+    console.log('Installing Python dependencies...');
+    await this.execCommand(`uv pip install -r ${path.join(packagesDir, 'requirements.txt')}`, sdkDir);
   }
 
   private async execCommand(command: string, cwd: string): Promise<void> {
