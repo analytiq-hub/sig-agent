@@ -1,30 +1,21 @@
 import { DocRouter, DocRouterAccount, DocRouterOrg } from '../../src';
-import { createTestDatabase, createTestFixtures, TestFixturesHelper } from '../setup/jest-setup';
+import { getTestDatabase, getBaseUrl, createTestFixtures, TestFixturesHelper } from '../setup/jest-setup';
 
 describe('Authentication Integration Tests', () => {
-  let testDb: any;
-  let baseUrl: string;
-  let cleanup: () => Promise<void>;
   let tokens: any;
 
   beforeEach(async () => {
-    const setup = await createTestDatabase();
-    testDb = setup.testDb;
-    baseUrl = setup.baseUrl;
-    cleanup = setup.cleanup;
-    
+    const testDb = getTestDatabase();
+    const baseUrl = getBaseUrl();
+
     // Create test users and tokens
     tokens = await createTestFixtures(testDb, baseUrl);
-  });
-
-  afterEach(async () => {
-    await cleanup();
   });
 
   describe('DocRouter (General Purpose)', () => {
     test('should authenticate with account token', async () => {
       const client = new DocRouter({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         token: tokens.admin.account_token
       });
 
@@ -36,7 +27,7 @@ describe('Authentication Integration Tests', () => {
 
     test('should handle invalid token', async () => {
       const client = new DocRouter({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         token: 'invalid_token',
         onAuthError: (error) => {
           expect(error.message).toContain('authentication');
@@ -48,7 +39,7 @@ describe('Authentication Integration Tests', () => {
 
     test('should handle token provider', async () => {
       const client = new DocRouter({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         tokenProvider: async () => tokens.admin.account_token
       });
 
@@ -60,7 +51,7 @@ describe('Authentication Integration Tests', () => {
   describe('DocRouterAccount (Account-level)', () => {
     test('should authenticate with account token', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 
@@ -71,7 +62,7 @@ describe('Authentication Integration Tests', () => {
 
     test('should create organization tokens', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 
@@ -86,7 +77,7 @@ describe('Authentication Integration Tests', () => {
 
     test('should list account tokens', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 
@@ -99,7 +90,7 @@ describe('Authentication Integration Tests', () => {
   describe('DocRouterOrg (Organization-scoped)', () => {
     test('should authenticate with org token', async () => {
       const client = new DocRouterOrg({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         orgToken: tokens.admin.token,
         organizationId: tokens.org_id
       });
@@ -111,7 +102,7 @@ describe('Authentication Integration Tests', () => {
 
     test('should handle invalid org token', async () => {
       const client = new DocRouterOrg({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         orgToken: 'invalid_token',
         organizationId: tokens.org_id,
         onAuthError: (error) => {
@@ -124,7 +115,7 @@ describe('Authentication Integration Tests', () => {
 
     test('should update token', async () => {
       const client = new DocRouterOrg({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         orgToken: tokens.admin.token,
         organizationId: tokens.org_id
       });
@@ -141,7 +132,7 @@ describe('Authentication Integration Tests', () => {
   describe('Permission Tests', () => {
     test('admin should have full access', async () => {
       const client = new DocRouterOrg({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         orgToken: tokens.admin.token,
         organizationId: tokens.org_id
       });
@@ -153,7 +144,7 @@ describe('Authentication Integration Tests', () => {
 
     test('member should have limited access', async () => {
       const client = new DocRouterOrg({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         orgToken: tokens.member.token,
         organizationId: tokens.org_id
       });
@@ -165,7 +156,7 @@ describe('Authentication Integration Tests', () => {
 
     test('outsider should not have access', async () => {
       const client = new DocRouterOrg({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         orgToken: tokens.outsider.token,
         organizationId: tokens.org_id,
         onAuthError: (error) => {

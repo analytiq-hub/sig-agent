@@ -1,30 +1,21 @@
 import { DocRouter, DocRouterAccount } from '../../src';
-import { createTestDatabase, createTestFixtures } from '../setup/jest-setup';
+import { getTestDatabase, getBaseUrl, createTestFixtures } from '../setup/jest-setup';
 
 describe('Users Integration Tests', () => {
-  let testDb: any;
-  let baseUrl: string;
-  let cleanup: () => Promise<void>;
   let tokens: any;
 
   beforeEach(async () => {
-    const setup = await createTestDatabase();
-    testDb = setup.testDb;
-    baseUrl = setup.baseUrl;
-    cleanup = setup.cleanup;
+    const testDb = getTestDatabase();
+    const baseUrl = getBaseUrl();
 
     // Create test users and tokens
     tokens = await createTestFixtures(testDb, baseUrl);
   });
 
-  afterEach(async () => {
-    await cleanup();
-  });
-
   describe('User Management', () => {
     test('should list users', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 
@@ -39,7 +30,7 @@ describe('Users Integration Tests', () => {
 
     test('should list users with organization filter', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 
@@ -54,7 +45,7 @@ describe('Users Integration Tests', () => {
 
     test('should list users with pagination', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 
@@ -71,7 +62,7 @@ describe('Users Integration Tests', () => {
 
     test('should get specific user', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 
@@ -84,7 +75,7 @@ describe('Users Integration Tests', () => {
 
     test('should create user', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 
@@ -104,7 +95,7 @@ describe('Users Integration Tests', () => {
 
     test('should update user', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 
@@ -121,7 +112,7 @@ describe('Users Integration Tests', () => {
 
     test('should delete user', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 
@@ -146,7 +137,7 @@ describe('Users Integration Tests', () => {
   describe('Email Verification', () => {
     test('should send verification email', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 
@@ -156,7 +147,7 @@ describe('Users Integration Tests', () => {
 
     test('should send registration verification email', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 
@@ -166,7 +157,7 @@ describe('Users Integration Tests', () => {
 
     test('should verify email with token', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 
@@ -178,7 +169,7 @@ describe('Users Integration Tests', () => {
   describe('Error Handling', () => {
     test('should handle invalid user ID', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 
@@ -187,7 +178,7 @@ describe('Users Integration Tests', () => {
 
     test('should handle unauthorized access', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: 'invalid_token'
       });
 
@@ -196,7 +187,7 @@ describe('Users Integration Tests', () => {
 
     test('should handle duplicate email', async () => {
       const client = new DocRouterAccount({
-        baseURL: baseUrl,
+        baseURL: getBaseUrl(),
         accountToken: tokens.admin.account_token
       });
 

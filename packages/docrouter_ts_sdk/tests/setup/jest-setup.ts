@@ -43,22 +43,23 @@ afterAll(async () => {
   }
 }, 30000); // 30 second timeout for cleanup
 
-// Helper function to create test database for each test
-export async function createTestDatabase(): Promise<{
-  testDb: any;
-  baseUrl: string;
-  cleanup: () => Promise<void>;
-}> {
-  // Use the same database name that uvicorn uses (pytest_ts)
-  // This means tests cannot run in parallel, but they can share the same server instance
+// Helper function to get test database (no circular refs returned)
+export function getTestDatabase(): any {
+  if (!mongoSetup) {
+    throw new Error('MongoDB not initialized. Run beforeAll first.');
+  }
+  // Return a simple wrapper object instead of the actual Db
   const env = process.env.ENV || 'pytest_ts';
-  const testDb = await mongoSetup.createTestDatabase(env);
-
   return {
-    testDb: testDb.db,
-    baseUrl: testServer.getBaseUrl(),
-    cleanup: testDb.cleanup
+    collection: (name: string) => mongoSetup['client']?.db(env).collection(name)
   };
+}
+
+export function getBaseUrl(): string {
+  if (!testServer) {
+    throw new Error('Test server not initialized. Run beforeAll first.');
+  }
+  return testServer.getBaseUrl();
 }
 
 // Helper function to create test fixtures (users, orgs, tokens)

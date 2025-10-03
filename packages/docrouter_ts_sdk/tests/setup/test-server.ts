@@ -57,14 +57,9 @@ export class TestServer {
       cwd: packagesDir // This should be the packages directory
     });
 
-    // Log server output for debugging
-    this.process.stdout?.on('data', (data) => {
-      console.log(`Server stdout: ${data}`);
-    });
-
-    this.process.stderr?.on('data', (data) => {
-      console.log(`Server stderr: ${data}`);
-    });
+    // Suppress server logs during tests
+    this.process.stdout?.on('data', () => {});
+    this.process.stderr?.on('data', () => {});
 
     this.process.on('error', (error) => {
       console.error(`Server process error: ${error.message}`);
@@ -141,21 +136,28 @@ export class TestServer {
     });
   }
 
-  private async waitForServer(maxRetries = 30): Promise<void> {
+  private async waitForServer(maxRetries = 60): Promise<void> {
+    // Give the server a bit more time to initialize before first check
+    await setTimeout(2000);
+
     for (let i = 0; i < maxRetries; i++) {
       try {
         // Try to connect to the server (any endpoint will do)
         const response = await fetch(`${this.baseUrl}/docs`);
         if (response.status === 200 || response.status === 404) {
+          // Give it one more second to fully initialize
+          await setTimeout(1000);
           return; // Server is responding
         }
       } catch (error) {
-        // Server not ready yet
-        console.log(`Waiting for server... (${i + 1}/${maxRetries})`);
+        // Server not ready yet - only log every 5 attempts to reduce noise
+        if (i % 5 === 0) {
+          console.log(`Waiting for server... (${i + 1}/${maxRetries})`);
+        }
       }
-      await setTimeout(1000);
+      await setTimeout(500);
     }
-    throw new Error(`Test server failed to start after ${maxRetries} seconds`);
+    throw new Error(`Test server failed to start after ${maxRetries * 0.5} seconds`);
   }
 }
 
