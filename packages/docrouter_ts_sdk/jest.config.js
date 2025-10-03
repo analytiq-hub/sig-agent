@@ -6,7 +6,10 @@ module.exports = {
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
-  // Only run setup for integration tests
+  // Global setup/teardown for integration tests (runs once for all workers)
+  globalSetup: process.env.TEST_TYPE === 'integration' ? '<rootDir>/tests/setup/global-setup.ts' : undefined,
+  globalTeardown: process.env.TEST_TYPE === 'integration' ? '<rootDir>/tests/setup/global-teardown.ts' : undefined,
+  // Setup file runs in each worker to configure environment variables
   setupFilesAfterEnv: process.env.TEST_TYPE === 'integration' ? ['<rootDir>/tests/setup/jest-setup.ts'] : [],
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -17,6 +20,8 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   testTimeout: process.env.TEST_TYPE === 'integration' ? 60000 : 5000, // 60s for integration, 5s for unit
-  // Note: Integration tests run in parallel on shared uvicorn instance using pytest_ts database
-  // Tests must be written to avoid conflicts (separate data, cleanup, etc.)
+  // All tests can run in parallel using all CPU cores
+  maxWorkers: '100%',
+  forceExit: true, // Force exit after tests complete to avoid hanging
+  detectOpenHandles: false, // Disable open handles detection (we know MongoDB keeps connections)
 };

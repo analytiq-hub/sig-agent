@@ -79,14 +79,15 @@ describe('Users Integration Tests', () => {
         accountToken: tokens.admin.account_token
       });
 
+      const uniqueEmail = `newuser-${Date.now()}-${Math.random().toString(36).substring(2, 9)}@example.com`;
       const newUser = {
-        email: 'newuser@example.com',
+        email: uniqueEmail,
         name: 'New User',
         password: 'testpassword123'
       };
 
       const response = await client.users.create(newUser);
-      
+
       expect(response).toBeDefined();
       expect(response.user).toBeDefined();
       expect(response.user.email).toBe(newUser.email);

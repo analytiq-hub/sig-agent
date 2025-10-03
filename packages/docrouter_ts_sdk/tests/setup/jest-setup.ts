@@ -13,53 +13,69 @@ process.env.FASTAPI_ROOT_PATH = '/';
 process.env.ADMIN_EMAIL = 'test-admin@example.com';
 process.env.ADMIN_PASSWORD = 'test-admin-password-123';
 process.env.SES_FROM_EMAIL = 'test@example.com';
-// Disable Stripe for tests
+
+// Disable external services for tests
 process.env.STRIPE_SECRET_KEY = '';
 process.env.STRIPE_WEBHOOK_SECRET = '';
+process.env.AWS_ACCESS_KEY_ID = '';
+process.env.AWS_SECRET_ACCESS_KEY = '';
+process.env.AWS_S3_BUCKET_NAME = '';
+process.env.OPENAI_API_KEY = '';
+process.env.ANTHROPIC_API_KEY = '';
+process.env.GEMINI_API_KEY = '';
+process.env.GROQ_API_KEY = '';
+process.env.MISTRAL_API_KEY = '';
+process.env.XAI_API_KEY = '';
 
-// Global test setup
-let testServer: TestServer;
-let mongoSetup: MongoDBTestSetup;
+// Lazy-load MongoDB client for workers
+let cachedMongoClient: any = null;
 
-beforeAll(async () => {
-  // Start MongoDB setup
-  mongoSetup = new MongoDBTestSetup();
-  await mongoSetup.connect(defaultTestConfig.mongodbUri);
+async function getMongoClient() {
+  if (!cachedMongoClient) {
+    const { MongoClient } = await import('mongodb');
+    const fs = await import('fs');
+    const path = await import('path');
 
-  // Start test server
-  testServer = new TestServer(defaultTestConfig);
-  await testServer.start();
-}, 60000); // 60 second timeout for server startup
+    const configPath = path.join(__dirname, '.test-server-config.json');
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
-afterAll(async () => {
-  // Stop test server
-  if (testServer) {
-    await testServer.stop();
+    cachedMongoClient = new MongoClient(config.mongodbUri);
+    await cachedMongoClient.connect();
   }
-
-  // Cleanup MongoDB
-  if (mongoSetup) {
-    await mongoSetup.cleanup();
-  }
-}, 30000); // 30 second timeout for cleanup
+  return cachedMongoClient;
+}
 
 // Helper function to get test database (no circular refs returned)
+// Reads server config from file created by globalSetup
 export function getTestDatabase(): any {
-  if (!mongoSetup) {
-    throw new Error('MongoDB not initialized. Run beforeAll first.');
-  }
-  // Return a simple wrapper object instead of the actual Db
   const env = process.env.ENV || 'pytest_ts';
   return {
-    collection: (name: string) => mongoSetup['client']?.db(env).collection(name)
+    collection: (name: string) => {
+      // Return a proxy that lazily connects
+      return new Proxy({}, {
+        get: (target, prop) => {
+          return async (...args: any[]) => {
+            const client = await getMongoClient();
+            const collection = client.db(env).collection(name);
+            return (collection as any)[prop](...args);
+          };
+        }
+      });
+    }
   };
 }
 
 export function getBaseUrl(): string {
-  if (!testServer) {
-    throw new Error('Test server not initialized. Run beforeAll first.');
+  const fs = require('fs');
+  const path = require('path');
+  const configPath = path.join(__dirname, '.test-server-config.json');
+
+  if (!fs.existsSync(configPath)) {
+    throw new Error('Test server config not found. Global setup may have failed.');
   }
-  return testServer.getBaseUrl();
+
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  return config.baseUrl;
 }
 
 // Helper function to create test fixtures (users, orgs, tokens)

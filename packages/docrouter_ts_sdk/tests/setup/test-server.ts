@@ -65,15 +65,12 @@ export class TestServer {
       console.error(`Server process error: ${error.message}`);
     });
 
-    this.process.on('exit', (code, signal) => {
-      console.log(`Server process exited with code ${code}, signal ${signal}`);
+    this.process.on('exit', () => {
+      // Server exited - suppress log
     });
 
     // Wait for server to start
     await this.waitForServer();
-    
-    // Log server startup
-    console.log(`Test server started at ${this.baseUrl}`);
   }
 
   async stop(): Promise<void> {
@@ -100,22 +97,17 @@ export class TestServer {
   private async ensureVenv(packagesDir: string): Promise<void> {
     const venvDir = path.join(packagesDir, '.venv');
     const venvPython = path.join(venvDir, 'bin/python');
-    
-    console.log(`Checking for virtual environment at: ${venvPython}`);
-    console.log(`Packages directory: ${packagesDir}`);
-    
+
     // Check if virtual environment exists
     if (!fs.existsSync(venvPython)) {
       console.log('Creating virtual environment...');
-      
+
       // Create virtual environment
       await this.execCommand('python3 -m venv .venv', packagesDir);
-      
+
       // Install requirements
       console.log('Installing Python dependencies...');
       await this.execCommand('.venv/bin/pip install -r requirements.txt', packagesDir);
-    } else {
-      console.log('Virtual environment already exists');
     }
   }
 
