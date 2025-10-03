@@ -45,6 +45,14 @@ async function getMongoClient() {
   return cachedMongoClient;
 }
 
+// Close MongoDB connections when worker exits
+afterAll(async () => {
+  if (cachedMongoClient) {
+    await cachedMongoClient.close();
+    cachedMongoClient = null;
+  }
+});
+
 // Helper function to get test database (no circular refs returned)
 // Reads server config from file created by globalSetup
 export function getTestDatabase(): any {
