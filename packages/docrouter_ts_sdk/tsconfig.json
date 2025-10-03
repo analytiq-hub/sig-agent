@@ -8,7 +8,6 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -26,8 +25,8 @@
   "exclude": [
     "node_modules",
     "dist",
+    "tests",
     "**/*.test.ts",
-    "**/*.spec.ts",
-    "**/__tests__/**"
+    "**/*.spec.ts"
   ]
 }
