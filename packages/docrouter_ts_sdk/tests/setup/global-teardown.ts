@@ -24,4 +24,7 @@ export default async function globalTeardown() {
   }
 
   console.log('Test server stopped');
+
+  // Give a small delay to ensure all connections are closed
+  await new Promise(resolve => setTimeout(resolve, 100));
 }

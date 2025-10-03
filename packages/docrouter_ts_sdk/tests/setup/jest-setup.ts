@@ -53,6 +53,18 @@ afterAll(async () => {
   }
 });
 
+// Also close on process exit to ensure cleanup
+if (process.env.TEST_TYPE === 'integration') {
+  const closeConnections = async () => {
+    if (cachedMongoClient) {
+      await cachedMongoClient.close().catch(() => {});
+      cachedMongoClient = null;
+    }
+  };
+
+  process.on('beforeExit', closeConnections);
+}
+
 // Helper function to get test database (no circular refs returned)
 // Reads server config from file created by globalSetup
 export function getTestDatabase(): any {

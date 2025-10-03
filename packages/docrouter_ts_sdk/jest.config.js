@@ -22,6 +22,6 @@ module.exports = {
   testTimeout: process.env.TEST_TYPE === 'integration' ? 60000 : 5000, // 60s for integration, 5s for unit
   // All tests can run in parallel using all CPU cores
   maxWorkers: '100%',
-  forceExit: true, // Force exit after tests complete to avoid hanging
-  detectOpenHandles: false, // Disable open handles detection (we know MongoDB keeps connections)
+  // Force exit for integration tests to avoid 1s delay waiting for handles to close
+  ...(process.env.TEST_TYPE === 'integration' && { forceExit: true })
 };
