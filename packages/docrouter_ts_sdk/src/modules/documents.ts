@@ -14,37 +14,39 @@ export class DocumentsAPI {
 
   async upload(params: UploadDocumentsParams): Promise<UploadDocumentsResponse> {
     const { organizationId, documents } = params;
-    
-    // Convert documents to FormData for file uploads
-    const formData = new FormData();
-    documents.forEach((doc, index) => {
-      // Convert content to Uint8Array for Blob compatibility
-      let content: Uint8Array;
+
+    // Convert documents to JSON format with base64-encoded content
+    const documentsPayload = documents.map(doc => {
+      // Convert content to base64
+      let base64Content: string;
       if (doc.content instanceof ArrayBuffer) {
-        content = new Uint8Array(doc.content);
+        const buffer = Buffer.from(doc.content);
+        base64Content = buffer.toString('base64');
       } else if (doc.content instanceof Buffer) {
-        // Convert Buffer to Uint8Array with proper ArrayBuffer
-        const buffer = doc.content.buffer.slice(doc.content.byteOffset, doc.content.byteOffset + doc.content.byteLength);
-        content = new Uint8Array(buffer);
+        base64Content = doc.content.toString('base64');
+      } else if (doc.content instanceof Uint8Array) {
+        const buffer = Buffer.from(doc.content);
+        base64Content = buffer.toString('base64');
       } else {
-        content = doc.content;
+        const buffer = Buffer.from(doc.content);
+        base64Content = buffer.toString('base64');
       }
-      
-      const blob = new Blob([content as BlobPart], { type: doc.type });
-      formData.append(`documents`, blob, doc.name);
+
+      const payload: any = {
+        name: doc.name,
+        content: base64Content
+      };
+
       if (doc.metadata) {
-        formData.append(`metadata_${index}`, JSON.stringify(doc.metadata));
+        payload.metadata = doc.metadata;
       }
+
+      return payload;
     });
 
     return this.http.post<UploadDocumentsResponse>(
       `/v0/orgs/${organizationId}/documents`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
+      { documents: documentsPayload }
     );
   }
 

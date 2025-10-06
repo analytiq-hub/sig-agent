@@ -119,9 +119,8 @@ export class HttpClient {
 
   private createApiError(error: unknown): ApiError {
     if (isAxiosError(error)) {
-      const apiError: ApiError = new Error(
-        error.response?.data?.detail || error.message || 'Request failed'
-      );
+      const message = error.response?.data?.detail || error.message || 'Request failed';
+      const apiError: ApiError = new Error(message);
       apiError.status = error.response?.status;
       apiError.code = error.code;
       apiError.details = error.response?.data;
