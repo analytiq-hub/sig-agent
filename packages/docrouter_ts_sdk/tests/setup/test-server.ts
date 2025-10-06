@@ -33,6 +33,8 @@ export class TestServer {
       MONGODB_URI: this.config.mongodbUri,
       ENV: this.config.env,
       NEXTAUTH_SECRET: this.config.nextauthSecret,
+      ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'test-admin@example.com',
+      ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'test-password-123',
       STRIPE_SECRET_KEY: '', // Disable Stripe for tests
       STRIPE_WEBHOOK_SECRET: '',
     };
@@ -141,9 +143,9 @@ export class TestServer {
         // Try to connect to the server (any endpoint will do)
         const response = await fetch(`${this.baseUrl}/docs`);
         if (response.status === 200 || response.status === 404) {
-          // Give it one more second to fully initialize
-          await setTimeout(1000);
-          return; // Server is responding
+          // Server is responding, now wait for admin user to be created
+          await this.waitForAdminUser();
+          return;
         }
       } catch (error) {
         // Server not ready yet - only log every 5 attempts to reduce noise
@@ -154,6 +156,34 @@ export class TestServer {
       await setTimeout(500);
     }
     throw new Error(`Test server failed to start after ${maxRetries * 0.5} seconds`);
+  }
+
+  private async waitForAdminUser(maxRetries = 30): Promise<void> {
+    const { MongoClient } = await import('mongodb');
+    const client = new MongoClient(this.config.mongodbUri);
+
+    try {
+      await client.connect();
+      const db = client.db(this.config.env);
+      const adminEmail = process.env.ADMIN_EMAIL || 'test-admin@example.com';
+
+      for (let i = 0; i < maxRetries; i++) {
+        const adminUser = await db.collection('users').findOne({ email: adminEmail });
+        if (adminUser) {
+          console.log('Admin user created successfully');
+          return;
+        }
+
+        if (i % 5 === 0 && i > 0) {
+          console.log(`Waiting for admin user... (${i + 1}/${maxRetries})`);
+        }
+        await setTimeout(500);
+      }
+
+      throw new Error(`Admin user not created after ${maxRetries * 0.5} seconds`);
+    } finally {
+      await client.close();
+    }
   }
 }
 
