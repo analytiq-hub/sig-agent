@@ -13,8 +13,53 @@ class OrgDocumentsAPI extends DocumentsAPI {
     super(http);
   }
 
+  async upload(params: Omit<import('./types').UploadDocumentsParams, 'organizationId'>) {
+    return super.upload({ ...params, organizationId: this.orgId });
+  }
+
   async list(params?: Omit<ListDocumentsParams, 'organizationId'>) {
     return super.list({ ...params, organizationId: this.orgId });
+  }
+
+  async get(params: Omit<import('./types').GetDocumentParams, 'organizationId'>) {
+    return super.get({ ...params, organizationId: this.orgId });
+  }
+
+  async update(params: Omit<import('./types').UpdateDocumentParams, 'organizationId'>) {
+    return super.update({ ...params, organizationId: this.orgId });
+  }
+
+  async delete(params: Omit<import('./types').DeleteDocumentParams, 'organizationId'>) {
+    return super.delete({ ...params, organizationId: this.orgId });
+  }
+}
+
+/**
+ * Organization-scoped TagsAPI wrapper that automatically injects organizationId
+ */
+class OrgTagsAPI extends TagsAPI {
+  constructor(http: HttpClient, private orgId: string) {
+    super(http);
+  }
+
+  async create(params: Omit<import('./types').CreateTagParams, 'organizationId'>) {
+    return super.create({ ...params, organizationId: this.orgId });
+  }
+
+  async get(params: Omit<{ organizationId: string; tagId: string }, 'organizationId'>) {
+    return super.get({ ...params, organizationId: this.orgId });
+  }
+
+  async list(params?: Omit<import('./types').ListTagsParams, 'organizationId'>) {
+    return super.list({ ...params, organizationId: this.orgId });
+  }
+
+  async update(params: Omit<import('./types').UpdateTagParams, 'organizationId'>) {
+    return super.update({ ...params, organizationId: this.orgId });
+  }
+
+  async delete(params: Omit<import('./types').DeleteTagParams, 'organizationId'>) {
+    return super.delete({ ...params, organizationId: this.orgId });
   }
 }
 
@@ -26,7 +71,7 @@ export class DocRouterOrg {
   public readonly documents: OrgDocumentsAPI;
   public readonly llm: LLMAPI;
   public readonly ocr: OCRAPI;
-  public readonly tags: TagsAPI;
+  public readonly tags: OrgTagsAPI;
   public readonly organizationId: string;
   private http: HttpClient;
 
@@ -43,7 +88,7 @@ export class DocRouterOrg {
     this.documents = new OrgDocumentsAPI(this.http, this.organizationId);
     this.llm = new LLMAPI(this.http);
     this.ocr = new OCRAPI(this.http);
-    this.tags = new TagsAPI(this.http);
+    this.tags = new OrgTagsAPI(this.http, this.organizationId);
   }
 
   /**
