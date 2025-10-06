@@ -16,6 +16,20 @@ export class MongoDBTestSetup {
     await this.client.connect();
   }
 
+  async cleanDatabase(env: string): Promise<void> {
+    if (!this.client) {
+      throw new Error('MongoDB client not connected. Call connect() first.');
+    }
+
+    console.log(`Cleaning database: ${env}`);
+    const db = this.client.db(env);
+
+    // Drop the entire database to ensure a clean state
+    await db.dropDatabase().catch(() => {
+      // Ignore error if database doesn't exist
+    });
+  }
+
   async createTestDatabase(env: string): Promise<TestDatabase> {
     if (!this.client) {
       throw new Error('MongoDB client not connected. Call connect() first.');

@@ -10,6 +10,9 @@ export default async function globalSetup() {
   const mongoSetup = new MongoDBTestSetup();
   await mongoSetup.connect(defaultTestConfig.mongodbUri);
 
+  // Clean up database from previous test runs
+  await mongoSetup.cleanDatabase(defaultTestConfig.env);
+
   // Start test server
   const testServer = new TestServer(defaultTestConfig);
   await testServer.start();
