@@ -134,7 +134,7 @@ async def org_and_users(test_db):
     await test_db.users.insert_many([
         {
             "_id": ObjectId(admin_id),
-            "email": "admin@example.com",
+            "email": "org-admin@example.com",
             "name": "Org Admin",
             "role": "admin",
             "email_verified": True,
@@ -143,7 +143,7 @@ async def org_and_users(test_db):
         },
         {
             "_id": ObjectId(member_id),
-            "email": "member@example.com",
+            "email": "org-member@example.com",
             "name": "Org Member",
             "role": "user",
             "email_verified": True,
@@ -152,7 +152,7 @@ async def org_and_users(test_db):
         },
         {
             "_id": ObjectId(outsider_id),
-            "email": "outsider@example.com",
+            "email": "org-outsider@example.com",
             "name": "Not In Org",
             "role": "user",
             "email_verified": True,
