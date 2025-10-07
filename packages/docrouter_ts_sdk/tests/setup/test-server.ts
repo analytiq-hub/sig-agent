@@ -33,8 +33,6 @@ export class TestServer {
       MONGODB_URI: this.config.mongodbUri,
       ENV: this.config.env,
       NEXTAUTH_SECRET: this.config.nextauthSecret,
-      ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'test-admin@example.com',
-      ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'test-password-123',
     };
 
     const packagesDir = path.join(__dirname, '../../..'); // Go up to packages directory

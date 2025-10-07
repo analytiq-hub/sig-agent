@@ -2,30 +2,7 @@ import { TestServer, defaultTestConfig } from './test-server';
 import { MongoDBTestSetup, TEST_USER_ID, TEST_ORG_ID } from './mongodb-setup';
 import { TestFixturesHelper } from './test-fixtures';
 
-// Set test environment variables
-// NOTE: When ENV starts with 'pytest', the .env file will NOT be loaded (see analytiq_data/common/setup.py)
-// All required environment variables must be set here
-process.env.ENV = 'pytest_ts'; // Use dedicated database for TypeScript SDK tests
-process.env.NEXTAUTH_SECRET = 'test_secret_key_for_tests';
-process.env.NEXTAUTH_URL = 'http://127.0.0.1:3000';
-process.env.MONGODB_URI = 'mongodb://localhost:27017';
-process.env.FASTAPI_ROOT_PATH = '/';
-process.env.ADMIN_EMAIL = 'test-admin@example.com';
-process.env.ADMIN_PASSWORD = 'test-admin-password-123';
-process.env.SES_FROM_EMAIL = 'test@example.com';
-
-// Disable external services for tests
-process.env.STRIPE_SECRET_KEY = '';
-process.env.STRIPE_WEBHOOK_SECRET = '';
-process.env.AWS_ACCESS_KEY_ID = '';
-process.env.AWS_SECRET_ACCESS_KEY = '';
-process.env.AWS_S3_BUCKET_NAME = '';
-process.env.OPENAI_API_KEY = '';
-process.env.ANTHROPIC_API_KEY = '';
-process.env.GEMINI_API_KEY = '';
-process.env.GROQ_API_KEY = '';
-process.env.MISTRAL_API_KEY = '';
-process.env.XAI_API_KEY = '';
+// Environment variables are set in global-setup.ts before the test server starts
 
 // Lazy-load MongoDB client for workers
 let cachedMongoClient: any = null;
