@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { DocRouter, DocRouterAccount, DocRouterOrg } from '../../src';
+import { DocRouterAccount, DocRouterOrg } from '../../src';
 import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 import axios from 'axios';
@@ -212,12 +212,6 @@ export class TestFixturesHelper {
 
   static createSDKClients(baseUrl: string, tokens: TestTokens) {
     return {
-      // General purpose client with JWT token
-      docRouter: new DocRouter({
-        baseURL: baseUrl,
-        token: tokens.admin.account_token
-      }),
-
       // Account-level client
       docRouterAccount: new DocRouterAccount({
         baseURL: baseUrl,
