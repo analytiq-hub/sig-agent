@@ -7,6 +7,7 @@ import {
   UpdateDocumentParams,
   DeleteDocumentParams,
   ListDocumentsParams,
+  ListDocumentsResponse,
 } from '../types';
 
 export class DocumentsAPI {
@@ -50,25 +51,25 @@ export class DocumentsAPI {
     );
   }
 
-  async list(params?: ListDocumentsParams) {
+  async list(params?: ListDocumentsParams): Promise<ListDocumentsResponse> {
     const queryParams: Record<string, string | number | undefined> = {
       skip: params?.skip || 0,
       limit: params?.limit || 10,
     };
-    
+
     if (params?.tagIds) {
       queryParams.tag_ids = params.tagIds;
     }
-    
+
     if (params?.nameSearch) {
       queryParams.name_search = params.nameSearch;
     }
-    
+
     if (params?.metadataSearch) {
       queryParams.metadata_search = params.metadataSearch;
     }
-    
-    return this.http.get(`/v0/orgs/${params?.organizationId}/documents`, { 
+
+    return this.http.get<ListDocumentsResponse>(`/v0/orgs/${params?.organizationId}/documents`, {
       params: queryParams
     });
   }

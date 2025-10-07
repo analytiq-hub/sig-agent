@@ -110,8 +110,19 @@ export interface UploadDocumentsParams {
   documents: UploadDocument[];
 }
 
+export interface UploadedDocument {
+  document_id: string;
+  document_name: string;
+  upload_date: string;
+  uploaded_by: string;
+  state: string;
+  tag_ids: string[];
+  type?: string;
+  metadata: Record<string, string>;
+}
+
 export interface UploadDocumentsResponse {
-  documents: Document[];
+  documents: UploadedDocument[];
 }
 
 export interface GetDocumentParams {
@@ -153,6 +164,12 @@ export interface ListDocumentsParams {
   tagIds?: string;
   nameSearch?: string;
   metadataSearch?: string;
+}
+
+export interface ListDocumentsResponse {
+  documents: Document[];
+  total_count: number;
+  skip: number;
 }
 
 // OCR types
