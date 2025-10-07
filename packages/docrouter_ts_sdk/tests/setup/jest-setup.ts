@@ -1,5 +1,4 @@
-import { TestServer, defaultTestConfig } from './test-server';
-import { MongoDBTestSetup, TEST_USER_ID, TEST_ORG_ID } from './mongodb-setup';
+import { TEST_USER_ID, TEST_ORG_ID } from './mongodb-setup';
 import { TestFixturesHelper } from './test-fixtures';
 
 // Environment variables are set in global-setup.ts before the test server starts
