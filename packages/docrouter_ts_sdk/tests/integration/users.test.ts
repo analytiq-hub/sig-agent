@@ -1,4 +1,4 @@
-import { DocRouter, DocRouterAccount } from '../../src';
+import { DocRouterAccount } from '../../src';
 import { getTestDatabase, getBaseUrl, createTestFixtures } from '../setup/jest-setup';
 
 describe('Users Integration Tests', () => {
@@ -19,7 +19,7 @@ describe('Users Integration Tests', () => {
         accountToken: tokens.admin.account_token
       });
 
-      const response = await client.users.list();
+      const response = await client.listUsers();
       
       expect(response).toBeDefined();
       expect(response.users).toBeDefined();
@@ -34,7 +34,7 @@ describe('Users Integration Tests', () => {
         accountToken: tokens.admin.account_token
       });
 
-      const response = await client.users.list({
+      const response = await client.listUsers({
         organization_id: tokens.org_id
       });
       
@@ -49,7 +49,7 @@ describe('Users Integration Tests', () => {
         accountToken: tokens.admin.account_token
       });
 
-      const response = await client.users.list({
+      const response = await client.listUsers({
         skip: 0,
         limit: 5
       });
@@ -66,7 +66,7 @@ describe('Users Integration Tests', () => {
         accountToken: tokens.admin.account_token
       });
 
-      const response = await client.users.get(tokens.admin.id);
+      const response = await client.getUser(tokens.admin.id);
       
       expect(response).toBeDefined();
       expect(response.user).toBeDefined();
@@ -86,7 +86,7 @@ describe('Users Integration Tests', () => {
         password: 'testpassword123'
       };
 
-      const response = await client.users.create(newUser);
+      const response = await client.createUser(newUser);
 
       expect(response).toBeDefined();
       expect(response.user).toBeDefined();
@@ -104,7 +104,7 @@ describe('Users Integration Tests', () => {
         name: 'Updated Name'
       };
 
-      const response = await client.users.update(tokens.admin.id, updateData);
+      const response = await client.updateUser(tokens.admin.id, updateData);
       
       expect(response).toBeDefined();
       expect(response.user).toBeDefined();
@@ -124,14 +124,14 @@ describe('Users Integration Tests', () => {
         password: 'testpassword123'
       };
 
-      const createResponse = await client.users.create(newUser);
+      const createResponse = await client.createUser(newUser);
       const userId = createResponse.user.id;
 
       // Delete the user
-      await client.users.delete(userId);
+      await client.deleteUser(userId);
 
       // Verify user is deleted
-      await expect(client.users.get(userId)).rejects.toThrow();
+      await expect(client.getUser(userId)).rejects.toThrow();
     });
   });
 
@@ -143,7 +143,7 @@ describe('Users Integration Tests', () => {
       });
 
       // Admin user is already verified, so this will throw
-      await expect(client.users.sendVerificationEmail(tokens.admin.id)).rejects.toThrow();
+      await expect(client.sendVerificationEmail(tokens.admin.id)).rejects.toThrow();
     });
 
     test('should send registration verification email', async () => {
@@ -153,7 +153,7 @@ describe('Users Integration Tests', () => {
       });
 
       // Admin user is already verified, so this will throw
-      await expect(client.users.sendRegistrationVerificationEmail(tokens.admin.id)).rejects.toThrow();
+      await expect(client.sendRegistrationVerificationEmail(tokens.admin.id)).rejects.toThrow();
     });
 
     test('should verify email with token', async () => {
@@ -163,7 +163,7 @@ describe('Users Integration Tests', () => {
       });
 
       // Invalid token should throw an error
-      await expect(client.users.verifyEmail('invalid_token')).rejects.toThrow();
+      await expect(client.verifyEmail('invalid_token')).rejects.toThrow();
     });
   });
 
@@ -174,7 +174,7 @@ describe('Users Integration Tests', () => {
         accountToken: tokens.admin.account_token
       });
 
-      await expect(client.users.get('invalid_id')).rejects.toThrow();
+      await expect(client.getUser('invalid_id')).rejects.toThrow();
     });
 
     test('should handle unauthorized access', async () => {
@@ -183,7 +183,7 @@ describe('Users Integration Tests', () => {
         accountToken: 'invalid_token'
       });
 
-      await expect(client.users.list()).rejects.toThrow();
+      await expect(client.listUsers()).rejects.toThrow();
     });
 
     test('should handle duplicate email', async () => {
@@ -198,7 +198,7 @@ describe('Users Integration Tests', () => {
         name: 'First User',
         password: 'testpassword123'
       };
-      await client.users.create(firstUser);
+      await client.createUser(firstUser);
 
       // Try to create another user with the same email
       const duplicateUser = {
@@ -207,7 +207,7 @@ describe('Users Integration Tests', () => {
         password: 'testpassword123'
       };
 
-      await expect(client.users.create(duplicateUser)).rejects.toThrow();
+      await expect(client.createUser(duplicateUser)).rejects.toThrow();
     });
   });
 });

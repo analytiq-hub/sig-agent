@@ -1,32 +1,27 @@
-import { DocRouter, DocRouterAccount, DocRouterOrg } from '../../src';
+import { DocRouterAccount, DocRouterOrg } from '../../src';
 
 describe('SDK Functionality Tests', () => {
   describe('Client Instantiation', () => {
-    test('DocRouter should create all API modules', () => {
-      const client = new DocRouter({
+    test('DocRouterAccount should be constructible', () => {
+      const client = new DocRouterAccount({
         baseURL: 'https://api.example.com',
-        token: 'test-token'
+        accountToken: 'test-token'
       });
-
-      expect(client.documents).toBeDefined();
-      expect(client.organizations).toBeDefined();
-      expect(client.llm).toBeDefined();
-      expect(client.tokens).toBeDefined();
-      expect(client.users).toBeDefined();
-      expect(client.ocr).toBeDefined();
-      expect(client.tags).toBeDefined();
+      expect(client).toBeDefined();
     });
 
-    test('DocRouterAccount should create account-level API modules', () => {
+    test('DocRouterAccount should expose account-level APIs', () => {
       const client = new DocRouterAccount({
         baseURL: 'https://api.example.com',
         accountToken: 'account-token'
       });
 
-      expect(client.organizations).toBeDefined();
-      expect(client.llm).toBeDefined();
-      expect(client.tokens).toBeDefined();
-      expect(client.users).toBeDefined();
+      expect(typeof client.listOrganizations).toBe('function');
+      expect(typeof client.createOrganization).toBe('function');
+      expect(typeof client.listLLMModels).toBe('function');
+      expect(typeof client.listLLMProviders).toBe('function');
+      expect(typeof client.createAccountToken).toBe('function');
+      expect(typeof client.listUsers).toBe('function');
     });
 
     test('DocRouterOrg should create organization-scoped API modules', () => {
@@ -60,15 +55,7 @@ describe('SDK Functionality Tests', () => {
   });
 
   describe('Token Management', () => {
-    test('should update tokens on DocRouter', () => {
-      const client = new DocRouter({
-        baseURL: 'https://api.example.com',
-        token: 'initial-token'
-      });
-
-      client.updateToken('new-token');
-      expect(client).toBeDefined();
-    });
+    // DocRouter removed
 
     test('should update tokens on DocRouterAccount', () => {
       const client = new DocRouterAccount({
@@ -91,112 +78,57 @@ describe('SDK Functionality Tests', () => {
       expect(client).toBeDefined();
     });
 
-    test('should update token provider on DocRouter', () => {
-      const client = new DocRouter({
-        baseURL: 'https://api.example.com',
-        token: 'initial-token'
-      });
-
-      const newProvider = jest.fn().mockResolvedValue('provider-token');
-      client.updateTokenProvider(newProvider);
-      expect(client).toBeDefined();
-    });
+    // DocRouter removed
   });
 
   describe('API Module Methods', () => {
-    test('organizations module should have expected methods', () => {
-      const client = new DocRouter({
+    test('DocRouterAccount organizations methods should exist', () => {
+      const client = new DocRouterAccount({
         baseURL: 'https://api.example.com',
-        token: 'test-token'
+        accountToken: 'test-token'
       });
-
-      expect(typeof client.organizations.list).toBe('function');
-      expect(typeof client.organizations.get).toBe('function');
-      expect(typeof client.organizations.create).toBe('function');
-      expect(typeof client.organizations.update).toBe('function');
-      expect(typeof client.organizations.delete).toBe('function');
+      expect(typeof client.listOrganizations).toBe('function');
+      expect(typeof client.getOrganization).toBe('function');
+      expect(typeof client.createOrganization).toBe('function');
+      expect(typeof client.updateOrganization).toBe('function');
+      expect(typeof client.deleteOrganization).toBe('function');
     });
 
-    test('documents module should have expected methods', () => {
-      const client = new DocRouter({
-        baseURL: 'https://api.example.com',
-        token: 'test-token'
-      });
+    // DocRouter removed
 
-      expect(typeof client.documents.list).toBe('function');
-      expect(typeof client.documents.get).toBe('function');
-      expect(typeof client.documents.upload).toBe('function');
-      expect(typeof client.documents.update).toBe('function');
-      expect(typeof client.documents.delete).toBe('function');
-    });
+    // DocRouter removed
 
-    test('llm module should have expected methods', () => {
-      const client = new DocRouter({
-        baseURL: 'https://api.example.com',
-        token: 'test-token'
-      });
-
-      expect(typeof client.llm.chat).toBe('function');
-      expect(typeof client.llm.chatStream).toBe('function');
-      expect(typeof client.llm.updateResult).toBe('function');
-    });
-
-    test('tokens module should have expected methods', () => {
+    test('account token methods should exist', () => {
       const client = new DocRouterAccount({
         baseURL: 'https://api.example.com',
         accountToken: 'test-token'
       });
 
-      expect(typeof client.tokens.getAccountTokens).toBe('function');
-      expect(typeof client.tokens.createOrganizationToken).toBe('function');
-      expect(typeof client.tokens.deleteAccountToken).toBe('function');
-      expect(typeof client.tokens.deleteOrganizationToken).toBe('function');
+      expect(typeof client.getAccountTokens).toBe('function');
+      expect(typeof client.createOrganizationToken).toBe('function');
+      expect(typeof client.deleteAccountToken).toBe('function');
+      expect(typeof client.deleteOrganizationToken).toBe('function');
     });
 
-    test('users module should have expected methods', () => {
+    test('account user methods should exist', () => {
       const client = new DocRouterAccount({
         baseURL: 'https://api.example.com',
         accountToken: 'test-token'
       });
 
-      expect(typeof client.users.list).toBe('function');
-      expect(typeof client.users.get).toBe('function');
-      expect(typeof client.users.create).toBe('function');
-      expect(typeof client.users.update).toBe('function');
-      expect(typeof client.users.delete).toBe('function');
+      expect(typeof client.listUsers).toBe('function');
+      expect(typeof client.getUser).toBe('function');
+      expect(typeof client.createUser).toBe('function');
+      expect(typeof client.updateUser).toBe('function');
+      expect(typeof client.deleteUser).toBe('function');
     });
   });
 
   describe('Configuration', () => {
-    test('should accept custom timeout', () => {
-      const client = new DocRouter({
-        baseURL: 'https://api.example.com',
-        token: 'test-token',
-        timeout: 60000
-      });
+    // DocRouter removed
 
-      expect(client).toBeDefined();
-    });
+    // DocRouter removed
 
-    test('should accept custom retries', () => {
-      const client = new DocRouter({
-        baseURL: 'https://api.example.com',
-        token: 'test-token',
-        retries: 5
-      });
-
-      expect(client).toBeDefined();
-    });
-
-    test('should accept auth error callback', () => {
-      const onAuthError = jest.fn();
-      const client = new DocRouter({
-        baseURL: 'https://api.example.com',
-        token: 'test-token',
-        onAuthError
-      });
-
-      expect(client).toBeDefined();
-    });
+    // DocRouter removed
   });
 });

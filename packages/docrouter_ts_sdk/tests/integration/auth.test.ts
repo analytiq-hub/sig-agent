@@ -1,4 +1,4 @@
-import { DocRouter, DocRouterAccount, DocRouterOrg } from '../../src';
+import { DocRouterAccount, DocRouterOrg } from '../../src';
 import { getTestDatabase, getBaseUrl, createTestFixtures, TestFixturesHelper } from '../setup/jest-setup';
 
 describe('Authentication Integration Tests', () => {
@@ -12,41 +12,7 @@ describe('Authentication Integration Tests', () => {
     tokens = await createTestFixtures(testDb, baseUrl);
   });
 
-  describe('DocRouter (General Purpose)', () => {
-    test('should authenticate with account token', async () => {
-      const client = new DocRouter({
-        baseURL: getBaseUrl(),
-        token: tokens.admin.account_token
-      });
-
-      // Test account-level endpoint
-      const orgs = await client.organizations.list();
-      expect(orgs).toBeDefined();
-      expect(Array.isArray(orgs.organizations)).toBe(true);
-    });
-
-    test('should handle invalid token', async () => {
-      const client = new DocRouter({
-        baseURL: getBaseUrl(),
-        token: 'invalid_token',
-        onAuthError: (error) => {
-          expect(error.message).toContain('authentication');
-        }
-      });
-
-      await expect(client.organizations.list()).rejects.toThrow();
-    });
-
-    test('should handle token provider', async () => {
-      const client = new DocRouter({
-        baseURL: getBaseUrl(),
-        tokenProvider: async () => tokens.admin.account_token
-      });
-
-      const orgs = await client.organizations.list();
-      expect(orgs).toBeDefined();
-    });
-  });
+  // DocRouter removed
 
   describe('DocRouterAccount (Account-level)', () => {
     test('should authenticate with account token', async () => {
@@ -55,7 +21,7 @@ describe('Authentication Integration Tests', () => {
         accountToken: tokens.admin.account_token
       });
 
-      const orgs = await client.organizations.list();
+      const orgs = await client.listOrganizations();
       expect(orgs).toBeDefined();
       expect(Array.isArray(orgs.organizations)).toBe(true);
     });
@@ -66,7 +32,7 @@ describe('Authentication Integration Tests', () => {
         accountToken: tokens.admin.account_token
       });
 
-      const token = await client.tokens.createOrganizationToken({
+      const token: any = await client.createOrganizationToken({
         name: 'Test Org Token',
         lifetime: 86400
       }, tokens.org_id);
@@ -81,7 +47,7 @@ describe('Authentication Integration Tests', () => {
         accountToken: tokens.admin.account_token
       });
 
-      const accountTokens = await client.tokens.getAccountTokens();
+      const accountTokens = await client.getAccountTokens();
       expect(accountTokens).toBeDefined();
       expect(Array.isArray(accountTokens)).toBe(true);
     });
