@@ -1,5 +1,4 @@
 import { spawn, ChildProcess, exec } from 'child_process';
-import { promisify } from 'util';
 import { setTimeout } from 'timers/promises';
 import * as path from 'path';
 import * as fs from 'fs';
