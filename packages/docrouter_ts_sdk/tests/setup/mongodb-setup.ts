@@ -56,39 +56,7 @@ export class MongoDBTestSetup {
 
   async cleanup(): Promise<void> {
     // Clean up all test databases (only called in afterAll)
-    const adminEmail = process.env.ADMIN_EMAIL || 'test-admin@example.com';
-
-    for (const db of this.databases) {
-      // Delete test users (but keep admin)
-      await db.collection('users').deleteMany({
-        email: { $ne: adminEmail }
-      }).catch(() => {});
-
-      // Delete test organizations (but keep admin's organization)
-      const adminUser = await db.collection('users').findOne({ email: adminEmail });
-      if (adminUser) {
-        await db.collection('organizations').deleteMany({
-          _id: { $ne: adminUser._id }
-        }).catch(() => {});
-      }
-
-      // Clear other test collections
-      const collectionsToClean = [
-        'access_tokens',
-        'documents',
-        'tags',
-        'forms',
-        'schemas',
-        'prompts',
-        'payments_customers',
-        'payments_subscriptions',
-        'payments_usage'
-      ];
-
-      for (const collectionName of collectionsToClean) {
-        await db.collection(collectionName).deleteMany({}).catch(() => {});
-      }
-    }
+    // We drop the database at the start of tests anyway, so just close the connection
     this.databases = [];
 
     if (this.client) {
