@@ -37,6 +37,22 @@ import {
   UpdateSchemaParams,
   DeleteSchemaParams,
   Schema,
+  // Flows
+  CreateFlowParams,
+  ListFlowsParams,
+  ListFlowsResponse,
+  GetFlowParams,
+  UpdateFlowParams,
+  DeleteFlowParams,
+  Flow,
+  // Payments
+  PortalSessionResponse,
+  SubscriptionResponse,
+  UsageResponse,
+  CreditConfig,
+  CreditUpdateResponse,
+  UsageRangeRequest,
+  UsageRangeResponse,
 } from './types';
 
 /**
@@ -367,6 +383,97 @@ export class DocRouterOrg {
   async deleteSchema(params: Omit<DeleteSchemaParams, 'organizationId'>): Promise<void> {
     const { schemaId } = params;
     await this.http.delete(`/v0/orgs/${this.organizationId}/schemas/${schemaId}`);
+  }
+
+  // ---------------- Flows ----------------
+
+  async createFlow(params: Omit<CreateFlowParams, 'organizationId'>): Promise<Flow> {
+    const { flow } = params;
+    return this.http.post<Flow>(`/v0/orgs/${this.organizationId}/flows`, flow);
+  }
+
+  async updateFlow(params: Omit<UpdateFlowParams, 'organizationId'>): Promise<Flow> {
+    const { flowId, flow } = params;
+    return this.http.put<Flow>(`/v0/orgs/${this.organizationId}/flows/${flowId}`, flow);
+  }
+
+  async listFlows(params?: Omit<ListFlowsParams, 'organizationId'>): Promise<ListFlowsResponse> {
+    const { skip, limit } = params || {} as any;
+    return this.http.get<ListFlowsResponse>(`/v0/orgs/${this.organizationId}/flows`, {
+      params: { skip: skip || 0, limit: limit || 10 }
+    });
+  }
+
+  async getFlow(params: Omit<GetFlowParams, 'organizationId'>): Promise<Flow> {
+    const { flowId } = params;
+    return this.http.get<Flow>(`/v0/orgs/${this.organizationId}/flows/${flowId}`);
+  }
+
+  async deleteFlow(params: Omit<DeleteFlowParams, 'organizationId'>): Promise<void> {
+    const { flowId } = params;
+    await this.http.delete(`/v0/orgs/${this.organizationId}/flows/${flowId}`);
+  }
+
+  // ---------------- Payments ----------------
+
+  async getCustomerPortal(): Promise<PortalSessionResponse> {
+    return this.http.post<PortalSessionResponse>(`/v0/orgs/${this.organizationId}/payments/customer-portal`, {});
+  }
+
+  async getSubscription(): Promise<SubscriptionResponse> {
+    return this.http.get<SubscriptionResponse>(`/v0/orgs/${this.organizationId}/payments/subscription`);
+  }
+
+  async activateSubscription(): Promise<{ status: string; message: string }> {
+    return this.http.put<{ status: string; message: string }>(`/v0/orgs/${this.organizationId}/payments/subscription`, {});
+  }
+
+  async cancelSubscription(): Promise<{ status: string; message: string }> {
+    return this.http.delete<{ status: string; message: string }>(`/v0/orgs/${this.organizationId}/payments/subscription`);
+  }
+
+  async createSubscription(): Promise<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`/v0/orgs/${this.organizationId}/payments/subscription`, {});
+  }
+
+  async getCurrentUsage(): Promise<UsageResponse> {
+    return this.http.get<UsageResponse>(`/v0/orgs/${this.organizationId}/payments/usage`);
+  }
+
+  async addCredits(amount: number): Promise<CreditUpdateResponse> {
+    return this.http.post<CreditUpdateResponse>(`/v0/orgs/${this.organizationId}/payments/credits/add`, { amount });
+  }
+
+  async getCreditConfig(): Promise<CreditConfig> {
+    return this.http.get<CreditConfig>(`/v0/orgs/${this.organizationId}/payments/credits/config`);
+  }
+
+  async purchaseCredits(request: { credits: number; success_url: string; cancel_url: string; }) {
+    return this.http.post(`/v0/orgs/${this.organizationId}/payments/credits/purchase`, request);
+  }
+
+  async getUsageRange(request: UsageRangeRequest): Promise<UsageRangeResponse> {
+    return this.http.get<UsageRangeResponse>(`/v0/orgs/${this.organizationId}/payments/usage/range`, { params: request });
+  }
+
+  async createCheckoutSession(planId: string): Promise<PortalSessionResponse> {
+    return this.http.post<PortalSessionResponse>(`/v0/orgs/${this.organizationId}/payments/checkout-session`, { plan_id: planId });
+  }
+
+  // ---------------- LLM Chat (Org) ----------------
+
+  async runLLMChat(request: { messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>; model?: string; temperature?: number; max_tokens?: number; stream?: boolean; }) {
+    return this.http.post(`/v0/orgs/${this.organizationId}/llm/run`, request);
+  }
+
+  async runLLMChatStream(
+    request: { messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>; model?: string; temperature?: number; max_tokens?: number; stream?: boolean; },
+    onChunk: (chunk: unknown) => void,
+    onError?: (error: Error) => void,
+    abortSignal?: AbortSignal
+  ): Promise<void> {
+    const streamingRequest = { ...request, stream: true };
+    return this.http.stream(`/v0/orgs/${this.organizationId}/llm/run`, streamingRequest, onChunk, onError, abortSignal);
   }
 
   /**

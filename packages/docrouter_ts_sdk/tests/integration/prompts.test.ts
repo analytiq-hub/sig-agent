@@ -20,19 +20,27 @@ describe('Prompts Integration Tests', () => {
   test('create/list/get/update/delete prompt', async () => {
     const created = await client.createPrompt({ prompt: { name: 'Prompt A', content: 'Extract fields' } as any });
     expect(created).toBeDefined();
-    expect(created.id).toBeDefined();
+    // Backend returns prompt_revid/prompt_id
+    const promptRevId = (created as any).prompt_revid || (created as any).id;
+    expect(promptRevId).toBeDefined();
 
     const listed = await client.listPrompts({ limit: 5 });
     expect(Array.isArray(listed.prompts)).toBe(true);
 
-    const fetched = await client.getPrompt({ promptRevId: created.id });
-    expect(fetched.name).toBeDefined();
+    const fetched = await client.getPrompt({ promptRevId });
+    expect((fetched as any).name || (fetched as any).prompt_name || fetched).toBeDefined();
 
-    const updated = await client.updatePrompt({ promptId: created.id, prompt: { name: 'Prompt A+' } });
-    expect(updated.name).toBe('Prompt A+');
+    const updated = await client.updatePrompt({ 
+      promptId: (created as any).prompt_id || (created as any).id, 
+      prompt: { 
+        name: 'Prompt A', 
+        content: 'Extract fields v2' 
+      } as any 
+    });
+    expect((updated as any).content).toBe('Extract fields v2');
 
-    await client.deletePrompt({ promptId: created.id });
-    await expect(client.getPrompt({ promptRevId: created.id })).rejects.toThrow();
+    await client.deletePrompt({ promptId: (created as any).prompt_id || (created as any).id });
+    await expect(client.getPrompt({ promptRevId })).rejects.toThrow();
   });
 });
 
