@@ -36,6 +36,24 @@ describe('Tags Integration Tests', () => {
     await client.deleteTag({ tagId: created.id });
     await expect(client.getTag({ tagId: created.id })).rejects.toThrow();
   });
+
+  test('list tags supports skip, limit, and nameSearch', async () => {
+    const t1 = await client.createTag({ tag: { name: 'Alpha Tag', color: '#111111' } });
+    const t2 = await client.createTag({ tag: { name: 'Beta Tag', color: '#222222' } });
+
+    const limited = await client.listTags({ limit: 1 });
+    expect(Array.isArray(limited.tags)).toBe(true);
+    expect(limited.tags.length).toBeLessThanOrEqual(1);
+
+    const skipped = await client.listTags({ skip: 1, limit: 10 });
+    expect(skipped.skip).toBe(1);
+
+    const search = await client.listTags({ nameSearch: 'Alpha' });
+    expect(search.tags.find(t => t.name.includes('Alpha'))).toBeDefined();
+
+    await client.deleteTag({ tagId: t1.id });
+    await client.deleteTag({ tagId: t2.id });
+  });
 });
 
 

@@ -42,6 +42,37 @@ describe('Prompts Integration Tests', () => {
     await client.deletePrompt({ promptId: (created as any).prompt_id || (created as any).id });
     await expect(client.getPrompt({ promptRevId })).rejects.toThrow();
   });
+
+  test('list prompts supports skip, limit, and nameSearch', async () => {
+    // create two prompts
+    const a = await client.createPrompt({ prompt: { name: 'Alpha Prompt', content: 'A' } as any });
+    const b = await client.createPrompt({ prompt: { name: 'Beta Prompt', content: 'B' } as any });
+
+    const listedLimited = await client.listPrompts({ limit: 1 });
+    expect(Array.isArray(listedLimited.prompts)).toBe(true);
+    expect(listedLimited.prompts.length).toBeLessThanOrEqual(1);
+
+    const listedSkip = await client.listPrompts({ skip: 1, limit: 10 });
+    expect(listedSkip.skip).toBe(1);
+
+    const searchAlpha = await client.listPrompts({ nameSearch: 'Alpha' });
+    expect(searchAlpha.prompts.find(p => (p as any).name?.includes('Alpha'))).toBeDefined();
+
+    // cleanup
+    await client.deletePrompt({ promptId: (a as any).prompt_id });
+    await client.deletePrompt({ promptId: (b as any).prompt_id });
+  });
+
+  test('update only name does not change content', async () => {
+    const created = await client.createPrompt({ prompt: { name: 'Name Only', content: 'original' } as any });
+    const updatedNameOnly = await client.updatePrompt({
+      promptId: (created as any).prompt_id,
+      prompt: { name: 'Name Only Renamed', content: 'original' } as any
+    });
+    expect((updatedNameOnly as any).name).toBe('Name Only Renamed');
+    expect((updatedNameOnly as any).content).toBe('original');
+    await client.deletePrompt({ promptId: (created as any).prompt_id });
+  });
 });
 
 
