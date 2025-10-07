@@ -72,7 +72,10 @@ export class TestFixturesHelper {
     const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
     // Use the system admin user created during server startup
-    const adminEmail = process.env.ADMIN_EMAIL || 'test-admin@example.com';
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (!adminEmail) {
+      throw new Error('ADMIN_EMAIL environment variable is not set');
+    }
     const adminUser = await testDb.collection('users').findOne({ email: adminEmail });
 
     if (!adminUser) {
