@@ -35,8 +35,6 @@ export class TestServer {
       NEXTAUTH_SECRET: this.config.nextauthSecret,
       ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'test-admin@example.com',
       ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'test-password-123',
-      STRIPE_SECRET_KEY: '', // Disable Stripe for tests
-      STRIPE_WEBHOOK_SECRET: '',
     };
 
     const packagesDir = path.join(__dirname, '../../..'); // Go up to packages directory
