@@ -96,7 +96,7 @@ describe('Authentication Integration Tests', () => {
       });
 
       // Test organization-scoped endpoint
-      const documents = await client.documents.list();
+      const documents = await client.listDocuments();
       expect(documents).toBeDefined();
     });
 
@@ -110,7 +110,7 @@ describe('Authentication Integration Tests', () => {
         }
       });
 
-      await expect(client.documents.list()).rejects.toThrow();
+      await expect(client.listDocuments()).rejects.toThrow();
     });
 
     test('should update token', async () => {
@@ -124,7 +124,7 @@ describe('Authentication Integration Tests', () => {
       client.updateToken(tokens.member.token);
       
       // Should still work with new token
-      const documents = await client.documents.list();
+      const documents = await client.listDocuments();
       expect(documents).toBeDefined();
     });
   });
@@ -138,7 +138,7 @@ describe('Authentication Integration Tests', () => {
       });
 
       // Admin should be able to list documents
-      const documents = await client.documents.list();
+      const documents = await client.listDocuments();
       expect(documents).toBeDefined();
     });
 
@@ -150,7 +150,7 @@ describe('Authentication Integration Tests', () => {
       });
 
       // Member should be able to list documents
-      const documents = await client.documents.list();
+      const documents = await client.listDocuments();
       expect(documents).toBeDefined();
     });
 
@@ -165,7 +165,7 @@ describe('Authentication Integration Tests', () => {
       });
 
       // Outsider should not be able to access org resources
-      await expect(client.documents.list()).rejects.toThrow();
+      await expect(client.listDocuments()).rejects.toThrow();
     });
   });
 });

@@ -26,7 +26,7 @@ describe('Documents Integration Tests', () => {
 
   describe('upload', () => {
     test('should upload a document', async () => {
-      const response = await client.documents.upload({
+      const response = await client.uploadDocuments({
         documents: [{
           name: 'test.pdf',
           content: createMinimalPdf(),
@@ -42,7 +42,7 @@ describe('Documents Integration Tests', () => {
     test('should upload document with metadata', async () => {
       const metadata = { author: 'Test User', department: 'Testing' };
 
-      const response = await client.documents.upload({
+      const response = await client.uploadDocuments({
         documents: [{
           name: 'test-metadata.pdf',
           content: createMinimalPdf(),
@@ -55,7 +55,7 @@ describe('Documents Integration Tests', () => {
     });
 
     test('should upload multiple documents', async () => {
-      const response = await client.documents.upload({
+      const response = await client.uploadDocuments({
         documents: [
           { name: 'test1.pdf', content: createMinimalPdf(), type: 'application/pdf' },
           { name: 'test2.pdf', content: createMinimalPdf(), type: 'application/pdf' }
@@ -68,14 +68,14 @@ describe('Documents Integration Tests', () => {
 
   describe('list', () => {
     test('should list documents', async () => {
-      const response = await client.documents.list();
+      const response = await client.listDocuments();
 
       expect(response.documents).toBeDefined();
       expect(Array.isArray(response.documents)).toBe(true);
     });
 
     test('should list documents with skip parameter', async () => {
-      const response = await client.documents.list({
+      const response = await client.listDocuments({
         skip: 0
       });
 
@@ -83,7 +83,7 @@ describe('Documents Integration Tests', () => {
     });
 
     test('should list documents with limit parameter', async () => {
-      const response = await client.documents.list({
+      const response = await client.listDocuments({
         limit: 5
       });
 
@@ -92,7 +92,7 @@ describe('Documents Integration Tests', () => {
 
     test('should list documents with nameSearch parameter', async () => {
       // Upload a document first
-      await client.documents.upload({
+      await client.uploadDocuments({
         documents: [{
           name: 'searchable-document.pdf',
           content: createMinimalPdf(),
@@ -100,7 +100,7 @@ describe('Documents Integration Tests', () => {
         }]
       });
 
-      const response = await client.documents.list({
+      const response = await client.listDocuments({
         nameSearch: 'searchable'
       });
 
@@ -110,7 +110,7 @@ describe('Documents Integration Tests', () => {
 
     test('should list documents with metadataSearch parameter', async () => {
       // Upload a document with metadata
-      await client.documents.upload({
+      await client.uploadDocuments({
         documents: [{
           name: 'metadata-doc.pdf',
           content: createMinimalPdf(),
@@ -119,7 +119,7 @@ describe('Documents Integration Tests', () => {
         }]
       });
 
-      const response = await client.documents.list({
+      const response = await client.listDocuments({
         metadataSearch: 'type=invoice'
       });
 
@@ -128,7 +128,7 @@ describe('Documents Integration Tests', () => {
 
     test('should list documents with tagIds parameter', async () => {
       // Create a tag first
-      const tagResponse = await client.tags.create({
+      const tagResponse = await client.createTag({
         tag: {
           name: 'Test Tag',
           color: '#FF0000'
@@ -137,7 +137,7 @@ describe('Documents Integration Tests', () => {
       const tagId = tagResponse.id;
 
       // Upload a document with the tag
-      const uploadResponse = await client.documents.upload({
+      const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'tagged-doc.pdf',
           content: createMinimalPdf(),
@@ -147,13 +147,13 @@ describe('Documents Integration Tests', () => {
       const docId = uploadResponse.documents[0].document_id;
 
       // Update document with tag
-      await client.documents.update({
+      await client.updateDocument({
         documentId: docId,
         tagIds: [tagId]
       });
 
       // List with tag filter
-      const response = await client.documents.list({
+      const response = await client.listDocuments({
         tagIds: tagId
       });
 
@@ -166,7 +166,7 @@ describe('Documents Integration Tests', () => {
   describe('get', () => {
     test('should get document by id', async () => {
       // Upload a document first
-      const uploadResponse = await client.documents.upload({
+      const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'get-test.pdf',
           content: createMinimalPdf(),
@@ -175,7 +175,7 @@ describe('Documents Integration Tests', () => {
       });
       const docId = uploadResponse.documents[0].document_id;
 
-      const response = await client.documents.get({
+      const response = await client.getDocument({
         documentId: docId,
         fileType: 'original'
       });
@@ -187,7 +187,7 @@ describe('Documents Integration Tests', () => {
 
     test('should get document with fileType=pdf parameter', async () => {
       // Upload a document first
-      const uploadResponse = await client.documents.upload({
+      const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'pdf-type-test.pdf',
           content: createMinimalPdf(),
@@ -196,7 +196,7 @@ describe('Documents Integration Tests', () => {
       });
       const docId = uploadResponse.documents[0].document_id;
 
-      const response = await client.documents.get({
+      const response = await client.getDocument({
         documentId: docId,
         fileType: 'pdf'
       });
@@ -209,7 +209,7 @@ describe('Documents Integration Tests', () => {
   describe('update', () => {
     test('should update document name', async () => {
       // Upload a document first
-      const uploadResponse = await client.documents.upload({
+      const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'original-name.pdf',
           content: createMinimalPdf(),
@@ -218,12 +218,12 @@ describe('Documents Integration Tests', () => {
       });
       const docId = uploadResponse.documents[0].document_id;
 
-      await client.documents.update({
+      await client.updateDocument({
         documentId: docId,
         documentName: 'updated-name.pdf'
       });
 
-      const response = await client.documents.get({
+      const response = await client.getDocument({
         documentId: docId,
         fileType: 'original'
       });
@@ -233,7 +233,7 @@ describe('Documents Integration Tests', () => {
 
     test('should update document tagIds', async () => {
       // Create a tag
-      const tagResponse = await client.tags.create({
+      const tagResponse = await client.createTag({
         tag: {
           name: 'Update Tag',
           color: '#00FF00'
@@ -242,7 +242,7 @@ describe('Documents Integration Tests', () => {
       const tagId = tagResponse.id;
 
       // Upload a document
-      const uploadResponse = await client.documents.upload({
+      const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'tag-update-test.pdf',
           content: createMinimalPdf(),
@@ -252,12 +252,12 @@ describe('Documents Integration Tests', () => {
       const docId = uploadResponse.documents[0].document_id;
 
       // Update with tag
-      await client.documents.update({
+      await client.updateDocument({
         documentId: docId,
         tagIds: [tagId]
       });
 
-      const response = await client.documents.get({
+      const response = await client.getDocument({
         documentId: docId,
         fileType: 'original'
       });
@@ -267,7 +267,7 @@ describe('Documents Integration Tests', () => {
 
     test('should update document metadata', async () => {
       // Upload a document
-      const uploadResponse = await client.documents.upload({
+      const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'metadata-update-test.pdf',
           content: createMinimalPdf(),
@@ -279,12 +279,12 @@ describe('Documents Integration Tests', () => {
       const newMetadata = { status: 'reviewed', reviewer: 'Admin' };
 
       // Update metadata
-      await client.documents.update({
+      await client.updateDocument({
         documentId: docId,
         metadata: newMetadata
       });
 
-      const response = await client.documents.get({
+      const response = await client.getDocument({
         documentId: docId,
         fileType: 'original'
       });
@@ -296,7 +296,7 @@ describe('Documents Integration Tests', () => {
   describe('delete', () => {
     test('should delete document', async () => {
       // Upload a document first
-      const uploadResponse = await client.documents.upload({
+      const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'delete-test.pdf',
           content: createMinimalPdf(),
@@ -306,12 +306,12 @@ describe('Documents Integration Tests', () => {
       const docId = uploadResponse.documents[0].document_id;
 
       // Delete the document
-      await client.documents.delete({
+      await client.deleteDocument({
         documentId: docId
       });
 
       // Verify it's deleted
-      await expect(client.documents.get({
+      await expect(client.getDocument({
         documentId: docId,
         fileType: 'original'
       })).rejects.toThrow();

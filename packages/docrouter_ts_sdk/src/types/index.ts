@@ -106,7 +106,6 @@ export interface UploadDocument {
 }
 
 export interface UploadDocumentsParams {
-  organizationId: string;
   documents: UploadDocument[];
 }
 
@@ -126,7 +125,6 @@ export interface UploadDocumentsResponse {
 }
 
 export interface GetDocumentParams {
-  organizationId: string;
   documentId: string;
   fileType: string;
 }
@@ -145,7 +143,6 @@ export interface GetDocumentResponse {
 }
 
 export interface UpdateDocumentParams {
-  organizationId: string;
   documentId: string;
   documentName?: string;
   tagIds?: string[];
@@ -153,12 +150,10 @@ export interface UpdateDocumentParams {
 }
 
 export interface DeleteDocumentParams {
-  organizationId: string;
   documentId: string;
 }
 
 export interface ListDocumentsParams {
-  organizationId?: string;
   skip?: number;
   limit?: number;
   tagIds?: string;
@@ -174,18 +169,15 @@ export interface ListDocumentsResponse {
 
 // OCR types
 export interface GetOCRBlocksParams {
-  organizationId: string;
   documentId: string;
 }
 
 export interface GetOCRTextParams {
-  organizationId: string;
   documentId: string;
   pageNum?: number;
 }
 
 export interface GetOCRMetadataParams {
-  organizationId: string;
   documentId: string;
 }
 
@@ -264,7 +256,6 @@ export interface SetLLMProviderConfigRequest {
 }
 
 export interface RunLLMParams {
-  organizationId: string;
   documentId: string;
   promptRevId: string;
   force?: boolean;
@@ -276,7 +267,6 @@ export interface RunLLMResponse {
 }
 
 export interface GetLLMResultParams {
-  organizationId: string;
   documentId: string;
   promptRevId: string;
   fallback?: boolean;
@@ -290,7 +280,6 @@ export interface GetLLMResultResponse {
 }
 
 export interface DeleteLLMResultParams {
-  organizationId: string;
   documentId: string;
   promptId: string;
 }
@@ -345,12 +334,10 @@ export interface Tag {
 }
 
 export interface CreateTagParams {
-  organizationId: string;
   tag: Omit<Tag, 'id' | 'created_at' | 'updated_at'>;
 }
 
 export interface ListTagsParams {
-  organizationId: string;
   skip?: number;
   limit?: number;
   nameSearch?: string;
@@ -363,13 +350,11 @@ export interface ListTagsResponse {
 }
 
 export interface UpdateTagParams {
-  organizationId: string;
   tagId: string;
   tag: Partial<Omit<Tag, 'id' | 'created_at' | 'updated_at'>>;
 }
 
 export interface DeleteTagParams {
-  organizationId: string;
   tagId: string;
 }
 

@@ -86,10 +86,25 @@ describe('SDK Client Unit Tests', () => {
 
       expect(client).toBeDefined();
       expect(client.organizationId).toBe('org-123');
-      expect(client.documents).toBeDefined();
-      expect(client.llm).toBeDefined();
-      expect(client.ocr).toBeDefined();
-      expect(client.tags).toBeDefined();
+      // flattened API surface
+      expect(typeof client.uploadDocuments).toBe('function');
+      expect(typeof client.listDocuments).toBe('function');
+      expect(typeof client.getDocument).toBe('function');
+      expect(typeof client.updateDocument).toBe('function');
+      expect(typeof client.deleteDocument).toBe('function');
+      expect(typeof client.getOCRBlocks).toBe('function');
+      expect(typeof client.getOCRText).toBe('function');
+      expect(typeof client.getOCRMetadata).toBe('function');
+      expect(typeof client.runLLM).toBe('function');
+      expect(typeof client.getLLMResult).toBe('function');
+      expect(typeof client.updateLLMResult).toBe('function');
+      expect(typeof client.deleteLLMResult).toBe('function');
+      expect(typeof client.downloadAllLLMResults).toBe('function');
+      expect(typeof client.createTag).toBe('function');
+      expect(typeof client.getTag).toBe('function');
+      expect(typeof client.listTags).toBe('function');
+      expect(typeof client.updateTag).toBe('function');
+      expect(typeof client.deleteTag).toBe('function');
     });
 
     test('should update org token', () => {
