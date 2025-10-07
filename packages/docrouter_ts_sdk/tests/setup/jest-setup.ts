@@ -1,5 +1,5 @@
 import { TEST_USER_ID, TEST_ORG_ID } from './mongodb-setup';
-import { TestFixturesHelper } from './test-fixtures';
+import { TestFixtures } from './test-fixtures';
 
 // Environment variables are set in global-setup.ts before the test server starts
 
@@ -76,7 +76,7 @@ export function getBaseUrl(): string {
 
 // Helper function to create test fixtures (users, orgs, tokens)
 export async function createTestFixtures(testDb: any, baseUrl: string) {
-  return await TestFixturesHelper.createOrgAndUsers(testDb, baseUrl);
+  return await TestFixtures.createOrgAndUsers(testDb, baseUrl);
 }
 
 // Export test constants

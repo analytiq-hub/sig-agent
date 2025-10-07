@@ -4,7 +4,7 @@ import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 import axios from 'axios';
 
-export class TestFixturesHelper {
+export class TestFixtures {
   static async createOrgAndUsers(testDb: any, baseURL: string): Promise<{
     org_id: string;
     admin: { id: string; token: string; account_token: string };
