@@ -30,9 +30,6 @@ export class TestServer {
     const env = {
       ...process.env,
       PORT: this.config.port.toString(),
-      MONGODB_URI: this.config.mongodbUri,
-      ENV: this.config.env,
-      NEXTAUTH_SECRET: this.config.nextauthSecret,
     };
 
     const packagesDir = path.join(__dirname, '../../..'); // Go up to packages directory
@@ -51,7 +48,7 @@ export class TestServer {
       '--port', this.config.port.toString(),
       '--reload'
     ], {
-      env,
+      env: process.env,
       stdio: ['ignore', 'pipe', 'pipe'],
       cwd: packagesDir // This should be the packages directory
     });
