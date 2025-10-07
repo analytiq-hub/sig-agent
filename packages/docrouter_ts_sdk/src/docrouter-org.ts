@@ -9,6 +9,34 @@ import {
   GetLLMResultResponse,
   ListTagsResponse,
   Tag,
+  // Forms
+  CreateFormParams,
+  ListFormsParams,
+  ListFormsResponse,
+  GetFormParams,
+  UpdateFormParams,
+  DeleteFormParams,
+  SubmitFormParams,
+  GetFormSubmissionParams,
+  DeleteFormSubmissionParams,
+  Form,
+  FormSubmission,
+  // Prompts
+  CreatePromptParams,
+  ListPromptsParams,
+  ListPromptsResponse,
+  GetPromptParams,
+  UpdatePromptParams,
+  DeletePromptParams,
+  Prompt,
+  // Schemas
+  CreateSchemaParams,
+  ListSchemasParams,
+  ListSchemasResponse,
+  GetSchemaParams,
+  UpdateSchemaParams,
+  DeleteSchemaParams,
+  Schema,
 } from './types';
 
 /**
@@ -232,6 +260,113 @@ export class DocRouterOrg {
   async deleteTag(params: { tagId: string; }): Promise<void> {
     const { tagId } = params;
     await this.http.delete(`/v0/orgs/${this.organizationId}/tags/${tagId}`);
+  }
+
+  // ---------------- Forms ----------------
+
+  async createForm(form: Omit<CreateFormParams, 'organizationId'>): Promise<Form> {
+    const { name, schema } = form;
+    return this.http.post<Form>(`/v0/orgs/${this.organizationId}/forms`, { name, schema });
+  }
+
+  async listForms(params?: Omit<ListFormsParams, 'organizationId'>): Promise<ListFormsResponse> {
+    const { skip, limit, tag_ids } = params || {} as any;
+    return this.http.get<ListFormsResponse>(`/v0/orgs/${this.organizationId}/forms`, {
+      params: { skip: skip || 0, limit: limit || 10, tag_ids }
+    });
+  }
+
+  async getForm(params: Omit<GetFormParams, 'organizationId'>): Promise<Form> {
+    const { formRevId } = params;
+    return this.http.get<Form>(`/v0/orgs/${this.organizationId}/forms/${formRevId}`);
+  }
+
+  async updateForm(params: Omit<UpdateFormParams, 'organizationId'>): Promise<Form> {
+    const { formId, form } = params;
+    return this.http.put<Form>(`/v0/orgs/${this.organizationId}/forms/${formId}`, form);
+  }
+
+  async deleteForm(params: Omit<DeleteFormParams, 'organizationId'>): Promise<void> {
+    const { formId } = params;
+    await this.http.delete(`/v0/orgs/${this.organizationId}/forms/${formId}`);
+  }
+
+  async submitForm(params: Omit<SubmitFormParams, 'organizationId'>): Promise<FormSubmission> {
+    const { documentId, submission } = params;
+    return this.http.post<FormSubmission>(`/v0/orgs/${this.organizationId}/forms/submissions/${documentId}`, submission);
+  }
+
+  async getFormSubmission(params: Omit<GetFormSubmissionParams, 'organizationId'>): Promise<FormSubmission | null> {
+    const { documentId, formRevId } = params;
+    return this.http.get<FormSubmission | null>(`/v0/orgs/${this.organizationId}/forms/submissions/${documentId}?form_revid=${formRevId}`);
+  }
+
+  async deleteFormSubmission(params: Omit<DeleteFormSubmissionParams, 'organizationId'>): Promise<void> {
+    const { documentId, formRevId } = params;
+    await this.http.delete(`/v0/orgs/${this.organizationId}/forms/submissions/${documentId}`, { params: { form_revid: formRevId } });
+  }
+
+  // ---------------- Prompts ----------------
+
+  async createPrompt(params: Omit<CreatePromptParams, 'organizationId'>): Promise<Prompt> {
+    const { prompt } = params;
+    return this.http.post<Prompt>(`/v0/orgs/${this.organizationId}/prompts`, prompt);
+  }
+
+  async listPrompts(params: Omit<ListPromptsParams, 'organizationId'>): Promise<ListPromptsResponse> {
+    const { skip, limit, document_id, tag_ids, nameSearch } = params || {} as any;
+    return this.http.get<ListPromptsResponse>(`/v0/orgs/${this.organizationId}/prompts`, {
+      params: {
+        skip: skip || 0,
+        limit: limit || 10,
+        document_id,
+        tag_ids,
+        name_search: nameSearch
+      }
+    });
+  }
+
+  async getPrompt(params: Omit<GetPromptParams, 'organizationId'>): Promise<Prompt> {
+    const { promptRevId } = params;
+    return this.http.get<Prompt>(`/v0/orgs/${this.organizationId}/prompts/${promptRevId}`);
+  }
+
+  async updatePrompt(params: Omit<UpdatePromptParams, 'organizationId'>): Promise<Prompt> {
+    const { promptId, prompt } = params;
+    return this.http.put<Prompt>(`/v0/orgs/${this.organizationId}/prompts/${promptId}`, prompt);
+  }
+
+  async deletePrompt(params: Omit<DeletePromptParams, 'organizationId'>): Promise<void> {
+    const { promptId } = params;
+    await this.http.delete(`/v0/orgs/${this.organizationId}/prompts/${promptId}`);
+  }
+
+  // ---------------- Schemas ----------------
+
+  async createSchema(schema: Omit<CreateSchemaParams, 'organizationId'>): Promise<Schema> {
+    return this.http.post<Schema>(`/v0/orgs/${this.organizationId}/schemas`, schema);
+  }
+
+  async listSchemas(params: Omit<ListSchemasParams, 'organizationId'>): Promise<ListSchemasResponse> {
+    const { skip, limit, nameSearch } = params || {} as any;
+    return this.http.get<ListSchemasResponse>(`/v0/orgs/${this.organizationId}/schemas`, {
+      params: { skip: skip || 0, limit: limit || 10, name_search: nameSearch }
+    });
+  }
+
+  async getSchema(params: Omit<GetSchemaParams, 'organizationId'>): Promise<Schema> {
+    const { schemaRevId } = params;
+    return this.http.get<Schema>(`/v0/orgs/${this.organizationId}/schemas/${schemaRevId}`);
+  }
+
+  async updateSchema(params: Omit<UpdateSchemaParams, 'organizationId'>): Promise<Schema> {
+    const { schemaId, schema } = params;
+    return this.http.put<Schema>(`/v0/orgs/${this.organizationId}/schemas/${schemaId}`, schema);
+  }
+
+  async deleteSchema(params: Omit<DeleteSchemaParams, 'organizationId'>): Promise<void> {
+    const { schemaId } = params;
+    await this.http.delete(`/v0/orgs/${this.organizationId}/schemas/${schemaId}`);
   }
 
   /**
