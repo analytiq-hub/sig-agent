@@ -81,4 +81,3 @@ export async function createTestFixtures(testDb: any, baseUrl: string) {
 
 // Export test constants
 export { TEST_USER_ID, TEST_ORG_ID };
-export { TestFixturesHelper } from './test-fixtures';

@@ -1,15 +1,15 @@
 import { DocRouterAccount, DocRouterOrg } from '../../src';
-import { getTestDatabase, getBaseUrl, createTestFixtures, TestFixturesHelper } from '../setup/jest-setup';
+import { getTestDatabase, getBaseUrl, createTestFixtures } from '../setup/jest-setup';
 
 describe('Authentication Integration Tests', () => {
-  let tokens: any;
+  let testFixtures: any;
 
   beforeEach(async () => {
     const testDb = getTestDatabase();
     const baseUrl = getBaseUrl();
 
     // Create test users and tokens
-    tokens = await createTestFixtures(testDb, baseUrl);
+    testFixtures = await createTestFixtures(testDb, baseUrl);
   });
 
   // DocRouter removed
@@ -18,7 +18,7 @@ describe('Authentication Integration Tests', () => {
     test('should authenticate with account token', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
       const orgs = await client.listOrganizations();
@@ -29,13 +29,13 @@ describe('Authentication Integration Tests', () => {
     test('should create organization tokens', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
       const token: any = await client.createOrganizationToken({
         name: 'Test Org Token',
         lifetime: 86400
-      }, tokens.org_id);
+      }, testFixtures.org_id);
 
       expect(token).toBeDefined();
       expect(token.name).toBe('Test Org Token');
@@ -44,7 +44,7 @@ describe('Authentication Integration Tests', () => {
     test('should list account tokens', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
       const accountTokens = await client.getAccountTokens();
@@ -57,8 +57,8 @@ describe('Authentication Integration Tests', () => {
     test('should authenticate with org token', async () => {
       const client = new DocRouterOrg({
         baseURL: getBaseUrl(),
-        orgToken: tokens.admin.token,
-        organizationId: tokens.org_id
+        orgToken: testFixtures.admin.token,
+        organizationId: testFixtures.org_id
       });
 
       // Test organization-scoped endpoint
@@ -70,7 +70,7 @@ describe('Authentication Integration Tests', () => {
       const client = new DocRouterOrg({
         baseURL: getBaseUrl(),
         orgToken: 'invalid_token',
-        organizationId: tokens.org_id,
+        organizationId: testFixtures.org_id,
         onAuthError: (error) => {
           expect(error.message).toContain('authentication');
         }
@@ -82,12 +82,12 @@ describe('Authentication Integration Tests', () => {
     test('should update token', async () => {
       const client = new DocRouterOrg({
         baseURL: getBaseUrl(),
-        orgToken: tokens.admin.token,
-        organizationId: tokens.org_id
+        orgToken: testFixtures.admin.token,
+        organizationId: testFixtures.org_id
       });
 
       // Update with member token
-      client.updateToken(tokens.member.token);
+      client.updateToken(testFixtures.member.token);
       
       // Should still work with new token
       const documents = await client.listDocuments();
@@ -99,8 +99,8 @@ describe('Authentication Integration Tests', () => {
     test('admin should have full access', async () => {
       const client = new DocRouterOrg({
         baseURL: getBaseUrl(),
-        orgToken: tokens.admin.token,
-        organizationId: tokens.org_id
+        orgToken: testFixtures.admin.token,
+        organizationId: testFixtures.org_id
       });
 
       // Admin should be able to list documents
@@ -111,8 +111,8 @@ describe('Authentication Integration Tests', () => {
     test('member should have limited access', async () => {
       const client = new DocRouterOrg({
         baseURL: getBaseUrl(),
-        orgToken: tokens.member.token,
-        organizationId: tokens.org_id
+        orgToken: testFixtures.member.token,
+        organizationId: testFixtures.org_id
       });
 
       // Member should be able to list documents
@@ -123,8 +123,8 @@ describe('Authentication Integration Tests', () => {
     test('outsider should not have access', async () => {
       const client = new DocRouterOrg({
         baseURL: getBaseUrl(),
-        orgToken: tokens.outsider.token,
-        organizationId: tokens.org_id,
+        orgToken: testFixtures.outsider.token,
+        organizationId: testFixtures.org_id,
         onAuthError: (error) => {
           expect(error.message).toContain('access');
         }

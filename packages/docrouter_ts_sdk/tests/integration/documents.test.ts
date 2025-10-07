@@ -2,18 +2,18 @@ import { DocRouterOrg } from '../../src';
 import { getTestDatabase, getBaseUrl, createTestFixtures } from '../setup/jest-setup';
 
 describe('Documents Integration Tests', () => {
-  let tokens: any;
+  let testFixtures: any;
   let client: DocRouterOrg;
 
   beforeEach(async () => {
     const testDb = getTestDatabase();
     const baseUrl = getBaseUrl();
-    tokens = await createTestFixtures(testDb, baseUrl);
+    testFixtures = await createTestFixtures(testDb, baseUrl);
 
     client = new DocRouterOrg({
       baseURL: baseUrl,
-      orgToken: tokens.admin.token,
-      organizationId: tokens.org_id
+      orgToken: testFixtures.admin.token,
+      organizationId: testFixtures.org_id
     });
   });
 

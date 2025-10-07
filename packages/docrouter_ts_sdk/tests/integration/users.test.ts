@@ -2,21 +2,21 @@ import { DocRouterAccount } from '../../src';
 import { getTestDatabase, getBaseUrl, createTestFixtures } from '../setup/jest-setup';
 
 describe('Users Integration Tests', () => {
-  let tokens: any;
+  let testFixtures: any;
 
   beforeEach(async () => {
     const testDb = getTestDatabase();
     const baseUrl = getBaseUrl();
 
     // Create test users and tokens
-    tokens = await createTestFixtures(testDb, baseUrl);
+    testFixtures = await createTestFixtures(testDb, baseUrl);
   });
 
   describe('User Management', () => {
     test('should list users', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
       const response = await client.listUsers();
@@ -31,11 +31,11 @@ describe('Users Integration Tests', () => {
     test('should list users with organization filter', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
       const response = await client.listUsers({
-        organization_id: tokens.org_id
+        organization_id: testFixtures.org_id
       });
       
       expect(response).toBeDefined();
@@ -46,7 +46,7 @@ describe('Users Integration Tests', () => {
     test('should list users with pagination', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
       const response = await client.listUsers({
@@ -63,20 +63,20 @@ describe('Users Integration Tests', () => {
     test('should get specific user', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
-      const response = await client.getUser(tokens.admin.id);
+      const response = await client.getUser(testFixtures.admin.id);
       
       expect(response).toBeDefined();
       expect(response.user).toBeDefined();
-      expect(response.user.id).toBe(tokens.admin.id);
+      expect(response.user.id).toBe(testFixtures.admin.id);
     });
 
     test('should create user', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
       const uniqueEmail = `newuser-${Date.now()}-${Math.random().toString(36).substring(2, 9)}@example.com`;
@@ -97,14 +97,14 @@ describe('Users Integration Tests', () => {
     test('should update user', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
       const updateData = {
         name: 'Updated Name'
       };
 
-      const response = await client.updateUser(tokens.admin.id, updateData);
+      const response = await client.updateUser(testFixtures.admin.id, updateData);
       
       expect(response).toBeDefined();
       expect(response.user).toBeDefined();
@@ -114,7 +114,7 @@ describe('Users Integration Tests', () => {
     test('should delete user', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
       // Create a user first
@@ -139,27 +139,27 @@ describe('Users Integration Tests', () => {
     test('should send verification email', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
       // Admin user is already verified, so this will throw
-      await expect(client.sendVerificationEmail(tokens.admin.id)).rejects.toThrow();
+      await expect(client.sendVerificationEmail(testFixtures.admin.id)).rejects.toThrow();
     });
 
     test('should send registration verification email', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
       // Admin user is already verified, so this will throw
-      await expect(client.sendRegistrationVerificationEmail(tokens.admin.id)).rejects.toThrow();
+      await expect(client.sendRegistrationVerificationEmail(testFixtures.admin.id)).rejects.toThrow();
     });
 
     test('should verify email with token', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
       // Invalid token should throw an error
@@ -171,7 +171,7 @@ describe('Users Integration Tests', () => {
     test('should handle invalid user ID', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
       await expect(client.getUser('invalid_id')).rejects.toThrow();
@@ -189,7 +189,7 @@ describe('Users Integration Tests', () => {
     test('should handle duplicate email', async () => {
       const client = new DocRouterAccount({
         baseURL: getBaseUrl(),
-        accountToken: tokens.admin.account_token
+        accountToken: testFixtures.admin.account_token
       });
 
       // First create a user
