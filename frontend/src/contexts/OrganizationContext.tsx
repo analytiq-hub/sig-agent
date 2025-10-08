@@ -53,7 +53,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         // Fetch all organizations the user is a member of
-        const response = await getOrganizationsApi({ userId: appSession.user.id });
+        const response = await getOrganizationsApi({ userId: appSession.user.id, limit: 50 });
 
         // Filtering logic based on page and user role
         let filtered: Organization[] = response.organizations;
