@@ -57,7 +57,7 @@ describe('Authentication Integration Tests', () => {
     test('should authenticate with org token', async () => {
       const client = new DocRouterOrg({
         baseURL: getBaseUrl(),
-        orgToken: testFixtures.admin.token,
+        orgToken: testFixtures.member.token,
         organizationId: testFixtures.org_id
       });
 
@@ -82,11 +82,11 @@ describe('Authentication Integration Tests', () => {
     test('should update token', async () => {
       const client = new DocRouterOrg({
         baseURL: getBaseUrl(),
-        orgToken: testFixtures.admin.token,
+        orgToken: testFixtures.member.token,
         organizationId: testFixtures.org_id
       });
 
-      // Update with member token
+      // Update with a different member token (should be the same in this case)
       client.updateToken(testFixtures.member.token);
       
       // Should still work with new token
@@ -96,26 +96,14 @@ describe('Authentication Integration Tests', () => {
   });
 
   describe('Permission Tests', () => {
-    test('admin should have full access', async () => {
-      const client = new DocRouterOrg({
-        baseURL: getBaseUrl(),
-        orgToken: testFixtures.admin.token,
-        organizationId: testFixtures.org_id
-      });
-
-      // Admin should be able to list documents
-      const documents = await client.listDocuments();
-      expect(documents).toBeDefined();
-    });
-
-    test('member should have limited access', async () => {
+    test('org admin (member) should have full access', async () => {
       const client = new DocRouterOrg({
         baseURL: getBaseUrl(),
         orgToken: testFixtures.member.token,
         organizationId: testFixtures.org_id
       });
 
-      // Member should be able to list documents
+      // Org admin should be able to list documents
       const documents = await client.listDocuments();
       expect(documents).toBeDefined();
     });

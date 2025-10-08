@@ -12,7 +12,7 @@ describe('Documents Integration Tests', () => {
 
     client = new DocRouterOrg({
       baseURL: baseUrl,
-      orgToken: testFixtures.admin.token,
+      orgToken: testFixtures.member.token,
       organizationId: testFixtures.org_id
     });
   });

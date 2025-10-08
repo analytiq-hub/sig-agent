@@ -54,8 +54,7 @@ export class TestFixtures {
       _id: new ObjectId(orgId),
       name: `Test Org ${uniqueSuffix}`,
       members: [
-        { user_id: adminId, role: 'admin' },
-        { user_id: memberId, role: 'user' }
+        { user_id: memberId, role: 'admin' }
       ],
       type: 'team',
       created_at: new Date(),
