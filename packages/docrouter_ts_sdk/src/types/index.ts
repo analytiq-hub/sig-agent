@@ -402,17 +402,25 @@ export interface UsageRangeResponse {
 
 // Form types
 export interface Form {
-  id: string;
+  form_revid: string;
+  form_id: string;
+  form_version: number;
   name: string;
-  schema: Record<string, unknown>;
+  response_format: {
+    json_formio?: Array<Record<string, unknown>>;
+    json_formio_mapping?: Record<string, Record<string, unknown>>;
+  };
   created_at: string;
-  updated_at: string;
+  created_by: string;
 }
 
 export interface CreateFormParams {
   organizationId: string;
   name: string;
-  schema: Record<string, unknown>;
+  response_format: {
+    json_formio?: Array<Record<string, unknown>>;
+    json_formio_mapping?: Record<string, Record<string, unknown>>;
+  };
 }
 
 export interface ListFormsParams {
@@ -446,9 +454,10 @@ export interface DeleteFormParams {
 
 export interface FormSubmission {
   id: string;
-  form_id: string;
-  document_id: string;
-  data: Record<string, unknown>;
+  organization_id: string;
+  form_revid: string;
+  submission_data: Record<string, unknown>;
+  submitted_by?: string;
   created_at: string;
   updated_at: string;
 }
@@ -456,7 +465,9 @@ export interface FormSubmission {
 export interface SubmitFormParams {
   organizationId: string;
   documentId: string;
-  submission: Record<string, unknown>;
+  formRevId: string;
+  submission_data: Record<string, unknown>;
+  submitted_by?: string;
 }
 
 export interface GetFormSubmissionParams {
@@ -560,17 +571,25 @@ export interface DeleteFlowParams {
 
 // Schema types
 export interface Schema {
-  id: string;
+  schema_revid: string;
+  schema_id: string;
+  schema_version: number;
   name: string;
-  schema: Record<string, unknown>;
+  response_format: {
+    type: 'json_schema';
+    json_schema: Record<string, unknown>;
+  };
   created_at: string;
-  updated_at: string;
+  created_by: string;
 }
 
 export interface CreateSchemaParams {
   organizationId: string;
   name: string;
-  schema: Record<string, unknown>;
+  response_format: {
+    type: 'json_schema';
+    json_schema: Record<string, unknown>;
+  };
 }
 
 export interface ListSchemasParams {

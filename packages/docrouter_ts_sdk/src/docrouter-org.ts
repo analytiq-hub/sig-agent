@@ -281,8 +281,8 @@ export class DocRouterOrg {
   // ---------------- Forms ----------------
 
   async createForm(form: Omit<CreateFormParams, 'organizationId'>): Promise<Form> {
-    const { name, schema } = form;
-    return this.http.post<Form>(`/v0/orgs/${this.organizationId}/forms`, { name, schema });
+    const { name, response_format } = form;
+    return this.http.post<Form>(`/v0/orgs/${this.organizationId}/forms`, { name, response_format });
   }
 
   async listForms(params?: Omit<ListFormsParams, 'organizationId'>): Promise<ListFormsResponse> {
@@ -308,8 +308,12 @@ export class DocRouterOrg {
   }
 
   async submitForm(params: Omit<SubmitFormParams, 'organizationId'>): Promise<FormSubmission> {
-    const { documentId, submission } = params;
-    return this.http.post<FormSubmission>(`/v0/orgs/${this.organizationId}/forms/submissions/${documentId}`, submission);
+    const { documentId, formRevId, submission_data, submitted_by } = params;
+    return this.http.post<FormSubmission>(`/v0/orgs/${this.organizationId}/forms/submissions/${documentId}`, {
+      form_revid: formRevId,
+      submission_data: submission_data,
+      submitted_by: submitted_by
+    });
   }
 
   async getFormSubmission(params: Omit<GetFormSubmissionParams, 'organizationId'>): Promise<FormSubmission | null> {
@@ -383,6 +387,11 @@ export class DocRouterOrg {
   async deleteSchema(params: Omit<DeleteSchemaParams, 'organizationId'>): Promise<void> {
     const { schemaId } = params;
     await this.http.delete(`/v0/orgs/${this.organizationId}/schemas/${schemaId}`);
+  }
+
+  async validateAgainstSchema(params: { schemaRevId: string; data: Record<string, unknown> }): Promise<{ valid: boolean; errors?: string[] }> {
+    const { schemaRevId, data } = params;
+    return this.http.post<{ valid: boolean; errors?: string[] }>(`/v0/orgs/${this.organizationId}/schemas/${schemaRevId}/validate`, { data });
   }
 
   // ---------------- Flows ----------------
