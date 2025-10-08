@@ -441,9 +441,6 @@ export class DocRouterOrg {
     return this.http.delete<{ status: string; message: string }>(`/v0/orgs/${this.organizationId}/payments/subscription`);
   }
 
-  async createSubscription(): Promise<{ status: string; message: string }> {
-    return this.http.post<{ status: string; message: string }>(`/v0/orgs/${this.organizationId}/payments/subscription`, {});
-  }
 
   async getCurrentUsage(): Promise<UsageResponse> {
     return this.http.get<UsageResponse>(`/v0/orgs/${this.organizationId}/payments/usage`);

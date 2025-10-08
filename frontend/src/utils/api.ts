@@ -1058,10 +1058,6 @@ export const getCurrentUsageApi = async (orgId: string): Promise<UsageResponse> 
   return response.data;
 };
 
-export const createSubscriptionApi = async (orgId: string): Promise<{ status: string; message: string }> => {
-  const response = await api.post<{ status: string; message: string }>(`/v0/orgs/${orgId}/payments/subscription`);
-  return response.data;
-};
 
 // Add new API function to add credits (admin only)
 export const addCreditsApi = async (orgId: string, amount: number): Promise<CreditUpdateResponse> => {
