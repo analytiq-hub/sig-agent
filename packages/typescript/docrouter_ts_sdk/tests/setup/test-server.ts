@@ -55,10 +55,10 @@ export class TestServer {
 
     // Capture server logs for debugging
     this.process.stdout?.on('data', (data) => {
-      console.log('Server stdout:', data.toString());
+      // console.log('Server stdout:', data.toString());
     });
     this.process.stderr?.on('data', (data) => {
-      console.log('Server stderr:', data.toString());
+      // console.log('Server stderr:', data.toString());
     });
 
     this.process.on('error', (error) => {
