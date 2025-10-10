@@ -25,30 +25,41 @@ export class TestServer {
       throw new Error('Test server is already running');
     }
 
-    const packagesDir = path.join(__dirname, '../../..'); // Go up to packages directory
+    const packagesDir = path.join(__dirname, '../../../../'); // Go up to packages directory
     const sdkDir = path.join(__dirname, '../..'); // docrouter_ts_sdk directory
     const venvPython = path.join(sdkDir, '.venv/bin/python');
 
     // Check if virtual environment exists, if not create it
-    await this.ensureVenv(sdkDir);
+    await this.ensureVenv(sdkDir, packagesDir);
 
     // Start the FastAPI server using the virtual environment
     // The server needs to run from the packages directory where docrouter_app is located
-    this.process = spawn(venvPython, [
+    const uvicornArgs = [
       '-m', 'uvicorn',
       'docrouter_app.main:app',
       '--host', '0.0.0.0',
       '--port', this.config.port.toString(),
       '--reload'
-    ], {
+    ];
+    
+    console.log('Starting uvicorn with:');
+    console.log('Python executable:', venvPython);
+    console.log('Args:', uvicornArgs);
+    console.log('Working directory:', packagesDir);
+    
+    this.process = spawn(venvPython, uvicornArgs, {
       env: process.env,
       stdio: ['ignore', 'pipe', 'pipe'],
       cwd: packagesDir // This should be the packages directory
     });
 
-    // Suppress server logs during tests
-    this.process.stdout?.on('data', () => {});
-    this.process.stderr?.on('data', () => {});
+    // Capture server logs for debugging
+    this.process.stdout?.on('data', (data) => {
+      console.log('Server stdout:', data.toString());
+    });
+    this.process.stderr?.on('data', (data) => {
+      console.log('Server stderr:', data.toString());
+    });
 
     this.process.on('error', (error) => {
       console.error(`Server process error: ${error.message}`);
@@ -83,10 +94,8 @@ export class TestServer {
     return this.baseUrl;
   }
 
-  private async ensureVenv(sdkDir: string): Promise<void> {
+  private async ensureVenv(sdkDir: string, packagesDir: string): Promise<void> {
     const venvDir = path.join(sdkDir, '.venv');
-    const venvPython = path.join(venvDir, 'bin/python');
-    const packagesDir = path.join(sdkDir, '..');
 
     // Remove existing virtual environment if it exists
     if (fs.existsSync(venvDir)) {
@@ -98,9 +107,10 @@ export class TestServer {
     // Create virtual environment in docrouter_ts_sdk directory
     await this.execCommand('python3 -m venv .venv', sdkDir);
 
-    // Install requirements from packages directory
+    // Install requirements from packages directory using uv pip install with virtual environment
     console.log('Installing Python dependencies...');
-    await this.execCommand(`uv pip install -r ${path.join(packagesDir, 'requirements.txt')}`, sdkDir);
+    const venvPython = path.join(sdkDir, '.venv/bin/python');
+    await this.execCommand(`uv pip install --python ${venvPython} -r ${path.join(packagesDir, 'requirements.txt')}`, packagesDir);
   }
 
   private async execCommand(command: string, cwd: string): Promise<void> {
