@@ -5,7 +5,7 @@ A TypeScript SDK for the DocRouter API, providing type-safe access to document p
 ## Installation
 
 ```bash
-npm install @analytiq/docrouter-ts-sdk
+npm install docrouter-sdk
 ```
 
 ## Quick Start
@@ -13,7 +13,7 @@ npm install @analytiq/docrouter-ts-sdk
 ### Using Account Token (Server-to-Server)
 
 ```typescript
-import { DocRouterAccount } from '@analytiq/docrouter-ts-sdk';
+import { DocRouterAccount } from 'docrouter-sdk';
 
 const client = new DocRouterAccount({
   baseURL: 'https://api.docrouter.com',
@@ -33,7 +33,7 @@ const token = await client.tokens.createOrganizationToken({
 ### Using Organization Token
 
 ```typescript
-import { DocRouterOrg } from '@analytiq/docrouter-ts-sdk';
+import { DocRouterOrg } from 'docrouter-sdk';
 
 const client = new DocRouterOrg({
   baseURL: 'https://api.docrouter.com',
@@ -60,11 +60,12 @@ const documents = await client.documents.list();
 ### Using JWT Token (Browser)
 
 ```typescript
-import { DocRouter } from '@analytiq/docrouter-ts-sdk';
+import { DocRouterOrg } from 'docrouter-sdk';
 
-const client = new DocRouter({
+const client = new DocRouterOrg({
   baseURL: 'https://api.docrouter.com',
-  token: 'your-jwt-token-here'
+  orgToken: 'your-jwt-token-here',
+  organizationId: 'your-org-id'
 });
 
 // Run LLM chat with streaming
@@ -84,28 +85,9 @@ await client.llm.chatStream({
 - **Node.js & Browser**: Works in both environments with proper polyfills
 - **Error handling**: Comprehensive error handling with retry logic and auth callbacks
 - **Modular**: Import only what you need, or use the full SDK
-- **Three client types**: `DocRouter`, `DocRouterAccount`, and `DocRouterOrg` for different use cases
+- **Two client types**: `DocRouterAccount` and `DocRouterOrg` for different use cases
 
 ## API Reference
-
-### DocRouter (General Purpose)
-Use for browser applications or when you have a JWT token.
-
-```typescript
-const client = new DocRouter({
-  baseURL: 'https://api.docrouter.com',
-  token: 'your-jwt-token'
-});
-
-// Available APIs:
-client.documents.*    // Document management
-client.organizations.* // Organization management  
-client.llm.*          // LLM operations
-client.tokens.*       // Token management
-client.users.*        // User management
-client.ocr.*          // OCR operations
-client.tags.*         // Tag management
-```
 
 ### DocRouterAccount (Server-to-Server)
 Use for account-level operations with account tokens.

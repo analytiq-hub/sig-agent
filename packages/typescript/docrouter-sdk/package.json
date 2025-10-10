@@ -1,5 +1,5 @@
 {
-  "name": "@analytiq/docrouter-ts-sdk",
+  "name": "docrouter-sdk",
   "version": "0.1.0",
   "description": "TypeScript SDK for DocRouter API",
   "main": "./dist/index.js",
