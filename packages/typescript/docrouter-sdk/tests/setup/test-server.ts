@@ -105,7 +105,26 @@ export class TestServer {
 
     console.log('Creating virtual environment...');
     // Create virtual environment in docrouter_ts_sdk directory
-    await this.execCommand('python3 -m venv .venv', sdkDir);
+    // Try python3.11 first, then fallback to python3.9, then python3
+    const pythonVersions = ['python3.11', 'python3.9', 'python3'];
+    let venvCreated = false;
+    
+    for (const pythonCmd of pythonVersions) {
+      try {
+        console.log(`Trying to create venv with ${pythonCmd}...`);
+        await this.execCommand(`${pythonCmd} -m venv .venv`, sdkDir);
+        venvCreated = true;
+        console.log(`Successfully created venv with ${pythonCmd}`);
+        break;
+      } catch (error) {
+        console.log(`${pythonCmd} not available, trying next version...`);
+        continue;
+      }
+    }
+    
+    if (!venvCreated) {
+      throw new Error('No suitable Python version found. Tried: python3.11, python3.9, python3');
+    }
 
     // Install requirements from packages directory using uv pip install with virtual environment
     console.log('Installing Python dependencies...');
