@@ -9,6 +9,9 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { DocRouterOrg } from 'docrouter-sdk';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 // Configuration schema
 const ConfigSchema = z.object({
@@ -137,6 +140,191 @@ function getOptionalArg<T>(args: Record<string, unknown>, key: string, defaultVa
     return defaultValue;
   }
   return value as T;
+}
+
+// Schema validation function
+function validateSchemaFormat(schema: any): { valid: boolean; errors: string[]; warnings: string[] } {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  try {
+    // Check if schema is an object
+    if (!schema || typeof schema !== 'object') {
+      errors.push('Schema must be an object');
+      return { valid: false, errors, warnings };
+    }
+
+    // Check for required top-level structure
+    if (!schema.type || schema.type !== 'json_schema') {
+      errors.push('Schema must have type: "json_schema"');
+    }
+
+    if (!schema.json_schema || typeof schema.json_schema !== 'object') {
+      errors.push('Schema must have json_schema object');
+    } else {
+      const jsonSchema = schema.json_schema;
+
+      // Check json_schema structure
+      if (!jsonSchema.name || typeof jsonSchema.name !== 'string') {
+        errors.push('json_schema must have a name field');
+      }
+
+      if (!jsonSchema.schema || typeof jsonSchema.schema !== 'object') {
+        errors.push('json_schema must have a schema object');
+      } else {
+        const innerSchema = jsonSchema.schema;
+
+        // Check inner schema structure
+        if (innerSchema.type !== 'object') {
+          errors.push('Inner schema type must be "object"');
+        }
+
+        if (!innerSchema.properties || typeof innerSchema.properties !== 'object') {
+          errors.push('Schema must have properties object');
+        }
+
+        if (!Array.isArray(innerSchema.required)) {
+          errors.push('Schema must have required array');
+        }
+
+        if (innerSchema.additionalProperties !== false) {
+          errors.push('Schema must have additionalProperties: false');
+        }
+
+        // Check strict mode
+        if (jsonSchema.strict !== true) {
+          errors.push('Schema must have strict: true');
+        }
+
+        // Validate that all properties are in required array (strict mode requirement)
+        if (innerSchema.properties && Array.isArray(innerSchema.required)) {
+          const propertyNames = Object.keys(innerSchema.properties);
+          const requiredNames = innerSchema.required;
+          
+          for (const propName of propertyNames) {
+            if (!requiredNames.includes(propName)) {
+              errors.push(`Property "${propName}" must be in required array (strict mode requirement)`);
+            }
+          }
+
+          for (const reqName of requiredNames) {
+            if (!propertyNames.includes(reqName)) {
+              errors.push(`Required property "${reqName}" is not defined in properties`);
+            }
+          }
+        }
+
+        // Validate nested objects
+        if (innerSchema.properties) {
+          validateNestedObjects(innerSchema.properties, errors, warnings);
+        }
+      }
+    }
+
+    // Check for non-portable features (warnings)
+    if (schema.json_schema?.schema?.properties) {
+      checkForNonPortableFeatures(schema.json_schema.schema.properties, warnings);
+    }
+
+  } catch (error) {
+    errors.push(`Schema validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+
+// Helper function to validate nested objects
+function validateNestedObjects(properties: any, errors: string[], warnings: string[]): void {
+  for (const [propName, propDef] of Object.entries(properties)) {
+    if (typeof propDef === 'object' && propDef !== null) {
+      const prop = propDef as any;
+      
+      if (prop.type === 'object') {
+        if (!prop.properties || typeof prop.properties !== 'object') {
+          errors.push(`Object property "${propName}" must have properties object`);
+        }
+        
+        if (!Array.isArray(prop.required)) {
+          errors.push(`Object property "${propName}" must have required array`);
+        }
+        
+        if (prop.additionalProperties !== false) {
+          errors.push(`Object property "${propName}" must have additionalProperties: false`);
+        }
+
+        // Recursively validate nested objects
+        if (prop.properties) {
+          validateNestedObjects(prop.properties, errors, warnings);
+        }
+      }
+      
+      if (prop.type === 'array' && prop.items) {
+        if (prop.items.type === 'object') {
+          if (!prop.items.properties || typeof prop.items.properties !== 'object') {
+            errors.push(`Array items object "${propName}" must have properties object`);
+          }
+          
+          if (!Array.isArray(prop.items.required)) {
+            errors.push(`Array items object "${propName}" must have required array`);
+          }
+          
+          if (prop.items.additionalProperties !== false) {
+            errors.push(`Array items object "${propName}" must have additionalProperties: false`);
+          }
+
+          // Recursively validate nested objects in arrays
+          if (prop.items.properties) {
+            validateNestedObjects(prop.items.properties, errors, warnings);
+          }
+        }
+      }
+    }
+  }
+}
+
+// Helper function to check for non-portable features
+function checkForNonPortableFeatures(properties: any, warnings: string[]): void {
+  for (const [propName, propDef] of Object.entries(properties)) {
+    if (typeof propDef === 'object' && propDef !== null) {
+      const prop = propDef as any;
+      
+      // Check for enum (not recommended for portability)
+      if (prop.enum) {
+        warnings.push(`Property "${propName}" uses enum - consider using description instead for better portability`);
+      }
+      
+      // Check for pattern (not recommended for portability)
+      if (prop.pattern) {
+        warnings.push(`Property "${propName}" uses pattern - consider using description instead for better portability`);
+      }
+      
+      // Check for min/max constraints (not recommended for portability)
+      if (prop.minimum !== undefined || prop.maximum !== undefined) {
+        warnings.push(`Property "${propName}" uses min/max constraints - consider using description instead for better portability`);
+      }
+      
+      if (prop.minItems !== undefined || prop.maxItems !== undefined) {
+        warnings.push(`Property "${propName}" uses minItems/maxItems - consider using description instead for better portability`);
+      }
+      
+      if (prop.uniqueItems !== undefined) {
+        warnings.push(`Property "${propName}" uses uniqueItems - consider using description instead for better portability`);
+      }
+      
+      // Recursively check nested objects
+      if (prop.type === 'object' && prop.properties) {
+        checkForNonPortableFeatures(prop.properties, warnings);
+      }
+      
+      if (prop.type === 'array' && prop.items && prop.items.type === 'object' && prop.items.properties) {
+        checkForNonPortableFeatures(prop.items.properties, warnings);
+      }
+    }
+  }
 }
 
 // Define tools - organized by category matching the SDK
@@ -617,6 +805,17 @@ const tools: Tool[] = [
       required: ['schemaRevId', 'data'],
     },
   },
+  {
+    name: 'validate_schema',
+    description: 'Validate schema format for correctness and DocRouter compliance',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema: { type: 'string', description: 'JSON string of the schema to validate' },
+      },
+      required: ['schema'],
+    },
+  },
 
 
 
@@ -652,6 +851,22 @@ const tools: Tool[] = [
   {
     name: 'help',
     description: 'Get help information about using the API',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'help_prompts',
+    description: 'Get help information about creating and configuring prompts in DocRouter',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'help_schemas',
+    description: 'Get help information about creating and configuring schemas in DocRouter',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -1237,6 +1452,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      case 'validate_schema': {
+        const schemaString = getArg<string>(args, 'schema');
+        try {
+          const schema = JSON.parse(schemaString);
+          const validationResult = validateSchemaFormat(schema);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(validationResult, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  valid: false,
+                  errors: [`Invalid JSON string: ${error instanceof Error ? error.message : 'Unknown error'}`],
+                  warnings: []
+                }, null, 2),
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+
 
 
       // ========== LLM CHAT ==========
@@ -1316,10 +1561,16 @@ This server provides access to DocRouter resources and tools.
 - \`update_schema(schemaId, schema)\` - Update schema
 - \`delete_schema(schemaId)\` - Delete schema
 - \`validate_against_schema(schemaRevId, data)\` - Validate data
+- \`validate_schema(schema)\` - Validate schema format for correctness (takes JSON string)
 
 
 ### LLM Chat
 - \`run_llm_chat(messages, model, temperature, max_tokens, stream)\` - Run chat
+
+### Help Tools
+- \`help()\` - Get general API help information
+- \`help_prompts()\` - Get detailed help on creating and configuring prompts
+- \`help_schemas()\` - Get detailed help on creating and configuring schemas
 
 ## Example Workflows
 
@@ -1342,6 +1593,11 @@ This server provides access to DocRouter resources and tools.
    \`\`\`
    get_llm_result("doc123", "prompt456")
    \`\`\`
+
+5. Validate a schema format:
+   \`\`\`
+   validate_schema('{"type": "json_schema", "json_schema": {"name": "document_extraction", "schema": {"type": "object", "properties": {"name": {"type": "string", "description": "Document name"}}, "required": ["name"], "additionalProperties": false}, "strict": true}}')
+   \`\`\`
         `;
         return {
           content: [
@@ -1351,6 +1607,68 @@ This server provides access to DocRouter resources and tools.
             },
           ],
         };
+      }
+
+      case 'help_prompts': {
+        try {
+          // Get the directory of the current file
+          const __filename = fileURLToPath(import.meta.url);
+          const __dirname = dirname(__filename);
+          
+          // Navigate to the knowledge base directory
+          const promptsPath = join(__dirname, '../../../../docs/knowledge_base/prompts.md');
+          const promptsContent = readFileSync(promptsPath, 'utf-8');
+          
+          return {
+            content: [
+              {
+                type: 'text',
+                text: promptsContent,
+              },
+            ],
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error reading prompts help file: ${handleError(error)}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+
+      case 'help_schemas': {
+        try {
+          // Get the directory of the current file
+          const __filename = fileURLToPath(import.meta.url);
+          const __dirname = dirname(__filename);
+          
+          // Navigate to the knowledge base directory
+          const schemasPath = join(__dirname, '../../../../docs/knowledge_base/schemas.md');
+          const schemasContent = readFileSync(schemasPath, 'utf-8');
+          
+          return {
+            content: [
+              {
+                type: 'text',
+                text: schemasContent,
+              },
+            ],
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error reading schemas help file: ${handleError(error)}`,
+              },
+            ],
+            isError: true,
+          };
+        }
       }
 
 
