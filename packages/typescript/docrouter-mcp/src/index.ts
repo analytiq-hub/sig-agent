@@ -168,7 +168,7 @@ const tools: Tool[] = [
   },
   {
     name: 'get_docrouter_document_ocr',
-    description: 'Get the raw OCR text for a document from DocRouter. Use this to see the document content.',
+    description: 'Get the raw OCR text for a document from DocRouter. Use this to see the document content. For large documents, consider reading page by page.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -361,11 +361,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           documentId: getArg(args, 'documentId'),
           fileType: getArg(args, 'fileType', 'pdf'),
         });
+        
+        // Convert ArrayBuffer to base64 for transmission
+        const base64Content = Buffer.from(result.content).toString('base64');
+        
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(serializeDates(result), null, 2),
+              text: JSON.stringify({
+                ...serializeDates(result),
+                content: base64Content,
+                content_type: 'base64',
+                content_size: result.content.byteLength
+              }, null, 2),
             },
           ],
         };
