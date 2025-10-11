@@ -139,23 +139,49 @@ function getOptionalArg<T>(args: Record<string, unknown>, key: string, defaultVa
   return value as T;
 }
 
-// Define tools
+// Define tools - organized by category matching the SDK
 const tools: Tool[] = [
+  // ========== DOCUMENTS ==========
   {
-    name: 'get_docrouter_documents',
-    description: 'Get all documents from DocRouter',
+    name: 'uploadDocuments',
+    description: 'Upload documents to DocRouter',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        documents: {
+          type: 'array',
+          description: 'Array of documents to upload',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Document name' },
+              content: { type: 'string', description: 'Base64 encoded document content' },
+              type: { type: 'string', description: 'Document type (pdf, image, etc.)' },
+              metadata: { type: 'object', description: 'Optional metadata' },
+            },
+            required: ['name', 'content', 'type'],
+          },
+        },
+      },
+      required: ['documents'],
+    },
+  },
+  {
+    name: 'listDocuments',
+    description: 'List documents from DocRouter',
     inputSchema: {
       type: 'object',
       properties: {
         skip: { type: 'number', description: 'Number of documents to skip', default: 0 },
         limit: { type: 'number', description: 'Number of documents to return', default: 10 },
-        nameSearch: { type: 'string', description: 'Search by document name' },
         tagIds: { type: 'string', description: 'Comma-separated list of tag IDs to filter by' },
+        nameSearch: { type: 'string', description: 'Search by document name' },
+        metadataSearch: { type: 'string', description: 'Search by metadata' },
       },
     },
   },
   {
-    name: 'get_docrouter_document',
+    name: 'getDocument',
     description: 'Get document by ID from DocRouter',
     inputSchema: {
       type: 'object',
@@ -167,31 +193,154 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'get_docrouter_document_ocr',
-    description: 'Get the raw OCR text for a document from DocRouter. Use this to see the document content. For large documents, consider reading page by page.',
+    name: 'updateDocument',
+    description: 'Update document metadata',
     inputSchema: {
       type: 'object',
       properties: {
-        documentId: { type: 'string', description: 'ID of the document to get OCR text for' },
-        pageNum: { type: 'number', description: 'Optional page number to get OCR text for' },
+        documentId: { type: 'string', description: 'ID of the document to update' },
+        documentName: { type: 'string', description: 'New document name' },
+        tagIds: { type: 'array', items: { type: 'string' }, description: 'Array of tag IDs' },
+        metadata: { type: 'object', description: 'Document metadata' },
       },
       required: ['documentId'],
     },
   },
   {
-    name: 'get_docrouter_document_ocr_metadata',
-    description: 'Get OCR metadata for a document from DocRouter',
+    name: 'deleteDocument',
+    description: 'Delete a document',
     inputSchema: {
       type: 'object',
       properties: {
-        documentId: { type: 'string', description: 'ID of the document to get OCR metadata for' },
+        documentId: { type: 'string', description: 'ID of the document to delete' },
+      },
+      required: ['documentId'],
+    },
+  },
+
+  // ========== OCR ==========
+  {
+    name: 'getOCRBlocks',
+    description: 'Get OCR blocks for a document',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        documentId: { type: 'string', description: 'ID of the document' },
       },
       required: ['documentId'],
     },
   },
   {
-    name: 'get_docrouter_tags',
-    description: 'Get all tags from DocRouter',
+    name: 'getOCRText',
+    description: 'Get OCR text for a document',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        documentId: { type: 'string', description: 'ID of the document' },
+        pageNum: { type: 'number', description: 'Optional page number' },
+      },
+      required: ['documentId'],
+    },
+  },
+  {
+    name: 'getOCRMetadata',
+    description: 'Get OCR metadata for a document',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        documentId: { type: 'string', description: 'ID of the document' },
+      },
+      required: ['documentId'],
+    },
+  },
+
+  // ========== LLM ==========
+  {
+    name: 'runLLM',
+    description: 'Run AI extraction on a document using a specific prompt',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        documentId: { type: 'string', description: 'ID of the document' },
+        promptRevId: { type: 'string', description: 'ID of the prompt' },
+        force: { type: 'boolean', description: 'Force re-extraction', default: false },
+      },
+      required: ['documentId', 'promptRevId'],
+    },
+  },
+  {
+    name: 'getLLMResult',
+    description: 'Get LLM extraction results',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        documentId: { type: 'string', description: 'ID of the document' },
+        promptRevId: { type: 'string', description: 'ID of the prompt' },
+        fallback: { type: 'boolean', description: 'Use fallback results', default: false },
+      },
+      required: ['documentId', 'promptRevId'],
+    },
+  },
+  {
+    name: 'updateLLMResult',
+    description: 'Update LLM extraction results',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        documentId: { type: 'string', description: 'ID of the document' },
+        promptId: { type: 'string', description: 'ID of the prompt' },
+        result: { type: 'object', description: 'Updated result data' },
+        isVerified: { type: 'boolean', description: 'Whether result is verified', default: false },
+      },
+      required: ['documentId', 'promptId', 'result'],
+    },
+  },
+  {
+    name: 'deleteLLMResult',
+    description: 'Delete LLM extraction results',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        documentId: { type: 'string', description: 'ID of the document' },
+        promptId: { type: 'string', description: 'ID of the prompt' },
+      },
+      required: ['documentId', 'promptId'],
+    },
+  },
+
+  // ========== TAGS ==========
+  {
+    name: 'createTag',
+    description: 'Create a new tag',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tag: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Tag name' },
+            color: { type: 'string', description: 'Tag color' },
+          },
+          required: ['name', 'color'],
+        },
+      },
+      required: ['tag'],
+    },
+  },
+  {
+    name: 'getTag',
+    description: 'Get tag by ID',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tagId: { type: 'string', description: 'ID of the tag' },
+      },
+      required: ['tagId'],
+    },
+  },
+  {
+    name: 'listTags',
+    description: 'List all tags',
     inputSchema: {
       type: 'object',
       properties: {
@@ -202,124 +351,310 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'get_docrouter_tag',
-    description: 'Get tag by ID from DocRouter',
+    name: 'updateTag',
+    description: 'Update a tag',
     inputSchema: {
       type: 'object',
       properties: {
-        tagId: { type: 'string', description: 'ID of the tag to retrieve' },
+        tagId: { type: 'string', description: 'ID of the tag' },
+        tag: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Tag name' },
+            color: { type: 'string', description: 'Tag color' },
+          },
+        },
+      },
+      required: ['tagId', 'tag'],
+    },
+  },
+  {
+    name: 'deleteTag',
+    description: 'Delete a tag',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tagId: { type: 'string', description: 'ID of the tag' },
       },
       required: ['tagId'],
     },
   },
+
+  // ========== FORMS ==========
   {
-    name: 'get_docrouter_prompts',
-    description: 'Get all prompts from DocRouter',
+    name: 'createForm',
+    description: 'Create a new form',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Form name' },
+        response_format: { type: 'object', description: 'Form response format' },
+      },
+      required: ['name', 'response_format'],
+    },
+  },
+  {
+    name: 'listForms',
+    description: 'List all forms',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        skip: { type: 'number', description: 'Number of forms to skip', default: 0 },
+        limit: { type: 'number', description: 'Number of forms to return', default: 10 },
+        tag_ids: { type: 'string', description: 'Comma-separated tag IDs' },
+      },
+    },
+  },
+  {
+    name: 'getForm',
+    description: 'Get form by ID',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        formRevId: { type: 'string', description: 'ID of the form' },
+      },
+      required: ['formRevId'],
+    },
+  },
+  {
+    name: 'updateForm',
+    description: 'Update a form',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        formId: { type: 'string', description: 'ID of the form' },
+        form: { type: 'object', description: 'Form data' },
+      },
+      required: ['formId', 'form'],
+    },
+  },
+  {
+    name: 'deleteForm',
+    description: 'Delete a form',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        formId: { type: 'string', description: 'ID of the form' },
+      },
+      required: ['formId'],
+    },
+  },
+  {
+    name: 'submitForm',
+    description: 'Submit a form',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        documentId: { type: 'string', description: 'ID of the document' },
+        formRevId: { type: 'string', description: 'ID of the form' },
+        submission_data: { type: 'object', description: 'Form submission data' },
+        submitted_by: { type: 'string', description: 'User who submitted' },
+      },
+      required: ['documentId', 'formRevId', 'submission_data'],
+    },
+  },
+  {
+    name: 'getFormSubmission',
+    description: 'Get form submission',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        documentId: { type: 'string', description: 'ID of the document' },
+        formRevId: { type: 'string', description: 'ID of the form' },
+      },
+      required: ['documentId', 'formRevId'],
+    },
+  },
+  {
+    name: 'deleteFormSubmission',
+    description: 'Delete form submission',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        documentId: { type: 'string', description: 'ID of the document' },
+        formRevId: { type: 'string', description: 'ID of the form' },
+      },
+      required: ['documentId', 'formRevId'],
+    },
+  },
+
+  // ========== PROMPTS ==========
+  {
+    name: 'createPrompt',
+    description: 'Create a new prompt',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        prompt: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Prompt name' },
+            content: { type: 'string', description: 'Prompt content' },
+          },
+          required: ['name', 'content'],
+        },
+      },
+      required: ['prompt'],
+    },
+  },
+  {
+    name: 'listPrompts',
+    description: 'List all prompts',
     inputSchema: {
       type: 'object',
       properties: {
         skip: { type: 'number', description: 'Number of prompts to skip', default: 0 },
         limit: { type: 'number', description: 'Number of prompts to return', default: 10 },
+        document_id: { type: 'string', description: 'Filter by document ID' },
+        tag_ids: { type: 'string', description: 'Comma-separated tag IDs' },
         nameSearch: { type: 'string', description: 'Search by prompt name' },
-        documentId: { type: 'string', description: 'Filter prompts by document ID' },
-        tagIds: { type: 'string', description: 'Comma-separated list of tag IDs to filter by' },
       },
     },
   },
   {
-    name: 'get_docrouter_prompt',
-    description: 'Get prompt by ID from DocRouter',
+    name: 'getPrompt',
+    description: 'Get prompt by ID',
     inputSchema: {
       type: 'object',
       properties: {
-        promptRevId: { type: 'string', description: 'ID of the prompt to retrieve' },
+        promptRevId: { type: 'string', description: 'ID of the prompt' },
       },
       required: ['promptRevId'],
     },
   },
   {
-    name: 'get_docrouter_extraction',
-    description: 'Get extraction results for a document using a specific prompt',
+    name: 'updatePrompt',
+    description: 'Update a prompt',
     inputSchema: {
       type: 'object',
       properties: {
-        documentId: { type: 'string', description: 'ID of the document' },
-        promptRevId: { type: 'string', description: 'ID of the prompt' },
-        fallback: { type: 'boolean', description: 'Whether to use fallback results', default: false },
+        promptId: { type: 'string', description: 'ID of the prompt' },
+        prompt: { type: 'object', description: 'Prompt data' },
       },
-      required: ['documentId', 'promptRevId'],
+      required: ['promptId', 'prompt'],
     },
   },
   {
-    name: 'search_docrouter_documents',
-    description: 'Search documents by name or content',
+    name: 'deletePrompt',
+    description: 'Delete a prompt',
     inputSchema: {
       type: 'object',
       properties: {
-        query: { type: 'string', description: 'Search query string' },
-        tagIds: { type: 'string', description: 'Comma-separated list of tag IDs to filter by' },
-        skip: { type: 'number', description: 'Number of documents to skip', default: 0 },
-        limit: { type: 'number', description: 'Number of documents to return', default: 10 },
+        promptId: { type: 'string', description: 'ID of the prompt' },
       },
-      required: ['query'],
+      required: ['promptId'],
     },
   },
+
+  // ========== SCHEMAS ==========
   {
-    name: 'search_docrouter_prompts',
-    description: 'Search prompts by name or content',
+    name: 'createSchema',
+    description: 'Create a new schema',
     inputSchema: {
       type: 'object',
       properties: {
-        query: { type: 'string', description: 'Search query string' },
-        skip: { type: 'number', description: 'Number of prompts to skip', default: 0 },
-        limit: { type: 'number', description: 'Number of prompts to return', default: 10 },
+        name: { type: 'string', description: 'Schema name' },
+        response_format: { type: 'object', description: 'Schema response format' },
       },
-      required: ['query'],
+      required: ['name', 'response_format'],
     },
   },
   {
-    name: 'search_docrouter_tags',
-    description: 'Search tags by name or description',
+    name: 'listSchemas',
+    description: 'List all schemas',
     inputSchema: {
       type: 'object',
       properties: {
-        query: { type: 'string', description: 'Search query string' },
-        skip: { type: 'number', description: 'Number of tags to skip', default: 0 },
-        limit: { type: 'number', description: 'Number of tags to return', default: 10 },
+        skip: { type: 'number', description: 'Number of schemas to skip', default: 0 },
+        limit: { type: 'number', description: 'Number of schemas to return', default: 10 },
+        nameSearch: { type: 'string', description: 'Search by schema name' },
       },
-      required: ['query'],
     },
   },
   {
-    name: 'run_docrouter_extraction',
-    description: 'Run AI extraction on a document using a specific prompt. Use this when you need to extract structured data from a document.',
+    name: 'getSchema',
+    description: 'Get schema by ID',
     inputSchema: {
       type: 'object',
       properties: {
-        documentId: { type: 'string', description: 'ID of the document to extract from' },
-        promptRevId: { type: 'string', description: 'ID of the prompt to use for extraction' },
-        force: { type: 'boolean', description: 'Whether to force re-extraction even if results already exist', default: false },
+        schemaRevId: { type: 'string', description: 'ID of the schema' },
       },
-      required: ['documentId', 'promptRevId'],
+      required: ['schemaRevId'],
     },
   },
   {
-    name: 'docrouter_help',
-    description: 'Get help information about using the DocRouter API',
+    name: 'updateSchema',
+    description: 'Update a schema',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schemaId: { type: 'string', description: 'ID of the schema' },
+        schema: { type: 'object', description: 'Schema data' },
+      },
+      required: ['schemaId', 'schema'],
+    },
+  },
+  {
+    name: 'deleteSchema',
+    description: 'Delete a schema',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schemaId: { type: 'string', description: 'ID of the schema' },
+      },
+      required: ['schemaId'],
+    },
+  },
+  {
+    name: 'validateAgainstSchema',
+    description: 'Validate data against a schema',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schemaRevId: { type: 'string', description: 'ID of the schema' },
+        data: { type: 'object', description: 'Data to validate' },
+      },
+      required: ['schemaRevId', 'data'],
+    },
+  },
+
+
+
+  // ========== LLM CHAT ==========
+  {
+    name: 'runLLMChat',
+    description: 'Run LLM chat',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messages: {
+          type: 'array',
+          description: 'Chat messages',
+          items: {
+            type: 'object',
+            properties: {
+              role: { type: 'string', enum: ['system', 'user', 'assistant'] },
+              content: { type: 'string' },
+            },
+            required: ['role', 'content'],
+          },
+        },
+        model: { type: 'string', description: 'Model to use' },
+        temperature: { type: 'number', description: 'Temperature setting' },
+        max_tokens: { type: 'number', description: 'Maximum tokens' },
+        stream: { type: 'boolean', description: 'Enable streaming' },
+      },
+      required: ['messages'],
+    },
+  },
+
+  // ========== HELPER TOOLS ==========
+  {
+    name: 'help',
+    description: 'Get help information about using the API',
     inputSchema: {
       type: 'object',
       properties: {},
-    },
-  },
-  {
-    name: 'docrouter_document_analysis_guide',
-    description: 'Generate a guide to analyze a specific document',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        documentId: { type: 'string', description: 'ID of the document to analyze' },
-      },
-      required: ['documentId'],
     },
   },
 ];
@@ -339,7 +674,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
-      case 'get_docrouter_documents': {
+      case 'listDocuments': {
         const result = await docrouterClient.listDocuments({
           skip: getOptionalArg(args, 'skip', 0),
           limit: getOptionalArg(args, 'limit', 10),
@@ -356,7 +691,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_docrouter_document': {
+      case 'getDocument': {
         const result = await docrouterClient.getDocument({
           documentId: getArg(args, 'documentId'),
           fileType: getArg(args, 'fileType', 'pdf'),
@@ -380,7 +715,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_docrouter_document_ocr': {
+      case 'getOCRText': {
         const result = await docrouterClient.getOCRText({
           documentId: getArg(args, 'documentId'),
           pageNum: getOptionalArg(args, 'pageNum'),
@@ -395,7 +730,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_docrouter_document_ocr_metadata': {
+      case 'getOCRMetadata': {
         const result = await docrouterClient.getOCRMetadata({
           documentId: getArg(args, 'documentId'),
         });
@@ -409,7 +744,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_docrouter_tags': {
+      case 'listTags': {
         const result = await docrouterClient.listTags({
           skip: getOptionalArg(args, 'skip', 0),
           limit: getOptionalArg(args, 'limit', 10),
@@ -425,7 +760,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_docrouter_tag': {
+      case 'getTag': {
         const result = await docrouterClient.getTag({
           tagId: getArg(args, 'tagId'),
         });
@@ -439,7 +774,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_docrouter_prompts': {
+      case 'listPrompts': {
         const result = await docrouterClient.listPrompts({
           skip: getOptionalArg(args, 'skip', 0),
           limit: getOptionalArg(args, 'limit', 10),
@@ -457,7 +792,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_docrouter_prompt': {
+      case 'getPrompt': {
         const result = await docrouterClient.getPrompt({
           promptRevId: getArg(args, 'promptRevId'),
         });
@@ -471,7 +806,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_docrouter_extraction': {
+      case 'getLLMResult': {
         const result = await docrouterClient.getLLMResult({
           documentId: getArg(args, 'documentId'),
           promptRevId: getArg(args, 'promptRevId'),
@@ -487,56 +822,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'search_docrouter_documents': {
-        const result = await docrouterClient.listDocuments({
-          skip: getOptionalArg(args, 'skip', 0),
-          limit: getOptionalArg(args, 'limit', 10),
-          nameSearch: getArg(args, 'query'),
-          tagIds: getOptionalArg(args, 'tagIds'),
-        });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(serializeDates(result), null, 2),
-            },
-          ],
-        };
-      }
 
-      case 'search_docrouter_prompts': {
-        const result = await docrouterClient.listPrompts({
-          skip: getOptionalArg(args, 'skip', 0),
-          limit: getOptionalArg(args, 'limit', 10),
-          nameSearch: getArg(args, 'query'),
-        });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(serializeDates(result), null, 2),
-            },
-          ],
-        };
-      }
-
-      case 'search_docrouter_tags': {
-        const result = await docrouterClient.listTags({
-          skip: getOptionalArg(args, 'skip', 0),
-          limit: getOptionalArg(args, 'limit', 10),
-          nameSearch: getArg(args, 'query'),
-        });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(serializeDates(result), null, 2),
-            },
-          ],
-        };
-      }
-
-      case 'run_docrouter_extraction': {
+      case 'runLLM': {
         const result = await docrouterClient.runLLM({
           documentId: getArg(args, 'documentId'),
           promptRevId: getArg(args, 'promptRevId'),
@@ -552,7 +839,427 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'docrouter_help': {
+      // ========== DOCUMENTS ==========
+      case 'uploadDocuments': {
+        const documentsInput = getArg(args, 'documents') as Array<{ name: string; content: string; type: string; metadata?: Record<string, string>; }>;
+        const documents = documentsInput.map(doc => ({
+          ...doc,
+          content: Buffer.from(doc.content, 'base64')
+        }));
+        const result = await docrouterClient.uploadDocuments({ documents });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'updateDocument': {
+        const result = await docrouterClient.updateDocument({
+          documentId: getArg(args, 'documentId'),
+          documentName: getOptionalArg(args, 'documentName'),
+          tagIds: getOptionalArg(args, 'tagIds'),
+          metadata: getOptionalArg(args, 'metadata'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'deleteDocument': {
+        const result = await docrouterClient.deleteDocument({
+          documentId: getArg(args, 'documentId'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      // ========== OCR ==========
+      case 'getOCRBlocks': {
+        const result = await docrouterClient.getOCRBlocks({
+          documentId: getArg(args, 'documentId'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      // ========== LLM ==========
+      case 'updateLLMResult': {
+        const result = await docrouterClient.updateLLMResult({
+          documentId: getArg(args, 'documentId'),
+          promptId: getArg(args, 'promptId'),
+          result: getArg(args, 'result'),
+          isVerified: getOptionalArg(args, 'isVerified', false),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'deleteLLMResult': {
+        const result = await docrouterClient.deleteLLMResult({
+          documentId: getArg(args, 'documentId'),
+          promptId: getArg(args, 'promptId'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+
+      // ========== TAGS ==========
+      case 'createTag': {
+        const result = await docrouterClient.createTag({
+          tag: getArg(args, 'tag'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'updateTag': {
+        const result = await docrouterClient.updateTag({
+          tagId: getArg(args, 'tagId'),
+          tag: getArg(args, 'tag'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'deleteTag': {
+        const result = await docrouterClient.deleteTag({
+          tagId: getArg(args, 'tagId'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      // ========== FORMS ==========
+      case 'createForm': {
+        const result = await docrouterClient.createForm({
+          name: getArg(args, 'name'),
+          response_format: getArg(args, 'response_format'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'listForms': {
+        const result = await docrouterClient.listForms({
+          skip: getOptionalArg(args, 'skip', 0),
+          limit: getOptionalArg(args, 'limit', 10),
+          tag_ids: getOptionalArg(args, 'tag_ids'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'getForm': {
+        const result = await docrouterClient.getForm({
+          formRevId: getArg(args, 'formRevId'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'updateForm': {
+        const result = await docrouterClient.updateForm({
+          formId: getArg(args, 'formId'),
+          form: getArg(args, 'form'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'deleteForm': {
+        const result = await docrouterClient.deleteForm({
+          formId: getArg(args, 'formId'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'submitForm': {
+        const result = await docrouterClient.submitForm({
+          documentId: getArg(args, 'documentId'),
+          formRevId: getArg(args, 'formRevId'),
+          submission_data: getArg(args, 'submission_data'),
+          submitted_by: getOptionalArg(args, 'submitted_by'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'getFormSubmission': {
+        const result = await docrouterClient.getFormSubmission({
+          documentId: getArg(args, 'documentId'),
+          formRevId: getArg(args, 'formRevId'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'deleteFormSubmission': {
+        const result = await docrouterClient.deleteFormSubmission({
+          documentId: getArg(args, 'documentId'),
+          formRevId: getArg(args, 'formRevId'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      // ========== PROMPTS ==========
+      case 'createPrompt': {
+        const result = await docrouterClient.createPrompt({
+          prompt: getArg(args, 'prompt'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'updatePrompt': {
+        const result = await docrouterClient.updatePrompt({
+          promptId: getArg(args, 'promptId'),
+          prompt: getArg(args, 'prompt'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'deletePrompt': {
+        const result = await docrouterClient.deletePrompt({
+          promptId: getArg(args, 'promptId'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      // ========== SCHEMAS ==========
+      case 'createSchema': {
+        const result = await docrouterClient.createSchema({
+          name: getArg(args, 'name'),
+          response_format: getArg(args, 'response_format'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'listSchemas': {
+        const result = await docrouterClient.listSchemas({
+          skip: getOptionalArg(args, 'skip', 0),
+          limit: getOptionalArg(args, 'limit', 10),
+          nameSearch: getOptionalArg(args, 'nameSearch'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'getSchema': {
+        const result = await docrouterClient.getSchema({
+          schemaRevId: getArg(args, 'schemaRevId'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'updateSchema': {
+        const result = await docrouterClient.updateSchema({
+          schemaId: getArg(args, 'schemaId'),
+          schema: getArg(args, 'schema'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'deleteSchema': {
+        const result = await docrouterClient.deleteSchema({
+          schemaId: getArg(args, 'schemaId'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'validateAgainstSchema': {
+        const result = await docrouterClient.validateAgainstSchema({
+          schemaRevId: getArg(args, 'schemaRevId'),
+          data: getArg(args, 'data'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+
+
+      // ========== LLM CHAT ==========
+      case 'runLLMChat': {
+        const result = await docrouterClient.runLLMChat({
+          messages: getArg(args, 'messages'),
+          model: getOptionalArg(args, 'model'),
+          temperature: getOptionalArg(args, 'temperature'),
+          max_tokens: getOptionalArg(args, 'max_tokens'),
+          stream: getOptionalArg(args, 'stream'),
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(serializeDates(result), null, 2),
+            },
+          ],
+        };
+      }
+
+      // ========== HELPER TOOLS ==========
+      case 'help': {
         const helpText = `
 # DocRouter API Help
 
@@ -560,47 +1267,80 @@ This server provides access to DocRouter resources and tools.
 
 ## Available Tools
 
-### Document Tools
-- \`get_docrouter_documents()\` - List all documents
-- \`get_docrouter_document(documentId)\` - Get document by ID
-- \`get_docrouter_document_ocr(documentId)\` - Get raw OCR text for a document (use this to see document content)
-- \`get_docrouter_document_ocr_metadata(documentId)\` - Get OCR metadata for a document
-- \`get_docrouter_extraction(documentId, promptRevId)\` - Get extraction results
+### Documents
+- \`uploadDocuments(documents)\` - Upload documents
+- \`listDocuments(skip, limit, tagIds, nameSearch, metadataSearch)\` - List documents
+- \`getDocument(documentId, fileType)\` - Get document by ID
+- \`updateDocument(documentId, documentName, tagIds, metadata)\` - Update document
+- \`deleteDocument(documentId)\` - Delete document
 
-### Tag Tools
-- \`get_docrouter_tags()\` - List all tags
-- \`get_docrouter_tag(tagId)\` - Get tag by ID
+### OCR
+- \`getOCRBlocks(documentId)\` - Get OCR blocks
+- \`getOCRText(documentId, pageNum)\` - Get OCR text
+- \`getOCRMetadata(documentId)\` - Get OCR metadata
 
-### Prompt Tools
-- \`get_docrouter_prompts()\` - List all prompts
-- \`get_docrouter_prompt(promptRevId)\` - Get prompt by ID
+### LLM
+- \`runLLM(documentId, promptRevId, force)\` - Run AI extraction
+- \`getLLMResult(documentId, promptRevId, fallback)\` - Get extraction results
+- \`updateLLMResult(documentId, promptId, result, isVerified)\` - Update results
+- \`deleteLLMResult(documentId, promptId)\` - Delete results
 
-### Search and Extraction Tools
-- \`search_docrouter_documents(query, tagIds)\` - Search documents by name
-- \`search_docrouter_prompts(query)\` - Search prompts by name or content
-- \`search_docrouter_tags(query)\` - Search tags by name or description
-- \`run_docrouter_extraction(documentId, promptRevId, force)\` - Run AI extraction on a document using a specific prompt
+### Tags
+- \`createTag(tag)\` - Create tag
+- \`getTag(tagId)\` - Get tag by ID
+- \`listTags(skip, limit, nameSearch)\` - List tags
+- \`updateTag(tagId, tag)\` - Update tag
+- \`deleteTag(tagId)\` - Delete tag
+
+### Forms
+- \`createForm(name, response_format)\` - Create form
+- \`listForms(skip, limit, tag_ids)\` - List forms
+- \`getForm(formRevId)\` - Get form by ID
+- \`updateForm(formId, form)\` - Update form
+- \`deleteForm(formId)\` - Delete form
+- \`submitForm(documentId, formRevId, submission_data, submitted_by)\` - Submit form
+- \`getFormSubmission(documentId, formRevId)\` - Get form submission
+- \`deleteFormSubmission(documentId, formRevId)\` - Delete form submission
+
+### Prompts
+- \`createPrompt(prompt)\` - Create prompt
+- \`listPrompts(skip, limit, document_id, tag_ids, nameSearch)\` - List prompts
+- \`getPrompt(promptRevId)\` - Get prompt by ID
+- \`updatePrompt(promptId, prompt)\` - Update prompt
+- \`deletePrompt(promptId)\` - Delete prompt
+
+### Schemas
+- \`createSchema(name, response_format)\` - Create schema
+- \`listSchemas(skip, limit, nameSearch)\` - List schemas
+- \`getSchema(schemaRevId)\` - Get schema by ID
+- \`updateSchema(schemaId, schema)\` - Update schema
+- \`deleteSchema(schemaId)\` - Delete schema
+- \`validateAgainstSchema(schemaRevId, data)\` - Validate data
+
+
+### LLM Chat
+- \`runLLMChat(messages, model, temperature, max_tokens, stream)\` - Run chat
 
 ## Example Workflows
 
-1. Find documents related to invoices:
+1. List documents:
    \`\`\`
-   search_docrouter_documents("invoice")
-   \`\`\`
-
-2. Get OCR text for a document (to see the document content):
-   \`\`\`
-   get_docrouter_document_ocr("doc123")
+   listDocuments()
    \`\`\`
 
-3. Run AI extraction on a document (requires a prompt):
+2. Get OCR text for a document:
    \`\`\`
-   run_docrouter_extraction("doc123", "prompt456")
+   getOCRText("doc123")
    \`\`\`
 
-4. View extraction results:
+3. Run AI extraction:
    \`\`\`
-   get_docrouter_extraction("doc123", "prompt456")
+   runLLM("doc123", "prompt456")
+   \`\`\`
+
+4. Get extraction results:
+   \`\`\`
+   getLLMResult("doc123", "prompt456")
    \`\`\`
         `;
         return {
@@ -613,59 +1353,6 @@ This server provides access to DocRouter resources and tools.
         };
       }
 
-      case 'docrouter_document_analysis_guide': {
-        const documentId = getArg(args, 'documentId');
-        const guideText = `
-# Document Analysis Guide for Document ${documentId}
-
-Here's a step-by-step guide to analyze this document:
-
-## 1. Get Document Details
-First, get the document details:
-\`\`\`
-get_docrouter_document("${documentId}")
-\`\`\`
-
-## 2. View Document Content
-Get the OCR text to see the document content:
-\`\`\`
-get_docrouter_document_ocr("${documentId}")
-\`\`\`
-
-## 3. Find Available Prompts
-See what prompts are available:
-\`\`\`
-get_docrouter_prompts()
-\`\`\`
-
-## 4. Select an Appropriate Prompt
-Based on the document content, select a prompt that would be most appropriate.
-Let's say you choose a prompt with ID "prompt_id".
-
-## 5. Run Extraction
-Run an extraction with the selected prompt:
-\`\`\`
-run_docrouter_extraction("${documentId}", "prompt_id")
-\`\`\`
-
-## 6. View Results
-View the extraction results:
-\`\`\`
-get_docrouter_extraction("${documentId}", "prompt_id")
-\`\`\`
-
-## 7. Analyze Results
-Analyze the extracted information to understand the key details in this document.
-        `;
-        return {
-          content: [
-            {
-              type: 'text',
-              text: guideText,
-            },
-          ],
-        };
-      }
 
       default:
         throw new Error(`Unknown tool: ${name}`);
@@ -724,3 +1411,4 @@ if (require.main === module) {
     process.exit(1);
   });
 }
+
