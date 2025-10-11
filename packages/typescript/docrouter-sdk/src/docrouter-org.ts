@@ -273,9 +273,9 @@ export class DocRouterOrg {
     return this.http.put<Tag>(`/v0/orgs/${this.organizationId}/tags/${tagId}`, tag);
   }
 
-  async deleteTag(params: { tagId: string; }): Promise<void> {
+  async deleteTag(params: { tagId: string; }): Promise<{ message: string }> {
     const { tagId } = params;
-    await this.http.delete(`/v0/orgs/${this.organizationId}/tags/${tagId}`);
+    return this.http.delete<{ message: string }>(`/v0/orgs/${this.organizationId}/tags/${tagId}`);
   }
 
   // ---------------- Forms ----------------
@@ -302,9 +302,9 @@ export class DocRouterOrg {
     return this.http.put<Form>(`/v0/orgs/${this.organizationId}/forms/${formId}`, form);
   }
 
-  async deleteForm(params: Omit<DeleteFormParams, 'organizationId'>): Promise<void> {
+  async deleteForm(params: Omit<DeleteFormParams, 'organizationId'>): Promise<{ message: string }> {
     const { formId } = params;
-    await this.http.delete(`/v0/orgs/${this.organizationId}/forms/${formId}`);
+    return this.http.delete<{ message: string }>(`/v0/orgs/${this.organizationId}/forms/${formId}`);
   }
 
   async submitForm(params: Omit<SubmitFormParams, 'organizationId'>): Promise<FormSubmission> {
@@ -384,9 +384,9 @@ export class DocRouterOrg {
     return this.http.put<Schema>(`/v0/orgs/${this.organizationId}/schemas/${schemaId}`, schema);
   }
 
-  async deleteSchema(params: Omit<DeleteSchemaParams, 'organizationId'>): Promise<void> {
+  async deleteSchema(params: Omit<DeleteSchemaParams, 'organizationId'>): Promise<{ message: string }> {
     const { schemaId } = params;
-    await this.http.delete(`/v0/orgs/${this.organizationId}/schemas/${schemaId}`);
+    return this.http.delete<{ message: string }>(`/v0/orgs/${this.organizationId}/schemas/${schemaId}`);
   }
 
   async validateAgainstSchema(params: { schemaRevId: string; data: Record<string, unknown> }): Promise<{ valid: boolean; errors?: string[] }> {
