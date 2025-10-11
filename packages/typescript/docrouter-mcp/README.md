@@ -152,6 +152,25 @@ Create `.cursor/mcp.json` in your project root:
 }
 ```
 
+### Claude Code
+
+Create a `.mcp.conf` file in your project root:
+
+```json
+{
+  "mcpServers": {
+    "docrouter": {
+      "command": "node",
+      "args": ["/path/to/docrouter-mcp/dist/index.js"],
+      "env": {
+        "DOCROUTER_ORG_ID": "your-org-id",
+        "DOCROUTER_ORG_API_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
 ## Development
 
 ### Prerequisites
