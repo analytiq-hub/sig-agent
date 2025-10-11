@@ -1417,6 +1417,55 @@ async def get_prompt_id_and_version(prompt_id: Optional[str] = None) -> tuple[st
     
     return prompt_id, prompt_version
 
+async def validate_and_resolve_schema(prompt: PromptConfig) -> Optional[dict]:
+    """
+    Validate and resolve schema information for a prompt.
+    
+    If schema_id is provided:
+    - If schema_version is also provided, validates that specific version exists
+    - If schema_version is None, auto-fetches the latest version and updates the prompt
+    
+    Args:
+        prompt: The prompt configuration to validate
+        
+    Returns:
+        The schema document if found, None if no schema_id provided
+        
+    Raises:
+        HTTPException: If schema_id is provided but schema not found
+    """
+    if not prompt.schema_id:
+        return None
+        
+    db = ad.common.get_async_db()
+    
+    if prompt.schema_version:
+        # Both schema_id and schema_version provided - verify specific version
+        schema = await db.schema_revisions.find_one({
+            "schema_id": prompt.schema_id,
+            "schema_version": prompt.schema_version,
+        })
+        if not schema:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Schema with ID {prompt.schema_id} version {prompt.schema_version} not found"
+            )
+    else:
+        # Only schema_id provided - auto-fetch latest version
+        schema = await db.schema_revisions.find_one(
+            {"schema_id": prompt.schema_id},
+            sort=[("schema_version", -1)]  # Get highest version
+        )
+        if not schema:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Schema with ID {prompt.schema_id} not found"
+            )
+        # Update the prompt with the latest schema version
+        prompt.schema_version = schema["schema_version"]
+    
+    return schema
+
 # Prompt management endpoints
 @app.post("/v0/orgs/{organization_id}/prompts", response_model=Prompt, tags=["prompts"])
 async def create_prompt(
@@ -1429,16 +1478,7 @@ async def create_prompt(
     db = ad.common.get_async_db()
 
     # Verify schema if specified
-    if prompt.schema_id and prompt.schema_version:
-        schema = await db.schema_revisions.find_one({
-            "schema_id": prompt.schema_id,
-            "schema_version": prompt.schema_version,  # Changed field name
-        })
-        if not schema:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Schema with ID {prompt.schema_id} version {prompt.schema_version} not found"
-            )
+    schema = await validate_and_resolve_schema(prompt)
 
     # Validate model exists
     found = False
@@ -1677,16 +1717,7 @@ async def update_prompt(
         raise HTTPException(status_code=404, detail="Prompt not found")
     
     # Only verify schema if one is specified
-    if prompt.schema_id and prompt.schema_version:
-        schema = await db.schema_revisions.find_one({
-            "schema_id": prompt.schema_id,
-            "schema_version": prompt.schema_version
-        })
-        if not schema:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Schema id {prompt.schema_id} version {prompt.schema_version} not found"
-            )
+    schema = await validate_and_resolve_schema(prompt)
 
     # Validate model exists
     found = False

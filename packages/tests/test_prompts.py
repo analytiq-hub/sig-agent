@@ -227,6 +227,93 @@ async def test_prompt_with_schema(test_db, mock_auth, setup_test_models):
     logger.info(f"test_prompt_with_schema() end")
 
 @pytest.mark.asyncio
+async def test_prompt_with_schema_id_only(test_db, mock_auth, setup_test_models):
+    """Test creating a prompt with schema_id but no schema_version (should auto-fetch latest)"""
+    logger.info(f"test_prompt_with_schema_id_only() start")
+    
+    # Step 1: Create a schema first
+    schema_data = {
+        "name": "Test Schema for Auto Version",
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "test_auto_version",
+                "schema": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "field1": {
+                            "type": "string",
+                            "description": "Field 1 description"
+                        }
+                    },
+                    "required": ["field1"]
+                },
+                "strict": True
+            }
+        }
+    }
+    
+    schema_response = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/schemas",
+        json=schema_data,
+        headers=get_auth_headers()
+    )
+    
+    assert schema_response.status_code == 200
+    schema_result = schema_response.json()
+    schema_id = schema_result["schema_id"]
+    expected_schema_version = schema_result["schema_version"]
+    
+    # Step 2: Create a prompt with schema_id but NO schema_version
+    prompt_data = {
+        "name": "Test Prompt Auto Version",
+        "content": "Extract information from the document.",
+        "model": "gpt-4o-mini",
+        "schema_id": schema_id,
+        # Note: schema_version is intentionally omitted
+        "tag_ids": []
+    }
+    
+    create_response = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/prompts",
+        json=prompt_data,
+        headers=get_auth_headers()
+    )
+    
+    assert create_response.status_code == 200
+    prompt_result = create_response.json()
+    prompt_revid = prompt_result["prompt_revid"]
+    
+    # Step 3: Verify the prompt was created with the correct schema_version
+    assert prompt_result["schema_id"] == schema_id
+    assert prompt_result["schema_version"] == expected_schema_version, f"Expected schema_version {expected_schema_version}, got {prompt_result['schema_version']}"
+    
+    # Step 4: Get the prompt to double-check
+    get_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_revid}",
+        headers=get_auth_headers()
+    )
+    
+    assert get_response.status_code == 200
+    prompt_data = get_response.json()
+    assert prompt_data["schema_id"] == schema_id
+    assert prompt_data["schema_version"] == expected_schema_version
+    
+    # Step 5: Cleanup
+    client.delete(
+        f"/v0/orgs/{TEST_ORG_ID}/prompts/{prompt_revid}",
+        headers=get_auth_headers()
+    )
+    
+    client.delete(
+        f"/v0/orgs/{TEST_ORG_ID}/schemas/{schema_result['schema_revid']}",
+        headers=get_auth_headers()
+    )
+
+    logger.info(f"test_prompt_with_schema_id_only() end")
+
+@pytest.mark.asyncio
 async def test_prompt_filtering(test_db, mock_auth, setup_test_models):
     """Test filtering prompts by tags"""
     logger.info(f"test_prompt_filtering() start")
