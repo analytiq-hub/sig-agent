@@ -356,9 +356,9 @@ export class DocRouterOrg {
     return this.http.put<Prompt>(`/v0/orgs/${this.organizationId}/prompts/${promptId}`, prompt);
   }
 
-  async deletePrompt(params: Omit<DeletePromptParams, 'organizationId'>): Promise<void> {
+  async deletePrompt(params: Omit<DeletePromptParams, 'organizationId'>): Promise<{ message: string }> {
     const { promptId } = params;
-    await this.http.delete(`/v0/orgs/${this.organizationId}/prompts/${promptId}`);
+    return this.http.delete<{ message: string }>(`/v0/orgs/${this.organizationId}/prompts/${promptId}`);
   }
 
   // ---------------- Schemas ----------------
