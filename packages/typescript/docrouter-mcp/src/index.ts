@@ -143,7 +143,7 @@ function getOptionalArg<T>(args: Record<string, unknown>, key: string, defaultVa
 const tools: Tool[] = [
   // ========== DOCUMENTS ==========
   {
-    name: 'uploadDocuments',
+    name: 'upload_documents',
     description: 'Upload documents to DocRouter',
     inputSchema: {
       type: 'object',
@@ -167,7 +167,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'listDocuments',
+    name: 'list_documents',
     description: 'List documents from DocRouter',
     inputSchema: {
       type: 'object',
@@ -181,7 +181,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'getDocument',
+    name: 'get_document',
     description: 'Get document by ID from DocRouter',
     inputSchema: {
       type: 'object',
@@ -193,7 +193,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'updateDocument',
+    name: 'update_document',
     description: 'Update document metadata',
     inputSchema: {
       type: 'object',
@@ -207,7 +207,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'deleteDocument',
+    name: 'delete_document',
     description: 'Delete a document',
     inputSchema: {
       type: 'object',
@@ -220,7 +220,7 @@ const tools: Tool[] = [
 
   // ========== OCR ==========
   {
-    name: 'getOCRBlocks',
+    name: 'get_ocr_blocks',
     description: 'Get OCR blocks for a document',
     inputSchema: {
       type: 'object',
@@ -231,7 +231,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'getOCRText',
+    name: 'get_ocr_text',
     description: 'Get OCR text for a document',
     inputSchema: {
       type: 'object',
@@ -243,7 +243,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'getOCRMetadata',
+    name: 'get_ocr_metadata',
     description: 'Get OCR metadata for a document',
     inputSchema: {
       type: 'object',
@@ -256,7 +256,7 @@ const tools: Tool[] = [
 
   // ========== LLM ==========
   {
-    name: 'runLLM',
+    name: 'run_llm',
     description: 'Run AI extraction on a document using a specific prompt',
     inputSchema: {
       type: 'object',
@@ -269,7 +269,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'getLLMResult',
+    name: 'get_llm_result',
     description: 'Get LLM extraction results',
     inputSchema: {
       type: 'object',
@@ -282,7 +282,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'updateLLMResult',
+    name: 'update_llm_result',
     description: 'Update LLM extraction results',
     inputSchema: {
       type: 'object',
@@ -296,7 +296,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'deleteLLMResult',
+    name: 'delete_llm_result',
     description: 'Delete LLM extraction results',
     inputSchema: {
       type: 'object',
@@ -310,7 +310,7 @@ const tools: Tool[] = [
 
   // ========== TAGS ==========
   {
-    name: 'createTag',
+    name: 'create_tag',
     description: 'Create a new tag',
     inputSchema: {
       type: 'object',
@@ -328,7 +328,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'getTag',
+    name: 'get_tag',
     description: 'Get tag by ID',
     inputSchema: {
       type: 'object',
@@ -339,7 +339,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'listTags',
+    name: 'list_tags',
     description: 'List all tags',
     inputSchema: {
       type: 'object',
@@ -351,7 +351,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'updateTag',
+    name: 'update_tag',
     description: 'Update a tag',
     inputSchema: {
       type: 'object',
@@ -369,7 +369,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'deleteTag',
+    name: 'delete_tag',
     description: 'Delete a tag',
     inputSchema: {
       type: 'object',
@@ -382,7 +382,7 @@ const tools: Tool[] = [
 
   // ========== FORMS ==========
   {
-    name: 'createForm',
+    name: 'create_form',
     description: 'Create a new form',
     inputSchema: {
       type: 'object',
@@ -394,7 +394,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'listForms',
+    name: 'list_forms',
     description: 'List all forms',
     inputSchema: {
       type: 'object',
@@ -406,7 +406,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'getForm',
+    name: 'get_form',
     description: 'Get form by ID',
     inputSchema: {
       type: 'object',
@@ -417,7 +417,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'updateForm',
+    name: 'update_form',
     description: 'Update a form',
     inputSchema: {
       type: 'object',
@@ -429,7 +429,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'deleteForm',
+    name: 'delete_form',
     description: 'Delete a form',
     inputSchema: {
       type: 'object',
@@ -440,7 +440,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'submitForm',
+    name: 'submit_form',
     description: 'Submit a form',
     inputSchema: {
       type: 'object',
@@ -454,7 +454,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'getFormSubmission',
+    name: 'get_form_submission',
     description: 'Get form submission',
     inputSchema: {
       type: 'object',
@@ -466,7 +466,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'deleteFormSubmission',
+    name: 'delete_form_submission',
     description: 'Delete form submission',
     inputSchema: {
       type: 'object',
@@ -480,7 +480,7 @@ const tools: Tool[] = [
 
   // ========== PROMPTS ==========
   {
-    name: 'createPrompt',
+    name: 'create_prompt',
     description: 'Create a new prompt',
     inputSchema: {
       type: 'object',
@@ -498,7 +498,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'listPrompts',
+    name: 'list_prompts',
     description: 'List all prompts',
     inputSchema: {
       type: 'object',
@@ -512,7 +512,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'getPrompt',
+    name: 'get_prompt',
     description: 'Get prompt by ID',
     inputSchema: {
       type: 'object',
@@ -523,7 +523,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'updatePrompt',
+    name: 'update_prompt',
     description: 'Update a prompt',
     inputSchema: {
       type: 'object',
@@ -535,7 +535,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'deletePrompt',
+    name: 'delete_prompt',
     description: 'Delete a prompt',
     inputSchema: {
       type: 'object',
@@ -548,7 +548,7 @@ const tools: Tool[] = [
 
   // ========== SCHEMAS ==========
   {
-    name: 'createSchema',
+    name: 'create_schema',
     description: 'Create a new schema',
     inputSchema: {
       type: 'object',
@@ -560,7 +560,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'listSchemas',
+    name: 'list_schemas',
     description: 'List all schemas',
     inputSchema: {
       type: 'object',
@@ -572,7 +572,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'getSchema',
+    name: 'get_schema',
     description: 'Get schema by ID',
     inputSchema: {
       type: 'object',
@@ -583,7 +583,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'updateSchema',
+    name: 'update_schema',
     description: 'Update a schema',
     inputSchema: {
       type: 'object',
@@ -595,7 +595,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'deleteSchema',
+    name: 'delete_schema',
     description: 'Delete a schema',
     inputSchema: {
       type: 'object',
@@ -606,7 +606,7 @@ const tools: Tool[] = [
     },
   },
   {
-    name: 'validateAgainstSchema',
+    name: 'validate_against_schema',
     description: 'Validate data against a schema',
     inputSchema: {
       type: 'object',
@@ -622,7 +622,7 @@ const tools: Tool[] = [
 
   // ========== LLM CHAT ==========
   {
-    name: 'runLLMChat',
+    name: 'run_llm_chat',
     description: 'Run LLM chat',
     inputSchema: {
       type: 'object',
@@ -674,7 +674,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
-      case 'listDocuments': {
+      case 'list_documents': {
         const result = await docrouterClient.listDocuments({
           skip: getOptionalArg(args, 'skip', 0),
           limit: getOptionalArg(args, 'limit', 10),
@@ -691,7 +691,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'getDocument': {
+      case 'get_document': {
         const result = await docrouterClient.getDocument({
           documentId: getArg(args, 'documentId'),
           fileType: getArg(args, 'fileType', 'pdf'),
@@ -715,7 +715,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'getOCRText': {
+      case 'get_ocr_text': {
         const result = await docrouterClient.getOCRText({
           documentId: getArg(args, 'documentId'),
           pageNum: getOptionalArg(args, 'pageNum'),
@@ -730,7 +730,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'getOCRMetadata': {
+      case 'get_ocr_metadata': {
         const result = await docrouterClient.getOCRMetadata({
           documentId: getArg(args, 'documentId'),
         });
@@ -744,7 +744,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'listTags': {
+      case 'list_tags': {
         const result = await docrouterClient.listTags({
           skip: getOptionalArg(args, 'skip', 0),
           limit: getOptionalArg(args, 'limit', 10),
@@ -760,7 +760,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'getTag': {
+      case 'get_tag': {
         const result = await docrouterClient.getTag({
           tagId: getArg(args, 'tagId'),
         });
@@ -774,7 +774,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'listPrompts': {
+      case 'list_prompts': {
         const result = await docrouterClient.listPrompts({
           skip: getOptionalArg(args, 'skip', 0),
           limit: getOptionalArg(args, 'limit', 10),
@@ -792,7 +792,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'getPrompt': {
+      case 'get_prompt': {
         const result = await docrouterClient.getPrompt({
           promptRevId: getArg(args, 'promptRevId'),
         });
@@ -806,7 +806,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'getLLMResult': {
+      case 'get_llm_result': {
         const result = await docrouterClient.getLLMResult({
           documentId: getArg(args, 'documentId'),
           promptRevId: getArg(args, 'promptRevId'),
@@ -823,7 +823,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
 
-      case 'runLLM': {
+      case 'run_llm': {
         const result = await docrouterClient.runLLM({
           documentId: getArg(args, 'documentId'),
           promptRevId: getArg(args, 'promptRevId'),
@@ -840,7 +840,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       // ========== DOCUMENTS ==========
-      case 'uploadDocuments': {
+      case 'upload_documents': {
         const documentsInput = getArg(args, 'documents') as Array<{ name: string; content: string; type: string; metadata?: Record<string, string>; }>;
         const documents = documentsInput.map(doc => ({
           ...doc,
@@ -857,7 +857,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'updateDocument': {
+      case 'update_document': {
         const result = await docrouterClient.updateDocument({
           documentId: getArg(args, 'documentId'),
           documentName: getOptionalArg(args, 'documentName'),
@@ -874,7 +874,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'deleteDocument': {
+      case 'delete_document': {
         const result = await docrouterClient.deleteDocument({
           documentId: getArg(args, 'documentId'),
         });
@@ -889,7 +889,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       // ========== OCR ==========
-      case 'getOCRBlocks': {
+      case 'get_ocr_blocks': {
         const result = await docrouterClient.getOCRBlocks({
           documentId: getArg(args, 'documentId'),
         });
@@ -904,7 +904,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       // ========== LLM ==========
-      case 'updateLLMResult': {
+      case 'update_llm_result': {
         const result = await docrouterClient.updateLLMResult({
           documentId: getArg(args, 'documentId'),
           promptId: getArg(args, 'promptId'),
@@ -921,7 +921,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'deleteLLMResult': {
+      case 'delete_llm_result': {
         const result = await docrouterClient.deleteLLMResult({
           documentId: getArg(args, 'documentId'),
           promptId: getArg(args, 'promptId'),
@@ -938,7 +938,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 
       // ========== TAGS ==========
-      case 'createTag': {
+      case 'create_tag': {
         const result = await docrouterClient.createTag({
           tag: getArg(args, 'tag'),
         });
@@ -952,7 +952,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'updateTag': {
+      case 'update_tag': {
         const result = await docrouterClient.updateTag({
           tagId: getArg(args, 'tagId'),
           tag: getArg(args, 'tag'),
@@ -967,7 +967,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'deleteTag': {
+      case 'delete_tag': {
         const result = await docrouterClient.deleteTag({
           tagId: getArg(args, 'tagId'),
         });
@@ -982,7 +982,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       // ========== FORMS ==========
-      case 'createForm': {
+      case 'create_form': {
         const result = await docrouterClient.createForm({
           name: getArg(args, 'name'),
           response_format: getArg(args, 'response_format'),
@@ -997,7 +997,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'listForms': {
+      case 'list_forms': {
         const result = await docrouterClient.listForms({
           skip: getOptionalArg(args, 'skip', 0),
           limit: getOptionalArg(args, 'limit', 10),
@@ -1013,7 +1013,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'getForm': {
+      case 'get_form': {
         const result = await docrouterClient.getForm({
           formRevId: getArg(args, 'formRevId'),
         });
@@ -1027,7 +1027,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'updateForm': {
+      case 'update_form': {
         const result = await docrouterClient.updateForm({
           formId: getArg(args, 'formId'),
           form: getArg(args, 'form'),
@@ -1042,7 +1042,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'deleteForm': {
+      case 'delete_form': {
         const result = await docrouterClient.deleteForm({
           formId: getArg(args, 'formId'),
         });
@@ -1056,7 +1056,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'submitForm': {
+      case 'submit_form': {
         const result = await docrouterClient.submitForm({
           documentId: getArg(args, 'documentId'),
           formRevId: getArg(args, 'formRevId'),
@@ -1073,7 +1073,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'getFormSubmission': {
+      case 'get_form_submission': {
         const result = await docrouterClient.getFormSubmission({
           documentId: getArg(args, 'documentId'),
           formRevId: getArg(args, 'formRevId'),
@@ -1088,7 +1088,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'deleteFormSubmission': {
+      case 'delete_form_submission': {
         const result = await docrouterClient.deleteFormSubmission({
           documentId: getArg(args, 'documentId'),
           formRevId: getArg(args, 'formRevId'),
@@ -1104,7 +1104,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       // ========== PROMPTS ==========
-      case 'createPrompt': {
+      case 'create_prompt': {
         const result = await docrouterClient.createPrompt({
           prompt: getArg(args, 'prompt'),
         });
@@ -1118,7 +1118,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'updatePrompt': {
+      case 'update_prompt': {
         const result = await docrouterClient.updatePrompt({
           promptId: getArg(args, 'promptId'),
           prompt: getArg(args, 'prompt'),
@@ -1133,7 +1133,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'deletePrompt': {
+      case 'delete_prompt': {
         const result = await docrouterClient.deletePrompt({
           promptId: getArg(args, 'promptId'),
         });
@@ -1148,7 +1148,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       // ========== SCHEMAS ==========
-      case 'createSchema': {
+      case 'create_schema': {
         const result = await docrouterClient.createSchema({
           name: getArg(args, 'name'),
           response_format: getArg(args, 'response_format'),
@@ -1163,7 +1163,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'listSchemas': {
+      case 'list_schemas': {
         const result = await docrouterClient.listSchemas({
           skip: getOptionalArg(args, 'skip', 0),
           limit: getOptionalArg(args, 'limit', 10),
@@ -1179,7 +1179,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'getSchema': {
+      case 'get_schema': {
         const result = await docrouterClient.getSchema({
           schemaRevId: getArg(args, 'schemaRevId'),
         });
@@ -1193,7 +1193,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'updateSchema': {
+      case 'update_schema': {
         const result = await docrouterClient.updateSchema({
           schemaId: getArg(args, 'schemaId'),
           schema: getArg(args, 'schema'),
@@ -1208,7 +1208,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'deleteSchema': {
+      case 'delete_schema': {
         const result = await docrouterClient.deleteSchema({
           schemaId: getArg(args, 'schemaId'),
         });
@@ -1222,7 +1222,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'validateAgainstSchema': {
+      case 'validate_against_schema': {
         const result = await docrouterClient.validateAgainstSchema({
           schemaRevId: getArg(args, 'schemaRevId'),
           data: getArg(args, 'data'),
@@ -1240,7 +1240,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 
       // ========== LLM CHAT ==========
-      case 'runLLMChat': {
+      case 'run_llm_chat': {
         const result = await docrouterClient.runLLMChat({
           messages: getArg(args, 'messages'),
           model: getOptionalArg(args, 'model'),
@@ -1268,79 +1268,79 @@ This server provides access to DocRouter resources and tools.
 ## Available Tools
 
 ### Documents
-- \`uploadDocuments(documents)\` - Upload documents
-- \`listDocuments(skip, limit, tagIds, nameSearch, metadataSearch)\` - List documents
-- \`getDocument(documentId, fileType)\` - Get document by ID
-- \`updateDocument(documentId, documentName, tagIds, metadata)\` - Update document
-- \`deleteDocument(documentId)\` - Delete document
+- \`upload_documents(documents)\` - Upload documents
+- \`list_documents(skip, limit, tagIds, nameSearch, metadataSearch)\` - List documents
+- \`get_document(documentId, fileType)\` - Get document by ID
+- \`update_document(documentId, documentName, tagIds, metadata)\` - Update document
+- \`delete_document(documentId)\` - Delete document
 
 ### OCR
-- \`getOCRBlocks(documentId)\` - Get OCR blocks
-- \`getOCRText(documentId, pageNum)\` - Get OCR text
-- \`getOCRMetadata(documentId)\` - Get OCR metadata
+- \`get_ocr_blocks(documentId)\` - Get OCR blocks
+- \`get_ocr_text(documentId, pageNum)\` - Get OCR text
+- \`get_ocr_metadata(documentId)\` - Get OCR metadata
 
 ### LLM
-- \`runLLM(documentId, promptRevId, force)\` - Run AI extraction
-- \`getLLMResult(documentId, promptRevId, fallback)\` - Get extraction results
-- \`updateLLMResult(documentId, promptId, result, isVerified)\` - Update results
-- \`deleteLLMResult(documentId, promptId)\` - Delete results
+- \`run_llm(documentId, promptRevId, force)\` - Run AI extraction
+- \`get_llm_result(documentId, promptRevId, fallback)\` - Get extraction results
+- \`update_llm_result(documentId, promptId, result, isVerified)\` - Update results
+- \`delete_llm_result(documentId, promptId)\` - Delete results
 
 ### Tags
-- \`createTag(tag)\` - Create tag
-- \`getTag(tagId)\` - Get tag by ID
-- \`listTags(skip, limit, nameSearch)\` - List tags
-- \`updateTag(tagId, tag)\` - Update tag
-- \`deleteTag(tagId)\` - Delete tag
+- \`create_tag(tag)\` - Create tag
+- \`get_tag(tagId)\` - Get tag by ID
+- \`list_tags(skip, limit, nameSearch)\` - List tags
+- \`update_tag(tagId, tag)\` - Update tag
+- \`delete_tag(tagId)\` - Delete tag
 
 ### Forms
-- \`createForm(name, response_format)\` - Create form
-- \`listForms(skip, limit, tag_ids)\` - List forms
-- \`getForm(formRevId)\` - Get form by ID
-- \`updateForm(formId, form)\` - Update form
-- \`deleteForm(formId)\` - Delete form
-- \`submitForm(documentId, formRevId, submission_data, submitted_by)\` - Submit form
-- \`getFormSubmission(documentId, formRevId)\` - Get form submission
-- \`deleteFormSubmission(documentId, formRevId)\` - Delete form submission
+- \`create_form(name, response_format)\` - Create form
+- \`list_forms(skip, limit, tag_ids)\` - List forms
+- \`get_form(formRevId)\` - Get form by ID
+- \`update_form(formId, form)\` - Update form
+- \`delete_form(formId)\` - Delete form
+- \`submit_form(documentId, formRevId, submission_data, submitted_by)\` - Submit form
+- \`get_form_submission(documentId, formRevId)\` - Get form submission
+- \`delete_form_submission(documentId, formRevId)\` - Delete form submission
 
 ### Prompts
-- \`createPrompt(prompt)\` - Create prompt
-- \`listPrompts(skip, limit, document_id, tag_ids, nameSearch)\` - List prompts
-- \`getPrompt(promptRevId)\` - Get prompt by ID
-- \`updatePrompt(promptId, prompt)\` - Update prompt
-- \`deletePrompt(promptId)\` - Delete prompt
+- \`create_prompt(prompt)\` - Create prompt
+- \`list_prompts(skip, limit, document_id, tag_ids, nameSearch)\` - List prompts
+- \`get_prompt(promptRevId)\` - Get prompt by ID
+- \`update_prompt(promptId, prompt)\` - Update prompt
+- \`delete_prompt(promptId)\` - Delete prompt
 
 ### Schemas
-- \`createSchema(name, response_format)\` - Create schema
-- \`listSchemas(skip, limit, nameSearch)\` - List schemas
-- \`getSchema(schemaRevId)\` - Get schema by ID
-- \`updateSchema(schemaId, schema)\` - Update schema
-- \`deleteSchema(schemaId)\` - Delete schema
-- \`validateAgainstSchema(schemaRevId, data)\` - Validate data
+- \`create_schema(name, response_format)\` - Create schema
+- \`list_schemas(skip, limit, nameSearch)\` - List schemas
+- \`get_schema(schemaRevId)\` - Get schema by ID
+- \`update_schema(schemaId, schema)\` - Update schema
+- \`delete_schema(schemaId)\` - Delete schema
+- \`validate_against_schema(schemaRevId, data)\` - Validate data
 
 
 ### LLM Chat
-- \`runLLMChat(messages, model, temperature, max_tokens, stream)\` - Run chat
+- \`run_llm_chat(messages, model, temperature, max_tokens, stream)\` - Run chat
 
 ## Example Workflows
 
 1. List documents:
    \`\`\`
-   listDocuments()
+   list_documents()
    \`\`\`
 
 2. Get OCR text for a document:
    \`\`\`
-   getOCRText("doc123")
+   get_ocr_text("doc123")
    \`\`\`
 
 3. Run AI extraction:
    \`\`\`
-   runLLM("doc123", "prompt456")
+   run_llm("doc123", "prompt456")
    \`\`\`
 
 4. Get extraction results:
    \`\`\`
-   getLLMResult("doc123", "prompt456")
+   get_llm_result("doc123", "prompt456")
    \`\`\`
         `;
         return {
