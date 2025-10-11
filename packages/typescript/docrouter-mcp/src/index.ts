@@ -291,38 +291,234 @@ function checkForNonPortableFeatures(properties: any, warnings: string[]): void 
   for (const [propName, propDef] of Object.entries(properties)) {
     if (typeof propDef === 'object' && propDef !== null) {
       const prop = propDef as any;
-      
+
       // Check for enum (not recommended for portability)
       if (prop.enum) {
         warnings.push(`Property "${propName}" uses enum - consider using description instead for better portability`);
       }
-      
+
       // Check for pattern (not recommended for portability)
       if (prop.pattern) {
         warnings.push(`Property "${propName}" uses pattern - consider using description instead for better portability`);
       }
-      
+
       // Check for min/max constraints (not recommended for portability)
       if (prop.minimum !== undefined || prop.maximum !== undefined) {
         warnings.push(`Property "${propName}" uses min/max constraints - consider using description instead for better portability`);
       }
-      
+
       if (prop.minItems !== undefined || prop.maxItems !== undefined) {
         warnings.push(`Property "${propName}" uses minItems/maxItems - consider using description instead for better portability`);
       }
-      
+
       if (prop.uniqueItems !== undefined) {
         warnings.push(`Property "${propName}" uses uniqueItems - consider using description instead for better portability`);
       }
-      
+
       // Recursively check nested objects
       if (prop.type === 'object' && prop.properties) {
         checkForNonPortableFeatures(prop.properties, warnings);
       }
-      
+
       if (prop.type === 'array' && prop.items && prop.items.type === 'object' && prop.items.properties) {
         checkForNonPortableFeatures(prop.items.properties, warnings);
       }
+    }
+  }
+}
+
+// Form validation function
+function validateFormFormat(form: any): { valid: boolean; errors: string[]; warnings: string[] } {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  try {
+    // Check if form is an object
+    if (!form || typeof form !== 'object') {
+      errors.push('Form must be an object');
+      return { valid: false, errors, warnings };
+    }
+
+    // Check for required top-level structure
+    if (!form.json_formio || !Array.isArray(form.json_formio)) {
+      errors.push('Form must have json_formio array');
+      return { valid: false, errors, warnings };
+    }
+
+    // Validate each component in the form
+    validateFormComponents(form.json_formio, errors, warnings, '');
+
+    // Validate field mappings if present
+    if (form.json_formio_mapping) {
+      validateFieldMappings(form.json_formio_mapping, form.json_formio, errors, warnings);
+    }
+
+  } catch (error) {
+    errors.push(`Form validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+
+// Helper function to validate Form.io components
+function validateFormComponents(components: any[], errors: string[], warnings: string[], path: string): void {
+  const validFieldTypes = [
+    'textfield', 'email', 'number', 'select', 'textarea', 'checkbox',
+    'datetime', 'phoneNumber', 'panel', 'columns', 'fieldset', 'radio',
+    'selectboxes', 'currency', 'day', 'time', 'url', 'password', 'file'
+  ];
+
+  const collectedKeys = new Set<string>();
+
+  for (let i = 0; i < components.length; i++) {
+    const component = components[i];
+    const componentPath = path ? `${path}[${i}]` : `component[${i}]`;
+
+    if (!component || typeof component !== 'object') {
+      errors.push(`${componentPath}: Component must be an object`);
+      continue;
+    }
+
+    // Check required field: type
+    if (!component.type) {
+      errors.push(`${componentPath}: Component must have a "type" field`);
+    } else if (!validFieldTypes.includes(component.type)) {
+      warnings.push(`${componentPath}: Unknown field type "${component.type}" - may not render correctly`);
+    }
+
+    // For input components, validate key and label
+    if (component.input === true || ['textfield', 'email', 'number', 'select', 'textarea', 'checkbox', 'datetime', 'phoneNumber'].includes(component.type)) {
+      if (!component.key) {
+        errors.push(`${componentPath}: Input component must have a "key" field`);
+      } else {
+        // Check for duplicate keys
+        if (collectedKeys.has(component.key)) {
+          errors.push(`${componentPath}: Duplicate key "${component.key}" found`);
+        }
+        collectedKeys.add(component.key);
+
+        // Key should be valid identifier
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(component.key)) {
+          warnings.push(`${componentPath}: Key "${component.key}" should be a valid identifier (alphanumeric and underscore only)`);
+        }
+      }
+
+      if (!component.label) {
+        warnings.push(`${componentPath}: Input component should have a "label" field for better UX`);
+      }
+    }
+
+    // Validate select/dropdown fields
+    if (component.type === 'select') {
+      if (!component.data || !component.data.values) {
+        errors.push(`${componentPath}: Select field must have data.values array`);
+      } else if (!Array.isArray(component.data.values)) {
+        errors.push(`${componentPath}: data.values must be an array`);
+      } else if (component.data.values.length === 0) {
+        warnings.push(`${componentPath}: Select field has empty values array`);
+      }
+    }
+
+    // Validate nested components (panels, columns, etc.)
+    if (component.type === 'panel' || component.type === 'fieldset') {
+      if (!component.components || !Array.isArray(component.components)) {
+        errors.push(`${componentPath}: ${component.type} must have components array`);
+      } else {
+        validateFormComponents(component.components, errors, warnings, `${componentPath}.components`);
+      }
+    }
+
+    // Validate columns layout
+    if (component.type === 'columns') {
+      if (!component.columns || !Array.isArray(component.columns)) {
+        errors.push(`${componentPath}: columns layout must have columns array`);
+      } else {
+        for (let j = 0; j < component.columns.length; j++) {
+          const column = component.columns[j];
+          if (!column.components || !Array.isArray(column.components)) {
+            errors.push(`${componentPath}.columns[${j}]: Column must have components array`);
+          } else {
+            validateFormComponents(column.components, errors, warnings, `${componentPath}.columns[${j}].components`);
+          }
+        }
+      }
+    }
+
+    // Check validation rules
+    if (component.validate) {
+      if (typeof component.validate !== 'object') {
+        errors.push(`${componentPath}: validate must be an object`);
+      }
+    }
+  }
+}
+
+// Helper function to validate field mappings
+function validateFieldMappings(mappings: any, formComponents: any[], errors: string[], warnings: string[]): void {
+  if (typeof mappings !== 'object' || mappings === null) {
+    errors.push('json_formio_mapping must be an object');
+    return;
+  }
+
+  // Collect all field keys from form components
+  const formKeys = new Set<string>();
+  const collectKeys = (components: any[]) => {
+    for (const comp of components) {
+      if (comp.key) formKeys.add(comp.key);
+      if (comp.components) collectKeys(comp.components);
+      if (comp.columns) {
+        for (const col of comp.columns) {
+          if (col.components) collectKeys(col.components);
+        }
+      }
+    }
+  };
+  collectKeys(formComponents);
+
+  for (const [fieldKey, mapping] of Object.entries(mappings)) {
+    if (!formKeys.has(fieldKey)) {
+      warnings.push(`Mapping for "${fieldKey}" references a field key that doesn't exist in the form`);
+    }
+
+    if (typeof mapping !== 'object' || mapping === null) {
+      errors.push(`Mapping for "${fieldKey}" must be an object`);
+      continue;
+    }
+
+    const m = mapping as any;
+
+    if (!m.sources || !Array.isArray(m.sources)) {
+      errors.push(`Mapping for "${fieldKey}" must have sources array`);
+      continue;
+    }
+
+    if (m.sources.length === 0) {
+      warnings.push(`Mapping for "${fieldKey}" has empty sources array`);
+    }
+
+    for (let i = 0; i < m.sources.length; i++) {
+      const source = m.sources[i];
+      if (!source.promptId) {
+        errors.push(`Mapping for "${fieldKey}".sources[${i}] must have promptId`);
+      }
+      if (!source.schemaFieldPath) {
+        errors.push(`Mapping for "${fieldKey}".sources[${i}] must have schemaFieldPath`);
+      }
+    }
+
+    if (!m.mappingType) {
+      errors.push(`Mapping for "${fieldKey}" must have mappingType`);
+    } else if (!['direct', 'concatenated'].includes(m.mappingType)) {
+      errors.push(`Mapping for "${fieldKey}" has invalid mappingType "${m.mappingType}" (must be "direct" or "concatenated")`);
+    }
+
+    // Check concatenated mappings
+    if (m.mappingType === 'concatenated' && m.sources.length < 2) {
+      warnings.push(`Mapping for "${fieldKey}" is marked as concatenated but only has ${m.sources.length} source(s)`);
     }
   }
 }
@@ -816,6 +1012,17 @@ const tools: Tool[] = [
       required: ['schema'],
     },
   },
+  {
+    name: 'validate_form',
+    description: 'Validate Form.io form format for correctness and DocRouter compliance',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        form: { type: 'string', description: 'JSON string of the form to validate' },
+      },
+      required: ['form'],
+    },
+  },
 
 
 
@@ -867,6 +1074,14 @@ const tools: Tool[] = [
   {
     name: 'help_schemas',
     description: 'Get help information about creating and configuring schemas in DocRouter',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'help_forms',
+    description: 'Get help information about creating and configuring forms in DocRouter',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -1482,6 +1697,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
       }
 
+      case 'validate_form': {
+        const formString = getArg<string>(args, 'form');
+        try {
+          const form = JSON.parse(formString);
+          const validationResult = validateFormFormat(form);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(validationResult, null, 2),
+              },
+            ],
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  valid: false,
+                  errors: [`Invalid JSON string: ${error instanceof Error ? error.message : 'Unknown error'}`],
+                  warnings: []
+                }, null, 2),
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+
 
 
       // ========== LLM CHAT ==========
@@ -1645,11 +1890,11 @@ This server provides access to DocRouter resources and tools.
           // Get the directory of the current file
           const __filename = fileURLToPath(import.meta.url);
           const __dirname = dirname(__filename);
-          
+
           // Navigate to the knowledge base directory
           const schemasPath = join(__dirname, '../../../../docs/knowledge_base/schemas.md');
           const schemasContent = readFileSync(schemasPath, 'utf-8');
-          
+
           return {
             content: [
               {
@@ -1671,6 +1916,36 @@ This server provides access to DocRouter resources and tools.
         }
       }
 
+      case 'help_forms': {
+        try {
+          // Get the directory of the current file
+          const __filename = fileURLToPath(import.meta.url);
+          const __dirname = dirname(__filename);
+
+          // Navigate to the knowledge base directory
+          const formsPath = join(__dirname, '../../../../docs/knowledge_base/forms.md');
+          const formsContent = readFileSync(formsPath, 'utf-8');
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: formsContent,
+              },
+            ],
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error reading forms help file: ${handleError(error)}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
 
       default:
         throw new Error(`Unknown tool: ${name}`);
