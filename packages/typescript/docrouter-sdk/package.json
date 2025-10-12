@@ -1,5 +1,5 @@
 {
-  "name": "docrouter-sdk",
+  "name": "@docrouter/sdk",
   "version": "0.1.0",
   "description": "TypeScript SDK for DocRouter API",
   "main": "./dist/index.js",
@@ -24,7 +24,11 @@
     "test:integration": "TEST_TYPE=integration jest tests/integration",
     "test:all": "npm run test:unit && npm run test:integration",
     "lint": "eslint src --ext .ts,.tsx",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run test:all && npm run lint && npm run type-check",
+    "publish:public": "npm publish --access public",
+    "publish:beta": "npm publish --tag beta"
   },
   "keywords": [
     "docrouter",
@@ -42,8 +46,8 @@
     "@types/jest": "^29.5.0",
     "@types/jsonwebtoken": "^9.0.0",
     "@types/node": "^20.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "6.21.0",
+    "@typescript-eslint/parser": "6.21.0",
     "bcrypt": "^5.1.1",
     "bson": "^6.3.0",
     "eslint": "^8.0.0",
@@ -62,5 +66,17 @@
   },
   "engines": {
     "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/analytiq/doc-router.git",
+    "directory": "packages/typescript/docrouter-sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/analytiq/doc-router/issues"
+  },
+  "homepage": "https://github.com/analytiq/doc-router#readme",
+  "publishConfig": {
+    "access": "public"
   }
 }

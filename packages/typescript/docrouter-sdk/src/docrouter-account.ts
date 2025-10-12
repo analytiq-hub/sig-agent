@@ -168,7 +168,7 @@ export class DocRouterAccount {
     // Normalize to { user }
     return (created as UserResponse).user
       ? (created as UserResponse)
-      : ({ user: created as unknown as any }) as UserResponse;
+      : ({ user: created as unknown as User }) as UserResponse;
   }
 
   async updateUser(userId: string, update: UserUpdate): Promise<UserResponse> {
@@ -178,7 +178,7 @@ export class DocRouterAccount {
     );
     return (updated as UserResponse).user
       ? (updated as UserResponse)
-      : ({ user: updated as unknown as any }) as UserResponse;
+      : ({ user: updated as unknown as User }) as UserResponse;
   }
 
   async deleteUser(userId: string): Promise<void> {

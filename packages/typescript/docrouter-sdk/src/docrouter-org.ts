@@ -95,13 +95,21 @@ export class DocRouterOrg {
         const buffer = Buffer.from(doc.content);
         base64Content = buffer.toString('base64');
       } else {
-        const buffer = Buffer.from(doc.content as any);
+        // Handle remaining types (ArrayBuffer or Uint8Array)
+        const uint8Array = new Uint8Array(doc.content);
+        const buffer = Buffer.from(uint8Array);
         base64Content = buffer.toString('base64');
       }
 
-      const payload: any = {
+      const payload: {
+        name: string;
+        content: string;
+        type?: string;
+        metadata?: Record<string, string>;
+      } = {
         name: doc.name,
         content: base64Content,
+        type: doc.type,
       };
       if (doc.metadata) payload.metadata = doc.metadata;
       return payload;
@@ -246,7 +254,7 @@ export class DocRouterOrg {
     const { documentId } = params;
     return this.http.get(
       `/v0/orgs/${this.organizationId}/llm/results/${documentId}/download`,
-      { responseType: 'blob' as any }
+      { responseType: 'blob' as const }
     );
   }
 
@@ -262,7 +270,7 @@ export class DocRouterOrg {
   }
 
   async listTags(params?: { skip?: number; limit?: number; nameSearch?: string; }): Promise<ListTagsResponse> {
-    const { skip, limit, nameSearch } = params || {} as any;
+    const { skip, limit, nameSearch } = params || {};
     return this.http.get<ListTagsResponse>(`/v0/orgs/${this.organizationId}/tags`, {
       params: { skip: skip || 0, limit: limit || 10, name_search: nameSearch }
     });
@@ -286,7 +294,7 @@ export class DocRouterOrg {
   }
 
   async listForms(params?: Omit<ListFormsParams, 'organizationId'>): Promise<ListFormsResponse> {
-    const { skip, limit, tag_ids } = params || {} as any;
+    const { skip, limit, tag_ids } = params || {};
     return this.http.get<ListFormsResponse>(`/v0/orgs/${this.organizationId}/forms`, {
       params: { skip: skip || 0, limit: limit || 10, tag_ids }
     });
@@ -334,7 +342,7 @@ export class DocRouterOrg {
   }
 
   async listPrompts(params: Omit<ListPromptsParams, 'organizationId'>): Promise<ListPromptsResponse> {
-    const { skip, limit, document_id, tag_ids, nameSearch } = params || {} as any;
+    const { skip, limit, document_id, tag_ids, nameSearch } = params || {};
     return this.http.get<ListPromptsResponse>(`/v0/orgs/${this.organizationId}/prompts`, {
       params: {
         skip: skip || 0,
@@ -368,7 +376,7 @@ export class DocRouterOrg {
   }
 
   async listSchemas(params: Omit<ListSchemasParams, 'organizationId'>): Promise<ListSchemasResponse> {
-    const { skip, limit, nameSearch } = params || {} as any;
+    const { skip, limit, nameSearch } = params || {};
     return this.http.get<ListSchemasResponse>(`/v0/orgs/${this.organizationId}/schemas`, {
       params: { skip: skip || 0, limit: limit || 10, name_search: nameSearch }
     });
@@ -407,7 +415,7 @@ export class DocRouterOrg {
   }
 
   async listFlows(params?: Omit<ListFlowsParams, 'organizationId'>): Promise<ListFlowsResponse> {
-    const { skip, limit } = params || {} as any;
+    const { skip, limit } = params || {};
     return this.http.get<ListFlowsResponse>(`/v0/orgs/${this.organizationId}/flows`, {
       params: { skip: skip || 0, limit: limit || 10 }
     });

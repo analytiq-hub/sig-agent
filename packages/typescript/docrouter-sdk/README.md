@@ -5,7 +5,7 @@ A TypeScript SDK for the DocRouter API, providing type-safe access to document p
 ## Installation
 
 ```bash
-npm install docrouter-sdk
+npm install @docrouter/sdk
 ```
 
 ## Quick Start
@@ -13,7 +13,7 @@ npm install docrouter-sdk
 ### Using Account Token (Server-to-Server)
 
 ```typescript
-import { DocRouterAccount } from 'docrouter-sdk';
+import { DocRouterAccount } from '@docrouter/sdk';
 
 const client = new DocRouterAccount({
   baseURL: 'https://api.docrouter.com',
@@ -33,7 +33,7 @@ const token = await client.tokens.createOrganizationToken({
 ### Using Organization Token
 
 ```typescript
-import { DocRouterOrg } from 'docrouter-sdk';
+import { DocRouterOrg } from '@docrouter/sdk';
 
 const client = new DocRouterOrg({
   baseURL: 'https://api.docrouter.com',
@@ -60,7 +60,7 @@ const documents = await client.documents.list();
 ### Using JWT Token (Browser)
 
 ```typescript
-import { DocRouterOrg } from 'docrouter-sdk';
+import { DocRouterOrg } from '@docrouter/sdk';
 
 const client = new DocRouterOrg({
   baseURL: 'https://api.docrouter.com',
