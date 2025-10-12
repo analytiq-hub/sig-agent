@@ -8,7 +8,7 @@ import {
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { DocRouterOrg } from 'docrouter-sdk';
+import { DocRouterOrg } from '@docrouter/sdk';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
