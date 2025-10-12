@@ -1,5 +1,5 @@
 {
-  "name": "docrouter-mcp",
+  "name": "@docrouter/mcp",
   "version": "0.1.0",
   "description": "TypeScript MCP server for DocRouter API",
   "main": "./dist/index.js",
@@ -56,6 +56,9 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "bin": {
     "docrouter-mcp": "./dist/index.js"

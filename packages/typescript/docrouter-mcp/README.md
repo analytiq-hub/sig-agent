@@ -2,6 +2,32 @@
 
 A TypeScript-based Model Context Protocol (MCP) server for DocRouter API integration.
 
+## Quick Start
+
+```bash
+# Install the package
+npm install @docrouter/mcp
+
+# Configure with your DocRouter credentials
+export DOCROUTER_ORG_ID="your-org-id"
+export DOCROUTER_ORG_API_TOKEN="your-token"
+
+# Use in your MCP client configuration
+```
+
+## Publishing Quick Reference
+
+```bash
+# Build and test
+npm run build && npm test
+
+# Update version and publish
+npm version patch && npm publish
+
+# Check published package
+npm view @docrouter/mcp
+```
+
 ## Overview
 
 This MCP server provides AI applications with access to DocRouter's document processing capabilities, including:
@@ -14,7 +40,25 @@ This MCP server provides AI applications with access to DocRouter's document pro
 
 ## Installation
 
+### For Users
+
+Install the published package:
+
 ```bash
+# Install locally
+npm install @docrouter/mcp
+
+# Or install globally
+npm install -g @docrouter/mcp
+```
+
+### For Developers
+
+Clone and install dependencies:
+
+```bash
+git clone <repository-url>
+cd docrouter-mcp
 npm install
 ```
 
@@ -123,7 +167,7 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "docrouter": {
       "command": "node",
-      "args": ["/path/to/docrouter-mcp/dist/index.js"],
+      "args": ["node_modules/@docrouter/mcp/dist/index.js"],
       "env": {
         "DOCROUTER_ORG_ID": "your-org-id",
         "DOCROUTER_ORG_API_TOKEN": "your-token"
@@ -142,7 +186,7 @@ Create `.cursor/mcp.json` in your project root:
   "mcpServers": {
     "docrouter": {
       "command": "node",
-      "args": ["/path/to/docrouter-mcp/dist/index.js"],
+      "args": ["node_modules/@docrouter/mcp/dist/index.js"],
       "env": {
         "DOCROUTER_ORG_ID": "your-org-id",
         "DOCROUTER_ORG_API_TOKEN": "your-token"
@@ -161,7 +205,25 @@ Create a `.mcp.conf` file in your project root:
   "mcpServers": {
     "docrouter": {
       "command": "node",
-      "args": ["/path/to/docrouter-mcp/dist/index.js"],
+      "args": ["node_modules/@docrouter/mcp/dist/index.js"],
+      "env": {
+        "DOCROUTER_ORG_ID": "your-org-id",
+        "DOCROUTER_ORG_API_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+### Using the Global Installation
+
+If you installed the package globally, you can use the binary directly:
+
+```json
+{
+  "mcpServers": {
+    "docrouter": {
+      "command": "docrouter-mcp",
       "env": {
         "DOCROUTER_ORG_ID": "your-org-id",
         "DOCROUTER_ORG_API_TOKEN": "your-token"
@@ -178,12 +240,15 @@ Create a `.mcp.conf` file in your project root:
 - Node.js 18+
 - TypeScript 5+
 - Access to DocRouter API
+- npm account with publish permissions
 
 ### Scripts
 
 - `npm run build` - Build the project
 - `npm run dev` - Build in watch mode
 - `npm run start:dev` - Run in development mode
+- `npm test` - Run test suite
+- `npm run test:watch` - Run tests in watch mode
 - `npm run lint` - Run ESLint
 - `npm run type-check` - Run TypeScript type checking
 
@@ -192,11 +257,154 @@ Create a `.mcp.conf` file in your project root:
 ```
 src/
 ├── index.ts          # Main MCP server implementation
+tests/
+├── mcp-functionality.test.ts  # MCP functionality tests
+├── mcp-server.test.ts         # Server integration tests
+├── setup.ts                   # Test setup configuration
 package.json          # Package configuration
 tsconfig.json         # TypeScript configuration
 tsup.config.ts        # Build configuration
+jest.config.js        # Jest test configuration
 README.md             # This file
 ```
+
+## Publishing
+
+### Prerequisites for Publishing
+
+1. **npm Account**: Ensure you have an npm account and are logged in
+2. **Organization Access**: You need publish permissions for the `@docrouter` organization
+3. **Clean Working Directory**: All changes should be committed
+
+### Publishing Steps
+
+#### 1. Login to npm
+
+```bash
+npm login
+```
+
+Verify you're logged in:
+
+```bash
+npm whoami
+```
+
+#### 2. Prepare for Publishing
+
+```bash
+# Build the project
+npm run build
+
+# Run tests to ensure everything works
+npm test
+
+# Check what will be published
+npm pack --dry-run
+```
+
+#### 3. Version Management
+
+Update the version number in `package.json`:
+
+```bash
+# For bug fixes
+npm version patch
+
+# For new features (backward compatible)
+npm version minor
+
+# For breaking changes
+npm version major
+```
+
+Or manually edit the version in `package.json`.
+
+#### 4. Publish the Package
+
+```bash
+npm publish
+```
+
+#### 5. Verify Publication
+
+Check that your package is available:
+
+```bash
+# View package info
+npm view @docrouter/mcp
+
+# Test installation
+npm install @docrouter/mcp
+```
+
+### Package Configuration
+
+The package is configured as a scoped package with the following key settings:
+
+```json
+{
+  "name": "@docrouter/mcp",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}
+```
+
+### What Gets Published
+
+The following files are included in the published package:
+
+- `dist/` - Built JavaScript files (CommonJS + ES Modules)
+- `dist/docs/knowledge_base/` - Bundled knowledge base files
+- `README.md` - Documentation
+- `package.json` - Package metadata
+
+### Updating the Package
+
+To publish updates:
+
+1. Make your changes
+2. Update the version: `npm version patch|minor|major`
+3. Build and test: `npm run build && npm test`
+4. Publish: `npm publish`
+
+### Troubleshooting
+
+#### Package Already Exists
+If you get an error that the package already exists:
+- Check the version number - it must be unique
+- Use `npm version patch` to increment the version
+
+#### Permission Denied
+If you get permission errors:
+- Ensure you're logged in: `npm whoami`
+- Check you have publish permissions for `@docrouter` organization
+- Contact the organization admin if needed
+
+#### Build Errors
+If the build fails:
+- Check TypeScript errors: `npm run type-check`
+- Ensure all dependencies are installed: `npm install`
+- Check the `tsup.config.ts` configuration
+
+### Unpublishing (Emergency Only)
+
+⚠️ **Warning**: Only unpublish within 72 hours and if absolutely necessary.
+
+```bash
+# Unpublish a specific version
+npm unpublish @docrouter/mcp@0.1.0
+
+# Unpublish entire package (use with caution)
+npm unpublish @docrouter/mcp --force
+```
+
+**Note**: Unpublishing blocks republishing the same version for 24 hours.
 
 ## Error Handling
 
