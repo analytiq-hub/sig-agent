@@ -2,6 +2,74 @@
 
 A TypeScript SDK for the DocRouter API, providing type-safe access to document processing, OCR, LLM, and organization management features.
 
+## Publishing to npm
+
+### Prerequisites
+
+1. **Create npm account and organization:**
+   ```bash
+   # Login to npm
+   npm login
+   
+   # Create the @docrouter organization (via npm website or CLI)
+   # Visit: https://www.npmjs.com/org/create
+   ```
+
+2. **Verify organization access:**
+   ```bash
+   npm org ls docrouter
+   ```
+
+### Publishing Steps
+
+1. **Build the package:**
+   ```bash
+   cd packages/typescript/docrouter-sdk
+   npm run build
+   ```
+
+2. **Run tests and linting:**
+   ```bash
+   npm run test:unit
+   npm run lint
+   npm run type-check
+   ```
+
+3. **Update version (if needed):**
+   ```bash
+   # For patch version (0.1.0 → 0.1.1)
+   npm version patch
+   
+   # For minor version (0.1.0 → 0.2.0)
+   npm version minor
+   
+   # For major version (0.1.0 → 1.0.0)
+   npm version major
+   ```
+
+4. **Publish to npm:**
+   ```bash
+   npm publish
+   ```
+
+### Publishing Scripts
+
+The package includes convenient publishing scripts:
+
+```bash
+# Publish to public registry
+npm run publish:public
+
+# Publish beta version
+npm run publish:beta
+```
+
+### Configuration Files
+
+- **`.npmrc`**: Registry and access configuration
+- **`package.json`**: Package metadata and scripts
+- **`publishConfig`**: Ensures public access for scoped package
+
 ## Installation
 
 ```bash
