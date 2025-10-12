@@ -158,7 +158,45 @@ const guide = await docrouter_document_analysis_guide("document-id");
 
 ## Integration with AI Applications
 
-### Claude Desktop
+### Prerequisites
+
+Before configuring MCP integration, ensure you have:
+
+1. **Installed the package**:
+   ```bash
+   npm install @docrouter/mcp
+   ```
+
+2. **DocRouter credentials**:
+   - `DOCROUTER_ORG_ID` - Your DocRouter organization ID
+   - `DOCROUTER_ORG_API_TOKEN` - Your DocRouter organization API token
+   - `DOCROUTER_API_URL` - DocRouter API URL (optional, defaults to production)
+
+### Configuration Files
+
+The MCP server can be configured using different configuration files depending on your AI application:
+
+#### For Cursor IDE
+
+Create `.mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "docrouter": {
+      "command": "node",
+      "args": ["node_modules/@docrouter/mcp/dist/index.js"],
+      "env": {
+        "DOCROUTER_API_URL": "https://app.docrouter.ai/fastapi",
+        "DOCROUTER_ORG_ID": "your-org-id",
+        "DOCROUTER_ORG_API_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+#### For Claude Desktop
 
 Add to your `claude_desktop_config.json`:
 
@@ -169,6 +207,7 @@ Add to your `claude_desktop_config.json`:
       "command": "node",
       "args": ["node_modules/@docrouter/mcp/dist/index.js"],
       "env": {
+        "DOCROUTER_API_URL": "https://app.docrouter.ai/fastapi",
         "DOCROUTER_ORG_ID": "your-org-id",
         "DOCROUTER_ORG_API_TOKEN": "your-token"
       }
@@ -177,26 +216,7 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-### Cursor
-
-Create `.cursor/mcp.json` in your project root:
-
-```json
-{
-  "mcpServers": {
-    "docrouter": {
-      "command": "node",
-      "args": ["node_modules/@docrouter/mcp/dist/index.js"],
-      "env": {
-        "DOCROUTER_ORG_ID": "your-org-id",
-        "DOCROUTER_ORG_API_TOKEN": "your-token"
-      }
-    }
-  }
-}
-```
-
-### Claude Code
+#### For Claude Code
 
 Create a `.mcp.conf` file in your project root:
 
@@ -207,6 +227,7 @@ Create a `.mcp.conf` file in your project root:
       "command": "node",
       "args": ["node_modules/@docrouter/mcp/dist/index.js"],
       "env": {
+        "DOCROUTER_API_URL": "https://app.docrouter.ai/fastapi",
         "DOCROUTER_ORG_ID": "your-org-id",
         "DOCROUTER_ORG_API_TOKEN": "your-token"
       }
@@ -215,7 +236,7 @@ Create a `.mcp.conf` file in your project root:
 }
 ```
 
-### Using the Global Installation
+### Using Global Installation
 
 If you installed the package globally, you can use the binary directly:
 
@@ -225,6 +246,7 @@ If you installed the package globally, you can use the binary directly:
     "docrouter": {
       "command": "docrouter-mcp",
       "env": {
+        "DOCROUTER_API_URL": "https://app.docrouter.ai/fastapi",
         "DOCROUTER_ORG_ID": "your-org-id",
         "DOCROUTER_ORG_API_TOKEN": "your-token"
       }
@@ -232,6 +254,133 @@ If you installed the package globally, you can use the binary directly:
   }
 }
 ```
+
+### Step-by-Step Setup Guide
+
+#### 1. Install the Package
+
+```bash
+# In your project directory
+npm install @docrouter/mcp
+```
+
+#### 2. Create Configuration File
+
+For **Cursor IDE**, create `.mcp.json` in your project root:
+
+```bash
+# Create the configuration file
+touch .mcp.json
+```
+
+#### 3. Add Configuration Content
+
+Copy the appropriate configuration from above and replace:
+- `your-org-id` with your actual DocRouter organization ID
+- `your-token` with your actual DocRouter API token
+- `https://app.docrouter.ai/fastapi` with your API URL (if different)
+
+#### 4. Verify Installation
+
+Check that the package files exist:
+
+```bash
+# Verify the main file exists
+ls -la node_modules/@docrouter/mcp/dist/index.js
+
+# Check package contents
+ls -la node_modules/@docrouter/mcp/dist/
+```
+
+#### 5. Test the Configuration
+
+You can test the MCP server manually:
+
+```bash
+# Set environment variables
+export DOCROUTER_ORG_ID="your-org-id"
+export DOCROUTER_ORG_API_TOKEN="your-token"
+
+# Run the server directly
+node node_modules/@docrouter/mcp/dist/index.js
+```
+
+### Troubleshooting MCP Connection
+
+#### Common Issues and Solutions
+
+**1. "MCP server not connecting"**
+
+- ✅ **Check file paths**: Ensure `node_modules/@docrouter/mcp/dist/index.js` exists
+- ✅ **Verify package installation**: Run `npm list @docrouter/mcp`
+- ✅ **Check configuration syntax**: Validate your JSON configuration
+- ✅ **Test manually**: Run the server directly to check for errors
+
+**2. "Command not found"**
+
+- ✅ **Use absolute paths**: Use full paths instead of relative ones
+- ✅ **Check Node.js**: Ensure Node.js is in your PATH
+- ✅ **Verify permissions**: Ensure the file is executable
+
+**3. "Environment variables not set"**
+
+- ✅ **Check variable names**: Use exact names: `DOCROUTER_ORG_ID`, `DOCROUTER_ORG_API_TOKEN`
+- ✅ **Verify values**: Ensure credentials are correct and not expired
+- ✅ **Test API access**: Verify your credentials work with DocRouter API
+
+**4. "Permission denied"**
+
+- ✅ **Check file permissions**: Ensure the file is readable
+- ✅ **Run as correct user**: Don't use sudo for MCP servers
+- ✅ **Check directory permissions**: Ensure access to the project directory
+
+#### Debug Configuration
+
+Add debug logging to your configuration:
+
+```json
+{
+  "mcpServers": {
+    "docrouter": {
+      "command": "node",
+      "args": ["node_modules/@docrouter/mcp/dist/index.js"],
+      "env": {
+        "DOCROUTER_API_URL": "https://app.docrouter.ai/fastapi",
+        "DOCROUTER_ORG_ID": "your-org-id",
+        "DOCROUTER_ORG_API_TOKEN": "your-token",
+        "DEBUG": "mcp:*"
+      }
+    }
+  }
+}
+```
+
+#### Example Working Configuration
+
+Here's a complete example for Cursor IDE:
+
+```json
+{
+  "mcpServers": {
+    "docrouter": {
+      "command": "node",
+      "args": ["node_modules/@docrouter/mcp/dist/index.js"],
+      "env": {
+        "DOCROUTER_API_URL": "http://localhost:8000",
+        "DOCROUTER_ORG_ID": "679c9a914cfaaaa3640811ed",
+        "DOCROUTER_ORG_API_TOKEN": "LK8RyD5OKn8taDQCbozI5payDk2xXqnW2SXXPZgMp88"
+      }
+    }
+  }
+}
+```
+
+### Security Notes
+
+- 🔒 **Never commit credentials**: Add `.mcp.json` to `.gitignore` if it contains real credentials
+- 🔒 **Use environment variables**: Consider using system environment variables instead of hardcoded values
+- 🔒 **Rotate tokens regularly**: Update your API tokens periodically
+- 🔒 **Limit token permissions**: Use tokens with minimal required permissions
 
 ## Development
 
