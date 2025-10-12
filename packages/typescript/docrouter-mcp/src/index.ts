@@ -1860,8 +1860,8 @@ This server provides access to DocRouter resources and tools.
           const __filename = fileURLToPath(import.meta.url);
           const __dirname = dirname(__filename);
           
-          // Navigate to the knowledge base directory
-          const promptsPath = join(__dirname, '../../../../docs/knowledge_base/prompts.md');
+          // Navigate to the knowledge base directory within the package
+          const promptsPath = join(__dirname, 'docs/knowledge_base/prompts.md');
           const promptsContent = readFileSync(promptsPath, 'utf-8');
           
           return {
@@ -1891,8 +1891,8 @@ This server provides access to DocRouter resources and tools.
           const __filename = fileURLToPath(import.meta.url);
           const __dirname = dirname(__filename);
 
-          // Navigate to the knowledge base directory
-          const schemasPath = join(__dirname, '../../../../docs/knowledge_base/schemas.md');
+          // Navigate to the knowledge base directory within the package
+          const schemasPath = join(__dirname, 'docs/knowledge_base/schemas.md');
           const schemasContent = readFileSync(schemasPath, 'utf-8');
 
           return {
@@ -1922,8 +1922,8 @@ This server provides access to DocRouter resources and tools.
           const __filename = fileURLToPath(import.meta.url);
           const __dirname = dirname(__filename);
 
-          // Navigate to the knowledge base directory
-          const formsPath = join(__dirname, '../../../../docs/knowledge_base/forms.md');
+          // Navigate to the knowledge base directory within the package
+          const formsPath = join(__dirname, 'docs/knowledge_base/forms.md');
           const formsContent = readFileSync(formsPath, 'utf-8');
 
           return {
