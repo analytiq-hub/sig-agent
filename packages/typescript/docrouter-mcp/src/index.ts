@@ -24,10 +24,62 @@ const ConfigSchema = z.object({
 
 type Config = z.infer<typeof ConfigSchema>;
 
+// Show help information
+function showHelp() {
+  console.log(`
+DocRouter MCP Server v0.1.0
+
+USAGE:
+    docrouter-mcp [OPTIONS]
+
+DESCRIPTION:
+    DocRouter MCP (Model Context Protocol) server that provides access to DocRouter
+    document processing, OCR, LLM extraction, and form management capabilities.
+
+OPTIONS:
+    --url <URL>              DocRouter API base URL
+                            (default: https://app.docrouter.ai/fastapi)
+    --org-id <ID>            DocRouter organization ID
+    --org-token <TOKEN>      DocRouter organization API token
+    --timeout <MS>           Request timeout in milliseconds (default: 30000)
+    --retries <COUNT>        Number of retry attempts (default: 3)
+    -h, --help               Show this help message
+
+ENVIRONMENT VARIABLES:
+    DOCROUTER_API_URL        DocRouter API base URL
+    DOCROUTER_ORG_ID         DocRouter organization ID
+    DOCROUTER_ORG_API_TOKEN  DocRouter organization API token
+
+EXAMPLES:
+    # Using command line arguments
+    docrouter-mcp --org-id "org123" --org-token "token456"
+
+    # Using environment variables
+    export DOCROUTER_ORG_ID="org123"
+    export DOCROUTER_ORG_API_TOKEN="token456"
+    docrouter-mcp
+
+    # With custom API URL
+    docrouter-mcp --url "https://custom.docrouter.ai/fastapi" --org-id "org123" --org-token "token456"
+
+REQUIRED:
+    Either provide --org-id and --org-token as command line arguments,
+    or set DOCROUTER_ORG_ID and DOCROUTER_ORG_API_TOKEN environment variables.
+
+For more information about DocRouter, visit: https://docrouter.ai
+`);
+}
+
 // Parse command line arguments and environment variables
 function parseConfig(): Config {
   const args = process.argv.slice(2);
   const config: Partial<Config> = {};
+
+  // Check for help flags first
+  if (args.includes('--help') || args.includes('-h')) {
+    showHelp();
+    process.exit(0);
+  }
 
   // Parse command line arguments
   for (let i = 0; i < args.length; i += 2) {
