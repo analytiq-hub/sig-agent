@@ -1945,11 +1945,11 @@ This server provides access to DocRouter resources and tools.
       case 'help_prompts': {
         try {
           // Get the directory of the current file
-          const __filename = fileURLToPath(import.meta.url);
-          const __dirname = dirname(__filename);
+          const currentFile = fileURLToPath(import.meta.url);
+          const currentDir = dirname(currentFile);
           
           // Navigate to the knowledge base directory within the package
-          const promptsPath = join(__dirname, 'docs/knowledge_base/prompts.md');
+          const promptsPath = join(currentDir, 'docs/knowledge_base/prompts.md');
           const promptsContent = readFileSync(promptsPath, 'utf-8');
           
           return {
@@ -1976,11 +1976,11 @@ This server provides access to DocRouter resources and tools.
       case 'help_schemas': {
         try {
           // Get the directory of the current file
-          const __filename = fileURLToPath(import.meta.url);
-          const __dirname = dirname(__filename);
+          const currentFile = fileURLToPath(import.meta.url);
+          const currentDir = dirname(currentFile);
 
           // Navigate to the knowledge base directory within the package
-          const schemasPath = join(__dirname, 'docs/knowledge_base/schemas.md');
+          const schemasPath = join(currentDir, 'docs/knowledge_base/schemas.md');
           const schemasContent = readFileSync(schemasPath, 'utf-8');
 
           return {
@@ -2007,11 +2007,11 @@ This server provides access to DocRouter resources and tools.
       case 'help_forms': {
         try {
           // Get the directory of the current file
-          const __filename = fileURLToPath(import.meta.url);
-          const __dirname = dirname(__filename);
+          const currentFile = fileURLToPath(import.meta.url);
+          const currentDir = dirname(currentFile);
 
           // Navigate to the knowledge base directory within the package
-          const formsPath = join(__dirname, 'docs/knowledge_base/forms.md');
+          const formsPath = join(currentDir, 'docs/knowledge_base/forms.md');
           const formsContent = readFileSync(formsPath, 'utf-8');
 
           return {
