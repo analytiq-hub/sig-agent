@@ -15,7 +15,6 @@ setup:
 	# Install packages in order
 	uv pip install -r packages/requirements.txt ; \
 	uv pip install -e packages/docrouter_sdk ; \
-	uv pip install -e packages/docrouter_mcp ; \
 	# Ensure test dependencies are installed
 	uv pip install pytest-asyncio pytest-cov pytest-xdist
 
