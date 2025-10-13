@@ -24,6 +24,30 @@ const ConfigSchema = z.object({
 
 type Config = z.infer<typeof ConfigSchema>;
 
+// Show list of supported MCP tools
+function showTools() {
+  const toolNames = tools.map(tool => tool.name).sort();
+  console.log(toolNames.join('\n'));
+}
+
+// Show CLAUDE.md contents
+function showClaudeMd() {
+  try {
+    // Get the directory of the current file
+    const currentFile = fileURLToPath(import.meta.url);
+    const currentDir = dirname(currentFile);
+    
+    // Navigate to the CLAUDE.md file within the package
+    const claudePath = join(currentDir, 'CLAUDE.md');
+    const claudeContent = readFileSync(claudePath, 'utf-8');
+    
+    console.log(claudeContent);
+  } catch (error) {
+    console.error(`Error reading CLAUDE.md: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+}
+
 // Show help information
 function showHelp() {
   console.log(`
@@ -43,6 +67,8 @@ OPTIONS:
     --org-token <TOKEN>      DocRouter organization API token
     --timeout <MS>           Request timeout in milliseconds (default: 30000)
     --retries <COUNT>        Number of retry attempts (default: 3)
+    --tools                  List all supported MCP tools
+    --claude-md              Print CLAUDE.md contents
     -h, --help               Show this help message
 
 ENVIRONMENT VARIABLES:
@@ -75,9 +101,19 @@ function parseConfig(): Config {
   const args = process.argv.slice(2);
   const config: Partial<Config> = {};
 
-  // Check for help flags first
+  // Check for special flags first
   if (args.includes('--help') || args.includes('-h')) {
     showHelp();
+    process.exit(0);
+  }
+  
+  if (args.includes('--tools')) {
+    showTools();
+    process.exit(0);
+  }
+  
+  if (args.includes('--claude-md')) {
+    showClaudeMd();
     process.exit(0);
   }
 

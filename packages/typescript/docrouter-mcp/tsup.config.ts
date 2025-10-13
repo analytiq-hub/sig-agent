@@ -1,6 +1,9 @@
 import { defineConfig } from 'tsup';
 import { copyFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   entry: ['src/index.ts'],
@@ -40,6 +43,17 @@ export default defineConfig({
       } else {
         console.warn(`Warning: ${sourcePath} not found`);
       }
+    }
+    
+    // Copy CLAUDE.md to dist directory
+    const claudeSourcePath = join(__dirname, 'CLAUDE.md');
+    const claudeTargetPath = join(__dirname, 'dist/CLAUDE.md');
+    
+    if (existsSync(claudeSourcePath)) {
+      copyFileSync(claudeSourcePath, claudeTargetPath);
+      console.log('Copied CLAUDE.md to dist/');
+    } else {
+      console.warn('Warning: CLAUDE.md not found');
     }
   },
 });
