@@ -1748,6 +1748,118 @@ class RenameUserFields(Migration):
             logger.error(f"Migration revert failed: {e}")
             return False
 
+class UpgradeTokens(Migration):
+    def __init__(self):
+        super().__init__(description="Upgrade specific encrypted fields: aws_config.access_key_id, aws_config.secret_access_key, and llm_providers.token")
+
+    async def upgrade_encrypted_field(self, db, collection_name: str, field_name: str, doc_id_field: str = "_id", doc_name_field: str = None) -> tuple[int, int, int]:
+        """Helper method to upgrade a specific encrypted field in a collection"""
+        import analytiq_data as ad
+        
+        updated_count = 0
+        skipped_count = 0
+        error_count = 0
+        
+        # Get all documents with the encrypted field
+        cursor = db[collection_name].find({field_name: {"$exists": True, "$ne": None, "$ne": ""}})
+        
+        async for doc in cursor:
+            try:
+                old_encrypted_value = doc.get(field_name)
+                if not old_encrypted_value:
+                    skipped_count += 1
+                    continue
+                
+                doc_id = doc.get(doc_id_field)
+                doc_name = doc.get(doc_name_field, f"doc_{doc_id}") if doc_name_field else f"doc_{doc_id}"
+                
+                # Try to decrypt with the fallback method
+                try:
+                    decrypted_value = ad.crypto.decrypt_token(old_encrypted_value, secret_name="FASTAPI_SECRET")
+                except Exception as e:
+                    logger.warning(f"Failed to decrypt {field_name} for {doc_name} with FASTAPI_SECRET: {e}")
+                    # If fallback fails, try current method (value might already be upgraded)
+                    try:
+                        decrypted_value = ad.crypto.decrypt_token(old_encrypted_value)
+                        logger.info(f"{field_name} for {doc_name} is already using current encryption method")
+                        skipped_count += 1
+                        continue
+                    except Exception as e2:
+                        logger.error(f"Failed to decrypt {field_name} for {doc_name} with both methods: {e2}")
+                        error_count += 1
+                        continue
+                
+                # Re-encrypt with the current method
+                new_encrypted_value = ad.crypto.encrypt_token(decrypted_value)
+                
+                # Update the document with the new encrypted value
+                await db[collection_name].update_one(
+                    {doc_id_field: doc_id},
+                    {"$set": {field_name: new_encrypted_value}}
+                )
+                
+                updated_count += 1
+                logger.info(f"Successfully upgraded {field_name} for {doc_name}")
+                
+            except Exception as e:
+                logger.error(f"Error processing {field_name} for {doc_name}: {e}")
+                error_count += 1
+                continue
+        
+        return updated_count, skipped_count, error_count
+
+    async def up(self, db) -> bool:
+        """Upgrade exactly 3 specific encrypted fields by decrypting with decrypt_token_fallback() and re-encrypting with encrypt_token()"""
+        try:
+            total_updated = 0
+            total_skipped = 0
+            total_errors = 0
+            
+            # 1. Upgrade aws_config.access_key_id
+            logger.info("Upgrading aws_config.access_key_id...")
+            updated, skipped, errors = await self.upgrade_encrypted_field(
+                db, "aws_config", "access_key_id", "_id", "user_id"
+            )
+            total_updated += updated
+            total_skipped += skipped
+            total_errors += errors
+            logger.info(f"aws_config.access_key_id: {updated} upgraded, {skipped} skipped, {errors} errors")
+            
+            # 2. Upgrade aws_config.secret_access_key
+            logger.info("Upgrading aws_config.secret_access_key...")
+            updated, skipped, errors = await self.upgrade_encrypted_field(
+                db, "aws_config", "secret_access_key", "_id", "user_id"
+            )
+            total_updated += updated
+            total_skipped += skipped
+            total_errors += errors
+            logger.info(f"aws_config.secret_access_key: {updated} upgraded, {skipped} skipped, {errors} errors")
+            
+            # 3. Upgrade llm_providers.token
+            logger.info("Upgrading llm_providers.token...")
+            updated, skipped, errors = await self.upgrade_encrypted_field(
+                db, "llm_providers", "token", "_id", "name"
+            )
+            total_updated += updated
+            total_skipped += skipped
+            total_errors += errors
+            logger.info(f"llm_providers.token: {updated} upgraded, {skipped} skipped, {errors} errors")
+            
+            logger.info(f"UpgradeTokens migration completed: {total_updated} total upgraded, {total_skipped} total skipped, {total_errors} total errors")
+            return True
+            
+        except Exception as e:
+            logger.error(f"UpgradeTokens migration failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """
+        Cannot revert this migration as we don't know which tokens were originally encrypted
+        with the fallback method vs the current method. This is a one-way migration.
+        """
+        logger.warning("Cannot revert UpgradeTokens migration as original encryption method is not preserved")
+        return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -1772,6 +1884,7 @@ MIGRATIONS = [
     RenameAwsCredentialsCollection(),
     RenamePromptRevIdToPromptRevid(),
     RenameUserFields(),
+    UpgradeTokens(),
     # Add more migrations here
 ]
 

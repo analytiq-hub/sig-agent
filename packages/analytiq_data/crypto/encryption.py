@@ -7,17 +7,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def get_secret() -> str:
-    """Get FASTAPI_SECRET from environment (for backward compatibility with AWS credentials)"""
-    secret = os.getenv("FASTAPI_SECRET")
+def get_secret(secret_name: str) -> str:
+    """Get secret from environment"""
+    secret = os.getenv(secret_name)
     if not secret:
-        raise ValueError("FASTAPI_SECRET not found in environment")
+        raise ValueError(f"{secret_name} not found in environment")
     return secret
 
-def get_cipher():
-    """Create AES cipher using FASTAPI_SECRET (or NEXTAUTH_SECRET as fallback)"""
+def get_cipher(secret_name: str):
+    """Create AES cipher using secret"""
     # Use secret as key, pad to 32 bytes for AES-256
-    key = get_secret().encode().ljust(32, b'0')[:32]
+    key = get_secret(secret_name).encode().ljust(32, b'0')[:32]
     # Use a fixed IV derived from secret
     iv = hashlib.sha256(key).digest()[:16]
     cipher = Cipher(
@@ -27,10 +27,10 @@ def get_cipher():
     )
     return cipher, iv
 
-def encrypt_token(token: str) -> str:
+def encrypt_token(token: str, secret_name: str = "NEXTAUTH_SECRET") -> str:
     """Encrypt a token using AES with fixed IV"""
     try:
-        cipher, iv = get_cipher()
+        cipher, iv = get_cipher(secret_name)
         encryptor = cipher.encryptor()
         # Ensure we're working with bytes
         token_bytes = token.encode('utf-8')
@@ -40,10 +40,10 @@ def encrypt_token(token: str) -> str:
     except Exception as e:
         raise ValueError(f"Encryption failed: {str(e)}")
 
-def decrypt_token(encrypted_token: str) -> str:
+def decrypt_token(encrypted_token: str, secret_name: str = "NEXTAUTH_SECRET") -> str:
     """Decrypt a token using AES with fixed IV"""
     try:
-        cipher, iv = get_cipher()
+        cipher, iv = get_cipher(secret_name)
         decryptor = cipher.decryptor()
         # Use urlsafe_b64decode to handle URL-safe base64 encoding
         ciphertext = base64.urlsafe_b64decode(encrypted_token.encode('ascii'))
