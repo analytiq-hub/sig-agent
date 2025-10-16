@@ -45,7 +45,7 @@ RUN apt-get update && \
     pip install --no-cache-dir uv
 
 # Copy only packages requirements first
-COPY packages/requirements.txt ./packages/
-RUN uv pip install --system --no-cache-dir -r packages/requirements.txt
+COPY packages/python/requirements.txt ./packages/python/
+RUN uv pip install --system --no-cache-dir -r packages/python/requirements.txt
 
 EXPOSE 8000

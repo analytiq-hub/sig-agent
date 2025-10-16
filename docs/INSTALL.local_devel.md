@@ -13,7 +13,7 @@
   mkdir ~/.venv
   python -m venv ~/.venv/doc-router
   . ~/.venv/doc-router/bin/activate
-  pip install -r packages/requirements.txt
+  pip install -r packages/python/requirements.txt
   ```
 * Install `NodeJS` and `npm`
 * Install the frontend
@@ -31,12 +31,12 @@
 * In the two terminals you will run the fastapi and worker, activate the virtual environment: `. ~/.venv/doc-router/bin/activate`
 * Start the back end
   ```bash
-  cd packages
+  cd packages/python
   uvicorn docrouter_app.main:app --host 0.0.0.0 --port 8000
   ```
 * In a separate shell, start the workers
   ```bash
-  cd packages/workers
+  cd packages/python/worker
   python worker.py
   ```
 * Open [http://localhost:8000/docs](http://localhost:8000/docs) to experiment with the FastAPI
@@ -59,7 +59,7 @@ Under construction.
     * `mkdir ~/.venv`
     * `python3.11 -m venv ~/.venv/doc-router`
     * `. ~/.venv/doc-router/bin/activate`
-    * `pip install -r packages/requirements.txt`
+    * `pip install -r packages/python/requirements.txt`
   * The rest is the same as for Linux
 * Frontend
   * Same as for Linux

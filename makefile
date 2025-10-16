@@ -13,8 +13,8 @@ setup:
 	# Install build dependencies
 	uv pip install hatchling ; \
 	# Install packages in order
-	uv pip install -r packages/requirements.txt ; \
-	uv pip install -e packages/docrouter_sdk ; \
+	uv pip install -r packages/python/requirements.txt ; \
+	uv pip install -e packages/python/docrouter_sdk ; \
 	# Ensure test dependencies are installed
 	uv pip install pytest-asyncio pytest-cov pytest-xdist
 
@@ -28,10 +28,10 @@ deploy:
 	docker compose --env-file .env up -d --build
 
 tests: setup
-	. .venv/bin/activate && pytest -n auto packages/tests/
+	. .venv/bin/activate && pytest -n auto packages/python/tests/
 
 tests-scale: setup
-	. .venv/bin/activate && pytest packages/tests_scale
+	. .venv/bin/activate && pytest packages/python/tests_scale
 
 tests-all: tests tests-scale
 

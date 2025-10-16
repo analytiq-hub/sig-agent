@@ -14,8 +14,8 @@ The DocRouter project uses a single `.env` file at the project root that is shar
 - **Usage**: 
   - Used to determine the MongoDB database name
   - Controls logging and debugging behavior
-  - Used in FastAPI backend (`packages/docrouter_app/main.py`, `packages/docrouter_app/auth.py`)
-  - Used in worker processes (`packages/worker/worker.py`)
+  - Used in FastAPI backend (`packages/python/docrouter_app/main.py`, `packages/python/docrouter_app/auth.py`)
+  - Used in worker processes (`packages/python/worker/worker.py`)
   - Used in frontend MongoDB connection (`packages/typescript/frontend/src/utils/mongodb.ts`)
 - **Values**: `"dev"`, `"prod"`, `"test"` (for testing)
 
@@ -24,16 +24,16 @@ The DocRouter project uses a single `.env` file at the project root that is shar
 - **Default**: `"mongodb://localhost:27017"`
 - **Usage**:
   - Primary database connection for all components
-  - Used in FastAPI backend (`packages/docrouter_app/main.py`, `packages/docrouter_app/auth.py`)
-  - Used in worker processes (`packages/worker/worker.py`)
+  - Used in FastAPI backend (`packages/python/docrouter_app/main.py`, `packages/python/docrouter_app/auth.py`)
+  - Used in worker processes (`packages/python/worker/worker.py`)
   - Used in frontend MongoDB connection (`packages/typescript/frontend/src/utils/mongodb.ts`)
-  - Used in payments module (`packages/docrouter_app/payments.py`)
+  - Used in payments module (`packages/python/docrouter_app/payments.py`)
 - **Format**: `mongodb://[username:password@]host:port[/database]?authSource=admin`
 
 ### `FASTAPI_ROOT_PATH`
 - **Purpose**: Root path for FastAPI application (useful for reverse proxies)
 - **Default**: `"/"`
-- **Usage**: Used in FastAPI app configuration (`packages/docrouter_app/main.py`)
+- **Usage**: Used in FastAPI app configuration (`packages/python/docrouter_app/main.py`)
 
 ## Authentication & NextAuth Variables
 
@@ -50,8 +50,8 @@ The DocRouter project uses a single `.env` file at the project root that is shar
 - **Required**: Yes
 - **Usage**: 
   - Used in NextAuth configuration (`packages/typescript/frontend/src/auth.ts`)
-  - JWT token signing in authentication (`packages/docrouter_app/auth.py`)
-  - Token encryption/decryption (`packages/analytiq_data/crypto/encryption.py`)
+  - JWT token signing in authentication (`packages/python/docrouter_app/auth.py`)
+  - Token encryption/decryption (`packages/python/analytiq_data/crypto/encryption.py`)
 
 ### `AUTH_GITHUB_ID`
 - **Purpose**: GitHub OAuth application client ID
@@ -84,29 +84,29 @@ The DocRouter project uses a single `.env` file at the project root that is shar
 ### `AWS_ACCESS_KEY_ID`
 - **Purpose**: AWS access key for AWS services
 - **Usage**:
-  - AWS client initialization (`packages/analytiq_data/aws/client.py`)
-  - Used in startup process (`packages/docrouter_app/startup.py`)
+  - AWS client initialization (`packages/python/analytiq_data/aws/client.py`)
+  - Used in startup process (`packages/python/docrouter_app/startup.py`)
 
 ### `AWS_SECRET_ACCESS_KEY`
 - **Purpose**: AWS secret access key for AWS services
 - **Usage**:
-  - AWS client initialization (`packages/analytiq_data/aws/client.py`)
-  - Used in startup process (`packages/docrouter_app/startup.py`)
+  - AWS client initialization (`packages/python/analytiq_data/aws/client.py`)
+  - Used in startup process (`packages/python/docrouter_app/startup.py`)
 
 ### `AWS_S3_BUCKET_NAME`
 - **Purpose**: S3 bucket name for file storage
 - **Default**: `"analytiq-data"`
-- **Usage**: AWS S3 operations (`packages/analytiq_data/aws/client.py`)
+- **Usage**: AWS S3 operations (`packages/python/analytiq_data/aws/client.py`)
 
 ### `AWS_BEDROCK_API_KEY`
 - **Purpose**: AWS Bedrock API key for LLM services
-- **Usage**: LLM provider configuration (`packages/analytiq_data/llm/providers.py`)
+- **Usage**: LLM provider configuration (`packages/python/analytiq_data/llm/providers.py`)
 
 ## Email Configuration
 
 ### `SES_FROM_EMAIL`
 - **Purpose**: Email address used as sender for AWS SES emails
-- **Usage**: Email sending configuration (`packages/docrouter_app/main.py`)
+- **Usage**: Email sending configuration (`packages/python/docrouter_app/main.py`)
 
 ## LLM Provider API Keys
 
@@ -114,69 +114,69 @@ The following environment variables are used for various LLM providers:
 
 ### `ANTHROPIC_API_KEY`
 - **Purpose**: Anthropic API key for Claude models
-- **Usage**: LLM provider configuration (`packages/analytiq_data/llm/providers.py`)
+- **Usage**: LLM provider configuration (`packages/python/analytiq_data/llm/providers.py`)
 
 ### `AZURE_OPENAI_API_KEY`
 - **Purpose**: Azure OpenAI API key
-- **Usage**: LLM provider configuration (`packages/analytiq_data/llm/providers.py`)
+- **Usage**: LLM provider configuration (`packages/python/analytiq_data/llm/providers.py`)
 
 ### `AZURE_AI_STUDIO_API_KEY`
 - **Purpose**: Azure AI Studio API key
-- **Usage**: LLM provider configuration (`packages/analytiq_data/llm/providers.py`)
+- **Usage**: LLM provider configuration (`packages/python/analytiq_data/llm/providers.py`)
 
 ### `GEMINI_API_KEY`
 - **Purpose**: Google Gemini API key
-- **Usage**: LLM provider configuration (`packages/analytiq_data/llm/providers.py`)
+- **Usage**: LLM provider configuration (`packages/python/analytiq_data/llm/providers.py`)
 
 ### `GROQ_API_KEY`
 - **Purpose**: Groq API key
-- **Usage**: LLM provider configuration (`packages/analytiq_data/llm/providers.py`)
+- **Usage**: LLM provider configuration (`packages/python/analytiq_data/llm/providers.py`)
 
 ### `MISTRAL_API_KEY`
 - **Purpose**: Mistral AI API key
-- **Usage**: LLM provider configuration (`packages/analytiq_data/llm/providers.py`)
+- **Usage**: LLM provider configuration (`packages/python/analytiq_data/llm/providers.py`)
 
 ### `OPENAI_API_KEY`
 - **Purpose**: OpenAI API key
-- **Usage**: LLM provider configuration (`packages/analytiq_data/llm/providers.py`)
+- **Usage**: LLM provider configuration (`packages/python/analytiq_data/llm/providers.py`)
 
 ### `VERTEX_AI_API_KEY`
 - **Purpose**: Google Vertex AI API key
-- **Usage**: LLM provider configuration (`packages/analytiq_data/llm/providers.py`)
+- **Usage**: LLM provider configuration (`packages/python/analytiq_data/llm/providers.py`)
 
 ## Payment Configuration (Stripe)
 
 ### `STRIPE_SECRET_KEY`
 - **Purpose**: Stripe secret key for payment processing
-- **Usage**: Stripe client initialization (`packages/docrouter_app/payments.py`)
+- **Usage**: Stripe client initialization (`packages/python/docrouter_app/payments.py`)
 
 ### `STRIPE_WEBHOOK_SECRET`
 - **Purpose**: Stripe webhook secret for verifying webhook signatures
-- **Usage**: Stripe webhook verification (`packages/docrouter_app/payments.py`)
+- **Usage**: Stripe webhook verification (`packages/python/docrouter_app/payments.py`)
 
 ## System Administration
 
 ### `ADMIN_EMAIL`
 - **Purpose**: Email address for the default system administrator
-- **Usage**: System initialization (`packages/docrouter_app/startup.py`)
+- **Usage**: System initialization (`packages/python/docrouter_app/startup.py`)
 
 ### `ADMIN_PASSWORD`
 - **Purpose**: Password for the default system administrator
-- **Usage**: System initialization (`packages/docrouter_app/startup.py`)
+- **Usage**: System initialization (`packages/python/docrouter_app/startup.py`)
 
 ## Worker Configuration
 
 ### `N_WORKERS`
 - **Purpose**: Number of worker processes to run
 - **Default**: `"1"`
-- **Usage**: Worker process scaling (`packages/worker/worker.py`)
+- **Usage**: Worker process scaling (`packages/python/worker/worker.py`)
 
 ## Logging Configuration
 
 ### `LOG_LEVEL`
 - **Purpose**: Logging level for the application
 - **Default**: `"INFO"`
-- **Usage**: Logging configuration (`packages/analytiq_data/common/setup.py`)
+- **Usage**: Logging configuration (`packages/python/analytiq_data/common/setup.py`)
 - **Values**: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
 
 ## CORS Configuration
@@ -184,7 +184,7 @@ The following environment variables are used for various LLM providers:
 ### `CORS_ORIGINS`
 - **Purpose**: Comma-separated list of allowed CORS origins
 - **Default**: `"http://localhost:3000,http://127.0.0.1:3000,http://host.docker.internal:3000"`
-- **Usage**: CORS middleware configuration (`packages/docrouter_app/main.py`)
+- **Usage**: CORS middleware configuration (`packages/python/docrouter_app/main.py`)
 
 ## Testing Variables
 
@@ -234,7 +234,7 @@ The following environment variables are used for various LLM providers:
 ### `MONGO_URI`
 - **Purpose**: Alternative MongoDB URI (used in payments module)
 - **Default**: `"mongodb://localhost:27017"`
-- **Usage**: Payments module database connection (`packages/docrouter_app/payments.py`)
+- **Usage**: Payments module database connection (`packages/python/docrouter_app/payments.py`)
 
 ## Environment-Specific Behavior
 
@@ -355,7 +355,7 @@ CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://host.docker.inte
 ## File Loading
 
 The environment variables are loaded from the top-level `.env` file using:
-- Python: `python-dotenv` in `packages/analytiq_data/common/setup.py`
+- Python: `python-dotenv` in `packages/python/analytiq_data/common/setup.py`
 - Next.js: Automatic loading from project root
 - The `.env` file is copied to `packages/typescript/frontend/.env.local` during build process
 

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Setup and Installation
 - `make setup` - Set up Python virtual environment and install all dependencies
 - `make dev` - Start all development services (equivalent to `./start-all.sh`)
-- `make tests` - Run Python tests in packages/tests/
+- `make tests` - Run Python tests in packages/python/tests/
 - `make clean` - Remove virtual environment
 
 ### Frontend (NextJS)
@@ -23,8 +23,8 @@ From `packages/` directory with activated virtual environment:
 - `python worker/worker.py` - Start background worker process
 
 ### Testing
-- `. .venv/bin/activate; pytest -n auto packages/tests/` - Run all Python tests with parallel execution
-- Tests are located in `packages/tests/` with comprehensive coverage of API endpoints
+- `. .venv/bin/activate; pytest -n auto packages/python/tests/` - Run all Python tests with parallel execution
+- Tests are located in `packages/python/tests/` with comprehensive coverage of API endpoints
 
 ## Architecture Overview
 
@@ -42,23 +42,23 @@ The Smart Document Router is a full-stack document processing platform with huma
 - Multi-tenant organization structure
 
 **Backend (FastAPI + Python)**
-- Main API server in `packages/docrouter_app/`
+- Main API server in `packages/python/docrouter_app/`
 - FastAPI with Pydantic models for data validation
 - MongoDB for data persistence
-- Background worker system in `packages/worker/`
+- Background worker system in `packages/python/worker/`
 - Queue-based task processing
 
-**Data Layer (`packages/analytiq_data/`)**
+**Data Layer (`packages/python/analytiq_data/`)**
 - Common utilities and data models
 - MongoDB client and operations
 - AWS/Textract integration for OCR
 - LLM integrations via LiteLLM (OpenAI, Anthropic, Gemini, Groq)
 - Document processing pipelines
 
-**SDK (`packages/docrouter_sdk/`)**
+**SDK (`packages/python/docrouter_sdk/`)**
 - Python client library for API integration
 - Type-safe models and API clients
-- Examples in `packages/docrouter_sdk/examples/`
+- Examples in `packages/python/docrouter_sdk/examples/`
 
 ### Key Architectural Patterns
 
@@ -93,7 +93,7 @@ The Smart Document Router is a full-stack document processing platform with huma
 
 ### Database Setup
 - MongoDB database named `test` for development
-- Database migrations in `packages/analytiq_data/migrations/`
+- Database migrations in `packages/python/analytiq_data/migrations/`
 - MongoDB Compass recommended for database management
 
 ### Environment Configuration
@@ -105,8 +105,8 @@ The Smart Document Router is a full-stack document processing platform with huma
 - Frontend pages follow Next.js App Router structure in `src/app/`
 - API routes in `src/app/api/`
 - React components in `src/components/`
-- Backend models in `packages/docrouter_app/models.py`
-- Shared utilities in `packages/analytiq_data/common/`
+- Backend models in `packages/python/docrouter_app/models.py`
+- Shared utilities in `packages/python/analytiq_data/common/`
 
 ### Testing Strategy
 - Python tests use pytest with async support
