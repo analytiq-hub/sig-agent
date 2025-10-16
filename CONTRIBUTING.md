@@ -22,13 +22,13 @@ Thank you for your interest in contributing to Smart Document Router! This docum
 ### Local Development
 1. Follow the [Local Development Setup](./docs/INSTALL.local_devel.md) guide
 2. Run the backend tests: `make test`
-3. Run the frontend: `cd frontend && npm run dev`
+3. Run the frontend: `cd packages/typescript/frontend && npm run dev`
 
 ## Code Style Guidelines
 
 ### Frontend (Next.js/React)
 - Use TypeScript for all new code
-- Follow the existing component structure in `frontend/src/components/`
+- Follow the existing component structure in `packages/typescript/frontend/src/components/`
 - Use Tailwind CSS for styling (Material-UI for complex components)
 - Write meaningful component and function names
 - Add proper TypeScript types

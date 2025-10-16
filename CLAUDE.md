@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `make clean` - Remove virtual environment
 
 ### Frontend (NextJS)
-Navigate to `frontend/` directory:
+Navigate to `packages/typescript/frontend/` directory:
 - `npm run dev` - Start development server on port 3000
 - `npm run build` - Build production bundle
 - `npm run start` - Start production server
@@ -33,7 +33,7 @@ The Smart Document Router is a full-stack document processing platform with huma
 ### Core Components
 
 **Frontend (NextJS + TypeScript)**
-- Located in `frontend/src/`
+- Located in `packages/typescript/frontend/src/`
 - Next.js 14 with App Router architecture
 - NextAuth.js for authentication with MongoDB adapter
 - Material-UI and TailwindCSS for styling

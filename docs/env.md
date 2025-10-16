@@ -16,7 +16,7 @@ The DocRouter project uses a single `.env` file at the project root that is shar
   - Controls logging and debugging behavior
   - Used in FastAPI backend (`packages/docrouter_app/main.py`, `packages/docrouter_app/auth.py`)
   - Used in worker processes (`packages/worker/worker.py`)
-  - Used in frontend MongoDB connection (`frontend/src/utils/mongodb.ts`)
+  - Used in frontend MongoDB connection (`packages/typescript/frontend/src/utils/mongodb.ts`)
 - **Values**: `"dev"`, `"prod"`, `"test"` (for testing)
 
 ### `MONGODB_URI`
@@ -26,7 +26,7 @@ The DocRouter project uses a single `.env` file at the project root that is shar
   - Primary database connection for all components
   - Used in FastAPI backend (`packages/docrouter_app/main.py`, `packages/docrouter_app/auth.py`)
   - Used in worker processes (`packages/worker/worker.py`)
-  - Used in frontend MongoDB connection (`frontend/src/utils/mongodb.ts`)
+  - Used in frontend MongoDB connection (`packages/typescript/frontend/src/utils/mongodb.ts`)
   - Used in payments module (`packages/docrouter_app/payments.py`)
 - **Format**: `mongodb://[username:password@]host:port[/database]?authSource=admin`
 
@@ -49,25 +49,25 @@ The DocRouter project uses a single `.env` file at the project root that is shar
 - **Purpose**: Secret key for NextAuth.js session encryption
 - **Required**: Yes
 - **Usage**: 
-  - Used in NextAuth configuration (`frontend/src/auth.ts`)
+  - Used in NextAuth configuration (`packages/typescript/frontend/src/auth.ts`)
   - JWT token signing in authentication (`packages/docrouter_app/auth.py`)
   - Token encryption/decryption (`packages/analytiq_data/crypto/encryption.py`)
 
 ### `AUTH_GITHUB_ID`
 - **Purpose**: GitHub OAuth application client ID
-- **Usage**: GitHub authentication provider configuration (`frontend/src/auth.ts`)
+- **Usage**: GitHub authentication provider configuration (`packages/typescript/frontend/src/auth.ts`)
 
 ### `AUTH_GITHUB_SECRET`
 - **Purpose**: GitHub OAuth application client secret
-- **Usage**: GitHub authentication provider configuration (`frontend/src/auth.ts`)
+- **Usage**: GitHub authentication provider configuration (`packages/typescript/frontend/src/auth.ts`)
 
 ### `AUTH_GOOGLE_ID`
 - **Purpose**: Google OAuth application client ID
-- **Usage**: Google authentication provider configuration (`frontend/src/auth.ts`)
+- **Usage**: Google authentication provider configuration (`packages/typescript/frontend/src/auth.ts`)
 
 ### `AUTH_GOOGLE_SECRET`
 - **Purpose**: Google OAuth application client secret
-- **Usage**: Google authentication provider configuration (`frontend/src/auth.ts`)
+- **Usage**: Google authentication provider configuration (`packages/typescript/frontend/src/auth.ts`)
 
 ## Frontend Configuration
 
@@ -75,9 +75,9 @@ The DocRouter project uses a single `.env` file at the project root that is shar
 - **Purpose**: URL for the FastAPI backend as seen by the frontend
 - **Default**: `"http://localhost:8000"`
 - **Usage**:
-  - API client configuration (`frontend/src/utils/api.ts`)
-  - Developer settings page (`frontend/src/app/settings/user/developer/page.tsx`)
-  - Formio provider configuration (`frontend/src/components/FormioProvider.tsx`)
+  - API client configuration (`packages/typescript/frontend/src/utils/api.ts`)
+  - Developer settings page (`packages/typescript/frontend/src/app/settings/user/developer/page.tsx`)
+  - Formio provider configuration (`packages/typescript/frontend/src/components/FormioProvider.tsx`)
 
 ## AWS Configuration
 
@@ -357,7 +357,7 @@ CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://host.docker.inte
 The environment variables are loaded from the top-level `.env` file using:
 - Python: `python-dotenv` in `packages/analytiq_data/common/setup.py`
 - Next.js: Automatic loading from project root
-- The `.env` file is copied to `frontend/.env.local` during build process
+- The `.env` file is copied to `packages/typescript/frontend/.env.local` during build process
 
 ## Example .env File Structure
 

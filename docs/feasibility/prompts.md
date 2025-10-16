@@ -82,7 +82,7 @@ GET /v0/orgs/{organization_id}/prompt_templates/{template_id}
 
 #### 3.2 TypeScript Types
 
-Update in `frontend/src/types/prompts.ts`:
+Update in `packages/typescript/frontend/src/types/prompts.ts`:
 ```typescript
 export interface PromptConfig {
   name: string;

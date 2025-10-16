@@ -3,8 +3,8 @@ FROM node:18 AS frontend
 WORKDIR /app
 
 # Copy only necessary files first
-COPY frontend/package*.json ./frontend/
-RUN cd frontend && npm install
+COPY packages/typescript/frontend/package*.json ./packages/typescript/frontend/
+RUN cd packages/typescript/frontend && npm install
 
 # Build-time arguments
 ARG NEXT_PUBLIC_FASTAPI_FRONTEND_URL
@@ -19,9 +19,9 @@ RUN echo "NEXT_PUBLIC_FASTAPI_FRONTEND_URL=${NEXT_PUBLIC_FASTAPI_FRONTEND_URL}"
 RUN echo "FASTAPI_BACKEND_URL=${FASTAPI_BACKEND_URL}"
 RUN echo "NODE_ENV=${NODE_ENV}"
 # Now copy the rest of the frontend files
-COPY frontend/ ./frontend/
+COPY packages/typescript/frontend/ ./packages/typescript/frontend/
 ENV NODE_OPTIONS=--max-old-space-size=4096
-RUN cd frontend && npm run build
+RUN cd packages/typescript/frontend && npm run build
 
 EXPOSE 3000
 

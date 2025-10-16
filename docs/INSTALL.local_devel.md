@@ -18,10 +18,10 @@
 * Install `NodeJS` and `npm`
 * Install the frontend
   ```bash
-  cd frontend
+  cd packages/typescript/frontend
   npm install
   ```
-* The Next.js gets its config from the top-level `.env` not `frontend/.env.local`
+* The Next.js gets its config from the top-level `.env` not `packages/typescript/frontend/.env.local`
 
 ### Using `start-all.sh`
 * Cd to the top of the project directory, and run `./start-all.sh`
@@ -43,6 +43,7 @@
 
 * Start the front end
   ```bash
+  cd packages/typescript/frontend
   npm run dev
   ```
 

@@ -32,7 +32,7 @@ doc-router/
 │ │
 │ └── tests/ # Tests for all packages
 │
-├── frontend/ # Next.js frontend application
+├── packages/typescript/frontend/ # Next.js frontend application
 │ ├── public/ # Static assets
 │ ├── src/
 │ │ ├── app/ # App Router components
@@ -45,7 +45,7 @@ doc-router/
 ├── docker/ # Docker configurations
 │ ├── api/ # API service Dockerfile
 │ ├── worker/ # Worker service Dockerfile
-│ └── frontend/ # Frontend Dockerfile
+│ └── frontend/ # Frontend Dockerfile (now in packages/typescript/frontend)
 │
 ├── docs/ # Project documentation
 ├── package.json # Root package.json for scripts

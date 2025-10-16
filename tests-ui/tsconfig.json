@@ -1,5 +1,5 @@
 {
-  "extends": "../frontend/tsconfig.json",
+  "extends": "../packages/typescript/frontend/tsconfig.json",
   "compilerOptions": {
     "types": ["jest", "node", "puppeteer"],
     "moduleResolution": "node",

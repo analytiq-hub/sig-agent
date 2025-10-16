@@ -19,7 +19,7 @@ setup:
 	uv pip install pytest-asyncio pytest-cov pytest-xdist
 
 dev: setup
-	cp .env frontend/.env.local
+	cp .env packages/typescript/frontend/.env.local
 	./start-all.sh
 
 deploy:

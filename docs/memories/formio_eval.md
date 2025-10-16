@@ -16,7 +16,7 @@
 ⏺ Search(pattern: "sandbox|evalContext|eval.*script")
   ⎿  Found 1 file (ctrl+r to expand)
 
-⏺ Read(frontend/package.json)
+⏺ Read(packages/typescript/frontend/package.json)
   ⎿  Read 72 lines (ctrl+r to expand)
 
 ⏺ I can see the project uses formiojs (v4.21.7) and @tsed/react-formio
@@ -26,20 +26,20 @@
 ⏺ Search(pattern: "formio")
   ⎿  Found 20 files (ctrl+r to expand)
 
-⏺ Search(pattern: "calculate|script.*eval|evalContext", glob: "frontend/**/
-        *.ts,frontend/**/*.tsx,frontend/**/*.js,frontend/**/*.jsx")
+⏺ Search(pattern: "calculate|script.*eval|evalContext", glob: "packages/typescript/frontend/**/
+        *.ts,packages/typescript/frontend/**/*.tsx,packages/typescript/frontend/**/*.js,packages/typescript/frontend/**/*.jsx")
   ⎿  Found 0 files 
 
 ⏺ Let me examine the main Form.io components to understand how calculated
   values are handled:
 
-⏺ Read(frontend/src/components/FormioRenderer.tsx)
+⏺ Read(packages/typescript/frontend/src/components/FormioRenderer.tsx)
   ⎿  Read 140 lines (ctrl+r to expand)
 
-⏺ Read(frontend/src/components/FormioBuilder.tsx)
+⏺ Read(packages/typescript/frontend/src/components/FormioBuilder.tsx)
   ⎿  Read 106 lines (ctrl+r to expand)
 
-⏺ Read(frontend/src/components/FormioProvider.tsx)
+⏺ Read(packages/typescript/frontend/src/components/FormioProvider.tsx)
   ⎿  Read 25 lines (ctrl+r to expand)
 
 ⏺ Update Todos
@@ -149,10 +149,10 @@
   Calculated Value Implementation in Form.io
 
   Core Implementation:
-  - Location: /frontend/node_modules/formiojs/components/_classes/component
+  - Location: /packages/typescript/frontend/node_modules/formiojs/components/_classes/component
   /Component.js:doValueCalculation
-  - Evaluator: /frontend/node_modules/formiojs/utils/Evaluator.js:evaluator
-  - Utils: /frontend/node_modules/formiojs/utils/utils.js:evaluate
+  - Evaluator: /packages/typescript/frontend/node_modules/formiojs/utils/Evaluator.js:evaluator
+  - Utils: /packages/typescript/frontend/node_modules/formiojs/utils/utils.js:evaluate
 
   Execution Flow:
 
