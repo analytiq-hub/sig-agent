@@ -44,7 +44,11 @@ tests-ui: setup-ui
 tests-ui-debug: setup-ui
 	cd tests-ui && npm run test:ui:debug
 
+tests-ts:
+	cd packages/typescript/docrouter-sdk && npm run test:all
+	cd packages/typescript/docrouter-mcp && npm run test
+
 clean:
 	rm -rf .venv
 
-.PHONY: dev tests setup
+.PHONY: dev tests setup tests-ts
