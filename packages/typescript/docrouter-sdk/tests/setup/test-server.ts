@@ -25,7 +25,7 @@ export class TestServer {
       throw new Error('Test server is already running');
     }
 
-    const packagesDir = path.join(__dirname, '../../../../'); // Go up to packages directory
+    const packagesDir = path.join(__dirname, '../../../../python'); // Go up to packages directory
     const sdkDir = path.join(__dirname, '../..'); // docrouter_ts_sdk directory
     const venvPython = path.join(sdkDir, '.venv/bin/python');
 
