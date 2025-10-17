@@ -84,22 +84,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [open, isClient]);
 
   const fileMenuItems = [
-  //  { text: 'Dashboard', icon: ChartPieIcon, tooltip: 'Dashboard', href: `/orgs/${currentOrganization?.id}/dashboard` },
-  //  { text: 'Upload', icon: ArrowUpTrayIcon, tooltip: 'Upload', href: `/orgs/${currentOrganization?.id}/upload`},
     { text: 'Documents', icon: ListBulletIcon, tooltip: 'Documents', href: `/orgs/${currentOrganization?.id}/docs`},
     { text: 'Tags', icon: LocalOfferIcon, tooltip: 'Tags', href: `/orgs/${currentOrganization?.id}/tags`},  
     { text: 'Schemas', icon: SchemaIcon, tooltip: 'Schemas', href: `/orgs/${currentOrganization?.id}/schemas`},
     { text: 'Prompts', icon: PromptIcon, tooltip: 'Prompts', href: `/orgs/${currentOrganization?.id}/prompts`},
     { text: 'Forms', icon: FormsIcon, tooltip: 'Forms', href: `/orgs/${currentOrganization?.id}/forms`},
   ];
-
-  // const modelMenuItems = [
-  //   //{ text: 'Models', icon: CubeIcon, tooltip: 'Models', href: `/orgs/${currentOrganization?.id}/models`},
-  // ];
-
-  // const flowMenuItems = [
-  //   { text: 'Flows', icon: Square3Stack3DIcon, tooltip: 'Flows', href: `/orgs/${currentOrganization?.id}/flows` },
-  // ];
 
   const systemMenuItems = [
     { text: 'About', icon: AboutIcon, tooltip: 'About Page', href: '/' },

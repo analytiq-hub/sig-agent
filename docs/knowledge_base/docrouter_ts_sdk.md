@@ -299,11 +299,6 @@ client.getSchema()             // Get schema details
 client.updateSchema()          // Update schema
 client.deleteSchema()          // Delete schema
 client.validateAgainstSchema() // Validate data against schema
-client.createFlow()            // Create flow
-client.listFlows()             // List flows
-client.getFlow()               // Get flow details
-client.updateFlow()            // Update flow
-client.deleteFlow()            // Delete flow
 client.getCustomerPortal()     // Get customer portal
 client.getSubscription()       // Get subscription
 client.activateSubscription()  // Activate subscription
@@ -554,39 +549,6 @@ await client.schemas.update({
 // Delete schema
 await client.schemas.delete({
   schemaId: 'schema-123'
-});
-```
-
-#### Flow Management
-
-```typescript
-// Create flow
-const flow = await client.flows.create({
-  name: 'Invoice Processing Flow',
-  description: 'Automated invoice processing workflow',
-  steps: flowSteps
-});
-
-// List flows
-const flows = await client.flows.list({
-  limit: 10,
-  skip: 0
-});
-
-// Get flow details
-const flowDetails = await client.flows.get({
-  flowId: 'flow-123'
-});
-
-// Update flow
-await client.flows.update({
-  flowId: 'flow-123',
-  name: 'Updated Flow Name'
-});
-
-// Delete flow
-await client.flows.delete({
-  flowId: 'flow-123'
 });
 ```
 

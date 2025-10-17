@@ -527,48 +527,6 @@ export interface DeletePromptParams {
   promptId: string;
 }
 
-// Flow types
-export interface Flow {
-  id: string;
-  name: string;
-  definition: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateFlowParams {
-  organizationId: string;
-  flow: Omit<Flow, 'id' | 'created_at' | 'updated_at'>;
-}
-
-export interface UpdateFlowParams {
-  organizationId: string;
-  flowId: string;
-  flow: Partial<Omit<Flow, 'id' | 'created_at' | 'updated_at'>>;
-}
-
-export interface ListFlowsParams {
-  organizationId: string;
-  skip?: number;
-  limit?: number;
-}
-
-export interface ListFlowsResponse {
-  flows: Flow[];
-  total_count: number;
-  skip: number;
-}
-
-export interface GetFlowParams {
-  organizationId: string;
-  flowId: string;
-}
-
-export interface DeleteFlowParams {
-  organizationId: string;
-  flowId: string;
-}
-
 // Schema types
 export interface Schema {
   schema_revid: string;

@@ -37,14 +37,6 @@ import {
   UpdateSchemaParams,
   DeleteSchemaParams,
   Schema,
-  // Flows
-  CreateFlowParams,
-  ListFlowsParams,
-  ListFlowsResponse,
-  GetFlowParams,
-  UpdateFlowParams,
-  DeleteFlowParams,
-  Flow,
   // Payments
   PortalSessionResponse,
   SubscriptionResponse,
@@ -400,35 +392,6 @@ export class DocRouterOrg {
   async validateAgainstSchema(params: { schemaRevId: string; data: Record<string, unknown> }): Promise<{ valid: boolean; errors?: string[] }> {
     const { schemaRevId, data } = params;
     return this.http.post<{ valid: boolean; errors?: string[] }>(`/v0/orgs/${this.organizationId}/schemas/${schemaRevId}/validate`, { data });
-  }
-
-  // ---------------- Flows ----------------
-
-  async createFlow(params: Omit<CreateFlowParams, 'organizationId'>): Promise<Flow> {
-    const { flow } = params;
-    return this.http.post<Flow>(`/v0/orgs/${this.organizationId}/flows`, flow);
-  }
-
-  async updateFlow(params: Omit<UpdateFlowParams, 'organizationId'>): Promise<Flow> {
-    const { flowId, flow } = params;
-    return this.http.put<Flow>(`/v0/orgs/${this.organizationId}/flows/${flowId}`, flow);
-  }
-
-  async listFlows(params?: Omit<ListFlowsParams, 'organizationId'>): Promise<ListFlowsResponse> {
-    const { skip, limit } = params || {};
-    return this.http.get<ListFlowsResponse>(`/v0/orgs/${this.organizationId}/flows`, {
-      params: { skip: skip || 0, limit: limit || 10 }
-    });
-  }
-
-  async getFlow(params: Omit<GetFlowParams, 'organizationId'>): Promise<Flow> {
-    const { flowId } = params;
-    return this.http.get<Flow>(`/v0/orgs/${this.organizationId}/flows/${flowId}`);
-  }
-
-  async deleteFlow(params: Omit<DeleteFlowParams, 'organizationId'>): Promise<void> {
-    const { flowId } = params;
-    await this.http.delete(`/v0/orgs/${this.organizationId}/flows/${flowId}`);
   }
 
   // ---------------- Payments ----------------

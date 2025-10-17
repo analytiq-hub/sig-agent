@@ -395,40 +395,6 @@ class Position(BaseModel):
     x: float
     y: float
 
-class FlowNode(BaseModel):
-    id: str
-    type: str
-    position: Position
-    data: dict
-
-class FlowEdge(BaseModel):
-    id: str
-    source: str
-    target: str
-    sourceHandle: Optional[str] = None
-    targetHandle: Optional[str] = None
-
-class FlowConfig(BaseModel):
-    name: str
-    description: Optional[str] = None
-    nodes: List[FlowNode]
-    edges: List[FlowEdge]
-    tag_ids: Optional[List[str]] = None
-
-class Flow(FlowConfig):
-    flow_revid: str           # MongoDB's _id
-    flow_id: str              # Stable identifier
-    flow_version: int
-    organization_id: str
-    created_at: datetime
-    created_by: str
-    updated_at: datetime
-
-class ListFlowsResponse(BaseModel):
-    flows: List[Flow]
-    total_count: int
-    skip: int
-
 # Add these new models for LLM testing (admin only)
 class LLMMessage(BaseModel):
     role: Literal["system", "user", "assistant"] = Field(..., description="Role of the message sender")
