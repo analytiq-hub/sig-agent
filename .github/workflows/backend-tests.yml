@@ -56,7 +56,7 @@ jobs:
         print('MongoDB connection successful:', client.server_info())
         "
     
-    - name: Run tests
+    - name: Run python tests
       working-directory: ./packages/python/
       env:
         ENV: pytest
@@ -64,3 +64,8 @@ jobs:
         NEXTAUTH_SECRET: test_secret_key_for_ci
       run: |
         pytest tests/ -v 
+    
+    - name: Run TypeScript tests
+      working-directory: .
+      run: |
+        make tests-ts
