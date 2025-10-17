@@ -1093,43 +1093,6 @@ export const createCheckoutSessionApi = async (orgId: string, planId: string): P
   return response.data;
 };
 
-// Proxy API
-export const proxyRequestApi = async (targetUrl: string, options?: {
-  method?: string;
-  body?: unknown;
-  headers?: Record<string, string>;
-}) => {
-  const method = options?.method || 'GET';
-  const config: {
-    method: string;
-    params: { url: string };
-    data?: unknown;
-    headers?: Record<string, string>;
-  } = {
-    method: method.toLowerCase(),
-    params: { url: targetUrl }
-  };
-
-  // If there's a body, add it to the request
-  if (options?.body && ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase())) {
-    config.data = options.body;
-  }
-
-  // Add any additional headers
-  if (options?.headers) {
-    config.headers = { ...config.headers, ...options.headers };
-  }
-
-  const response = await api.request({
-    method: config.method,
-    url: '/v0/proxy',
-    params: config.params,
-    data: config.data,
-    headers: config.headers
-  });
-  return response.data;
-};
-
 // Helper function to get session token for direct fetch calls (for FormIO)
 export const getSessionToken = async (): Promise<string | null> => {
   const session = await getCachedSession();
