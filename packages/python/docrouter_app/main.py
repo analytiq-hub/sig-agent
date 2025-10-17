@@ -226,16 +226,35 @@ async def create_org_token(
         raise HTTPException(status_code=403, detail="You are not authorized to create an organization-level API token")
     
     db = ad.common.get_async_db()
-    token = secrets.token_urlsafe(32)
+    
+    # Generate a globally unique token
+    max_attempts = 10
+    for attempt in range(max_attempts):
+        token = secrets.token_urlsafe(32)
+        encrypted_token = ad.crypto.encrypt_token(token)
+        
+        # Check if token already exists
+        existing_token = await db.access_tokens.find_one({"token": encrypted_token})
+        if not existing_token:
+            break
+    else:
+        raise HTTPException(status_code=500, detail="Failed to generate unique token after multiple attempts")
+    
     new_token = {
         "user_id": current_user.user_id,
         "organization_id": organization_id,
         "name": request.name,
-        "token": ad.crypto.encrypt_token(token),
+        "token": encrypted_token,
         "created_at": datetime.now(UTC),
         "lifetime": request.lifetime
     }
-    result = await db.access_tokens.insert_one(new_token)
+    try:
+        result = await db.access_tokens.insert_one(new_token)
+    except Exception as e:
+        # Handle potential duplicate key error from database unique constraint
+        if "duplicate key" in str(e).lower() or "duplicate" in str(e).lower():
+            raise HTTPException(status_code=500, detail="Token collision detected. Please try again.")
+        raise
 
     new_token["token"] = token  # Return plaintext token to user
     new_token["id"] = str(result.inserted_id)
@@ -4301,16 +4320,34 @@ async def create_account_token(
     logger.debug(f"Creating account token for user: {current_user} request: {request}")
     db = ad.common.get_async_db()
 
-    token = secrets.token_urlsafe(32)
+    # Generate a globally unique token
+    max_attempts = 10
+    for attempt in range(max_attempts):
+        token = secrets.token_urlsafe(32)
+        encrypted_token = ad.crypto.encrypt_token(token)
+        
+        # Check if token already exists
+        existing_token = await db.access_tokens.find_one({"token": encrypted_token})
+        if not existing_token:
+            break
+    else:
+        raise HTTPException(status_code=500, detail="Failed to generate unique token after multiple attempts")
+    
     new_token = {
         "user_id": current_user.user_id,
         "organization_id": None,  # Explicitly set to None for account-level tokens
         "name": request.name,
-        "token": ad.crypto.encrypt_token(token),
+        "token": encrypted_token,
         "created_at": datetime.now(UTC),
         "lifetime": request.lifetime
     }
-    result = await db.access_tokens.insert_one(new_token)
+    try:
+        result = await db.access_tokens.insert_one(new_token)
+    except Exception as e:
+        # Handle potential duplicate key error from database unique constraint
+        if "duplicate key" in str(e).lower() or "duplicate" in str(e).lower():
+            raise HTTPException(status_code=500, detail="Token collision detected. Please try again.")
+        raise
 
     new_token["token"] = token  # Return plaintext token to user
     new_token["id"] = str(result.inserted_id)

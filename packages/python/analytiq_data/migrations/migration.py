@@ -1860,6 +1860,34 @@ class UpgradeTokens(Migration):
         logger.warning("Cannot revert UpgradeTokens migration as original encryption method is not preserved")
         return False
 
+class AddAccessTokenUniquenessIndex(Migration):
+    def __init__(self):
+        super().__init__(description="Add unique index on access_tokens.token field to ensure global token uniqueness")
+
+    async def up(self, db) -> bool:
+        """Add unique index on access_tokens.token field"""
+        try:
+            # Create unique index on the token field
+            await db.access_tokens.create_index("token", unique=True)
+            logger.info("Successfully created unique index on access_tokens.token field")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to create unique index on access_tokens.token: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """Remove unique index on access_tokens.token field"""
+        try:
+            # Drop the unique index
+            await db.access_tokens.drop_index("token_1")
+            logger.info("Successfully removed unique index on access_tokens.token field")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to remove unique index on access_tokens.token: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -1885,6 +1913,7 @@ MIGRATIONS = [
     RenamePromptRevIdToPromptRevid(),
     RenameUserFields(),
     UpgradeTokens(),
+    AddAccessTokenUniquenessIndex(),
     # Add more migrations here
 ]
 
