@@ -1,7 +1,7 @@
-import { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react'
+import { useState, useEffect, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react'
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { Tag } from '@/types/index'
-import { listDocumentsApi, updateDocumentApi } from '@/utils/api'
+import { DocRouterOrgApi } from '@/utils/api'
 import { toast } from 'react-hot-toast'
 
 // Type definitions for metadata operations
@@ -37,6 +37,7 @@ export const DocumentBulkUpdateMetadata = forwardRef<DocumentBulkUpdateMetadataR
   onProgress,
   onComplete
 }, ref) => {
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [metadataFields, setMetadataFields] = useState<Array<{id: string, key: string, value: string}>>([])
   const [metadataKeysToRemove, setMetadataKeysToRemove] = useState<string>('')
 
@@ -173,8 +174,7 @@ export const DocumentBulkUpdateMetadata = forwardRef<DocumentBulkUpdateMetadataR
 
       while (true) {
         // Fetch next batch of documents
-        const batchResponse = await listDocumentsApi({
-          organizationId,
+        const batchResponse = await docRouterOrgApi.listDocuments({
           skip,
           limit,
           nameSearch: searchParameters.searchTerm.trim() || undefined,
@@ -219,8 +219,7 @@ export const DocumentBulkUpdateMetadata = forwardRef<DocumentBulkUpdateMetadataR
               updatedMetadata = {};
             }
 
-            await updateDocumentApi({
-              organizationId,
+            await docRouterOrgApi.updateDocument({
               documentId: doc.id,
               tagIds: doc.tag_ids,
               metadata: updatedMetadata

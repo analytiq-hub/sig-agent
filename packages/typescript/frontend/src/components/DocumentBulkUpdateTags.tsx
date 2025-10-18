@@ -1,7 +1,7 @@
-import { useState, forwardRef, useImperativeHandle } from 'react'
+import { useState, forwardRef, useImperativeHandle, useMemo } from 'react'
 import { Tag } from '@/types/index';
 import TagSelector from './TagSelector';
-import { listDocumentsApi, updateDocumentApi } from '@/utils/api';
+import { DocRouterOrgApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
 
 interface DocumentBulkUpdateTagsProps {
@@ -36,6 +36,7 @@ export const DocumentBulkUpdateTags = forwardRef<DocumentBulkUpdateTagsRef, Docu
   onProgress,
   onComplete
 }, ref) => {
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
 
   const handleTagChange = (tagIds: string[]) => {
@@ -83,8 +84,7 @@ export const DocumentBulkUpdateTags = forwardRef<DocumentBulkUpdateTagsRef, Docu
 
       while (true) {
         // Fetch next batch of documents
-        const batchResponse = await listDocumentsApi({
-          organizationId,
+        const batchResponse = await docRouterOrgApi.listDocuments({
           skip,
           limit,
           nameSearch: searchParameters.searchTerm.trim() || undefined,
@@ -115,8 +115,7 @@ export const DocumentBulkUpdateTags = forwardRef<DocumentBulkUpdateTagsRef, Docu
               updatedTagIds = doc.tag_ids.filter((tagId: string) => !selectedTagIds.includes(tagId));
             }
 
-            await updateDocumentApi({
-              organizationId,
+            await docRouterOrgApi.updateDocument({
               documentId: doc.id,
               tagIds: updatedTagIds,
               metadata: doc.metadata || {}

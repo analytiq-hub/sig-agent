@@ -1,7 +1,8 @@
-import { Fragment, useState, useEffect, useRef, useCallback } from 'react'
+import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, BoltIcon, PlusIcon, MinusIcon, DocumentArrowDownIcon, TrashIcon, CpuChipIcon } from '@heroicons/react/24/outline'
 import { Tag, DocumentMetadata } from '@/types/index';
+import { DocRouterOrgApi } from '@/utils/api';
 
 // Operation data types
 type TagsOperationData = Tag[];
@@ -27,7 +28,6 @@ const isLLMOperationData = (data: OperationData): data is LLMOperationData => {
   return data !== null && typeof data === 'object' && 'selectedTag' in data;
 };
 import { isColorLight } from '@/utils/colors';
-import { listDocumentsApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
 import { DocumentBulkUpdateTags, DocumentBulkUpdateTagsRef } from './DocumentBulkUpdateTags';
 import { DocumentBulkUpdateMetadata, DocumentBulkUpdateMetadataRef } from './DocumentBulkUpdateMetadata';
@@ -57,6 +57,7 @@ export function DocumentBulkUpdate({
   searchParameters,
   onRefresh
 }: DocumentBulkUpdateProps) {
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [previewDocuments, setPreviewDocuments] = useState<DocumentMetadata[]>([])
   // Remove individual state - now handled by sub-components
   const [isLoading, setIsLoading] = useState(false)
@@ -141,8 +142,7 @@ export function DocumentBulkUpdate({
         }
       };
 
-      const response = await listDocumentsApi({
-        organizationId,
+      const response = await docRouterOrgApi.listDocuments({
         skip: 0,
         limit: 3,
         nameSearch: searchParameters.searchTerm.trim() || undefined,
@@ -157,7 +157,7 @@ export function DocumentBulkUpdate({
     } finally {
       setIsLoading(false)
     }
-  }, [organizationId, searchParameters])
+  }, [searchParameters, docRouterOrgApi])
 
   useEffect(() => {
     if (isOpen) {
@@ -203,8 +203,7 @@ export function DocumentBulkUpdate({
 
   const countTotalMatchingDocuments = async (): Promise<number> => {
     try {
-      const response = await listDocumentsApi({
-        organizationId,
+      const response = await docRouterOrgApi.listDocuments({
         skip: 0,
         limit: 1, // We only need the count, not the documents
         nameSearch: searchParameters.searchTerm.trim() || undefined,

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button, Typography, CircularProgress, IconButton } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -13,8 +13,7 @@ import ImageIcon from '@mui/icons-material/Image';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { 
-  uploadDocumentsApi,
-  listTagsApi
+  DocRouterOrgApi
 } from '@/utils/api';
 import { Tag } from '@/types/index';
 import { DocumentWithContent } from '@/types/index';
@@ -27,6 +26,7 @@ interface DocumentUploadProps {
 }
 
 const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [files, setFiles] = useState<DocumentWithContent[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
@@ -40,14 +40,14 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
   useEffect(() => {
     const fetchTags = async () => {
       try {
-        const response = await listTagsApi({ organizationId, limit: 100 });
+        const response = await docRouterOrgApi.listTags({ limit: 100 });
         setAvailableTags(response.tags);
       } catch (error) {
         console.error('Error fetching tags:', error);
       }
     };
     fetchTags();
-  }, [organizationId]);
+  }, [organizationId, docRouterOrgApi]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const readFiles = acceptedFiles.map(file => 
@@ -100,8 +100,9 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
 
     // Add selected tags and metadata to each file before upload
     const filesWithTagsAndMetadata = files.map(file => ({
-      ...file,
-      tag_ids: selectedTags,
+      name: file.name,
+      content: file.content, // SDK now accepts base64 strings directly (including data URLs)
+      tag_ids: selectedTags, // SDK now supports tag_ids directly
       metadata: Object.fromEntries(
         metadataFields
           .filter(field => field.key.trim() !== '')
@@ -113,8 +114,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
     setUploadStatus(null);
 
     try {
-      const response = await uploadDocumentsApi({
-        organizationId, 
+      const response = await docRouterOrgApi.uploadDocuments({
         documents: filesWithTagsAndMetadata
       });
       

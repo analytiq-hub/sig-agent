@@ -17,11 +17,10 @@ describe('Documents Integration Tests', () => {
     });
   });
 
-  // Helper to create a minimal PDF
-  function createMinimalPdf(): ArrayBuffer {
+  // Helper to create a minimal PDF as base64
+  function createMinimalPdfBase64(): string {
     const pdfContent = "%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n";
-    const encoder = new TextEncoder();
-    return encoder.encode(pdfContent).buffer;
+    return btoa(pdfContent);
   }
 
   describe('upload', () => {
@@ -29,8 +28,7 @@ describe('Documents Integration Tests', () => {
       const response = await client.uploadDocuments({
         documents: [{
           name: 'test.pdf',
-          content: createMinimalPdf(),
-          type: 'application/pdf'
+          content: createMinimalPdfBase64()
         }]
       });
 
@@ -45,8 +43,7 @@ describe('Documents Integration Tests', () => {
       const response = await client.uploadDocuments({
         documents: [{
           name: 'test-metadata.pdf',
-          content: createMinimalPdf(),
-          type: 'application/pdf',
+          content: createMinimalPdfBase64(),
           metadata
         }]
       });
@@ -57,12 +54,47 @@ describe('Documents Integration Tests', () => {
     test('should upload multiple documents', async () => {
       const response = await client.uploadDocuments({
         documents: [
-          { name: 'test1.pdf', content: createMinimalPdf(), type: 'application/pdf' },
-          { name: 'test2.pdf', content: createMinimalPdf(), type: 'application/pdf' }
+          { name: 'test1.pdf', content: createMinimalPdfBase64() },
+          { name: 'test2.pdf', content: createMinimalPdfBase64() }
         ]
       });
 
       expect(response.documents.length).toBe(2);
+    });
+
+    test('should upload document with tag_ids', async () => {
+      // First create a tag
+      const tagResponse = await client.createTag({
+        tag: {
+          name: 'Test Tag',
+          color: '#FF0000'
+        }
+      });
+
+      const response = await client.uploadDocuments({
+        documents: [{
+          name: 'test-tags.pdf',
+          content: createMinimalPdfBase64(),
+          tag_ids: [tagResponse.id]
+        }]
+      });
+
+      expect(response.documents[0].tag_ids).toContain(tagResponse.id);
+    });
+
+    test('should upload document with data URL content', async () => {
+      const dataUrl = `data:application/pdf;base64,${createMinimalPdfBase64()}`;
+      
+      const response = await client.uploadDocuments({
+        documents: [{
+          name: 'test-dataurl.pdf',
+          content: dataUrl
+        }]
+      });
+
+      expect(response.documents).toBeDefined();
+      expect(response.documents.length).toBe(1);
+      expect(response.documents[0].document_name).toBe('test-dataurl.pdf');
     });
   });
 
@@ -95,7 +127,7 @@ describe('Documents Integration Tests', () => {
       await client.uploadDocuments({
         documents: [{
           name: 'searchable-document.pdf',
-          content: createMinimalPdf(),
+          content: createMinimalPdfBase64(),
           type: 'application/pdf'
         }]
       });
@@ -113,7 +145,7 @@ describe('Documents Integration Tests', () => {
       await client.uploadDocuments({
         documents: [{
           name: 'metadata-doc.pdf',
-          content: createMinimalPdf(),
+          content: createMinimalPdfBase64(),
           type: 'application/pdf',
           metadata: { type: 'invoice' }
         }]
@@ -140,7 +172,7 @@ describe('Documents Integration Tests', () => {
       const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'tagged-doc.pdf',
-          content: createMinimalPdf(),
+          content: createMinimalPdfBase64(),
           type: 'application/pdf'
         }]
       });
@@ -169,7 +201,7 @@ describe('Documents Integration Tests', () => {
       const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'get-test.pdf',
-          content: createMinimalPdf(),
+          content: createMinimalPdfBase64(),
           type: 'application/pdf'
         }]
       });
@@ -190,7 +222,7 @@ describe('Documents Integration Tests', () => {
       const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'pdf-type-test.pdf',
-          content: createMinimalPdf(),
+          content: createMinimalPdfBase64(),
           type: 'application/pdf'
         }]
       });
@@ -212,7 +244,7 @@ describe('Documents Integration Tests', () => {
       const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'original-name.pdf',
-          content: createMinimalPdf(),
+          content: createMinimalPdfBase64(),
           type: 'application/pdf'
         }]
       });
@@ -245,7 +277,7 @@ describe('Documents Integration Tests', () => {
       const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'tag-update-test.pdf',
-          content: createMinimalPdf(),
+          content: createMinimalPdfBase64(),
           type: 'application/pdf'
         }]
       });
@@ -270,7 +302,7 @@ describe('Documents Integration Tests', () => {
       const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'metadata-update-test.pdf',
-          content: createMinimalPdf(),
+          content: createMinimalPdfBase64(),
           type: 'application/pdf'
         }]
       });
@@ -299,7 +331,7 @@ describe('Documents Integration Tests', () => {
       const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'delete-test.pdf',
-          content: createMinimalPdf(),
+          content: createMinimalPdfBase64(),
           type: 'application/pdf'
         }]
       });

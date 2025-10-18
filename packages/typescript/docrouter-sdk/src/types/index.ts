@@ -100,8 +100,8 @@ export interface Document {
 
 export interface UploadDocument {
   name: string;
-  content: ArrayBuffer | Buffer | Uint8Array;
-  type: string;
+  content: string; // Base64 encoded content (supports both plain base64 and data URLs)
+  tag_ids?: string[]; // Optional list of tag IDs
   metadata?: Record<string, string>;
 }
 
@@ -273,7 +273,13 @@ export interface GetLLMResultParams {
 }
 
 export interface GetLLMResultResponse {
-  result: Record<string, unknown>;
+  prompt_revid: string;
+  prompt_id: string;
+  prompt_version: number;
+  document_id: string;
+  llm_result: Record<string, unknown>;
+  updated_llm_result: Record<string, unknown>;
+  is_edited: boolean;
   is_verified: boolean;
   created_at: string;
   updated_at: string;
@@ -484,16 +490,22 @@ export interface DeleteFormSubmissionParams {
 
 // Prompt types
 export interface Prompt {
-  id: string;
+  prompt_revid: string;
+  prompt_id: string;
+  prompt_version: number;
   name: string;
   content: string;
+  schema_id?: string;
+  schema_version?: number;
+  tag_ids?: string[];
+  model?: string;
   created_at: string;
-  updated_at: string;
+  created_by: string;
 }
 
 export interface CreatePromptParams {
   organizationId: string;
-  prompt: Omit<Prompt, 'id' | 'created_at' | 'updated_at'>;
+  prompt: Omit<Prompt, 'prompt_revid' | 'prompt_id' | 'prompt_version' | 'created_at' | 'created_by'>;
 }
 
 export interface ListPromptsParams {
@@ -519,13 +531,14 @@ export interface GetPromptParams {
 export interface UpdatePromptParams {
   organizationId: string;
   promptId: string;
-  prompt: Partial<Omit<Prompt, 'id' | 'created_at' | 'updated_at'>>;
+  prompt: Partial<Omit<Prompt, 'prompt_revid' | 'prompt_id' | 'prompt_version' | 'created_at' | 'created_by'>>;
 }
 
 export interface DeletePromptParams {
   organizationId: string;
   promptId: string;
 }
+
 
 // Schema types
 export interface Schema {

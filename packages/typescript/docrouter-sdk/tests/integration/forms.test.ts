@@ -136,14 +136,12 @@ describe('Forms Integration Tests', () => {
 
       // Upload a document to submit the form against
       const pdfContent = "%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n";
-      const encoder = new TextEncoder();
-      const pdfBuffer = encoder.encode(pdfContent).buffer;
+      const pdfBase64 = btoa(pdfContent);
 
       const uploadResponse = await client.uploadDocuments({
         documents: [{
           name: 'test-doc.pdf',
-          content: pdfBuffer,
-          type: 'application/pdf'
+          content: pdfBase64
         }]
       });
       const documentId = uploadResponse.documents[0].document_id;

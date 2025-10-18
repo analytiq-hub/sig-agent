@@ -1,5 +1,5 @@
-import { useState, forwardRef, useImperativeHandle } from 'react'
-import { getDocumentApi, listDocumentsApi } from '@/utils/api'
+import { useState, forwardRef, useImperativeHandle, useMemo } from 'react'
+import { DocRouterOrgApi } from '@/utils/api'
 import { DocumentMetadata, Tag } from '@/types/index'
 import { toast } from 'react-hot-toast'
 
@@ -26,6 +26,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
   totalDocuments,
   onProgress
 }, ref) => {
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadedCount, setDownloadedCount] = useState(0)
 
@@ -61,8 +62,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
 
   const downloadDocument = async (doc: DocumentMetadata): Promise<boolean> => {
     try {
-      const response = await getDocumentApi({
-        organizationId,
+      const response = await docRouterOrgApi.getDocument({
         documentId: doc.id,
         fileType: "original"
       });
@@ -112,8 +112,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
 
       while (true) {
         // Fetch next batch of documents
-        const batchResponse = await listDocumentsApi({
-          organizationId,
+        const batchResponse = await docRouterOrgApi.listDocuments({
           skip,
           limit,
           nameSearch: searchParameters.searchTerm.trim() || undefined,

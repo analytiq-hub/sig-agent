@@ -75,34 +75,28 @@ export class DocRouterOrg {
 
   // ---------------- Documents ----------------
 
-  async uploadDocuments(params: { documents: Array<{ name: string; content: ArrayBuffer | Buffer | Uint8Array; type: string; metadata?: Record<string, string>; }>; }): Promise<UploadDocumentsResponse> {
+  async uploadDocuments(params: { documents: Array<{ name: string; content: string; tag_ids?: string[]; metadata?: Record<string, string>; }>; }): Promise<UploadDocumentsResponse> {
     const documentsPayload = params.documents.map(doc => {
+      // Handle both plain base64 and data URLs
       let base64Content: string;
-      if (doc.content instanceof ArrayBuffer) {
-        const buffer = Buffer.from(doc.content);
-        base64Content = buffer.toString('base64');
-      } else if (doc.content instanceof Buffer) {
-        base64Content = doc.content.toString('base64');
-      } else if (doc.content instanceof Uint8Array) {
-        const buffer = Buffer.from(doc.content);
-        base64Content = buffer.toString('base64');
+      if (doc.content.startsWith('data:')) {
+        // Extract base64 from data URL (e.g., "data:application/pdf;base64,JVBERi0xLjQK...")
+        base64Content = doc.content.split(',')[1];
       } else {
-        // Handle remaining types (ArrayBuffer or Uint8Array)
-        const uint8Array = new Uint8Array(doc.content);
-        const buffer = Buffer.from(uint8Array);
-        base64Content = buffer.toString('base64');
+        // Plain base64 string
+        base64Content = doc.content;
       }
 
       const payload: {
         name: string;
         content: string;
-        type?: string;
+        tag_ids?: string[];
         metadata?: Record<string, string>;
       } = {
         name: doc.name,
         content: base64Content,
-        type: doc.type,
       };
+      if (doc.tag_ids && doc.tag_ids.length > 0) payload.tag_ids = doc.tag_ids;
       if (doc.metadata) payload.metadata = doc.metadata;
       return payload;
     });
@@ -250,6 +244,41 @@ export class DocRouterOrg {
     );
   }
 
+  // ---------------- Prompts ----------------
+
+  async createPrompt(params: Omit<CreatePromptParams, 'organizationId'>): Promise<Prompt> {
+    const { prompt } = params;
+    return this.http.post<Prompt>(`/v0/orgs/${this.organizationId}/prompts`, prompt);
+  }
+
+  async listPrompts(params?: Omit<ListPromptsParams, 'organizationId'>): Promise<ListPromptsResponse> {
+    const { skip, limit, document_id, tag_ids, nameSearch } = params || {};
+    return this.http.get<ListPromptsResponse>(`/v0/orgs/${this.organizationId}/prompts`, {
+      params: {
+        skip: skip || 0,
+        limit: limit || 10,
+        document_id,
+        tag_ids,
+        name_search: nameSearch
+      }
+    });
+  }
+
+  async getPrompt(params: Omit<GetPromptParams, 'organizationId'>): Promise<Prompt> {
+    const { promptRevId } = params;
+    return this.http.get<Prompt>(`/v0/orgs/${this.organizationId}/prompts/${promptRevId}`);
+  }
+
+  async updatePrompt(params: Omit<UpdatePromptParams, 'organizationId'>): Promise<Prompt> {
+    const { promptId, prompt } = params;
+    return this.http.put<Prompt>(`/v0/orgs/${this.organizationId}/prompts/${promptId}`, prompt);
+  }
+
+  async deletePrompt(params: Omit<DeletePromptParams, 'organizationId'>): Promise<{ message: string }> {
+    const { promptId } = params;
+    return this.http.delete<{ message: string }>(`/v0/orgs/${this.organizationId}/prompts/${promptId}`);
+  }
+
   // ---------------- Tags ----------------
 
   async createTag(params: { tag: Omit<Tag, 'id' | 'created_at' | 'updated_at'>; }): Promise<Tag> {
@@ -326,40 +355,6 @@ export class DocRouterOrg {
     await this.http.delete(`/v0/orgs/${this.organizationId}/forms/submissions/${documentId}`, { params: { form_revid: formRevId } });
   }
 
-  // ---------------- Prompts ----------------
-
-  async createPrompt(params: Omit<CreatePromptParams, 'organizationId'>): Promise<Prompt> {
-    const { prompt } = params;
-    return this.http.post<Prompt>(`/v0/orgs/${this.organizationId}/prompts`, prompt);
-  }
-
-  async listPrompts(params: Omit<ListPromptsParams, 'organizationId'>): Promise<ListPromptsResponse> {
-    const { skip, limit, document_id, tag_ids, nameSearch } = params || {};
-    return this.http.get<ListPromptsResponse>(`/v0/orgs/${this.organizationId}/prompts`, {
-      params: {
-        skip: skip || 0,
-        limit: limit || 10,
-        document_id,
-        tag_ids,
-        name_search: nameSearch
-      }
-    });
-  }
-
-  async getPrompt(params: Omit<GetPromptParams, 'organizationId'>): Promise<Prompt> {
-    const { promptRevId } = params;
-    return this.http.get<Prompt>(`/v0/orgs/${this.organizationId}/prompts/${promptRevId}`);
-  }
-
-  async updatePrompt(params: Omit<UpdatePromptParams, 'organizationId'>): Promise<Prompt> {
-    const { promptId, prompt } = params;
-    return this.http.put<Prompt>(`/v0/orgs/${this.organizationId}/prompts/${promptId}`, prompt);
-  }
-
-  async deletePrompt(params: Omit<DeletePromptParams, 'organizationId'>): Promise<{ message: string }> {
-    const { promptId } = params;
-    return this.http.delete<{ message: string }>(`/v0/orgs/${this.organizationId}/prompts/${promptId}`);
-  }
 
   // ---------------- Schemas ----------------
 

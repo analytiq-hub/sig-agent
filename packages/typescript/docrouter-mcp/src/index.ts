@@ -627,11 +627,11 @@ const tools: Tool[] = [
             type: 'object',
             properties: {
               name: { type: 'string', description: 'Document name' },
-              content: { type: 'string', description: 'Base64 encoded document content' },
-              type: { type: 'string', description: 'Document type (pdf, image, etc.)' },
+              content: { type: 'string', description: 'Base64 encoded document content (supports both plain base64 and data URLs)' },
+              tag_ids: { type: 'array', items: { type: 'string' }, description: 'Optional list of tag IDs' },
               metadata: { type: 'object', description: 'Optional metadata' },
             },
-            required: ['name', 'content', 'type'],
+            required: ['name', 'content'],
           },
         },
       },
@@ -1359,12 +1359,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // ========== DOCUMENTS ==========
       case 'upload_documents': {
-        const documentsInput = getArg(args, 'documents') as Array<{ name: string; content: string; type: string; metadata?: Record<string, string>; }>;
-        const documents = documentsInput.map(doc => ({
-          ...doc,
-          content: Buffer.from(doc.content, 'base64')
-        }));
-        const result = await docrouterClient.uploadDocuments({ documents });
+        const documentsInput = getArg(args, 'documents') as Array<{ name: string; content: string; tag_ids?: string[]; metadata?: Record<string, string>; }>;
+        // No need to convert content - SDK now accepts base64 strings directly
+        const result = await docrouterClient.uploadDocuments({ documents: documentsInput });
         return {
           content: [
             {

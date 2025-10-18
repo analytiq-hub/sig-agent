@@ -1,8 +1,8 @@
-import { forwardRef, useImperativeHandle, useState, useEffect, useCallback, useRef } from 'react';
+import { forwardRef, useImperativeHandle, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Tag } from '@/types/index';
 import { Prompt } from '@/types/prompts';
 import { DocumentMetadata } from '@/types/documents';
-import { listPromptsApi, getLLMResultApi, runLLMApi, listDocumentsApi } from '@/utils/api';
+import { DocRouterOrgApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import SingleTagSelector from './SingleTagSelector';
@@ -58,6 +58,7 @@ type ExecutionMode = 'all' | 'missing' | 'outdated';
 
 export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulkRunLLMProps>(
   ({ organizationId, searchParameters, disabled, onProgress, onComplete, availableTags, onDataChange }, ref) => {
+    const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
     const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
     const [executionMode, setExecutionMode] = useState<ExecutionMode>('outdated');
     const [promptGroups, setPromptGroups] = useState<PromptExecutionGroup[]>([]);
@@ -116,8 +117,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       const limit = 100; // API maximum
 
       while (true) {
-        const response = await listPromptsApi({
-          organizationId,
+        const response = await docRouterOrgApi.listPrompts({
           tag_ids: selectedTag!.id,
           skip,
           limit
@@ -134,7 +134,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       }
 
       return allPrompts;
-    }, [organizationId, selectedTag]);
+    }, [selectedTag, docRouterOrgApi]);
 
     // Helper function to fetch all documents with pagination
     const fetchAllDocuments = useCallback(async () => {
@@ -149,8 +149,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       }
 
       while (true) {
-        const response = await listDocumentsApi({
-          organizationId,
+        const response = await docRouterOrgApi.listDocuments({
           skip,
           limit,
           nameSearch: searchParameters.searchTerm.trim() || undefined,
@@ -171,7 +170,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       }
 
       return allDocuments;
-    }, [organizationId, selectedTag, searchParameters.searchTerm, searchParameters.selectedTagFilters, searchParameters.metadataSearch]);
+    }, [selectedTag, searchParameters.searchTerm, searchParameters.selectedTagFilters, searchParameters.metadataSearch, docRouterOrgApi]);
 
     const analyzeExecutions = useCallback(async () => {
       if (!selectedTag) return;
@@ -255,8 +254,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                 } else if (executionMode === 'missing') {
                   // Only run if no result exists for any version of this prompt
                   try {
-                    await getLLMResultApi({
-                      organizationId,
+                    await docRouterOrgApi.getLLMResult({
                       documentId: document.id,
                       promptRevId: prompt.prompt_revid,
                       fallback: true
@@ -270,8 +268,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                 } else if (executionMode === 'outdated') {
                   // Run if no result exists OR if result exists but for older version
                   try {
-                    const existingResult = await getLLMResultApi({
-                      organizationId,
+                    const existingResult = await docRouterOrgApi.getLLMResult({
                       documentId: document.id,
                       promptRevId: prompt.prompt_revid,
                       fallback: true
@@ -331,7 +328,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
         setIsCancellingAnalysis(false);
         analysisAbortController.current = null;
       }
-    }, [selectedTag, executionMode, organizationId, fetchAllPrompts, fetchAllDocuments]);
+    }, [selectedTag, executionMode, fetchAllPrompts, fetchAllDocuments, docRouterOrgApi]);
 
     // Analyze what needs to be executed when tag selection, mode, or search parameters change
     useEffect(() => {
@@ -479,8 +476,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                 ));
 
                 // Run the LLM (force=true for 'all' mode to rerun existing results)
-                await runLLMApi({
-                  organizationId,
+                await docRouterOrgApi.runLLM({
                   documentId: execution.documentId,
                   promptRevId: execution.prompt.prompt_revid,
                   force: executionMode === 'all'

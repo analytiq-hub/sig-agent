@@ -1,6 +1,6 @@
-import { useState, forwardRef, useImperativeHandle } from 'react'
+import { useState, forwardRef, useImperativeHandle, useMemo } from 'react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
-import { deleteDocumentApi, listDocumentsApi } from '@/utils/api'
+import { DocRouterOrgApi } from '@/utils/api'
 import { toast } from 'react-hot-toast'
 import { Tag, DocumentMetadata } from '@/types'
 
@@ -29,6 +29,7 @@ export const DocumentBulkDelete = forwardRef<DocumentBulkDeleteRef, DocumentBulk
   onProgress,
   onComplete
 }, ref) => {
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [isDeleting, setIsDeleting] = useState(false)
   const [deletedCount, setDeletedCount] = useState(0)
 
@@ -80,8 +81,7 @@ export const DocumentBulkDelete = forwardRef<DocumentBulkDeleteRef, DocumentBulk
 
       while (true) {
         // Fetch next batch of documents
-        const batchResponse = await listDocumentsApi({
-          organizationId,
+        const batchResponse = await docRouterOrgApi.listDocuments({
           skip,
           limit,
           nameSearch: searchParameters.searchTerm.trim() || undefined,
@@ -105,8 +105,7 @@ export const DocumentBulkDelete = forwardRef<DocumentBulkDeleteRef, DocumentBulk
 
           const deletePromises = batch.map(async (doc: DocumentMetadata) => {
             try {
-              await deleteDocumentApi({
-                organizationId,
+              await docRouterOrgApi.deleteDocument({
                 documentId: doc.id
               });
               return { success: true, name: doc.document_name };
