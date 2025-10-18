@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DocRouterOrgApi } from '@/utils/api';
-import { FormConfig } from '@/types/forms';
+import { Form } from '@docrouter/sdk';
+
+// Type alias for form creation/update (without id and timestamps)
+type FormConfig = Omit<Form, 'form_revid' | 'form_id' | 'form_version' | 'created_at' | 'created_by'>;
 import { Tag } from '@docrouter/sdk';
 import { getApiErrorMsg } from '@/utils/api';
 import TagSelector from './TagSelector';
@@ -25,7 +28,15 @@ const Editor = dynamic(() => import("@monaco-editor/react"), {
   loading: () => <div className="h-64 flex items-center justify-center">Loading editor...</div>
 });
 import InfoTooltip from '@/components/InfoTooltip';
-import { FormComponent } from '@/types/forms';
+// Local type for form components (not in SDK)
+interface FormComponent {
+  key?: string;
+  type?: string;
+  label?: string;
+  components?: FormComponent[];
+  columns?: FormComponent[];
+  tabs?: FormComponent[];
+}
 
 const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ organizationId, formId }) => {
   const router = useRouter();

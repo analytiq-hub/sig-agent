@@ -3,7 +3,24 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { DocRouterOrgApi } from '@/utils/api';
 import { Prompt } from '@/types/prompts';
-import { FieldMapping, FieldMappingSource, FormComponent, FormField } from '@/types/forms';
+import { FieldMapping, FieldMappingSource } from '@docrouter/sdk';
+
+// Local types for form components (not in SDK)
+interface FormComponent {
+  key?: string;
+  type?: string;
+  label?: string;
+  components?: FormComponent[];
+  columns?: FormComponent[];
+  tabs?: FormComponent[];
+}
+
+interface FormField {
+  key: string;
+  label: string;
+  type: string;
+  path: string[];
+}
 import { getApiErrorMsg } from '@/utils/api';
 import { toast } from 'react-toastify';
 import { 

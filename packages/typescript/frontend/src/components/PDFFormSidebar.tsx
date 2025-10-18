@@ -5,7 +5,7 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import { DocRouterOrgApi } from '@/utils/api';
-import type { Form } from '@/types/index';
+import type { Form } from '@docrouter/sdk';
 import { useOCR, OCRProvider } from '@/contexts/OCRContext';
 import type { HighlightInfo } from '@/contexts/OCRContext';
 import dynamic from 'next/dynamic';
@@ -16,7 +16,7 @@ const FormioRenderer = dynamic(() => import('./FormioRenderer'), {
 });
 import { toast } from 'react-toastify';
 import { getApiErrorMsg } from '@/utils/api';
-import type { FormSubmission, FieldMapping, FieldMappingSource } from '@/types/forms';
+import type { FormSubmission, FieldMapping, FieldMappingSource } from '@docrouter/sdk';
 import type { GetLLMResultResponse } from '@/types/llm';
 
 interface Props {
