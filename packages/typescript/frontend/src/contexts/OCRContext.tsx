@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
-import { getOCRBlocksApi } from '@/utils/api';
+import { DocRouterOrgApi } from '@/utils/api';
 
 // Define and export the OCR block types
 export interface OCRGeometry {
@@ -62,7 +62,8 @@ export function OCRProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       setError(null);
-      const blocks = await getOCRBlocksApi({ organizationId, documentId });
+      const docRouterOrgApi = new DocRouterOrgApi(organizationId);
+      const blocks = await docRouterOrgApi.getOCRBlocks({ documentId });
       
       // Cache the result
       blockCache.set(cacheKey, blocks);
