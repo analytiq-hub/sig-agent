@@ -4,12 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { Box, IconButton, TextField, InputAdornment, Autocomplete, Menu, MenuItem } from '@mui/material';
 import { isAxiosError } from 'axios';
-import { 
-  deleteDocumentApi, 
-  listTagsApi,
-  updateDocumentApi,
-  getDocumentApi
-} from '@/utils/api';
+// All API calls now use docRouterOrgApi
 import { Tag } from '@/types/index';
 import { DocumentMetadata } from '@/types/index';
 import Link from 'next/link';
@@ -161,14 +156,14 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   useEffect(() => {
     const loadTags = async () => {
       try {
-        const response = await listTagsApi({ organizationId: organizationId, limit: 100 });
+        const response = await docRouterOrgApi.listTags({ limit: 100 });
         setTags(response.tags);
       } catch (error) {
         console.error('Error loading tags:', error);
       }
     };
     loadTags();
-  }, [organizationId]);
+  }, [docRouterOrgApi]);
 
   // Menu handlers
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, document: DocumentMetadata) => {
@@ -183,12 +178,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   const handleDeleteFile = async (fileId: string) => {
     try {
-      await deleteDocumentApi(
-        {
-          organizationId: organizationId,
-          documentId: fileId
-        }
-      );
+      await docRouterOrgApi.deleteDocument({ documentId: fileId });
       // Refresh the file list after deletion
       fetchFiles();
       handleMenuClose();
@@ -213,8 +203,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   const handleDownloadFile = async (doc: DocumentMetadata) => {
     try {
-      const response = await getDocumentApi({
-        organizationId: organizationId,
+      const response = await docRouterOrgApi.getDocument({
         documentId: doc.id,
         fileType: "original"
       });
@@ -263,14 +252,11 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         newMetadata: metadata
       });
       
-      await updateDocumentApi(
-        {
-          organizationId: organizationId,
-          documentId: editingDocument.id,
-          tagIds: tagIds,
-          metadata: metadata
-        }
-      );
+      await docRouterOrgApi.updateDocument({
+        documentId: editingDocument.id,
+        tagIds: tagIds,
+        metadata: metadata
+      });
       console.log('Document updated successfully, refreshing document list');
       
       // Refresh the document list to show updated document
@@ -286,8 +272,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     if (!editingDocument) return;
 
     try {
-      await updateDocumentApi({
-        organizationId: organizationId,
+      await docRouterOrgApi.updateDocument({
         documentId: editingDocument.id,
         documentName: newName
       });

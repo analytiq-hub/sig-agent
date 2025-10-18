@@ -265,18 +265,23 @@ api.interceptors.response.use(
 
 export class DocRouterOrgApi extends DocRouterOrg {
  constructor(organizationId: string) {
-    // First try to use global session (pre-fetched from context)
-    const session = getGlobalSession();
-    if (!session) {
-      throw new Error('No session found');
-    }
-    if (!session.apiAccessToken) {
-      throw new Error('No API token found in session');
-    }
     super({
       baseURL: NEXT_PUBLIC_FASTAPI_FRONTEND_URL,
-      orgToken: session.apiAccessToken,
+      orgToken: '', // Empty token so tokenProvider will be used
       organizationId: organizationId,
+    });
+    
+    // Set up token provider that gets called on every request
+    this.getHttpClient().updateTokenProvider(async () => {
+      // First try to use global session (pre-fetched from context)
+      let session = getGlobalSession();
+      
+      // Fallback to cached session if global session is not available
+      if (!session) {
+        session = await getCachedSession();
+      }
+      
+      return session?.apiAccessToken || '';
     });
   }
 }
