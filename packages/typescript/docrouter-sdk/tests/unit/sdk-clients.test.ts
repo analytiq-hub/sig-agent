@@ -20,6 +20,36 @@ describe('SDK Client Unit Tests', () => {
       client.updateToken('new-token');
       expect(client).toBeDefined();
     });
+
+    test('should have all invitation APIs', () => {
+      const client = new DocRouterAccount({
+        baseURL: 'https://api.example.com',
+        accountToken: 'account-token'
+      });
+
+      expect(typeof client.createInvitation).toBe('function');
+      expect(typeof client.getInvitations).toBe('function');
+      expect(typeof client.getInvitation).toBe('function');
+      expect(typeof client.acceptInvitation).toBe('function');
+    });
+
+    test('should have all payment APIs', () => {
+      const client = new DocRouterAccount({
+        baseURL: 'https://api.example.com',
+        accountToken: 'account-token'
+      });
+
+      expect(typeof client.getCustomerPortal).toBe('function');
+      expect(typeof client.getSubscription).toBe('function');
+      expect(typeof client.activateSubscription).toBe('function');
+      expect(typeof client.cancelSubscription).toBe('function');
+      expect(typeof client.getCurrentUsage).toBe('function');
+      expect(typeof client.addCredits).toBe('function');
+      expect(typeof client.getCreditConfig).toBe('function');
+      expect(typeof client.purchaseCredits).toBe('function');
+      expect(typeof client.getUsageRange).toBe('function');
+      expect(typeof client.createCheckoutSession).toBe('function');
+    });
   });
 
   describe('DocRouterOrg', () => {
