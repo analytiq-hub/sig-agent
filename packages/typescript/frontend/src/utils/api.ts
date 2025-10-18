@@ -241,20 +241,6 @@ export class DocRouterAccountApi extends DocRouterAccount {
   }
 }
 
-
-// LLM APIs
-
-
-
-
-
-
-
-
-
-
-
-
 // AWS APIs
 export const createAWSConfigApi = async (config: Omit<AWSConfig, 'created_at'>) => {
   const response = await api.post('/v0/account/aws_config', config);
