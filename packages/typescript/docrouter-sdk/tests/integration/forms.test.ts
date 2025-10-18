@@ -140,7 +140,10 @@ describe('Forms Integration Tests', () => {
             }
           ],
           json_formio_mapping: {
-            testField: { type: 'text' }
+            testField: { 
+              sources: [],
+              mappingType: 'direct' as const
+            }
           }
         }
       });

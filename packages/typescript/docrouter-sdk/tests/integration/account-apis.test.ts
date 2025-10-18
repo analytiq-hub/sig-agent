@@ -235,10 +235,9 @@ describe('DocRouterAccount Missing APIs Integration Tests', () => {
         const provider = response.providers[0];
         expect(provider.name).toBeDefined();
         expect(typeof provider.enabled).toBe('boolean');
-        // configured field may not always be present
-        if (provider.configured !== undefined) {
-          expect(typeof provider.configured).toBe('boolean');
-        }
+        // Check if provider has token configuration
+        expect(provider.token).toBeDefined();
+        expect(provider.token_created_at).toBeDefined();
       }
     });
 
@@ -246,9 +245,9 @@ describe('DocRouterAccount Missing APIs Integration Tests', () => {
       // This test may fail if the provider doesn't exist or if we don't have valid config
       // We'll test the API call structure and handle the expected error
       await expect(client.setLLMProviderConfig('test-provider', {
-        api_key: 'test-key',
-        base_url: 'https://api.test.com',
-        enabled: true
+        token: 'test-key',
+        enabled: true,
+        litellm_models_enabled: null
       })).rejects.toThrow();
     });
   });
@@ -260,7 +259,7 @@ describe('DocRouterAccount Missing APIs Integration Tests', () => {
       await expect(client.createAWSConfig({
         access_key_id: 'test-access-key',
         secret_access_key: 'test-secret-key',
-        region: 'us-east-1'
+        s3_bucket_name: 'test-bucket'
       })).rejects.toThrow();
     });
 
@@ -277,12 +276,9 @@ describe('DocRouterAccount Missing APIs Integration Tests', () => {
 
     test('deleteAWSConfig', async () => {
       // Test the API call - it may succeed if AWS config exists
-      const result = await client.deleteAWSConfig();
-      expect(result).toBeDefined();
-      // If it succeeds, verify the response structure
-      if (result && typeof result === 'object') {
-        expect(result).toHaveProperty('message');
-      }
+      await client.deleteAWSConfig();
+      // deleteAWSConfig returns void, so we just verify it doesn't throw
+      expect(true).toBe(true);
     });
   });
 

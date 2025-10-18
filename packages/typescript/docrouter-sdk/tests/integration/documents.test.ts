@@ -2,7 +2,7 @@ import { DocRouterOrg } from '../../src';
 import { getTestDatabase, getBaseUrl, createTestFixtures } from '../setup/jest-setup';
 
 describe('Documents Integration Tests', () => {
-  let testFixtures: any;
+  let testFixtures: { org_id: string; admin: { id: string; token: string; account_token: string }; member: { id: string; token: string; account_token: string }; outsider: { id: string; token: string; account_token: string } };
   let client: DocRouterOrg;
 
   beforeEach(async () => {
@@ -128,7 +128,6 @@ describe('Documents Integration Tests', () => {
         documents: [{
           name: 'searchable-document.pdf',
           content: createMinimalPdfBase64(),
-          type: 'application/pdf'
         }]
       });
 
@@ -146,7 +145,6 @@ describe('Documents Integration Tests', () => {
         documents: [{
           name: 'metadata-doc.pdf',
           content: createMinimalPdfBase64(),
-          type: 'application/pdf',
           metadata: { type: 'invoice' }
         }]
       });
@@ -173,7 +171,6 @@ describe('Documents Integration Tests', () => {
         documents: [{
           name: 'tagged-doc.pdf',
           content: createMinimalPdfBase64(),
-          type: 'application/pdf'
         }]
       });
       const docId = uploadResponse.documents[0].document_id;
@@ -202,7 +199,6 @@ describe('Documents Integration Tests', () => {
         documents: [{
           name: 'get-test.pdf',
           content: createMinimalPdfBase64(),
-          type: 'application/pdf'
         }]
       });
       const docId = uploadResponse.documents[0].document_id;
@@ -223,7 +219,6 @@ describe('Documents Integration Tests', () => {
         documents: [{
           name: 'pdf-type-test.pdf',
           content: createMinimalPdfBase64(),
-          type: 'application/pdf'
         }]
       });
       const docId = uploadResponse.documents[0].document_id;
@@ -245,7 +240,6 @@ describe('Documents Integration Tests', () => {
         documents: [{
           name: 'original-name.pdf',
           content: createMinimalPdfBase64(),
-          type: 'application/pdf'
         }]
       });
       const docId = uploadResponse.documents[0].document_id;
@@ -278,7 +272,6 @@ describe('Documents Integration Tests', () => {
         documents: [{
           name: 'tag-update-test.pdf',
           content: createMinimalPdfBase64(),
-          type: 'application/pdf'
         }]
       });
       const docId = uploadResponse.documents[0].document_id;
@@ -303,7 +296,6 @@ describe('Documents Integration Tests', () => {
         documents: [{
           name: 'metadata-update-test.pdf',
           content: createMinimalPdfBase64(),
-          type: 'application/pdf'
         }]
       });
       const docId = uploadResponse.documents[0].document_id;
@@ -332,7 +324,6 @@ describe('Documents Integration Tests', () => {
         documents: [{
           name: 'delete-test.pdf',
           content: createMinimalPdfBase64(),
-          type: 'application/pdf'
         }]
       });
       const docId = uploadResponse.documents[0].document_id;
