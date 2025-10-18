@@ -25,6 +25,9 @@ export class TestServer {
       throw new Error('Test server is already running');
     }
 
+    // Kill any existing uvicorn processes on this port before starting
+    await this.killExistingUvicornProcesses();
+
     const packagesDir = path.join(__dirname, '../../../../python'); // Go up to packages directory
     const sdkDir = path.join(__dirname, '../..'); // docrouter_ts_sdk directory
     const venvPython = path.join(sdkDir, '.venv/bin/python');
@@ -92,6 +95,26 @@ export class TestServer {
 
   getBaseUrl(): string {
     return this.baseUrl;
+  }
+
+  private async killExistingUvicornProcesses(): Promise<void> {
+    console.log(`Killing any existing uvicorn processes on port ${this.config.port}...`);
+    
+    try {
+      // Kill processes by uvicorn command pattern
+      await this.execCommand(`pkill -f "uvicorn.*${this.config.port}" || true`, process.cwd());
+      
+      // Also kill any processes using the specific port
+      await this.execCommand(`lsof -ti:${this.config.port} | xargs -r kill -9 || true`, process.cwd());
+      
+      // Give a small delay to ensure processes are killed
+      await setTimeout(1000);
+      
+      console.log('Existing uvicorn processes killed (if any)');
+    } catch (error) {
+      console.log('No existing uvicorn processes found or error killing them:', error);
+      // Don't throw error - this is just cleanup
+    }
   }
 
   private async ensureVenv(sdkDir: string, packagesDir: string): Promise<void> {
