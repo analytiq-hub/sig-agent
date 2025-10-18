@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Delete as DeleteIcon, Edit as EditIcon, MoreVert as MoreVertIcon, Settings as SettingsIcon, Close as CloseIcon } from '@mui/icons-material';
-import { setLLMProviderConfigApi, DocRouterAccountApi } from '@/utils/api';
+import { DocRouterAccountApi } from '@/utils/api';
 import { LLMProvider } from '@docrouter/sdk';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -49,7 +49,7 @@ const LLMManager: React.FC = () => {
     if (!editingProvider) return;
 
     try {
-      await setLLMProviderConfigApi(editingProvider, {
+      await docRouterAccountApi.setLLMProviderConfig(editingProvider, {
         token: editTokenValue,
         enabled: true,
         litellm_models_enabled: null
@@ -66,7 +66,7 @@ const LLMManager: React.FC = () => {
 
   const handleDeleteLLMToken = async (providerName: string) => {
     try {
-      await setLLMProviderConfigApi(providerName, {
+      await docRouterAccountApi.setLLMProviderConfig(providerName, {
         token: null,
         enabled: false,
         litellm_models_enabled: null
@@ -96,7 +96,7 @@ const LLMManager: React.FC = () => {
 
   const handleToggleProvider = async (providerName: string, enabled: boolean) => {
     try {
-      await setLLMProviderConfigApi(providerName, {
+      await docRouterAccountApi.setLLMProviderConfig(providerName, {
         enabled,
         token: null,
         litellm_models_enabled: null
@@ -119,7 +119,7 @@ const LLMManager: React.FC = () => {
         ? [...provider.litellm_models_enabled, model]
         : provider.litellm_models_enabled.filter(m => m !== model);
 
-      await setLLMProviderConfigApi(providerName, {
+      await docRouterAccountApi.setLLMProviderConfig(providerName, {
         enabled: provider.enabled,
         token: provider.token,
         litellm_models_enabled: updatedModels

@@ -284,9 +284,9 @@ export interface ListLLMProvidersResponse {
 }
 
 export interface SetLLMProviderConfigRequest {
-  api_key?: string;
-  base_url?: string;
-  enabled?: boolean;
+  litellm_models_enabled: string[] | null;
+  enabled: boolean | null;
+  token: string | null;
 }
 
 export interface RunLLMParams {

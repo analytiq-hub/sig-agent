@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import Switch from '@mui/material/Switch';
 import Button from '@mui/material/Button';
-import { DocRouterAccountApi, setLLMProviderConfigApi } from '@/utils/api';
+import { DocRouterAccountApi } from '@/utils/api';
 import { LLMProvider } from '@docrouter/sdk';
 import { LLMModel } from '@docrouter/sdk';
 import colors from 'tailwindcss/colors';
@@ -49,7 +49,7 @@ const LLMModelsConfig: React.FC = () => {
         ? [...provider.litellm_models_enabled, model]
         : provider.litellm_models_enabled.filter(m => m !== model);
 
-      await setLLMProviderConfigApi(providerName, {
+      await docRouterAccountApi.setLLMProviderConfig(providerName, {
         enabled: provider.enabled,
         token: provider.token,
         litellm_models_enabled: updatedModels
