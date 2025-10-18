@@ -61,7 +61,6 @@ import {
   ListInvitationsResponse, 
   AcceptInvitationRequest 
 } from '@/types/index';
-import { CreateTokenRequest } from '@/types/index';
 import { AWSConfig } from '@/types/index';
 import { 
   PortalSessionResponse,
@@ -255,40 +254,6 @@ export class DocRouterAccountApi extends DocRouterAccount {
 
 
 
-// Account Token APIs
-export const createAccountTokenApi = async (token: CreateTokenRequest) => {
-  const response = await api.post('/v0/account/access_tokens', token);
-  return response.data;
-};
-
-export const getAccountTokensApi = async () => {
-  const response = await api.get('/v0/account/access_tokens');
-  return response.data;
-};
-
-export const deleteAccountTokenApi = async (tokenId: string) => {
-  const response = await api.delete(`/v0/account/access_tokens/${tokenId}`);
-  return response.data;
-};
-
-// Organization Token APIs
-export const createOrganizationTokenApi = async (token: CreateTokenRequest, organizationId: string) => {
-  const endpoint = `/v0/orgs/${organizationId}/access_tokens`;
-  const response = await api.post(endpoint, token);
-  return response.data;
-};
-
-export const getOrganizationTokensApi = async (organizationId: string) => {
-  const endpoint = `/v0/orgs/${organizationId}/access_tokens`;
-  const response = await api.get(endpoint);
-  return response.data;
-};
-
-export const deleteOrganizationTokenApi = async (tokenId: string, organizationId: string) => {
-  const endpoint = `/v0/orgs/${organizationId}/access_tokens/${tokenId}`;
-  const response = await api.delete(endpoint);
-  return response.data;
-};
 
 // AWS APIs
 export const createAWSConfigApi = async (config: Omit<AWSConfig, 'created_at'>) => {

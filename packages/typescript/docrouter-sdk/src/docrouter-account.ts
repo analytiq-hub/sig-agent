@@ -116,29 +116,31 @@ export class DocRouterAccount {
   }
 
   // --------------- Tokens ---------------
-  async createAccountToken(request: CreateTokenRequest) {
+  async createAccountToken(request: CreateTokenRequest): Promise<AccessToken> {
     return this.http.post(`/v0/account/access_tokens`, request);
   }
 
-  async getAccountTokens(): Promise<ListAccessTokensResponse | unknown> {
+  async getAccountTokens(): Promise<AccessToken[]> {
     const resp = await this.http.get<ListAccessTokensResponse | AccessToken[]>(`/v0/account/access_tokens`);
     // Normalize to array for SDK consumers/tests
     return Array.isArray(resp) ? resp : (resp as ListAccessTokensResponse).access_tokens;
   }
 
-  async deleteAccountToken(tokenId: string) {
+  async deleteAccountToken(tokenId: string): Promise<void> {
     return this.http.delete(`/v0/account/access_tokens/${tokenId}`);
   }
 
-  async createOrganizationToken(request: CreateTokenRequest, organizationId: string) {
+  async createOrganizationToken(request: CreateTokenRequest, organizationId: string): Promise<AccessToken> {
     return this.http.post(`/v0/orgs/${organizationId}/access_tokens`, request);
   }
 
-  async getOrganizationTokens(organizationId: string) {
-    return this.http.get(`/v0/orgs/${organizationId}/access_tokens`);
+  async getOrganizationTokens(organizationId: string): Promise<AccessToken[]> {
+    const resp = await this.http.get<ListAccessTokensResponse | AccessToken[]>(`/v0/orgs/${organizationId}/access_tokens`);
+    // Normalize to array for SDK consumers/tests
+    return Array.isArray(resp) ? resp : (resp as ListAccessTokensResponse).access_tokens;
   }
 
-  async deleteOrganizationToken(tokenId: string, organizationId: string) {
+  async deleteOrganizationToken(tokenId: string, organizationId: string): Promise<void> {
     return this.http.delete(`/v0/orgs/${organizationId}/access_tokens/${tokenId}`);
   }
 

@@ -1,19 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
-import { createAccountTokenApi, getAccountTokensApi, deleteAccountTokenApi } from '@/utils/api';
-import { CreateTokenRequest } from '@/types/index';
+import { DocRouterAccountApi } from '@/utils/api';
+import { CreateTokenRequest, AccessToken } from '@docrouter/sdk';
 import { copyToClipboard } from '@/utils/clipboard';
 
-export interface AccessToken {
-  id: string;
-  name: string;
-  created_at: string;
-  lifetime?: number;
-  token?: string;
-}
-
 const AccountTokenManager: React.FC = () => {
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
   const [tokens, setTokens] = useState<AccessToken[]>([]);
   const [openModal, setOpenModal] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');
@@ -25,15 +18,15 @@ const AccountTokenManager: React.FC = () => {
   useEffect(() => {
     const getTokensData = async () => {
       try {
-        const tokensData = await getAccountTokensApi();
-        setTokens(tokensData.access_tokens);
+        const tokensData = await docRouterAccountApi.getAccountTokens();
+        setTokens(tokensData);
       } catch (error) {
         console.error('Error fetching tokens:', error);
       }
     };
 
     getTokensData();
-  }, []);
+  }, [docRouterAccountApi]);
 
   const createToken = async () => {
     try {
@@ -49,7 +42,7 @@ const AccountTokenManager: React.FC = () => {
         name: trimmedName,
         lifetime: lifetime
       }
-      const response = await createAccountTokenApi(request)
+      const response = await docRouterAccountApi.createAccountToken(request)
 
       setNewToken(response);
       setShowTokenModal(true);
@@ -71,9 +64,14 @@ const AccountTokenManager: React.FC = () => {
   };
 
 
-  const handleDeleteToken = (tokenId: string) => {
-    deleteAccountTokenApi(tokenId);
-    setTokens(tokens.filter(token => token.id !== tokenId));
+  const handleDeleteToken = async (tokenId: string) => {
+    try {
+      await docRouterAccountApi.deleteAccountToken(tokenId);
+      setTokens(tokens.filter(token => token.id !== tokenId));
+    } catch (error) {
+      console.error('Error deleting token:', error);
+      setError('An error occurred while deleting the token. Please try again.');
+    }
   };
 
   return (
