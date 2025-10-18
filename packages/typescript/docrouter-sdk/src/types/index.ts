@@ -256,10 +256,12 @@ export interface ListLLMModelsParams {
 }
 
 export interface LLMModel {
-  id: string;
-  name: string;
-  provider: string;
-  enabled: boolean;
+  litellm_model: string;
+  litellm_provider: string;
+  max_input_tokens: number;
+  max_output_tokens: number;
+  input_cost_per_token: number;
+  output_cost_per_token: number;
 }
 
 export interface ListLLMModelsResponse {

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { DocRouterOrgApi, listLLMModelsApi } from '@/utils/api';
-import { LLMModel } from '@/types/index';
+import { DocRouterOrgApi, DocRouterAccountApi } from '@/utils/api';
+import { LLMModel } from '@docrouter/sdk';
 import { Tag, Prompt, Schema, SchemaResponseFormat } from '@docrouter/sdk';
 
 // Type alias for prompt creation/update (without id and timestamps)
@@ -20,6 +20,7 @@ const DEFAULT_LLM_MODEL = 'gemini-2.0-flash';
 const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> = ({ organizationId, promptRevId }) => {
   const router = useRouter();
   const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
   const [currentPromptId, setCurrentPromptId] = useState<string | null>(null);
   const [currentPrompt, setCurrentPrompt] = useState<PromptConfig>({
     name: '',
@@ -208,8 +209,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
 
   const loadLLMModels = useCallback(async () => {
     try {
-      const response = await listLLMModelsApi({
-        providerName: null,
+      const response = await docRouterAccountApi.listLLMModels({
         providerEnabled: true,
         llmEnabled: true
       });
@@ -218,7 +218,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
       const errorMsg = getApiErrorMsg(error) || 'Error loading LLM models';
       toast.error(errorMsg);
     }
-  }, []);
+  }, [docRouterAccountApi]);
 
   useEffect(() => {
     loadSchemas();

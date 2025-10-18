@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import Switch from '@mui/material/Switch';
 import Button from '@mui/material/Button';
-import { listLLMProvidersApi, setLLMProviderConfigApi, listLLMModelsApi } from '@/utils/api';
-import { LLMProvider, LLMModel } from '@/types/index';
+import { listLLMProvidersApi, setLLMProviderConfigApi, DocRouterAccountApi } from '@/utils/api';
+import { LLMProvider } from '@/types/index';
+import { LLMModel } from '@docrouter/sdk';
 import LLMTestModal from './LLMTestModal';
 
 interface LLMProviderConfigProps {
@@ -11,6 +12,7 @@ interface LLMProviderConfigProps {
 }
 
 const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) => {
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
   const [provider, setProvider] = useState<LLMProvider | null>(null);
   const [models, setModels] = useState<LLMModel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,7 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
         if (foundProvider) {
           setProvider(foundProvider);
           // Fetch model data for this provider
-          const modelsResponse = await listLLMModelsApi({
+          const modelsResponse = await docRouterAccountApi.listLLMModels({
             providerName: providerName,
             providerEnabled: false,
             llmEnabled: false
@@ -48,7 +50,7 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
     };
 
     fetchData();
-  }, [providerName]);
+  }, [providerName, docRouterAccountApi]);
 
   const handleToggleModel = async (model: string, enabled: boolean) => {
     if (!provider) return;

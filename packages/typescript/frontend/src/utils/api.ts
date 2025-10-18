@@ -64,8 +64,6 @@ import {
 import { CreateTokenRequest } from '@/types/index';
 import { AWSConfig } from '@/types/index';
 import {
-  ListLLMModelsParams,
-  ListLLMModelsResponse,
   ListLLMProvidersResponse,
   SetLLMProviderConfigRequest,
   RunLLMParams,
@@ -257,16 +255,6 @@ export class DocRouterAccountApi extends DocRouterAccount {
 
 
 // LLM APIs
-export const listLLMModelsApi = async (params: ListLLMModelsParams): Promise<ListLLMModelsResponse> => {
-  const response = await api.get<ListLLMModelsResponse>('/v0/account/llm/models', {
-    params: {
-      provider_name: params.providerName,
-      provider_enabled: params.providerEnabled,
-      llm_enabled: params.llmEnabled,
-    }
-  });
-  return response.data;
-};
 
 export const listLLMProvidersApi = async (): Promise<ListLLMProvidersResponse> => {
   const response = await api.get<ListLLMProvidersResponse>('/v0/account/llm/providers');
