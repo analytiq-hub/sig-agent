@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { listPromptsApi, deletePromptApi, listTagsApi, getSchemaApi, listSchemasApi, updatePromptApi, createPromptApi } from '@/utils/api';
-import { Prompt, Tag, Schema } from '@/types/index';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { DocRouterOrgApi } from '@/utils/api';
+import { Tag } from '@/types/index';
+import { Prompt, Schema } from '@docrouter/sdk';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton, Menu, MenuItem, Autocomplete } from '@mui/material';
@@ -22,6 +23,7 @@ const DEFAULT_LLM_MODEL = 'gemini-2.0-flash';
 
 const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -42,8 +44,7 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
   const loadPrompts = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await listPromptsApi({
-        organizationId: organizationId,
+      const response = await docRouterOrgApi.listPrompts({
         skip: page * pageSize,
         limit: pageSize,
         nameSearch: searchTerm || undefined,
@@ -57,27 +58,27 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, organizationId, searchTerm, selectedTagIds]);
+  }, [page, pageSize, docRouterOrgApi, searchTerm, selectedTagIds]);
 
   const loadTags = useCallback(async () => {
     try {
-      const response = await listTagsApi({ organizationId: organizationId, limit: 100 });
+      const response = await docRouterOrgApi.listTags({ limit: 100 });
       setAvailableTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
       setMessage('Error: ' + errorMsg);
     }
-  }, [organizationId]);
+  }, [docRouterOrgApi]);
 
   const loadSchemas = useCallback(async () => {
     try {
-      const response = await listSchemasApi({ organizationId: organizationId, limit: 100 });
+      const response = await docRouterOrgApi.listSchemas({ limit: 100 });
       setAvailableSchemas(response.schemas);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
       setMessage('Error: ' + errorMsg);
     }
-  }, [organizationId]);
+  }, [docRouterOrgApi]);
 
   useEffect(() => {
     // Load all required data at once
@@ -143,14 +144,10 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
       
       if (isCloning) {
         // For cloning, create a new prompt
-        await createPromptApi({
-          organizationId: organizationId,
-          prompt: promptConfig
-        });
+        await docRouterOrgApi.createPrompt({ prompt: promptConfig });
       } else {
         // For renaming, update existing prompt
-        await updatePromptApi({
-          organizationId: organizationId,
+        await docRouterOrgApi.updatePrompt({
           promptId: selectedPrompt.prompt_id,
           prompt: promptConfig
         });
@@ -173,7 +170,7 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
   const handleDelete = async (promptId: string) => {
     try {
       setIsLoading(true);
-      await deletePromptApi({organizationId: organizationId, promptId: promptId});
+      await docRouterOrgApi.deletePrompt({ promptId });
       setPrompts(prompts.filter(prompt => prompt.prompt_id !== promptId));
       handleMenuClose();
     } catch (error) {
@@ -204,8 +201,7 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
         }
 
         // Fetch the full schema details
-        schema = await getSchemaApi({
-          organizationId: organizationId,
+        schema = await docRouterOrgApi.getSchema({
           schemaRevId: matchingSchema.schema_revid
         });
       }

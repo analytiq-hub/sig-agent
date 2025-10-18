@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { createPromptApi, updatePromptApi, listSchemasApi, getSchemaApi, listTagsApi, listLLMModelsApi, getPromptApi } from '@/utils/api';
-import { PromptConfig, Schema, Tag, LLMModel } from '@/types/index';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { DocRouterOrgApi, listLLMModelsApi } from '@/utils/api';
+import { PromptConfig, Tag, LLMModel } from '@/types/index';
+import { Schema } from '@docrouter/sdk';
 import { getApiErrorMsg } from '@/utils/api';
 import { SchemaResponseFormat } from '@/types/schemas';
 import InfoTooltip from '@/components/InfoTooltip';
@@ -16,6 +17,7 @@ const DEFAULT_LLM_MODEL = 'gemini-2.0-flash';
 
 const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> = ({ organizationId, promptRevId }) => {
   const router = useRouter();
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [currentPromptId, setCurrentPromptId] = useState<string | null>(null);
   const [currentPrompt, setCurrentPrompt] = useState<PromptConfig>({
     name: '',
@@ -53,8 +55,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
             (b.schema_version || 0) - (a.schema_version || 0)
           )[0];
           
-          const schema = await getSchemaApi({ 
-            organizationId: organizationId, 
+          const schema = await docRouterOrgApi.getSchema({ 
             schemaRevId: schemaDoc.schema_revid 
           });
 
@@ -72,7 +73,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
     } else {
       setSelectedSchemaDetails(null);
     }
-  }, [schemas, organizationId, setSelectedSchema, setSelectedSchemaDetails, setCurrentPrompt])
+  }, [schemas, docRouterOrgApi, setSelectedSchema, setSelectedSchemaDetails, setCurrentPrompt])
 
   // Load editing prompt if available
   useEffect(() => {
@@ -80,7 +81,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
       if (promptRevId) {
         try {
           setIsLoading(true);
-          const prompt = await getPromptApi({ organizationId, promptRevId });
+          const prompt = await docRouterOrgApi.getPrompt({ promptRevId });
           setCurrentPromptId(prompt.prompt_id);
           setCurrentPrompt({
             name: prompt.name,
@@ -122,8 +123,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
           )[0];
           
           try {
-            const schema = await getSchemaApi({ 
-              organizationId: organizationId, 
+            const schema = await docRouterOrgApi.getSchema({ 
               schemaRevId: schemaDoc.schema_revid 
             });
             setSelectedSchemaDetails(schema);
@@ -140,7 +140,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
     };
     
     initSchema();
-  }, [schemas, currentPrompt.schema_id, organizationId]);
+  }, [schemas, currentPrompt.schema_id, docRouterOrgApi]);
 
   const savePrompt = async () => {
     try {
@@ -154,10 +154,10 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
 
       if (currentPromptId) {
         // Update existing prompt
-        await updatePromptApi({organizationId: organizationId, promptId: currentPromptId, prompt: promptToSave});
+        await docRouterOrgApi.updatePrompt({ promptId: currentPromptId, prompt: promptToSave });
       } else {
         // Create new prompt
-        await createPromptApi({organizationId: organizationId, prompt: promptToSave});
+        await docRouterOrgApi.createPrompt({ prompt: promptToSave });
       }
 
       // Clear the form
@@ -186,23 +186,23 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
 
   const loadSchemas = useCallback(async () => {
     try {
-      const response = await listSchemasApi({ organizationId: organizationId, limit: 100 });
+      const response = await docRouterOrgApi.listSchemas({ limit: 100 });
       setSchemas(response.schemas);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
       toast.error(errorMsg);
     }
-  }, [organizationId]);
+  }, [docRouterOrgApi]);
 
   const loadTags = useCallback(async () => {
     try {
-      const response = await listTagsApi({ organizationId: organizationId, limit: 100 });
+      const response = await docRouterOrgApi.listTags({ limit: 100 });
       setAvailableTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
       toast.error(errorMsg);
     }
-  }, [organizationId]);
+  }, [docRouterOrgApi]);
 
   const loadLLMModels = useCallback(async () => {
     try {
