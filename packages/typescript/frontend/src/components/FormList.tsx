@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { listFormsApi, deleteFormApi, updateFormApi, createFormApi, listTagsApi } from '@/utils/api';
-import { Form, Tag } from '@/types/index';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { DocRouterOrgApi } from '@/utils/api';
+import { Tag } from '@/types/index';
+import { Form } from '@docrouter/sdk';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';
@@ -20,6 +21,7 @@ import { isColorLight } from '@/utils/colors';
 
 const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [forms, setForms] = useState<Form[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -36,8 +38,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const loadForms = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await listFormsApi({
-        organizationId: organizationId,
+      const response = await docRouterOrgApi.listForms({
         skip: page * pageSize,
         limit: pageSize
       });
@@ -49,17 +50,17 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, organizationId]);
+  }, [page, pageSize, docRouterOrgApi]);
 
   const loadTags = useCallback(async () => {
     try {
-      const response = await listTagsApi({ organizationId: organizationId, limit: 100 });
+      const response = await docRouterOrgApi.listTags({ limit: 100 });
       setAvailableTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
       setMessage('Error: ' + errorMsg);
     }
-  }, [organizationId]);
+  }, [docRouterOrgApi]);
 
   useEffect(() => {
     // Load all required data at once
@@ -101,14 +102,10 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       
       if (isCloning) {
         // For cloning, create a new form
-        await createFormApi({
-          organizationId: organizationId,
-          ...formConfig
-        });
+        await docRouterOrgApi.createForm(formConfig);
       } else {
         // For renaming, update existing form
-        await updateFormApi({
-          organizationId: organizationId,
+        await docRouterOrgApi.updateForm({
           formId: selectedForm.form_id,
           form: formConfig
         });
@@ -127,7 +124,7 @@ const FormList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const handleDelete = async (formId: string) => {
     try {
       setIsLoading(true);
-      await deleteFormApi({organizationId: organizationId, formId});
+      await docRouterOrgApi.deleteForm({ formId });
       setForms(forms.filter(form => form.form_id !== formId));
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error deleting form';

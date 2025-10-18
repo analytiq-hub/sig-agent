@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { listPromptsApi, getSchemaApi, listSchemasApi } from '@/utils/api';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { DocRouterOrgApi } from '@/utils/api';
 import { Prompt } from '@/types/prompts';
 import { FieldMapping, FieldMappingSource, FormComponent, FormField } from '@/types/forms';
 import { getApiErrorMsg } from '@/utils/api';
@@ -53,7 +53,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
   fieldMappings,
   onMappingChange
 }) => {
-
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [schemaFields, setSchemaFields] = useState<SchemaField[]>([]);
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [loading, setLoading] = useState(false);
@@ -73,8 +73,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
     setLoading(true);
     try {
       // First, fetch all schemas to get schema_revid mappings
-      const allSchemasResponse = await listSchemasApi({
-        organizationId,
+      const allSchemasResponse = await docRouterOrgApi.listSchemas({
         limit: 100
       });
 
@@ -84,8 +83,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
       
       for (const tagId of selectedTagIds) {
         try {
-          const promptsResponse = await listPromptsApi({
-            organizationId,
+          const promptsResponse = await docRouterOrgApi.listPrompts({
             tag_ids: tagId, // Single tag ID
             limit: 100
           });
@@ -101,8 +99,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
       
       // Also fetch prompts without tag filtering to include untagged prompts if needed
       if (selectedTagIds.length === 0) {
-        const promptsResponse = await listPromptsApi({
-          organizationId,
+        const promptsResponse = await docRouterOrgApi.listPrompts({
           limit: 100
         });
         promptsResponse.prompts.forEach(prompt => {
@@ -128,8 +125,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
             }
 
             // Fetch the full schema using schema_revid
-            const schema = await getSchemaApi({
-              organizationId,
+            const schema = await docRouterOrgApi.getSchema({
               schemaRevId: matchingSchemas[0].schema_revid
             });
             return { [prompt.schema_id!]: schema };
@@ -199,7 +195,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [organizationId, selectedTagIds]);
+  }, [docRouterOrgApi, selectedTagIds]);
 
   // Parse form components into flat field list
   const parseFormFields = useCallback((components: FormComponent[], path: string[] = []): FormField[] => {

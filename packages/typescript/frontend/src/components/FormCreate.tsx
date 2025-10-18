@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { createFormApi, updateFormApi, listTagsApi, getFormApi } from '@/utils/api';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { DocRouterOrgApi } from '@/utils/api';
 import { FormConfig } from '@/types/forms';
 import { Tag } from '@/types/index';
 import { getApiErrorMsg } from '@/utils/api';
@@ -29,6 +29,7 @@ import { FormComponent } from '@/types/forms';
 
 const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ organizationId, formId }) => {
   const router = useRouter();
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [currentFormId, setCurrentFormId] = useState<string | null>(null);
   const [currentForm, setCurrentForm] = useState<FormConfig>({
     name: '',
@@ -50,7 +51,7 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
       if (formId) {
         try {
           setIsLoading(true);
-          const form = await getFormApi({ organizationId, formRevId: formId });
+          const form = await docRouterOrgApi.getForm({ formRevId: formId });
           setCurrentFormId(form.form_id);
           setCurrentForm({
             name: form.name,
@@ -69,17 +70,17 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
       }
     };
     loadForm();
-  }, [formId, organizationId]);
+  }, [formId, docRouterOrgApi]);
 
   const loadTags = useCallback(async () => {
     try {
-      const response = await listTagsApi({ organizationId: organizationId });
+      const response = await docRouterOrgApi.listTags({});
       setAvailableTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
       toast.error('Error: ' + errorMsg);
     }
-  }, [organizationId]);
+  }, [docRouterOrgApi]);
 
   useEffect(() => {
     loadTags();
@@ -128,17 +129,13 @@ const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ org
 
       if (currentFormId) {
         // Update existing form
-        await updateFormApi({
-          organizationId: organizationId, 
+        await docRouterOrgApi.updateForm({
           formId: currentFormId, 
           form: formToSave
         });
       } else {
         // Create new form
-        await createFormApi({
-          organizationId: organizationId, 
-          ...formToSave
-        });
+        await docRouterOrgApi.createForm(formToSave);
       }
 
       // Clear the form

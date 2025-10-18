@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { listFormsApi } from '@/utils/api';
+import React, { useState, useEffect, useMemo } from 'react';
+import { DocRouterOrgApi } from '@/utils/api';
 
 interface FormNameModalProps {
   isOpen: boolean;
@@ -18,6 +18,7 @@ const FormNameModal: React.FC<FormNameModalProps> = ({
   isCloning = false,
   organizationId
 }) => {
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [newName, setNewName] = useState(formName);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,8 +34,7 @@ const FormNameModal: React.FC<FormNameModalProps> = ({
     if (isOpen) {
       const fetchFormNames = async () => {
         try {
-          const response = await listFormsApi({
-            organizationId,
+          const response = await docRouterOrgApi.listForms({
             skip: 0,
             limit: 1000
           });
@@ -47,7 +47,7 @@ const FormNameModal: React.FC<FormNameModalProps> = ({
       
       fetchFormNames();
     }
-  }, [isOpen, organizationId]);
+  }, [isOpen, docRouterOrgApi]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
