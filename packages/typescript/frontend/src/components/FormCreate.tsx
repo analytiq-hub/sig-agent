@@ -28,15 +28,7 @@ const Editor = dynamic(() => import("@monaco-editor/react"), {
   loading: () => <div className="h-64 flex items-center justify-center">Loading editor...</div>
 });
 import InfoTooltip from '@/components/InfoTooltip';
-// Local type for form components (not in SDK)
-interface FormComponent {
-  key?: string;
-  type?: string;
-  label?: string;
-  components?: FormComponent[];
-  columns?: FormComponent[];
-  tabs?: FormComponent[];
-}
+import { FormComponent } from '@/types/ui';
 
 const FormCreate: React.FC<{ organizationId: string, formId?: string }> = ({ organizationId, formId }) => {
   const router = useRouter();

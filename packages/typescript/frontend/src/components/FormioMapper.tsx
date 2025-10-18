@@ -2,25 +2,10 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { DocRouterOrgApi } from '@/utils/api';
-import { Prompt } from '@/types/prompts';
+import { Prompt } from '@docrouter/sdk';
 import { FieldMapping, FieldMappingSource } from '@docrouter/sdk';
 
-// Local types for form components (not in SDK)
-interface FormComponent {
-  key?: string;
-  type?: string;
-  label?: string;
-  components?: FormComponent[];
-  columns?: FormComponent[];
-  tabs?: FormComponent[];
-}
-
-interface FormField {
-  key: string;
-  label: string;
-  type: string;
-  path: string[];
-}
+import { FormComponent, FormField } from '@/types/ui';
 import { getApiErrorMsg } from '@/utils/api';
 import { toast } from 'react-toastify';
 import { 
@@ -40,7 +25,7 @@ interface FormioMapperProps {
   onMappingChange: (mappings: Record<string, FieldMapping>) => void;
 }
 
-interface SchemaField {
+interface MappedSchemaField {
   name: string;
   path: string;
   type: string;
@@ -52,13 +37,13 @@ interface SchemaField {
   parentPath?: string; // Path of parent field for hierarchy
 }
 
-// Add interface for schema field definition
-interface SchemaFieldDefinition {
+// Add interface for schema field definition (for JSON Schema parsing)
+interface JsonSchemaFieldDefinition {
   type: string;
-  properties?: Record<string, SchemaFieldDefinition>;
+  properties?: Record<string, JsonSchemaFieldDefinition>;
   items?: {
     type: string;
-    properties?: Record<string, SchemaFieldDefinition>;
+    properties?: Record<string, JsonSchemaFieldDefinition>;
   };
   description?: string;
 }
@@ -71,13 +56,13 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
   onMappingChange
 }) => {
   const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
-  const [schemaFields, setSchemaFields] = useState<SchemaField[]>([]);
+  const [schemaFields, setSchemaFields] = useState<MappedSchemaField[]>([]);
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedPrompts, setExpandedPrompts] = useState<Set<string>>(new Set());
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
-  const [draggedField, setDraggedField] = useState<SchemaField | null>(null);
+  const [draggedField, setDraggedField] = useState<MappedSchemaField | null>(null);
   const previousFormFieldsRef = useRef<FormField[]>([]);
 
   // Load prompts and schemas based on selected tags
@@ -156,14 +141,14 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
       const combinedSchemas = schemaResults.reduce((acc, curr) => ({ ...acc, ...curr }), {});
 
       // Parse schema fields recursively
-      const allSchemaFields: SchemaField[] = [];
+      const allSchemaFields: MappedSchemaField[] = [];
       uniquePrompts.forEach(prompt => {
         if (prompt.schema_id && combinedSchemas[prompt.schema_id]) {
           const schema = combinedSchemas[prompt.schema_id];
           const properties = schema.response_format.json_schema.schema.properties;
           
           // Recursive function to parse nested properties
-          const parseProperties = (props: Record<string, SchemaFieldDefinition>, basePath: string = '', depth: number = 0, parentPath?: string) => {
+          const parseProperties = (props: Record<string, JsonSchemaFieldDefinition>, basePath: string = '', depth: number = 0, parentPath?: string) => {
             Object.entries(props).forEach(([fieldName, fieldDef]) => {
               const fullPath = basePath ? `${basePath}.${fieldName}` : fieldName;
               const displayName = fieldName; // Show only the field name, not the full path
@@ -390,10 +375,10 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
     }
     acc[field.promptRevId].fields.push(field);
     return acc;
-  }, {} as Record<string, { promptName: string; fields: SchemaField[] }>);
+  }, {} as Record<string, { promptName: string; fields: MappedSchemaField[] }>);
 
   // Handle drag start
-  const handleDragStart = (e: React.DragEvent, field: SchemaField) => {
+  const handleDragStart = (e: React.DragEvent, field: MappedSchemaField) => {
     setDraggedField(field);
     e.dataTransfer.setData('text/plain', JSON.stringify({
       type: 'schema-field',
@@ -408,7 +393,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
     const data = JSON.parse(e.dataTransfer.getData('text/plain'));
     
     if (data.type === 'schema-field') {
-      const schemaField = data.field as SchemaField;
+      const schemaField = data.field as MappedSchemaField;
       
       // Check type compatibility for string fields (most flexible for concatenation)
       if (!isCompatibleType(schemaField.type, formField.type)) {
@@ -522,7 +507,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
   };
 
   // Check if field should be visible based on parent expansion state
-  const isFieldVisible = (field: SchemaField): boolean => {
+  const isFieldVisible = (field: MappedSchemaField): boolean => {
     if (!field.parentPath) return true; // Root level fields are always visible
     
     // Check if all parent paths are expanded
@@ -537,7 +522,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
   };
 
   // Toggle field expansion
-  const toggleFieldExpansion = (field: SchemaField) => {
+  const toggleFieldExpansion = (field: MappedSchemaField) => {
     const fieldKey = `${field.promptRevId}-${field.path}`;
     setExpandedFields(prev => {
       const newSet = new Set(prev);

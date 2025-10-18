@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DocRouterOrgApi } from '@/utils/api';
-import { SchemaField, SchemaConfig } from '@/types/index';
-import { SchemaResponseFormat, SchemaProperty } from '@docrouter/sdk';
+import { Schema, SchemaResponseFormat, SchemaProperty } from '@docrouter/sdk';
+import { SchemaField } from '@/types/ui';
+
+// Type alias for schema creation/update (without id and timestamps)
+type SchemaConfig = Omit<Schema, 'schema_revid' | 'schema_id' | 'schema_version' | 'created_at' | 'created_by'>;
 import { getApiErrorMsg } from '@/utils/api';
 
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';

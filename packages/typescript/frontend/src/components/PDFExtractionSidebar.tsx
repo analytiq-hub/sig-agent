@@ -9,7 +9,7 @@ import {
   ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import { DocRouterOrgApi } from '@/utils/api';
-import type { Prompt } from '@/types/index';
+import type { Prompt } from '@docrouter/sdk';
 import { useOCR, OCRProvider } from '@/contexts/OCRContext';
 import type { GetLLMResultResponse } from '@/types/index';
 import type { HighlightInfo } from '@/contexts/OCRContext';

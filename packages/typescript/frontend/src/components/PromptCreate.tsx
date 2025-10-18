@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DocRouterOrgApi, listLLMModelsApi } from '@/utils/api';
-import { PromptConfig, LLMModel } from '@/types/index';
-import { Tag } from '@docrouter/sdk';
-import { Schema } from '@docrouter/sdk';
+import { LLMModel } from '@/types/index';
+import { Tag, Prompt, Schema, SchemaResponseFormat } from '@docrouter/sdk';
+
+// Type alias for prompt creation/update (without id and timestamps)
+type PromptConfig = Omit<Prompt, 'prompt_revid' | 'prompt_id' | 'prompt_version' | 'created_at' | 'created_by'>;
 import { getApiErrorMsg } from '@/utils/api';
-import { SchemaResponseFormat } from '@/types/schemas';
 import InfoTooltip from '@/components/InfoTooltip';
 import TagSelector from './TagSelector';
 import { toast } from 'react-toastify';

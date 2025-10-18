@@ -5,8 +5,6 @@ export * from './llm';
 export * from './ocr';
 export * from './organizations';
 export * from './payments';
-export * from './prompts';
-export * from './schemas';
 export * from './users';
 export * from './tokens';
 export type { HighlightInfo } from '@/contexts/OCRContext';

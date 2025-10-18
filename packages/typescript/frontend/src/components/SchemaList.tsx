@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DocRouterOrgApi } from '@/utils/api';
-import { SchemaField } from '@/types/index';
 import { Schema, SchemaResponseFormat, SchemaProperty } from '@docrouter/sdk';
+import { SchemaField } from '@/types/ui';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';

@@ -61,15 +61,6 @@ import {
   UpdateOrganizationRequest 
 } from '@/types/index';
 import { 
-  Schema, 
-  CreateSchemaParams,
-  ListSchemasParams,
-  ListSchemasResponse,
-  GetSchemaParams,
-  UpdateSchemaParams,
-  DeleteSchemaParams,
-} from '@/types/index';
-import { 
   InvitationResponse, 
   CreateInvitationRequest, 
   ListInvitationsParams, 
@@ -88,15 +79,6 @@ import {
   GetLLMResultParams,
   GetLLMResultResponse,
   DeleteLLMResultParams,
-} from '@/types/index';
-import { 
-  Prompt,
-  CreatePromptParams,
-  ListPromptsResponse, 
-  ListPromptsParams,
-  GetPromptParams,
-  UpdatePromptParams,
-  DeletePromptParams,
 } from '@/types/index';
 import { 
   PortalSessionResponse,
@@ -512,81 +494,6 @@ const _runLLMChatStreamImpl = async (
   }
 };
 
-// Schema APIs
-export const createSchemaApi = async (schema: CreateSchemaParams) => {
-  const { organizationId, ...schemaConfig } = schema;
-  const response = await api.post<Schema>(`/v0/orgs/${organizationId}/schemas`, schemaConfig);
-  return response.data;
-};
-
-export const listSchemasApi = async (params: ListSchemasParams): Promise<ListSchemasResponse> => {
-  const { organizationId, nameSearch, ...rest } = params;
-  const response = await api.get<ListSchemasResponse>(`/v0/orgs/${organizationId}/schemas`, {
-    params: {
-      skip: rest?.skip || 0,
-      limit: rest?.limit || 10,
-      name_search: nameSearch
-    }
-  });
-  return response.data;
-};
-
-export const getSchemaApi = async (params: GetSchemaParams): Promise<Schema> => {
-  const { organizationId, schemaRevId } = params;
-  const response = await api.get<Schema>(`/v0/orgs/${organizationId}/schemas/${schemaRevId}`);
-  return response.data;
-};
-
-export const updateSchemaApi = async (params: UpdateSchemaParams): Promise<Schema> => {
-  const { organizationId, schemaId, schema } = params;
-  const response = await api.put<Schema>(`/v0/orgs/${organizationId}/schemas/${schemaId}`, schema);
-  return response.data;
-};
-
-export const deleteSchemaApi = async (params: DeleteSchemaParams) => {
-  const { organizationId, schemaId } = params;
-  const response = await api.delete(`/v0/orgs/${organizationId}/schemas/${schemaId}`);
-  return response.data;
-};
-
-// Prompt APIs
-export const createPromptApi = async (params: CreatePromptParams): Promise<Prompt> => {
-  const { organizationId, prompt } = params;
-  const response = await api.post<Prompt>(`/v0/orgs/${organizationId}/prompts`, prompt);
-  return response.data;
-};
-
-export const listPromptsApi = async (params: ListPromptsParams): Promise<ListPromptsResponse> => {
-  const { organizationId, nameSearch, ...rest } = params;
-  const response = await api.get<ListPromptsResponse>(`/v0/orgs/${organizationId}/prompts`, {
-    params: {
-      skip: rest?.skip || 0,
-      limit: rest?.limit || 10,
-      document_id: rest?.document_id,
-      tag_ids: rest?.tag_ids,
-      name_search: nameSearch
-    }
-  });
-  return response.data;
-};
-
-export const getPromptApi = async (params: GetPromptParams): Promise<Prompt> => {
-  const { organizationId, promptRevId } = params;
-  const response = await api.get<Prompt>(`/v0/orgs/${organizationId}/prompts/${promptRevId}`);
-  return response.data;
-};
-
-export const updatePromptApi = async (params: UpdatePromptParams): Promise<Prompt> => {
-  const { organizationId, promptId, prompt } = params;
-  const response = await api.put<Prompt>(`/v0/orgs/${organizationId}/prompts/${promptId}`, prompt);
-  return response.data;
-};
-
-export const deletePromptApi = async (params: DeletePromptParams): Promise<void> => {
-  const { organizationId, promptId } = params;
-  const response = await api.delete(`/v0/orgs/${organizationId}/prompts/${promptId}`);
-  return response.data;
-};
 
 
 

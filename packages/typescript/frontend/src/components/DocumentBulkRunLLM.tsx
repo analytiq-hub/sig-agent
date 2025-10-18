@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Prompt } from '@/types/prompts';
+import { Prompt } from '@docrouter/sdk';
 import { Document, Tag } from '@docrouter/sdk';
 import { DocRouterOrgApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
