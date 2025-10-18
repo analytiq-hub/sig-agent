@@ -61,10 +61,10 @@ export class TestServer {
     });
 
     // Capture server logs for debugging
-    this.process.stdout?.on('data', (data) => {
+    this.process.stdout?.on('data', (_data) => {
       // console.log('Server stdout:', data.toString());
     });
-    this.process.stderr?.on('data', (data) => {
+    this.process.stderr?.on('data', (_data) => {
       // console.log('Server stderr:', data.toString());
     });
 
@@ -87,7 +87,9 @@ export class TestServer {
     if (this.process) {
       this.process.kill('SIGTERM');
       await new Promise<void>((resolve) => {
-        this.process!.on('exit', () => resolve());
+        if (this.process) {
+          this.process.on('exit', () => resolve());
+        }
         // Force kill after 5 seconds
         setTimeout(5000).then(() => {
           if (this.process && !this.process.killed) {
@@ -108,19 +110,18 @@ export class TestServer {
     console.log(`Killing any existing uvicorn processes on port ${this.config.port}...`);
     
     try {
-      // Kill processes by uvicorn command pattern
-      await this.execCommand(`pkill -f "uvicorn.*${this.config.port}" || true`, process.cwd());
+      // Kill processes by uvicorn command pattern - use execCommandSilent to avoid errors
+      await this.execCommandSilent(`pkill -f "uvicorn.*${this.config.port}"`);
       
       // Also kill any processes using the specific port
-      await this.execCommand(`lsof -ti:${this.config.port} | xargs -r kill -9 || true`, process.cwd());
+      await this.execCommandSilent(`lsof -ti:${this.config.port} | xargs -r kill -9`);
       
       // Give a small delay to ensure processes are killed
       await setTimeout(1000);
       
       console.log('Existing uvicorn processes killed (if any)');
     } catch (error) {
-      console.log('No existing uvicorn processes found or error killing them:', error);
-      // Don't throw error - this is just cleanup
+      // Silently ignore errors - this is just cleanup
     }
   }
 
@@ -192,6 +193,15 @@ export class TestServer {
           if (stdout) console.log(`Stdout: ${stdout}`);
           resolve();
         }
+      });
+    });
+  }
+
+  private async execCommandSilent(command: string, cwd: string = process.cwd()): Promise<void> {
+    return new Promise((resolve) => {
+      exec(command, { cwd }, (_error, _stdout, _stderr) => {
+        // Silently resolve regardless of success or failure
+        resolve();
       });
     });
   }

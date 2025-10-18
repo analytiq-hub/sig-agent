@@ -1,11 +1,9 @@
 import { ObjectId } from 'mongodb';
-import { DocRouterAccount, DocRouterOrg } from '../../src';
-import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 import axios from 'axios';
 
 export class TestFixtures {
-  static async createOrgAndUsers(testDb: any, baseURL: string): Promise<{
+  static async createOrgAndUsers(testDb: { collection: (name: string) => { findOne: (query: unknown) => Promise<unknown>; insertMany: (docs: unknown[]) => Promise<unknown>; insertOne: (doc: unknown) => Promise<unknown> } }, baseURL: string): Promise<{
     org_id: string;
     admin: { id: string; token: string; account_token: string };
     member: { id: string; token: string; account_token: string };
@@ -17,7 +15,7 @@ export class TestFixtures {
     if (!adminEmail) {
       throw new Error('ADMIN_EMAIL environment variable is not set');
     }
-    const adminUser = await testDb.collection('users').findOne({ email: adminEmail });
+    const adminUser = await testDb.collection('users').findOne({ email: adminEmail }) as { _id: { toString(): string } } | null;
 
     if (!adminUser) {
       throw new Error('System admin user not found - server may not have started correctly');
