@@ -29,7 +29,8 @@ import { PanelGroup, Panel } from 'react-resizable-panels';
 import CheckIcon from '@mui/icons-material/Check';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import { OCRProvider } from '@/contexts/OCRContext';
-import type { OCRBlock, HighlightInfo } from '@/types/index';
+import type { OCRBlock } from '@docrouter/sdk';
+import type { HighlightInfo } from '@/types/index';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
