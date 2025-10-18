@@ -19,6 +19,20 @@ import {
   UserUpdate,
   User,
   AWSConfig,
+  // Invitation types
+  InvitationResponse,
+  CreateInvitationRequest,
+  ListInvitationsParams,
+  ListInvitationsResponse,
+  AcceptInvitationRequest,
+  // Payment types
+  PortalSessionResponse,
+  SubscriptionResponse,
+  UsageResponse,
+  CreditConfig,
+  CreditUpdateResponse,
+  UsageRangeRequest,
+  UsageRangeResponse,
 } from './types';
 
 /**
@@ -209,6 +223,67 @@ export class DocRouterAccount {
 
   async deleteAWSConfig() {
     return this.http.delete('/v0/account/aws_config');
+  }
+
+  // --------------- Invitations ---------------
+  async createInvitation(invitation: CreateInvitationRequest): Promise<InvitationResponse> {
+    return this.http.post<InvitationResponse>('/v0/account/invitations', invitation);
+  }
+
+  async getInvitations(params?: ListInvitationsParams): Promise<ListInvitationsResponse> {
+    const queryParams = new URLSearchParams();
+    if (params?.skip !== undefined) queryParams.append('skip', String(params.skip));
+    if (params?.limit !== undefined) queryParams.append('limit', String(params.limit));
+    return this.http.get<ListInvitationsResponse>(`/v0/account/invitations?${queryParams.toString()}`);
+  }
+
+  async getInvitation(token: string): Promise<InvitationResponse> {
+    return this.http.get<InvitationResponse>(`/v0/account/invitations/${token}`);
+  }
+
+  async acceptInvitation(token: string, data: AcceptInvitationRequest): Promise<{ message: string }> {
+    return this.http.post<{ message: string }>(`/v0/account/invitations/${token}/accept`, data);
+  }
+
+  // --------------- Payments & Subscriptions ---------------
+  async getCustomerPortal(orgId: string): Promise<PortalSessionResponse> {
+    return this.http.get<PortalSessionResponse>(`/v0/orgs/${orgId}/payments/portal`);
+  }
+
+  async getSubscription(orgId: string): Promise<SubscriptionResponse> {
+    return this.http.get<SubscriptionResponse>(`/v0/orgs/${orgId}/payments/subscription`);
+  }
+
+  async activateSubscription(orgId: string): Promise<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`/v0/orgs/${orgId}/payments/subscription/activate`);
+  }
+
+  async cancelSubscription(orgId: string): Promise<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`/v0/orgs/${orgId}/payments/subscription/cancel`);
+  }
+
+  async getCurrentUsage(orgId: string): Promise<UsageResponse> {
+    return this.http.get<UsageResponse>(`/v0/orgs/${orgId}/payments/usage`);
+  }
+
+  async addCredits(orgId: string, amount: number): Promise<CreditUpdateResponse> {
+    return this.http.post<CreditUpdateResponse>(`/v0/orgs/${orgId}/payments/credits`, { amount });
+  }
+
+  async getCreditConfig(orgId: string): Promise<CreditConfig> {
+    return this.http.get<CreditConfig>(`/v0/orgs/${orgId}/payments/credit-config`);
+  }
+
+  async purchaseCredits(orgId: string, request: { amount: number; payment_method_id?: string }): Promise<CreditUpdateResponse> {
+    return this.http.post<CreditUpdateResponse>(`/v0/orgs/${orgId}/payments/purchase-credits`, request);
+  }
+
+  async getUsageRange(orgId: string, request: UsageRangeRequest): Promise<UsageRangeResponse> {
+    return this.http.post<UsageRangeResponse>(`/v0/orgs/${orgId}/payments/usage-range`, request);
+  }
+
+  async createCheckoutSession(orgId: string, planId: string): Promise<PortalSessionResponse> {
+    return this.http.post<PortalSessionResponse>(`/v0/orgs/${orgId}/payments/checkout`, { plan_id: planId });
   }
 
   /**
