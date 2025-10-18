@@ -73,7 +73,7 @@ import {
   UsageRangeResponse,
 } from '@/types/index';
 import { toast } from 'react-toastify';
-import { LLMChatRequest, LLMChatResponse, LLMChatStreamChunk, LLMChatStreamError } from '@/types/llm';
+import { LLMChatRequest, LLMChatStreamChunk, LLMChatStreamError } from '@docrouter/sdk';
 
 // These APIs execute from the frontend
 const NEXT_PUBLIC_FASTAPI_FRONTEND_URL = process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL || "http://localhost:8000";
@@ -249,17 +249,6 @@ export class DocRouterAccountApi extends DocRouterAccount {
 
 
 
-// LLM Chat API (admin only) - Account level
-export const runLLMChatApi = async (request: LLMChatRequest): Promise<LLMChatResponse> => {
-  const response = await api.post<LLMChatResponse>('/v0/account/llm/run', request);
-  return response.data;
-};
-
-// LLM Chat API (admin only) - Organization level
-export const runLLMChatOrgApi = async (organizationId: string, request: LLMChatRequest): Promise<LLMChatResponse> => {
-  const response = await api.post<LLMChatResponse>(`/v0/orgs/${organizationId}/llm/run`, request);
-  return response.data;
-};
 
 // LLM Chat Streaming API (admin only) - Account level
 export const runLLMChatStreamApi = async (

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { runLLMChatStreamApi } from '@/utils/api';
-import { LLMChatRequest, LLMMessage } from '@/types/index';
+import { LLMChatRequest, LLMMessage } from '@docrouter/sdk';
 
 interface LLMTestModalProps {
   open: boolean;

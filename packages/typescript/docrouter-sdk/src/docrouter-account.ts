@@ -12,6 +12,8 @@ import {
   ListLLMModelsResponse,
   ListLLMProvidersResponse,
   SetLLMProviderConfigRequest,
+  LLMChatRequest,
+  LLMChatResponse,
   ListUsersParams,
   ListUsersResponse,
   UserCreate,
@@ -284,6 +286,26 @@ export class DocRouterAccount {
 
   async createCheckoutSession(orgId: string, planId: string): Promise<PortalSessionResponse> {
     return this.http.post<PortalSessionResponse>(`/v0/orgs/${orgId}/payments/checkout`, { plan_id: planId });
+  }
+
+  /**
+   * Run LLM chat (account level)
+   */
+  async runLLMChat(request: LLMChatRequest): Promise<LLMChatResponse> {
+    return this.http.post('/v0/account/llm/run', request);
+  }
+
+  /**
+   * Run LLM chat with streaming (account level)
+   */
+  async runLLMChatStream(
+    request: LLMChatRequest,
+    onChunk: (chunk: unknown) => void,
+    onError?: (error: Error) => void,
+    abortSignal?: AbortSignal
+  ): Promise<void> {
+    const streamingRequest = { ...request, stream: true };
+    return this.http.stream('/v0/account/llm/run', streamingRequest, onChunk, onError, abortSignal);
   }
 
   /**

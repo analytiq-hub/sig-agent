@@ -215,38 +215,50 @@ export interface GetOCRMetadataResponse {
 }
 
 // LLM types
-export interface LLMChatMessage {
-  role: 'system' | 'user' | 'assistant';
+export interface LLMMessage {
+  role: "system" | "user" | "assistant";
   content: string;
 }
 
 export interface LLMChatRequest {
-  messages: LLMChatMessage[];
-  model?: string;
-  temperature?: number;
+  model: string;
+  messages: LLMMessage[];
   max_tokens?: number;
+  temperature?: number;
   stream?: boolean;
 }
 
-export interface LLMChatResponse {
-  message: LLMChatMessage;
-  usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
+export interface LLMChatChoice {
+  index: number;
+  message: {
+    role: "assistant";
+    content: string;
   };
+  finish_reason: string;
+}
+
+export interface LLMChatUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+
+export interface LLMChatResponse {
+  id: string;
+  object: "chat.completion";
+  created: number;
+  model: string;
+  choices: LLMChatChoice[];
+  usage: LLMChatUsage;
 }
 
 export interface LLMChatStreamChunk {
-  type: 'chunk';
-  content: string;
+  chunk: string;
   done: boolean;
 }
 
 export interface LLMChatStreamError {
-  type: 'error';
   error: string;
-  done: true;
 }
 
 export interface ListLLMModelsParams {

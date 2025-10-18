@@ -47,6 +47,9 @@ import {
   CreditUpdateResponse,
   UsageRangeRequest,
   UsageRangeResponse,
+  // LLM Chat
+  LLMChatRequest,
+  LLMChatResponse,
 } from './types';
 
 /**
@@ -430,12 +433,12 @@ export class DocRouterOrg {
 
   // ---------------- LLM Chat (Org) ----------------
 
-  async runLLMChat(request: { messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>; model?: string; temperature?: number; max_tokens?: number; stream?: boolean; }) {
+  async runLLMChat(request: LLMChatRequest): Promise<LLMChatResponse> {
     return this.http.post(`/v0/orgs/${this.organizationId}/llm/run`, request);
   }
 
   async runLLMChatStream(
-    request: { messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>; model?: string; temperature?: number; max_tokens?: number; stream?: boolean; },
+    request: LLMChatRequest,
     onChunk: (chunk: unknown) => void,
     onError?: (error: Error) => void,
     abortSignal?: AbortSignal
