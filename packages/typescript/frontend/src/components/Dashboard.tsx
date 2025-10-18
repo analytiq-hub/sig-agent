@@ -152,6 +152,15 @@ const Dashboard: React.FC<DashboardProps> = ({ organizationId }) => {
     });
   };
 
+  const filteredDocuments = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return recentDocuments;
+    }
+    return recentDocuments.filter(doc => 
+      doc.document_name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [recentDocuments, searchQuery]);
+
   return (
     <div className="space-y-6">
       {/* Header with Search */}
@@ -165,7 +174,7 @@ const Dashboard: React.FC<DashboardProps> = ({ organizationId }) => {
         <div className="flex gap-3">
           <TextField
             size="small"
-            placeholder="Search documents, schemas, prompts..."
+            placeholder="Search documents..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             InputProps={{
@@ -231,7 +240,7 @@ const Dashboard: React.FC<DashboardProps> = ({ organizationId }) => {
               <Typography variant="h6" className="font-semibold">
                 Recent Documents
               </Typography>
-              <Link href={`/orgs/${organizationId}/docs`}>
+              <Link href={`/orgs/${organizationId}/docs${searchQuery.trim() ? `?search=${encodeURIComponent(searchQuery)}` : ''}`}>
                 <Button size="small" variant="outlined">
                   View All
                 </Button>
@@ -240,8 +249,8 @@ const Dashboard: React.FC<DashboardProps> = ({ organizationId }) => {
             <div className="space-y-3">
               {loading ? (
                 <div className="text-center py-4 text-gray-500">Loading...</div>
-              ) : recentDocuments.length > 0 ? (
-                recentDocuments.map((doc) => (
+              ) : filteredDocuments.length > 0 ? (
+                filteredDocuments.map((doc) => (
                   <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       {getDocumentStatusIcon(doc.state)}
@@ -275,7 +284,10 @@ const Dashboard: React.FC<DashboardProps> = ({ organizationId }) => {
                 ))
               ) : (
                 <div className="text-center py-4 text-gray-500">
-                  No documents yet. Upload your first document to get started.
+                  {searchQuery.trim() ? 
+                    `No documents found matching "${searchQuery}"` : 
+                    "No documents yet. Upload your first document to get started."
+                  }
                 </div>
               )}
             </div>
