@@ -1,7 +1,7 @@
 import axios, { isAxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/types/AppSession';
-import { DocRouterOrg } from '@docrouter/sdk';
+import { DocRouterOrg, DocRouterAccount } from '@docrouter/sdk';
 
 // Session cache to avoid repeated calls
 let sessionCache: { session: AppSession | null; timestamp: number } | null = null;
@@ -216,6 +216,28 @@ export class DocRouterOrgApi extends DocRouterOrg {
       baseURL: NEXT_PUBLIC_FASTAPI_FRONTEND_URL,
       orgToken: '', // Empty token so tokenProvider will be used
       organizationId: organizationId,
+    });
+    
+    // Set up token provider that gets called on every request
+    this.getHttpClient().updateTokenProvider(async () => {
+      // First try to use global session (pre-fetched from context)
+      let session = getGlobalSession();
+      
+      // Fallback to cached session if global session is not available
+      if (!session) {
+        session = await getCachedSession();
+      }
+      
+      return session?.apiAccessToken || '';
+    });
+  }
+}
+
+export class DocRouterAccountApi extends DocRouterAccount {
+  constructor() {
+    super({
+      baseURL: NEXT_PUBLIC_FASTAPI_FRONTEND_URL,
+      accountToken: '', // Empty token so tokenProvider will be used
     });
     
     // Set up token provider that gets called on every request
