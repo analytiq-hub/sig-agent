@@ -683,14 +683,16 @@ export interface InvitationResponse {
   id: string;
   email: string;
   organization_id: string;
+  organization_name?: string;
   role: string;
+  user_exists?: boolean;
   created_at: string;
   expires_at: string;
 }
 
 export interface CreateInvitationRequest {
   email: string;
-  organization_id: string;
+  organization_id?: string;
   role: string;
 }
 

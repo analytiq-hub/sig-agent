@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { acceptInvitationApi, getInvitationApi } from '@/utils/api';
+import { DocRouterAccountApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import { signIn } from 'next-auth/react';
 import { useAppSession } from '@/contexts/AppSessionContext';
@@ -25,7 +25,8 @@ const handleExistingUserAccept = async (
   router: ReturnType<typeof useRouter>
 ) => {
   try {
-    await acceptInvitationApi(token, {
+    const docRouterAccountApi = new DocRouterAccountApi();
+    await docRouterAccountApi.acceptInvitation(token, {
       name: userName || '',
       password: ''
     });
@@ -52,6 +53,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
 
   useEffect(() => {
     let mounted = true;
@@ -62,14 +64,14 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
       
       try {
         if (!invitation) {
-          const invitationResp = await getInvitationApi(token);
+          const invitationResp = await docRouterAccountApi.getInvitation(token);
           if (!mounted) return;
 
           const info = {
             email: invitationResp.email,
             organizationId: invitationResp.organization_id,
             organizationName: invitationResp.organization_name,
-            userExists: invitationResp.user_exists
+            userExists: invitationResp.user_exists || false
           };
           
           setInvitation(info);
@@ -104,7 +106,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
     return () => {
       mounted = false;
     };
-  }, [token, session?.user?.email, session?.user?.name, router, invitation]);
+  }, [token, session?.user?.email, session?.user?.name, router, invitation, docRouterAccountApi]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,7 +130,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
     setIsSubmitting(true);
     try {
       // First accept the invitation
-      await acceptInvitationApi(token, {
+      await docRouterAccountApi.acceptInvitation(token, {
         name: formData.name,
         password: formData.password
       });

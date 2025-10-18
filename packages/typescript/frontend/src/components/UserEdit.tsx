@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { DocRouterAccountApi, sendVerificationEmailApi } from '@/utils/api';
+import { DocRouterAccountApi } from '@/utils/api';
 import { User, UserUpdate } from '@docrouter/sdk';
 import { signOut } from 'next-auth/react';
 import { useAppSession } from '@/contexts/AppSessionContext';
@@ -240,7 +240,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
 
   const handleSendVerification = async () => {
     try {
-      await sendVerificationEmailApi(userId);
+      await docRouterAccountApi.sendVerificationEmail(userId);
       setSuccess(true);
       toast.success('Verification email sent successfully');
     } catch (error) {

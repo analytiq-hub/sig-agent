@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
-import { createInvitationApi, DocRouterAccountApi } from '@/utils/api';
+import { DocRouterAccountApi } from '@/utils/api';
 import { Organization } from '@docrouter/sdk';
 import { toast } from 'react-toastify';
 import debounce from 'lodash/debounce';
@@ -35,11 +35,11 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
     }
     
     setIsSearching(true);
-    docRouterAccountApi.listOrganizations()
+    docRouterAccountApi.listOrganizations({ nameSearch: query, limit: 20 })
       .then(response => {
+        // Filter to only show team and enterprise organizations
         const filteredOrgs = response.organizations.filter(org => 
-          (org.type === 'team' || org.type === 'enterprise') &&
-          org.name.toLowerCase().includes(query.toLowerCase())
+          org.type === 'team' || org.type === 'enterprise'
         );
         setSearchResults(filteredOrgs);
       })
@@ -72,9 +72,10 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
     setIsSubmitting(true);
     try {
       // Send invitation with optional organization
-      await createInvitationApi({
+      await docRouterAccountApi.createInvitation({
         email,
-        organization_id: selectedOrg?.id // Now just one optional org
+        organization_id: selectedOrg?.id, // Now just one optional org
+        role: 'user'
       });
       
       toast.success('Invitation sent successfully');

@@ -218,22 +218,22 @@ export class DocRouterAccount {
 
   // --------------- Invitations ---------------
   async createInvitation(invitation: CreateInvitationRequest): Promise<InvitationResponse> {
-    return this.http.post<InvitationResponse>('/v0/account/invitations', invitation);
+    return this.http.post<InvitationResponse>('/v0/account/email/invitations', invitation);
   }
 
   async getInvitations(params?: ListInvitationsParams): Promise<ListInvitationsResponse> {
     const queryParams = new URLSearchParams();
     if (params?.skip !== undefined) queryParams.append('skip', String(params.skip));
     if (params?.limit !== undefined) queryParams.append('limit', String(params.limit));
-    return this.http.get<ListInvitationsResponse>(`/v0/account/invitations?${queryParams.toString()}`);
+    return this.http.get<ListInvitationsResponse>(`/v0/account/email/invitations?${queryParams.toString()}`);
   }
 
   async getInvitation(token: string): Promise<InvitationResponse> {
-    return this.http.get<InvitationResponse>(`/v0/account/invitations/${token}`);
+    return this.http.get<InvitationResponse>(`/v0/account/email/invitations/${token}`);
   }
 
   async acceptInvitation(token: string, data: AcceptInvitationRequest): Promise<{ message: string }> {
-    return this.http.post<{ message: string }>(`/v0/account/invitations/${token}/accept`, data);
+    return this.http.post<{ message: string }>(`/v0/account/email/invitations/${token}/accept`, data);
   }
 
   // --------------- Payments & Subscriptions ---------------

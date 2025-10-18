@@ -314,13 +314,12 @@ describe('DocRouterAccount Missing APIs Integration Tests', () => {
     });
 
     test('getUser with specific user ID', async () => {
-      const response = await client.getUser(testFixtures.admin.id);
-      
-      expect(response).toBeDefined();
-      expect(response.user).toBeDefined();
-      expect(response.user.id).toBe(testFixtures.admin.id);
-      expect(response.user.email).toBeDefined();
-      expect(response.user.name).toBeDefined();
+      const user = await client.getUser(testFixtures.admin.id);
+
+      expect(user).toBeDefined();
+      expect(user.id).toBe(testFixtures.admin.id);
+      expect(user.email).toBeDefined();
+      expect(user.name).toBeDefined();
     });
 
     test('createUser with all fields', async () => {
@@ -331,13 +330,12 @@ describe('DocRouterAccount Missing APIs Integration Tests', () => {
         password: 'testpassword123'
       };
 
-      const response = await client.createUser(newUser);
-      
-      expect(response).toBeDefined();
-      expect(response.user).toBeDefined();
-      expect(response.user.email).toBe(newUser.email);
-      expect(response.user.name).toBe(newUser.name);
-      expect(response.user.id).toBeDefined();
+      const user = await client.createUser(newUser);
+
+      expect(user).toBeDefined();
+      expect(user.email).toBe(newUser.email);
+      expect(user.name).toBe(newUser.name);
+      expect(user.id).toBeDefined();
     });
 
     test('updateUser with all fields', async () => {
@@ -347,11 +345,10 @@ describe('DocRouterAccount Missing APIs Integration Tests', () => {
         password: 'newpassword123'
       };
 
-      const response = await client.updateUser(testFixtures.admin.id, updateData);
-      
-      expect(response).toBeDefined();
-      expect(response.user).toBeDefined();
-      expect(response.user.name).toBe(updateData.name);
+      const user = await client.updateUser(testFixtures.admin.id, updateData);
+
+      expect(user).toBeDefined();
+      expect(user.name).toBe(updateData.name);
     });
 
     test('deleteUser', async () => {
@@ -363,8 +360,8 @@ describe('DocRouterAccount Missing APIs Integration Tests', () => {
         password: 'testpassword123'
       };
 
-      const createResponse = await client.createUser(newUser);
-      const userId = createResponse.user.id;
+      const user = await client.createUser(newUser);
+      const userId = user.id;
 
       // Delete the user
       await client.deleteUser(userId);

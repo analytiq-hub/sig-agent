@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
-import { DocRouterAccountApi, createInvitationApi } from '@/utils/api';
+import { DocRouterAccountApi } from '@/utils/api';
 import { User } from '@docrouter/sdk';
 import { toast } from 'react-toastify';
 
@@ -64,9 +64,10 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
       if (existingUser) {
         await onAdd(existingUser.id);
       } else {
-        await createInvitationApi({
+        await docRouterAccountApi.createInvitation({
           email,
-          organization_id: organizationId
+          organization_id: organizationId,
+          role: 'user'
         });
         toast.success('Invitation sent successfully');
       }

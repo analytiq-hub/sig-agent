@@ -66,11 +66,10 @@ describe('Users Integration Tests', () => {
         accountToken: testFixtures.admin.account_token
       });
 
-      const response = await client.getUser(testFixtures.admin.id);
-      
-      expect(response).toBeDefined();
-      expect(response.user).toBeDefined();
-      expect(response.user.id).toBe(testFixtures.admin.id);
+      const user = await client.getUser(testFixtures.admin.id);
+
+      expect(user).toBeDefined();
+      expect(user.id).toBe(testFixtures.admin.id);
     });
 
     test('should create user', async () => {
@@ -86,12 +85,11 @@ describe('Users Integration Tests', () => {
         password: 'testpassword123'
       };
 
-      const response = await client.createUser(newUser);
+      const user = await client.createUser(newUser);
 
-      expect(response).toBeDefined();
-      expect(response.user).toBeDefined();
-      expect(response.user.email).toBe(newUser.email);
-      expect(response.user.name).toBe(newUser.name);
+      expect(user).toBeDefined();
+      expect(user.email).toBe(newUser.email);
+      expect(user.name).toBe(newUser.name);
     });
 
     test('should update user', async () => {
@@ -104,11 +102,10 @@ describe('Users Integration Tests', () => {
         name: 'Updated Name'
       };
 
-      const response = await client.updateUser(testFixtures.admin.id, updateData);
-      
-      expect(response).toBeDefined();
-      expect(response.user).toBeDefined();
-      expect(response.user.name).toBe(updateData.name);
+      const user = await client.updateUser(testFixtures.admin.id, updateData);
+
+      expect(user).toBeDefined();
+      expect(user.name).toBe(updateData.name);
     });
 
     test('should delete user', async () => {
@@ -118,14 +115,15 @@ describe('Users Integration Tests', () => {
       });
 
       // Create a user first
+      const uniqueEmail = `todelete-${Date.now()}-${Math.random().toString(36).substring(2, 9)}@example.com`;
       const newUser = {
-        email: 'todelete@example.com',
+        email: uniqueEmail,
         name: 'To Delete',
         password: 'testpassword123'
       };
 
-      const createResponse = await client.createUser(newUser);
-      const userId = createResponse.user.id;
+      const user = await client.createUser(newUser);
+      const userId = user.id;
 
       // Delete the user
       await client.deleteUser(userId);

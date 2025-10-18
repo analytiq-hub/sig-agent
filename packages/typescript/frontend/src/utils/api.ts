@@ -42,13 +42,6 @@ export function invalidateSessionCache(): void {
 }
 
 import { 
-  InvitationResponse, 
-  CreateInvitationRequest, 
-  ListInvitationsParams, 
-  ListInvitationsResponse, 
-  AcceptInvitationRequest 
-} from '@/types/index';
-import { 
   PortalSessionResponse,
   SubscriptionResponse,
   UsageResponse,
@@ -246,47 +239,6 @@ export function getApiErrorMsg(error: unknown): string {
   return 'An unexpected error occurred. Please try again.';
 }
 
-export const sendVerificationEmailApi = async (userId: string) => {
-  const response = await api.post(`/v0/account/email/verification/send/${userId}`);
-  return response.data;
-};
-
-export const verifyEmailApi = async (token: string) => {
-  const response = await api.post(`/v0/account/email/verification/${token}`);
-  return response.data;
-};
-
-export const sendRegistrationVerificationEmailApi = async (userId: string) => {
-  const response = await api.post(`/v0/account/email/verification/register/${userId}`);
-  return response.data;
-};
-
-// Invitation APIs
-export const createInvitationApi = async (invitation: CreateInvitationRequest): Promise<InvitationResponse> => {
-  const response = await api.post<InvitationResponse>('/v0/account/email/invitations', invitation);
-  return response.data;
-};
-
-export const getInvitationsApi = async (params?: ListInvitationsParams): Promise<ListInvitationsResponse> => {
-  const queryParams = new URLSearchParams();
-  if (params?.skip) queryParams.append('skip', params.skip.toString());
-  if (params?.limit) queryParams.append('limit', params.limit.toString());
-
-  const response = await api.get<ListInvitationsResponse>(
-    `/v0/account/email/invitations?${queryParams.toString()}`
-  );
-  return response.data;
-};
-
-export const acceptInvitationApi = async (token: string, data: AcceptInvitationRequest): Promise<{ message: string }> => {
-  const response = await api.post(`/v0/account/email/invitations/${token}/accept`, data);
-  return response.data;
-};
-
-export const getInvitationApi = async (token: string): Promise<InvitationResponse> => {
-  const response = await api.get<InvitationResponse>(`/v0/account/email/invitations/${token}`);
-  return response.data;
-};
 
 // Subscription APIs
 export const getCustomerPortalApi = async (orgId: string): Promise<PortalSessionResponse> => {
