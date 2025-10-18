@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, isAxiosError } from 'axios';
-import { DocRouterConfig, ApiError } from './types';
+import { DocRouterConfig, ApiError, LLMChatStreamChunk, LLMChatStreamError } from './types';
 
 export class HttpClient {
   private axios: AxiosInstance;
@@ -165,7 +165,7 @@ export class HttpClient {
   async stream(
     url: string,
     data: unknown,
-    onChunk: (chunk: unknown) => void,
+    onChunk: (chunk: LLMChatStreamChunk | LLMChatStreamError) => void,
     onError?: (error: Error) => void,
     abortSignal?: AbortSignal
   ): Promise<void> {

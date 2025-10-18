@@ -14,6 +14,8 @@ import {
   SetLLMProviderConfigRequest,
   LLMChatRequest,
   LLMChatResponse,
+  LLMChatStreamChunk,
+  LLMChatStreamError,
   ListUsersParams,
   ListUsersResponse,
   UserCreate,
@@ -300,7 +302,7 @@ export class DocRouterAccount {
    */
   async runLLMChatStream(
     request: LLMChatRequest,
-    onChunk: (chunk: unknown) => void,
+    onChunk: (chunk: LLMChatStreamChunk | LLMChatStreamError) => void,
     onError?: (error: Error) => void,
     abortSignal?: AbortSignal
   ): Promise<void> {

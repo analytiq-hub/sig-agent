@@ -50,6 +50,8 @@ import {
   // LLM Chat
   LLMChatRequest,
   LLMChatResponse,
+  LLMChatStreamChunk,
+  LLMChatStreamError,
 } from './types';
 
 /**
@@ -439,7 +441,7 @@ export class DocRouterOrg {
 
   async runLLMChatStream(
     request: LLMChatRequest,
-    onChunk: (chunk: unknown) => void,
+    onChunk: (chunk: LLMChatStreamChunk | LLMChatStreamError) => void,
     onError?: (error: Error) => void,
     abortSignal?: AbortSignal
   ): Promise<void> {

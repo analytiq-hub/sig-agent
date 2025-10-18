@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { runLLMChatStreamApi } from '@/utils/api';
+import React, { useState, useMemo } from 'react';
+import { DocRouterAccountApi } from '@/utils/api';
 import { LLMChatRequest, LLMMessage } from '@docrouter/sdk';
 
 interface LLMTestModalProps {
@@ -14,6 +14,8 @@ const LLMTestModal: React.FC<LLMTestModalProps> = ({ open, onClose, modelName })
   const [testResponse, setTestResponse] = useState<string>('');
   const [testError, setTestError] = useState<string | null>(null);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
+
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
 
   const handleRunTest = async () => {
     if (!modelName || !testPrompt.trim()) return;
@@ -36,7 +38,7 @@ const LLMTestModal: React.FC<LLMTestModalProps> = ({ open, onClose, modelName })
         stream: true
       };
 
-      await runLLMChatStreamApi(
+      await docRouterAccountApi.runLLMChatStream(
         request,
         (chunk) => {
           if ('error' in chunk) {

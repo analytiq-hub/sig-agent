@@ -73,7 +73,6 @@ import {
   UsageRangeResponse,
 } from '@/types/index';
 import { toast } from 'react-toastify';
-import { LLMChatRequest, LLMChatStreamChunk, LLMChatStreamError } from '@docrouter/sdk';
 
 // These APIs execute from the frontend
 const NEXT_PUBLIC_FASTAPI_FRONTEND_URL = process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL || "http://localhost:8000";
@@ -250,117 +249,7 @@ export class DocRouterAccountApi extends DocRouterAccount {
 
 
 
-// LLM Chat Streaming API (admin only) - Account level
-export const runLLMChatStreamApi = async (
-  request: LLMChatRequest,
-  onChunk: (chunk: LLMChatStreamChunk | LLMChatStreamError) => void,
-  onError?: (error: Error) => void,
-  abortSignal?: AbortSignal
-): Promise<void> => {
-  return await _runLLMChatStreamImpl('/v0/account/llm/run', request, onChunk, onError, abortSignal);
-};
 
-// LLM Chat Streaming API (admin only) - Organization level
-export const runLLMChatStreamOrgApi = async (
-  organizationId: string,
-  request: LLMChatRequest,
-  onChunk: (chunk: LLMChatStreamChunk | LLMChatStreamError) => void,
-  onError?: (error: Error) => void,
-  abortSignal?: AbortSignal
-): Promise<void> => {
-  return await _runLLMChatStreamImpl(`/v0/orgs/${organizationId}/llm/run`, request, onChunk, onError, abortSignal);
-};
-
-// Internal implementation for LLM Chat Streaming
-const _runLLMChatStreamImpl = async (
-  endpoint: string,
-  request: LLMChatRequest,
-  onChunk: (chunk: LLMChatStreamChunk | LLMChatStreamError) => void,
-  onError?: (error: Error) => void,
-  abortSignal?: AbortSignal
-): Promise<void> => {
-  try {
-    // Ensure stream is set to true for streaming requests
-    const streamingRequest = { ...request, stream: true };
-    
-    // Get the session token for authorization
-    const session = await getCachedSession();
-    if (!session?.apiAccessToken) {
-      throw new Error('No API token available');
-    }
-
-    // Use fetch instead of axios for streaming support
-    // Note: Axios cannot handle true streaming responses because it waits for the entire
-    // response to complete before resolving the promise, even with responseType: 'text'.
-    // In browsers, Axios uses XMLHttpRequest which doesn't expose partial response data.
-    // Only fetch() with ReadableStream provides access to chunks as they arrive in real-time.
-    const response = await fetch(`${NEXT_PUBLIC_FASTAPI_FRONTEND_URL}${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.apiAccessToken}`,
-        'Accept': 'text/plain',
-        'Cache-Control': 'no-cache',
-      },
-      credentials: 'include',
-      body: JSON.stringify(streamingRequest),
-      signal: abortSignal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    if (!response.body) {
-      throw new Error('Response body is not available for streaming');
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) {
-          break;
-        }
-
-        // Decode the chunk and add to buffer
-        buffer += decoder.decode(value, { stream: true });
-        
-        // Process complete lines from buffer
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep incomplete line in buffer
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              onChunk(data);
-              
-              // Stop if we're done
-              if (data.done) {
-                return;
-              }
-            } catch (parseError) {
-              console.warn('Failed to parse streaming chunk:', parseError);
-            }
-          }
-        }
-      }
-    } finally {
-      reader.releaseLock();
-    }
-  } catch (error) {
-    if (onError) {
-      onError(error instanceof Error ? error : new Error('Streaming request failed'));
-    } else {
-      throw error;
-    }
-  }
-};
 
 
 
