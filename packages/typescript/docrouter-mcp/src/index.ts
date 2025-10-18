@@ -1138,7 +1138,7 @@ const tools: Tool[] = [
         max_tokens: { type: 'number', description: 'Maximum tokens' },
         stream: { type: 'boolean', description: 'Enable streaming' },
       },
-      required: ['messages'],
+      required: ['messages', 'model'],
     },
   },
 
@@ -1818,7 +1818,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'run_llm_chat': {
         const result = await docrouterClient.runLLMChat({
           messages: getArg(args, 'messages'),
-          model: getOptionalArg(args, 'model'),
+          model: getArg(args, 'model'),
           temperature: getOptionalArg(args, 'temperature'),
           max_tokens: getOptionalArg(args, 'max_tokens'),
           stream: getOptionalArg(args, 'stream'),
