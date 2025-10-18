@@ -227,9 +227,6 @@ export class DocRouterAccountApi extends DocRouterAccount {
   }
 }
 
-
-
-
 export function getApiErrorMsg(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
