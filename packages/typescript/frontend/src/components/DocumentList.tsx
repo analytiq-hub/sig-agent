@@ -5,8 +5,7 @@ import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { Box, IconButton, TextField, InputAdornment, Autocomplete, Menu, MenuItem } from '@mui/material';
 import { isAxiosError } from 'axios';
 // All API calls now use docRouterOrgApi
-import { Tag } from '@/types/index';
-import { DocumentMetadata } from '@/types/index';
+import { Tag, Document } from '@docrouter/sdk';
 import Link from 'next/link';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -57,12 +56,12 @@ const parseAndEncodeMetadataSearch = (searchStr: string): string | null => {
 
 const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
-  const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [totalRows, setTotalRows] = useState<number>(0);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
   const [isLoading, setIsLoading] = useState(true);
   const [tags, setTags] = useState<Tag[]>([]);
-  const [editingDocument, setEditingDocument] = useState<DocumentMetadata | null>(null);
+  const [editingDocument, setEditingDocument] = useState<Document | null>(null);
   const [isTagEditorOpen, setIsTagEditorOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,7 +70,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   // Add state for menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedDocument, setSelectedDocument] = useState<DocumentMetadata | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
 
   const [isSmallScreen, setIsSmallScreen] = useState(false);
 
@@ -165,7 +164,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   }, [docRouterOrgApi]);
 
   // Menu handlers
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, document: DocumentMetadata) => {
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, document: Document) => {
     setAnchorEl(event.currentTarget);
     setSelectedDocument(document);
   };
@@ -188,19 +187,19 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     }
   };
 
-  const handleEditTags = (document: DocumentMetadata) => {
+  const handleEditTags = (document: Document) => {
     setEditingDocument(document);
     setIsTagEditorOpen(true);
     handleMenuClose();
   };
 
-  const handleRenameDocument = (document: DocumentMetadata) => {
+  const handleRenameDocument = (document: Document) => {
     setEditingDocument(document);
     setIsRenameModalOpen(true);
     handleMenuClose();
   };
 
-  const handleDownloadFile = async (doc: DocumentMetadata) => {
+  const handleDownloadFile = async (doc: Document) => {
     try {
       const response = await docRouterOrgApi.getDocument({
         documentId: doc.id,
