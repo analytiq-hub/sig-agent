@@ -32,7 +32,18 @@ describe('Forms Integration Tests', () => {
             }
           ],
           json_formio_mapping: {
-            field1: { type: 'text' }
+            field1: {
+              sources: [
+                {
+                  promptRevId: 'test-prompt',
+                  promptName: 'Test Prompt',
+                  schemaFieldPath: 'field1',
+                  schemaFieldName: 'Field 1',
+                  schemaFieldType: 'string'
+                }
+              ],
+              mappingType: 'direct'
+            }
           }
         }
       });

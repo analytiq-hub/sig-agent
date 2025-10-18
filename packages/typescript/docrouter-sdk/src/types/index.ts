@@ -1,4 +1,6 @@
 // Core SDK types
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
 export interface DocRouterConfig {
   baseURL: string;
   token?: string;
@@ -277,8 +279,8 @@ export interface GetLLMResultResponse {
   prompt_id: string;
   prompt_version: number;
   document_id: string;
-  llm_result: Record<string, unknown>;
-  updated_llm_result: Record<string, unknown>;
+  llm_result: Record<string, JsonValue>;
+  updated_llm_result: Record<string, JsonValue>;
   is_edited: boolean;
   is_verified: boolean;
   created_at: string;
@@ -407,26 +409,40 @@ export interface UsageRangeResponse {
 }
 
 // Form types
+export interface FormResponseFormat {
+  json_formio?: object | null;
+  json_formio_mapping?: Record<string, FieldMapping>;
+}
+
+export interface FieldMappingSource {
+  promptRevId: string;
+  promptName: string;
+  schemaFieldPath: string;
+  schemaFieldName: string;
+  schemaFieldType: string;
+}
+
+export interface FieldMapping {
+  sources: FieldMappingSource[];
+  mappingType: 'direct' | 'concatenated' | 'calculated' | 'conditional';
+  concatenationSeparator?: string;
+}
+
 export interface Form {
   form_revid: string;
   form_id: string;
   form_version: number;
   name: string;
-  response_format: {
-    json_formio?: Array<Record<string, unknown>>;
-    json_formio_mapping?: Record<string, Record<string, unknown>>;
-  };
+  response_format: FormResponseFormat;
   created_at: string;
   created_by: string;
+  tag_ids?: string[];
 }
 
 export interface CreateFormParams {
   organizationId: string;
   name: string;
-  response_format: {
-    json_formio?: Array<Record<string, unknown>>;
-    json_formio_mapping?: Record<string, Record<string, unknown>>;
-  };
+  response_format: FormResponseFormat;
 }
 
 export interface ListFormsParams {
@@ -450,7 +466,7 @@ export interface GetFormParams {
 export interface UpdateFormParams {
   organizationId: string;
   formId: string;
-  form: Partial<Omit<Form, 'id' | 'created_at' | 'updated_at'>>;
+  form: Partial<Omit<Form, 'form_revid' | 'form_id' | 'form_version' | 'created_at' | 'created_by'>>;
 }
 
 export interface DeleteFormParams {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 
 const PDFExtractionSidebar = dynamic(() => import('./PDFExtractionSidebar'), {
@@ -11,7 +11,7 @@ const PDFFormSidebar = dynamic(() => import('./PDFFormSidebar'), {
   loading: () => <div className="h-32 flex items-center justify-center">Loading forms...</div>
 });
 import type { HighlightInfo } from '@/types/index';
-import { getDocumentApi } from '@/utils/api';
+import { DocRouterOrgApi } from '@/utils/api';
 
 interface Props {
   organizationId: string;
@@ -23,14 +23,14 @@ interface Props {
 type SidebarMode = 'extraction' | 'forms';
 
 const PDFSidebar = ({ organizationId, id, onHighlight, onClearHighlight }: Props) => {
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [activeMode, setActiveMode] = useState<SidebarMode>('extraction');
   const [documentName, setDocumentName] = useState<string>('');
 
   useEffect(() => {
     const fetchDocumentName = async () => {
       try {
-        const response = await getDocumentApi({
-          organizationId: organizationId,
+        const response = await docRouterOrgApi.getDocument({
           documentId: id,
           fileType: "pdf"
         });
@@ -42,7 +42,7 @@ const PDFSidebar = ({ organizationId, id, onHighlight, onClearHighlight }: Props
     };
 
     fetchDocumentName();
-  }, [organizationId, id]);
+  }, [organizationId, id, docRouterOrgApi]);
 
   return (
     <div className="w-full h-full flex flex-col border-r border-black/10">

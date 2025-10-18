@@ -1,11 +1,11 @@
 // components/PDFViewer.js
 "use client"
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import { getDocumentApi, getOCRTextApi, getOCRBlocksApi } from '@/utils/api';
+import { DocRouterOrgApi, getOCRTextApi, getOCRBlocksApi } from '@/utils/api';
 import { Toolbar, Typography, IconButton, TextField, Menu, MenuItem, Divider, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, Tooltip, Box, CircularProgress } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
@@ -88,6 +88,7 @@ interface PDFViewerProps {
 }
 
 const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [error, setError] = useState<string | null>(null);
@@ -112,9 +113,8 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
 
     const loadPDF = async () => {
       try {
-        const response = await getDocumentApi(
+        const response = await docRouterOrgApi.getDocument(
           {
-            organizationId: organizationId,
             documentId: id,
             fileType: "pdf"
           }

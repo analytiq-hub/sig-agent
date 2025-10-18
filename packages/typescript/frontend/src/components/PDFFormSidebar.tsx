@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { 
   ArrowPathIcon,
   DocumentTextIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
-import { listFormsApi, submitFormApi, getDocumentApi, getLLMResultApi } from '@/utils/api';
+import { DocRouterOrgApi } from '@/utils/api';
 import type { Form } from '@/types/index';
 import { useOCR, OCRProvider } from '@/contexts/OCRContext';
 import type { HighlightInfo } from '@/contexts/OCRContext';
@@ -15,7 +15,7 @@ const FormioRenderer = dynamic(() => import('./FormioRenderer'), {
   loading: () => <div className="h-32 flex items-center justify-center">Loading form...</div>
 });
 import { toast } from 'react-toastify';
-import { getApiErrorMsg, getFormSubmissionApi, deleteFormSubmissionApi } from '@/utils/api';
+import { getApiErrorMsg } from '@/utils/api';
 import type { FormSubmission, FieldMapping, FieldMappingSource } from '@/types/forms';
 import type { GetLLMResultResponse } from '@/types/llm';
 
@@ -27,6 +27,7 @@ interface Props {
 }
 
 const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const { loadOCRBlocks, findBlocksWithContext } = useOCR();
   
   // Form-related state
@@ -46,8 +47,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
   const fetchData = useCallback(async () => {
     try {
       // Get document metadata to access tags
-      const documentResponse = await getDocumentApi({ 
-        organizationId, 
+      const documentResponse = await docRouterOrgApi.getDocument({ 
         documentId: id, 
         fileType: 'original' 
       });
@@ -59,8 +59,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       if (documentTags.length > 0) {
         setLoadingForms(true);
         try {
-          const formsResponse = await listFormsApi({
-            organizationId,
+          const formsResponse = await docRouterOrgApi.listForms({
             tag_ids: documentTags.join(','),
             limit: 100
           });
@@ -76,7 +75,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
       console.error('Error fetching data:', error);
       toast.error(`Error loading document data: ${getApiErrorMsg(error)}`);
     }
-  }, [organizationId, id]);
+  }, [id, docRouterOrgApi]);
 
   useEffect(() => {
     fetchData();
@@ -95,8 +94,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     setLoadingSubmissions(prev => new Set(prev).add(formRevId));
     
     try {
-      const submission = await getFormSubmissionApi({
-        organizationId,
+      const submission = await docRouterOrgApi.getFormSubmission({
         documentId: id,
         formRevId
       });
@@ -128,7 +126,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         return newSet;
       });
     }
-  }, [organizationId, id, formInitialData]);
+  }, [id, formInitialData, docRouterOrgApi]);
 
   // Helper function to get value from nested object using path
   const getValueFromPath = (obj: Record<string, unknown>, path: string): unknown => {
@@ -312,8 +310,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     setLlmResultsLoading(prev => new Set(prev).add(promptRevId));
     
     try {
-      const result = await getLLMResultApi({
-        organizationId,
+      const result = await docRouterOrgApi.getLLMResult({
         documentId: id,
         promptRevId: promptRevId,
         fallback: true
@@ -337,7 +334,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
         return newSet;
       });
     }
-  }, [organizationId, id, llmResults, llmResultsLoading, llmResultsFailed]);
+  }, [id, llmResults, llmResultsLoading, llmResultsFailed, docRouterOrgApi]);
 
 
 
@@ -420,13 +417,10 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     setSubmittingForms(prev => new Set(prev).add(form.form_revid));
 
     try {
-      const result = await submitFormApi({
-        organizationId,
+      const result = await docRouterOrgApi.submitForm({
         documentId: id,
-        submission: {
-          form_revid: form.form_revid,
-          submission_data: submissionData as Record<string, unknown>
-        }
+        formRevId: form.form_revid,
+        submission_data: submissionData as Record<string, unknown>
       });
 
       // Update the existing submissions state with the new submission
@@ -462,8 +456,7 @@ const PDFFormSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
     setDeletingSubmissions(prev => new Set(prev).add(formRevId));
 
     try {
-      await deleteFormSubmissionApi({
-        organizationId,
+      await docRouterOrgApi.deleteFormSubmission({
         documentId: id,
         formRevId
       });

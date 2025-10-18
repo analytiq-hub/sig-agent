@@ -8,6 +8,7 @@ import {
   RunLLMResponse,
   GetLLMResultResponse,
   ListTagsResponse,
+  JsonValue,
   Tag,
   // Forms
   CreateFormParams,
@@ -213,19 +214,13 @@ export class DocRouterOrg {
     promptId,
     result,
     isVerified = false
-  }: { documentId: string; promptId: string; result: Record<string, unknown>; isVerified?: boolean; }) {
-    const response = await this.http.put<{
-      status: number;
-      data: unknown;
-    }>(
+  }: { documentId: string; promptId: string; result: Record<string, JsonValue>; isVerified?: boolean; }): Promise<GetLLMResultResponse> {
+    const response = await this.http.put<GetLLMResultResponse>(
       `/v0/orgs/${this.organizationId}/llm/result/${documentId}`,
       { updated_llm_result: result, is_verified: isVerified },
       { params: { prompt_revid: promptId } }
     );
-    if (response.status !== 200) {
-      throw new Error(`Failed to update LLM result for document ${documentId} and prompt ${promptId}: ${response.data}`);
-    }
-    return response.data;
+    return response;
   }
 
   async deleteLLMResult(params: { documentId: string; promptId: string; }) {
