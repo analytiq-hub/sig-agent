@@ -282,85 +282,88 @@ const Dashboard: React.FC<DashboardProps> = ({ organizationId }) => {
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
-        <Card>
-          <CardContent>
-            <Typography variant="h6" className="font-semibold mb-4">
-              Quick Actions
-            </Typography>
-            <div className="grid grid-cols-2 gap-3">
-              <Link href={`/orgs/${organizationId}/docs?tab=upload`}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  startIcon={<UploadIcon />}
-                  className="h-12"
-                >
-                  Upload Document
-                </Button>
-              </Link>
-              <Link href={`/orgs/${organizationId}/schemas?tab=schema-create`}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  startIcon={<AddIcon />}
-                  className="h-12"
-                >
-                  Create Schema
-                </Button>
-              </Link>
-              <Link href={`/orgs/${organizationId}/prompts?tab=prompt-create`}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  startIcon={<AddIcon />}
-                  className="h-12"
-                >
-                  Create Prompt
-                </Button>
-              </Link>
-              <Link href={`/orgs/${organizationId}/tags?tab=tag-create`}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  startIcon={<AddIcon />}
-                  className="h-12"
-                >
-                  Create Tag
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tag Usage */}
-      {availableTags.length > 0 && (
-        <Card>
-          <CardContent>
-            <div className="flex items-center justify-between mb-4">
-              <Typography variant="h6" className="font-semibold">
-                Tag Usage
+        {/* Second Column: Stacked Quick Actions and Tag Usage */}
+        <div className="space-y-6">
+          {/* Quick Actions */}
+          <Card>
+            <CardContent>
+              <Typography variant="h6" className="font-semibold mb-4">
+                Quick Actions
               </Typography>
-              <Link href={`/orgs/${organizationId}/tags`}>
-                <Button size="small" variant="outlined">
-                  Manage Tags
-                </Button>
-              </Link>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {availableTags.map((tag) => (
-                <Chip
-                  key={tag.id}
-                  label={tag.name}
-                  style={{ backgroundColor: tag.color, color: 'white' }}
-                  className="hover:opacity-80 cursor-pointer"
-                />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              <div className="grid grid-cols-2 gap-3">
+                <Link href={`/orgs/${organizationId}/docs?tab=upload`}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    startIcon={<UploadIcon />}
+                    className="h-12"
+                  >
+                    Upload Document
+                  </Button>
+                </Link>
+                <Link href={`/orgs/${organizationId}/schemas?tab=schema-create`}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    startIcon={<AddIcon />}
+                    className="h-12"
+                  >
+                    Create Schema
+                  </Button>
+                </Link>
+                <Link href={`/orgs/${organizationId}/prompts?tab=prompt-create`}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    startIcon={<AddIcon />}
+                    className="h-12"
+                  >
+                    Create Prompt
+                  </Button>
+                </Link>
+                <Link href={`/orgs/${organizationId}/tags?tab=tag-create`}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    startIcon={<AddIcon />}
+                    className="h-12"
+                  >
+                    Create Tag
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tag Usage */}
+          {availableTags.length > 0 && (
+            <Card>
+              <CardContent>
+                <div className="flex items-center justify-between mb-4">
+                  <Typography variant="h6" className="font-semibold">
+                    Tag Usage
+                  </Typography>
+                  <Link href={`/orgs/${organizationId}/tags`}>
+                    <Button size="small" variant="outlined">
+                      Manage Tags
+                    </Button>
+                  </Link>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {availableTags.map((tag) => (
+                    <Chip
+                      key={tag.id}
+                      label={tag.name}
+                      style={{ backgroundColor: tag.color, color: 'white' }}
+                      className="hover:opacity-80 cursor-pointer"
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
