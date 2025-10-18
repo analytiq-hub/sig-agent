@@ -14,7 +14,6 @@ import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutli
 import DownloadIcon from '@mui/icons-material/Download';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { isColorLight } from '@/utils/colors';
-import colors from 'tailwindcss/colors';
 import { DocumentUpdate } from './DocumentUpdate';
 import SearchIcon from '@mui/icons-material/Search';
 import { toast } from 'react-toastify';
@@ -355,7 +354,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         return (
           <div className="flex gap-1 flex-wrap items-center h-full">
             {documentTags.map(tag => {
-              const bgColor = tag.color || colors.blue[500];
+              const bgColor = tag.color;
               const textColor = isColorLight(bgColor) ? 'text-gray-800' : 'text-white';
               return (
                 <div 

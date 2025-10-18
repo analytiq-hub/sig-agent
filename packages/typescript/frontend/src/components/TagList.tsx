@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { listTagsApi, deleteTagApi, getApiErrorMsg } from '@/utils/api';
-import { Tag } from '@/types/index';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { DocRouterOrgApi, getApiErrorMsg } from '@/utils/api';
+import { Tag } from '@docrouter/sdk';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
@@ -16,6 +16,7 @@ import Link from 'next/link';
 
 const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +32,7 @@ const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const loadTags = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await listTagsApi({ organizationId: organizationId, skip: page * pageSize, limit: pageSize, nameSearch: searchTerm || undefined });
+      const response = await docRouterOrgApi.listTags({ skip: page * pageSize, limit: pageSize, nameSearch: searchTerm || undefined });
       setTags(response.tags);
       if (response.total_count !== undefined) {
         setTotal(response.total_count);
@@ -42,7 +43,7 @@ const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [organizationId, page, pageSize, searchTerm]);
+  }, [docRouterOrgApi, page, pageSize, searchTerm]);
 
   useEffect(() => {
     loadTags();
@@ -62,7 +63,7 @@ const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const handleDelete = async (tagId: string) => {
     try {
       setIsLoading(true);
-      await deleteTagApi({ organizationId: organizationId, tagId: tagId });
+      await docRouterOrgApi.deleteTag({ tagId });
       setTags(tags.filter(tag => tag.id !== tagId));
       setMessage('Tag deleted successfully');
       handleMenuClose();
@@ -93,7 +94,7 @@ const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
       headerName: 'Tag Name',
       flex: 1,
       renderCell: (params) => {
-        const bgColor = params.row.color || colors.blue[500];
+        const bgColor = params.row.color;
         const textColor = isColorLight(bgColor) ? 'text-gray-800' : 'text-white';
         
         return (

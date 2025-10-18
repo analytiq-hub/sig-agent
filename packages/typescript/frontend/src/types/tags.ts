@@ -1,6 +1,6 @@
 export interface TagConfig {
     name: string;
-    color?: string;
+    color: string;
     description?: string;
 }
 

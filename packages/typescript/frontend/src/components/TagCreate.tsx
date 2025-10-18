@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { createTagApi, updateTagApi, getApiErrorMsg, getTagApi } from '@/utils/api';
+import React, { useState, useEffect, useMemo } from 'react';
+import { DocRouterOrgApi, getApiErrorMsg } from '@/utils/api';
 import { TagConfig } from '@/types/index';
 import colors from 'tailwindcss/colors';
 import InfoTooltip from '@/components/InfoTooltip';
@@ -9,7 +9,8 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 
 const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organizationId, tagId }) => {
-  const [currentTag, setCurrentTag] = useState<{id?: string; name: string; color: string; description: string}>({
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const [currentTag, setCurrentTag] = useState<{id?: string; name: string; color: string; description?: string}>({
     name: '',
     color: colors.blue[500], // default blue color
     description: ''
@@ -24,11 +25,11 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
       if (tagId) {
         setIsLoading(true);
         try {
-          const tag = await getTagApi({ organizationId, tagId });
+          const tag = await docRouterOrgApi.getTag({ tagId });
           setCurrentTag({
             id: tag.id,
             name: tag.name,
-            color: tag.color || colors.blue[500],
+            color: tag.color,
             description: tag.description || ''
           });
         } catch (error) {
@@ -42,7 +43,7 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
       }
     }
     loadTag();
-  }, [tagId, organizationId]);
+  }, [tagId, docRouterOrgApi]);
 
   const saveTag = async (tag: TagConfig) => {
     try {
@@ -50,19 +51,13 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
       
       if (currentTag.id) {
         // Update existing tag
-        await updateTagApi({
-          organizationId: organizationId,
+        await docRouterOrgApi.updateTag({
           tagId: currentTag.id,
-          tag: {
-            name: tag.name,
-            color: tag.color,
-            description: tag.description
-          }
+          tag: tag
         });
       } else {
         // Create new tag
-        await createTagApi({
-          organizationId: organizationId,
+        await docRouterOrgApi.createTag({ 
           tag: tag
         });
       }
