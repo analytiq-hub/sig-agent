@@ -17,7 +17,7 @@ const FormioRenderer = dynamic(() => import('./FormioRenderer'), {
 import { toast } from 'react-toastify';
 import { getApiErrorMsg } from '@/utils/api';
 import type { FormSubmission, FieldMapping, FieldMappingSource } from '@docrouter/sdk';
-import type { GetLLMResultResponse } from '@/types/llm';
+import type { GetLLMResultResponse } from '@docrouter/sdk';
 
 interface Props {
   organizationId: string;

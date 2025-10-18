@@ -11,7 +11,7 @@ import {
 import { DocRouterOrgApi } from '@/utils/api';
 import type { Prompt } from '@docrouter/sdk';
 import { useOCR, OCRProvider } from '@/contexts/OCRContext';
-import type { GetLLMResultResponse } from '@/types/index';
+import type { GetLLMResultResponse } from '@docrouter/sdk';
 import type { HighlightInfo } from '@/contexts/OCRContext';
 
 interface Props {

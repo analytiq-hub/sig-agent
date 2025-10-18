@@ -40,43 +40,6 @@ export interface SetLLMProviderConfigRequest {
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
-export interface RunLLMParams {
-  organizationId: string;
-  documentId: string;
-  promptRevId: string;
-  force: boolean;
-}
-
-export interface RunLLMResponse {
-  status: string;
-  result: Record<string, JsonValue>;
-}
-
-export interface GetLLMResultParams {
-  organizationId: string;
-  documentId: string;
-  promptRevId: string;
-  fallback: boolean;
-}
-
-export interface GetLLMResultResponse {
-  prompt_revid: string;
-  prompt_id: string;
-  prompt_version: number;
-  document_id: string;
-  llm_result: Record<string, JsonValue>;
-  updated_llm_result: Record<string, JsonValue>;
-  is_edited: boolean;
-  is_verified: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface DeleteLLMResultParams {
-  organizationId: string;
-  documentId: string;
-  promptId: string;
-}
 
 // New interfaces for LLM chat functionality (admin only)
 export interface LLMMessage {

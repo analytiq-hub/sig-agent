@@ -63,13 +63,6 @@ import {
 } from '@/types/index';
 import { CreateTokenRequest } from '@/types/index';
 import { AWSConfig } from '@/types/index';
-import {
-  RunLLMParams,
-  RunLLMResponse, 
-  GetLLMResultParams,
-  GetLLMResultResponse,
-  DeleteLLMResultParams,
-} from '@/types/index';
 import { 
   PortalSessionResponse,
   SubscriptionResponse,
@@ -80,7 +73,6 @@ import {
   UsageRangeResponse,
 } from '@/types/index';
 import { toast } from 'react-toastify';
-import { JsonValue } from 'type-fest';
 import { LLMChatRequest, LLMChatResponse, LLMChatStreamChunk, LLMChatStreamError } from '@/types/llm';
 
 // These APIs execute from the frontend
@@ -256,94 +248,6 @@ export class DocRouterAccountApi extends DocRouterAccount {
 
 
 
-export const runLLMApi = async (params: RunLLMParams) => {
-  const { organizationId, documentId, promptRevId, force } = params;
-  const response = await api.post<RunLLMResponse>(
-    `/v0/orgs/${organizationId}/llm/run/${documentId}`,
-    {},
-    {
-      params: {
-        prompt_revid: promptRevId,
-        force: force
-      }
-    }
-  );
-  return response.data;
-};
-
-export const getLLMResultApi = async (params: GetLLMResultParams) => {
-  const { organizationId, documentId, promptRevId, fallback } = params;
-  const response = await api.get<GetLLMResultResponse>(
-    `/v0/orgs/${organizationId}/llm/result/${documentId}`,
-    {
-      params: {
-        prompt_revid: promptRevId,
-        fallback: fallback
-      }
-    }
-  );
-  return response.data;
-};
-
-export const updateLLMResultApi = async ({
-  organizationId,
-  documentId,
-  promptId,
-  result,
-  isVerified = false
-}: {
-  organizationId: string;
-  documentId: string;
-  promptId: string;
-  result: Record<string, JsonValue>;
-  isVerified?: boolean;
-}) => {
-  const response = await api.put(
-    `/v0/orgs/${organizationId}/llm/result/${documentId}`,
-    {
-      updated_llm_result: result,
-      is_verified: isVerified
-    },
-    {
-      params: {
-        prompt_revid: promptId
-      }
-    }
-  );
-
-  if (response.status !== 200) {
-    throw new Error(`Failed to update LLM result for document ${documentId} and prompt ${promptId}: ${response.data}`);
-  }
-
-  return response.data;
-};
-
-export const deleteLLMResultApi = async (params: DeleteLLMResultParams) => {
-  const { organizationId, documentId, promptId } = params;
-  const response = await api.delete(
-    `/v0/orgs/${organizationId}/llm/result/${documentId}`,
-    {
-      params: {
-        prompt_revid: promptId
-      }
-    }
-  );
-  return response.data;
-};
-
-export const downloadAllLLMResultsApi = async (params: {
-  organizationId: string;
-  documentId: string;
-}) => {
-  const { organizationId, documentId } = params;
-  const response = await api.get(
-    `/v0/orgs/${organizationId}/llm/results/${documentId}/download`,
-    {
-      responseType: 'blob'
-    }
-  );
-  return response.data;
-};
 
 // LLM Chat API (admin only) - Account level
 export const runLLMChatApi = async (request: LLMChatRequest): Promise<LLMChatResponse> => {
