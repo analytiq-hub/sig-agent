@@ -1,6 +1,7 @@
 import axios, { isAxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/types/AppSession';
+import { DocRouterOrg } from '@docrouter/sdk';
 
 // Session cache to avoid repeated calls
 let sessionCache: { session: AppSession | null; timestamp: number } | null = null;
@@ -261,6 +262,24 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export class DocRouterOrgApi extends DocRouterOrg {
+ constructor(organizationId: string) {
+    // First try to use global session (pre-fetched from context)
+    const session = getGlobalSession();
+    if (!session) {
+      throw new Error('No session found');
+    }
+    if (!session.apiAccessToken) {
+      throw new Error('No API token found in session');
+    }
+    super({
+      baseURL: NEXT_PUBLIC_FASTAPI_FRONTEND_URL,
+      orgToken: session.apiAccessToken,
+      organizationId: organizationId,
+    });
+  }
+}
 
 // Document APIs
 export const uploadDocumentsApi = async (params: UploadDocumentsParams): Promise<UploadDocumentsResponse> => {

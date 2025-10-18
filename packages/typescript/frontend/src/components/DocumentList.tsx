@@ -1,11 +1,10 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { Box, IconButton, TextField, InputAdornment, Autocomplete, Menu, MenuItem } from '@mui/material';
 import { isAxiosError } from 'axios';
 import { 
-  listDocumentsApi, 
   deleteDocumentApi, 
   listTagsApi,
   updateDocumentApi,
@@ -28,6 +27,7 @@ import DocumentRenameModal from './DocumentRename';
 import { formatLocalDateWithTZ } from '@/utils/date';
 import { BoltIcon } from '@heroicons/react/24/outline';
 import { DocumentBulkUpdate } from './DocumentBulkUpdate';
+import { DocRouterOrgApi } from '@/utils/api';
 
 // Helper function to parse and URL-encode metadata search
 const parseAndEncodeMetadataSearch = (searchStr: string): string | null => {
@@ -62,6 +62,7 @@ const parseAndEncodeMetadataSearch = (searchStr: string): string | null => {
 };
 
 const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [totalRows, setTotalRows] = useState<number>(0);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
@@ -113,8 +114,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         }
       }
       
-      const response = await listDocumentsApi({
-        organizationId,
+      const response = await docRouterOrgApi.listDocuments({
         skip: paginationModel.page * paginationModel.pageSize,
         limit: paginationModel.pageSize,
         nameSearch: searchTerm.trim() || undefined,
@@ -132,8 +132,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         console.log('Unauthorized, waiting for token and retrying...');
         await new Promise(resolve => setTimeout(resolve, 1000));
         try {
-          const retryResponse = await listDocumentsApi({
-            organizationId: organizationId,
+          const retryResponse = await docRouterOrgApi.listDocuments({
             skip: paginationModel.page * paginationModel.pageSize,
             limit: paginationModel.pageSize
           }); 
@@ -151,7 +150,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     } finally {
       setIsLoading(false);
     }
-  }, [paginationModel, organizationId, searchTerm, selectedTagFilters, metadataSearch]);
+  }, [paginationModel, searchTerm, selectedTagFilters, metadataSearch, docRouterOrgApi]);
 
   useEffect(() => {
     console.log('FileList component mounted or pagination changed');
