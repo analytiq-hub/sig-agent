@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { getUserApi, updateUserApi, deleteUserApi, sendVerificationEmailApi } from '@/utils/api';
-import { UserResponse, UserUpdate } from '@/types/index';
+import { DocRouterAccountApi, sendVerificationEmailApi } from '@/utils/api';
+import { User, UserUpdate } from '@docrouter/sdk';
 import { signOut } from 'next-auth/react';
 import { useAppSession } from '@/contexts/AppSessionContext';
 import { toast } from 'react-toastify';
@@ -138,7 +138,7 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ isOpen, onClose, onCo
 const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
   const router = useRouter();
   const { session } = useAppSession();
-  const [user, setUser] = useState<UserResponse | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState('');
   const [role, setRole] = useState<string>('user');
   const [emailVerified, setEmailVerified] = useState(false);
@@ -153,6 +153,8 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
     emailVerified: false
   });
 
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+
   const hasChanges = () => {
     return name !== originalValues.name ||
            role !== originalValues.role ||
@@ -162,7 +164,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const userData = await getUserApi(userId);
+        const userData = await docRouterAccountApi.getUser(userId);
         setUser(userData);
         setName(userData.name || '');
         setRole(userData.role);
@@ -179,11 +181,11 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
     };
 
     fetchUser();
-  }, [userId]);
+  }, [userId, docRouterAccountApi]);
 
   const handlePasswordUpdate = async (newPassword: string) => {
     try {
-      await updateUserApi(userId, { password: newPassword });
+      await docRouterAccountApi.updateUser(userId, { password: newPassword });
       setSuccess(true);
     } catch (error) {
       setError('Failed to update password');
@@ -203,7 +205,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
         email_verified: emailVerified
       };
 
-      await updateUserApi(userId, update);
+      await docRouterAccountApi.updateUser(userId, update);
       setSuccess(true);
       
       // Update original values after successful save
@@ -220,7 +222,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
 
   const handleDeleteUser = async () => {
     try {
-      await deleteUserApi(userId);
+      await docRouterAccountApi.deleteUser(userId);
       
       // Check if deleting current user
       if (session?.user?.id === userId) {

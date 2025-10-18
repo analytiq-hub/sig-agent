@@ -42,13 +42,6 @@ export function invalidateSessionCache(): void {
 }
 
 import { 
-  UserCreate, 
-  UserUpdate, 
-  UserResponse, 
-  ListUsersParams, 
-  ListUsersResponse 
-} from '@/types/index';
-import { 
   InvitationResponse, 
   CreateInvitationRequest, 
   ListInvitationsParams, 
@@ -236,40 +229,6 @@ export class DocRouterAccountApi extends DocRouterAccount {
 
 
 
-// User APIs
-
-export const getUsersApi = async (params?: ListUsersParams): Promise<ListUsersResponse> => {
-  const queryParams = new URLSearchParams();
-  if (params?.skip) queryParams.append('skip', params.skip.toString());
-  if (params?.limit) queryParams.append('limit', params.limit.toString());
-  if (params?.organization_id) queryParams.append('organization_id', params.organization_id);
-  if (params?.user_id) queryParams.append('user_id', params.user_id);
-  if (params?.search_name) queryParams.append('search_name', params.search_name);
-
-  const response = await api.get<ListUsersResponse>(
-    `/v0/account/users?${queryParams.toString()}`
-  );
-  return response.data;
-};
-
-export const createUserApi = async (user: UserCreate): Promise<UserResponse> => {
-  const response = await api.post('/v0/account/users', user);
-  return response.data;
-};
-
-export const deleteUserApi = async (userId: string): Promise<void> => {
-  await api.delete(`/v0/account/users/${userId}`);
-};
-
-export const getUserApi = async (userId: string): Promise<UserResponse> => {
-  const response = await getUsersApi({ user_id: userId });
-  return response.users[0]; // Will always return exactly one user
-};
-
-export const updateUserApi = async (userId: string, update: UserUpdate): Promise<UserResponse> => {
-  const response = await api.put<UserResponse>(`/v0/account/users/${userId}`, update);
-  return response.data;
-};
 
 export function getApiErrorMsg(error: unknown): string {
   if (error instanceof Error) {

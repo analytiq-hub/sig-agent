@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getUsersApi, deleteUserApi, createUserApi } from '@/utils/api';
-import { UserResponse, UserCreate } from '@/types/index';
+import { DocRouterAccountApi } from '@/utils/api';
+import { User, UserCreate } from '@docrouter/sdk';
 import { isAxiosError } from 'axios';
 import colors from 'tailwindcss/colors';
 import { useRouter } from 'next/navigation';
@@ -21,7 +21,7 @@ import MenuItem from '@mui/material/MenuItem';
 interface DeleteUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: UserResponse | null;
+  user: User | null;
   onConfirm: () => Promise<void>;
 }
 
@@ -57,25 +57,26 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ isOpen, onClose, user
 const UserManager: React.FC = () => {
   const router = useRouter();
   const session = useAppSession();
-  const [users, setUsers] = useState<UserResponse[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<UserResponse | null>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [paginationModel, setPaginationModel] = useState({
     pageSize: 10,
     page: 0,
   });
   const [searchQuery, setSearchQuery] = useState('');
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedUser, setSelectedUser] = useState<UserResponse | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
-      const response = await getUsersApi({
+      const response = await docRouterAccountApi.listUsers({
         skip: paginationModel.page * paginationModel.pageSize,
         limit: paginationModel.pageSize,
         search_name: debouncedSearch || undefined
@@ -89,7 +90,7 @@ const UserManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [paginationModel, debouncedSearch]);
+  }, [paginationModel, debouncedSearch, docRouterAccountApi]);
 
   useEffect(() => {
     fetchUsers();
@@ -113,7 +114,7 @@ const UserManager: React.FC = () => {
     if (!userToDelete) return;
 
     try {
-      await deleteUserApi(userToDelete.id);
+      await docRouterAccountApi.deleteUser(userToDelete.id);
       
       if (session?.session?.user?.id === userToDelete.id) {
         signOut({ callbackUrl: '/auth/signin' });
@@ -134,7 +135,7 @@ const UserManager: React.FC = () => {
   // Server-side filtering; rows are the fetched users
   const filteredUsers = users;
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, user: UserResponse) => {
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, user: User) => {
     setAnchorEl(event.currentTarget);
     setSelectedUser(user);
   };
@@ -202,7 +203,7 @@ const UserManager: React.FC = () => {
 
   const handleAddUser = async (userData: UserCreate) => {
     try {
-      await createUserApi(userData);
+      await docRouterAccountApi.createUser(userData);
       await fetchUsers();
     } catch (error) {
       throw error; // Let the modal handle the error

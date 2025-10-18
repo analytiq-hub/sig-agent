@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
-import { getUsersApi, createInvitationApi } from '@/utils/api';
-import { UserResponse } from '@/types/index';
+import { DocRouterAccountApi, createInvitationApi } from '@/utils/api';
+import { User } from '@docrouter/sdk';
 import { toast } from 'react-toastify';
 
 interface UserAddToOrgModalProps {
@@ -22,8 +22,9 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
   currentMembers
 }) => {
   const [email, setEmail] = useState('');
-  const [searchResults, setSearchResults] = useState<UserResponse[]>([]);
+  const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
 
   useEffect(() => {
     if (!email) {
@@ -32,7 +33,7 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
     }
 
     const timeoutId = setTimeout(() => {
-      getUsersApi({ limit: 1000 })
+      docRouterAccountApi.listUsers({ limit: 1000 })
         .then(response => {
           const filteredUsers = response.users.filter(user =>
             !currentMembers.includes(user.id) && (
@@ -48,7 +49,7 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [email, currentMembers]);
+  }, [email, currentMembers, docRouterAccountApi]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

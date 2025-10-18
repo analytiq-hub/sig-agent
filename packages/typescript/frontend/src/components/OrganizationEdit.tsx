@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { OrganizationMember, OrganizationType } from '@/types/index'
-import { DocRouterAccountApi, getUsersApi } from '@/utils/api'
+import { DocRouterAccountApi } from '@/utils/api'
 import { isAxiosError } from 'axios'
-import { UserResponse } from '@/types/index'
+import { User } from '@docrouter/sdk'
 import { 
   DataGrid, 
   GridColDef, 
@@ -56,7 +56,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [name, setName] = useState('')
   const [type, setType] = useState<OrganizationType>('individual')
   const [members, setMembers] = useState<OrganizationMember[]>([])
-  const [allUsers, setAllUsers] = useState<UserResponse[]>([])
+  const [allUsers, setAllUsers] = useState<User[]>([])
   const [memberSearch, setMemberSearch] = useState('');
   const [originalName, setOriginalName] = useState('')
   const [originalType, setOriginalType] = useState<OrganizationType>('individual')
@@ -97,13 +97,13 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
       const isUserSysAdmin = isSysAdmin(session);
       
       if (isUserOrgAdmin || isUserSysAdmin) {
-        let allUsers: UserResponse[] = [];
+        let allUsers: User[] = [];
         let skip = 0;
         const limit = 100;
         let total = 0;
 
         do {
-          const usersResponse = await getUsersApi({ organization_id: organizationId, skip, limit });
+          const usersResponse = await docRouterAccountApi.listUsers({ organization_id: organizationId, skip, limit });
           allUsers = allUsers.concat(usersResponse.users);
           total = usersResponse.total_count;
           skip += limit;
@@ -114,7 +114,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     };
 
     fetchUsers();
-  }, [organizationId, organization, session]);
+  }, [organizationId, organization, session, docRouterAccountApi]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

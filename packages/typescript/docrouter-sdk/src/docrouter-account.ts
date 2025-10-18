@@ -19,7 +19,6 @@ import {
   ListUsersParams,
   ListUsersResponse,
   UserCreate,
-  UserResponse,
   UserUpdate,
   User,
   AWSConfig,
@@ -174,31 +173,17 @@ export class DocRouterAccount {
     return this.http.get<ListUsersResponse>(`/v0/account/users?${queryParams.toString()}`);
   }
 
-  async getUser(userId: string): Promise<UserResponse> {
+  async getUser(userId: string): Promise<User> {
     const response = await this.listUsers({ user_id: userId });
-    const user = response.users[0];
-    return { user } as UserResponse;
+    return response.users[0];
   }
 
-  async createUser(user: UserCreate): Promise<UserResponse> {
-    const created = await this.http.post<UserResponse | { user: User }>(
-      '/v0/account/users',
-      user
-    );
-    // Normalize to { user }
-    return (created as UserResponse).user
-      ? (created as UserResponse)
-      : ({ user: created as unknown as User }) as UserResponse;
+  async createUser(user: UserCreate): Promise<User> {
+    return this.http.post<User>('/v0/account/users', user);
   }
 
-  async updateUser(userId: string, update: UserUpdate): Promise<UserResponse> {
-    const updated = await this.http.put<UserResponse | { user: User }>(
-      `/v0/account/users/${userId}`,
-      update
-    );
-    return (updated as UserResponse).user
-      ? (updated as UserResponse)
-      : ({ user: updated as unknown as User }) as UserResponse;
+  async updateUser(userId: string, update: UserUpdate): Promise<User> {
+    return this.http.put<User>(`/v0/account/users/${userId}`, update);
   }
 
   async deleteUser(userId: string): Promise<void> {

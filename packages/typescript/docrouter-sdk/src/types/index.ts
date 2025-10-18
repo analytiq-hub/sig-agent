@@ -340,10 +340,13 @@ export interface DeleteLLMResultParams {
 export interface User {
   id: string;
   email: string;
-  name: string;
+  name: string | null;
   role: string;
+  email_verified: boolean | null;
   created_at: string;
   updated_at: string;
+  has_password: boolean;
+  has_seen_tour: boolean;
 }
 
 export interface UserCreate {
@@ -356,11 +359,11 @@ export interface UserUpdate {
   name?: string;
   email?: string;
   password?: string;
+  role?: string;
+  email_verified?: boolean;
+  has_seen_tour?: boolean;
 }
 
-export interface UserResponse {
-  user: User;
-}
 
 export interface ListUsersParams {
   skip?: number;
