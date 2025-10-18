@@ -1,6 +1,5 @@
 export * from './AppSession';
 export * from './aws_config';
-export * from './documents';
 export * from './forms';
 export * from './invitations';
 export * from './llm';

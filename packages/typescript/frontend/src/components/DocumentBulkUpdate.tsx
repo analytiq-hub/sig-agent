@@ -1,7 +1,8 @@
 import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, BoltIcon, PlusIcon, MinusIcon, DocumentArrowDownIcon, TrashIcon, CpuChipIcon } from '@heroicons/react/24/outline'
-import { Tag, DocumentMetadata } from '@/types/index';
+import { Tag } from '@/types/index';
+import { Document } from '@docrouter/sdk';
 import { DocRouterOrgApi } from '@/utils/api';
 
 // Operation data types
@@ -58,7 +59,7 @@ export function DocumentBulkUpdate({
   onRefresh
 }: DocumentBulkUpdateProps) {
   const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
-  const [previewDocuments, setPreviewDocuments] = useState<DocumentMetadata[]>([])
+  const [previewDocuments, setPreviewDocuments] = useState<Document[]>([])
   // Remove individual state - now handled by sub-components
   const [isLoading, setIsLoading] = useState(false)
   const [isOperationLoading, setIsOperationLoading] = useState(false)

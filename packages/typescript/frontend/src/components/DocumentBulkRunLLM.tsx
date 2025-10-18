@@ -1,7 +1,7 @@
 import { forwardRef, useImperativeHandle, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Tag } from '@/types/index';
 import { Prompt } from '@/types/prompts';
-import { DocumentMetadata } from '@/types/documents';
+import { Document } from '@docrouter/sdk';
 import { DocRouterOrgApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
@@ -138,7 +138,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
 
     // Helper function to fetch all documents with pagination
     const fetchAllDocuments = useCallback(async () => {
-      const allDocuments: DocumentMetadata[] = [];
+      const allDocuments: Document[] = [];
       let skip = 0;
       const limit = 100; // API maximum
 

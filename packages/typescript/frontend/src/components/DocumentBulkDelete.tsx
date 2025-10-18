@@ -2,7 +2,8 @@ import { useState, forwardRef, useImperativeHandle, useMemo } from 'react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { DocRouterOrgApi } from '@/utils/api'
 import { toast } from 'react-hot-toast'
-import { Tag, DocumentMetadata } from '@/types'
+import { Tag } from '@/types';
+import { Document } from '@docrouter/sdk';
 
 interface DocumentBulkDeleteProps {
   organizationId: string
@@ -103,7 +104,7 @@ export const DocumentBulkDelete = forwardRef<DocumentBulkDeleteRef, DocumentBulk
         for (let i = 0; i < documentsInBatch.length; i += BATCH_SIZE) {
           const batch = documentsInBatch.slice(i, i + BATCH_SIZE);
 
-          const deletePromises = batch.map(async (doc: DocumentMetadata) => {
+          const deletePromises = batch.map(async (doc: Document) => {
             try {
               await docRouterOrgApi.deleteDocument({
                 documentId: doc.id

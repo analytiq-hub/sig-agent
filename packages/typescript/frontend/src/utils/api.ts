@@ -40,13 +40,7 @@ export function invalidateSessionCache(): void {
   sessionCache = null;
   globalSession = null;
 }
-import { 
-  GetDocumentParams,
-  GetDocumentResponse,
-  UpdateDocumentParams,
-  DeleteDocumentParams,
-  ListDocumentsParams,
-} from '@/types/index';
+
 import {
   GetOCRBlocksParams,
   GetOCRTextParams,
@@ -283,86 +277,6 @@ export class DocRouterOrgApi extends DocRouterOrg {
     });
   }
 }
-
-// Document APIs
-
-export const listDocumentsApi = async (params?: ListDocumentsParams) => {
-  const queryParams: Record<string, string | number | undefined> = {
-    skip: params?.skip || 0,
-    limit: params?.limit || 10,
-  };
-  
-  if (params?.tagIds) {
-    queryParams.tag_ids = params.tagIds;
-  }
-  
-  if (params?.nameSearch) {
-    queryParams.name_search = params.nameSearch;
-  }
-  
-  if (params?.metadataSearch) {
-    queryParams.metadata_search = params.metadataSearch;
-  }
-  
-  const response = await api.get(`/v0/orgs/${params?.organizationId}/documents`, { 
-    params: queryParams
-  });
-  return response.data;
-};
-
-export const getDocumentApi = async (params: GetDocumentParams): Promise<GetDocumentResponse> => {
-  const { organizationId, documentId, fileType } = params;
-  // Always request the associated PDF
-  const response = await api.get(`/v0/orgs/${organizationId}/documents/${documentId}?file_type=${fileType}`);
-  const data = response.data;
-
-  // Convert base64 content back to ArrayBuffer
-  const binaryContent = atob(data.content);
-  const len = binaryContent.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryContent.charCodeAt(i);
-  }
-
-  return {
-    id: data.id,
-    pdf_id: data.pdf_id,
-    document_name: data.document_name,
-    upload_date: data.upload_date,
-    uploaded_by: data.uploaded_by,
-    state: data.state,
-    tag_ids: data.tag_ids,
-    type: data.type,
-    metadata: data.metadata,
-    content: bytes.buffer
-  };
-};
-
-export const updateDocumentApi = async (params: UpdateDocumentParams) => {
-  const { organizationId, documentId, documentName, tagIds, metadata } = params;
-  const updateData: { tag_ids?: string[]; document_name?: string; metadata?: Record<string, string> } = {};
-  
-  if (documentName !== undefined) {
-    updateData.document_name = documentName;
-  }
-
-  if (tagIds !== undefined) {
-    updateData.tag_ids = tagIds;
-  }
-
-  if (metadata !== undefined) {
-    updateData.metadata = metadata;
-  }
-  
-  const response = await api.put(`/v0/orgs/${organizationId}/documents/${documentId}`, updateData);
-  return response.data;
-};
-
-export const deleteDocumentApi = async (params: DeleteDocumentParams) => {
-  const { organizationId, documentId } = params;
-  const response = await api.delete(`/v0/orgs/${organizationId}/documents/${documentId}`);
-  return response.data;
-};
 
 // OCR APIs
 export const getOCRBlocksApi = async (params: GetOCRBlocksParams) => {

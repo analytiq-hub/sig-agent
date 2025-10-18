@@ -1,6 +1,7 @@
 import { useState, forwardRef, useImperativeHandle, useMemo } from 'react'
 import { DocRouterOrgApi } from '@/utils/api'
-import { DocumentMetadata, Tag } from '@/types/index'
+import { Tag } from '@/types/index';
+import { Document } from '@docrouter/sdk';
 import { toast } from 'react-hot-toast'
 
 interface DocumentBulkDownloadProps {
@@ -60,7 +61,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
     }
   };
 
-  const downloadDocument = async (doc: DocumentMetadata): Promise<boolean> => {
+  const downloadDocument = async (doc: Document): Promise<boolean> => {
     try {
       const response = await docRouterOrgApi.getDocument({
         documentId: doc.id,
@@ -134,7 +135,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
         for (let i = 0; i < documentsInBatch.length; i += BATCH_SIZE) {
           const batch = documentsInBatch.slice(i, i + BATCH_SIZE);
 
-          const downloadPromises = batch.map((doc: DocumentMetadata) => downloadDocument(doc));
+          const downloadPromises = batch.map((doc: Document) => downloadDocument(doc));
           const results = await Promise.all(downloadPromises);
 
           // Count successes and failures
