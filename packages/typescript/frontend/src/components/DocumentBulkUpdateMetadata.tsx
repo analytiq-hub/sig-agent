@@ -1,6 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react'
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { Tag } from '@/types/index'
+import { Tag } from '@docrouter/sdk';
 import { DocRouterOrgApi } from '@/utils/api'
 import { toast } from 'react-hot-toast'
 

@@ -1,7 +1,6 @@
 import { useState, forwardRef, useImperativeHandle, useMemo } from 'react'
 import { DocRouterOrgApi } from '@/utils/api'
-import { Tag } from '@/types/index';
-import { Document } from '@docrouter/sdk';
+import { Document, Tag } from '@docrouter/sdk';
 import { toast } from 'react-hot-toast'
 
 interface DocumentBulkDownloadProps {

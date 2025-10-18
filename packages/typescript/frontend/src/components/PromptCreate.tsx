@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DocRouterOrgApi, listLLMModelsApi } from '@/utils/api';
-import { PromptConfig, Tag, LLMModel } from '@/types/index';
+import { PromptConfig, LLMModel } from '@/types/index';
+import { Tag } from '@docrouter/sdk';
 import { Schema } from '@docrouter/sdk';
 import { getApiErrorMsg } from '@/utils/api';
 import { SchemaResponseFormat } from '@/types/schemas';

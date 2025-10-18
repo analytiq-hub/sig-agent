@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { Tag } from '@/types/index';
+import { Tag } from '@docrouter/sdk';
 import TagSelector from './TagSelector';
 
 interface DocumentUpdateProps {

@@ -1,7 +1,6 @@
 import { forwardRef, useImperativeHandle, useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Tag } from '@/types/index';
 import { Prompt } from '@/types/prompts';
-import { Document } from '@docrouter/sdk';
+import { Document, Tag } from '@docrouter/sdk';
 import { DocRouterOrgApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';

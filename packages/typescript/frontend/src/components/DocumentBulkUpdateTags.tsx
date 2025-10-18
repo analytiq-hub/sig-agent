@@ -1,5 +1,5 @@
 import { useState, forwardRef, useImperativeHandle, useMemo } from 'react'
-import { Tag } from '@/types/index';
+import { Tag } from '@docrouter/sdk';
 import TagSelector from './TagSelector';
 import { DocRouterOrgApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';

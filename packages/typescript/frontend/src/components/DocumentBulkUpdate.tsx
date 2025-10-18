@@ -1,8 +1,7 @@
 import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, BoltIcon, PlusIcon, MinusIcon, DocumentArrowDownIcon, TrashIcon, CpuChipIcon } from '@heroicons/react/24/outline'
-import { Tag } from '@/types/index';
-import { Document } from '@docrouter/sdk';
+import { Document, Tag } from '@docrouter/sdk';
 import { DocRouterOrgApi } from '@/utils/api';
 
 // Operation data types

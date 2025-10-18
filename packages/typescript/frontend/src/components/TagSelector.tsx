@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Tag } from '@/types/index';
+import { Tag } from '@docrouter/sdk';
 import { isColorLight } from '@/utils/colors';
 
 interface TagSelectorProps {

@@ -15,8 +15,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { 
   DocRouterOrgApi
 } from '@/utils/api';
-import { Tag } from '@/types/index';
-import { UploadDocument } from '@docrouter/sdk';
+import { UploadDocument, Tag } from '@docrouter/sdk';
 import { isColorLight } from '@/utils/colors';
 import InfoTooltip from '@/components/InfoTooltip';
 import TagSelector from './TagSelector';

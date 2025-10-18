@@ -2,8 +2,7 @@ import { useState, forwardRef, useImperativeHandle, useMemo } from 'react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { DocRouterOrgApi } from '@/utils/api'
 import { toast } from 'react-hot-toast'
-import { Tag } from '@/types';
-import { Document } from '@docrouter/sdk';
+import { Document, Tag } from '@docrouter/sdk';
 
 interface DocumentBulkDeleteProps {
   organizationId: string

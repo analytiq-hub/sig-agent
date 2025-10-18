@@ -2,8 +2,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { DocRouterOrgApi, getApiErrorMsg } from '@/utils/api';
-import { TagConfig } from '@/types/index';
+import { Tag } from '@docrouter/sdk';
 import colors from 'tailwindcss/colors';
+
+// Type alias for tag creation/update (without id and timestamps)
+type TagConfig = Omit<Tag, 'id' | 'created_at' | 'updated_at'>;
 import InfoTooltip from '@/components/InfoTooltip';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';

@@ -8,7 +8,6 @@ export * from './organizations';
 export * from './payments';
 export * from './prompts';
 export * from './schemas';
-export * from './tags';
 export * from './users';
 export * from './tokens';
 export type { HighlightInfo } from '@/contexts/OCRContext';

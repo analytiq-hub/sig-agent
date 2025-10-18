@@ -99,14 +99,6 @@ import {
   DeletePromptParams,
 } from '@/types/index';
 import { 
-  Tag, 
-  ListTagsResponse,
-  CreateTagParams,
-  ListTagsParams,
-  UpdateTagParams,
-  DeleteTagParams,
-} from '@/types/index';
-import { 
   PortalSessionResponse,
   SubscriptionResponse,
   UsageResponse,
@@ -675,46 +667,6 @@ export const deleteFormSubmissionApi = async (params: DeleteFormSubmissionParams
 };
 
 
-// Tag APIs
-export const createTagApi = async (params: CreateTagParams): Promise<Tag> => {
-    const { organizationId, tag } = params;
-    const response = await api.post<Tag>(`/v0/orgs/${organizationId}/tags`, tag);
-    return response.data;
-};
-
-export const getTagApi = async ({
-  organizationId,
-  tagId,
-}: {
-  organizationId: string;
-  tagId: string;
-}): Promise<Tag> => {
-  const response = await api.get<Tag>(`/v0/orgs/${organizationId}/tags/${tagId}`);
-  return response.data;
-};
-
-export const listTagsApi = async (params: ListTagsParams): Promise<ListTagsResponse> => {
-    const { organizationId, skip, limit, nameSearch } = params;
-    const response = await api.get<ListTagsResponse>(`/v0/orgs/${organizationId}/tags`, {
-      params: {
-        skip: skip || 0,
-        limit: limit || 10,
-        name_search: nameSearch
-      }
-    });
-    return response.data;
-};
-
-export const updateTagApi = async (params: UpdateTagParams): Promise<Tag> => {
-    const { organizationId, tagId, tag } = params;
-    const response = await api.put<Tag>(`/v0/orgs/${organizationId}/tags/${tagId}`, tag);
-    return response.data;
-};
-
-export const deleteTagApi = async (params: DeleteTagParams): Promise<void> => {
-  const { organizationId, tagId } = params;
-  await api.delete(`/v0/orgs/${organizationId}/tags/${tagId}`);
-};
 
 // Account Token APIs
 export const createAccountTokenApi = async (token: CreateTokenRequest) => {

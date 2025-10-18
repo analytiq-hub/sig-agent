@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DocRouterOrgApi } from '@/utils/api';
-import { Tag } from '@/types/index';
+import { Tag } from '@docrouter/sdk';
 import { Prompt, Schema } from '@docrouter/sdk';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
