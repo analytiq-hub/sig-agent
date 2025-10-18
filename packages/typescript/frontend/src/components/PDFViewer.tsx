@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import { DocRouterOrgApi, getOCRTextApi, getOCRBlocksApi } from '@/utils/api';
+import { DocRouterOrgApi } from '@/utils/api';
 import { Toolbar, Typography, IconButton, TextField, Menu, MenuItem, Divider, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, Tooltip, Box, CircularProgress } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
@@ -159,7 +159,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
       }
       setFile(null);
     };
-  }, [id, organizationId]);
+  }, [id, organizationId, docRouterOrgApi]);
 
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -481,8 +481,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
 
   const handleDownloadOcrText = async () => {
     try {
-      const text = await getOCRTextApi({
-        organizationId: organizationId,
+      const text = await docRouterOrgApi.getOCRText({
         documentId: id
       });
       const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
@@ -496,8 +495,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
 
   const handleDownloadOcrJson = async () => {
     try {
-      const blocks = await getOCRBlocksApi({
-        organizationId: organizationId,
+      const blocks = await docRouterOrgApi.getOCRBlocks({
         documentId: id
       });
       const blob = new Blob([JSON.stringify(blocks, null, 2)], { type: 'application/json' });
@@ -516,8 +514,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
       try {
         setOcrLoading(true);
         setOcrError(null);
-        const text = await getOCRTextApi({
-          organizationId: organizationId,
+        const text = await docRouterOrgApi.getOCRText({
           documentId: id,
           pageNum: pageNumber
         });
@@ -531,7 +528,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
     };
 
     fetchOcrText();
-  }, [id, pageNumber, showOcr, organizationId]);
+  }, [id, pageNumber, showOcr, organizationId, docRouterOrgApi]);
 
   // This is called once for each page
   const renderHighlights = useCallback((page: number) => {

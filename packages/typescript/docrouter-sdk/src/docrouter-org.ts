@@ -10,6 +10,7 @@ import {
   ListTagsResponse,
   JsonValue,
   Tag,
+  OCRBlock,
   // Forms
   CreateFormParams,
   ListFormsParams,
@@ -174,15 +175,15 @@ export class DocRouterOrg {
 
   // ---------------- OCR ----------------
 
-  async getOCRBlocks(params: { documentId: string; }) {
+  async getOCRBlocks(params: { documentId: string; }): Promise<OCRBlock[]> {
     const { documentId } = params;
-    return this.http.get(`/v0/orgs/${this.organizationId}/ocr/download/blocks/${documentId}`);
+    return this.http.get<OCRBlock[]>(`/v0/orgs/${this.organizationId}/ocr/download/blocks/${documentId}`);
   }
 
-  async getOCRText(params: { documentId: string; pageNum?: number; }) {
+  async getOCRText(params: { documentId: string; pageNum?: number; }): Promise<string> {
     const { documentId, pageNum } = params;
     const url = `/v0/orgs/${this.organizationId}/ocr/download/text/${documentId}${pageNum ? `?page_num=${pageNum}` : ''}`;
-    return this.http.get(url);
+    return this.http.get<string>(url);
   }
 
   async getOCRMetadata(params: { documentId: string; }): Promise<GetOCRMetadataResponse> {

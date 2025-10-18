@@ -170,6 +170,29 @@ export interface ListDocumentsResponse {
 }
 
 // OCR types
+export interface OCRGeometry {
+  BoundingBox: {
+    Width: number;
+    Height: number;
+    Left: number;
+    Top: number;
+  };
+  Polygon: Array<{ X: number; Y: number }>;
+}
+
+export interface OCRBlock {
+  BlockType: 'PAGE' | 'LINE' | 'WORD';
+  Confidence: number;
+  Text?: string;
+  Geometry: OCRGeometry;
+  Id: string;
+  Relationships?: Array<{
+    Type: string;
+    Ids: string[];
+  }>;
+  Page: number;
+}
+
 export interface GetOCRBlocksParams {
   documentId: string;
 }
