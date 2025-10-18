@@ -1,15 +1,16 @@
 'use client'
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppSession } from '@/contexts/AppSessionContext';
-import { getOrganizationsApi } from '@/utils/api';
+import { DocRouterAccountApi } from '@/utils/api';
 import { AppSession } from '@/types/AppSession';
 import { toast } from 'react-toastify';
 
 export default function DashboardRedirect() {
   const router = useRouter();
   const { session, status } = useAppSession();
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
 
   useEffect(() => {
     const redirectToDashboard = async () => {
@@ -21,7 +22,7 @@ export default function DashboardRedirect() {
             return;
           }
 
-          const response = await getOrganizationsApi({ userId: appSession.user.id });
+          const response = await docRouterAccountApi.listOrganizations({ userId: appSession.user.id });
           const { organizations } = response;
           
           if (organizations && organizations.length > 0) {
@@ -41,7 +42,7 @@ export default function DashboardRedirect() {
     };
 
     redirectToDashboard();
-  }, [router, status, session]);
+  }, [router, status, session, docRouterAccountApi]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
-import { createInvitationApi, getOrganizationsApi } from '@/utils/api';
-import { Organization } from '@/types/index';
+import { createInvitationApi, DocRouterAccountApi } from '@/utils/api';
+import { Organization } from '@docrouter/sdk';
 import { toast } from 'react-toastify';
 import debounce from 'lodash/debounce';
 import { isAxiosError } from 'axios';
@@ -25,6 +25,7 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
   const [searchResults, setSearchResults] = useState<Organization[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
 
   // Debounced search function
   const searchOrganizations = useCallback((query: string) => {
@@ -34,7 +35,7 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
     }
     
     setIsSearching(true);
-    getOrganizationsApi()
+    docRouterAccountApi.listOrganizations()
       .then(response => {
         const filteredOrgs = response.organizations.filter(org => 
           (org.type === 'team' || org.type === 'enterprise') &&
@@ -49,7 +50,7 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
       .finally(() => {
         setIsSearching(false);
       });
-  }, []);
+  }, [docRouterAccountApi]);
 
   // Use debounce when calling the function
   useEffect(() => {

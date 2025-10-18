@@ -49,12 +49,6 @@ import {
   ListUsersResponse 
 } from '@/types/index';
 import { 
-  CreateOrganizationRequest, 
-  ListOrganizationsResponse, 
-  Organization, 
-  UpdateOrganizationRequest 
-} from '@/types/index';
-import { 
   InvitationResponse, 
   CreateInvitationRequest, 
   ListInvitationsParams, 
@@ -241,59 +235,6 @@ export class DocRouterAccountApi extends DocRouterAccount {
 }
 
 
-// Organization APIs
-export const getOrganizationsApi = async (params?: { 
-  userId?: string;
-  organizationId?: string;
-  nameSearch?: string;
-  memberSearch?: string;
-  skip?: number;
-  limit?: number;
-}): Promise<ListOrganizationsResponse> => {
-  const queryParams = new URLSearchParams();
-  if (params?.userId) queryParams.append('user_id', params.userId);
-  if (params?.organizationId) queryParams.append('organization_id', params.organizationId);
-  if (params?.nameSearch) queryParams.append('name_search', params.nameSearch);
-  if (params?.memberSearch) queryParams.append('member_search', params.memberSearch);
-  if (params?.skip !== undefined) queryParams.append('skip', String(params.skip));
-  if (params?.limit !== undefined) queryParams.append('limit', String(params.limit));
-  
-  const response = await api.get<ListOrganizationsResponse>(
-    `/v0/account/organizations?${queryParams.toString()}`
-  );
-  return response.data;
-};
-
-export const createOrganizationApi = async (organization: CreateOrganizationRequest): Promise<Organization> => {
-  const response = await api.post('/v0/account/organizations', organization);
-  const data = response.data;
-  return {
-    id: data._id || data.id,
-    name: data.name,
-    members: data.members,
-    type: data.type,
-    created_at: data.created_at,
-    updated_at: data.updated_at
-  };
-};
-
-export const getOrganizationApi = async (organizationId: string): Promise<Organization> => {
-  const response = await getOrganizationsApi({ organizationId });
-  return response.organizations[0]; // Will always return exactly one organization
-};
-
-export const updateOrganizationApi = async (
-  organizationId: string, 
-  update: UpdateOrganizationRequest
-): Promise<Organization> => {
-  const response = await api.put(`/v0/account/organizations/${organizationId}`, update);
-  return response.data;
-};
-
-export const deleteOrganizationApi = async (organizationId: string) => {
-  const response = await api.delete(`/v0/account/organizations/${organizationId}`);
-  return response.data;
-};
 
 // User APIs
 

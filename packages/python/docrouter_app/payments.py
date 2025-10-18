@@ -1427,7 +1427,7 @@ async def set_subscription_type(db, org_id: str, customer_id: str, subscription_
         subscription_items = subscription.get("items", {}).get("data", [])
         
         # Check if we need to update the subscription
-        current_subscription_type = get_subscription_type(db, subscription)
+        current_subscription_type = get_subscription_type(subscription)
         if current_subscription_type != subscription_type:
             update_subscription = True
         

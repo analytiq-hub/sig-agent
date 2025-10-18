@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getOrganizationsApi, deleteOrganizationApi, createOrganizationApi } from '@/utils/api';
-import { Organization, CreateOrganizationRequest } from '@/types/index';
+import { DocRouterAccountApi } from '@/utils/api';
+import { Organization, CreateOrganizationRequest } from '@docrouter/sdk';
 import colors from 'tailwindcss/colors';
 import { isAxiosError } from 'axios';
 import { useRouter } from 'next/navigation'
@@ -161,10 +161,11 @@ const OrganizationManager: React.FC = () => {
   const { session } = useAppSession();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
 
   const fetchOrganizations = useCallback(async () => {
     try {
-      const response = await getOrganizationsApi({
+      const response = await docRouterAccountApi.listOrganizations({
         skip: paginationModel.page * paginationModel.pageSize,
         limit: paginationModel.pageSize,
         nameSearch: debouncedOrgSearch || undefined,
@@ -179,7 +180,7 @@ const OrganizationManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [paginationModel, debouncedOrgSearch, debouncedMemberSearch]);
+  }, [paginationModel, debouncedOrgSearch, debouncedMemberSearch, docRouterAccountApi]);
 
   // Server-side filtered organizations
   const filteredOrganizations = organizations;
@@ -208,7 +209,7 @@ const OrganizationManager: React.FC = () => {
     if (!deleteOrganizationId) return;
 
     try {
-      await deleteOrganizationApi(deleteOrganizationId);
+      await docRouterAccountApi.deleteOrganization(deleteOrganizationId);
       setOrganizations(prevOrganizations => 
         prevOrganizations.filter(o => o.id !== deleteOrganizationId)
       );
@@ -234,7 +235,7 @@ const OrganizationManager: React.FC = () => {
         throw new Error(`An organization named "${organization.name}" already exists`);
       }
 
-      await createOrganizationApi(organization);
+      await docRouterAccountApi.createOrganization(organization);
       await fetchOrganizations();
       await refreshOrganizations();
     } catch (error) {

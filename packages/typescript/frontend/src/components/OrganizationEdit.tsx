@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { OrganizationMember, OrganizationType } from '@/types/index'
-import { updateOrganizationApi, getUsersApi } from '@/utils/api'
+import { DocRouterAccountApi, getUsersApi } from '@/utils/api'
 import { isAxiosError } from 'axios'
 import { UserResponse } from '@/types/index'
 import { 
@@ -65,6 +65,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedMember, setSelectedMember] = useState<{ id: string, isAdmin: boolean } | null>(null);
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
 
   // Filter current organization members
   const filteredMembers = members.filter(member => {
@@ -136,7 +137,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     }
 
     try {
-      await updateOrganizationApi(organizationId, { 
+      await docRouterAccountApi.updateOrganization(organizationId, { 
         name,
         type,
         members 

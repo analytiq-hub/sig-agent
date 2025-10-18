@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useEffect, useState } from 'react';
-import { createCheckoutSessionApi, getSubscriptionApi, updateOrganizationApi, activateSubscriptionApi, getOrganizationApi } from '@/utils/api';
+import React, { useEffect, useState, useMemo } from 'react';
+import { createCheckoutSessionApi, getSubscriptionApi, activateSubscriptionApi, DocRouterAccountApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import { useAppSession } from '@/utils/useAppSession';
 import { isSysAdmin } from '@/utils/roles';
@@ -30,6 +30,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
 }) => {
   const { session } = useAppSession();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -43,7 +44,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         setLoading(true);
         
         // Fetch organization data to get the organization type
-        const organizationData = await getOrganizationApi(organizationId);
+        const organizationData = await docRouterAccountApi.getOrganization(organizationId);
         setOrganizationType(organizationData.type);
         
         // Fetch subscription data
@@ -96,7 +97,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     };
 
     fetchData();
-  }, [organizationId, onSubscriptionStatusChange, onCancellationInfoChange, onCurrentPlanChange, onStripePaymentsPortalChange]);
+  }, [organizationId, onSubscriptionStatusChange, onCancellationInfoChange, onCurrentPlanChange, onStripePaymentsPortalChange, docRouterAccountApi]);
 
   const canChangeToPlan = (currentPlan: string | null, targetPlan: string): boolean => {
     if (!currentPlan) return true; // No current plan, can select any
@@ -128,7 +129,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         setSelectedPlan(planId);
         
         // Update the organization type
-        await updateOrganizationApi(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
+        await docRouterAccountApi.updateOrganization(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
         
         // Update local state
         setCurrentPlan(planId);
@@ -193,7 +194,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       setSelectedPlan(planId);
       
       // Step 1: Update the organization type
-      await updateOrganizationApi(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
+      await docRouterAccountApi.updateOrganization(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
 
       // Step 2: Create checkout session and redirect
       const checkoutResponse = await createCheckoutSessionApi(organizationId, planId);
