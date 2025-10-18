@@ -186,7 +186,7 @@ function handleError(error: unknown): string {
 }
 
 // Helper function to serialize dates
-function serializeDates(obj: any): any {
+function serializeDates(obj: unknown): unknown {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -200,7 +200,7 @@ function serializeDates(obj: any): any {
   }
   
   if (typeof obj === 'object') {
-    const result: any = {};
+    const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       result[key] = serializeDates(value);
     }
@@ -231,7 +231,7 @@ function getOptionalArg<T>(args: Record<string, unknown>, key: string, defaultVa
 }
 
 // Schema validation function
-function validateSchemaFormat(schema: any): { valid: boolean; errors: string[]; warnings: string[] } {
+function validateSchemaFormat(schema: unknown): { valid: boolean; errors: string[]; warnings: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -242,15 +242,17 @@ function validateSchemaFormat(schema: any): { valid: boolean; errors: string[]; 
       return { valid: false, errors, warnings };
     }
 
+    const schemaObj = schema as Record<string, unknown>;
+
     // Check for required top-level structure
-    if (!schema.type || schema.type !== 'json_schema') {
+    if (!schemaObj.type || schemaObj.type !== 'json_schema') {
       errors.push('Schema must have type: "json_schema"');
     }
 
-    if (!schema.json_schema || typeof schema.json_schema !== 'object') {
+    if (!schemaObj.json_schema || typeof schemaObj.json_schema !== 'object') {
       errors.push('Schema must have json_schema object');
     } else {
-      const jsonSchema = schema.json_schema;
+      const jsonSchema = schemaObj.json_schema as Record<string, unknown>;
 
       // Check json_schema structure
       if (!jsonSchema.name || typeof jsonSchema.name !== 'string') {
@@ -260,7 +262,7 @@ function validateSchemaFormat(schema: any): { valid: boolean; errors: string[]; 
       if (!jsonSchema.schema || typeof jsonSchema.schema !== 'object') {
         errors.push('json_schema must have a schema object');
       } else {
-        const innerSchema = jsonSchema.schema;
+        const innerSchema = jsonSchema.schema as Record<string, unknown>;
 
         // Check inner schema structure
         if (innerSchema.type !== 'object') {
@@ -286,8 +288,8 @@ function validateSchemaFormat(schema: any): { valid: boolean; errors: string[]; 
 
         // Validate that all properties are in required array (strict mode requirement)
         if (innerSchema.properties && Array.isArray(innerSchema.required)) {
-          const propertyNames = Object.keys(innerSchema.properties);
-          const requiredNames = innerSchema.required;
+          const propertyNames = Object.keys(innerSchema.properties as Record<string, unknown>);
+          const requiredNames = innerSchema.required as string[];
           
           for (const propName of propertyNames) {
             if (!requiredNames.includes(propName)) {
@@ -304,14 +306,20 @@ function validateSchemaFormat(schema: any): { valid: boolean; errors: string[]; 
 
         // Validate nested objects
         if (innerSchema.properties) {
-          validateNestedObjects(innerSchema.properties, errors, warnings);
+          validateNestedObjects(innerSchema.properties as Record<string, unknown>, errors, warnings);
         }
       }
     }
 
     // Check for non-portable features (warnings)
-    if (schema.json_schema?.schema?.properties) {
-      checkForNonPortableFeatures(schema.json_schema.schema.properties, warnings);
+    if (schemaObj.json_schema && typeof schemaObj.json_schema === 'object') {
+      const jsonSchema = schemaObj.json_schema as Record<string, unknown>;
+      if (jsonSchema.schema && typeof jsonSchema.schema === 'object') {
+        const innerSchema = jsonSchema.schema as Record<string, unknown>;
+        if (innerSchema.properties) {
+          checkForNonPortableFeatures(innerSchema.properties as Record<string, unknown>, warnings);
+        }
+      }
     }
 
   } catch (error) {
@@ -326,10 +334,10 @@ function validateSchemaFormat(schema: any): { valid: boolean; errors: string[]; 
 }
 
 // Helper function to validate nested objects
-function validateNestedObjects(properties: any, errors: string[], warnings: string[]): void {
+function validateNestedObjects(properties: Record<string, unknown>, errors: string[], warnings: string[]): void {
   for (const [propName, propDef] of Object.entries(properties)) {
     if (typeof propDef === 'object' && propDef !== null) {
-      const prop = propDef as any;
+      const prop = propDef as Record<string, unknown>;
       
       if (prop.type === 'object') {
         if (!prop.properties || typeof prop.properties !== 'object') {
@@ -346,27 +354,28 @@ function validateNestedObjects(properties: any, errors: string[], warnings: stri
 
         // Recursively validate nested objects
         if (prop.properties) {
-          validateNestedObjects(prop.properties, errors, warnings);
+          validateNestedObjects(prop.properties as Record<string, unknown>, errors, warnings);
         }
       }
       
       if (prop.type === 'array' && prop.items) {
-        if (prop.items.type === 'object') {
-          if (!prop.items.properties || typeof prop.items.properties !== 'object') {
+        const items = prop.items as Record<string, unknown>;
+        if (items.type === 'object') {
+          if (!items.properties || typeof items.properties !== 'object') {
             errors.push(`Array items object "${propName}" must have properties object`);
           }
           
-          if (!Array.isArray(prop.items.required)) {
+          if (!Array.isArray(items.required)) {
             errors.push(`Array items object "${propName}" must have required array`);
           }
           
-          if (prop.items.additionalProperties !== false) {
+          if (items.additionalProperties !== false) {
             errors.push(`Array items object "${propName}" must have additionalProperties: false`);
           }
 
           // Recursively validate nested objects in arrays
-          if (prop.items.properties) {
-            validateNestedObjects(prop.items.properties, errors, warnings);
+          if (items.properties) {
+            validateNestedObjects(items.properties as Record<string, unknown>, errors, warnings);
           }
         }
       }
@@ -375,10 +384,10 @@ function validateNestedObjects(properties: any, errors: string[], warnings: stri
 }
 
 // Helper function to check for non-portable features
-function checkForNonPortableFeatures(properties: any, warnings: string[]): void {
+function checkForNonPortableFeatures(properties: Record<string, unknown>, warnings: string[]): void {
   for (const [propName, propDef] of Object.entries(properties)) {
     if (typeof propDef === 'object' && propDef !== null) {
-      const prop = propDef as any;
+      const prop = propDef as Record<string, unknown>;
 
       // Check for enum (not recommended for portability)
       if (prop.enum) {
@@ -405,18 +414,21 @@ function checkForNonPortableFeatures(properties: any, warnings: string[]): void 
 
       // Recursively check nested objects
       if (prop.type === 'object' && prop.properties) {
-        checkForNonPortableFeatures(prop.properties, warnings);
+        checkForNonPortableFeatures(prop.properties as Record<string, unknown>, warnings);
       }
 
-      if (prop.type === 'array' && prop.items && prop.items.type === 'object' && prop.items.properties) {
-        checkForNonPortableFeatures(prop.items.properties, warnings);
+      if (prop.type === 'array' && prop.items) {
+        const items = prop.items as Record<string, unknown>;
+        if (items.type === 'object' && items.properties) {
+          checkForNonPortableFeatures(items.properties as Record<string, unknown>, warnings);
+        }
       }
     }
   }
 }
 
 // Form validation function
-function validateFormFormat(form: any): { valid: boolean; errors: string[]; warnings: string[] } {
+function validateFormFormat(form: unknown): { valid: boolean; errors: string[]; warnings: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -427,18 +439,20 @@ function validateFormFormat(form: any): { valid: boolean; errors: string[]; warn
       return { valid: false, errors, warnings };
     }
 
+    const formObj = form as Record<string, unknown>;
+
     // Check for required top-level structure
-    if (!form.json_formio || !Array.isArray(form.json_formio)) {
+    if (!formObj.json_formio || !Array.isArray(formObj.json_formio)) {
       errors.push('Form must have json_formio array');
       return { valid: false, errors, warnings };
     }
 
     // Validate each component in the form
-    validateFormComponents(form.json_formio, errors, warnings, '');
+    validateFormComponents(formObj.json_formio, errors, warnings, '');
 
     // Validate field mappings if present
-    if (form.json_formio_mapping) {
-      validateFieldMappings(form.json_formio_mapping, form.json_formio, errors, warnings);
+    if (formObj.json_formio_mapping) {
+      validateFieldMappings(formObj.json_formio_mapping, formObj.json_formio, errors, warnings);
     }
 
   } catch (error) {
@@ -453,7 +467,7 @@ function validateFormFormat(form: any): { valid: boolean; errors: string[]; warn
 }
 
 // Helper function to validate Form.io components
-function validateFormComponents(components: any[], errors: string[], warnings: string[], path: string): void {
+function validateFormComponents(components: unknown[], errors: string[], warnings: string[], path: string): void {
   const validFieldTypes = [
     'textfield', 'email', 'number', 'select', 'textarea', 'checkbox',
     'datetime', 'phoneNumber', 'panel', 'columns', 'fieldset', 'radio',
@@ -471,74 +485,76 @@ function validateFormComponents(components: any[], errors: string[], warnings: s
       continue;
     }
 
+    const comp = component as Record<string, unknown>;
+
     // Check required field: type
-    if (!component.type) {
+    if (!comp.type) {
       errors.push(`${componentPath}: Component must have a "type" field`);
-    } else if (!validFieldTypes.includes(component.type)) {
-      warnings.push(`${componentPath}: Unknown field type "${component.type}" - may not render correctly`);
+    } else if (!validFieldTypes.includes(comp.type as string)) {
+      warnings.push(`${componentPath}: Unknown field type "${comp.type}" - may not render correctly`);
     }
 
     // For input components, validate key and label
-    if (component.input === true || ['textfield', 'email', 'number', 'select', 'textarea', 'checkbox', 'datetime', 'phoneNumber'].includes(component.type)) {
-      if (!component.key) {
+    if (comp.input === true || ['textfield', 'email', 'number', 'select', 'textarea', 'checkbox', 'datetime', 'phoneNumber'].includes(comp.type as string)) {
+      if (!comp.key) {
         errors.push(`${componentPath}: Input component must have a "key" field`);
       } else {
         // Check for duplicate keys
-        if (collectedKeys.has(component.key)) {
-          errors.push(`${componentPath}: Duplicate key "${component.key}" found`);
+        if (collectedKeys.has(comp.key as string)) {
+          errors.push(`${componentPath}: Duplicate key "${comp.key}" found`);
         }
-        collectedKeys.add(component.key);
+        collectedKeys.add(comp.key as string);
 
         // Key should be valid identifier
-        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(component.key)) {
-          warnings.push(`${componentPath}: Key "${component.key}" should be a valid identifier (alphanumeric and underscore only)`);
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(comp.key as string)) {
+          warnings.push(`${componentPath}: Key "${comp.key}" should be a valid identifier (alphanumeric and underscore only)`);
         }
       }
 
-      if (!component.label) {
+      if (!comp.label) {
         warnings.push(`${componentPath}: Input component should have a "label" field for better UX`);
       }
     }
 
     // Validate select/dropdown fields
-    if (component.type === 'select') {
-      if (!component.data || !component.data.values) {
+    if (comp.type === 'select') {
+      if (!comp.data || !(comp.data as Record<string, unknown>).values) {
         errors.push(`${componentPath}: Select field must have data.values array`);
-      } else if (!Array.isArray(component.data.values)) {
+      } else if (!Array.isArray((comp.data as Record<string, unknown>).values)) {
         errors.push(`${componentPath}: data.values must be an array`);
-      } else if (component.data.values.length === 0) {
+      } else if (((comp.data as Record<string, unknown>).values as unknown[]).length === 0) {
         warnings.push(`${componentPath}: Select field has empty values array`);
       }
     }
 
     // Validate nested components (panels, columns, etc.)
-    if (component.type === 'panel' || component.type === 'fieldset') {
-      if (!component.components || !Array.isArray(component.components)) {
-        errors.push(`${componentPath}: ${component.type} must have components array`);
+    if (comp.type === 'panel' || comp.type === 'fieldset') {
+      if (!comp.components || !Array.isArray(comp.components)) {
+        errors.push(`${componentPath}: ${comp.type} must have components array`);
       } else {
-        validateFormComponents(component.components, errors, warnings, `${componentPath}.components`);
+        validateFormComponents(comp.components as unknown[], errors, warnings, `${componentPath}.components`);
       }
     }
 
     // Validate columns layout
-    if (component.type === 'columns') {
-      if (!component.columns || !Array.isArray(component.columns)) {
+    if (comp.type === 'columns') {
+      if (!comp.columns || !Array.isArray(comp.columns)) {
         errors.push(`${componentPath}: columns layout must have columns array`);
       } else {
-        for (let j = 0; j < component.columns.length; j++) {
-          const column = component.columns[j];
+        for (let j = 0; j < (comp.columns as unknown[]).length; j++) {
+          const column = (comp.columns as unknown[])[j] as Record<string, unknown>;
           if (!column.components || !Array.isArray(column.components)) {
             errors.push(`${componentPath}.columns[${j}]: Column must have components array`);
           } else {
-            validateFormComponents(column.components, errors, warnings, `${componentPath}.columns[${j}].components`);
+            validateFormComponents(column.components as unknown[], errors, warnings, `${componentPath}.columns[${j}].components`);
           }
         }
       }
     }
 
     // Check validation rules
-    if (component.validate) {
-      if (typeof component.validate !== 'object') {
+    if (comp.validate) {
+      if (typeof comp.validate !== 'object') {
         errors.push(`${componentPath}: validate must be an object`);
       }
     }
@@ -546,7 +562,7 @@ function validateFormComponents(components: any[], errors: string[], warnings: s
 }
 
 // Helper function to validate field mappings
-function validateFieldMappings(mappings: any, formComponents: any[], errors: string[], warnings: string[]): void {
+function validateFieldMappings(mappings: unknown, formComponents: unknown[], errors: string[], warnings: string[]): void {
   if (typeof mappings !== 'object' || mappings === null) {
     errors.push('json_formio_mapping must be an object');
     return;
@@ -554,13 +570,15 @@ function validateFieldMappings(mappings: any, formComponents: any[], errors: str
 
   // Collect all field keys from form components
   const formKeys = new Set<string>();
-  const collectKeys = (components: any[]) => {
+  const collectKeys = (components: unknown[]) => {
     for (const comp of components) {
-      if (comp.key) formKeys.add(comp.key);
-      if (comp.components) collectKeys(comp.components);
-      if (comp.columns) {
-        for (const col of comp.columns) {
-          if (col.components) collectKeys(col.components);
+      const compObj = comp as Record<string, unknown>;
+      if (compObj.key) formKeys.add(compObj.key as string);
+      if (compObj.components) collectKeys(compObj.components as unknown[]);
+      if (compObj.columns) {
+        for (const col of compObj.columns as unknown[]) {
+          const colObj = col as Record<string, unknown>;
+          if (colObj.components) collectKeys(colObj.components as unknown[]);
         }
       }
     }
@@ -577,19 +595,19 @@ function validateFieldMappings(mappings: any, formComponents: any[], errors: str
       continue;
     }
 
-    const m = mapping as any;
+    const m = mapping as Record<string, unknown>;
 
     if (!m.sources || !Array.isArray(m.sources)) {
       errors.push(`Mapping for "${fieldKey}" must have sources array`);
       continue;
     }
 
-    if (m.sources.length === 0) {
+    if ((m.sources as unknown[]).length === 0) {
       warnings.push(`Mapping for "${fieldKey}" has empty sources array`);
     }
 
-    for (let i = 0; i < m.sources.length; i++) {
-      const source = m.sources[i];
+    for (let i = 0; i < (m.sources as unknown[]).length; i++) {
+      const source = (m.sources as unknown[])[i] as Record<string, unknown>;
       if (!source.promptId) {
         errors.push(`Mapping for "${fieldKey}".sources[${i}] must have promptId`);
       }
@@ -600,13 +618,13 @@ function validateFieldMappings(mappings: any, formComponents: any[], errors: str
 
     if (!m.mappingType) {
       errors.push(`Mapping for "${fieldKey}" must have mappingType`);
-    } else if (!['direct', 'concatenated'].includes(m.mappingType)) {
+    } else if (!['direct', 'concatenated'].includes(m.mappingType as string)) {
       errors.push(`Mapping for "${fieldKey}" has invalid mappingType "${m.mappingType}" (must be "direct" or "concatenated")`);
     }
 
     // Check concatenated mappings
-    if (m.mappingType === 'concatenated' && m.sources.length < 2) {
-      warnings.push(`Mapping for "${fieldKey}" is marked as concatenated but only has ${m.sources.length} source(s)`);
+    if (m.mappingType === 'concatenated' && (m.sources as unknown[]).length < 2) {
+      warnings.push(`Mapping for "${fieldKey}" is marked as concatenated but only has ${(m.sources as unknown[]).length} source(s)`);
     }
   }
 }
@@ -1223,7 +1241,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: 'text',
               text: JSON.stringify({
-                ...serializeDates(result),
+                ...(serializeDates(result) as Record<string, unknown>),
                 content: base64Content,
                 content_type: 'base64',
                 content_size: result.content.byteLength
