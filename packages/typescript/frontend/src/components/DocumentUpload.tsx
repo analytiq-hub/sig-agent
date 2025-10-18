@@ -16,7 +16,7 @@ import {
   DocRouterOrgApi
 } from '@/utils/api';
 import { Tag } from '@/types/index';
-import { DocumentWithContent } from '@/types/index';
+import { UploadDocument } from '@docrouter/sdk';
 import { isColorLight } from '@/utils/colors';
 import InfoTooltip from '@/components/InfoTooltip';
 import TagSelector from './TagSelector';
@@ -27,7 +27,7 @@ interface DocumentUploadProps {
 
 const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
   const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
-  const [files, setFiles] = useState<DocumentWithContent[]>([]);
+  const [files, setFiles] = useState<UploadDocument[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
@@ -51,7 +51,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const readFiles = acceptedFiles.map(file => 
-      new Promise<DocumentWithContent>((resolve) => {
+      new Promise<UploadDocument>((resolve) => {
         const reader = new FileReader();
         reader.onload = () => {
           resolve({

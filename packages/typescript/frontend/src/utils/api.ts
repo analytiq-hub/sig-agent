@@ -41,8 +41,6 @@ export function invalidateSessionCache(): void {
   globalSession = null;
 }
 import { 
-  UploadDocumentsParams,
-  UploadDocumentsResponse,
   GetDocumentParams,
   GetDocumentResponse,
   UpdateDocumentParams,
@@ -287,11 +285,6 @@ export class DocRouterOrgApi extends DocRouterOrg {
 }
 
 // Document APIs
-export const uploadDocumentsApi = async (params: UploadDocumentsParams): Promise<UploadDocumentsResponse> => {
-  const { organizationId, documents } = params;
-  const response = await api.post<UploadDocumentsResponse>(`/v0/orgs/${organizationId}/documents`, { documents: documents });
-  return response.data;
-};
 
 export const listDocumentsApi = async (params?: ListDocumentsParams) => {
   const queryParams: Record<string, string | number | undefined> = {

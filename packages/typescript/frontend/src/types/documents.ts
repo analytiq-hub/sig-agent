@@ -1,23 +1,5 @@
-export interface DocumentWithContent {
-  name: string;
-  content: string; // Base64 encoded content (can be data URL or plain base64)
-  tag_ids?: string[];  // Optional list of tag IDs
-  metadata?: Record<string, string>;  // Optional key-value metadata pairs
-}
-
-export interface UploadDocumentsParams {
-  organizationId: string;
-  documents: DocumentWithContent[];
-}
-
-export interface UploadDocumentsResponse {
-  documents: Array<{
-    document_name: string;
-    document_id: string;
-    tag_ids?: string[];
-    metadata?: Record<string, string>;
-  }>;
-}
+// DocumentWithContent, UploadDocumentsParams, and UploadDocumentsResponse 
+// are now available from @docrouter/sdk as UploadDocument, UploadDocumentsParams, and UploadDocumentsResponse
 
 export interface UploadedDocument {
     document_name: string;
