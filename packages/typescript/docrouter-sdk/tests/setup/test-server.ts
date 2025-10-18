@@ -14,6 +14,7 @@ export class TestServer {
   private process: ChildProcess | null = null;
   private config: TestServerConfig;
   private baseUrl: string;
+  private signalHandler: (() => void) | null = null;
 
   constructor(config: TestServerConfig) {
     this.config = config;
@@ -27,6 +28,9 @@ export class TestServer {
 
     // Kill any existing uvicorn processes on this port before starting
     await this.killExistingUvicornProcesses();
+
+    // Set up signal handler for graceful shutdown on Ctrl-C
+    this.setupSignalHandlers();
 
     const packagesDir = path.join(__dirname, '../../../../python'); // Go up to packages directory
     const sdkDir = path.join(__dirname, '../..'); // docrouter_ts_sdk directory
@@ -77,6 +81,9 @@ export class TestServer {
   }
 
   async stop(): Promise<void> {
+    // Clean up signal handlers
+    this.cleanupSignalHandlers();
+    
     if (this.process) {
       this.process.kill('SIGTERM');
       await new Promise<void>((resolve) => {
@@ -114,6 +121,23 @@ export class TestServer {
     } catch (error) {
       console.log('No existing uvicorn processes found or error killing them:', error);
       // Don't throw error - this is just cleanup
+    }
+  }
+
+  private setupSignalHandlers(): void {
+    this.signalHandler = async () => {
+      console.log('\nReceived SIGINT (Ctrl-C), cleaning up uvicorn processes...');
+      await this.killExistingUvicornProcesses();
+      process.exit(0);
+    };
+    
+    process.on('SIGINT', this.signalHandler);
+  }
+
+  private cleanupSignalHandlers(): void {
+    if (this.signalHandler) {
+      process.removeListener('SIGINT', this.signalHandler);
+      this.signalHandler = null;
     }
   }
 
