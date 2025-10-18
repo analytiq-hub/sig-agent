@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getCustomerPortalApi } from '@/utils/api';
+import { DocRouterAccountApi } from '@/utils/api';
 import SubscriptionPlans from './SubscriptionPlans';
 import SubscriptionUsage from './SubscriptionUsage';
 import SubscriptionCredits from './SubscriptionCredits';
@@ -29,6 +29,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
   const [activeTab, setActiveTab] = useState<'credits' | 'plans' | 'usage'>('credits');
   const [userSelectedTab, setUserSelectedTab] = useState<boolean>(false);
   const [creditsRefreshKey, setCreditsRefreshKey] = useState<number>(0);
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
 
   // Handle URL parameters for tab navigation
   useEffect(() => {
@@ -46,7 +47,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
     const fetchPortalUrl = async () => {
       try {
         setLoading(true);
-        const response = await getCustomerPortalApi(organizationId);
+        const response = await docRouterAccountApi.getCustomerPortal(organizationId);
         // Set URL only if it's not empty, otherwise leave as null
         setCustomerPortalUrl(response.payment_portal_url || null);
         // Set Stripe enabled status
@@ -130,7 +131,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
     if (!confirmed) return;
     setLoading(true);
     try {
-      await import('@/utils/api').then(api => api.cancelSubscriptionApi(organizationId));
+      await docRouterAccountApi.cancelSubscription(organizationId);
       setSubscriptionStatus('cancelling');
     } catch (e) {
       console.error('Error cancelling subscription:', e);

@@ -238,7 +238,7 @@ export class DocRouterAccount {
 
   // --------------- Payments & Subscriptions ---------------
   async getCustomerPortal(orgId: string): Promise<PortalSessionResponse> {
-    return this.http.get<PortalSessionResponse>(`/v0/orgs/${orgId}/payments/portal`);
+    return this.http.post<PortalSessionResponse>(`/v0/orgs/${orgId}/payments/customer-portal`);
   }
 
   async getSubscription(orgId: string): Promise<SubscriptionResponse> {
@@ -246,11 +246,11 @@ export class DocRouterAccount {
   }
 
   async activateSubscription(orgId: string): Promise<{ status: string; message: string }> {
-    return this.http.post<{ status: string; message: string }>(`/v0/orgs/${orgId}/payments/subscription/activate`);
+    return this.http.put<{ status: string; message: string }>(`/v0/orgs/${orgId}/payments/subscription`);
   }
 
   async cancelSubscription(orgId: string): Promise<{ status: string; message: string }> {
-    return this.http.post<{ status: string; message: string }>(`/v0/orgs/${orgId}/payments/subscription/cancel`);
+    return this.http.delete<{ status: string; message: string }>(`/v0/orgs/${orgId}/payments/subscription`);
   }
 
   async getCurrentUsage(orgId: string): Promise<UsageResponse> {
@@ -258,23 +258,26 @@ export class DocRouterAccount {
   }
 
   async addCredits(orgId: string, amount: number): Promise<CreditUpdateResponse> {
-    return this.http.post<CreditUpdateResponse>(`/v0/orgs/${orgId}/payments/credits`, { amount });
+    return this.http.post<CreditUpdateResponse>(`/v0/orgs/${orgId}/payments/credits/add`, { amount });
   }
 
   async getCreditConfig(orgId: string): Promise<CreditConfig> {
-    return this.http.get<CreditConfig>(`/v0/orgs/${orgId}/payments/credit-config`);
+    return this.http.get<CreditConfig>(`/v0/orgs/${orgId}/payments/credits/config`);
   }
 
-  async purchaseCredits(orgId: string, request: { amount: number; payment_method_id?: string }): Promise<CreditUpdateResponse> {
-    return this.http.post<CreditUpdateResponse>(`/v0/orgs/${orgId}/payments/purchase-credits`, request);
+  async purchaseCredits(orgId: string, request: { credits: number; success_url: string; cancel_url: string }): Promise<{ checkout_url: string; session_id: string }> {
+    return this.http.post<{ checkout_url: string; session_id: string }>(`/v0/orgs/${orgId}/payments/credits/purchase`, request);
   }
 
   async getUsageRange(orgId: string, request: UsageRangeRequest): Promise<UsageRangeResponse> {
-    return this.http.post<UsageRangeResponse>(`/v0/orgs/${orgId}/payments/usage-range`, request);
+    const queryParams = new URLSearchParams();
+    if (request.start_date) queryParams.append('start_date', request.start_date);
+    if (request.end_date) queryParams.append('end_date', request.end_date);
+    return this.http.get<UsageRangeResponse>(`/v0/orgs/${orgId}/payments/usage/range?${queryParams.toString()}`);
   }
 
   async createCheckoutSession(orgId: string, planId: string): Promise<PortalSessionResponse> {
-    return this.http.post<PortalSessionResponse>(`/v0/orgs/${orgId}/payments/checkout`, { plan_id: planId });
+    return this.http.post<PortalSessionResponse>(`/v0/orgs/${orgId}/payments/checkout-session`, { plan_id: planId });
   }
 
   /**

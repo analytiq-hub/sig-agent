@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useEffect, useState } from 'react';
-import { getCurrentUsageApi } from '@/utils/api';
+import React, { useEffect, useState, useMemo } from 'react';
+import { DocRouterAccountApi } from '@/utils/api';
 import { UsageData } from '@/types/index';
 
 interface SubscriptionCreditsProps {
@@ -19,12 +19,13 @@ const SubscriptionCredits: React.FC<SubscriptionCreditsProps> = ({
 }) => {
   const [usageData, setUsageData] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const usageResponse = await getCurrentUsageApi(organizationId);
+        const usageResponse = await docRouterAccountApi.getCurrentUsage(organizationId);
         
         if (usageResponse.data) {
           setUsageData(usageResponse.data);

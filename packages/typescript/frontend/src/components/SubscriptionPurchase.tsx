@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useEffect, useState } from 'react';
-import { getCreditConfigApi, purchaseCreditsApi, addCreditsApi } from '@/utils/api';
+import React, { useEffect, useState, useMemo } from 'react';
+import { DocRouterAccountApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import { useAppSession } from '@/utils/useAppSession';
 import { isSysAdmin } from '@/utils/roles';
@@ -27,6 +27,7 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
   const { session } = useAppSession();
   const [creditConfig, setCreditConfig] = useState<CreditConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
   const [purchaseAmount, setPurchaseAmount] = useState<number>(500);
   const [adminAmount, setAdminAmount] = useState<number>(100);
   const [purchaseLoading, setPurchaseLoading] = useState(false);
@@ -38,7 +39,7 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
     const fetchData = async () => {
       try {
         setLoading(true);
-        const configResponse = await getCreditConfigApi(organizationId);
+        const configResponse = await docRouterAccountApi.getCreditConfig(organizationId);
         setCreditConfig(configResponse);
       } catch (error) {
         console.error('Error fetching credits data:', error);
@@ -70,7 +71,7 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
     setPurchaseLoading(true);
     try {
       const currentUrl = window.location.href;
-      const response = await purchaseCreditsApi(organizationId, { 
+      const response = await docRouterAccountApi.purchaseCredits(organizationId, { 
         credits: purchaseAmount,
         success_url: currentUrl, 
         cancel_url: currentUrl 
@@ -99,7 +100,7 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
 
     setAdminLoading(true);
     try {
-      await addCreditsApi(organizationId, adminAmount);
+      await docRouterAccountApi.addCredits(organizationId, adminAmount);
       toast.success(`Added ${adminAmount} credits successfully!`);
       setAdminAmount(100); // Reset to default
       // Trigger refresh of credits display

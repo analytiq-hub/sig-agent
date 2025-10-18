@@ -419,24 +419,14 @@ export interface PortalSessionResponse {
   url: string;
 }
 
-export interface SubscriptionResponse {
-  id: string;
-  status: string;
-  current_period_start: string;
-  current_period_end: string;
-  plan_id: string;
-}
 
-export interface UsageResponse {
-  credits_used: number;
-  credits_remaining: number;
-  period_start: string;
-  period_end: string;
-}
+
 
 export interface CreditConfig {
-  cost_per_credit: number;
-  credits_per_dollar: number;
+  price_per_credit: number;
+  currency: string;
+  min_cost: number;
+  max_cost: number;
 }
 
 export interface CreditUpdateResponse {
@@ -710,6 +700,72 @@ export interface ListInvitationsResponse {
 export interface AcceptInvitationRequest {
   name: string;
   password: string;
+}
+
+// Payment types
+export interface PortalSessionResponse {
+  payment_portal_url: string;
+  stripe_enabled: boolean;
+}
+
+export interface SubscriptionPlan {
+  plan_id: string;
+  name: string;
+  base_price: number;
+  included_spus: number;
+  features: string[];
+  currency: string;
+  interval: string;
+}
+
+export interface SubscriptionResponse {
+  plans: SubscriptionPlan[];
+  current_plan: string | null;
+  subscription_status: string | null;
+  cancel_at_period_end: boolean;
+  current_period_start: number | null;
+  current_period_end: number | null;
+  stripe_enabled: boolean;
+  stripe_payments_portal_enabled: boolean;
+}
+
+
+export interface UsageData {
+  subscription_type: string | null;
+  usage_unit: string;
+  period_metered_usage: number;
+  total_metered_usage: number;
+  remaining_included: number;
+  purchased_credits: number;
+  purchased_credits_used: number;
+  purchased_credits_remaining: number;
+  granted_credits: number;
+  granted_credits_used: number;
+  granted_credits_remaining: number;
+  period_start: number | null;
+  period_end: number | null;
+}
+
+export interface UsageResponse {
+  usage_source: string;
+  data: UsageData;
+}
+
+export interface UsageRangeRequest {
+  start_date: string;
+  end_date: string;
+}
+
+export interface UsageDataPoint {
+  date: string;
+  spus: number;
+  operation: string;
+  source: string;
+}
+
+export interface UsageRangeResponse {
+  data_points: UsageDataPoint[];
+  total_spus: number;
 }
 
 // AWS Config types

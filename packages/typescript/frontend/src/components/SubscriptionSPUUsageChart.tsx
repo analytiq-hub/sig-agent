@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useEffect, useState } from 'react';
-import { getUsageRangeApi } from '@/utils/api';
+import React, { useEffect, useState, useMemo } from 'react';
+import { DocRouterAccountApi } from '@/utils/api';
 import { UsageRangeRequest, UsageRangeResponse, UsageDataPoint } from '@/types/payments';
 import { toast } from 'react-toastify';
 
@@ -27,6 +27,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
   const [loading, setLoading] = useState(true);
   const [granularity, setGranularity] = useState<'daily' | 'monthly'>('daily');
   const [processedData, setProcessedData] = useState<ProcessedDataPoint[]>([]);
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
   
   // Date range state
   const getCurrentBillingPeriod = () => {
@@ -73,7 +74,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
           end_date: dateRange.end
         };
         
-        const response = await getUsageRangeApi(organizationId, request);
+        const response = await docRouterAccountApi.getUsageRange(organizationId, request);
         setRangeData(response);
       } catch (error) {
         console.error('Error fetching usage range:', error);

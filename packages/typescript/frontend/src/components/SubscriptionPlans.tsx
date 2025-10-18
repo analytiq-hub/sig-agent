@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { createCheckoutSessionApi, getSubscriptionApi, activateSubscriptionApi, DocRouterAccountApi } from '@/utils/api';
+import { DocRouterAccountApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import { useAppSession } from '@/utils/useAppSession';
 import { isSysAdmin } from '@/utils/roles';
@@ -48,7 +48,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         setOrganizationType(organizationData.type);
         
         // Fetch subscription data
-        const subscriptionData = await getSubscriptionApi(organizationId);
+        const subscriptionData = await docRouterAccountApi.getSubscription(organizationId);
         
         setPlans(subscriptionData.plans);
         
@@ -159,10 +159,10 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         setLoading(true);
         
         // Reactivate the subscription
-        await activateSubscriptionApi(organizationId);
+        await docRouterAccountApi.activateSubscription(organizationId);
         
         // Refresh the subscription plans data
-        const subscriptionResponse = await getSubscriptionApi(organizationId);
+        const subscriptionResponse = await docRouterAccountApi.getSubscription(organizationId);
         setSubscriptionStatus(subscriptionResponse.subscription_status);
         
         // Notify parent components
@@ -197,7 +197,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       await docRouterAccountApi.updateOrganization(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
 
       // Step 2: Create checkout session and redirect
-      const checkoutResponse = await createCheckoutSessionApi(organizationId, planId);
+      const checkoutResponse = await docRouterAccountApi.createCheckoutSession(organizationId, planId);
       
       // Redirect to Stripe Checkout
       window.location.href = checkoutResponse.payment_portal_url;
