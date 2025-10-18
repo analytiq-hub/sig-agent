@@ -41,12 +41,6 @@ export function invalidateSessionCache(): void {
   globalSession = null;
 }
 
-import {
-  GetOCRBlocksParams,
-  GetOCRTextParams,
-  GetOCRMetadataParams,
-  GetOCRMetadataResponse
-} from '@/types/index';
 import { 
   UserCreate, 
   UserUpdate, 
@@ -239,25 +233,6 @@ export class DocRouterOrgApi extends DocRouterOrg {
   }
 }
 
-// OCR APIs
-export const getOCRBlocksApi = async (params: GetOCRBlocksParams) => {
-  const { organizationId, documentId } = params;
-  const response = await api.get(`/v0/orgs/${organizationId}/ocr/download/blocks/${documentId}`);
-  return response.data;
-};
-
-export const getOCRTextApi = async (params: GetOCRTextParams) => {
-  const { organizationId, documentId, pageNum } = params;
-  const url = `/v0/orgs/${organizationId}/ocr/download/text/${documentId}${pageNum ? `?page_num=${pageNum}` : ''}`;
-  const response = await api.get(url);
-  return response.data;
-};
-
-export const getOCRMetadataApi = async (params: GetOCRMetadataParams) => {
-  const { organizationId, documentId } = params;
-  const response = await api.get<GetOCRMetadataResponse>(`/v0/orgs/${organizationId}/ocr/download/metadata/${documentId}`);
-  return response.data;
-};
 
 // LLM APIs
 export const listLLMModelsApi = async (params: ListLLMModelsParams): Promise<ListLLMModelsResponse> => {
