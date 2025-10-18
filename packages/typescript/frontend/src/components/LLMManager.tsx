@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Delete as DeleteIcon, Edit as EditIcon, MoreVert as MoreVertIcon, Settings as SettingsIcon, Close as CloseIcon } from '@mui/icons-material';
-import { listLLMProvidersApi, setLLMProviderConfigApi } from '@/utils/api';
-import { LLMProvider } from '@/types/index';
+import { setLLMProviderConfigApi, DocRouterAccountApi } from '@/utils/api';
+import { LLMProvider } from '@docrouter/sdk';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
@@ -11,6 +11,7 @@ import Switch from '@mui/material/Switch';
 import Link from 'next/link';
 
 const LLMManager: React.FC = () => {
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
   const [llmProviders, setLLMProviders] = useState<LLMProvider[]>([]);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
@@ -26,7 +27,7 @@ const LLMManager: React.FC = () => {
     const getLLMProvidersData = async () => {
       try {
         setLoading(true);
-        const response = await listLLMProvidersApi();
+        const response = await docRouterAccountApi.listLLMProviders();
         setLLMProviders(response.providers);
       } catch (error) {
         console.error('Error fetching LLM providers:', error);
@@ -36,7 +37,7 @@ const LLMManager: React.FC = () => {
     };
 
     getLLMProvidersData();
-  }, []);
+  }, [docRouterAccountApi]);
 
   const handleEditLLMToken = (provider: string) => {
     setEditingProvider(provider);
@@ -55,7 +56,7 @@ const LLMManager: React.FC = () => {
       });
       setEditModalOpen(false);
       // Refresh the LLM providers list
-      const response = await listLLMProvidersApi();
+      const response = await docRouterAccountApi.listLLMProviders();
       setLLMProviders(response.providers);
     } catch (error) {
       console.error('Error saving LLM token:', error);
@@ -71,7 +72,7 @@ const LLMManager: React.FC = () => {
         litellm_models_enabled: null
       });
       // Refresh the LLM providers list
-      const response = await listLLMProvidersApi();
+      const response = await docRouterAccountApi.listLLMProviders();
       setLLMProviders(response.providers);
     } catch (error) {
       console.error('Error deleting LLM token:', error);
@@ -101,7 +102,7 @@ const LLMManager: React.FC = () => {
         litellm_models_enabled: null
       });
       // Refresh the LLM providers list
-      const response = await listLLMProvidersApi();
+      const response = await docRouterAccountApi.listLLMProviders();
       setLLMProviders(response.providers);
     } catch (error) {
       console.error('Error toggling provider:', error);
@@ -124,7 +125,7 @@ const LLMManager: React.FC = () => {
         litellm_models_enabled: updatedModels
       });
       // Refresh the LLM providers list
-      const response = await listLLMProvidersApi();
+      const response = await docRouterAccountApi.listLLMProviders();
       setLLMProviders(response.providers);
     } catch (error) {
       console.error('Error toggling model:', error);

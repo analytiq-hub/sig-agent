@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import Switch from '@mui/material/Switch';
 import Button from '@mui/material/Button';
-import { DocRouterAccountApi, listLLMProvidersApi, setLLMProviderConfigApi } from '@/utils/api';
-import { LLMProvider } from '@/types/index';
+import { DocRouterAccountApi, setLLMProviderConfigApi } from '@/utils/api';
+import { LLMProvider } from '@docrouter/sdk';
 import { LLMModel } from '@docrouter/sdk';
 import colors from 'tailwindcss/colors';
 import LLMTestModal from './LLMTestModal';
@@ -24,7 +24,7 @@ const LLMModelsConfig: React.FC = () => {
       try {
         setLoading(true);
         const [providersResponse, modelsResponse] = await Promise.all([
-          listLLMProvidersApi(),
+          docRouterAccountApi.listLLMProviders(),
           docRouterAccountApi.listLLMModels({})
         ]);
         setProviders(providersResponse.providers);
@@ -56,7 +56,7 @@ const LLMModelsConfig: React.FC = () => {
       });
 
       // Refresh providers data
-      const response = await listLLMProvidersApi();
+      const response = await docRouterAccountApi.listLLMProviders();
       setProviders(response.providers);
     } catch (error) {
       console.error('Error toggling model:', error);

@@ -268,12 +268,19 @@ export interface ListLLMModelsResponse {
   models: LLMModel[];
 }
 
+export interface LLMProvider {
+  name: string;
+  display_name: string;
+  litellm_provider: string;
+  litellm_models_enabled: string[];
+  litellm_models_available: string[];
+  enabled: boolean;
+  token: string | null;
+  token_created_at: string | null;
+}
+
 export interface ListLLMProvidersResponse {
-  providers: Array<{
-    name: string;
-    enabled: boolean;
-    configured: boolean;
-  }>;
+  providers: LLMProvider[];
 }
 
 export interface SetLLMProviderConfigRequest {

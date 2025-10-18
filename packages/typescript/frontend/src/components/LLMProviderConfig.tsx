@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import Switch from '@mui/material/Switch';
 import Button from '@mui/material/Button';
-import { listLLMProvidersApi, setLLMProviderConfigApi, DocRouterAccountApi } from '@/utils/api';
-import { LLMProvider } from '@/types/index';
+import { setLLMProviderConfigApi, DocRouterAccountApi } from '@/utils/api';
+import { LLMProvider } from '@docrouter/sdk';
 import { LLMModel } from '@docrouter/sdk';
 import LLMTestModal from './LLMTestModal';
 
@@ -27,7 +27,7 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
       try {
         setLoading(true);
         // Fetch provider data
-        const providerResponse = await listLLMProvidersApi();
+        const providerResponse = await docRouterAccountApi.listLLMProviders();
         const foundProvider = providerResponse.providers.find(p => p.name === providerName);
         if (foundProvider) {
           setProvider(foundProvider);
@@ -67,7 +67,7 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
       });
 
       // Refresh provider data
-      const response = await listLLMProvidersApi();
+      const response = await docRouterAccountApi.listLLMProviders();
       const updatedProvider = response.providers.find(p => p.name === providerName);
       if (updatedProvider) {
         setProvider(updatedProvider);
