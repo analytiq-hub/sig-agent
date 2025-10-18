@@ -61,7 +61,6 @@ import {
   ListInvitationsResponse, 
   AcceptInvitationRequest 
 } from '@/types/index';
-import { AWSConfig } from '@/types/index';
 import { 
   PortalSessionResponse,
   SubscriptionResponse,
@@ -241,21 +240,6 @@ export class DocRouterAccountApi extends DocRouterAccount {
   }
 }
 
-// AWS APIs
-export const createAWSConfigApi = async (config: Omit<AWSConfig, 'created_at'>) => {
-  const response = await api.post('/v0/account/aws_config', config);
-  return response.data;
-};
-
-export const getAWSConfigApi = async () => {
-  const response = await api.get('/v0/account/aws_config');
-  return response.data;
-};
-
-export const deleteAWSConfigApi = async () => {
-  const response = await api.delete('/v0/account/aws_config');
-  return response.data;
-};
 
 // Organization APIs
 export const getOrganizationsApi = async (params?: { 

@@ -711,6 +711,6 @@ export interface AcceptInvitationRequest {
 export interface AWSConfig {
   access_key_id: string;
   secret_access_key: string;
-  region: string;
+  s3_bucket_name: string;
   created_at: string;
 }

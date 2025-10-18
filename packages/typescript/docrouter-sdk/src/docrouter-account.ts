@@ -219,15 +219,15 @@ export class DocRouterAccount {
   }
 
   // --------------- AWS Config ---------------
-  async createAWSConfig(config: Omit<AWSConfig, 'created_at'>) {
+  async createAWSConfig(config: Omit<AWSConfig, 'created_at'>): Promise<AWSConfig> {
     return this.http.post('/v0/account/aws_config', config);
   }
 
-  async getAWSConfig() {
+  async getAWSConfig(): Promise<AWSConfig> {
     return this.http.get('/v0/account/aws_config');
   }
 
-  async deleteAWSConfig() {
+  async deleteAWSConfig(): Promise<void> {
     return this.http.delete('/v0/account/aws_config');
   }
 

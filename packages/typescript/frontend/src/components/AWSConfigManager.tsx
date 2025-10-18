@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { getAWSConfigApi, createAWSConfigApi } from '@/utils/api';
+import React, { useState, useEffect, useMemo } from 'react';
+import { DocRouterAccountApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
-import { AWSConfig } from '@/types/index';
+import { AWSConfig } from '@docrouter/sdk';
 
 const AWSConfigManager: React.FC = () => {
+  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
   const [config, setConfig] = useState<AWSConfig | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [accessKeyId, setAccessKeyId] = useState('');
@@ -14,7 +15,7 @@ const AWSConfigManager: React.FC = () => {
   useEffect(() => {
     const getConfig = async () => {
       try {
-        const response = await getAWSConfigApi();
+        const response = await docRouterAccountApi.getAWSConfig();
         setConfig(response);
       } catch (error) {
         console.error('Error fetching AWS configuration:', error);
@@ -22,7 +23,7 @@ const AWSConfigManager: React.FC = () => {
     };
 
     getConfig();
-  }, []);
+  }, [docRouterAccountApi]);
 
   const handleEditCredentials = () => {
     setAccessKeyId('');
@@ -34,14 +35,14 @@ const AWSConfigManager: React.FC = () => {
 
   const handleSaveConfig = async () => {
     try {
-      await createAWSConfigApi({
+      await docRouterAccountApi.createAWSConfig({
         access_key_id: accessKeyId,
         secret_access_key: secretAccessKey,
         s3_bucket_name: s3BucketName,
       });
       setEditModalOpen(false);
       // Refresh the configuration
-      const response = await getAWSConfigApi();
+      const response = await docRouterAccountApi.getAWSConfig();
       setConfig(response);
     } catch (error: unknown) {
       const apiErrorMessage = getApiErrorMsg(error);
