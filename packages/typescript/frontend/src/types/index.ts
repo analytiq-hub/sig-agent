@@ -12,4 +12,5 @@ export * from './schemas';
 export * from './tags';
 export * from './users';
 export * from './tokens';
-export type { OCRBlock, OCRGeometry, HighlightInfo } from '@/contexts/OCRContext';
+export type { OCRBlock, OCRGeometry } from '@docrouter/sdk';
+export type { HighlightInfo } from '@/contexts/OCRContext';

@@ -1,29 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { DocRouterOrgApi } from '@/utils/api';
-
-// Define and export the OCR block types
-export interface OCRGeometry {
-  BoundingBox: {
-    Width: number;
-    Height: number;
-    Left: number;
-    Top: number;
-  };
-  Polygon: Array<{ X: number; Y: number }>;
-}
-
-export interface OCRBlock {
-  BlockType: 'PAGE' | 'LINE' | 'WORD';
-  Confidence: number;
-  Text?: string;
-  Geometry: OCRGeometry;
-  Id: string;
-  Relationships?: Array<{
-    Type: string;
-    Ids: string[];
-  }>;
-  Page: number;
-}
+import type { OCRBlock } from '@docrouter/sdk';
 
 export interface HighlightInfo {
   blocks: OCRBlock[];

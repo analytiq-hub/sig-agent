@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { createSchemaApi, updateSchemaApi, getSchemaApi } from '@/utils/api';
-import { SchemaField, SchemaConfig, SchemaResponseFormat, SchemaProperty } from '@/types/index';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { DocRouterOrgApi } from '@/utils/api';
+import { SchemaField, SchemaConfig } from '@/types/index';
+import { SchemaResponseFormat, SchemaProperty } from '@docrouter/sdk';
 import { getApiErrorMsg } from '@/utils/api';
 
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
@@ -161,6 +162,7 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
 
 const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> = ({ organizationId, schemaRevId }) => {
   const router = useRouter();
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
   const [currentSchema, setCurrentSchema] = useState<SchemaConfig>({
     name: '',
@@ -275,7 +277,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       if (schemaRevId) {
         setIsLoading(true);
         try {
-          const schema = await getSchemaApi({ organizationId, schemaRevId });
+          const schema = await docRouterOrgApi.getSchema({ schemaRevId });
           setCurrentSchemaId(schema.schema_id);
           setCurrentSchema({
             name: schema.name,
@@ -310,7 +312,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
     }
     loadSchema();
     // Only run when schemaId or organizationId changes
-  }, [schemaRevId, organizationId, jsonSchemaToFields]);
+  }, [schemaRevId, docRouterOrgApi, jsonSchemaToFields]);
 
   // Update jsonSchema when currentSchema changes
   useEffect(() => {
@@ -834,9 +836,9 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       setIsLoading(true);
       
       if (currentSchemaId) {
-        await updateSchemaApi({organizationId: organizationId, schemaId: currentSchemaId, schema});
+        await docRouterOrgApi.updateSchema({ schemaId: currentSchemaId, schema });
       } else {
-        await createSchemaApi({organizationId: organizationId, ...schema });
+        await docRouterOrgApi.createSchema(schema);
       }      
 
       router.push(`/orgs/${organizationId}/schemas`);

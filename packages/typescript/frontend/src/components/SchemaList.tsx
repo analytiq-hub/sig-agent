@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { listSchemasApi, deleteSchemaApi, updateSchemaApi, createSchemaApi } from '@/utils/api';
-import { SchemaField, Schema, SchemaResponseFormat, SchemaProperty } from '@/types/index';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { DocRouterOrgApi } from '@/utils/api';
+import { SchemaField } from '@/types/index';
+import { Schema, SchemaResponseFormat, SchemaProperty } from '@docrouter/sdk';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';
@@ -19,6 +20,7 @@ import SchemaNameModal from './SchemaNameModal';
 
 const SchemaList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,8 +36,7 @@ const SchemaList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
   const loadSchemas = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await listSchemasApi({
-        organizationId: organizationId,
+      const response = await docRouterOrgApi.listSchemas({
         skip: page * pageSize,
         limit: pageSize,
         nameSearch: searchTerm || undefined
@@ -48,12 +49,12 @@ const SchemaList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, organizationId, searchTerm]);
+  }, [page, pageSize, docRouterOrgApi, searchTerm]);
 
   const handleDelete = async (schemaId: string) => {
     try {
       setIsLoading(true);
-      await deleteSchemaApi({organizationId: organizationId, schemaId});
+      await docRouterOrgApi.deleteSchema({ schemaId });
       setSchemas(schemas.filter(schema => schema.schema_id !== schemaId));
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error deleting schema';
@@ -95,14 +96,10 @@ const SchemaList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
       
       if (isCloning) {
         // For cloning, create a new schema
-        await createSchemaApi({
-          organizationId: organizationId,
-          ...schemaConfig
-        });
+        await docRouterOrgApi.createSchema(schemaConfig);
       } else {
         // For renaming, update existing schema
-        await updateSchemaApi({
-          organizationId: organizationId,
+        await docRouterOrgApi.updateSchema({
           schemaId: selectedSchema.schema_id,
           schema: schemaConfig
         });

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { listSchemasApi } from '@/utils/api';
+import React, { useState, useEffect, useMemo } from 'react';
+import { DocRouterOrgApi } from '@/utils/api';
 
 interface SchemaNameModalProps {
   isOpen: boolean;
@@ -18,6 +18,7 @@ const SchemaNameModal: React.FC<SchemaNameModalProps> = ({
   isCloning = false,
   organizationId
 }) => {
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [newName, setNewName] = useState(schemaName);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,8 +34,7 @@ const SchemaNameModal: React.FC<SchemaNameModalProps> = ({
     if (isOpen) {
       const fetchSchemaNames = async () => {
         try {
-          const response = await listSchemasApi({
-            organizationId,
+          const response = await docRouterOrgApi.listSchemas({
             limit: 1000
           });
           
@@ -46,7 +46,7 @@ const SchemaNameModal: React.FC<SchemaNameModalProps> = ({
       
       fetchSchemaNames();
     }
-  }, [isOpen, organizationId]);
+  }, [isOpen, docRouterOrgApi]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

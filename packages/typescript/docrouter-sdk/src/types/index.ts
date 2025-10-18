@@ -580,26 +580,48 @@ export interface DeletePromptParams {
 
 
 // Schema types
+export interface SchemaProperty {
+  type: 'string' | 'integer' | 'number' | 'boolean' | 'array' | 'object';
+  description?: string;
+  items?: SchemaProperty;  // For array types
+  properties?: Record<string, SchemaProperty>;  // For object types
+  additionalProperties?: boolean;  // Add this for object types
+  required?: string[];  // Add this for object types to specify required properties
+}
+
+export interface SchemaResponseFormat {
+  type: 'json_schema';
+  json_schema: {
+    name: string;
+    schema: {
+      type: 'object';
+      properties: Record<string, SchemaProperty>;
+      required: string[];
+      additionalProperties: boolean;
+    };
+    strict: boolean;
+  };
+}
+
 export interface Schema {
   schema_revid: string;
   schema_id: string;
   schema_version: number;
   name: string;
-  response_format: {
-    type: 'json_schema';
-    json_schema: Record<string, unknown>;
-  };
+  response_format: SchemaResponseFormat;
   created_at: string;
   created_by: string;
+}
+
+export interface SchemaConfig {
+  name: string;
+  response_format: SchemaResponseFormat;
 }
 
 export interface CreateSchemaParams {
   organizationId: string;
   name: string;
-  response_format: {
-    type: 'json_schema';
-    json_schema: Record<string, unknown>;
-  };
+  response_format: SchemaResponseFormat;
 }
 
 export interface ListSchemasParams {
@@ -623,7 +645,7 @@ export interface GetSchemaParams {
 export interface UpdateSchemaParams {
   organizationId: string;
   schemaId: string;
-  schema: Partial<Omit<Schema, 'id' | 'created_at' | 'updated_at'>>;
+  schema: Partial<Omit<Schema, 'schema_revid' | 'schema_id' | 'schema_version' | 'created_at' | 'created_by'>>;
 }
 
 export interface DeleteSchemaParams {
