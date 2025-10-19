@@ -323,4 +323,56 @@ describe('DocRouterAccount New APIs Unit Tests', () => {
       });
     });
   });
+
+  describe('Token APIs', () => {
+    describe('getOrganizationFromToken', () => {
+      test('should call correct endpoint with token parameter', async () => {
+        const token = 'test-api-token-123';
+        const expectedResponse = {
+          organization_id: 'org-123'
+        };
+
+        mockHttpClient.get.mockResolvedValue(expectedResponse);
+
+        const result = await client.getOrganizationFromToken(token);
+
+        expect(mockHttpClient.get).toHaveBeenCalledWith(
+          `/v0/account/token/organization?token=${encodeURIComponent(token)}`
+        );
+        expect(result).toEqual(expectedResponse);
+      });
+
+      test('should handle account-level token (null organization_id)', async () => {
+        const token = 'account-level-token-456';
+        const expectedResponse = {
+          organization_id: null
+        };
+
+        mockHttpClient.get.mockResolvedValue(expectedResponse);
+
+        const result = await client.getOrganizationFromToken(token);
+
+        expect(mockHttpClient.get).toHaveBeenCalledWith(
+          `/v0/account/token/organization?token=${encodeURIComponent(token)}`
+        );
+        expect(result).toEqual(expectedResponse);
+      });
+
+      test('should properly encode special characters in token', async () => {
+        const token = 'token with spaces & special chars!';
+        const expectedResponse = {
+          organization_id: 'org-789'
+        };
+
+        mockHttpClient.get.mockResolvedValue(expectedResponse);
+
+        const result = await client.getOrganizationFromToken(token);
+
+        expect(mockHttpClient.get).toHaveBeenCalledWith(
+          `/v0/account/token/organization?token=${encodeURIComponent(token)}`
+        );
+        expect(result).toEqual(expectedResponse);
+      });
+    });
+  });
 });

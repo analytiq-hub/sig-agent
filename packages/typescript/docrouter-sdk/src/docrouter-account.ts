@@ -8,6 +8,7 @@ import {
   UpdateOrganizationRequest,
   CreateTokenRequest,
   ListAccessTokensResponse,
+  TokenOrganizationResponse,
   ListLLMModelsParams,
   ListLLMModelsResponse,
   ListLLMProvidersResponse,
@@ -141,6 +142,15 @@ export class DocRouterAccount {
 
   async deleteOrganizationToken(tokenId: string, organizationId: string): Promise<void> {
     return this.http.delete(`/v0/orgs/${organizationId}/access_tokens/${tokenId}`);
+  }
+
+  /**
+   * Get the organization ID associated with an API token
+   * @param token The API token to resolve
+   * @returns The organization ID for org-specific tokens, or null for account-level tokens
+   */
+  async getOrganizationFromToken(token: string): Promise<TokenOrganizationResponse> {
+    return this.http.get<TokenOrganizationResponse>(`/v0/account/token/organization?token=${encodeURIComponent(token)}`);
   }
 
   // --------------- LLM (account-level) ---------------

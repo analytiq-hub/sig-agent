@@ -53,6 +53,10 @@ export interface ListAccessTokensResponse {
   access_tokens: AccessToken[];
 }
 
+export interface TokenOrganizationResponse {
+  organization_id: string | null;
+}
+
 // Organization types
 export interface OrganizationMember {
   user_id: string;
