@@ -8,7 +8,7 @@ import {
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { DocRouterOrg } from '@docrouter/sdk';
+import { DocRouterOrg, DocRouterAccount } from '@docrouter/sdk';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -16,7 +16,6 @@ import { fileURLToPath } from 'url';
 // Configuration schema
 const ConfigSchema = z.object({
   baseURL: z.string().default('https://app.docrouter.ai/fastapi'),
-  organizationId: z.string(),
   orgToken: z.string(),
   timeout: z.number().default(30000),
   retries: z.number().default(3),
@@ -63,8 +62,7 @@ DESCRIPTION:
 OPTIONS:
     --url <URL>              DocRouter API base URL
                             (default: https://app.docrouter.ai/fastapi)
-    --org-id <ID>            DocRouter organization ID
-    --org-token <TOKEN>      DocRouter organization API token
+    --org-token <TOKEN>      DocRouter organization API token (required)
     --timeout <MS>           Request timeout in milliseconds (default: 30000)
     --retries <COUNT>        Number of retry attempts (default: 3)
     --tools                  List all supported MCP tools
@@ -73,24 +71,22 @@ OPTIONS:
 
 ENVIRONMENT VARIABLES:
     DOCROUTER_API_URL        DocRouter API base URL
-    DOCROUTER_ORG_ID         DocRouter organization ID
-    DOCROUTER_ORG_API_TOKEN  DocRouter organization API token
+    DOCROUTER_ORG_API_TOKEN  DocRouter organization API token (required)
 
 EXAMPLES:
-    # Using command line arguments
-    docrouter-mcp --org-id "org123" --org-token "token456"
+    # Using command line arguments (organization ID will be resolved from token)
+    docrouter-mcp --org-token "token456"
 
-    # Using environment variables
-    export DOCROUTER_ORG_ID="org123"
+    # Using environment variables (organization ID will be resolved from token)
     export DOCROUTER_ORG_API_TOKEN="token456"
     docrouter-mcp
 
     # With custom API URL
-    docrouter-mcp --url "https://custom.docrouter.ai/fastapi" --org-id "org123" --org-token "token456"
+    docrouter-mcp --url "https://custom.docrouter.ai/fastapi" --org-token "token456"
 
 REQUIRED:
-    Either provide --org-id and --org-token as command line arguments,
-    or set DOCROUTER_ORG_ID and DOCROUTER_ORG_API_TOKEN environment variables.
+    DOCROUTER_ORG_API_TOKEN environment variable or --org-token argument.
+    Organization ID will be automatically resolved from the token.
 
 For more information about DocRouter, visit: https://docrouter.ai
 `);
@@ -126,9 +122,6 @@ function parseConfig(): Config {
         case 'url':
           config.baseURL = value;
           break;
-        case 'org-id':
-          config.organizationId = value;
-          break;
         case 'org-token':
           config.orgToken = value;
           break;
@@ -144,7 +137,6 @@ function parseConfig(): Config {
 
   // Fall back to environment variables
   config.baseURL = config.baseURL || process.env.DOCROUTER_API_URL || 'https://app.docrouter.ai/fastapi';
-  config.organizationId = config.organizationId || process.env.DOCROUTER_ORG_ID || '';
   config.orgToken = config.orgToken || process.env.DOCROUTER_ORG_API_TOKEN || '';
 
   return ConfigSchema.parse(config);
@@ -167,14 +159,35 @@ const server = new Server(
 let docrouterClient: DocRouterOrg;
 
 // Initialize DocRouter client
-function initializeClient(config: Config) {
-  docrouterClient = new DocRouterOrg({
-    baseURL: config.baseURL,
-    orgToken: config.orgToken,
-    organizationId: config.organizationId,
-    timeout: config.timeout,
-    retries: config.retries,
-  });
+async function initializeClient(config: Config) {
+  try {
+    console.error('Resolving organization ID from token...');
+    const accountClient = new DocRouterAccount({
+      baseURL: config.baseURL,
+      accountToken: config.orgToken,
+      timeout: config.timeout,
+      retries: config.retries,
+    });
+    
+    const tokenResponse = await accountClient.getOrganizationFromToken(config.orgToken);
+    const organizationId = tokenResponse.organization_id;
+    
+    if (!organizationId) {
+      throw new Error('Token is an account-level token, not an organization-specific token. Please use an organization API token.');
+    }
+    
+    console.error(`Resolved organization ID: ${organizationId}`);
+    
+    docrouterClient = new DocRouterOrg({
+      baseURL: config.baseURL,
+      orgToken: config.orgToken,
+      organizationId: organizationId,
+      timeout: config.timeout,
+      retries: config.retries,
+    });
+  } catch (error) {
+    throw new Error(`Failed to resolve organization ID from token: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 // Helper function to handle errors
@@ -2071,13 +2084,14 @@ async function main() {
   try {
     const config = parseConfig();
     
-    if (!config.organizationId || !config.orgToken) {
-      console.error('Error: DOCROUTER_ORG_ID and DOCROUTER_ORG_API_TOKEN environment variables are required');
-      console.error('Or provide them as command line arguments: --org-id <id> --org-token <token>');
+    if (!config.orgToken) {
+      console.error('Error: DOCROUTER_ORG_API_TOKEN environment variable is required');
+      console.error('Or provide it as command line argument: --org-token <token>');
+      console.error('Organization ID will be automatically resolved from the token.');
       process.exit(1);
     }
 
-    initializeClient(config);
+    await initializeClient(config);
 
     const transport = new StdioServerTransport();
     await server.connect(transport);
