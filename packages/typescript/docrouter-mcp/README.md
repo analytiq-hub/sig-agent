@@ -19,7 +19,7 @@ export DOCROUTER_ORG_API_TOKEN="your-token"
 
 ```bash
 # Build and test
-npm run build && npm test
+npm run build && npm run lint && npm run type-check && npm test
 
 # Update version and publish
 npm version patch && npm publish
@@ -445,6 +445,9 @@ npm whoami
 # Build the project
 npm run build
 
+# Run linting and type checks
+npm run lint && npm run type-check
+
 # Run tests to ensure everything works
 npm test
 
@@ -519,7 +522,7 @@ To publish updates:
 
 1. Make your changes
 2. Update the version: `npm version patch|minor|major`
-3. Build and test: `npm run build && npm test`
+3. Build and test: `npm run build && npm run lint && npm run type-check && npm test`
 4. Publish: `npm publish`
 
 ### Troubleshooting
