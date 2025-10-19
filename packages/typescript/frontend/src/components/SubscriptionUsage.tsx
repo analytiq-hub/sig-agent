@@ -40,7 +40,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId, r
     };
 
     fetchData();
-  }, [organizationId, refreshKey]);
+  }, [organizationId, refreshKey, docRouterAccountApi]);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString('en-US', {

@@ -49,7 +49,7 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
     };
 
     fetchData();
-  }, [organizationId, refreshKey]);
+  }, [organizationId, refreshKey, docRouterAccountApi]);
 
   const canPurchaseCredits = () => {
     if (!currentPlan) return true; // No subscription, can purchase

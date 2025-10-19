@@ -61,7 +61,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
     };
 
     fetchPortalUrl();
-  }, [organizationId]);
+  }, [organizationId, docRouterAccountApi]);
 
   useEffect(() => {
     // Check for success/cancel parameters in URL

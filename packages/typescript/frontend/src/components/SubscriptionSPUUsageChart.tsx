@@ -85,7 +85,7 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
     };
 
     fetchData();
-  }, [organizationId, refreshKey, dateRange]);
+  }, [organizationId, refreshKey, dateRange, docRouterAccountApi]);
 
   useEffect(() => {
     if (rangeData) {

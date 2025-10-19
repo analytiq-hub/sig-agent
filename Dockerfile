@@ -2,8 +2,13 @@ FROM node:18 AS frontend
 
 WORKDIR /app
 
-# Copy only necessary files first
+# Copy SDK source first (needed for frontend dependency)
+COPY packages/typescript/docrouter-sdk/ ./packages/typescript/docrouter-sdk/
+# Install SDK dependencies first
+RUN cd packages/typescript/docrouter-sdk && npm install
+# Copy frontend package.json
 COPY packages/typescript/frontend/package*.json ./packages/typescript/frontend/
+# Install frontend dependencies (this will build the SDK via the prepare script)
 RUN cd packages/typescript/frontend && npm install
 
 # Build-time arguments

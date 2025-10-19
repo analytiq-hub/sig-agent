@@ -38,7 +38,7 @@ const SubscriptionCredits: React.FC<SubscriptionCreditsProps> = ({
     };
 
     fetchData();
-  }, [organizationId, refreshKey]); // Add refreshKey to dependency array
+  }, [organizationId, refreshKey, docRouterAccountApi]);
 
   if (loading) {
     return (
