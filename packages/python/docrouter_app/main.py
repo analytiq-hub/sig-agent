@@ -54,7 +54,8 @@ from docrouter_app.auth import (
     get_org_user,
     is_system_admin,
     is_organization_admin,
-    is_organization_member
+    is_organization_member,
+    get_org_id_from_token
 )
 from docrouter_app.models import (
     User, AccessToken, ListAccessTokensResponse,
@@ -4202,6 +4203,22 @@ async def delete_account_token(
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Token not found")
     return {"message": "Token deleted successfully"}
+
+@app.get("/v0/account/token/organization", tags=["account/auth"])
+async def get_organization_from_token(
+    token: str = Query(..., description="The API token to resolve to organization ID")
+):
+    """
+    Get the organization ID associated with an API token.
+    
+    Returns the organization ID for org-specific tokens, 
+    or null for account-level tokens.
+    """
+    try:
+        org_id = await get_org_id_from_token(token)
+        return {"organization_id": org_id}
+    except HTTPException as e:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 app.include_router(payments_router)
 

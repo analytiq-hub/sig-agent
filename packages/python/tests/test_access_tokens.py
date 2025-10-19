@@ -260,4 +260,120 @@ async def test_account_access_tokens(test_db, mock_auth):
     finally:
         pass  # mock_auth fixture handles cleanup
     
-    logger.info(f"test_account_access_tokens() end") 
+    logger.info(f"test_account_access_tokens() end")
+
+@pytest.mark.asyncio
+async def test_get_organization_from_token(test_db, mock_auth):
+    """Test the get_organization_from_token endpoint"""
+    logger.info(f"test_get_organization_from_token() start")
+    
+    try:
+        # Step 1: Create an organization-level access token
+        org_token_data = {
+            "name": "Test Org API Token",
+            "lifetime": 30
+        }
+        
+        create_org_token_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/access_tokens",
+            json=org_token_data,
+            headers=get_auth_headers()
+        )
+        
+        assert create_org_token_response.status_code == 200
+        org_token_result = create_org_token_response.json()
+        org_api_token = org_token_result["token"]
+        
+        # Step 2: Create an account-level access token
+        account_token_data = {
+            "name": "Test Account API Token",
+            "lifetime": 60
+        }
+        
+        create_account_token_response = client.post(
+            f"/v0/account/access_tokens",
+            json=account_token_data,
+            headers=get_auth_headers()
+        )
+        
+        assert create_account_token_response.status_code == 200
+        account_token_result = create_account_token_response.json()
+        account_api_token = account_token_result["token"]
+        
+        # Step 3: Test resolving organization token to organization ID
+        resolve_org_response = client.get(
+            f"/v0/account/token/organization?token={org_api_token}"
+        )
+        
+        assert resolve_org_response.status_code == 200
+        org_resolve_data = resolve_org_response.json()
+        assert "organization_id" in org_resolve_data
+        assert org_resolve_data["organization_id"] == TEST_ORG_ID
+        
+        # Step 4: Test resolving account token to organization ID (should return null)
+        resolve_account_response = client.get(
+            f"/v0/account/token/organization?token={account_api_token}"
+        )
+        
+        assert resolve_account_response.status_code == 200
+        account_resolve_data = resolve_account_response.json()
+        assert "organization_id" in account_resolve_data
+        assert account_resolve_data["organization_id"] is None
+        
+        # Step 5: Test with invalid token
+        invalid_token_response = client.get(
+            f"/v0/account/token/organization?token=invalid_token_12345"
+        )
+        
+        assert invalid_token_response.status_code == 401
+        invalid_token_data = invalid_token_response.json()
+        assert "detail" in invalid_token_data
+        assert invalid_token_data["detail"] == "Invalid token"
+        
+        # Step 6: Test with empty token
+        empty_token_response = client.get(
+            f"/v0/account/token/organization?token="
+        )
+        
+        assert empty_token_response.status_code == 401  # Invalid token for empty string
+        
+        # Step 7: Test with missing token parameter
+        missing_token_response = client.get(
+            f"/v0/account/token/organization"
+        )
+        
+        assert missing_token_response.status_code == 422  # Validation error for missing required parameter
+        
+        # Step 8: Clean up - delete the tokens
+        org_token_id = org_token_result["id"]
+        account_token_id = account_token_result["id"]
+        
+        # Delete org token
+        delete_org_response = client.delete(
+            f"/v0/orgs/{TEST_ORG_ID}/access_tokens/{org_token_id}",
+            headers=get_auth_headers()
+        )
+        assert delete_org_response.status_code == 200
+        
+        # Delete account token
+        delete_account_response = client.delete(
+            f"/v0/account/access_tokens/{account_token_id}",
+            headers=get_auth_headers()
+        )
+        assert delete_account_response.status_code == 200
+        
+        # Step 9: Test that deleted tokens no longer resolve
+        deleted_org_response = client.get(
+            f"/v0/account/token/organization?token={org_api_token}"
+        )
+        assert deleted_org_response.status_code == 401
+        
+        deleted_account_response = client.get(
+            f"/v0/account/token/organization?token={account_api_token}"
+        )
+        assert deleted_account_response.status_code == 401
+        
+    finally:
+        pass  # mock_auth fixture handles cleanup
+    
+    logger.info(f"test_get_organization_from_token() end") 
