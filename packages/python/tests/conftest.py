@@ -179,7 +179,12 @@ async def org_and_users(test_db):
 
     # Helper to create a token for a user
     async def create_token(user_id, org_id, name):
-        token = secrets.token_urlsafe(32)
+        if org_id is None:
+            # Account-level token
+            token = f"acc_{secrets.token_urlsafe(32)}"
+        else:
+            # Organization-level token
+            token = f"org_{secrets.token_urlsafe(32)}"
         encrypted = ad.crypto.encrypt_token(token)
         token_doc = {
             "user_id": user_id,

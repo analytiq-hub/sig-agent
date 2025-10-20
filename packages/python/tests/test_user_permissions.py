@@ -328,7 +328,7 @@ async def test_user_permission_boundaries(test_db, mock_auth):
         
         # Step 2: Test that regular users can update their own basic info
         # Create an account token for the regular user
-        token = secrets.token_urlsafe(32)
+        token = f"acc_{secrets.token_urlsafe(32)}"
         encrypted = ad.crypto.encrypt_token(token)
         token_doc = {
             "user_id": user_id,

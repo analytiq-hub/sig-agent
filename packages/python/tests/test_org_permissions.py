@@ -145,7 +145,7 @@ async def test_enterprise_creation_restriction(test_db, mock_auth):
         app.dependency_overrides.clear()
         
         # Create an account token for the regular user
-        token = secrets.token_urlsafe(32)
+        token = f"acc_{secrets.token_urlsafe(32)}"
         encrypted = ad.crypto.encrypt_token(token)
         token_doc = {
             "user_id": regular_user["id"],

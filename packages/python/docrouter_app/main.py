@@ -228,7 +228,7 @@ async def create_org_token(
     # Generate a globally unique token
     max_attempts = 10
     for attempt in range(max_attempts):
-        token = secrets.token_urlsafe(32)
+        token = f"org_{secrets.token_urlsafe(32)}"
         encrypted_token = ad.crypto.encrypt_token(token)
         
         # Check if token already exists
@@ -3633,7 +3633,7 @@ async def send_registration_verification_email(user_id: str):
         raise HTTPException(status_code=400, detail="Email already verified")
 
     # Generate verification token
-    token = secrets.token_urlsafe(32)
+    token = f"ver_{secrets.token_urlsafe(32)}"
     expires = (datetime.now(UTC) + timedelta(hours=24)).replace(tzinfo=UTC)
     
     # Store verification token
@@ -3686,7 +3686,7 @@ async def send_verification_email(
         raise HTTPException(status_code=400, detail="Email already verified")
 
     # Generate verification token
-    token = secrets.token_urlsafe(32)
+    token = f"ver_{secrets.token_urlsafe(32)}"
     # Ensure expiration time is stored with UTC timezone
     expires = (datetime.now(UTC) + timedelta(hours=24)).replace(tzinfo=UTC)
     
@@ -3845,7 +3845,7 @@ async def create_invitation(
     )
 
     # Generate invitation token
-    token = secrets.token_urlsafe(32)
+    token = f"inv_{secrets.token_urlsafe(32)}"
     expires = datetime.now(UTC) + timedelta(hours=24)
     
     # Create invitation document
@@ -4131,7 +4131,7 @@ async def create_account_token(
     # Generate a globally unique token
     max_attempts = 10
     for attempt in range(max_attempts):
-        token = secrets.token_urlsafe(32)
+        token = f"acc_{secrets.token_urlsafe(32)}"
         encrypted_token = ad.crypto.encrypt_token(token)
         
         # Check if token already exists
