@@ -63,7 +63,6 @@ from docrouter_app.models import (
     LLMModel, ListLLMModelsResponse,
     LLMProvider, ListLLMProvidersResponse, SetLLMProviderConfigRequest,
     AWSConfig,
-    GetOCRMetadataResponse,
     LLMRunResponse,
     LLMResult,
     UpdateLLMResultRequest,
@@ -93,6 +92,7 @@ from docrouter_app.routes.payments import (
     delete_payments_customer,
 )
 from docrouter_app.routes.documents import documents_router
+from docrouter_app.routes.ocr import ocr_router
 import analytiq_data as ad
 from analytiq_data.common.doc import get_mime_type
 
@@ -293,91 +293,8 @@ async def delete_org_token(
     return {"message": "Token deleted successfully"}
 
 
-@app.get("/v0/orgs/{organization_id}/ocr/download/blocks/{document_id}", tags=["ocr"])
-async def download_ocr_blocks(
-    organization_id: str,
-    document_id: str,
-    current_user: User = Depends(get_org_user)
-):
-    """Download OCR blocks for a document"""
-    logger.debug(f"download_ocr_blocks() start: document_id: {document_id}")
-    analytiq_client = ad.common.get_analytiq_client()
 
-    document = await ad.common.get_doc(analytiq_client, document_id)
-    
-    if not document:
-        raise HTTPException(status_code=404, detail="Document not found")
-    
-    file_name = document.get("user_file_name", "")
-    if not ad.common.doc.ocr_supported(file_name):
-        raise HTTPException(status_code=404, detail="OCR not supported for this document extension")
 
-    # Get the OCR JSON data from mongodb
-    ocr_json = await ad.common.get_ocr_json(analytiq_client, document_id)
-    if ocr_json is None:
-        raise HTTPException(status_code=404, detail="OCR data not found")
-    
-    return JSONResponse(content=ocr_json)
-
-@app.get("/v0/orgs/{organization_id}/ocr/download/text/{document_id}", response_model=str, tags=["ocr"])
-async def download_ocr_text(
-    organization_id: str,
-    document_id: str,
-    page_num: Optional[int] = Query(None, description="Specific page number to retrieve"),
-    current_user: User = Depends(get_org_user)
-):
-    """Download OCR text for a document"""
-    logger.debug(f"download_ocr_text() start: document_id: {document_id}, page_num: {page_num}")
-    
-    analytiq_client = ad.common.get_analytiq_client()
-    document = await ad.common.get_doc(analytiq_client, document_id)
-    
-    if not document:
-        raise HTTPException(status_code=404, detail="Document not found")
-    
-    file_name = document.get("user_file_name", "")
-    if not ad.common.doc.ocr_supported(file_name):
-        raise HTTPException(status_code=404, detail="OCR not supported for this document extension")
-
-    # Page number is 1-based, but the OCR text page_idx is 0-based
-    page_idx = None
-    if page_num is not None:
-        page_idx = page_num - 1
-
-    # Get the OCR text data from mongodb
-    text = await ad.common.get_ocr_text(analytiq_client, document_id, page_idx)
-    if text is None:
-        raise HTTPException(status_code=404, detail="OCR text not found")
-    
-    return Response(content=text, media_type="text/plain")
-
-@app.get("/v0/orgs/{organization_id}/ocr/download/metadata/{document_id}", response_model=GetOCRMetadataResponse, tags=["ocr"])
-async def get_ocr_metadata(
-    organization_id: str,
-    document_id: str,
-    current_user: User = Depends(get_org_user)
-):
-    """Get OCR metadata for a document"""
-    logger.debug(f"get_ocr_metadata() start: document_id: {document_id}")
-    
-    analytiq_client = ad.common.get_analytiq_client()
-    document = await ad.common.get_doc(analytiq_client, document_id)
-    if not document:
-        raise HTTPException(status_code=404, detail="Document not found")
-    
-    file_name = document.get("user_file_name", "")
-    if not ad.common.doc.ocr_supported(file_name):
-        raise HTTPException(status_code=404, detail="OCR not supported for this document extension")
-
-    # Get the OCR metadata from mongodb
-    metadata = await ad.common.get_ocr_metadata(analytiq_client, document_id)
-    if metadata is None:
-        raise HTTPException(status_code=404, detail="OCR metadata not found")
-    
-    return GetOCRMetadataResponse(
-        n_pages=metadata["n_pages"],
-        ocr_date=metadata["ocr_date"].isoformat()
-    )
 
 # LLM Run Endpoints
 @app.post("/v0/orgs/{organization_id}/llm/run/{document_id}", response_model=LLMRunResponse, tags=["llm"])
@@ -3865,6 +3782,7 @@ async def get_organization_from_token(
 
 app.include_router(payments_router)
 app.include_router(documents_router)
+app.include_router(ocr_router)
 
 # --- Form Schema Versioning Helper ---
 async def get_form_id_and_version(form_id: Optional[str] = None) -> tuple[str, int]:
