@@ -19,7 +19,8 @@ if os.path.isdir(sdk_src_path) and sdk_src_path not in sys.path:
     sys.path.append(sdk_src_path)
 
 # Now import the FastAPI app and dependencies
-from docrouter_app.main import app, security, get_current_user, get_admin_user
+from docrouter_app.main import app, security
+from docrouter_app.auth import get_current_user, get_admin_user
 from docrouter_app.models import User
 from docrouter_app.routes.payments import init_payments, sync_payments_customer
 from worker.worker import main as worker_main

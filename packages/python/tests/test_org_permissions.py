@@ -63,7 +63,8 @@ async def test_enterprise_upgrade_restriction(org_and_users, test_db, mock_auth)
         
         # Test 2: System admin CAN upgrade to Enterprise
         # Restore auth mock to use TEST_USER (system admin)
-        from docrouter_app.main import security, get_current_user, get_admin_user
+        from docrouter_app.main import security
+        from docrouter_app.auth import get_current_user, get_admin_user
         mock_credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="test_token")
         app.dependency_overrides = {
             security: lambda: mock_credentials,
@@ -178,7 +179,8 @@ async def test_enterprise_creation_restriction(test_db, mock_auth):
         
         # Test 2: System admin CAN create Enterprise organization
         # Restore auth mock to use TEST_USER (system admin)
-        from docrouter_app.main import security, get_current_user, get_admin_user
+        from docrouter_app.main import security
+        from docrouter_app.auth import get_current_user, get_admin_user
         mock_credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="test_token")
         app.dependency_overrides = {
             security: lambda: mock_credentials,

@@ -395,7 +395,8 @@ async def test_user_permission_boundaries(test_db, mock_auth):
         
         # Step 4: Verify the permission system correctly enforces role-based access
         # Restore auth mock to use TEST_USER (system admin)
-        from docrouter_app.main import security, get_current_user, get_admin_user
+        from docrouter_app.main import security
+        from docrouter_app.auth import get_current_user, get_admin_user
         mock_credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="test_token")
         app.dependency_overrides = {
             security: lambda: mock_credentials,

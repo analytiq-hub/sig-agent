@@ -1,20 +1,10 @@
 # main.py
 
 # Standard library imports
-from datetime import datetime, timedelta, UTC
 import os
 import sys
-import json
-import secrets
-import base64
-import re
-import uuid
 import logging
-import hmac
-import hashlib
-import asyncio
 import warnings
-from typing import Optional, List
 from contextlib import asynccontextmanager
 # Defer litellm import to avoid event loop warnings
 # import litellm
@@ -27,45 +17,14 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(f"{cwd}/..")
 
 # Third-party imports
-from fastapi import (
-    FastAPI, File, UploadFile, HTTPException, Query, 
-    Depends, status, Body, Security, Response, 
-    BackgroundTasks, Request
-)
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
+from fastapi import FastAPI
+from fastapi.security import HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-from bson import ObjectId
-from jose import JWTError, jwt
-from bcrypt import hashpw, gensalt
-from dotenv import load_dotenv
-from jsonschema import validate, ValidationError, Draft7Validator
-from fastapi.encoders import jsonable_encoder
-import httpx
-from urllib.parse import urlparse
 
 # Local imports
-from docrouter_app import startup, organizations, users, limits
-from docrouter_app.auth import (
-    get_current_user,
-    get_admin_user,
-    get_session_user,
-    get_org_user,
-    is_system_admin,
-    is_organization_admin,
-    is_organization_member,
-    get_org_id_from_token
-)
-from docrouter_app.models import (
-    User,
-)
-from docrouter_app.routes.payments import payments_router, SPUCreditException
-from docrouter_app.routes.payments import (
-    init_payments,
-    sync_customer,
-    delete_payments_customer,
-)
+from docrouter_app import startup
+from docrouter_app.routes.payments import payments_router, init_payments
 from docrouter_app.routes.documents import documents_router
 from docrouter_app.routes.ocr import ocr_router
 from docrouter_app.routes.llm import llm_router
@@ -80,7 +39,6 @@ from docrouter_app.routes.orgs import orgs_router
 from docrouter_app.routes.users import users_router
 from docrouter_app.routes.emails import emails_router
 import analytiq_data as ad
-from analytiq_data.common.doc import get_mime_type
 
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
