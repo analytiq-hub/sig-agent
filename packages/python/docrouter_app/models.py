@@ -25,10 +25,6 @@ class CreateAccessTokenRequest(BaseModel):
     name: str
     lifetime: int
 
-class AWSConfig(BaseModel):
-    access_key_id: str
-    secret_access_key: str
-    s3_bucket_name: str
 
 class OrganizationMember(BaseModel):
     user_id: str
