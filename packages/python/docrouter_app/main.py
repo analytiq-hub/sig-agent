@@ -61,11 +61,6 @@ from docrouter_app.models import (
     User, AccessToken, ListAccessTokensResponse,
     CreateAccessTokenRequest,
     AWSConfig,
-    Schema, SchemaConfig, ListSchemasResponse,
-    Prompt, PromptConfig, ListPromptsResponse,
-    Form, FormConfig, ListFormsResponse,
-    FormSubmissionData, FormSubmission,
-    TagConfig, Tag, ListTagsResponse,
     UserCreate, UserUpdate, UserResponse, ListUsersResponse,
     OrganizationMember,
     OrganizationCreate,
@@ -88,6 +83,10 @@ from docrouter_app.routes.payments import (
 from docrouter_app.routes.documents import documents_router
 from docrouter_app.routes.ocr import ocr_router
 from docrouter_app.routes.llm import llm_router
+from docrouter_app.routes.prompts import prompts_router
+from docrouter_app.routes.schemas import schemas_router
+from docrouter_app.routes.tags import tags_router
+from docrouter_app.routes.forms import forms_router
 import analytiq_data as ad
 from analytiq_data.common.doc import get_mime_type
 
@@ -293,598 +292,17 @@ async def delete_org_token(
 
 
 
-# Add this helper function near the top of the file with other functions
-async def get_schema_id_and_version(schema_id: Optional[str] = None) -> tuple[str, int]:
-    """
-    Get the next version for an existing schema or create a new schema identifier.
-    
-    Args:
-        schema_id: Existing schema ID, or None to create a new one
-        
-    Returns:
-        Tuple of (schema_id, schema_version)
-    """
-    db = ad.common.get_async_db()
-
-    if schema_id is None:
-        # Insert a placeholder document to get MongoDB-generated ID
-        result = await db.schemas.insert_one({
-            "schema_version": 1
-        })
-        
-        # Use the MongoDB-assigned _id as our schema_id
-        schema_id = str(result.inserted_id)
-        schema_version = 1
-    else:
-        # Get the next version for an existing schema
-        result = await db.schemas.find_one_and_update(
-            {"_id": ObjectId(schema_id)},
-            {"$inc": {"schema_version": 1}},
-            upsert=True,
-            return_document=True
-        )
-        schema_version = result["schema_version"]
-    
-    return schema_id, schema_version
-
-# Schema management endpoints
-@app.post("/v0/orgs/{organization_id}/schemas", response_model=Schema, tags=["schemas"])
-async def create_schema(
-    organization_id: str,
-    schema: SchemaConfig,
-    current_user: User = Depends(get_org_user)
-):
-    """Create a schema"""
-    logger.info(f"create_schema() start: organization_id: {organization_id}, schema: {schema}")
-    db = ad.common.get_async_db()
-
-    # Check if schema with this name already exists (case-insensitive)
-    existing_schema = await db.schemas.find_one({
-        "name": {"$regex": f"^{schema.name}$", "$options": "i"},
-        "organization_id": organization_id
-    })
-
-    # Generate schema_id and version
-    if existing_schema:
-        schema_id, new_schema_version = await get_schema_id_and_version(str(existing_schema["_id"]))
-    else:
-        # Generate a new schema_id when creating a new schema
-        schema_id, new_schema_version = await get_schema_id_and_version(None)
-    
-    # Update the schemas collection with name and organization_id
-    await db.schemas.update_one(
-        {"_id": ObjectId(schema_id)},
-        {"$set": {
-            "name": schema.name,
-            "organization_id": organization_id
-        }},
-        upsert=True
-    )
-    
-    # Create schema document for schema_revisions
-    schema_dict = {
-        "schema_id": schema_id,
-        "response_format": schema.response_format.model_dump(),
-        "schema_version": new_schema_version,
-        "created_at": datetime.now(UTC),
-        "created_by": current_user.user_id
-    }
-    
-    # Insert into MongoDB
-    result = await db.schema_revisions.insert_one(schema_dict)
-    
-    # Return complete schema
-    schema_dict["name"] = schema.name
-    schema_dict["schema_revid"] = str(result.inserted_id)
-    return Schema(**schema_dict)
-
-@app.get("/v0/orgs/{organization_id}/schemas", response_model=ListSchemasResponse, tags=["schemas"])
-async def list_schemas(
-    organization_id: str,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
-    name_search: str = Query(None, description="Search term for schema names"),
-    current_user: User = Depends(get_org_user)
-):
-    """List latest schema revisions within an organization"""
-    logger.info(f"list_schemas() start: organization_id: {organization_id}, skip: {skip}, limit: {limit}")
-    db = ad.common.get_async_db()
-    
-    # First, get schemas that belong to the organization
-    # Build base query for schemas in org
-    schemas_query = {"organization_id": organization_id}
-    # Optional name search (case-insensitive)
-    if name_search:
-        schemas_query["name"] = {"$regex": name_search, "$options": "i"}
-
-    org_schemas = await db.schemas.find(schemas_query).to_list(None)
-    
-    if not org_schemas:
-        return ListSchemasResponse(schemas=[], total_count=0, skip=skip)
-    
-    # Extract schema IDs (restricted to name_search if provided)
-    schema_ids = [schema["_id"] for schema in org_schemas]
-    schema_id_to_name = {str(schema["_id"]): schema["name"] for schema in org_schemas}
-    
-    # Build pipeline for schema_revisions
-    pipeline = [
-        {
-            "$match": {"schema_id": {"$in": [str(sid) for sid in schema_ids]}}
-        },
-        {
-            "$sort": {"_id": -1}
-        },
-        {
-            "$group": {
-                "_id": "$schema_id",
-                "doc": {"$first": "$$ROOT"}
-            }
-        },
-        {
-            "$replaceRoot": {"newRoot": "$doc"}
-        },
-        {
-            "$sort": {"_id": -1}
-        },
-        {
-            "$facet": {
-                "total": [{"$count": "count"}],
-                "schemas": [
-                    {"$skip": skip},
-                    {"$limit": limit}
-                ]
-            }
-        }
-    ]
-    
-    result = await db.schema_revisions.aggregate(pipeline).to_list(length=1)
-    result = result[0]
-    
-    total_count = result["total"][0]["count"] if result["total"] else 0
-    schemas = result["schemas"]
-    
-    # Convert _id to id in each schema and add name from schemas collection
-    for schema in schemas:
-        schema['schema_revid'] = str(schema.pop('_id'))
-        schema['name'] = schema_id_to_name.get(schema['schema_id'], "Unknown")
-    
-    return ListSchemasResponse(
-        schemas=schemas,
-        total_count=total_count,
-        skip=skip
-    )
-
-@app.get("/v0/orgs/{organization_id}/schemas/{schema_revid}", response_model=Schema, tags=["schemas"])
-async def get_schema(
-    organization_id: str,
-    schema_revid: str,
-    current_user: User = Depends(get_org_user)
-):
-    """Get a schema revision"""
-    logger.info(f"get_schema() start: organization_id: {organization_id}, schema_revid: {schema_revid}")
-    db = ad.common.get_async_db()
-    
-    # Get the schema revision
-    revision = await db.schema_revisions.find_one({
-        "_id": ObjectId(schema_revid)
-    })
-    if not revision:
-        raise HTTPException(status_code=404, detail="Schema not found")
-    
-    # Get the schema name and verify organization
-    schema = await db.schemas.find_one({
-        "_id": ObjectId(revision["schema_id"]),
-        "organization_id": organization_id
-    })
-    if not schema:
-        raise HTTPException(status_code=404, detail="Schema not found or not in this organization")
-    
-    # Combine the data
-    revision['schema_revid'] = str(revision.pop('_id'))
-    revision['name'] = schema['name']
-    
-    return Schema(**revision)
-
-@app.put("/v0/orgs/{organization_id}/schemas/{schema_id}", response_model=Schema, tags=["schemas"])
-async def update_schema(
-    organization_id: str,
-    schema_id: str,
-    schema: SchemaConfig,
-    current_user: User = Depends(get_org_user)
-):
-    """Update a schema"""
-    logger.info(f"update_schema() start: organization_id: {organization_id}, schema_id: {schema_id}, schema: {schema}")
-    
-    db = ad.common.get_async_db()
-
-    # Check if user is a member of the organization
-    org = await db.organizations.find_one({"_id": ObjectId(organization_id)})
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-
-    # Check if user is a member of the organization
-    if not any(member["user_id"] == current_user.user_id for member in org["members"]):
-        raise HTTPException(status_code=403, detail="Not authorized to update schemas in this organization")
-
-    # Get the existing schema and latest revision
-    existing_schema = await db.schemas.find_one({"_id": ObjectId(schema_id)})
-    if not existing_schema:
-        raise HTTPException(status_code=404, detail="Schema not found")
-    
-    latest_schema_revision = await db.schema_revisions.find_one(
-        {"schema_id": schema_id},
-        sort=[("schema_version", -1)]
-    )
-    
-    if not latest_schema_revision:
-        raise HTTPException(status_code=404, detail="Schema revision not found")
-
-    # Check if only the name has changed
-    only_name_changed = (
-        schema.name != existing_schema["name"] and
-        schema.response_format.model_dump() == latest_schema_revision["response_format"]
-    )
-    
-    if only_name_changed:
-        # Update the name in the schemas collection
-        result = await db.schemas.update_one(
-            {"_id": ObjectId(schema_id)},
-            {"$set": {"name": schema.name}}
-        )
-        
-        if result.modified_count > 0:
-            # Return the updated schema
-            updated_revision = latest_schema_revision.copy()
-            updated_revision["schema_revid"] = str(updated_revision.pop("_id"))
-            updated_revision["name"] = schema.name
-            return Schema(**updated_revision)
-        else:
-            raise HTTPException(status_code=500, detail="Failed to update schema name")
-    
-    # If other fields changed, create a new version
-    # Get the next version number using the stable schema_id
-    _, new_schema_version = await get_schema_id_and_version(schema_id)
-    
-    # Update the schemas collection if name changed
-    if schema.name != existing_schema["name"]:
-        await db.schemas.update_one(
-            {"_id": ObjectId(schema_id)},
-            {"$set": {"name": schema.name}}
-        )
-    
-    # Create new version of the schema in schema_revisions
-    new_schema = {
-        "schema_id": schema_id,
-        "response_format": schema.response_format.model_dump(),
-        "schema_version": new_schema_version,
-        "created_at": datetime.now(UTC),
-        "created_by": current_user.user_id
-    }
-    
-    # Insert new version
-    result = await db.schema_revisions.insert_one(new_schema)
-    
-    # Return updated schema
-    new_schema["schema_revid"] = str(result.inserted_id)
-    new_schema["name"] = schema.name
-    return Schema(**new_schema)
-
-@app.delete("/v0/orgs/{organization_id}/schemas/{schema_id}", tags=["schemas"])
-async def delete_schema(
-    organization_id: str,
-    schema_id: str,
-    current_user: User = Depends(get_org_user)
-):
-    """Delete a schema"""
-    logger.info(f"delete_schema() start: organization_id: {organization_id}, schema_id: {schema_id}")
-
-    db = ad.common.get_async_db()
-    
-    # Get the schema and verify organization
-    schema = await db.schemas.find_one({
-        "_id": ObjectId(schema_id),
-        "organization_id": organization_id
-    })
-    if not schema:
-        raise HTTPException(status_code=404, detail="Schema not found or not in this organization")
-
-    # Check for dependent prompts by schema_id
-    dependent_prompts = await db.prompt_revisions.find({
-        "schema_id": schema_id
-    }).to_list(None)
-    
-    if dependent_prompts:
-        # Get names from prompts collection
-        prompt_names = {}
-        for prompt_revision in dependent_prompts:
-            prompt = await db.prompts.find_one({"_id": ObjectId(prompt_revision["prompt_id"])})
-            if prompt:
-                prompt_names[str(prompt_revision["_id"])] = prompt["name"]
-        
-        # Format the list of dependent prompts
-        prompt_list = [
-            {
-                "name": prompt_names.get(str(p["_id"]), "Unknown"), 
-                "schema_version": p["schema_version"]
-            } 
-            for p in dependent_prompts
-        ]
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot delete schema because it has dependent prompts:{json.dumps(prompt_list)}"
-        )
-    
-    # If no dependent prompts, proceed with deletion
-    result = await db.schema_revisions.delete_many({
-        "schema_id": schema_id
-    })
-    
-    # Delete the schema entry
-    await db.schemas.delete_one({"_id": ObjectId(schema_id)})
-    
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="No schema revisions found")
-        
-    return {"message": "Schema deleted successfully"}
-
-@app.post("/v0/orgs/{organization_id}/schemas/{schema_revid}/validate", tags=["schemas"])
-async def validate_against_schema(
-    organization_id: str,
-    schema_revid: str,
-    data: dict = Body(...),
-    current_user: User = Depends(get_org_user)
-):
-    """Validate data against a schema revision"""
-    logger.info(f"validate_against_schema() start: organization_id: {organization_id}, schema_revid: {schema_revid}")
-    
-    db = ad.common.get_async_db()
-    
-    # Get the schema
-    schema_doc = await db.schema_revisions.find_one({
-        "_id": ObjectId(schema_revid),
-    })
-    
-    if not schema_doc:
-        raise HTTPException(status_code=404, detail="Schema not found")
-    
-    # Extract the JSON schema from the schema document
-    try:
-        json_schema = schema_doc["response_format"]["json_schema"]["schema"]
-        
-        # Get the data to validate
-        if "data" not in data:
-            raise HTTPException(status_code=400, detail="Request must include 'data' field")
-        
-        instance_data = data["data"]
-        
-        # Validate the data against the schema
-        validator = Draft7Validator(json_schema)
-        errors = list(validator.iter_errors(instance_data))
-        
-        if not errors:
-            return {"valid": True}
-        
-        # Format validation errors
-        formatted_errors = []
-        for error in errors:
-            formatted_errors.append({
-                "path": ".".join(str(p) for p in error.path) if error.path else "",
-                "message": error.message
-            })
-        
-        return {
-            "valid": False,
-            "errors": formatted_errors
-        }
-    
-    except KeyError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid schema format: {str(e)}")
-    except Exception as e:
-        logger.error(f"Error validating data: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error validating data: {str(e)}")
 
 
-# Add this validation function
-def validate_schema_fields(fields: list) -> tuple[bool, str]:
-    field_names = [field.name.lower() for field in fields]
-    seen = set()
-    for name in field_names:
-        if name in seen:
-            return False, f"Duplicate field name: {name}"
-        seen.add(name)
-    return True, ""
 
-async def get_prompt_id_and_version(prompt_id: Optional[str] = None) -> tuple[str, int]:
-    """
-    Get the next version for an existing prompt or create a new prompt identifier.
-    
-    Args:
-        prompt_id: Existing prompt ID, or None to create a new one
-        
-    Returns:
-        Tuple of (prompt_id, prompt_version)
-    """
-    db = ad.common.get_async_db()
 
-    if prompt_id is None:
-        # Insert a placeholder document to get MongoDB-generated ID
-        result = await db.prompts.insert_one({
-            "prompt_version": 1
-        })
-        
-        # Use the MongoDB-assigned _id as our prompt_id
-        prompt_id = str(result.inserted_id)
-        prompt_version = 1
-    else:
-        # Get the next version for an existing prompt
-        result = await db.prompts.find_one_and_update(
-            {"_id": ObjectId(prompt_id)},
-            {"$inc": {"prompt_version": 1}},
-            upsert=True,
-            return_document=True
-        )
-        prompt_version = result["prompt_version"]
-    
-    return prompt_id, prompt_version
 
-async def validate_and_resolve_schema(prompt: PromptConfig) -> Optional[dict]:
-    """
-    Validate and resolve schema information for a prompt.
-    
-    If schema_id is provided:
-    - If schema_version is also provided, validates that specific version exists
-    - If schema_version is None, auto-fetches the latest version and updates the prompt
-    
-    Args:
-        prompt: The prompt configuration to validate
-        
-    Returns:
-        The schema document if found, None if no schema_id provided
-        
-    Raises:
-        HTTPException: If schema_id is provided but schema not found
-    """
-    if not prompt.schema_id:
-        return None
-        
-    db = ad.common.get_async_db()
-    
-    if prompt.schema_version:
-        # Both schema_id and schema_version provided - verify specific version
-        schema = await db.schema_revisions.find_one({
-            "schema_id": prompt.schema_id,
-            "schema_version": prompt.schema_version,
-        })
-        if not schema:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Schema with ID {prompt.schema_id} version {prompt.schema_version} not found"
-            )
-    else:
-        # Only schema_id provided - auto-fetch latest version
-        schema = await db.schema_revisions.find_one(
-            {"schema_id": prompt.schema_id},
-            sort=[("schema_version", -1)]  # Get highest version
-        )
-        if not schema:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Schema with ID {prompt.schema_id} not found"
-            )
-        # Update the prompt with the latest schema version
-        prompt.schema_version = schema["schema_version"]
-    
-    return schema
 
-# Prompt management endpoints
-@app.post("/v0/orgs/{organization_id}/prompts", response_model=Prompt, tags=["prompts"])
-async def create_prompt(
-    organization_id: str,
-    prompt: PromptConfig,
-    current_user: User = Depends(get_org_user)
-):
-    """Create a prompt"""
-    logger.info(f"create_prompt() start: organization_id: {organization_id}, prompt: {prompt}")
-    db = ad.common.get_async_db()
 
-    # Verify schema if specified
-    schema = await validate_and_resolve_schema(prompt)
 
-    # Validate model exists
-    found = False
-    for provider in await db.llm_providers.find({}).to_list(None):
-        if prompt.model in provider["litellm_models_enabled"]:
-            found = True
-            break
-    if not found:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid model: {prompt.model}"
-        )
 
-    # Validate tag IDs if provided
-    if prompt.tag_ids:
-        tags_cursor = db.tags.find({
-            "_id": {"$in": [ObjectId(tag_id) for tag_id in prompt.tag_ids]},
-            "organization_id": organization_id
-        })
-        existing_tags = await tags_cursor.to_list(None)
-        existing_tag_ids = {str(tag["_id"]) for tag in existing_tags}
-        
-        invalid_tags = set(prompt.tag_ids) - existing_tag_ids
-        if invalid_tags:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid tag IDs: {list(invalid_tags)}"
-            )
-        # Only set schema_id if schema exists and was verified above
-        if prompt.schema_id and 'schema' in locals():
-            prompt.schema_id = schema["schema_id"]
 
-    prompt_name = prompt.name
 
-    # Does the prompt name already exist?
-    existing_prompt = await db.prompts.find_one({
-        "name": prompt_name,
-        "organization_id": organization_id
-    })
-
-    if existing_prompt:
-        prompt_id, new_prompt_version = await get_prompt_id_and_version(existing_prompt["prompt_id"])
-    else:
-        prompt_id, new_prompt_version = await get_prompt_id_and_version(None)
-    
-    # Update the prompts collection with name and organization_id
-    await db.prompts.update_one(
-        {"_id": ObjectId(prompt_id)},
-        {"$set": {
-            "name": prompt.name,
-            "organization_id": organization_id
-        }},
-        upsert=True
-    )
-    
-    # Create prompt document for prompt_revisions
-    prompt_dict = {
-        "prompt_id": prompt_id,  # Add stable identifier
-        "content": prompt.content,
-        "schema_id": prompt.schema_id,
-        "schema_version": prompt.schema_version,
-        "prompt_version": new_prompt_version,
-        "created_at": datetime.now(UTC),
-        "created_by": current_user.user_id,
-        "tag_ids": prompt.tag_ids,
-        "model": prompt.model,
-        "organization_id": organization_id
-    }
-    
-    # Insert into MongoDB
-    result = await db.prompt_revisions.insert_one(prompt_dict)
-    
-    # Return complete prompt, adding name from prompts collection
-    prompt_dict["name"] = prompt.name
-    prompt_dict["prompt_revid"] = str(result.inserted_id)
-    return Prompt(**prompt_dict)
-
-@app.get("/v0/orgs/{organization_id}/prompts", response_model=ListPromptsResponse, tags=["prompts"])
-async def list_prompts(
-    organization_id: str,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
-    document_id: str = Query(None, description="Filter prompts by document's tags"),
-    tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
-    name_search: str = Query(None, description="Search term for prompt names"),
-    current_user: User = Depends(get_org_user)
-):
-    """List prompts within an organization"""
-    logger.info(f"list_prompts() start: organization_id: {organization_id}, skip: {skip}, limit: {limit}, document_id: {document_id}, tag_ids: {tag_ids}")
-    db = ad.common.get_async_db()
-    
-    # First, get prompts that belong to the organization
-    # Base query for prompts in org, with optional name search
-    prompts_query = {"organization_id": organization_id}
-    if name_search:
-        prompts_query["name"] = {"$regex": name_search, "$options": "i"}
 
     org_prompts = await db.prompts.find(prompts_query).to_list(None)
     
@@ -975,48 +393,6 @@ async def list_prompts(
         skip=skip
     )
     return ret
-
-@app.get("/v0/orgs/{organization_id}/prompts/{prompt_revid}", response_model=Prompt, tags=["prompts"])
-async def get_prompt(
-    organization_id: str,
-    prompt_revid: str,
-    current_user: User = Depends(get_org_user)
-):
-    """Get a prompt"""
-    logger.info(f"get_prompt() start: organization_id: {organization_id}, prompt_revid: {prompt_revid}")
-    db = ad.common.get_async_db()
-    
-    # Get the prompt revision
-    revision = await db.prompt_revisions.find_one({
-        "_id": ObjectId(prompt_revid)
-    })
-    if not revision:
-        raise HTTPException(status_code=404, detail="Prompt not found")
-    
-    # Get the prompt name and verify organization
-    prompt = await db.prompts.find_one({
-        "_id": ObjectId(revision["prompt_id"]),
-        "organization_id": organization_id
-    })
-    if not prompt:
-        raise HTTPException(status_code=404, detail="Prompt not found or not in this organization")
-    
-    # Combine the data
-    revision['prompt_revid'] = str(revision.pop('_id'))
-    revision['name'] = prompt['name']
-    
-    return Prompt(**revision)
-
-@app.put("/v0/orgs/{organization_id}/prompts/{prompt_id}", response_model=Prompt, tags=["prompts"])
-async def update_prompt(
-    organization_id: str,
-    prompt_id: str,
-    prompt: PromptConfig,
-    current_user: User = Depends(get_org_user)
-):
-    """Update a prompt"""
-    logger.info(f"update_prompt() start: organization_id: {organization_id}, prompt_id: {prompt_id}")
-    db = ad.common.get_async_db()
 
     # Check if the prompt exists
     existing_prompt = await db.prompts.find_one({
@@ -1117,89 +493,9 @@ async def update_prompt(
     new_prompt["name"] = prompt.name  # Add name from the prompts collection
     return Prompt(**new_prompt)
 
-@app.delete("/v0/orgs/{organization_id}/prompts/{prompt_id}", tags=["prompts"])
-async def delete_prompt(
-    organization_id: str,
-    prompt_id: str,
-    current_user: User = Depends(get_org_user)
-):
-    """Delete a prompt"""
-    logger.info(f"delete_prompt() start: organization_id: {organization_id}, prompt_id: {prompt_id}")
-    db = ad.common.get_async_db()
-    
-    # Get the prompt revision   
-    prompt_revision = await db.prompt_revisions.find_one({
-        "prompt_id": prompt_id
-    })
-    if not prompt_revision:
-        raise HTTPException(status_code=404, detail="Prompt not found")
-    
-    # Get the prompt and verify organization
-    prompt = await db.prompts.find_one({
-        "_id": ObjectId(prompt_id),
-        "organization_id": organization_id
-    })
-    if not prompt:
-        raise HTTPException(status_code=404, detail="Prompt not found or not in this organization")
-  
-    # Delete all revisions of this prompt
-    result = await db.prompt_revisions.delete_many({
-        "prompt_id": prompt_id
-    })
-    
-    # Delete the prompt entry
-    await db.prompts.delete_one({"_id": ObjectId(prompt_id)})
-    
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="No prompt revisions found")
-        
-    return {"message": "Prompt deleted successfully"}
-
 # Add this helper function near the top of the file with other functions
-async def get_form_id_and_version(form_id: Optional[str] = None) -> tuple[str, int]:
-    """
-    Get the next version for an existing form or create a new form identifier.
-    
-    Args:
-        form_id: Existing form ID, or None to create a new one
-        
-    Returns:
-        Tuple of (form_id, form_version)
-    """
-    db = ad.common.get_async_db()
-
-    if form_id is None:
-        # Insert a placeholder document to get MongoDB-generated ID
-        result = await db.forms.insert_one({
-            "form_version": 1
-        })
-        
-        # Use the MongoDB-assigned _id as our form_id
-        form_id = str(result.inserted_id)
-        form_version = 1
-    else:
-        # Get the next version for an existing form
-        result = await db.forms.find_one_and_update(
-            {"_id": ObjectId(form_id)},
-            {"$inc": {"form_version": 1}},
-            upsert=True,
-            return_document=True
-        )
-        form_version = result["form_version"]
-    
-    return form_id, form_version
 
 # Form management endpoints
-@app.post("/v0/orgs/{organization_id}/forms", response_model=Form, tags=["forms"])
-async def create_form(
-    organization_id: str,
-    form: FormConfig,
-    current_user: User = Depends(get_org_user)
-):
-    """Create a form"""
-    logger.info(f"create_form() start: organization_id: {organization_id}, form: {form}")
-    db = ad.common.get_async_db()
-
     # Check if form with this name already exists (case-insensitive)
     existing_form = await db.forms.find_one({
         "name": {"$regex": f"^{form.name}$", "$options": "i"},
@@ -1240,29 +536,6 @@ async def create_form(
     form_dict["name"] = form.name
     form_dict["form_revid"] = str(result.inserted_id)
     return Form(**form_dict)
-
-@app.get("/v0/orgs/{organization_id}/forms", response_model=ListFormsResponse, tags=["forms"])
-async def list_forms(
-    organization_id: str,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
-    tag_ids: str = Query(None, description="Comma-separated list of tag IDs to filter by"),
-    current_user: User = Depends(get_org_user)
-):
-    """List latest form revisions within an organization, optionally filtered by tags"""
-    logger.info(f"list_forms() start: organization_id: {organization_id}, skip: {skip}, limit: {limit}, tag_ids: {tag_ids}")
-    db = ad.common.get_async_db()
-    
-    # Parse tag IDs if provided
-    filter_tag_ids = []
-    if tag_ids:
-        filter_tag_ids = [tag_id.strip() for tag_id in tag_ids.split(',') if tag_id.strip()]
-    
-    # Get all forms that belong to the organization
-    org_forms = await db.forms.find({"organization_id": organization_id}).to_list(None)
-    
-    if not org_forms:
-        return ListFormsResponse(forms=[], total_count=0, skip=skip)
 
     logger.info(f"list_forms() org_forms: {org_forms}")
     
@@ -1329,30 +602,6 @@ async def list_forms(
     )
 
 # Form submission endpoints
-@app.post("/v0/orgs/{organization_id}/forms/submissions/{document_id}", response_model=FormSubmission, tags=["form-submissions"])
-async def submit_form(
-    organization_id: str,
-    document_id: str,
-    submission: FormSubmissionData,
-    current_user: User = Depends(get_org_user)
-):
-    """Submit a form for a specific document - updates existing submission if found"""
-    logger.info(f"submit_form() start: organization_id: {organization_id}, document_id: {document_id}, form_revid: {submission.form_revid}")
-    db = ad.common.get_async_db()
-    
-    # Verify the form revision exists
-    form_revision = await db.form_revisions.find_one({"_id": ObjectId(submission.form_revid)})
-    if not form_revision:
-        raise HTTPException(status_code=404, detail="Form revision not found")
-    
-    # Verify the form belongs to the organization
-    form = await db.forms.find_one({
-        "_id": ObjectId(form_revision["form_id"]),
-        "organization_id": organization_id
-    })
-    if not form:
-        raise HTTPException(status_code=404, detail="Form not found or not in this organization")
-
     # Verify the document exists and belongs to the organization
     document = await db.docs.find_one({
         "_id": ObjectId(document_id),
@@ -1405,99 +654,6 @@ async def submit_form(
         submission_doc["id"] = str(result.inserted_id)
         return FormSubmission(**submission_doc)
 
-
-@app.get("/v0/orgs/{organization_id}/forms/submissions/{document_id}", response_model=Optional[FormSubmission], tags=["form-submissions"])
-async def get_form_submission(
-    organization_id: str,
-    document_id: str,
-    form_revid: str = Query(..., description="The form revision ID"),
-    current_user: User = Depends(get_org_user)
-):
-    """Get the form submission for a specific document and form combination"""
-    logger.info(f"get_form_submission() start: organization_id: {organization_id}, document_id: {document_id}, form_revid: {form_revid}")
-    db = ad.common.get_async_db()
-    
-    submission = await db.form_submissions.find_one({
-        "document_id": document_id,
-        "form_revid": form_revid,
-        "organization_id": organization_id
-    })
-    
-    if submission:
-        submission["id"] = str(submission.pop('_id'))
-        return FormSubmission(**submission)
-    
-    return None
-
-@app.delete("/v0/orgs/{organization_id}/forms/submissions/{document_id}", tags=["form-submissions"])
-async def delete_form_submission(
-    organization_id: str,
-    document_id: str,
-    form_revid: str = Query(..., description="The form revision ID"),
-    current_user: User = Depends(get_org_user)
-):
-    """Delete a form submission"""
-    logger.info(f"delete_form_submission() start: organization_id: {organization_id}, document_id: {document_id}, form_revid: {form_revid}")
-    db = ad.common.get_async_db()
-    
-    result = await db.form_submissions.delete_one({
-        "document_id": document_id,
-        "form_revid": form_revid,
-        "organization_id": organization_id
-    })
-    
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Form submission not found")
-    
-    return {"message": "Form submission deleted successfully"}
-
-@app.get("/v0/orgs/{organization_id}/forms/{form_revid}", response_model=Form, tags=["forms"])
-async def get_form(
-    organization_id: str,
-    form_revid: str,
-    current_user: User = Depends(get_org_user)
-):
-    """Get a form revision"""
-    logger.info(f"get_form() start: organization_id: {organization_id}, form_revid: {form_revid}")
-    db = ad.common.get_async_db()
-    
-    # Get the form revision
-    revision = await db.form_revisions.find_one({"_id": ObjectId(form_revid)})
-    if not revision:
-        raise HTTPException(status_code=404, detail="Form revision not found")
-    
-    # Get the form name and verify organization
-    form = await db.forms.find_one({
-        "_id": ObjectId(revision["form_id"]),
-        "organization_id": organization_id
-    })
-    if not form:
-        raise HTTPException(status_code=404, detail="Form not found or not in this organization")
-    
-    # Transform the data to match Form model
-    form_data = {
-        "name": form["name"],
-        "response_format": revision["response_format"],
-        "form_revid": str(revision['_id']),
-        "form_id": revision["form_id"],
-        "form_version": revision["form_version"],
-        "tag_ids": revision["tag_ids"],
-        "created_at": revision["created_at"],
-        "created_by": revision["created_by"],
-    }
-    
-    return Form(**form_data)
-
-@app.put("/v0/orgs/{organization_id}/forms/{form_id}", response_model=Form, tags=["forms"])
-async def update_form(
-    organization_id: str,
-    form_id: str,
-    form: FormConfig,
-    current_user: User = Depends(get_org_user)
-):
-    """Update an existing form"""
-    logger.info(f"update_form() start: organization_id: {organization_id}, form_id: {form_id}")
-    db = ad.common.get_async_db()
 
     # Get the existing form and latest revision
     existing_form = await db.forms.find_one({"_id": ObjectId(form_id), "organization_id": organization_id})
@@ -1579,15 +735,6 @@ async def update_form(
             created_by=latest_revision["created_by"],
         )
 
-@app.delete("/v0/orgs/{organization_id}/forms/{form_id}", tags=["forms"])
-async def delete_form(
-    organization_id: str,
-    form_id: str,
-    current_user: User = Depends(get_org_user)
-):
-    """Delete a form"""
-    logger.info(f"delete_form() start: organization_id: {organization_id}, form_id: {form_id}")
-
     db = ad.common.get_async_db()
     
     # Get the form and verify organization
@@ -1638,26 +785,6 @@ async def delete_form(
     return {"message": "Form deleted successfully"}
 
 # Tag management endpoints
-@app.post("/v0/orgs/{organization_id}/tags", response_model=Tag, tags=["tags"])
-async def create_tag(
-    organization_id: str,
-    tag: TagConfig,
-    current_user: User = Depends(get_org_user)
-):
-    """Create a tag"""
-    db = ad.common.get_async_db()
-    # Check if tag with this name already exists for this user
-    existing_tag = await db.tags.find_one({
-        "name": tag.name,
-        "organization_id": organization_id
-    })
-    
-    if existing_tag:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Tag with name '{tag.name}' already exists"
-        )
-
     new_tag = {
         "name": tag.name,
         "color": tag.color,
@@ -1671,24 +798,6 @@ async def create_tag(
     new_tag["id"] = str(result.inserted_id)
     
     return Tag(**new_tag)
-
-@app.get("/v0/orgs/{organization_id}/tags", response_model=ListTagsResponse, tags=["tags"])
-async def list_tags(
-    organization_id: str,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
-    name_search: str = Query(None, description="Search term for tag names"),
-    current_user: User = Depends(get_org_user)
-):
-    """List tags"""
-    db = ad.common.get_async_db()
-    # Get total count
-    total_count = await db.tags.count_documents({"organization_id": organization_id})
-    
-    # Build base query with optional name search
-    tags_query = {"organization_id": organization_id}
-    if name_search:
-        tags_query["name"] = {"$regex": name_search, "$options": "i"}
 
     # Get paginated tags with sorting by _id in descending order
     cursor = db.tags.find(tags_query).sort("_id", -1).skip(skip).limit(limit)
@@ -1711,34 +820,6 @@ async def list_tags(
         skip=skip
     )
 
-@app.delete("/v0/orgs/{organization_id}/tags/{tag_id}", tags=["tags"])
-async def delete_tag(
-    organization_id: str,
-    tag_id: str,
-    current_user: User = Depends(get_org_user)
-):
-    """Delete a tag"""
-    db = ad.common.get_async_db()
-    # Verify tag exists and belongs to user
-    tag = await db.tags.find_one({
-        "_id": ObjectId(tag_id),
-        "organization_id": organization_id
-    })
-    
-    if not tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
-    
-    # Check if tag is used in any documents
-    documents_with_tag = await db.docs.find_one({
-        "tag_ids": tag_id
-    })
-    
-    if documents_with_tag:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot delete tag '{tag['name']}' because it is assigned to one or more documents"
-        )
-
     # Check if tag is used in any prompts
     prompts_with_tag = await db.prompt_revisions.find_one({
         "tag_ids": tag_id
@@ -1759,59 +840,6 @@ async def delete_tag(
         raise HTTPException(status_code=404, detail="Tag not found")
     
     return {"message": "Tag deleted successfully"}
-
-@app.put("/v0/orgs/{organization_id}/tags/{tag_id}", response_model=Tag, tags=["tags"])
-async def update_tag(
-    organization_id: str,
-    tag_id: str,
-    tag: TagConfig,
-    current_user: User = Depends(get_org_user)
-):
-    """Update a tag"""
-    db = ad.common.get_async_db()
-    
-    # Verify tag exists and belongs to user
-    existing_tag = await db.tags.find_one({
-        "_id": ObjectId(tag_id),
-        "organization_id": organization_id
-    })
-    
-    if not existing_tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
-    
-    # Update all fields including name
-    update_data = {
-        "name": tag.name,
-        "color": tag.color,
-        "description": tag.description
-    }
-    
-    updated_tag = await db.tags.find_one_and_update(
-        {"_id": ObjectId(tag_id)},
-        {"$set": update_data},
-        return_document=True
-    )
-    
-    if not updated_tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
-    
-    return Tag(**{**updated_tag, "id": str(updated_tag["_id"])})
-
-@app.get("/v0/orgs/{organization_id}/tags/{tag_id}", response_model=Tag, tags=["tags"])
-async def get_tag(
-    organization_id: str,
-    tag_id: str,
-    current_user: User = Depends(get_org_user)
-):
-    """Get a tag by ID"""
-    db = ad.common.get_async_db()
-    tag = await db.tags.find_one({
-        "_id": ObjectId(tag_id),
-        "organization_id": organization_id
-    })
-    if not tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
-    return Tag(**{**tag, "id": str(tag["_id"])})
 
 @app.post("/v0/account/auth/token", tags=["account/auth"])
 async def create_auth_token(request: Request):
@@ -3371,6 +2399,10 @@ app.include_router(payments_router)
 app.include_router(documents_router)
 app.include_router(ocr_router)
 app.include_router(llm_router)
+app.include_router(prompts_router)
+app.include_router(schemas_router)
+app.include_router(tags_router)
+app.include_router(forms_router)
 
 # --- Form Schema Versioning Helper ---
 async def get_form_id_and_version(form_id: Optional[str] = None) -> tuple[str, int]:

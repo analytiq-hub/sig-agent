@@ -34,151 +34,10 @@ class AWSConfig(BaseModel):
 
 
 
-# Add these new models for tag management
-class TagConfig(BaseModel):
-    name: str
-    color: str | None = None  # Optional hex color code for UI display
-    description: str | None = None
 
-class Tag(TagConfig):
-    id: str
-    created_at: datetime
-    created_by: str
-
-class ListTagsResponse(BaseModel):
-    tags: List[Tag]
-    total_count: int
-    skip: int
-
-class SchemaProperty(BaseModel):
-    type: Literal['string', 'integer', 'number', 'boolean', 'array', 'object']
-    format: str | None = None
-    description: str | None = None
-    items: ForwardRef('SchemaProperty') | None = None
-    properties: Dict[str, ForwardRef('SchemaProperty')] | None = None
-
-class SchemaResponseFormat(BaseModel):
-    type: Literal['json_schema']
-    json_schema: dict = Field(
-        ..., 
-        json_schema_extra={
-            "example": {
-                "name": "document_extraction",
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "invoice_date": {
-                            "type": "string",
-                            "description": "invoice date"
-                        }
-                    },
-                    "required": ["invoice_date"],
-                    "additionalProperties": False
-                },
-                "strict": True
-            }
-        }
-    )
-
-    @field_validator('json_schema')
-    def validate_json_schema(cls, v):
-        # Validate schema follows OpenAI format
-        required_keys = {'name', 'schema', 'strict'}
-        if not all(key in v for key in required_keys):
-            raise ValueError(f"JSON schema must contain all required keys: {required_keys}")
-        
-        schema = v['schema']
-        if schema.get('type') != 'object':
-            raise ValueError("Schema root must be of type 'object'")
-            
-        if 'properties' not in schema:
-            raise ValueError("Schema must contain 'properties'")
-            
-        if 'required' not in schema:
-            raise ValueError("Schema must contain 'required' field")
-            
-        if 'additionalProperties' not in schema:
-            raise ValueError("Schema must specify 'additionalProperties'")
-            
-        return v
-
-class SchemaConfig(BaseModel):
-    name: str
-    response_format: SchemaResponseFormat
-
-class Schema(SchemaConfig):
-    schema_revid: str # MongoDB's _id
-    schema_id: str    # Stable identifier
-    schema_version: int
-    created_at: datetime
-    created_by: str
-
-class ListSchemasResponse(BaseModel):
-    schemas: List[Schema]
-    total_count: int
-    skip: int
 
 # Add these new models
-class PromptConfig(BaseModel):
-    name: str
-    content: str
-    schema_id: Optional[str] = None
-    schema_version: Optional[int] = None
-    tag_ids: List[str] = []
-    model: str = "gpt-4o-mini"
 
-class Prompt(PromptConfig):
-    prompt_revid: str           # MongoDB's _id
-    prompt_id: str    # Stable identifier
-    prompt_version: int
-    created_at: datetime
-    created_by: str
-
-class ListPromptsResponse(BaseModel):
-    prompts: List[Prompt]
-    total_count: int
-    skip: int
-
-class FormResponseFormat(BaseModel):
-    json_formio: Optional[List[dict]] = Field(  # Changed from Optional[dict] to Optional[List[dict]]
-        default=None,
-        description="Form.io schema definition"
-    )
-    json_formio_mapping: Optional[Dict[str, dict]] = Field(
-        default=None,
-        description="Field mappings from schema fields to form fields"
-    )
-
-    @field_validator('json_formio')
-    def validate_json_formio(cls, v):
-        if v is not None:
-            if not isinstance(v, list):
-                raise ValueError("json_formio must be a list")
-        return v
-    
-    @field_validator('json_formio_mapping')
-    def validate_json_formio_mapping(cls, v):
-        if v is not None:
-            if not isinstance(v, dict):
-                raise ValueError("json_formio_mapping must be a dictionary")
-        return v
-
-class FormConfig(BaseModel):
-    name: str
-    response_format: FormResponseFormat
-    tag_ids: List[str] = []  # Add tag_ids field with default empty list
-
-class Form(FormConfig):
-    form_revid: str # MongoDB's _id
-    form_id: str    # Stable identifier
-    form_version: int
-    created_at: datetime
-    created_by: str
-
-class ListFormsResponse(BaseModel):
-    forms: List[Form]
-    total_count: int
-    skip: int
 
 # Add to schemas.py
 class OrganizationMember(BaseModel):
@@ -286,16 +145,6 @@ class Position(BaseModel):
 
 
 # Add these new models for form submissions
-class FormSubmissionData(BaseModel):
-    form_revid: str
-    submission_data: dict
-    submitted_by: Optional[str] = None
-
-class FormSubmission(FormSubmissionData):
-    id: str  # MongoDB _id converted to string
-    organization_id: str
-    created_at: datetime
-    updated_at: datetime
 
 # OAuth sign-in models
 class OAuthAccountData(BaseModel):
