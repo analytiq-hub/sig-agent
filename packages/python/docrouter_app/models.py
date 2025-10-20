@@ -12,33 +12,6 @@ class User(BaseModel):
 
 
 
-# Add these new models after the existing ones
-class UserCreate(BaseModel):
-    email: str
-    name: str
-    password: str
-
-class UserUpdate(BaseModel):
-    name: str | None = None
-    password: str | None = None
-    role: str | None = None  # Replace isAdmin with role
-    email_verified: bool | None = None
-    has_seen_tour: bool | None = None
-
-class UserResponse(BaseModel):
-    id: str
-    email: str
-    name: str | None
-    role: str
-    email_verified: bool | None
-    created_at: datetime
-    has_password: bool
-    has_seen_tour: bool | None = None
-
-class ListUsersResponse(BaseModel):
-    users: List[UserResponse]
-    total_count: int
-    skip: int
 
 class InvitationStatus(str, Enum):
     pending = "pending"
