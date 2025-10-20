@@ -293,13 +293,6 @@ async def delete_org_token(
     return {"message": "Token deleted successfully"}
 
 
-# PDF management endpoints
-
-
-
-
-
-
 @app.get("/v0/orgs/{organization_id}/ocr/download/blocks/{document_id}", tags=["ocr"])
 async def download_ocr_blocks(
     organization_id: str,
