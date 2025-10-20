@@ -26,41 +26,6 @@ class CreateAccessTokenRequest(BaseModel):
     lifetime: int
 
 
-class LLMModel(BaseModel):
-    litellm_model: str
-    litellm_provider: str
-    max_input_tokens: int
-    max_output_tokens: int
-    input_cost_per_token: float
-    output_cost_per_token: float
-
-class ListLLMModelsResponse(BaseModel):
-    models: List[LLMModel]
-
-class LLMToken(BaseModel):
-    id: str
-    user_id: str
-    llm_vendor: Literal["OpenAI", "Anthropic", "Gemini", "Groq", "Mistral", "xAI"]
-    token: str
-    created_at: datetime
-
-class LLMProvider(BaseModel):
-    name: str
-    display_name: str
-    litellm_provider: str
-    litellm_models_available: List[str]
-    litellm_models_enabled: List[str]
-    enabled: bool = False
-    token: str | None = None
-    token_created_at: datetime | None = None
-
-class ListLLMProvidersResponse(BaseModel):
-    providers: List[LLMProvider]
-
-class SetLLMProviderConfigRequest(BaseModel):
-    litellm_models_enabled: List[str] | None = None
-    enabled: bool | None = None
-    token: str | None = None
 
 class AWSConfig(BaseModel):
     access_key_id: str
@@ -68,25 +33,6 @@ class AWSConfig(BaseModel):
     s3_bucket_name: str
 
 
-class LLMRunResponse(BaseModel):
-    status: str
-    result: dict
-
-class LLMResult(BaseModel):
-    prompt_revid: str
-    prompt_id: str
-    prompt_version: int
-    document_id: str
-    llm_result: dict
-    updated_llm_result: dict
-    is_edited: bool
-    is_verified: bool
-    created_at: datetime
-    updated_at: datetime
-
-class UpdateLLMResultRequest(BaseModel):
-    updated_llm_result: dict
-    is_verified: bool = False
 
 # Add these new models for tag management
 class TagConfig(BaseModel):
@@ -338,21 +284,6 @@ class Position(BaseModel):
     x: float
     y: float
 
-# Add these new models for LLM testing (admin only)
-class LLMMessage(BaseModel):
-    role: Literal["system", "user", "assistant"] = Field(..., description="Role of the message sender")
-    content: str = Field(..., description="Content of the message")
-
-class LLMPromptRequest(BaseModel):
-    model: str = Field(..., description="The LLM model to use (e.g., 'gpt-4o-mini')")
-    messages: List[LLMMessage] = Field(..., description="Array of messages for the conversation")
-    max_tokens: Optional[int] = Field(default=None, description="Maximum tokens to generate")
-    temperature: Optional[float] = Field(default=0.7, description="Sampling temperature (0.0 to 2.0)")
-    stream: Optional[bool] = Field(default=False, description="Whether to stream the response")
-
-class LLMStreamResponse(BaseModel):
-    chunk: str
-    done: bool = False
 
 # Add these new models for form submissions
 class FormSubmissionData(BaseModel):
