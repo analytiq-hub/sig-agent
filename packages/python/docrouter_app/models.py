@@ -25,60 +25,6 @@ class CreateAccessTokenRequest(BaseModel):
     name: str
     lifetime: int
 
-class DocumentUpload(BaseModel):
-    name: str
-    content: str
-    tag_ids: List[str] = []  # Optional list of tag IDs
-    metadata: Optional[Dict[str, str]] = {}  # Optional key-value metadata pairs
-
-class DocumentsUpload(BaseModel):
-    documents: List[DocumentUpload]
-
-class DocumentMetadata(BaseModel):
-    id: str
-    pdf_id: str
-    document_name: str
-    upload_date: datetime
-    uploaded_by: str
-    state: str
-    tag_ids: List[str] = []  # List of tag IDs
-    type: str | None = None   # MIME type of the returned file (original/pdf)
-    metadata: Optional[Dict[str, str]] = {}  # Optional key-value metadata pairs
-
-class DocumentResponse(BaseModel):
-    id: str
-    pdf_id: str
-    document_name: str
-    upload_date: datetime
-    uploaded_by: str
-    state: str
-    tag_ids: List[str] = []  # List of tag IDs
-    type: str | None = None   # MIME type of the returned file (original/pdf)
-    metadata: Optional[Dict[str, str]] = {}  # Optional key-value metadata pairs
-    content: str  # Base64 encoded content
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-class ListDocumentsResponse(BaseModel):
-    documents: List[DocumentMetadata]
-    total_count: int
-    skip: int
-
-# Add this new model after the DocumentMetadata class
-class DocumentUpdate(BaseModel):
-    """Schema for updating document metadata"""
-    document_name: Optional[str] = Field(
-        default=None,
-        description="New name for the document"
-    )
-    tag_ids: Optional[List[str]] = Field(
-        default=None,
-        description="List of tag IDs associated with the document"
-    )
-    metadata: Optional[Dict[str, str]] = Field(
-        default=None,
-        description="Optional key-value metadata pairs"
-    )
 
 class LLMModel(BaseModel):
     litellm_model: str
