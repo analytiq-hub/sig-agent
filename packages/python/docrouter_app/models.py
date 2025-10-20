@@ -9,10 +9,6 @@ class User(BaseModel):
     user_name: str
     token_type: str
 
-
-
-
-
 class InvitationStatus(str, Enum):
     pending = "pending"
     accepted = "accepted"
