@@ -37,6 +37,7 @@ stripe_webhook_secret = None
 # MongoDB configuration
 MONGO_URI = None
 ENV = None
+STRIPE_PRODUCT_TAG = None
 
 # Global db variable removed - use dependency injection instead
 
@@ -230,13 +231,14 @@ def stripe_enabled() -> bool:
 
 # Modify the init_payments_env function
 async def init_payments_env(database):
-    global MONGO_URI, ENV
+    global MONGO_URI, ENV, STRIPE_PRODUCT_TAG
     global NEXTAUTH_URL
     global stripe_webhook_secret
 
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     ENV = os.getenv("ENV", "dev")
     NEXTAUTH_URL = os.getenv("NEXTAUTH_URL", "http://localhost:3000")
+    STRIPE_PRODUCT_TAG = os.getenv("STRIPE_PRODUCT_TAG", "doc_router")
 
     # Database connection is now passed as parameter to functions that need it
 
@@ -250,7 +252,7 @@ async def init_payments_env(database):
     if stripe_webhook_secret == "":
         stripe_webhook_secret = None
 
-    logger.info(f"init_payments_env() completed; stripe_enabled={stripe_enabled()}")
+    logger.info(f"init_payments_env() completed; stripe_enabled={stripe_enabled()}, product_tag={STRIPE_PRODUCT_TAG}")
     
 async def init_payments(db):
     await init_payments_env(db)
@@ -269,7 +271,7 @@ async def init_payments(db):
 
 async def get_tier_limits() -> Dict[str, Any]:
     """
-    Fetch tier limits dynamically from Stripe base price metadata
+    Fetch tier limits dynamically from Stripe base price metadata for the configured product
     """
     global TIER_LIMITS
     
@@ -283,8 +285,16 @@ async def get_tier_limits() -> Dict[str, Any]:
         expand=['data.product']
     )
     
+    # Filter by product metadata
+    product_prices = [
+        price for price in prices.data 
+        if price.product.metadata.get('product') == STRIPE_PRODUCT_TAG
+    ]
+    
+    logger.info(f"Found {len(product_prices)} prices for product tag: {STRIPE_PRODUCT_TAG}")
+    
     # Find base prices and extract limits from metadata
-    for price in prices.data:
+    for price in product_prices:
         metadata = price.metadata
         price_type = metadata.get('price_type')
         
@@ -305,7 +315,7 @@ async def get_tier_limits() -> Dict[str, Any]:
 
 async def get_credit_config() -> Dict[str, Any]:
     """
-    Fetch credit configuration dynamically from Stripe credit prices
+    Fetch credit configuration dynamically from Stripe credit prices for the configured product
     """
     global CREDIT_CONFIG
     
@@ -319,10 +329,18 @@ async def get_credit_config() -> Dict[str, Any]:
         expand=['data.product']
     )
     
+    # Filter by product metadata
+    product_prices = [
+        price for price in prices.data 
+        if price.product.metadata.get('product') == STRIPE_PRODUCT_TAG
+    ]
+    
+    logger.info(f"Found {len(product_prices)} prices for product tag: {STRIPE_PRODUCT_TAG}")
+    
     credit_config = None
     
     # Find credit prices
-    for price in prices.data:
+    for price in product_prices:
         metadata = price.metadata
         price_type = metadata.get('price_type')
         
@@ -360,12 +378,12 @@ async def get_credit_config() -> Dict[str, Any]:
             logger.info(f"Loaded credit config from Stripe: price=${price_per_credit:.3f}, min={min_spu_purchase}, max={max_spu_purchase}")
             return
     
-    raise ValueError("No credit price found in Stripe with price_type=credit")
+    raise ValueError(f"No credit price found in Stripe with price_type=credit for product tag: {STRIPE_PRODUCT_TAG}")
 
 # Function to fetch base pricing from Stripe
 async def get_tier_config(db, org_id: str = None) -> Dict[str, Any]:
     """
-    Fetch tier configuration dynamically from Stripe prices (base pricing only)
+    Fetch tier configuration dynamically from Stripe prices (base pricing only) for the configured product
     """
 
     tier_config = {
@@ -396,8 +414,16 @@ async def get_tier_config(db, org_id: str = None) -> Dict[str, Any]:
         expand=['data.product']
     )
     
+    # Filter by product metadata
+    product_prices = [
+        price for price in prices.data 
+        if price.product.metadata.get('product') == STRIPE_PRODUCT_TAG
+    ]
+    
+    logger.info(f"Found {len(product_prices)} prices for product tag: {STRIPE_PRODUCT_TAG}")
+    
     # Find base prices for each tier
-    for price in prices.data:
+    for price in product_prices:
         metadata = price.metadata
         price_type = metadata.get('price_type')
         
@@ -420,7 +446,7 @@ async def get_tier_config(db, org_id: str = None) -> Dict[str, Any]:
     # Ensure we found both individual and team tiers
     if 'individual' not in tier_config or 'team' not in tier_config:
         missing = [t for t in ['individual', 'team'] if t not in tier_config]
-        raise ValueError(f"Missing base prices in Stripe for tiers: {missing}")
+        raise ValueError(f"Missing base prices in Stripe for tiers: {missing} (product tag: {STRIPE_PRODUCT_TAG})")
     
     return tier_config
 

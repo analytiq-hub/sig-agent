@@ -35,6 +35,7 @@ FROM python:3.12-slim AS backend
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
+ENV STRIPE_PRODUCT_TAG=""
 
 # Set the working directory in the container
 WORKDIR /app
