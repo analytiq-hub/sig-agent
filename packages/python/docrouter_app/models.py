@@ -9,21 +9,6 @@ class User(BaseModel):
     user_name: str
     token_type: str
 
-class AccessToken(BaseModel):
-    id: str
-    user_id: str
-    organization_id: Optional[str] = None
-    name: str
-    token: str
-    created_at: datetime
-    lifetime: int
-
-class ListAccessTokensResponse(BaseModel):
-    access_tokens: List[AccessToken]
-    
-class CreateAccessTokenRequest(BaseModel):
-    name: str
-    lifetime: int
 
 
 class OrganizationMember(BaseModel):
