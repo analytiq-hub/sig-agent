@@ -25,21 +25,11 @@ class CreateAccessTokenRequest(BaseModel):
     name: str
     lifetime: int
 
-
-
 class AWSConfig(BaseModel):
     access_key_id: str
     secret_access_key: str
     s3_bucket_name: str
 
-
-
-
-
-# Add these new models
-
-
-# Add to schemas.py
 class OrganizationMember(BaseModel):
     user_id: str
     role: Literal['admin', 'user']
@@ -137,14 +127,6 @@ class OrganizationType(str, Enum):
 class AcceptInvitationRequest(BaseModel):
     name: Optional[str] = None
     password: Optional[str] = None
-
-# Add these new models for flow management
-class Position(BaseModel):
-    x: float
-    y: float
-
-
-# Add these new models for form submissions
 
 # OAuth sign-in models
 class OAuthAccountData(BaseModel):
