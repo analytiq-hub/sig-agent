@@ -90,8 +90,8 @@ from docrouter_app.models import (
     OAuthSignInRequest,
     OAuthSignInResponse,
 )
-from docrouter_app.payments import payments_router, SPUCreditException
-from docrouter_app.payments import (
+from docrouter_app.routes.payments import payments_router, SPUCreditException
+from docrouter_app.routes.payments import (
     init_payments,
     sync_customer,
     delete_payments_customer,
