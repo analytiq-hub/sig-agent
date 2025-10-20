@@ -11,34 +11,6 @@ class User(BaseModel):
 
 
 
-class OrganizationMember(BaseModel):
-    user_id: str
-    role: Literal['admin', 'user']
-
-# Add this new type definition near the top with other Literal types
-OrganizationType = Literal["individual", "team", "enterprise"]
-
-class OrganizationCreate(BaseModel):
-    name: str
-    type: OrganizationType = "individual"
-
-class OrganizationUpdate(BaseModel):
-    name: str | None = None
-    type: OrganizationType = "individual"
-    members: List[OrganizationMember] | None = None
-
-class Organization(BaseModel):
-    id: str
-    name: str
-    members: List[OrganizationMember]
-    type: OrganizationType = "individual"
-    created_at: datetime
-    updated_at: datetime
-
-class ListOrganizationsResponse(BaseModel):
-    organizations: List[Organization]
-    total_count: int
-    skip: int
 
 # Add these new models after the existing ones
 class UserCreate(BaseModel):
@@ -93,17 +65,6 @@ class ListInvitationsResponse(BaseModel):
     total_count: int
     skip: int
 
-# Add this to your OrganizationType documentation if you have it
-class OrganizationType(str, Enum):
-    """
-    Organization type with upgrade restrictions:
-    - individual can upgrade to team or enterprise
-    - team can upgrade to enterprise
-    - enterprise cannot be downgraded
-    """
-    INDIVIDUAL = "individual"
-    TEAM = "team"
-    ENTERPRISE = "enterprise"
 
 class AcceptInvitationRequest(BaseModel):
     name: Optional[str] = None
