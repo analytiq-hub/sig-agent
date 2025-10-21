@@ -40,6 +40,9 @@ from docrouter_app.routes.users import users_router
 from docrouter_app.routes.emails import emails_router
 import analytiq_data as ad
 
+# Import OTLP server
+from docrouter_app.routes.otlp_server import start_otlp_server, stop_otlp_server
+
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
 
@@ -93,11 +96,25 @@ async def lifespan(app):
     # Initialize payments
     db = ad.common.get_async_db(analytiq_client)
     await init_payments(db)
-    
+
+    # Start OTLP gRPC server (always enabled for all organizations)
+    try:
+        logger.info("Starting OTLP gRPC server...")
+        await start_otlp_server()
+        logger.info("OTLP gRPC server started successfully - all organizations enabled")
+    except Exception as e:
+        logger.error(f"OTLP gRPC server startup failed: {e}")
+        # Don't raise here as OTLP might not be critical for startup
+
     yield  # This is where the app runs
-    
-    # Shutdown code (if any) would go here
-    # For example: await some_client.close()
+
+    # Shutdown code
+    try:
+        logger.info("Stopping OTLP gRPC server...")
+        await stop_otlp_server()
+        logger.info("OTLP gRPC server stopped successfully")
+    except Exception as e:
+        logger.error(f"Error stopping OTLP gRPC server: {e}")
 
 # Create the FastAPI app with the lifespan
 app = FastAPI(
