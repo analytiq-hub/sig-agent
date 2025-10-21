@@ -52,6 +52,22 @@ import {
   LLMChatResponse,
   LLMChatStreamChunk,
   LLMChatStreamError,
+  // Telemetry
+  TelemetryTrace,
+  TelemetryMetric,
+  TelemetryLog,
+  TelemetryTracesUpload,
+  TelemetryMetricsUpload,
+  TelemetryLogsUpload,
+  UploadTracesResponse,
+  UploadMetricsResponse,
+  UploadLogsResponse,
+  ListTelemetryTracesParams,
+  ListTelemetryTracesResponse,
+  ListTelemetryMetricsParams,
+  ListTelemetryMetricsResponse,
+  ListTelemetryLogsParams,
+  ListTelemetryLogsResponse,
 } from './types';
 
 /**
@@ -447,6 +463,92 @@ export class DocRouterOrg {
   ): Promise<void> {
     const streamingRequest = { ...request, stream: true };
     return this.http.stream(`/v0/orgs/${this.organizationId}/llm/run`, streamingRequest, onChunk, onError, abortSignal);
+  }
+
+  // ---------------- Telemetry ----------------
+
+  /**
+   * Upload OpenTelemetry traces
+   */
+  async uploadTraces(params: { traces: TelemetryTrace[] }): Promise<UploadTracesResponse> {
+    const payload: TelemetryTracesUpload = { traces: params.traces };
+    return this.http.post<UploadTracesResponse>(
+      `/v0/orgs/${this.organizationId}/telemetry/traces`,
+      payload
+    );
+  }
+
+  /**
+   * List OpenTelemetry traces
+   */
+  async listTraces(params?: ListTelemetryTracesParams): Promise<ListTelemetryTracesResponse> {
+    const queryParams: Record<string, string | number | undefined> = {
+      skip: params?.skip || 0,
+      limit: params?.limit || 10,
+    };
+    if (params?.tag_ids) queryParams.tag_ids = params.tag_ids;
+    if (params?.name_search) queryParams.name_search = params.name_search;
+
+    return this.http.get<ListTelemetryTracesResponse>(
+      `/v0/orgs/${this.organizationId}/telemetry/traces`,
+      { params: queryParams }
+    );
+  }
+
+  /**
+   * Upload OpenTelemetry metrics
+   */
+  async uploadMetrics(params: { metrics: TelemetryMetric[] }): Promise<UploadMetricsResponse> {
+    const payload: TelemetryMetricsUpload = { metrics: params.metrics };
+    return this.http.post<UploadMetricsResponse>(
+      `/v0/orgs/${this.organizationId}/telemetry/metrics`,
+      payload
+    );
+  }
+
+  /**
+   * List OpenTelemetry metrics
+   */
+  async listMetrics(params?: ListTelemetryMetricsParams): Promise<ListTelemetryMetricsResponse> {
+    const queryParams: Record<string, string | number | undefined> = {
+      skip: params?.skip || 0,
+      limit: params?.limit || 10,
+    };
+    if (params?.tag_ids) queryParams.tag_ids = params.tag_ids;
+    if (params?.name_search) queryParams.name_search = params.name_search;
+
+    return this.http.get<ListTelemetryMetricsResponse>(
+      `/v0/orgs/${this.organizationId}/telemetry/metrics`,
+      { params: queryParams }
+    );
+  }
+
+  /**
+   * Upload OpenTelemetry logs
+   */
+  async uploadLogs(params: { logs: TelemetryLog[] }): Promise<UploadLogsResponse> {
+    const payload: TelemetryLogsUpload = { logs: params.logs };
+    return this.http.post<UploadLogsResponse>(
+      `/v0/orgs/${this.organizationId}/telemetry/logs`,
+      payload
+    );
+  }
+
+  /**
+   * List OpenTelemetry logs
+   */
+  async listLogs(params?: ListTelemetryLogsParams): Promise<ListTelemetryLogsResponse> {
+    const queryParams: Record<string, string | number | undefined> = {
+      skip: params?.skip || 0,
+      limit: params?.limit || 10,
+    };
+    if (params?.tag_ids) queryParams.tag_ids = params.tag_ids;
+    if (params?.severity) queryParams.severity = params.severity;
+
+    return this.http.get<ListTelemetryLogsResponse>(
+      `/v0/orgs/${this.organizationId}/telemetry/logs`,
+      { params: queryParams }
+    );
   }
 
   /**

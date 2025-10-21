@@ -779,3 +779,164 @@ export interface AWSConfig {
   s3_bucket_name: string;
   created_at: string;
 }
+
+// OpenTelemetry types
+
+export interface TelemetrySpan {
+  trace_id: string;
+  span_id: string;
+  parent_span_id?: string;
+  name: string;
+  kind?: number;
+  start_time_unix_nano: string;
+  end_time_unix_nano: string;
+  status?: Record<string, any>;
+  attributes?: Record<string, any>;
+  events?: Array<Record<string, any>>;
+  links?: Array<Record<string, any>>;
+}
+
+export interface TelemetryTrace {
+  resource_spans: Array<Record<string, any>>;
+  tag_ids?: string[];
+  metadata?: Record<string, string>;
+}
+
+export interface TelemetryMetric {
+  name: string;
+  description?: string;
+  unit?: string;
+  type: string; // counter, gauge, histogram, etc.
+  data_points: Array<Record<string, any>>;
+  resource?: Record<string, any>;
+  tag_ids?: string[];
+  metadata?: Record<string, string>;
+}
+
+export interface TelemetryLog {
+  timestamp: string; // ISO 8601 datetime
+  severity?: string;
+  body: string;
+  attributes?: Record<string, any>;
+  resource?: Record<string, any>;
+  trace_id?: string;
+  span_id?: string;
+  tag_ids?: string[];
+  metadata?: Record<string, string>;
+}
+
+export interface TelemetryTracesUpload {
+  traces: TelemetryTrace[];
+}
+
+export interface TelemetryMetricsUpload {
+  metrics: TelemetryMetric[];
+}
+
+export interface TelemetryLogsUpload {
+  logs: TelemetryLog[];
+}
+
+export interface TelemetryTraceResponse {
+  trace_id: string;
+  span_count: number;
+  upload_date: string;
+  uploaded_by: string;
+  tag_ids: string[];
+  metadata?: Record<string, string>;
+}
+
+export interface TelemetryMetricResponse {
+  metric_id: string;
+  name: string;
+  type: string;
+  data_point_count: number;
+  upload_date: string;
+  uploaded_by: string;
+  tag_ids: string[];
+  metadata?: Record<string, string>;
+}
+
+export interface TelemetryLogResponse {
+  log_id: string;
+  timestamp: string;
+  severity?: string;
+  body: string;
+  upload_date: string;
+  uploaded_by: string;
+  tag_ids: string[];
+  metadata?: Record<string, string>;
+}
+
+export interface UploadTracesResponse {
+  traces: Array<{
+    trace_id: string;
+    span_count: number;
+    tag_ids: string[];
+    metadata?: Record<string, string>;
+  }>;
+}
+
+export interface UploadMetricsResponse {
+  metrics: Array<{
+    metric_id: string;
+    name: string;
+    type: string;
+    data_point_count: number;
+    tag_ids: string[];
+    metadata?: Record<string, string>;
+  }>;
+}
+
+export interface UploadLogsResponse {
+  logs: Array<{
+    log_id: string;
+    timestamp: string;
+    severity?: string;
+    body: string;
+    tag_ids: string[];
+    metadata?: Record<string, string>;
+  }>;
+}
+
+export interface ListTelemetryTracesParams {
+  skip?: number;
+  limit?: number;
+  tag_ids?: string; // Comma-separated list of tag IDs
+  name_search?: string;
+}
+
+export interface ListTelemetryTracesResponse {
+  traces: TelemetryTraceResponse[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
+export interface ListTelemetryMetricsParams {
+  skip?: number;
+  limit?: number;
+  tag_ids?: string; // Comma-separated list of tag IDs
+  name_search?: string;
+}
+
+export interface ListTelemetryMetricsResponse {
+  metrics: TelemetryMetricResponse[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
+export interface ListTelemetryLogsParams {
+  skip?: number;
+  limit?: number;
+  tag_ids?: string; // Comma-separated list of tag IDs
+  severity?: string;
+}
+
+export interface ListTelemetryLogsResponse {
+  logs: TelemetryLogResponse[];
+  total: number;
+  skip: number;
+  limit: number;
+}
