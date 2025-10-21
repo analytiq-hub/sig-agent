@@ -32,17 +32,11 @@ export function formatLocalDateWithTZ(dateInput: string | Date | number, display
     }
     
     const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const logDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const isToday = logDate.getTime() === today.getTime();
     const isCurrentYear = date.getFullYear() === now.getFullYear();
 
-    // Build date format options
-    const dateOptions: Intl.DateTimeFormatOptions = {
-        month: 'short', // Month as string
-        day: '2-digit',
-        ...(isCurrentYear ? {} : { year: 'numeric' })
-    };
-
-    const datePart = date.toLocaleDateString(undefined, dateOptions);
-    
     // Build time format options
     const timeOptions: Intl.DateTimeFormatOptions = {
         hour: '2-digit',
@@ -54,5 +48,18 @@ export function formatLocalDateWithTZ(dateInput: string | Date | number, display
     
     const timePart = date.toLocaleTimeString(undefined, timeOptions);
 
+    // If it's today, show only time
+    if (isToday) {
+        return timePart;
+    }
+
+    // For other dates, show date and time
+    const dateOptions: Intl.DateTimeFormatOptions = {
+        month: 'short', // Month as string
+        day: '2-digit',
+        ...(isCurrentYear ? {} : { year: 'numeric' })
+    };
+
+    const datePart = date.toLocaleDateString(undefined, dateOptions);
     return `${datePart}, ${timePart}`;
 } 
