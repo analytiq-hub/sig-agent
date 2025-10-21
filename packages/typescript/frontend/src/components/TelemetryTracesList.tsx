@@ -110,7 +110,7 @@ const TelemetryTracesList: React.FC<{ organizationId: string }> = ({ organizatio
       headerName: 'Upload Date',
       width: 180,
       renderCell: (params) => (
-        <span className="text-sm">{formatLocalDateWithTZ(params.value)}</span>
+        <span className="text-sm">{formatLocalDateWithTZ(params.value, true)}</span>
       )
     },
     {

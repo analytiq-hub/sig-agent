@@ -155,7 +155,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       headerName: 'Timestamp',
       width: 180,
       renderCell: (params) => (
-        <span className="text-sm">{formatLocalDateWithTZ(params.value)}</span>
+        <span className="text-sm">{formatLocalDateWithTZ(params.value, true)}</span>
       )
     },
     {
@@ -311,7 +311,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                       </TableRow>
                       <TableRow>
                         <TableCell><strong>Timestamp</strong></TableCell>
-                        <TableCell>{formatLocalDateWithTZ(selectedLog.timestamp)}</TableCell>
+                        <TableCell>{formatLocalDateWithTZ(selectedLog.timestamp, true)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell><strong>Severity</strong></TableCell>
@@ -343,7 +343,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                       </TableRow>
                       <TableRow>
                         <TableCell><strong>Upload Date</strong></TableCell>
-                        <TableCell>{formatLocalDateWithTZ(selectedLog.upload_date)}</TableCell>
+                        <TableCell>{formatLocalDateWithTZ(selectedLog.upload_date, true)}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>

@@ -125,7 +125,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
       headerName: 'Upload Date',
       width: 180,
       renderCell: (params) => (
-        <span className="text-sm">{formatLocalDateWithTZ(params.value)}</span>
+        <span className="text-sm">{formatLocalDateWithTZ(params.value, true)}</span>
       )
     },
     {
@@ -173,10 +173,11 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
         pagination
         paginationMode="server"
         rowCount={total}
-        page={page}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        paginationModel={{ page, pageSize }}
+        onPaginationModelChange={(model) => {
+          setPage(model.page);
+          setPageSize(model.pageSize);
+        }}
         pageSizeOptions={[5, 10, 25, 50]}
         loading={isLoading}
         disableRowSelectionOnClick
