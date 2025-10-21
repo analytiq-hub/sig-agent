@@ -34,6 +34,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import BuildIcon from '@mui/icons-material/Build';
+import PsychologyIcon from '@mui/icons-material/Psychology';
+import ApiIcon from '@mui/icons-material/Api';
+import PersonIcon from '@mui/icons-material/Person';
 import { Tag, TelemetryLogResponse } from '@docrouter/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
@@ -183,6 +187,22 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
     };
   };
 
+  // Helper function to get icon for event type with color coding
+  const getEventIcon = (eventName: string) => {
+    switch (eventName) {
+      case 'tool_result':
+        return <BuildIcon fontSize="small" sx={{ color: '#2e7d32' }} />; // Green for successful tool execution
+      case 'tool_decision':
+        return <PsychologyIcon fontSize="small" sx={{ color: '#1976d2' }} />; // Blue for AI decision-making
+      case 'api_request':
+        return <ApiIcon fontSize="small" sx={{ color: '#ed6c02' }} />; // Orange for API calls
+      case 'user_prompt':
+        return <PersonIcon fontSize="small" sx={{ color: '#9c27b0' }} />; // Purple for user interaction
+      default:
+        return null;
+    }
+  };
+
   const columns: GridColDef[] = [
     {
       field: 'timestamp',
@@ -198,10 +218,14 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       width: 120,
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
+        const icon = getEventIcon(info.eventName);
         return (
-          <span className="text-sm font-medium">
-            {info.eventName}
-          </span>
+          <Box display="flex" alignItems="center" gap={0.5}>
+            {icon}
+            <span className="text-sm font-medium">
+              {info.eventName}
+            </span>
+          </Box>
         );
       }
     },
@@ -417,7 +441,12 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                           <>
                             <TableRow>
                               <TableCell><strong>Event</strong></TableCell>
-                              <TableCell>{info.eventName}</TableCell>
+                              <TableCell>
+                                <Box display="flex" alignItems="center" gap={0.5}>
+                                  {getEventIcon(info.eventName)}
+                                  <span>{info.eventName}</span>
+                                </Box>
+                              </TableCell>
                               <TableCell><strong>Tool</strong></TableCell>
                               <TableCell className="font-mono">{info.toolName}</TableCell>
                             </TableRow>
