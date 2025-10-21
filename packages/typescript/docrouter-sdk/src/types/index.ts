@@ -790,14 +790,14 @@ export interface TelemetrySpan {
   kind?: number;
   start_time_unix_nano: string;
   end_time_unix_nano: string;
-  status?: Record<string, any>;
-  attributes?: Record<string, any>;
-  events?: Array<Record<string, any>>;
-  links?: Array<Record<string, any>>;
+  status?: Record<string, unknown>;
+  attributes?: Record<string, unknown>;
+  events?: Array<Record<string, unknown>>;
+  links?: Array<Record<string, unknown>>;
 }
 
 export interface TelemetryTrace {
-  resource_spans: Array<Record<string, any>>;
+  resource_spans: Array<Record<string, unknown>>;
   tag_ids?: string[];
   metadata?: Record<string, string>;
 }
@@ -807,8 +807,8 @@ export interface TelemetryMetric {
   description?: string;
   unit?: string;
   type: string; // counter, gauge, histogram, etc.
-  data_points: Array<Record<string, any>>;
-  resource?: Record<string, any>;
+  data_points: Array<Record<string, unknown>>;
+  resource?: Record<string, unknown>;
   tag_ids?: string[];
   metadata?: Record<string, string>;
 }
@@ -817,8 +817,8 @@ export interface TelemetryLog {
   timestamp: string; // ISO 8601 datetime
   severity?: string;
   body: string;
-  attributes?: Record<string, any>;
-  resource?: Record<string, any>;
+  attributes?: Record<string, unknown>;
+  resource?: Record<string, unknown>;
   trace_id?: string;
   span_id?: string;
   tag_ids?: string[];
@@ -862,6 +862,10 @@ export interface TelemetryLogResponse {
   timestamp: string;
   severity?: string;
   body: string;
+  attributes?: Record<string, unknown>;
+  resource?: Record<string, unknown>;
+  trace_id?: string;
+  span_id?: string;
   upload_date: string;
   uploaded_by: string;
   tag_ids: string[];

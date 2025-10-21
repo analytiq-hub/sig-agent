@@ -2,20 +2,37 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DocRouterOrgApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { TextField, InputAdornment, Chip, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { 
+  TextField, 
+  InputAdornment, 
+  Chip, 
+  Select, 
+  MenuItem, 
+  FormControl, 
+  InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+  Box,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper
+} from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import { Tag } from '@docrouter/sdk';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { Tag, TelemetryLogResponse } from '@docrouter/sdk';
 
-interface TelemetryLog {
-  log_id: string;
-  timestamp: string;
-  severity?: string;
-  body: string;
-  trace_id?: string;
-  span_id?: string;
-  tag_ids: string[];
-  metadata?: Record<string, string>;
-}
+type TelemetryLog = TelemetryLogResponse;
 
 const severityColors: Record<string, string> = {
   'TRACE': 'default',
@@ -37,6 +54,8 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [selectedLog, setSelectedLog] = useState<TelemetryLogResponse | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   const loadLogs = useCallback(async () => {
     try {
@@ -84,6 +103,16 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
     return tag?.name || tagId;
   };
 
+  const handleLogClick = (log: TelemetryLog) => {
+    setSelectedLog(log);
+    setDetailModalOpen(true);
+  };
+
+  const handleCloseDetailModal = () => {
+    setDetailModalOpen(false);
+    setSelectedLog(null);
+  };
+
   const columns: GridColDef[] = [
     {
       field: 'timestamp',
@@ -103,7 +132,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
           <Chip
             label={params.value}
             size="small"
-            color={severityColors[params.value] as any || 'default'}
+            color={severityColors[params.value] as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' || 'default'}
             sx={{ height: '20px', fontSize: '0.75rem' }}
           />
         );
@@ -203,20 +232,207 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
         pagination
         paginationMode="server"
         rowCount={total}
-        page={page}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        paginationModel={{ page, pageSize }}
+        onPaginationModelChange={(model) => {
+          setPage(model.page);
+          setPageSize(model.pageSize);
+        }}
         pageSizeOptions={[5, 10, 25, 50]}
         loading={isLoading}
         disableRowSelectionOnClick
+        onRowClick={(params) => handleLogClick(params.row)}
         autoHeight
         sx={{
           '& .MuiDataGrid-cell': {
             padding: '8px',
+          },
+          '& .MuiDataGrid-row': {
+            cursor: 'pointer',
           }
         }}
       />
+
+      {/* Detail Modal */}
+      <Dialog 
+        open={detailModalOpen} 
+        onClose={handleCloseDetailModal}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Telemetry Log Details</DialogTitle>
+        <DialogContent>
+          {selectedLog && (
+            <Box>
+              {/* Basic Information */}
+              <Box mb={3}>
+                <Typography variant="h6" gutterBottom>Basic Information</Typography>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableBody>
+                      <TableRow>
+                        <TableCell><strong>Log ID</strong></TableCell>
+                        <TableCell>{selectedLog.log_id}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell><strong>Timestamp</strong></TableCell>
+                        <TableCell>{new Date(selectedLog.timestamp).toLocaleString()}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell><strong>Severity</strong></TableCell>
+                        <TableCell>
+                          {selectedLog.severity && (
+                            <Chip
+                              label={selectedLog.severity}
+                              size="small"
+                              color={severityColors[selectedLog.severity] as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' || 'default'}
+                            />
+                          )}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell><strong>Message</strong></TableCell>
+                        <TableCell>{selectedLog.body}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell><strong>Trace ID</strong></TableCell>
+                        <TableCell>{selectedLog.trace_id || '-'}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell><strong>Span ID</strong></TableCell>
+                        <TableCell>{selectedLog.span_id || '-'}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell><strong>Uploaded By</strong></TableCell>
+                        <TableCell>{selectedLog.uploaded_by}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell><strong>Upload Date</strong></TableCell>
+                        <TableCell>{new Date(selectedLog.upload_date).toLocaleString()}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+
+              {/* Attributes */}
+              {selectedLog.attributes && Object.keys(selectedLog.attributes).length > 0 && (
+                <Box mb={3}>
+                  <Accordion>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Typography variant="h6">Attributes</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <TableContainer component={Paper} variant="outlined">
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell><strong>Key</strong></TableCell>
+                              <TableCell><strong>Value</strong></TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {Object.entries(selectedLog.attributes).map(([key, value]) => (
+                              <TableRow key={key}>
+                                <TableCell>{key}</TableCell>
+                                <TableCell>
+                                  {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </AccordionDetails>
+                  </Accordion>
+                </Box>
+              )}
+
+              {/* Resource */}
+              {selectedLog.resource && Object.keys(selectedLog.resource).length > 0 && (
+                <Box mb={3}>
+                  <Accordion>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Typography variant="h6">Resource</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <TableContainer component={Paper} variant="outlined">
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell><strong>Key</strong></TableCell>
+                              <TableCell><strong>Value</strong></TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {Object.entries(selectedLog.resource).map(([key, value]) => (
+                              <TableRow key={key}>
+                                <TableCell>{key}</TableCell>
+                                <TableCell>
+                                  {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </AccordionDetails>
+                  </Accordion>
+                </Box>
+              )}
+
+              {/* Tags */}
+              {selectedLog.tag_ids && selectedLog.tag_ids.length > 0 && (
+                <Box mb={3}>
+                  <Typography variant="h6" gutterBottom>Tags</Typography>
+                  <Box display="flex" gap={1} flexWrap="wrap">
+                    {selectedLog.tag_ids.map((tagId) => (
+                      <Chip
+                        key={tagId}
+                        label={getTagName(tagId)}
+                        size="small"
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Metadata */}
+              {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
+                <Box mb={3}>
+                  <Accordion>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Typography variant="h6">Metadata</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <TableContainer component={Paper} variant="outlined">
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell><strong>Key</strong></TableCell>
+                              <TableCell><strong>Value</strong></TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {Object.entries(selectedLog.metadata).map(([key, value]) => (
+                              <TableRow key={key}>
+                                <TableCell>{key}</TableCell>
+                                <TableCell>{value}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </AccordionDetails>
+                  </Accordion>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDetailModal}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

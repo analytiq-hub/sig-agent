@@ -99,6 +99,10 @@ class TelemetryLogResponse(BaseModel):
     timestamp: datetime
     severity: Optional[str]
     body: str
+    attributes: Optional[Dict[str, Any]] = Field(None, description="Log attributes")
+    resource: Optional[Dict[str, Any]] = Field(None, description="Resource information")
+    trace_id: Optional[str] = Field(None, description="Associated trace ID")
+    span_id: Optional[str] = Field(None, description="Associated span ID")
     upload_date: datetime
     uploaded_by: str
     tag_ids: List[str]
@@ -465,6 +469,10 @@ async def list_telemetry_logs(
             timestamp=log["timestamp"],
             severity=log["severity"],
             body=log["body"],
+            attributes=log.get("attributes"),
+            resource=log.get("resource"),
+            trace_id=log.get("trace_id"),
+            span_id=log.get("span_id"),
             upload_date=log["upload_date"],
             uploaded_by=log["uploaded_by"],
             tag_ids=log["tag_ids"],
