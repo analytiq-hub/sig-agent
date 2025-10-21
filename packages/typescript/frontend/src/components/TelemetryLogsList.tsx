@@ -26,10 +26,14 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import { Tag, TelemetryLogResponse } from '@docrouter/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
@@ -57,6 +61,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedLog, setSelectedLog] = useState<TelemetryLogResponse | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedLogIndex, setSelectedLogIndex] = useState<number>(-1);
 
   const loadLogs = useCallback(async () => {
     try {
@@ -105,13 +110,28 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
   };
 
   const handleLogClick = (log: TelemetryLog) => {
+    const index = filteredLogs.findIndex(l => l.log_id === log.log_id);
     setSelectedLog(log);
+    setSelectedLogIndex(index);
     setDetailModalOpen(true);
   };
 
   const handleCloseDetailModal = () => {
     setDetailModalOpen(false);
     setSelectedLog(null);
+    setSelectedLogIndex(-1);
+  };
+
+  const handleNavigateLog = (direction: 'prev' | 'next') => {
+    if (selectedLogIndex === -1) return;
+    
+    const newIndex = direction === 'prev' ? selectedLogIndex - 1 : selectedLogIndex + 1;
+    
+    if (newIndex >= 0 && newIndex < filteredLogs.length) {
+      const newLog = filteredLogs[newIndex];
+      setSelectedLog(newLog);
+      setSelectedLogIndex(newIndex);
+    }
   };
 
 
@@ -149,66 +169,125 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
     return resource;
   };
 
+  // Helper function to extract salient information from attributes
+  const getSalientInfo = (log: TelemetryLog) => {
+    const attrs = log.attributes || {};
+    return {
+      eventName: attrs['event.name'] as string || '-',
+      toolName: attrs['tool_name'] as string || '-',
+      success: attrs['success'] || '-',
+      duration: attrs['duration_ms'] as number | string || '-',
+      decision: attrs['decision'] as string || '-',
+      source: attrs['source'] as string || attrs['decision_source'] as string || '-',
+      sessionId: attrs['session.id'] as string || '-'
+    };
+  };
+
   const columns: GridColDef[] = [
     {
       field: 'timestamp',
       headerName: 'Timestamp',
-      width: 180,
+      width: 140,
       renderCell: (params) => (
         <span className="text-sm">{formatLocalDateWithTZ(params.value, true)}</span>
       )
     },
     {
-      field: 'severity',
-      headerName: 'Severity',
-      width: 100,
+      field: 'event_name',
+      headerName: 'Event',
+      width: 120,
       renderCell: (params) => {
-        if (!params.value) return '-';
+        const info = getSalientInfo(params.row);
         return (
-          <Chip
-            label={params.value}
-            size="small"
-            color={severityColors[params.value] as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' || 'default'}
-            sx={{ height: '20px', fontSize: '0.75rem' }}
-          />
+          <span className="text-sm font-medium">
+            {info.eventName}
+          </span>
         );
+      }
+    },
+    {
+      field: 'tool_name',
+      headerName: 'Tool',
+      width: 180,
+      renderCell: (params) => {
+        const info = getSalientInfo(params.row);
+        return (
+          <span className="text-sm font-mono">
+            {info.toolName}
+          </span>
+        );
+      }
+    },
+    {
+      field: 'success',
+      headerName: 'Status',
+      width: 80,
+      renderCell: (params) => {
+        const info = getSalientInfo(params.row);
+        const success = info.success;
+        if (success === true || String(success) === 'true') {
+          return <Chip label="✓" size="small" color="success" sx={{ height: '20px', fontSize: '0.75rem' }} />;
+        } else if (success === false || String(success) === 'false') {
+          return <Chip label="✗" size="small" color="error" sx={{ height: '20px', fontSize: '0.75rem' }} />;
+        }
+        return <span className="text-sm">-</span>;
+      }
+    },
+    {
+      field: 'duration',
+      headerName: 'Duration',
+      width: 80,
+      renderCell: (params) => {
+        const info = getSalientInfo(params.row);
+        const duration = info.duration;
+        if (typeof duration === 'number' || (typeof duration === 'string' && !isNaN(Number(duration)))) {
+          return <span className="text-sm font-mono">{duration}ms</span>;
+        }
+        return <span className="text-sm">-</span>;
+      }
+    },
+    {
+      field: 'decision',
+      headerName: 'Decision',
+      width: 80,
+      renderCell: (params) => {
+        const info = getSalientInfo(params.row);
+        const decision = info.decision;
+        if (decision && decision !== '-') {
+          const color = decision === 'accept' ? 'success' : decision === 'reject' ? 'error' : 'default';
+          return (
+            <Chip
+              label={decision}
+              size="small"
+              color={color as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'}
+              sx={{ height: '20px', fontSize: '0.75rem' }}
+            />
+          );
+        }
+        return <span className="text-sm">-</span>;
       }
     },
     {
       field: 'body',
       headerName: 'Message',
       flex: 2,
-      minWidth: 300,
+      minWidth: 200,
       renderCell: (params) => (
         <span className="text-sm truncate">{params.value}</span>
       )
     },
     {
-      field: 'trace_id',
-      headerName: 'Trace ID',
-      flex: 1,
-      minWidth: 200,
-      renderCell: (params) => (
-        params.value ? <span className="font-mono text-xs">{params.value}</span> : '-'
-      )
-    },
-    {
-      field: 'tag_ids',
-      headerName: 'Tags',
-      flex: 1,
-      minWidth: 150,
-      renderCell: (params) => (
-        <div className="flex gap-1 flex-wrap py-1">
-          {params.value?.map((tagId: string) => (
-            <Chip
-              key={tagId}
-              label={getTagName(tagId)}
-              size="small"
-              sx={{ height: '20px', fontSize: '0.75rem' }}
-            />
-          ))}
-        </div>
-      )
+      field: 'session_id',
+      headerName: 'Session',
+      width: 120,
+      renderCell: (params) => {
+        const info = getSalientInfo(params.row);
+        return (
+          <span className="text-xs font-mono">
+            {info.sessionId.substring(0, 8)}...
+          </span>
+        );
+      }
     }
   ];
 
@@ -295,10 +374,103 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Telemetry Log Details</DialogTitle>
+        <DialogTitle>
+          <Box display="flex" alignItems="center" justifyContent="space-between">
+            <Typography variant="h6">Telemetry Log Details</Typography>
+            <Box display="flex" alignItems="center" gap={1}>
+              <Tooltip title="Previous log">
+                <IconButton
+                  size="small"
+                  onClick={() => handleNavigateLog('prev')}
+                  disabled={selectedLogIndex <= 0}
+                >
+                  <NavigateBeforeIcon />
+                </IconButton>
+              </Tooltip>
+              <Typography variant="body2" color="text.secondary">
+                {selectedLogIndex + 1} of {filteredLogs.length}
+              </Typography>
+              <Tooltip title="Next log">
+                <IconButton
+                  size="small"
+                  onClick={() => handleNavigateLog('next')}
+                  disabled={selectedLogIndex >= filteredLogs.length - 1}
+                >
+                  <NavigateNextIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Box>
+        </DialogTitle>
         <DialogContent>
           {selectedLog && (
             <Box>
+              {/* Summary Information */}
+              <Box mb={3}>
+                <Typography variant="h6" gutterBottom>Summary</Typography>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableBody>
+                      {(() => {
+                        const info = getSalientInfo(selectedLog);
+                        return (
+                          <>
+                            <TableRow>
+                              <TableCell><strong>Event</strong></TableCell>
+                              <TableCell>{info.eventName}</TableCell>
+                              <TableCell><strong>Tool</strong></TableCell>
+                              <TableCell className="font-mono">{info.toolName}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell><strong>Status</strong></TableCell>
+                              <TableCell>
+                                {info.success === true || String(info.success) === 'true' ? (
+                                  <Chip label="✓ Success" size="small" color="success" />
+                                ) : info.success === false || String(info.success) === 'false' ? (
+                                  <Chip label="✗ Failed" size="small" color="error" />
+                                ) : (
+                                  <span>-</span>
+                                )}
+                              </TableCell>
+                              <TableCell><strong>Duration</strong></TableCell>
+                              <TableCell>
+                                {info.duration !== '-' ? (
+                                  <span className="font-mono">{info.duration}ms</span>
+                                ) : (
+                                  <span>-</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell><strong>Decision</strong></TableCell>
+                              <TableCell>
+                                {info.decision !== '-' ? (
+                                  <Chip
+                                    label={info.decision}
+                                    size="small"
+                                    color={info.decision === 'accept' ? 'success' : info.decision === 'reject' ? 'error' : 'default'}
+                                  />
+                                ) : (
+                                  <span>-</span>
+                                )}
+                              </TableCell>
+                              <TableCell><strong>Source</strong></TableCell>
+                              <TableCell>{info.source}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell><strong>Session</strong></TableCell>
+                              <TableCell className="font-mono text-xs">{info.sessionId}</TableCell>
+                              <TableCell><strong>Timestamp</strong></TableCell>
+                              <TableCell>{formatLocalDateWithTZ(selectedLog.timestamp, true)}</TableCell>
+                            </TableRow>
+                          </>
+                        );
+                      })()}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+
               {/* Basic Information */}
               <Box mb={3}>
                 <Typography variant="h6" gutterBottom>Basic Information</Typography>
