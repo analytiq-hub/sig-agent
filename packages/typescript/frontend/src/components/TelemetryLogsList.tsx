@@ -113,6 +113,40 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
     setSelectedLog(null);
   };
 
+  // Helper function to parse OpenTelemetry resource attributes
+  const parseResourceAttributes = (resource: Record<string, unknown>) => {
+    // Check if this is the OpenTelemetry format with attributes array
+    if (resource.attributes && Array.isArray(resource.attributes)) {
+      const parsedAttributes: Record<string, string> = {};
+      resource.attributes.forEach((attr: unknown) => {
+        const typedAttr = attr as Record<string, unknown>;
+        if (typedAttr.key && typedAttr.value) {
+          const value = typedAttr.value as Record<string, unknown>;
+          // Handle different value types from OpenTelemetry
+          if (value.stringValue) {
+            parsedAttributes[typedAttr.key as string] = value.stringValue as string;
+          } else if (value.intValue !== undefined) {
+            parsedAttributes[typedAttr.key as string] = (value.intValue as number).toString();
+          } else if (value.doubleValue !== undefined) {
+            parsedAttributes[typedAttr.key as string] = (value.doubleValue as number).toString();
+          } else if (value.boolValue !== undefined) {
+            parsedAttributes[typedAttr.key as string] = (value.boolValue as boolean).toString();
+          } else if (value.arrayValue) {
+            parsedAttributes[typedAttr.key as string] = JSON.stringify(value.arrayValue);
+          } else if (value.kvlistValue) {
+            parsedAttributes[typedAttr.key as string] = JSON.stringify(value.kvlistValue);
+          } else {
+            parsedAttributes[typedAttr.key as string] = JSON.stringify(value);
+          }
+        }
+      });
+      return parsedAttributes;
+    }
+    
+    // If not in OpenTelemetry format, return as-is
+    return resource;
+  };
+
   const columns: GridColDef[] = [
     {
       field: 'timestamp',
@@ -364,12 +398,10 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {Object.entries(selectedLog.resource).map(([key, value]) => (
+                            {Object.entries(parseResourceAttributes(selectedLog.resource)).map(([key, value]) => (
                               <TableRow key={key}>
                                 <TableCell>{key}</TableCell>
-                                <TableCell>
-                                  {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
-                                </TableCell>
+                                <TableCell>{String(value)}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
