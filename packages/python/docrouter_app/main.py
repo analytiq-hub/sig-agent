@@ -38,6 +38,7 @@ from docrouter_app.routes.oauth import oauth_router
 from docrouter_app.routes.orgs import orgs_router
 from docrouter_app.routes.users import users_router
 from docrouter_app.routes.emails import emails_router
+from docrouter_app.routes.telemetry import telemetry_router
 import analytiq_data as ad
 
 # Import OTLP server
@@ -160,3 +161,4 @@ app.include_router(oauth_router)
 app.include_router(orgs_router)
 app.include_router(users_router)
 app.include_router(emails_router)
+app.include_router(telemetry_router)
