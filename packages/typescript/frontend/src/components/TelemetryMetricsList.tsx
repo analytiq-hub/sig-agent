@@ -5,6 +5,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, Chip } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { Tag } from '@docrouter/sdk';
+import { formatLocalDateWithTZ } from '@/utils/date';
 
 interface TelemetryMetric {
   metric_id: string;
@@ -124,7 +125,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
       headerName: 'Upload Date',
       width: 180,
       renderCell: (params) => (
-        <span>{new Date(params.value).toLocaleString()}</span>
+        <span className="text-sm">{formatLocalDateWithTZ(params.value)}</span>
       )
     },
     {

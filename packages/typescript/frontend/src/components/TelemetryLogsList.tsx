@@ -31,6 +31,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Tag, TelemetryLogResponse } from '@docrouter/sdk';
+import { formatLocalDateWithTZ } from '@/utils/date';
 
 type TelemetryLog = TelemetryLogResponse;
 
@@ -113,6 +114,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
     setSelectedLog(null);
   };
 
+
   // Helper function to parse OpenTelemetry resource attributes
   const parseResourceAttributes = (resource: Record<string, unknown>) => {
     // Check if this is the OpenTelemetry format with attributes array
@@ -153,7 +155,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       headerName: 'Timestamp',
       width: 180,
       renderCell: (params) => (
-        <span className="text-sm">{new Date(params.value).toLocaleString()}</span>
+        <span className="text-sm">{formatLocalDateWithTZ(params.value)}</span>
       )
     },
     {
@@ -309,7 +311,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                       </TableRow>
                       <TableRow>
                         <TableCell><strong>Timestamp</strong></TableCell>
-                        <TableCell>{new Date(selectedLog.timestamp).toLocaleString()}</TableCell>
+                        <TableCell>{formatLocalDateWithTZ(selectedLog.timestamp)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell><strong>Severity</strong></TableCell>
@@ -341,7 +343,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                       </TableRow>
                       <TableRow>
                         <TableCell><strong>Upload Date</strong></TableCell>
-                        <TableCell>{new Date(selectedLog.upload_date).toLocaleString()}</TableCell>
+                        <TableCell>{formatLocalDateWithTZ(selectedLog.upload_date)}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>

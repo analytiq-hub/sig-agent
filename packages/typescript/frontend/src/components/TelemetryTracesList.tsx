@@ -5,6 +5,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, Chip } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { Tag } from '@docrouter/sdk';
+import { formatLocalDateWithTZ } from '@/utils/date';
 
 interface TelemetryTrace {
   trace_id: string;
@@ -109,7 +110,7 @@ const TelemetryTracesList: React.FC<{ organizationId: string }> = ({ organizatio
       headerName: 'Upload Date',
       width: 180,
       renderCell: (params) => (
-        <span>{new Date(params.value).toLocaleString()}</span>
+        <span className="text-sm">{formatLocalDateWithTZ(params.value)}</span>
       )
     },
     {
@@ -157,10 +158,11 @@ const TelemetryTracesList: React.FC<{ organizationId: string }> = ({ organizatio
         pagination
         paginationMode="server"
         rowCount={total}
-        page={page}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        paginationModel={{ page, pageSize }}
+        onPaginationModelChange={(model) => {
+          setPage(model.page);
+          setPageSize(model.pageSize);
+        }}
         pageSizeOptions={[5, 10, 25, 50]}
         loading={isLoading}
         disableRowSelectionOnClick
