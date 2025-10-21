@@ -14,7 +14,13 @@ export function formatLocalDateWithTZ(dateInput: string | Date | number, display
         // Unix timestamp - check if it's in seconds or milliseconds
         date = new Date(dateInput < 1e10 ? dateInput * 1000 : dateInput);
     } else if (typeof dateInput === 'string') {
-        date = new Date(dateInput);
+        // Ensure proper UTC parsing for ISO strings
+        if (dateInput.includes('T') && !dateInput.includes('Z') && !dateInput.includes('+')) {
+            // If it's an ISO string without timezone info, assume UTC
+            date = new Date(dateInput + 'Z');
+        } else {
+            date = new Date(dateInput);
+        }
     } else {
         date = dateInput;
     }
