@@ -640,31 +640,38 @@ async def test_pagination(test_db, mock_auth, setup_test_models):
 
     # Use unique metric names to avoid conflicts with other tests
     import uuid
+    import asyncio
     unique_prefix = f"paginationtest_{uuid.uuid4().hex[:8]}"
 
-    # Upload 15 metrics with unique names
-    metric_data = {
-        "metrics": [
-            {
+    # Upload 15 metrics one at a time with small delays to ensure different upload_date timestamps
+    # This ensures stable sorting for pagination testing
+    uploaded_ids = set()
+    base_time = int(datetime.now(UTC).timestamp() * 1e9)
+
+    for i in range(15):
+        metric_data = {
+            "metrics": [{
                 "name": f"{unique_prefix}.metric.{i:03d}",
                 "type": "counter",
                 "data_points": [{
-                    "timeUnixNano": str(int(datetime.now(UTC).timestamp() * 1e9)),
+                    "timeUnixNano": str(base_time + i * 1000000),
                     "value": {"asDouble": float(i)}
                 }],
-                "metadata": {"test_batch": unique_prefix}
-            }
-            for i in range(15)
-        ]
-    }
+                "metadata": {"test_batch": unique_prefix, "index": str(i)}
+            }]
+        }
 
-    upload_response = client.post(
-        f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics",
-        json=metric_data,
-        headers=get_auth_headers()
-    )
-    assert upload_response.status_code == 200
-    uploaded_ids = {m["metric_id"] for m in upload_response.json()["metrics"]}
+        upload_response = client.post(
+            f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics",
+            json=metric_data,
+            headers=get_auth_headers()
+        )
+        assert upload_response.status_code == 200
+        uploaded_ids.add(upload_response.json()["metrics"][0]["metric_id"])
+
+        # Small delay to ensure different upload_date in MongoDB
+        if i < 14:  # Don't delay after the last one
+            await asyncio.sleep(0.01)  # 10ms delay
 
     # Use name search to filter only our test metrics
     # Test pagination - first page
@@ -698,11 +705,12 @@ async def test_pagination(test_db, mock_auth, setup_test_models):
     page3_data = page3.json()
     assert len(page3_data["metrics"]) == 5
 
-    # Verify no overlap between pages
+    # Collect all metrics across pages
     page1_ids = {m["metric_id"] for m in page1_data["metrics"]}
     page2_ids = {m["metric_id"] for m in page2_data["metrics"]}
     page3_ids = {m["metric_id"] for m in page3_data["metrics"]}
 
+    # Verify no overlap between pages (stable sort with unique timestamps)
     assert len(page1_ids & page2_ids) == 0, "Page 1 and 2 should not overlap"
     assert len(page2_ids & page3_ids) == 0, "Page 2 and 3 should not overlap"
     assert len(page1_ids & page3_ids) == 0, "Page 1 and 3 should not overlap"
@@ -712,3 +720,396 @@ async def test_pagination(test_db, mock_auth, setup_test_models):
     assert all_retrieved_ids == uploaded_ids, "All uploaded metrics should be retrieved across pages"
 
     logger.info("test_pagination() completed successfully")
+
+# OTLP gRPC Upload Tests
+
+@pytest.mark.asyncio
+async def test_otlp_grpc_upload_traces(test_db, mock_auth, setup_test_models):
+    """Test uploading traces via OTLP gRPC and reading via HTTP"""
+    logger.info("test_otlp_grpc_upload_traces() start")
+
+    # Import OTLP server module to access export functions directly
+    from docrouter_app.routes.otlp_server import export_traces
+
+    # Create OTLP trace request
+    otlp_request = create_otlp_trace_request(
+        trace_id_hex="aabbccddeeff00112233445566778899",
+        span_id_hex="1122334455667788"
+    )
+
+    # Mock gRPC context
+    class MockGRPCContext:
+        def __init__(self):
+            self.metadata = {
+                'organization-id': TEST_ORG_ID
+            }
+
+        def invocation_metadata(self):
+            return [(k, v) for k, v in self.metadata.items()]
+
+        def set_code(self, code):
+            self.code = code
+
+        def set_details(self, details):
+            self.details = details
+
+    context = MockGRPCContext()
+
+    # Upload via OTLP gRPC
+    response = await export_traces(otlp_request, context, TEST_ORG_ID)
+    assert response is not None
+
+    # Verify via HTTP list endpoint
+    list_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/traces",
+        headers=get_auth_headers()
+    )
+
+    assert list_response.status_code == 200
+    traces = list_response.json()["traces"]
+
+    # Find our uploaded trace
+    found = False
+    for trace in traces:
+        if trace["span_count"] == 1:  # Our test trace has 1 span
+            found = True
+            assert trace["uploaded_by"] == "otlp-grpc"
+            assert trace["metadata"]["source"] == "otlp-grpc"
+            break
+
+    assert found, "Should find trace uploaded via OTLP gRPC"
+
+    logger.info("test_otlp_grpc_upload_traces() completed successfully")
+
+@pytest.mark.asyncio
+async def test_otlp_grpc_upload_metrics(test_db, mock_auth, setup_test_models):
+    """Test uploading metrics via OTLP gRPC and reading via HTTP"""
+    logger.info("test_otlp_grpc_upload_metrics() start")
+
+    from docrouter_app.routes.otlp_server import export_metrics
+
+    # Create OTLP metric request
+    otlp_request = create_otlp_metric_request(metric_name="otlp.grpc.test.metric")
+
+    class MockGRPCContext:
+        def __init__(self):
+            self.metadata = {'organization-id': TEST_ORG_ID}
+        def invocation_metadata(self):
+            return [(k, v) for k, v in self.metadata.items()]
+        def set_code(self, code):
+            self.code = code
+        def set_details(self, details):
+            self.details = details
+
+    context = MockGRPCContext()
+
+    # Upload via OTLP gRPC
+    response = await export_metrics(otlp_request, context, TEST_ORG_ID)
+    assert response is not None
+
+    # Verify via HTTP list endpoint with name search
+    list_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics?name_search=otlp.grpc.test",
+        headers=get_auth_headers()
+    )
+
+    assert list_response.status_code == 200
+    metrics = list_response.json()["metrics"]
+
+    # Find our uploaded metric
+    found = False
+    for metric in metrics:
+        if metric["name"] == "otlp.grpc.test.metric":
+            found = True
+            assert metric["type"] == "gauge"
+            assert metric["uploaded_by"] == "otlp-grpc"
+            assert metric["metadata"]["source"] == "otlp-grpc"
+            break
+
+    assert found, "Should find metric uploaded via OTLP gRPC"
+
+    logger.info("test_otlp_grpc_upload_metrics() completed successfully")
+
+@pytest.mark.asyncio
+async def test_otlp_grpc_upload_logs(test_db, mock_auth, setup_test_models):
+    """Test uploading logs via OTLP gRPC and reading via HTTP"""
+    logger.info("test_otlp_grpc_upload_logs() start")
+
+    from docrouter_app.routes.otlp_server import export_logs
+
+    # Create OTLP log request
+    unique_message = f"OTLP gRPC test log message {datetime.now(UTC).isoformat()}"
+    otlp_request = create_otlp_log_request(body=unique_message)
+
+    class MockGRPCContext:
+        def __init__(self):
+            self.metadata = {'organization-id': TEST_ORG_ID}
+        def invocation_metadata(self):
+            return [(k, v) for k, v in self.metadata.items()]
+        def set_code(self, code):
+            self.code = code
+        def set_details(self, details):
+            self.details = details
+
+    context = MockGRPCContext()
+
+    # Upload via OTLP gRPC
+    response = await export_logs(otlp_request, context, TEST_ORG_ID)
+    assert response is not None
+
+    # Verify via HTTP list endpoint
+    list_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs?severity=INFO",
+        headers=get_auth_headers()
+    )
+
+    assert list_response.status_code == 200
+    logs = list_response.json()["logs"]
+
+    # Find our uploaded log
+    found = False
+    for log in logs:
+        if log["body"] == unique_message:
+            found = True
+            assert log["severity"] == "INFO"
+            assert log["uploaded_by"] == "otlp-grpc"
+            assert log["metadata"]["source"] == "otlp-grpc"
+            break
+
+    assert found, "Should find log uploaded via OTLP gRPC"
+
+    logger.info("test_otlp_grpc_upload_logs() completed successfully")
+
+@pytest.mark.asyncio
+async def test_mixed_upload_sources(test_db, mock_auth, setup_test_models):
+    """Test that traces from both OTLP gRPC and HTTP can be listed together"""
+    logger.info("test_mixed_upload_sources() start")
+
+    from docrouter_app.routes.otlp_server import export_traces
+
+    # Upload via OTLP gRPC
+    otlp_request = create_otlp_trace_request(
+        trace_id_hex="aabbccdd00112233445566778899aabb",
+        span_id_hex="1122334455667788"
+    )
+
+    class MockGRPCContext:
+        def __init__(self):
+            self.metadata = {'organization-id': TEST_ORG_ID}
+        def invocation_metadata(self):
+            return [(k, v) for k, v in self.metadata.items()]
+        def set_code(self, code):
+            self.code = code
+        def set_details(self, details):
+            self.details = details
+
+    context = MockGRPCContext()
+    await export_traces(otlp_request, context, TEST_ORG_ID)
+
+    # Upload via HTTP
+    http_trace_data = {
+        "traces": [{
+            "resource_spans": [{
+                "scope_spans": [{
+                    "spans": [{
+                        "traceId": "bbccddee0123456789abcdef01234567",
+                        "spanId": "2233445566778899",
+                        "name": "http-span",
+                        "kind": 1,
+                        "startTimeUnixNano": str(int(datetime.now(UTC).timestamp() * 1e9)),
+                        "endTimeUnixNano": str(int(datetime.now(UTC).timestamp() * 1e9) + 1000000)
+                    }]
+                }]
+            }],
+            "metadata": {"source": "http"}
+        }]
+    }
+
+    http_response = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/traces",
+        json=http_trace_data,
+        headers=get_auth_headers()
+    )
+    assert http_response.status_code == 200
+
+    # List all traces
+    list_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/traces?limit=100",
+        headers=get_auth_headers()
+    )
+
+    assert list_response.status_code == 200
+    traces = list_response.json()["traces"]
+
+    # Should have traces from both sources
+    sources = set()
+    for trace in traces:
+        if "uploaded_by" in trace:
+            sources.add(trace["uploaded_by"])
+
+    # We should see both otlp-grpc and the test user
+    assert len(sources) >= 2, "Should have traces from both OTLP gRPC and HTTP sources"
+
+    logger.info("test_mixed_upload_sources() completed successfully")
+
+@pytest.mark.asyncio
+async def test_all_telemetry_types_http_roundtrip(test_db, mock_auth, setup_test_models):
+    """Test uploading and downloading all three telemetry types via HTTP"""
+    logger.info("test_all_telemetry_types_http_roundtrip() start")
+
+    import uuid
+    test_id = uuid.uuid4().hex[:8]
+
+    # Upload trace
+    # Ensure proper trace/span ID lengths (32 and 16 hex chars respectively)
+    trace_upload = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/traces",
+        json={
+            "traces": [{
+                "resource_spans": [{
+                    "scope_spans": [{
+                        "spans": [{
+                            "traceId": f"{test_id}0123456789abcdef0123456789ab",
+                            "spanId": f"{test_id}01234567",
+                            "name": f"roundtrip-span-{test_id}",
+                            "kind": 1,
+                            "startTimeUnixNano": str(int(datetime.now(UTC).timestamp() * 1e9)),
+                            "endTimeUnixNano": str(int(datetime.now(UTC).timestamp() * 1e9) + 1000000)
+                        }]
+                    }]
+                }],
+                "metadata": {"test_id": test_id}
+            }]
+        },
+        headers=get_auth_headers()
+    )
+    assert trace_upload.status_code == 200
+    trace_id = trace_upload.json()["traces"][0]["trace_id"]
+
+    # Upload metric
+    metric_upload = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics",
+        json={
+            "metrics": [{
+                "name": f"roundtrip.{test_id}.metric",
+                "type": "counter",
+                "data_points": [{
+                    "timeUnixNano": str(int(datetime.now(UTC).timestamp() * 1e9)),
+                    "value": {"asDouble": 999.99}
+                }],
+                "metadata": {"test_id": test_id}
+            }]
+        },
+        headers=get_auth_headers()
+    )
+    assert metric_upload.status_code == 200
+    metric_id = metric_upload.json()["metrics"][0]["metric_id"]
+
+    # Upload log
+    log_upload = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs",
+        json={
+            "logs": [{
+                "timestamp": datetime.now(UTC).isoformat(),
+                "severity": "WARN",
+                "body": f"Roundtrip test log {test_id}",
+                "metadata": {"test_id": test_id}
+            }]
+        },
+        headers=get_auth_headers()
+    )
+    assert log_upload.status_code == 200
+    log_id = log_upload.json()["logs"][0]["log_id"]
+
+    # Download and verify trace
+    trace_list = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/traces",
+        headers=get_auth_headers()
+    )
+    assert trace_list.status_code == 200
+    trace_found = any(t["trace_id"] == trace_id for t in trace_list.json()["traces"])
+    assert trace_found, "Uploaded trace should be in list"
+
+    # Download and verify metric
+    metric_list = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics?name_search=roundtrip.{test_id}",
+        headers=get_auth_headers()
+    )
+    assert metric_list.status_code == 200
+    metric_found = any(m["metric_id"] == metric_id for m in metric_list.json()["metrics"])
+    assert metric_found, "Uploaded metric should be in list"
+
+    # Download and verify log
+    log_list = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs?severity=WARN",
+        headers=get_auth_headers()
+    )
+    assert log_list.status_code == 200
+    log_found = any(l["log_id"] == log_id for l in log_list.json()["logs"])
+    assert log_found, "Uploaded log should be in list"
+
+    logger.info("test_all_telemetry_types_http_roundtrip() completed successfully")
+
+@pytest.mark.asyncio
+async def test_all_telemetry_types_otlp_to_http(test_db, mock_auth, setup_test_models):
+    """Test uploading all three telemetry types via OTLP and reading via HTTP"""
+    logger.info("test_all_telemetry_types_otlp_to_http() start")
+
+    from docrouter_app.routes.otlp_server import export_traces, export_metrics, export_logs
+
+    import uuid
+    test_id = uuid.uuid4().hex[:8]
+
+    class MockGRPCContext:
+        def __init__(self):
+            self.metadata = {'organization-id': TEST_ORG_ID}
+        def invocation_metadata(self):
+            return [(k, v) for k, v in self.metadata.items()]
+        def set_code(self, code):
+            self.code = code
+        def set_details(self, details):
+            self.details = details
+
+    # Upload trace via OTLP
+    # Ensure proper hex lengths: trace_id = 32 chars (16 bytes), span_id = 16 chars (8 bytes)
+    trace_request = create_otlp_trace_request(
+        trace_id_hex=f"{test_id}0123456789abcdef01234567"[:32],
+        span_id_hex="0123456789abcdef"
+    )
+    context = MockGRPCContext()
+    await export_traces(trace_request, context, TEST_ORG_ID)
+
+    # Upload metric via OTLP
+    metric_request = create_otlp_metric_request(metric_name=f"otlp.complete.{test_id}")
+    context = MockGRPCContext()
+    await export_metrics(metric_request, context, TEST_ORG_ID)
+
+    # Upload log via OTLP
+    log_request = create_otlp_log_request(body=f"OTLP complete test {test_id}")
+    context = MockGRPCContext()
+    await export_logs(log_request, context, TEST_ORG_ID)
+
+    # Verify all three via HTTP
+    traces = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/traces",
+        headers=get_auth_headers()
+    )
+    assert traces.status_code == 200
+    assert any(t["uploaded_by"] == "otlp-grpc" for t in traces.json()["traces"])
+
+    metrics = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics?name_search=otlp.complete.{test_id}",
+        headers=get_auth_headers()
+    )
+    assert metrics.status_code == 200
+    assert len(metrics.json()["metrics"]) >= 1
+
+    logs = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs",
+        headers=get_auth_headers()
+    )
+    assert logs.status_code == 200
+    log_bodies = [l["body"] for l in logs.json()["logs"]]
+    assert any(f"OTLP complete test {test_id}" in body for body in log_bodies)
+
+    logger.info("test_all_telemetry_types_otlp_to_http() completed successfully")
