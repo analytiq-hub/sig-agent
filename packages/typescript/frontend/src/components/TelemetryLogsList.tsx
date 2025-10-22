@@ -16,9 +16,6 @@ import {
   Button,
   Typography,
   Box,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Table,
   TableBody,
   TableCell,
@@ -30,7 +27,6 @@ import {
   Tooltip
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import BuildIcon from '@mui/icons-material/Build';
@@ -65,6 +61,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
   const [selectedLog, setSelectedLog] = useState<TelemetryLogResponse | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedLogIndex, setSelectedLogIndex] = useState<number>(-1);
+  const [selectedTab, setSelectedTab] = useState<number>(0);
 
   const loadLogs = useCallback(async () => {
     try {
@@ -123,6 +120,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
     setDetailModalOpen(false);
     setSelectedLog(null);
     setSelectedLogIndex(-1);
+    setSelectedTab(0);
   };
 
   const handleNavigateLog = (direction: 'prev' | 'next') => {
@@ -134,6 +132,142 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       const newLog = filteredLogs[newIndex];
       setSelectedLog(newLog);
       setSelectedLogIndex(newIndex);
+      // Keep the same tab selected when navigating
+    }
+  };
+
+
+  // Function to render tab content
+  const renderTabContent = (log: TelemetryLogResponse) => {
+    switch (selectedTab) {
+      case 0: // Basic Information
+        return (
+          <Box>
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableBody>
+                  <TableRow>
+                    <TableCell sx={{ width: '25%' }}><strong>Log ID</strong></TableCell>
+                    <TableCell sx={{ width: '25%' }}>{log.log_id}</TableCell>
+                    <TableCell sx={{ width: '25%' }}><strong>Severity</strong></TableCell>
+                    <TableCell sx={{ width: '25%' }}>
+                      {log.severity && (
+                        <Chip
+                          label={log.severity}
+                          size="small"
+                          color={severityColors[log.severity] as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' || 'default'}
+                        />
+                      )}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ width: '25%' }}><strong>Timestamp</strong></TableCell>
+                    <TableCell sx={{ width: '25%' }}>{formatLocalDateWithTZ(log.timestamp, true)}</TableCell>
+                    <TableCell sx={{ width: '25%' }}><strong>Upload Date</strong></TableCell>
+                    <TableCell sx={{ width: '25%' }}>{formatLocalDateWithTZ(log.upload_date, true)}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ width: '25%' }}><strong>Trace ID</strong></TableCell>
+                    <TableCell sx={{ width: '25%' }}>{log.trace_id || '-'}</TableCell>
+                    <TableCell sx={{ width: '25%' }}><strong>Span ID</strong></TableCell>
+                    <TableCell sx={{ width: '25%' }}>{log.span_id || '-'}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ width: '25%' }}><strong>Uploaded By</strong></TableCell>
+                    <TableCell sx={{ width: '25%' }}>{log.uploaded_by}</TableCell>
+                    <TableCell sx={{ width: '25%' }}><strong>Message</strong></TableCell>
+                    <TableCell sx={{ width: '25%' }}>{log.body}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        );
+      case 1: // Attributes
+        return (
+          <Box>
+            {log.attributes && Object.keys(log.attributes).length > 0 ? (
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell><strong>Key</strong></TableCell>
+                      <TableCell><strong>Value</strong></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {Object.entries(log.attributes).map(([key, value]) => (
+                      <TableRow key={key}>
+                        <TableCell>{key}</TableCell>
+                        <TableCell>
+                          {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography color="text.secondary">No attributes available</Typography>
+            )}
+          </Box>
+        );
+      case 2: // Resource
+        return (
+          <Box>
+            {log.resource && Object.keys(log.resource).length > 0 ? (
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell><strong>Key</strong></TableCell>
+                      <TableCell><strong>Value</strong></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {Object.entries(parseResourceAttributes(log.resource)).map(([key, value]) => (
+                      <TableRow key={key}>
+                        <TableCell>{key}</TableCell>
+                        <TableCell>{String(value)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography color="text.secondary">No resource information available</Typography>
+            )}
+          </Box>
+        );
+      case 3: // Metadata
+        return (
+          <Box>
+            {log.metadata && Object.keys(log.metadata).length > 0 ? (
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell><strong>Key</strong></TableCell>
+                      <TableCell><strong>Value</strong></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {Object.entries(log.metadata).map(([key, value]) => (
+                      <TableRow key={key}>
+                        <TableCell>{key}</TableCell>
+                        <TableCell>{value}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography color="text.secondary">No metadata available</Typography>
+            )}
+          </Box>
+        );
+      default:
+        return null;
     }
   };
 
@@ -532,112 +666,44 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                 </TableContainer>
               </Box>
 
-              {/* Basic Information */}
+              {/* Tabs for detailed information */}
               <Box mb={3}>
-                <Typography variant="h6" gutterBottom>Basic Information</Typography>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableBody>
-                      <TableRow>
-                        <TableCell><strong>Log ID</strong></TableCell>
-                        <TableCell>{selectedLog.log_id}</TableCell>
-                        <TableCell><strong>Severity</strong></TableCell>
-                        <TableCell>
-                          {selectedLog.severity && (
-                            <Chip
-                              label={selectedLog.severity}
-                              size="small"
-                              color={severityColors[selectedLog.severity] as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' || 'default'}
-                            />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell><strong>Timestamp</strong></TableCell>
-                        <TableCell>{formatLocalDateWithTZ(selectedLog.timestamp, true)}</TableCell>
-                        <TableCell><strong>Upload Date</strong></TableCell>
-                        <TableCell>{formatLocalDateWithTZ(selectedLog.upload_date, true)}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell><strong>Trace ID</strong></TableCell>
-                        <TableCell>{selectedLog.trace_id || '-'}</TableCell>
-                        <TableCell><strong>Span ID</strong></TableCell>
-                        <TableCell>{selectedLog.span_id || '-'}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell><strong>Uploaded By</strong></TableCell>
-                        <TableCell>{selectedLog.uploaded_by}</TableCell>
-                        <TableCell><strong>Message</strong></TableCell>
-                        <TableCell>{selectedLog.body}</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                {/* Custom tab buttons */}
+                <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+                  <Box display="flex">
+                    {['Basic Information', 'Attributes', 'Resource', 'Metadata'].map((label, index) => (
+                      <Button
+                        key={index}
+                        onClick={() => setSelectedTab(index)}
+                        variant="text"
+                        sx={{
+                          flex: 1,
+                          textTransform: 'none',
+                          borderRadius: 0,
+                          borderBottom: selectedTab === index ? 3 : 1,
+                          borderBottomColor: selectedTab === index ? 'primary.main' : 'divider',
+                          backgroundColor: selectedTab === index ? 'primary.light' : 'transparent',
+                          color: selectedTab === index ? 'primary.contrastText' : 'text.primary',
+                          fontWeight: selectedTab === index ? 600 : 400,
+                          '&:hover': {
+                            backgroundColor: selectedTab === index ? 'primary.light' : 'action.hover',
+                            borderBottomColor: selectedTab === index ? 'primary.main' : 'primary.light',
+                          }
+                        }}
+                      >
+                        {label}
+                      </Button>
+                    ))}
+                  </Box>
+                </Box>
+                <Box mt={2}>
+                  {/* Debug info - remove this later */}
+                  <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                    Debug: Selected tab = {selectedTab}
+                  </Typography>
+                  {renderTabContent(selectedLog)}
+                </Box>
               </Box>
-
-              {/* Attributes */}
-              {selectedLog.attributes && Object.keys(selectedLog.attributes).length > 0 && (
-                <Box mb={3}>
-                  <Accordion>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Typography variant="h6">Attributes</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                      <TableContainer component={Paper} variant="outlined">
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow>
-                              <TableCell><strong>Key</strong></TableCell>
-                              <TableCell><strong>Value</strong></TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {Object.entries(selectedLog.attributes).map(([key, value]) => (
-                              <TableRow key={key}>
-                                <TableCell>{key}</TableCell>
-                                <TableCell>
-                                  {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </AccordionDetails>
-                  </Accordion>
-                </Box>
-              )}
-
-              {/* Resource */}
-              {selectedLog.resource && Object.keys(selectedLog.resource).length > 0 && (
-                <Box mb={3}>
-                  <Accordion>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Typography variant="h6">Resource</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                      <TableContainer component={Paper} variant="outlined">
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow>
-                              <TableCell><strong>Key</strong></TableCell>
-                              <TableCell><strong>Value</strong></TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {Object.entries(parseResourceAttributes(selectedLog.resource)).map(([key, value]) => (
-                              <TableRow key={key}>
-                                <TableCell>{key}</TableCell>
-                                <TableCell>{String(value)}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </AccordionDetails>
-                  </Accordion>
-                </Box>
-              )}
 
               {/* Tags */}
               {selectedLog.tag_ids && selectedLog.tag_ids.length > 0 && (
@@ -652,37 +718,6 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                       />
                     ))}
                   </Box>
-                </Box>
-              )}
-
-              {/* Metadata */}
-              {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
-                <Box mb={3}>
-                  <Accordion>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Typography variant="h6">Metadata</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                      <TableContainer component={Paper} variant="outlined">
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow>
-                              <TableCell><strong>Key</strong></TableCell>
-                              <TableCell><strong>Value</strong></TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {Object.entries(selectedLog.metadata).map(([key, value]) => (
-                              <TableRow key={key}>
-                                <TableCell>{key}</TableCell>
-                                <TableCell>{value}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </AccordionDetails>
-                  </Accordion>
                 </Box>
               )}
             </Box>
