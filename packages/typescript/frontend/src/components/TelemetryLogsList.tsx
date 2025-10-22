@@ -13,6 +13,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   Button,
   Typography,
   Box,
@@ -33,6 +34,7 @@ import BuildIcon from '@mui/icons-material/Build';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import ApiIcon from '@mui/icons-material/Api';
 import PersonIcon from '@mui/icons-material/Person';
+import DateRangeIcon from '@mui/icons-material/DateRange';
 import { Tag, TelemetryLogResponse, Resource, ResourceAttribute } from '@docrouter/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
@@ -56,6 +58,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
   const [severityFilter, setSeverityFilter] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [dateModalOpen, setDateModalOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
@@ -573,70 +576,53 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
 
   return (
     <div className="w-full">
-      <div className="mb-4 space-y-4">
-        <div className="flex gap-4">
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="Search logs by message or trace ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Severity</InputLabel>
-            <Select
-              value={severityFilter}
-              label="Severity"
-              onChange={(e) => setSeverityFilter(e.target.value)}
-            >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="TRACE">TRACE</MenuItem>
-              <MenuItem value="DEBUG">DEBUG</MenuItem>
-              <MenuItem value="INFO">INFO</MenuItem>
-              <MenuItem value="WARN">WARN</MenuItem>
-              <MenuItem value="ERROR">ERROR</MenuItem>
-              <MenuItem value="FATAL">FATAL</MenuItem>
-            </Select>
-          </FormControl>
-        </div>
-        <div className="flex gap-4">
-          <TextField
-            size="small"
-            label="Start Date"
-            type="datetime-local"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 200 }}
-          />
-          <TextField
-            size="small"
-            label="End Date"
-            type="datetime-local"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 200 }}
-          />
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => {
-              setStartDate('');
-              setEndDate('');
-            }}
-            sx={{ minWidth: 100 }}
+      <div className="mb-4 flex gap-4">
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Search logs by message or trace ID..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Severity</InputLabel>
+          <Select
+            value={severityFilter}
+            label="Severity"
+            onChange={(e) => setSeverityFilter(e.target.value)}
           >
-            Clear Dates
-          </Button>
-        </div>
+            <MenuItem value="">All</MenuItem>
+            <MenuItem value="TRACE">TRACE</MenuItem>
+            <MenuItem value="DEBUG">DEBUG</MenuItem>
+            <MenuItem value="INFO">INFO</MenuItem>
+            <MenuItem value="WARN">WARN</MenuItem>
+            <MenuItem value="ERROR">ERROR</MenuItem>
+            <MenuItem value="FATAL">FATAL</MenuItem>
+          </Select>
+        </FormControl>
+        <Tooltip title="Date Range Filter">
+          <IconButton
+            size="small"
+            onClick={() => setDateModalOpen(true)}
+            sx={{ 
+              border: '1px solid',
+              borderColor: 'divider',
+              '&:hover': {
+                backgroundColor: 'action.hover',
+                borderColor: 'primary.main'
+              }
+            }}
+          >
+            <DateRangeIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </div>
 
       {message && (
@@ -907,6 +893,73 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
             </Box>
           )}
         </DialogContent>
+      </Dialog>
+
+      {/* Date Range Modal */}
+      <Dialog 
+        open={dateModalOpen} 
+        onClose={() => setDateModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <DateRangeIcon />
+            <Typography variant="h6">Select Date Range</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box className="space-y-4 pt-4">
+            <TextField
+              fullWidth
+              label="Start Date & Time"
+              type="datetime-local"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              fullWidth
+              label="End Date & Time"
+              type="datetime-local"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+            {(startDate || endDate) && (
+              <Box className="p-3 bg-gray-50 rounded-lg">
+                <Typography variant="body2" className="text-gray-700 font-medium mb-1">
+                  Current Range:
+                </Typography>
+                <Typography variant="body2" className="text-gray-600">
+                  {startDate ? `From: ${new Date(startDate).toLocaleString()}` : 'From: No start date'}
+                </Typography>
+                <Typography variant="body2" className="text-gray-600">
+                  {endDate ? `To: ${new Date(endDate).toLocaleString()}` : 'To: No end date'}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setStartDate('');
+              setEndDate('');
+            }}
+            variant="outlined"
+            color="inherit"
+          >
+            Clear Dates
+          </Button>
+          <Button 
+            onClick={() => setDateModalOpen(false)}
+            variant="contained"
+            color="primary"
+          >
+            Apply
+          </Button>
+        </DialogActions>
       </Dialog>
     </div>
   );

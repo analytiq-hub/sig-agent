@@ -9,6 +9,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   Button,
   Typography,
   Box,
@@ -25,6 +26,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import DateRangeIcon from '@mui/icons-material/DateRange';
 import { Tag, TelemetryMetricResponse, DataPoint, ResourceAttribute } from '@docrouter/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
@@ -38,6 +40,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [dateModalOpen, setDateModalOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
@@ -470,54 +473,37 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
 
   return (
     <div className="w-full">
-      <div className="mb-4 space-y-4">
-        <div className="flex gap-4">
-          <TextField
-            fullWidth
+      <div className="mb-4 flex gap-4">
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Search metrics by name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <Tooltip title="Date Range Filter">
+          <IconButton
             size="small"
-            placeholder="Search metrics by name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
+            onClick={() => setDateModalOpen(true)}
+            sx={{ 
+              border: '1px solid',
+              borderColor: 'divider',
+              '&:hover': {
+                backgroundColor: 'action.hover',
+                borderColor: 'primary.main'
+              }
             }}
-          />
-        </div>
-        <div className="flex gap-4">
-          <TextField
-            size="small"
-            label="Start Date"
-            type="datetime-local"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 200 }}
-          />
-          <TextField
-            size="small"
-            label="End Date"
-            type="datetime-local"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 200 }}
-          />
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => {
-              setStartDate('');
-              setEndDate('');
-            }}
-            sx={{ minWidth: 100 }}
           >
-            Clear Dates
-          </Button>
-        </div>
+            <DateRangeIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </div>
 
       {message && (
@@ -750,6 +736,73 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
             </Box>
           )}
         </DialogContent>
+      </Dialog>
+
+      {/* Date Range Modal */}
+      <Dialog 
+        open={dateModalOpen} 
+        onClose={() => setDateModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <DateRangeIcon />
+            <Typography variant="h6">Select Date Range</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box className="space-y-4 pt-4">
+            <TextField
+              fullWidth
+              label="Start Date & Time"
+              type="datetime-local"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              fullWidth
+              label="End Date & Time"
+              type="datetime-local"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+            {(startDate || endDate) && (
+              <Box className="p-3 bg-gray-50 rounded-lg">
+                <Typography variant="body2" className="text-gray-700 font-medium mb-1">
+                  Current Range:
+                </Typography>
+                <Typography variant="body2" className="text-gray-600">
+                  {startDate ? `From: ${new Date(startDate).toLocaleString()}` : 'From: No start date'}
+                </Typography>
+                <Typography variant="body2" className="text-gray-600">
+                  {endDate ? `To: ${new Date(endDate).toLocaleString()}` : 'To: No end date'}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setStartDate('');
+              setEndDate('');
+            }}
+            variant="outlined"
+            color="inherit"
+          >
+            Clear Dates
+          </Button>
+          <Button 
+            onClick={() => setDateModalOpen(false)}
+            variant="contained"
+            color="primary"
+          >
+            Apply
+          </Button>
+        </DialogActions>
       </Dialog>
     </div>
   );
