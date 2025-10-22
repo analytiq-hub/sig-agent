@@ -122,9 +122,9 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     for (let i = 1; i < data.length; i++) {
       const current = data[i];
       const previous = data[i - 1];
-      const timeDiff = Number(current.timestamp) - Number(previous.timestamp);
+      const timeDiffMs = Number(current.timestamp) - Number(previous.timestamp);
       
-      if (timeDiff > 0) {
+      if (timeDiffMs > 0) {
         const ratePoint: TimeSeriesDataPoint = { timestamp: current.timestamp };
         
         // Calculate rate for each data key (excluding timestamp)
@@ -132,7 +132,11 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           if (key !== 'timestamp') {
             const currentValue = Number(current[key]) || 0;
             const previousValue = Number(previous[key]) || 0;
-            const rate = (currentValue - previousValue) / (timeDiff / intervalMs);
+            const delta = currentValue - previousValue;
+            
+            // Calculate rate: delta per interval
+            // If timeDiff is 10 minutes and interval is 5 minutes, rate = delta * (5/10) = delta * 0.5
+            const rate = delta * (intervalMs / timeDiffMs);
             ratePoint[key] = Math.max(0, rate); // Ensure non-negative rates
           }
         });
@@ -143,6 +147,35 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     
     return rateData;
   }, [timeRange, getTimeInterval]);
+
+  // Filter token data based on enabled language models
+  const filterTokenDataByModels = useCallback((data: TimeSeriesDataPoint[], logsData: TelemetryLogResponse[]): TimeSeriesDataPoint[] => {
+    if (Object.keys(enabledLanguageModels).length === 0) return data;
+    
+    // Create a map of timestamps to enabled models
+    const timestampToModels: Record<number, Set<string>> = {};
+    
+    logsData.forEach(log => {
+      if (log.attributes && log.attributes.model) {
+        const model = log.attributes.model as string;
+        const timestamp = new Date(log.timestamp).getTime();
+        
+        if (!timestampToModels[timestamp]) {
+          timestampToModels[timestamp] = new Set();
+        }
+        timestampToModels[timestamp].add(model);
+      }
+    });
+    
+    // Filter data points to only include those with enabled models
+    return data.filter(point => {
+      const modelsAtTime = timestampToModels[Number(point.timestamp)];
+      if (!modelsAtTime) return true; // Keep if no model info available
+      
+      // Check if any enabled model was active at this timestamp
+      return Array.from(modelsAtTime).some(model => enabledLanguageModels[model as string] !== false);
+    });
+  }, [enabledLanguageModels]);
 
   // Helper function to format date for datetime-local input
   const formatDateForInput = (date: Date): string => {
@@ -322,7 +355,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     console.log('Time range:', startTime.toISOString(), 'to', endTime?.toISOString() || 'now');
 
     const detectedTokenTypes: Set<string> = new Set();
-    const tokenEntries: Array<{ timestamp: number; tokenType: string; tokens: number }> = [];
+    const tokenEntries: Array<{ timestamp: number; tokenType: string; tokens: number; model: string }> = [];
 
     // Process all logs to find token-related entries
     logsData.forEach(log => {
@@ -351,6 +384,9 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           'cache_creation_tokens': log.attributes.cache_creation_tokens
         };
         
+        // Get model information
+        const model = log.attributes.model as string || 'unknown';
+        
         Object.entries(tokenFields).forEach(([tokenType, tokenCount]) => {
           // Parse token count as number (can be string or number)
           const parsedCount = typeof tokenCount === 'string' ? parseInt(tokenCount, 10) : (typeof tokenCount === 'number' ? tokenCount : 0);
@@ -360,6 +396,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
               timestamp: log.timestamp, 
               tokenType, 
               tokens: parsedCount, 
+              model,
               originalValue: tokenCount,
               attributes: log.attributes 
             });
@@ -367,7 +404,8 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
             tokenEntries.push({
               timestamp: logTime.getTime(),
               tokenType,
-              tokens: parsedCount
+              tokens: parsedCount,
+              model
             });
           }
         });
@@ -1127,8 +1165,12 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
             {tokenData.length > 0 ? (
               <TimeSeriesChart
                 title={displayMode === 'rate' ? `Token Rate (${getTimeInterval(timeRange).label})` : "Token Usage by Type"}
-                data={displayMode === 'rate' ? convertToRateData(tokenData) : tokenData}
-                dataKeys={getTokenUsageDataKeys(displayMode === 'rate' ? convertToRateData(tokenData) : tokenData)}
+                data={displayMode === 'rate' ? 
+                  convertToRateData(filterTokenDataByModels(tokenData, logs)) : 
+                  filterTokenDataByModels(tokenData, logs)}
+                dataKeys={getTokenUsageDataKeys(displayMode === 'rate' ? 
+                  convertToRateData(filterTokenDataByModels(tokenData, logs)) : 
+                  filterTokenDataByModels(tokenData, logs))}
                 yAxisLabel={displayMode === 'rate' ? `Tokens ${getTimeInterval(timeRange).label}` : "Tokens"}
               />
             ) : (
