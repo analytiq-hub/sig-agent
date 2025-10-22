@@ -350,13 +350,15 @@ async def list_telemetry_metrics(
     if name_search:
         query["name"] = {"$regex": name_search, "$options": "i"}
 
-    # Add timestamp filtering
+    # Add timestamp filtering based on data_points timestamps
     if start_time or end_time:
         timestamp_query = {}
         if start_time:
             try:
                 start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-                timestamp_query["$gte"] = start_dt
+                # Convert to nanoseconds for comparison with timeUnixNano
+                start_nanos = int(start_dt.timestamp() * 1_000_000_000)
+                timestamp_query["$gte"] = str(start_nanos)
             except ValueError:
                 raise HTTPException(
                     status_code=400,
@@ -365,13 +367,16 @@ async def list_telemetry_metrics(
         if end_time:
             try:
                 end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
-                timestamp_query["$lte"] = end_dt
+                # Convert to nanoseconds for comparison with timeUnixNano
+                end_nanos = int(end_dt.timestamp() * 1_000_000_000)
+                timestamp_query["$lte"] = str(end_nanos)
             except ValueError:
                 raise HTTPException(
                     status_code=400,
                     detail=f"Invalid end_time format. Use ISO format like '2025-10-22T16:00:00.000Z'"
                 )
-        query["upload_date"] = timestamp_query
+        # Filter based on data_points timestamps, not upload_date
+        query["data_points.timeUnixNano"] = timestamp_query
 
     # Get total count
     total = await db.telemetry_metrics.count_documents(query)

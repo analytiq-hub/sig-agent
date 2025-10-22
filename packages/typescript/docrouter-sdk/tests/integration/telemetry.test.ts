@@ -294,64 +294,48 @@ describe('Telemetry Integration Tests', () => {
     test('list metrics with timestamp filtering', async () => {
       const baseTime = new Date();
       
-      // Upload metrics with small delays to ensure different upload times
-      // Upload old metric first
-      await client.uploadMetrics({
-        metrics: [{
-          name: 'test.metric.old',
-          description: 'Old metric',
-          unit: 'count',
-          type: 'sum',
-          data_points: [{
-            timeUnixNano: String(baseTime.getTime() * 1000000),
-            value: { asInt: 100 }
-          }],
-          metadata: { index: '0' }
-        }]
+      // Upload metrics with different data point timestamps
+      const uploaded = await client.uploadMetrics({
+        metrics: [
+          {
+            name: 'test.metric.old',
+            description: 'Old metric',
+            unit: 'count',
+            type: 'sum',
+            data_points: [{
+              timeUnixNano: String((baseTime.getTime() - 2 * 60 * 60 * 1000) * 1000000), // 2 hours ago
+              value: { asInt: 100 }
+            }],
+            metadata: { index: '0' }
+          },
+          {
+            name: 'test.metric.recent',
+            description: 'Recent metric',
+            unit: 'count',
+            type: 'sum',
+            data_points: [{
+              timeUnixNano: String((baseTime.getTime() - 30 * 60 * 1000) * 1000000), // 30 minutes ago
+              value: { asInt: 200 }
+            }],
+            metadata: { index: '1' }
+          },
+          {
+            name: 'test.metric.current',
+            description: 'Current metric',
+            unit: 'count',
+            type: 'sum',
+            data_points: [{
+              timeUnixNano: String(baseTime.getTime() * 1000000), // Now
+              value: { asInt: 300 }
+            }],
+            metadata: { index: '2' }
+          }
+        ]
       });
 
-      // Wait a bit to ensure different upload time
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Upload recent metric
-      const recentMetric = await client.uploadMetrics({
-        metrics: [{
-          name: 'test.metric.recent',
-          description: 'Recent metric',
-          unit: 'count',
-          type: 'sum',
-          data_points: [{
-            timeUnixNano: String(baseTime.getTime() * 1000000),
-            value: { asInt: 200 }
-          }],
-          metadata: { index: '1' }
-        }]
-      });
-
-      // Wait a bit more
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Upload current metric
-      const currentMetric = await client.uploadMetrics({
-        metrics: [{
-          name: 'test.metric.current',
-          description: 'Current metric',
-          unit: 'count',
-          type: 'sum',
-          data_points: [{
-            timeUnixNano: String(baseTime.getTime() * 1000000),
-            value: { asInt: 300 }
-          }],
-          metadata: { index: '2' }
-        }]
-      });
-
-      // Get the upload time of the recent metric (middle one)
-      const recentUploadTime = new Date(recentMetric.metrics[0].upload_date);
-      
-      // Test timestamp filtering - get metrics from recent upload time onwards
-      const startTime = new Date(recentUploadTime.getTime() - 1000).toISOString(); // 1 second before recent metric
-      const endTime = new Date().toISOString(); // Now
+      // Test timestamp filtering - get metrics from last hour only
+      const startTime = new Date(baseTime.getTime() - 60 * 60 * 1000).toISOString(); // 1 hour ago
+      const endTime = baseTime.toISOString(); // Now
       
       const filtered = await client.listMetrics({ 
         start_time: startTime, 
@@ -361,8 +345,8 @@ describe('Telemetry Integration Tests', () => {
       expect(filtered.metrics.length).toBeGreaterThanOrEqual(2); // Should include recent and current metrics
       
       // Verify we can find our recent and current metrics
-      const foundRecent = filtered.metrics.find(m => m.metric_id === recentMetric.metrics[0].metric_id);
-      const foundCurrent = filtered.metrics.find(m => m.metric_id === currentMetric.metrics[0].metric_id);
+      const foundRecent = filtered.metrics.find(m => m.metric_id === uploaded.metrics[1].metric_id);
+      const foundCurrent = filtered.metrics.find(m => m.metric_id === uploaded.metrics[2].metric_id);
       
       expect(foundRecent).toBeDefined();
       expect(foundCurrent).toBeDefined();
@@ -580,49 +564,33 @@ describe('Telemetry Integration Tests', () => {
     test('list logs with timestamp filtering', async () => {
       const baseTime = new Date();
       
-      // Upload logs with small delays to ensure different upload times
-      // Upload old log first
-      await client.uploadLogs({
-        logs: [{
-          timestamp: baseTime.toISOString(),
-          severity: 'INFO',
-          body: 'Old log message',
-          metadata: { index: '0' }
-        }]
+      // Upload logs with different timestamps
+      const uploaded = await client.uploadLogs({
+        logs: [
+          {
+            timestamp: new Date(baseTime.getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+            severity: 'INFO',
+            body: 'Old log message',
+            metadata: { index: '0' }
+          },
+          {
+            timestamp: new Date(baseTime.getTime() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
+            severity: 'WARN',
+            body: 'Recent log message',
+            metadata: { index: '1' }
+          },
+          {
+            timestamp: baseTime.toISOString(), // Now
+            severity: 'ERROR',
+            body: 'Current log message',
+            metadata: { index: '2' }
+          }
+        ]
       });
 
-      // Wait a bit to ensure different upload time
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Upload recent log
-      const recentLog = await client.uploadLogs({
-        logs: [{
-          timestamp: baseTime.toISOString(),
-          severity: 'INFO',
-          body: 'Recent log message',
-          metadata: { index: '1' }
-        }]
-      });
-
-      // Wait a bit more
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Upload current log
-      const currentLog = await client.uploadLogs({
-        logs: [{
-          timestamp: baseTime.toISOString(),
-          severity: 'INFO',
-          body: 'Current log message',
-          metadata: { index: '2' }
-        }]
-      });
-
-      // Get the upload time of the recent log (middle one)
-      const recentUploadTime = new Date(recentLog.logs[0].upload_date);
-      
-      // Test timestamp filtering - get logs from recent upload time onwards
-      const startTime = new Date(recentUploadTime.getTime() - 1000).toISOString(); // 1 second before recent log
-      const endTime = new Date().toISOString(); // Now
+      // Test timestamp filtering - get logs from last hour only
+      const startTime = new Date(baseTime.getTime() - 60 * 60 * 1000).toISOString(); // 1 hour ago
+      const endTime = baseTime.toISOString(); // Now
       
       const filtered = await client.listLogs({ 
         start_time: startTime, 
@@ -632,8 +600,8 @@ describe('Telemetry Integration Tests', () => {
       expect(filtered.logs.length).toBeGreaterThanOrEqual(2); // Should include recent and current logs
       
       // Verify we can find our recent and current logs
-      const foundRecent = filtered.logs.find(l => l.log_id === recentLog.logs[0].log_id);
-      const foundCurrent = filtered.logs.find(l => l.log_id === currentLog.logs[0].log_id);
+      const foundRecent = filtered.logs.find(l => l.log_id === uploaded.logs[1].log_id);
+      const foundCurrent = filtered.logs.find(l => l.log_id === uploaded.logs[2].log_id);
       
       expect(foundRecent).toBeDefined();
       expect(foundCurrent).toBeDefined();

@@ -355,104 +355,62 @@ async def test_list_metrics_with_timestamp_filtering(test_db, mock_auth, setup_t
     """Test listing metrics with timestamp filtering via FastAPI HTTP endpoint"""
     logger.info("test_list_metrics_with_timestamp_filtering() start")
 
-    # Create metrics with different upload dates by uploading them at different times
+    # Create metrics with different timestamps in data_points
     base_time = datetime.now(UTC)
     
-    # Upload old metric first (2 hours ago)
-    old_time = base_time - timedelta(hours=2)
-    old_metric_data = {
-        "metrics": [{
-            "name": "test.metric.old",
-            "description": "Old metric",
-            "unit": "count",
-            "type": "sum",
-            "data_points": [{
-                "timeUnixNano": str(int(old_time.timestamp() * 1_000_000_000)),
-                "value": {"asInt": 100}
-            }],
-            "tag_ids": [],
-            "metadata": {"index": "0"}
-        }]
+    # Create metrics with different data point timestamps
+    metric_data = {
+        "metrics": [
+            {
+                "name": "test.metric.old",
+                "description": "Old metric",
+                "unit": "count",
+                "type": "sum",
+                "data_points": [{
+                    "timeUnixNano": str(int((base_time - timedelta(hours=2)).timestamp() * 1_000_000_000)),
+                    "value": {"asInt": 100}
+                }],
+                "tag_ids": [],
+                "metadata": {"index": "0"}
+            },
+            {
+                "name": "test.metric.recent",
+                "description": "Recent metric", 
+                "unit": "count",
+                "type": "sum",
+                "data_points": [{
+                    "timeUnixNano": str(int((base_time - timedelta(minutes=30)).timestamp() * 1_000_000_000)),
+                    "value": {"asInt": 200}
+                }],
+                "tag_ids": [],
+                "metadata": {"index": "1"}
+            },
+            {
+                "name": "test.metric.current",
+                "description": "Current metric",
+                "unit": "count", 
+                "type": "sum",
+                "data_points": [{
+                    "timeUnixNano": str(int(base_time.timestamp() * 1_000_000_000)),
+                    "value": {"asInt": 300}
+                }],
+                "tag_ids": [],
+                "metadata": {"index": "2"}
+            }
+        ]
     }
-    
-    # Manually set upload_date to old_time by directly inserting into database
-    # since the API always uses current time for upload_date
+
     upload_response = client.post(
         f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics",
-        json=old_metric_data,
+        json=metric_data,
         headers=get_auth_headers()
     )
     assert upload_response.status_code == 200
-    
-    # Update the upload_date in the database to simulate old upload
-    import analytiq_data as ad
-    db = ad.common.get_async_db()
-    old_metric_id = upload_response.json()["metrics"][0]["metric_id"]
-    await db.telemetry_metrics.update_one(
-        {"metric_id": old_metric_id},
-        {"$set": {"upload_date": old_time}}
-    )
-    
-    # Upload recent metric (30 minutes ago)
-    recent_time = base_time - timedelta(minutes=30)
-    recent_metric_data = {
-        "metrics": [{
-            "name": "test.metric.recent",
-            "description": "Recent metric", 
-            "unit": "count",
-            "type": "sum",
-            "data_points": [{
-                "timeUnixNano": str(int(recent_time.timestamp() * 1_000_000_000)),
-                "value": {"asInt": 200}
-            }],
-            "tag_ids": [],
-            "metadata": {"index": "1"}
-        }]
-    }
-    
-    upload_response = client.post(
-        f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics",
-        json=recent_metric_data,
-        headers=get_auth_headers()
-    )
-    assert upload_response.status_code == 200
-    
-    # Update the upload_date in the database to simulate recent upload
-    recent_metric_id = upload_response.json()["metrics"][0]["metric_id"]
-    await db.telemetry_metrics.update_one(
-        {"metric_id": recent_metric_id},
-        {"$set": {"upload_date": recent_time}}
-    )
-    
-    # Upload current metric (now)
-    current_metric_data = {
-        "metrics": [{
-            "name": "test.metric.current",
-            "description": "Current metric",
-            "unit": "count", 
-            "type": "sum",
-            "data_points": [{
-                "timeUnixNano": str(int(base_time.timestamp() * 1_000_000_000)),
-                "value": {"asInt": 300}
-            }],
-            "tag_ids": [],
-            "metadata": {"index": "2"}
-        }]
-    }
-    
-    upload_response = client.post(
-        f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics",
-        json=current_metric_data,
-        headers=get_auth_headers()
-    )
-    assert upload_response.status_code == 200
-    
-    # Update the upload_date in the database to ensure it matches base_time
-    current_metric_id = upload_response.json()["metrics"][0]["metric_id"]
-    await db.telemetry_metrics.update_one(
-        {"metric_id": current_metric_id},
-        {"$set": {"upload_date": base_time}}
-    )
+
+    # Get the uploaded metric IDs
+    uploaded_metrics = upload_response.json()["metrics"]
+    recent_metric_id = uploaded_metrics[1]["metric_id"]  # test.metric.recent
+    current_metric_id = uploaded_metrics[2]["metric_id"]  # test.metric.current
 
     # Test timestamp filtering - get metrics from last hour only
     start_time = (base_time - timedelta(hours=1)).isoformat()
@@ -471,6 +429,12 @@ async def test_list_metrics_with_timestamp_filtering(test_db, mock_auth, setup_t
     filtered_data = filtered_response.json()
     assert "metrics" in filtered_data
     assert len(filtered_data["metrics"]) >= 2  # Should include recent and current metrics
+    
+    # Verify we can find our recent and current metrics
+    found_recent = any(m["metric_id"] == recent_metric_id for m in filtered_data["metrics"])
+    found_current = any(m["metric_id"] == current_metric_id for m in filtered_data["metrics"])
+    assert found_recent, "Should find recent metric in filtered results"
+    assert found_current, "Should find current metric in filtered results"
 
     # Test with only start_time
     start_only_response = client.get(
