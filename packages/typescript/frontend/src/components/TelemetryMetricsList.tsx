@@ -43,6 +43,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
   const [selectedMetric, setSelectedMetric] = useState<TelemetryMetricResponse | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedMetricIndex, setSelectedMetricIndex] = useState<number>(-1);
+  const [selectedTab, setSelectedTab] = useState<number>(0);
 
   const loadMetrics = useCallback(async () => {
     try {
@@ -101,6 +102,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
     setDetailModalOpen(false);
     setSelectedMetric(null);
     setSelectedMetricIndex(-1);
+    setSelectedTab(0);
   };
 
   const handleNavigateMetric = (direction: 'prev' | 'next') => {
@@ -112,6 +114,216 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
       const newMetric = metrics[newIndex];
       setSelectedMetric(newMetric);
       setSelectedMetricIndex(newIndex);
+    }
+  };
+
+  // Function to render tab content
+  const renderTabContent = (metric: TelemetryMetricResponse) => {
+    switch (selectedTab) {
+      case 0: // Basic Information
+        return (
+          <Box>
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ width: '50%' }}><strong>Key</strong></TableCell>
+                    <TableCell sx={{ width: '50%' }}><strong>Value</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  <TableRow sx={{ backgroundColor: 'background.default' }}>
+                    <TableCell sx={{ width: '50%' }}>Metric Name</TableCell>
+                    <TableCell sx={{ width: '50%' }}>
+                      <span className="font-mono">{metric.name}</span>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                    <TableCell sx={{ width: '50%' }}>Type</TableCell>
+                    <TableCell sx={{ width: '50%' }}>
+                      <Chip
+                        label={metric.type}
+                        size="small"
+                        color={metric.type === 'counter' ? 'primary' : 'default'}
+                      />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow sx={{ backgroundColor: 'background.default' }}>
+                    <TableCell sx={{ width: '50%' }}>Data Points</TableCell>
+                    <TableCell sx={{ width: '50%' }}>{metric.data_point_count}</TableCell>
+                  </TableRow>
+                  <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                    <TableCell sx={{ width: '50%' }}>Unit</TableCell>
+                    <TableCell sx={{ width: '50%' }}>{metric.unit || '-'}</TableCell>
+                  </TableRow>
+                  <TableRow sx={{ backgroundColor: 'background.default' }}>
+                    <TableCell sx={{ width: '50%' }}>Uploaded By</TableCell>
+                    <TableCell sx={{ width: '50%' }}>{metric.uploaded_by}</TableCell>
+                  </TableRow>
+                  <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                    <TableCell sx={{ width: '50%' }}>Upload Date</TableCell>
+                    <TableCell sx={{ width: '50%' }}>
+                      {formatLocalDateWithTZ(metric.upload_date, true)}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow sx={{ backgroundColor: 'background.default' }}>
+                    <TableCell sx={{ width: '50%' }}>Metric ID</TableCell>
+                    <TableCell sx={{ width: '50%' }}>
+                      <span className="font-mono text-xs">{metric.metric_id}</span>
+                    </TableCell>
+                  </TableRow>
+                  {metric.description && (
+                    <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                      <TableCell sx={{ width: '50%' }}>Description</TableCell>
+                      <TableCell sx={{ width: '50%' }}>{metric.description}</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        );
+      case 1: // Data Points
+        return (
+          <Box>
+            {metric.data_points && metric.data_points.length > 0 ? (
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ width: '30%' }}><strong>Timestamp</strong></TableCell>
+                      <TableCell sx={{ width: '20%' }}><strong>Value Type</strong></TableCell>
+                      <TableCell sx={{ width: '50%' }}><strong>Value</strong></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {metric.data_points.map((dataPoint: any, index) => {
+                      const timestamp = new Date(parseInt(dataPoint.timeUnixNano) / 1000000);
+                      const valueType = dataPoint.value?.asDouble !== undefined ? 'Double' : 
+                                      dataPoint.value?.asInt !== undefined ? 'Int' : 'Unknown';
+                      const value = dataPoint.value?.asDouble !== undefined ? dataPoint.value.asDouble :
+                                   dataPoint.value?.asInt !== undefined ? dataPoint.value.asInt : 'N/A';
+                      
+                      return (
+                        <TableRow 
+                          key={index}
+                          sx={{ 
+                            backgroundColor: index % 2 === 0 ? 'background.default' : 'action.hover' 
+                          }}
+                        >
+                          <TableCell sx={{ width: '30%' }}>
+                            <span className="font-mono text-xs">
+                              {formatLocalDateWithTZ(timestamp, true)}
+                            </span>
+                          </TableCell>
+                          <TableCell sx={{ width: '20%' }}>
+                            <Chip label={valueType} size="small" variant="outlined" />
+                          </TableCell>
+                          <TableCell sx={{ width: '50%' }}>
+                            <span className="font-mono">{value}</span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No data points available
+              </Typography>
+            )}
+          </Box>
+        );
+      case 2: // Resource
+        return (
+          <Box>
+            {metric.resource && (metric.resource as any).attributes ? (
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ width: '30%' }}><strong>Key</strong></TableCell>
+                      <TableCell sx={{ width: '20%' }}><strong>Value Type</strong></TableCell>
+                      <TableCell sx={{ width: '50%' }}><strong>Value</strong></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {(metric.resource as any).attributes.map((attr: any, index: number) => {
+                      const valueType = attr.value.stringValue !== undefined ? 'String' :
+                                      attr.value.boolValue !== undefined ? 'Boolean' :
+                                      attr.value.intValue !== undefined ? 'Int' :
+                                      attr.value.doubleValue !== undefined ? 'Double' : 'Unknown';
+                      const value = attr.value.stringValue !== undefined ? attr.value.stringValue :
+                                   attr.value.boolValue !== undefined ? attr.value.boolValue.toString() :
+                                   attr.value.intValue !== undefined ? attr.value.intValue.toString() :
+                                   attr.value.doubleValue !== undefined ? attr.value.doubleValue.toString() : 'N/A';
+                      
+                      return (
+                        <TableRow 
+                          key={index}
+                          sx={{ 
+                            backgroundColor: index % 2 === 0 ? 'background.default' : 'action.hover' 
+                          }}
+                        >
+                          <TableCell sx={{ width: '30%' }}>
+                            <span className="font-mono text-xs">{attr.key}</span>
+                          </TableCell>
+                          <TableCell sx={{ width: '20%' }}>
+                            <Chip label={valueType} size="small" variant="outlined" />
+                          </TableCell>
+                          <TableCell sx={{ width: '50%' }}>
+                            <span className="font-mono text-xs">{value}</span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No resource information available
+              </Typography>
+            )}
+          </Box>
+        );
+      case 3: // Metadata
+        return (
+          <Box>
+            {metric.metadata && Object.keys(metric.metadata).length > 0 ? (
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ width: '50%' }}><strong>Key</strong></TableCell>
+                      <TableCell sx={{ width: '50%' }}><strong>Value</strong></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {Object.entries(metric.metadata).map(([key, value], index) => (
+                      <TableRow 
+                        key={key}
+                        sx={{ 
+                          backgroundColor: index % 2 === 0 ? 'background.default' : 'action.hover' 
+                        }}
+                      >
+                        <TableCell sx={{ width: '50%' }}>{key}</TableCell>
+                        <TableCell sx={{ width: '50%' }}>{value}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No metadata available
+              </Typography>
+            )}
+          </Box>
+        );
+      default:
+        return null;
     }
   };
 
@@ -352,25 +564,21 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
                         </TableCell>
                         <TableCell sx={{ width: '50%' }}>
                           <Box display="flex" justifyContent="space-between">
-                            <strong>Metric ID</strong>
-                            <span className="font-mono text-xs">{selectedMetric.metric_id}</span>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell sx={{ width: '50%' }}>
-                          <Box display="flex" justifyContent="space-between">
                             <strong>Upload Date</strong>
                             <span>{formatLocalDateWithTZ(selectedMetric.upload_date, true)}</span>
                           </Box>
                         </TableCell>
-                        <TableCell sx={{ width: '50%' }}>
-                          <Box display="flex" justifyContent="space-between">
-                            <strong>Metric ID</strong>
-                            <span className="font-mono text-xs">{selectedMetric.metric_id}</span>
-                          </Box>
-                        </TableCell>
                       </TableRow>
+                      {selectedMetric.description && (
+                        <TableRow>
+                          <TableCell sx={{ width: '100%' }} colSpan={2}>
+                            <Box display="flex" justifyContent="space-between">
+                              <strong>Description</strong>
+                              <span>{selectedMetric.description}</span>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -392,35 +600,40 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
                 </Box>
               )}
 
-              {/* Metadata */}
-              {selectedMetric.metadata && Object.keys(selectedMetric.metadata).length > 0 && (
-                <Box mb={3}>
-                  <Typography variant="h6" gutterBottom>Metadata</Typography>
-                  <TableContainer component={Paper} variant="outlined">
-                    <Table size="small" sx={{ tableLayout: 'fixed' }}>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ width: '50%' }}><strong>Key</strong></TableCell>
-                          <TableCell sx={{ width: '50%' }}><strong>Value</strong></TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {Object.entries(selectedMetric.metadata).map(([key, value], index) => (
-                          <TableRow 
-                            key={key}
-                            sx={{ 
-                              backgroundColor: index % 2 === 0 ? 'background.default' : 'action.hover' 
-                            }}
-                          >
-                            <TableCell sx={{ width: '50%' }}>{key}</TableCell>
-                            <TableCell sx={{ width: '50%' }}>{value}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+              {/* Tabs for detailed information */}
+              <Box mb={3}>
+                {/* Custom tab buttons */}
+                <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+                  <Box display="flex">
+                    {['Basic Information', 'Data Points', 'Resource', 'Metadata'].map((label, index) => (
+                      <Button
+                        key={index}
+                        onClick={() => setSelectedTab(index)}
+                        variant="text"
+                        sx={{
+                          flex: 1,
+                          textTransform: 'none',
+                          borderRadius: 0,
+                          borderBottom: selectedTab === index ? 3 : 1,
+                          borderBottomColor: selectedTab === index ? 'primary.main' : 'divider',
+                          backgroundColor: selectedTab === index ? 'primary.light' : 'transparent',
+                          color: selectedTab === index ? 'primary.contrastText' : 'text.primary',
+                          fontWeight: selectedTab === index ? 600 : 400,
+                          '&:hover': {
+                            backgroundColor: selectedTab === index ? 'primary.light' : 'action.hover',
+                            borderBottomColor: selectedTab === index ? 'primary.main' : 'primary.light',
+                          }
+                        }}
+                      >
+                        {label}
+                      </Button>
+                    ))}
+                  </Box>
                 </Box>
-              )}
+                <Box mt={2}>
+                  {renderTabContent(selectedMetric)}
+                </Box>
+              </Box>
             </Box>
           )}
         </DialogContent>
