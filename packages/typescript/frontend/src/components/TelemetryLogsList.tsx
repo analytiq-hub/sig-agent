@@ -13,7 +13,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
   Button,
   Typography,
   Box,
@@ -400,8 +399,8 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       >
         <DialogTitle>
           <Box display="flex" alignItems="center" justifyContent="space-between">
-            <Typography variant="h6">Telemetry Log Details</Typography>
             <Box display="flex" alignItems="center" gap={1}>
+              <Typography variant="h6">Telemetry Log Details</Typography>
               <Tooltip title="Previous log">
                 <IconButton
                   size="small"
@@ -424,6 +423,9 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                 </IconButton>
               </Tooltip>
             </Box>
+            <Button onClick={handleCloseDetailModal} variant="outlined" size="small">
+              Close
+            </Button>
           </Box>
         </DialogTitle>
         <DialogContent>
@@ -509,12 +511,6 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                       <TableRow>
                         <TableCell><strong>Log ID</strong></TableCell>
                         <TableCell>{selectedLog.log_id}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell><strong>Timestamp</strong></TableCell>
-                        <TableCell>{formatLocalDateWithTZ(selectedLog.timestamp, true)}</TableCell>
-                      </TableRow>
-                      <TableRow>
                         <TableCell><strong>Severity</strong></TableCell>
                         <TableCell>
                           {selectedLog.severity && (
@@ -527,24 +523,22 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                         </TableCell>
                       </TableRow>
                       <TableRow>
-                        <TableCell><strong>Message</strong></TableCell>
-                        <TableCell>{selectedLog.body}</TableCell>
+                        <TableCell><strong>Timestamp</strong></TableCell>
+                        <TableCell>{formatLocalDateWithTZ(selectedLog.timestamp, true)}</TableCell>
+                        <TableCell><strong>Upload Date</strong></TableCell>
+                        <TableCell>{formatLocalDateWithTZ(selectedLog.upload_date, true)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell><strong>Trace ID</strong></TableCell>
                         <TableCell>{selectedLog.trace_id || '-'}</TableCell>
-                      </TableRow>
-                      <TableRow>
                         <TableCell><strong>Span ID</strong></TableCell>
                         <TableCell>{selectedLog.span_id || '-'}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell><strong>Uploaded By</strong></TableCell>
                         <TableCell>{selectedLog.uploaded_by}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell><strong>Upload Date</strong></TableCell>
-                        <TableCell>{formatLocalDateWithTZ(selectedLog.upload_date, true)}</TableCell>
+                        <TableCell><strong>Message</strong></TableCell>
+                        <TableCell>{selectedLog.body}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
@@ -664,9 +658,6 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDetailModal}>Close</Button>
-        </DialogActions>
       </Dialog>
     </div>
   );
