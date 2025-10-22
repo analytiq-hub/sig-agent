@@ -95,8 +95,8 @@ const StatCard: React.FC<StatCardProps> = ({
   };
 
   return (
-    <Card className={`${colors.bg} border-l-4 ${colors.border}`}>
-      <CardContent>
+    <Card className={`${colors.bg} border-l-4 ${colors.border} h-32`}>
+      <CardContent className="h-full flex flex-col justify-between">
         <div className="flex items-start justify-between mb-2">
           <Typography variant="subtitle2" className="text-gray-600 font-medium">
             {title}

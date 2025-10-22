@@ -6,7 +6,6 @@ import { Box, Typography, Grid, ToggleButton, ToggleButtonGroup, CircularProgres
 import {
   TrendingUp as TrendingUpIcon,
   AttachMoney as MoneyIcon,
-  Code as CodeIcon,
   Speed as PerformanceIcon,
   DateRange as DateRangeIcon,
   Schedule as ScheduleIcon,
@@ -1020,14 +1019,11 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
               value={`$${stats.totalCost}`}
               icon={<MoneyIcon />}
               color="green"
-              trend={{ value: 12.5, direction: 'up' }}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <TokenBreakdownCard
-              title="Token Usage"
               tokenBreakdown={tokenBreakdown}
-              icon={<CodeIcon />}
               color="purple"
             />
           </Grid>
