@@ -144,39 +144,71 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
         return (
           <Box>
             <TableContainer component={Paper} variant="outlined">
-              <Table size="small">
+              <Table size="small" sx={{ tableLayout: 'fixed' }}>
                 <TableBody>
-                  <TableRow>
-                    <TableCell sx={{ width: '25%' }}><strong>Log ID</strong></TableCell>
-                    <TableCell sx={{ width: '25%' }}>{log.log_id}</TableCell>
-                    <TableCell sx={{ width: '25%' }}><strong>Severity</strong></TableCell>
-                    <TableCell sx={{ width: '25%' }}>
-                      {log.severity && (
-                        <Chip
-                          label={log.severity}
-                          size="small"
-                          color={severityColors[log.severity] as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' || 'default'}
-                        />
-                      )}
+                  <TableRow sx={{ backgroundColor: 'background.default' }}>
+                    <TableCell sx={{ width: '50%' }}>
+                      <Box display="flex" justifyContent="space-between">
+                        <strong>Log ID</strong>
+                        <span>{log.log_id}</span>
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ width: '50%' }}>
+                      <Box display="flex" justifyContent="space-between">
+                        <strong>Severity</strong>
+                        <span>
+                          {log.severity && (
+                            <Chip
+                              label={log.severity}
+                              size="small"
+                              color={severityColors[log.severity] as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' || 'default'}
+                            />
+                          )}
+                        </span>
+                      </Box>
                     </TableCell>
                   </TableRow>
-                  <TableRow>
-                    <TableCell sx={{ width: '25%' }}><strong>Timestamp</strong></TableCell>
-                    <TableCell sx={{ width: '25%' }}>{formatLocalDateWithTZ(log.timestamp, true)}</TableCell>
-                    <TableCell sx={{ width: '25%' }}><strong>Upload Date</strong></TableCell>
-                    <TableCell sx={{ width: '25%' }}>{formatLocalDateWithTZ(log.upload_date, true)}</TableCell>
+                  <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                    <TableCell sx={{ width: '50%' }}>
+                      <Box display="flex" justifyContent="space-between">
+                        <strong>Timestamp</strong>
+                        <span>{formatLocalDateWithTZ(log.timestamp, true)}</span>
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ width: '50%' }}>
+                      <Box display="flex" justifyContent="space-between">
+                        <strong>Upload Date</strong>
+                        <span>{formatLocalDateWithTZ(log.upload_date, true)}</span>
+                      </Box>
+                    </TableCell>
                   </TableRow>
-                  <TableRow>
-                    <TableCell sx={{ width: '25%' }}><strong>Trace ID</strong></TableCell>
-                    <TableCell sx={{ width: '25%' }}>{log.trace_id || '-'}</TableCell>
-                    <TableCell sx={{ width: '25%' }}><strong>Span ID</strong></TableCell>
-                    <TableCell sx={{ width: '25%' }}>{log.span_id || '-'}</TableCell>
+                  <TableRow sx={{ backgroundColor: 'background.default' }}>
+                    <TableCell sx={{ width: '50%' }}>
+                      <Box display="flex" justifyContent="space-between">
+                        <strong>Trace ID</strong>
+                        <span>{log.trace_id || '-'}</span>
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ width: '50%' }}>
+                      <Box display="flex" justifyContent="space-between">
+                        <strong>Span ID</strong>
+                        <span>{log.span_id || '-'}</span>
+                      </Box>
+                    </TableCell>
                   </TableRow>
-                  <TableRow>
-                    <TableCell sx={{ width: '25%' }}><strong>Uploaded By</strong></TableCell>
-                    <TableCell sx={{ width: '25%' }}>{log.uploaded_by}</TableCell>
-                    <TableCell sx={{ width: '25%' }}><strong>Message</strong></TableCell>
-                    <TableCell sx={{ width: '25%' }}>{log.body}</TableCell>
+                  <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                    <TableCell sx={{ width: '50%' }}>
+                      <Box display="flex" justifyContent="space-between">
+                        <strong>Uploaded By</strong>
+                        <span>{log.uploaded_by}</span>
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ width: '50%' }}>
+                      <Box display="flex" justifyContent="space-between">
+                        <strong>Message</strong>
+                        <span>{log.body}</span>
+                      </Box>
+                    </TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -188,18 +220,23 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
           <Box>
             {log.attributes && Object.keys(log.attributes).length > 0 ? (
               <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell><strong>Key</strong></TableCell>
-                      <TableCell><strong>Value</strong></TableCell>
+                      <TableCell sx={{ width: '50%' }}><strong>Key</strong></TableCell>
+                      <TableCell sx={{ width: '50%' }}><strong>Value</strong></TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {Object.entries(log.attributes).map(([key, value]) => (
-                      <TableRow key={key}>
-                        <TableCell>{key}</TableCell>
-                        <TableCell>
+                    {Object.entries(log.attributes).map(([key, value], index) => (
+                      <TableRow 
+                        key={key}
+                        sx={{ 
+                          backgroundColor: index % 2 === 0 ? 'background.default' : 'action.hover' 
+                        }}
+                      >
+                        <TableCell sx={{ width: '50%' }}>{key}</TableCell>
+                        <TableCell sx={{ width: '50%' }}>
                           {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
                         </TableCell>
                       </TableRow>
@@ -217,18 +254,23 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
           <Box>
             {log.resource && Object.keys(log.resource).length > 0 ? (
               <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell><strong>Key</strong></TableCell>
-                      <TableCell><strong>Value</strong></TableCell>
+                      <TableCell sx={{ width: '50%' }}><strong>Key</strong></TableCell>
+                      <TableCell sx={{ width: '50%' }}><strong>Value</strong></TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {Object.entries(parseResourceAttributes(log.resource)).map(([key, value]) => (
-                      <TableRow key={key}>
-                        <TableCell>{key}</TableCell>
-                        <TableCell>{String(value)}</TableCell>
+                    {Object.entries(parseResourceAttributes(log.resource)).map(([key, value], index) => (
+                      <TableRow 
+                        key={key}
+                        sx={{ 
+                          backgroundColor: index % 2 === 0 ? 'background.default' : 'action.hover' 
+                        }}
+                      >
+                        <TableCell sx={{ width: '50%' }}>{key}</TableCell>
+                        <TableCell sx={{ width: '50%' }}>{String(value)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -244,18 +286,23 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
           <Box>
             {log.metadata && Object.keys(log.metadata).length > 0 ? (
               <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell><strong>Key</strong></TableCell>
-                      <TableCell><strong>Value</strong></TableCell>
+                      <TableCell sx={{ width: '50%' }}><strong>Key</strong></TableCell>
+                      <TableCell sx={{ width: '50%' }}><strong>Value</strong></TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {Object.entries(log.metadata).map(([key, value]) => (
-                      <TableRow key={key}>
-                        <TableCell>{key}</TableCell>
-                        <TableCell>{value}</TableCell>
+                    {Object.entries(log.metadata).map(([key, value], index) => (
+                      <TableRow 
+                        key={key}
+                        sx={{ 
+                          backgroundColor: index % 2 === 0 ? 'background.default' : 'action.hover' 
+                        }}
+                      >
+                        <TableCell sx={{ width: '50%' }}>{key}</TableCell>
+                        <TableCell sx={{ width: '50%' }}>{value}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -599,64 +646,94 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
               <Box mb={3}>
                 <Typography variant="h6" gutterBottom>Summary</Typography>
                 <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
+                  <Table size="small" sx={{ tableLayout: 'fixed' }}>
                     <TableBody>
                       {(() => {
                         const info = getSalientInfo(selectedLog);
                         return (
                           <>
-                            <TableRow>
-                              <TableCell><strong>Event</strong></TableCell>
-                              <TableCell>
-                                <Box display="flex" alignItems="center" gap={0.5}>
-                                  {getEventIcon(info.eventName)}
-                                  <span>{info.eventName}</span>
+                            <TableRow sx={{ backgroundColor: 'background.default' }}>
+                              <TableCell sx={{ width: '50%' }}>
+                                <Box display="flex" justifyContent="space-between">
+                                  <strong>Event</strong>
+                                  <Box display="flex" alignItems="center" gap={0.5}>
+                                    {getEventIcon(info.eventName)}
+                                    <span>{info.eventName}</span>
+                                  </Box>
                                 </Box>
                               </TableCell>
-                              <TableCell><strong>Tool</strong></TableCell>
-                              <TableCell className="font-mono">{info.toolName}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell><strong>Status</strong></TableCell>
-                              <TableCell>
-                                {info.success === true || String(info.success) === 'true' ? (
-                                  <Chip label="✓ Success" size="small" color="success" />
-                                ) : info.success === false || String(info.success) === 'false' ? (
-                                  <Chip label="✗ Failed" size="small" color="error" />
-                                ) : (
-                                  <span>-</span>
-                                )}
-                              </TableCell>
-                              <TableCell><strong>Duration</strong></TableCell>
-                              <TableCell>
-                                {info.duration !== '-' ? (
-                                  <span className="font-mono">{info.duration}ms</span>
-                                ) : (
-                                  <span>-</span>
-                                )}
+                              <TableCell sx={{ width: '50%' }}>
+                                <Box display="flex" justifyContent="space-between">
+                                  <strong>Tool</strong>
+                                  <span className="font-mono">{info.toolName}</span>
+                                </Box>
                               </TableCell>
                             </TableRow>
-                            <TableRow>
-                              <TableCell><strong>Decision</strong></TableCell>
-                              <TableCell>
-                                {info.decision !== '-' ? (
-                                  <Chip
-                                    label={info.decision}
-                                    size="small"
-                                    color={info.decision === 'accept' ? 'success' : info.decision === 'reject' ? 'error' : 'default'}
-                                  />
-                                ) : (
-                                  <span>-</span>
-                                )}
+                            <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                              <TableCell sx={{ width: '50%' }}>
+                                <Box display="flex" justifyContent="space-between">
+                                  <strong>Status</strong>
+                                  <span>
+                                    {info.success === true || String(info.success) === 'true' ? (
+                                      <Chip label="✓ Success" size="small" color="success" />
+                                    ) : info.success === false || String(info.success) === 'false' ? (
+                                      <Chip label="✗ Failed" size="small" color="error" />
+                                    ) : (
+                                      <span>-</span>
+                                    )}
+                                  </span>
+                                </Box>
                               </TableCell>
-                              <TableCell><strong>Source</strong></TableCell>
-                              <TableCell>{info.source}</TableCell>
+                              <TableCell sx={{ width: '50%' }}>
+                                <Box display="flex" justifyContent="space-between">
+                                  <strong>Duration</strong>
+                                  <span>
+                                    {info.duration !== '-' ? (
+                                      <span className="font-mono">{info.duration}ms</span>
+                                    ) : (
+                                      <span>-</span>
+                                    )}
+                                  </span>
+                                </Box>
+                              </TableCell>
                             </TableRow>
-                            <TableRow>
-                              <TableCell><strong>Session</strong></TableCell>
-                              <TableCell className="font-mono text-xs">{info.sessionId}</TableCell>
-                              <TableCell><strong>Timestamp</strong></TableCell>
-                              <TableCell>{formatLocalDateWithTZ(selectedLog.timestamp, true)}</TableCell>
+                            <TableRow sx={{ backgroundColor: 'background.default' }}>
+                              <TableCell sx={{ width: '50%' }}>
+                                <Box display="flex" justifyContent="space-between">
+                                  <strong>Decision</strong>
+                                  <span>
+                                    {info.decision !== '-' ? (
+                                      <Chip
+                                        label={info.decision}
+                                        size="small"
+                                        color={info.decision === 'accept' ? 'success' : info.decision === 'reject' ? 'error' : 'default'}
+                                      />
+                                    ) : (
+                                      <span>-</span>
+                                    )}
+                                  </span>
+                                </Box>
+                              </TableCell>
+                              <TableCell sx={{ width: '50%' }}>
+                                <Box display="flex" justifyContent="space-between">
+                                  <strong>Source</strong>
+                                  <span>{info.source}</span>
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+                            <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                              <TableCell sx={{ width: '50%' }}>
+                                <Box display="flex" justifyContent="space-between">
+                                  <strong>Session</strong>
+                                  <span className="font-mono text-xs">{info.sessionId}</span>
+                                </Box>
+                              </TableCell>
+                              <TableCell sx={{ width: '50%' }}>
+                                <Box display="flex" justifyContent="space-between">
+                                  <strong>Timestamp</strong>
+                                  <span>{formatLocalDateWithTZ(selectedLog.timestamp, true)}</span>
+                                </Box>
+                              </TableCell>
                             </TableRow>
                           </>
                         );
