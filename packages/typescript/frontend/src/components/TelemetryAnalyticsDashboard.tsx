@@ -63,6 +63,9 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     cache_creation_tokens: true
   });
 
+  // Language model selection state
+  const [enabledLanguageModels, setEnabledLanguageModels] = useState<Record<string, boolean>>({});
+
   // Logs data
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
 
@@ -137,16 +140,12 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     const sessionMetrics = filteredMetrics.filter(m => 
       m.name && (m.name.toLowerCase().includes('session') || m.name.toLowerCase().includes('request'))
     );
-    const costMetrics = filteredMetrics.filter(m => 
-      m.name && (m.name.toLowerCase().includes('cost') || m.name.toLowerCase().includes('price') || m.name.toLowerCase().includes('usage'))
-    );
     const locMetrics = filteredMetrics.filter(m => 
       m.name && (m.name.toLowerCase().includes('code') || m.name.toLowerCase().includes('line'))
     );
 
     // Calculate totals
     let totalSessions = 0;
-    let totalCost = 0;
     let linesOfCode = 0;
 
     sessionMetrics.forEach(metric => {
@@ -166,22 +165,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       }
     });
 
-    costMetrics.forEach(metric => {
-      if (metric.data_points && Array.isArray(metric.data_points)) {
-        metric.data_points.forEach((dp: DataPoint) => {
-          const timestamp = parseInt(dp.timeUnixNano) / 1000000;
-          const dataPointTime = new Date(timestamp);
-          
-          // Only include data points within the time range
-          const isAfterStart = dataPointTime >= startTime;
-          const isBeforeEnd = endTime ? dataPointTime <= endTime : true;
-          if (isAfterStart && isBeforeEnd) {
-            const value = dp.value?.asDouble || dp.value?.asInt || 0;
-            totalCost += typeof value === 'string' ? parseFloat(value) : value;
-          }
-        });
-      }
-    });
 
 
     locMetrics.forEach(metric => {
@@ -203,37 +186,11 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     setStats({
       totalSessions: Math.round(totalSessions),
-      totalCost: Number(totalCost.toFixed(2)),
+      totalCost: 0, // Will be calculated from logs
       totalTokens: 0, // Will be calculated from logs
       linesOfCode: Math.round(linesOfCode)
     });
 
-    // Process time series data for charts
-    const costTimeSeries: TimeSeriesDataPoint[] = [];
-
-    costMetrics.forEach(metric => {
-      if (metric.data_points && Array.isArray(metric.data_points)) {
-        metric.data_points.forEach((dp: DataPoint) => {
-          const timestamp = parseInt(dp.timeUnixNano) / 1000000;
-          const dataPointTime = new Date(timestamp);
-          
-          // Only include data points within the time range
-          const isAfterStart = dataPointTime >= startTime;
-          const isBeforeEnd = endTime ? dataPointTime <= endTime : true;
-          if (isAfterStart && isBeforeEnd) {
-            const value = dp.value?.asDouble || dp.value?.asInt || 0;
-            const numValue = typeof value === 'string' ? parseFloat(value) : value;
-            
-            costTimeSeries.push({
-              timestamp,
-              cost: numValue
-            });
-          }
-        });
-      }
-    });
-
-    setCostData(costTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp)));
 
     // Process tool usage data from real metrics
     const toolData: TimeSeriesDataPoint[] = processToolUsageData(filteredMetrics, startTime, endTime);
@@ -302,209 +259,217 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   }, []);
 
   const processTokenUsageFromLogs = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date): TimeSeriesDataPoint[] => {
-    const tokenTimeSeries: TimeSeriesDataPoint[] = [];
-    const tokenCounts: { [key: string]: { [timestamp: string]: number } } = {};
+    console.log('Processing token data from logs...');
+    console.log('Total logs available:', logsData.length);
+    console.log('Time range:', startTime.toISOString(), 'to', endTime?.toISOString() || 'now');
 
-    // Debug: Log all available logs to understand the structure
-    console.log('All available logs:', logsData);
-    console.log('Logs count:', logsData.length);
+    const detectedTokenTypes: Set<string> = new Set();
+    const tokenEntries: Array<{ timestamp: number; tokenType: string; tokens: number }> = [];
 
-    // Filter logs by time range and look for token-related logs
-    const tokenLogs = logsData.filter(log => {
+    // Process all logs to find token-related entries
+    logsData.forEach(log => {
       const logTime = new Date(log.timestamp);
       const isAfterStart = logTime >= startTime;
       const isBeforeEnd = endTime ? logTime <= endTime : true;
       
-      // Look for logs that might contain token information
+      if (!isAfterStart || !isBeforeEnd) return;
+
       const body = typeof log.body === 'string' ? log.body : JSON.stringify(log.body);
-      const hasTokenInfo = body.toLowerCase().includes('token') || 
-                          body.includes('input_tokens') || 
-                          body.includes('output_tokens') ||
-                          body.includes('cache_read_tokens') ||
-                          body.includes('cache_creation_tokens') ||
-                          body.includes('prompt_tokens') || 
-                          body.includes('completion_tokens') ||
-                          body.includes('total_tokens') ||
-                          body.includes('llm') ||
-                          body.includes('usage');
       
-      // Debug: Log each log to see what we're working with
-      console.log('Log analysis:', {
+      // Debug: Log each log to understand the structure
+      console.log('Analyzing log for tokens:', {
         timestamp: log.timestamp,
-        body: body.substring(0, 200) + (body.length > 200 ? '...' : ''),
-        hasTokenInfo,
+        body: body.substring(0, 300) + (body.length > 300 ? '...' : ''),
         attributes: log.attributes,
         resource: log.resource
       });
-      
-      return isAfterStart && isBeforeEnd && hasTokenInfo;
-    });
 
-    console.log('Token-related logs found:', tokenLogs.length);
-
-    tokenLogs.forEach(log => {
-      const timestamp = new Date(log.timestamp).getTime();
-      const body = typeof log.body === 'string' ? log.body : JSON.stringify(log.body);
-      
-      // Try to parse token information from log body (JSON format)
-      try {
-        const logData = JSON.parse(body);
-        
-        // Extract token counts from the specific fields we want to track
-        const inputTokens = logData.input_tokens || 0;
-        const outputTokens = logData.output_tokens || 0;
-        const cacheReadTokens = logData.cache_read_tokens || 0;
-        const cacheCreationTokens = logData.cache_creation_tokens || 0;
-        
-        if (inputTokens > 0 || outputTokens > 0 || cacheReadTokens > 0 || cacheCreationTokens > 0) {
-          // Debug: Log token extraction from logs
-          console.log('Token usage from log:', {
-            timestamp: new Date(timestamp).toISOString(),
-            inputTokens,
-            outputTokens,
-            cacheReadTokens,
-            cacheCreationTokens,
-            logBody: body
-          });
-
-          // Aggregate token counts by type
-          if (inputTokens > 0) {
-            if (!tokenCounts['input_tokens']) tokenCounts['input_tokens'] = {};
-            if (!tokenCounts['input_tokens'][timestamp]) tokenCounts['input_tokens'][timestamp] = 0;
-            tokenCounts['input_tokens'][timestamp] += inputTokens;
-          }
-          
-          if (outputTokens > 0) {
-            if (!tokenCounts['output_tokens']) tokenCounts['output_tokens'] = {};
-            if (!tokenCounts['output_tokens'][timestamp]) tokenCounts['output_tokens'][timestamp] = 0;
-            tokenCounts['output_tokens'][timestamp] += outputTokens;
-          }
-          
-          if (cacheReadTokens > 0) {
-            if (!tokenCounts['cache_read_tokens']) tokenCounts['cache_read_tokens'] = {};
-            if (!tokenCounts['cache_read_tokens'][timestamp]) tokenCounts['cache_read_tokens'][timestamp] = 0;
-            tokenCounts['cache_read_tokens'][timestamp] += cacheReadTokens;
-          }
-          
-          if (cacheCreationTokens > 0) {
-            if (!tokenCounts['cache_creation_tokens']) tokenCounts['cache_creation_tokens'] = {};
-            if (!tokenCounts['cache_creation_tokens'][timestamp]) tokenCounts['cache_creation_tokens'][timestamp] = 0;
-            tokenCounts['cache_creation_tokens'][timestamp] += cacheCreationTokens;
-          }
-        }
-      } catch {
-        // If JSON parsing fails, try to extract token info from text
-        const tokenMatches = body.match(/(\w+_?tokens?)[":\s]*(\d+)/gi);
-        if (tokenMatches) {
-          tokenMatches.forEach(match => {
-            const [, tokenType, count] = match.match(/(\w+_?tokens?)[":\s]*(\d+)/i) || [];
-            if (tokenType && count) {
-              const normalizedType = tokenType.toLowerCase().replace('_tokens', '').replace('tokens', '');
-              const numCount = parseInt(count);
-              
-              if (numCount > 0) {
-                if (!tokenCounts[normalizedType]) tokenCounts[normalizedType] = {};
-                if (!tokenCounts[normalizedType][timestamp]) tokenCounts[normalizedType][timestamp] = 0;
-                tokenCounts[normalizedType][timestamp] += numCount;
-              }
-            }
-          });
-        }
-        
-        // Also try to extract any numeric values that might be token counts
-        const numberMatches = body.match(/(\d+)/g);
-        if (numberMatches && numberMatches.length >= 2) {
-          // If we find multiple numbers, assume they might be token counts
-          const numbers = numberMatches.map(n => parseInt(n)).filter(n => n > 0);
-          if (numbers.length >= 2) {
-            // Assume first number is prompt, second is completion, sum is total
-            const promptTokens = numbers[0];
-            const completionTokens = numbers[1];
-            const totalTokens = numbers.reduce((sum, n) => sum + n, 0);
-            
-            if (promptTokens > 0) {
-              if (!tokenCounts['prompt']) tokenCounts['prompt'] = {};
-              if (!tokenCounts['prompt'][timestamp]) tokenCounts['prompt'][timestamp] = 0;
-              tokenCounts['prompt'][timestamp] += promptTokens;
-            }
-            
-            if (completionTokens > 0) {
-              if (!tokenCounts['completion']) tokenCounts['completion'] = {};
-              if (!tokenCounts['completion'][timestamp]) tokenCounts['completion'][timestamp] = 0;
-              tokenCounts['completion'][timestamp] += completionTokens;
-            }
-            
-            if (totalTokens > 0) {
-              if (!tokenCounts['total']) tokenCounts['total'] = {};
-              if (!tokenCounts['total'][timestamp]) tokenCounts['total'][timestamp] = 0;
-              tokenCounts['total'][timestamp] += totalTokens;
-            }
-          }
-        }
-      }
-
-      // Also check log attributes for token information
+      // Check log attributes for token information (this is where the real data is)
       if (log.attributes && typeof log.attributes === 'object') {
-        Object.entries(log.attributes).forEach(([key, value]) => {
-          if (key.toLowerCase().includes('token') && typeof value === 'number' && value > 0) {
-            const tokenType = key.toLowerCase().replace('_tokens', '').replace('tokens', '');
-            if (!tokenCounts[tokenType]) tokenCounts[tokenType] = {};
-            if (!tokenCounts[tokenType][timestamp]) tokenCounts[tokenType][timestamp] = 0;
-            tokenCounts[tokenType][timestamp] += value;
+        const tokenFields = {
+          'input_tokens': log.attributes.input_tokens,
+          'output_tokens': log.attributes.output_tokens,
+          'cache_read_tokens': log.attributes.cache_read_tokens,
+          'cache_creation_tokens': log.attributes.cache_creation_tokens
+        };
+        
+        Object.entries(tokenFields).forEach(([tokenType, tokenCount]) => {
+          // Parse token count as number (can be string or number)
+          const parsedCount = typeof tokenCount === 'string' ? parseInt(tokenCount, 10) : (typeof tokenCount === 'number' ? tokenCount : 0);
+          
+          if (parsedCount && !isNaN(parsedCount) && parsedCount > 0) {
+            console.log('Found token entry:', { 
+              timestamp: log.timestamp, 
+              tokenType, 
+              tokens: parsedCount, 
+              originalValue: tokenCount,
+              attributes: log.attributes 
+            });
+            detectedTokenTypes.add(tokenType);
+            tokenEntries.push({
+              timestamp: logTime.getTime(),
+              tokenType,
+              tokens: parsedCount
+            });
           }
         });
       }
     });
 
-    // Convert to time series format
-    const allTimestamps = new Set<number>();
-    Object.values(tokenCounts).forEach(tokenData => {
-      Object.keys(tokenData).forEach(ts => allTimestamps.add(parseInt(ts)));
+    console.log('Total token entries found:', tokenEntries.length);
+    console.log('Detected token types:', Array.from(detectedTokenTypes));
+
+    // If no token data found, return empty array (no bogus data)
+    if (tokenEntries.length === 0) {
+      console.log('No token data found in logs. Returning empty token data.');
+      return [];
+    }
+
+    // Sort token entries by timestamp
+    tokenEntries.sort((a, b) => a.timestamp - b.timestamp);
+
+    // Create incremental token data starting from 0
+    const tokenTimeSeries: TimeSeriesDataPoint[] = [];
+    const tokenTotals: Record<string, number> = {};
+    
+    // Initialize all token types to 0
+    detectedTokenTypes.forEach(tokenType => {
+      tokenTotals[tokenType] = 0;
     });
 
-    allTimestamps.forEach(timestamp => {
-      const dataPoint: TimeSeriesDataPoint = { timestamp };
-      Object.keys(tokenCounts).forEach(tokenType => {
-        dataPoint[tokenType] = tokenCounts[tokenType][timestamp] || 0;
-      });
+    // Add starting point at the beginning of the time range (all token types at 0)
+    tokenTimeSeries.push({
+      timestamp: startTime.getTime(),
+      ...tokenTotals
+    });
+
+    // Process each token entry and create incremental data points
+    tokenEntries.forEach(entry => {
+      // Update the running total for this token type
+      tokenTotals[entry.tokenType] += entry.tokens;
+      
+      // Create a data point with current totals
+      const dataPoint: TimeSeriesDataPoint = {
+        timestamp: entry.timestamp,
+        ...tokenTotals
+      };
+      
       tokenTimeSeries.push(dataPoint);
     });
 
-    console.log('Token usage from logs:', tokenTimeSeries);
-    
-    // If no token data found in logs, try to create some sample data for testing
-    if (tokenTimeSeries.length === 0 && logsData.length > 0) {
-      console.log('No token data found in logs, but logs exist. Creating sample data for testing.');
-      // Create some sample token data for testing purposes
-      const now = Date.now();
-      const sampleData: TimeSeriesDataPoint[] = [
-        {
-          timestamp: now - 3600000, // 1 hour ago
-          input_tokens: 11,
-          output_tokens: 262,
-          cache_read_tokens: 22596,
-          cache_creation_tokens: 2466
-        },
-        {
-          timestamp: now - 1800000, // 30 minutes ago
-          input_tokens: 15,
-          output_tokens: 180,
-          cache_read_tokens: 18900,
-          cache_creation_tokens: 2100
-        },
-        {
-          timestamp: now,
-          input_tokens: 8,
-          output_tokens: 195,
-          cache_read_tokens: 20100,
-          cache_creation_tokens: 2200
-        }
-      ];
-      return sampleData;
-    }
+    console.log('Generated incremental token data:', tokenTimeSeries);
+    console.log('Final token totals:', tokenTotals);
     
     return tokenTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
   }, []);
+
+  const processCostDataFromLogs = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date): TimeSeriesDataPoint[] => {
+    console.log('Processing cost data from logs...');
+    console.log('Total logs available:', logsData.length);
+    console.log('Time range:', startTime.toISOString(), 'to', endTime?.toISOString() || 'now');
+
+    const detectedModels: Set<string> = new Set();
+    const costEntries: Array<{ timestamp: number; model: string; cost: number }> = [];
+
+    // Process all logs to find cost-related entries
+    logsData.forEach(log => {
+      const logTime = new Date(log.timestamp);
+      const isAfterStart = logTime >= startTime;
+      const isBeforeEnd = endTime ? logTime <= endTime : true;
+      
+      if (!isAfterStart || !isBeforeEnd) return;
+
+      const body = typeof log.body === 'string' ? log.body : JSON.stringify(log.body);
+      
+      // Debug: Log each log to understand the structure
+      console.log('Analyzing log:', {
+        timestamp: log.timestamp,
+        body: body.substring(0, 300) + (body.length > 300 ? '...' : ''),
+        attributes: log.attributes,
+        resource: log.resource
+      });
+
+      // Check log attributes for cost information (this is where the real data is)
+      if (log.attributes && typeof log.attributes === 'object') {
+        const cost = log.attributes.cost_usd;
+        const model = log.attributes.model;
+        
+        // Parse cost as number (can be string or number)
+        const parsedCost = typeof cost === 'string' ? parseFloat(cost) : (typeof cost === 'number' ? cost : 0);
+        
+        if (parsedCost && !isNaN(parsedCost) && parsedCost > 0 && model && typeof model === 'string') {
+          console.log('Found cost entry from attributes:', { 
+            timestamp: log.timestamp, 
+            model, 
+            cost: parsedCost, 
+            originalValue: cost,
+            attributes: log.attributes 
+          });
+          detectedModels.add(model);
+          costEntries.push({
+            timestamp: logTime.getTime(),
+            model,
+            cost: parsedCost
+          });
+        }
+      }
+    });
+
+    console.log('Total cost entries found:', costEntries.length);
+    console.log('Detected models:', Array.from(detectedModels));
+
+    // Initialize enabled language models if not set
+    if (Object.keys(enabledLanguageModels).length === 0 && detectedModels.size > 0) {
+      const initialModelState: Record<string, boolean> = {};
+      detectedModels.forEach(model => {
+        initialModelState[model] = true;
+      });
+      setEnabledLanguageModels(initialModelState);
+    }
+
+    // If no cost data found, return empty array (no bogus data)
+    if (costEntries.length === 0) {
+      console.log('No cost data found in logs. Returning empty cost data.');
+      return [];
+    }
+
+    // Sort cost entries by timestamp
+    costEntries.sort((a, b) => a.timestamp - b.timestamp);
+
+    // Create incremental cost data starting from 0
+    const costTimeSeries: TimeSeriesDataPoint[] = [];
+    const modelTotals: Record<string, number> = {};
+    
+    // Initialize all models to 0
+    detectedModels.forEach(model => {
+      modelTotals[model] = 0;
+    });
+
+    // Add starting point at the beginning of the time range (all models at 0)
+    costTimeSeries.push({
+      timestamp: startTime.getTime(),
+      ...modelTotals
+    });
+
+    // Process each cost entry and create incremental data points
+    costEntries.forEach(entry => {
+      // Update the running total for this model
+      modelTotals[entry.model] += entry.cost;
+      
+      // Create a data point with current totals
+      const dataPoint: TimeSeriesDataPoint = {
+        timestamp: entry.timestamp,
+        ...modelTotals
+      };
+      
+      costTimeSeries.push(dataPoint);
+    });
+
+    console.log('Generated incremental cost data:', costTimeSeries);
+    console.log('Final model totals:', modelTotals);
+    
+    return costTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+  }, [enabledLanguageModels]);
 
   const processToolUsageData = useCallback((metricsData: TelemetryMetricResponse[], startTime: Date, endTime?: Date): TimeSeriesDataPoint[] => {
     // Look for tool-related metrics
@@ -646,6 +611,10 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       const tokenDataFromLogs = processTokenUsageFromLogs(logsResponse.logs || [], startTime, endTime);
       setTokenData(tokenDataFromLogs);
       
+      // Process cost data from logs instead of metrics
+      const costDataFromLogs = processCostDataFromLogs(logsResponse.logs || [], startTime, endTime);
+      setCostData(costDataFromLogs);
+      
       // Calculate total tokens from logs
       const totalTokensFromLogs = tokenDataFromLogs.reduce((total, point) => {
         let pointTotal = 0;
@@ -657,10 +626,22 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         return total + pointTotal;
       }, 0);
       
-      // Update stats with token total from logs
+      // Calculate total cost from logs
+      const totalCostFromLogs = costDataFromLogs.reduce((total, point) => {
+        let pointTotal = 0;
+        Object.keys(point).forEach(key => {
+          if (key !== 'timestamp') {
+            pointTotal += point[key] as number;
+          }
+        });
+        return total + pointTotal;
+      }, 0);
+      
+      // Update stats with totals from logs
       setStats(prevStats => ({
         ...prevStats,
-        totalTokens: Math.round(totalTokensFromLogs)
+        totalTokens: Math.round(totalTokensFromLogs),
+        totalCost: Number(totalCostFromLogs.toFixed(2))
       }));
 
       // Check if we have any data at all
@@ -759,6 +740,32 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       color: colors[index % colors.length],
       lineWidth: key.toLowerCase().includes('error') ? 3 : 2
     }));
+  };
+
+  const getCostDataKeys = (data: TimeSeriesDataPoint[]) => {
+    if (data.length === 0) return [];
+    
+    // Get all unique keys from the data (excluding timestamp)
+    const keys = new Set<string>();
+    data.forEach(point => {
+      Object.keys(point).forEach(key => {
+        if (key !== 'timestamp') {
+          keys.add(key);
+        }
+      });
+    });
+
+    // Define colors for different language models
+    const modelColors = ['#22c55e', '#3b82f6', '#f97316', '#a855f7', '#ef4444', '#06b6d4', '#f59e0b', '#8b5cf6'];
+    
+    return Array.from(keys)
+      .filter(key => enabledLanguageModels[key] !== false) // Only include enabled models
+      .map((key, index) => ({
+        key,
+        label: key,
+        color: modelColors[index % modelColors.length],
+        lineWidth: 2
+      }));
   };
 
   const getTokenUsageDataKeys = (data: TimeSeriesDataPoint[]) => {
@@ -861,6 +868,13 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     setEnabledTokenTypes(prev => ({
       ...prev,
       [tokenType]: !prev[tokenType]
+    }));
+  };
+
+  const handleLanguageModelToggle = (model: string) => {
+    setEnabledLanguageModels(prev => ({
+      ...prev,
+      [model]: !prev[model]
     }));
   };
 
@@ -1022,15 +1036,49 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             {costData.length > 0 ? (
-              <TimeSeriesChart
-                title="Cost Over Time"
-                data={costData}
-                dataKeys={[
-                  { key: 'cost', label: 'Cost (USD)', color: '#22c55e' }
-                ]}
-                yAxisLabel="USD"
-                showArea
-              />
+              <Box>
+                {/* Language Model Selection */}
+                {Object.keys(enabledLanguageModels).length > 0 && (
+                  <Box className="mb-4">
+                    <Typography variant="subtitle2" className="font-medium text-gray-700 mb-2">
+                      Language Models:
+                    </Typography>
+                    <FormGroup row>
+                      {Object.entries(enabledLanguageModels).map(([model, enabled]) => (
+                        <FormControlLabel
+                          key={model}
+                          control={
+                            <Checkbox
+                              checked={enabled}
+                              onChange={() => handleLanguageModelToggle(model)}
+                              size="small"
+                              sx={{
+                                color: '#22c55e',
+                                '&.Mui-checked': {
+                                  color: '#22c55e',
+                                }
+                              }}
+                            />
+                          }
+                          label={
+                            <Typography variant="body2" className="text-sm">
+                              {model}
+                            </Typography>
+                          }
+                        />
+                      ))}
+                    </FormGroup>
+                  </Box>
+                )}
+                
+                <TimeSeriesChart
+                  title="Cost Over Time"
+                  data={costData}
+                  dataKeys={getCostDataKeys(costData)}
+                  yAxisLabel="USD"
+                  showArea
+                />
+              </Box>
             ) : (
               <Box className="p-6 bg-gray-50 rounded-lg text-center">
                 <Typography variant="body2" color="textSecondary">
