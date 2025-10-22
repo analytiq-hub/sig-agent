@@ -28,10 +28,12 @@ interface TelemetryAnalyticsDashboardProps {
 }
 
 type TimeRange = '1h' | '6h' | '24h' | '7d' | 'custom';
+type DisplayMode = 'cumulative' | 'rate';
 
 const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = ({ organizationId }) => {
   const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [timeRange, setTimeRange] = useState<TimeRange>('1h');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('cumulative');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<TelemetryMetricResponse[]>([]);
@@ -77,7 +79,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   // Logs data
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
 
-  const getTimeRangeMs = (range: TimeRange): number => {
+  const getTimeRangeMs = useCallback((range: TimeRange): number => {
     switch (range) {
       case '1h': return 60 * 60 * 1000;
       case '6h': return 6 * 60 * 60 * 1000;
@@ -92,7 +94,55 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         return 60 * 60 * 1000; // fallback to 1h
       default: return 60 * 60 * 1000;
     }
-  };
+  }, [customStartDate, customEndDate]);
+
+  // Calculate appropriate time interval for rate calculation
+  const getTimeInterval = useCallback((range: TimeRange): { intervalMs: number; label: string } => {
+    switch (range) {
+      case '1h': return { intervalMs: 5 * 60 * 1000, label: 'per 5 min' }; // 5 minutes
+      case '6h': return { intervalMs: 30 * 60 * 1000, label: 'per 30 min' }; // 30 minutes
+      case '24h': return { intervalMs: 2 * 60 * 60 * 1000, label: 'per 2 hours' }; // 2 hours
+      case '7d': return { intervalMs: 24 * 60 * 60 * 1000, label: 'per day' }; // 1 day
+      case 'custom': 
+        const customMs = getTimeRangeMs('custom');
+        if (customMs <= 6 * 60 * 60 * 1000) return { intervalMs: 30 * 60 * 1000, label: 'per 30 min' };
+        if (customMs <= 24 * 60 * 60 * 1000) return { intervalMs: 2 * 60 * 60 * 1000, label: 'per 2 hours' };
+        return { intervalMs: 24 * 60 * 60 * 1000, label: 'per day' };
+      default: return { intervalMs: 5 * 60 * 1000, label: 'per 5 min' };
+    }
+  }, [getTimeRangeMs]);
+
+  // Convert cumulative data to rate data
+  const convertToRateData = useCallback((data: TimeSeriesDataPoint[]): TimeSeriesDataPoint[] => {
+    if (data.length < 2) return data;
+    
+    const rateData: TimeSeriesDataPoint[] = [];
+    const { intervalMs } = getTimeInterval(timeRange);
+    
+    for (let i = 1; i < data.length; i++) {
+      const current = data[i];
+      const previous = data[i - 1];
+      const timeDiff = Number(current.timestamp) - Number(previous.timestamp);
+      
+      if (timeDiff > 0) {
+        const ratePoint: TimeSeriesDataPoint = { timestamp: current.timestamp };
+        
+        // Calculate rate for each data key (excluding timestamp)
+        Object.keys(current).forEach(key => {
+          if (key !== 'timestamp') {
+            const currentValue = Number(current[key]) || 0;
+            const previousValue = Number(previous[key]) || 0;
+            const rate = (currentValue - previousValue) / (timeDiff / intervalMs);
+            ratePoint[key] = Math.max(0, rate); // Ensure non-negative rates
+          }
+        });
+        
+        rateData.push(ratePoint);
+      }
+    }
+    
+    return rateData;
+  }, [timeRange, getTimeInterval]);
 
   // Helper function to format date for datetime-local input
   const formatDateForInput = (date: Date): string => {
@@ -969,6 +1019,16 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
               </ToggleButton>
             )}
           </ToggleButtonGroup>
+
+          <ToggleButtonGroup
+            value={displayMode}
+            exclusive
+            onChange={(_, value) => value && setDisplayMode(value)}
+            size="small"
+          >
+            <ToggleButton value="cumulative">Cumulative</ToggleButton>
+            <ToggleButton value="rate">Rate {getTimeInterval(timeRange).label}</ToggleButton>
+          </ToggleButtonGroup>
           
           {timeRange === 'custom' && (
             <Paper className="flex items-center gap-3 px-3 py-2 border border-gray-300 bg-white" style={{ height: '32px' }}>
@@ -1049,11 +1109,11 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           <Grid item xs={12} md={6}>
             {costData.length > 0 ? (
               <TimeSeriesChart
-                title="Cost Over Time"
-                data={costData}
-                dataKeys={getCostDataKeys(costData)}
-                yAxisLabel="USD"
-                showArea
+                title={displayMode === 'rate' ? `Cost Rate (${getTimeInterval(timeRange).label})` : "Cost Over Time"}
+                data={displayMode === 'rate' ? convertToRateData(costData) : costData}
+                dataKeys={getCostDataKeys(displayMode === 'rate' ? convertToRateData(costData) : costData)}
+                yAxisLabel={displayMode === 'rate' ? `USD ${getTimeInterval(timeRange).label}` : "USD"}
+                showArea={displayMode === 'cumulative'}
               />
             ) : (
               <Box className="p-6 bg-gray-50 rounded-lg text-center">
@@ -1066,10 +1126,10 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           <Grid item xs={12} md={6}>
             {tokenData.length > 0 ? (
               <TimeSeriesChart
-                title="Token Usage by Type"
-                data={tokenData}
-                dataKeys={getTokenUsageDataKeys(tokenData)}
-                yAxisLabel="Tokens"
+                title={displayMode === 'rate' ? `Token Rate (${getTimeInterval(timeRange).label})` : "Token Usage by Type"}
+                data={displayMode === 'rate' ? convertToRateData(tokenData) : tokenData}
+                dataKeys={getTokenUsageDataKeys(displayMode === 'rate' ? convertToRateData(tokenData) : tokenData)}
+                yAxisLabel={displayMode === 'rate' ? `Tokens ${getTimeInterval(timeRange).label}` : "Tokens"}
               />
             ) : (
               <Box className="p-6 bg-gray-50 rounded-lg text-center">
