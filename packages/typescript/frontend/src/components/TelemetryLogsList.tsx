@@ -595,6 +595,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       headerName: 'Timestamp',
       width: 140,
       filterable: true,
+      sortable: true,
       filterOperators: [
         {
           label: 'Date Range',
@@ -620,6 +621,8 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       field: 'event_name',
       headerName: 'Event',
       width: 120,
+      filterable: false,
+      sortable: false,
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
         const icon = getEventIcon(info.eventName);
@@ -637,6 +640,8 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       field: 'tool_name',
       headerName: 'Tool',
       width: 180,
+      filterable: false,
+      sortable: false,
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
         return (
@@ -650,6 +655,8 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       field: 'success',
       headerName: 'Status',
       width: 80,
+      filterable: false,
+      sortable: false,
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
         const success = info.success;
@@ -665,6 +672,8 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       field: 'duration',
       headerName: 'Duration',
       width: 80,
+      filterable: false,
+      sortable: false,
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
         const duration = info.duration;
@@ -678,6 +687,8 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       field: 'decision',
       headerName: 'Decision',
       width: 80,
+      filterable: false,
+      sortable: false,
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
         const decision = info.decision;
@@ -700,6 +711,8 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       headerName: 'Message',
       flex: 2,
       minWidth: 200,
+      filterable: false,
+      sortable: false,
       renderCell: (params) => (
         <span className="text-sm truncate">{params.value}</span>
       )
@@ -708,6 +721,8 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       field: 'session_id',
       headerName: 'Session',
       width: 120,
+      filterable: false,
+      sortable: false,
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
         return (

@@ -533,6 +533,8 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
       headerName: 'Metric Name',
       flex: 1,
       minWidth: 250,
+      filterable: false,
+      sortable: false,
       renderCell: (params) => (
         <span className="font-mono text-sm">{params.value}</span>
       )
@@ -541,6 +543,8 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
       field: 'type',
       headerName: 'Type',
       width: 120,
+      filterable: false,
+      sortable: false,
       renderCell: (params) => (
         <Chip
           label={params.value}
@@ -554,12 +558,16 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
       field: 'data_point_count',
       headerName: 'Data Points',
       width: 120,
+      filterable: false,
+      sortable: false,
     },
     {
       field: 'tag_ids',
       headerName: 'Tags',
       flex: 1,
       minWidth: 200,
+      filterable: false,
+      sortable: false,
       renderCell: (params) => (
         <div className="flex gap-1 flex-wrap py-1">
           {params.value?.map((tagId: string) => (
@@ -578,6 +586,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
       headerName: 'Timestamp',
       width: 180,
       filterable: true,
+      sortable: true,
       filterOperators: [
         {
           label: 'Date Range',
@@ -604,6 +613,8 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
       headerName: 'Metadata',
       flex: 1,
       minWidth: 150,
+      filterable: false,
+      sortable: false,
       renderCell: (params) => (
         <span className="text-xs text-gray-600">
           {params.value ? Object.keys(params.value).length + ' keys' : '-'}
