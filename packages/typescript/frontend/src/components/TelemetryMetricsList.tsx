@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DocRouterOrgApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridFilterInputValueProps } from '@mui/x-data-grid';
 import { 
   TextField, 
   InputAdornment, 
@@ -9,7 +9,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
   Button,
   Typography,
   Box,
@@ -26,11 +25,124 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
-import DateRangeIcon from '@mui/icons-material/DateRange';
 import { Tag, TelemetryMetricResponse, DataPoint, ResourceAttribute } from '@docrouter/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
 type TelemetryMetric = TelemetryMetricResponse;
+
+// Custom Date Range Filter Component
+const DateRangeFilter: React.FC<GridFilterInputValueProps> = ({ item, applyValue }) => {
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
+
+  const [startDate, setStartDate] = useState<string>(getTodayDate());
+  const [startTime, setStartTime] = useState<string>('00:00');
+  const [endDate, setEndDate] = useState<string>(getTodayDate());
+  const [endTime, setEndTime] = useState<string>('23:59');
+
+  const handleApply = () => {
+    const startDateTime = `${startDate}T${startTime}`;
+    const endDateTime = `${endDate}T${endTime}`;
+    const filterValue = startDateTime && endDateTime ? `${startDateTime}|${endDateTime}` : '';
+    applyValue({ ...item, value: filterValue });
+  };
+
+  const handleClear = () => {
+    setStartDate(getTodayDate());
+    setStartTime('00:00');
+    setEndDate(getTodayDate());
+    setEndTime('23:59');
+    applyValue({ ...item, value: '' });
+  };
+
+  return (
+    <Box sx={{ p: 1.5, width: '100%', maxWidth: 'none' }}>
+      <Typography variant="caption" sx={{ mb: 1.5, fontWeight: 600, fontSize: '0.75rem', display: 'block' }}>
+        Date Range
+      </Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+          <Typography variant="caption" sx={{ minWidth: '35px', fontSize: '0.7rem' }}>
+            From:
+          </Typography>
+          <TextField
+            size="small"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            sx={{ 
+              width: '90px',
+              '& .MuiInputBase-input': {
+                fontSize: '0.7rem',
+                padding: '4px 6px'
+              }
+            }}
+            variant="outlined"
+          />
+          <TextField
+            size="small"
+            type="time"
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            sx={{ 
+              width: '70px',
+              '& .MuiInputBase-input': {
+                fontSize: '0.7rem',
+                padding: '4px 6px'
+              }
+            }}
+            variant="outlined"
+          />
+        </Box>
+        <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+          <Typography variant="caption" sx={{ minWidth: '35px', fontSize: '0.7rem' }}>
+            To:
+          </Typography>
+          <TextField
+            size="small"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            sx={{ 
+              width: '90px',
+              '& .MuiInputBase-input': {
+                fontSize: '0.7rem',
+                padding: '4px 6px'
+              }
+            }}
+            variant="outlined"
+          />
+          <TextField
+            size="small"
+            type="time"
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
+            sx={{ 
+              width: '70px',
+              '& .MuiInputBase-input': {
+                fontSize: '0.7rem',
+                padding: '4px 6px'
+              }
+            }}
+            variant="outlined"
+          />
+        </Box>
+        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end', mt: 0.5 }}>
+          <Button size="small" variant="outlined" onClick={handleClear} sx={{ fontSize: '0.7rem', minWidth: '50px', height: '24px' }}>
+            Clear
+          </Button>
+          <Button size="small" variant="contained" onClick={handleApply} sx={{ fontSize: '0.7rem', minWidth: '50px', height: '24px' }}>
+            Apply
+          </Button>
+        </Box>
+      </Box>
+    </Box>
+  );
+};
 
 const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
@@ -40,7 +152,6 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [dateModalOpen, setDateModalOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
@@ -49,6 +160,18 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedMetricIndex, setSelectedMetricIndex] = useState<number>(-1);
   const [selectedTab, setSelectedTab] = useState<number>(0);
+
+  // Handle date range filter from DataGrid
+  const handleDateRangeFilter = useCallback((filterValue: string) => {
+    if (filterValue && filterValue.includes('|')) {
+      const [start, end] = filterValue.split('|');
+      setStartDate(start);
+      setEndDate(end);
+    } else {
+      setStartDate('');
+      setEndDate('');
+    }
+  }, []);
 
   const loadMetrics = useCallback(async () => {
     try {
@@ -454,6 +577,24 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
       field: 'upload_date',
       headerName: 'Upload Date',
       width: 180,
+      filterable: true,
+      filterOperators: [
+        {
+          label: 'Date Range',
+          value: 'dateRange',
+          getApplyFilterFn: (filterItem) => {
+            if (!filterItem.value) return null;
+            const [startDate, endDate] = filterItem.value.split('|');
+            return (params) => {
+              const logDate = new Date(params.value);
+              const start = new Date(startDate);
+              const end = new Date(endDate);
+              return logDate >= start && logDate <= end;
+            };
+          },
+          InputComponent: DateRangeFilter,
+        },
+      ],
       renderCell: (params) => (
         <span className="text-sm">{formatLocalDateWithTZ(params.value, true)}</span>
       )
@@ -488,22 +629,6 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
             ),
           }}
         />
-        <Tooltip title="Date Range Filter">
-          <IconButton
-            size="small"
-            onClick={() => setDateModalOpen(true)}
-            sx={{ 
-              border: '1px solid',
-              borderColor: 'divider',
-              '&:hover': {
-                backgroundColor: 'action.hover',
-                borderColor: 'primary.main'
-              }
-            }}
-          >
-            <DateRangeIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
       </div>
 
       {message && (
@@ -523,6 +648,12 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
         onPaginationModelChange={(model) => {
           setPage(model.page);
           setPageSize(model.pageSize);
+        }}
+        onFilterModelChange={(model) => {
+          const uploadDateFilter = model.items.find(item => item.field === 'upload_date');
+          if (uploadDateFilter) {
+            handleDateRangeFilter(uploadDateFilter.value || '');
+          }
         }}
         pageSizeOptions={[5, 10, 25, 50]}
         loading={isLoading}
@@ -736,73 +867,6 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
             </Box>
           )}
         </DialogContent>
-      </Dialog>
-
-      {/* Date Range Modal */}
-      <Dialog 
-        open={dateModalOpen} 
-        onClose={() => setDateModalOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box display="flex" alignItems="center" gap={1}>
-            <DateRangeIcon />
-            <Typography variant="h6">Select Date Range</Typography>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Box className="space-y-4 pt-4">
-            <TextField
-              fullWidth
-              label="Start Date & Time"
-              type="datetime-local"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              fullWidth
-              label="End Date & Time"
-              type="datetime-local"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-            {(startDate || endDate) && (
-              <Box className="p-3 bg-gray-50 rounded-lg">
-                <Typography variant="body2" className="text-gray-700 font-medium mb-1">
-                  Current Range:
-                </Typography>
-                <Typography variant="body2" className="text-gray-600">
-                  {startDate ? `From: ${new Date(startDate).toLocaleString()}` : 'From: No start date'}
-                </Typography>
-                <Typography variant="body2" className="text-gray-600">
-                  {endDate ? `To: ${new Date(endDate).toLocaleString()}` : 'To: No end date'}
-                </Typography>
-              </Box>
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button 
-            onClick={() => {
-              setStartDate('');
-              setEndDate('');
-            }}
-            variant="outlined"
-            color="inherit"
-          >
-            Clear Dates
-          </Button>
-          <Button 
-            onClick={() => setDateModalOpen(false)}
-            variant="contained"
-            color="primary"
-          >
-            Apply
-          </Button>
-        </DialogActions>
       </Dialog>
     </div>
   );
