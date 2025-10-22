@@ -22,6 +22,7 @@ import {
   Chat as PromptIcon,
   ViewQuilt as FormsIcon,
   Timeline as TelemetryIcon,
+  BarChart as AnalyticsIcon,
   InfoOutlined as AboutIcon
 } from '@mui/icons-material';
 import { SvgIconProps } from '@mui/material';
@@ -90,6 +91,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { text: 'Schemas', icon: SchemaIcon, tooltip: 'Schemas', href: `/orgs/${currentOrganization?.id}/schemas`},
     { text: 'Prompts', icon: PromptIcon, tooltip: 'Prompts', href: `/orgs/${currentOrganization?.id}/prompts`},
     { text: 'Forms', icon: FormsIcon, tooltip: 'Forms', href: `/orgs/${currentOrganization?.id}/forms`},
+    { text: 'Analytics', icon: AnalyticsIcon, tooltip: 'Analytics Dashboard', href: `/orgs/${currentOrganization?.id}/analytics`},
     { text: 'Telemetry', icon: TelemetryIcon, tooltip: 'Telemetry', href: `/orgs/${currentOrganization?.id}/telemetry`},
   ];
 
