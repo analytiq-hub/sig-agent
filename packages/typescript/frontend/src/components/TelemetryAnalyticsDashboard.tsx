@@ -14,12 +14,10 @@ import {
 } from '@mui/icons-material';
 import StatCard from './analytics/StatCard';
 import TimeSeriesChart, { TimeSeriesDataPoint } from './analytics/TimeSeriesChart';
-import LogViewer, { LogEntry } from './analytics/LogViewer';
 import TokenBreakdownCard from './analytics/TokenBreakdownCard';
 import BarChart, { BarChartDataPoint } from './analytics/BarChart';
 import { 
   DataPoint, 
-  ResourceAttribute, 
   TelemetryMetricResponse, 
   TelemetryLogResponse 
 } from '@docrouter/sdk';
@@ -80,8 +78,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   // Language model selection state
   const [enabledLanguageModels, setEnabledLanguageModels] = useState<Record<string, boolean>>({});
 
-  // Logs data
-  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
 
   const getTimeRangeMs = useCallback((range: TimeRange): number => {
     switch (range) {
@@ -223,21 +219,17 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   }, [timeRange, customStartDate, customEndDate]);
 
   const processMetricsData = useCallback((metricsData: TelemetryMetricResponse[], startTime: Date, endTime?: Date) => {
-    // Filter metrics by time range first
-    const filteredMetrics = metricsData.filter(metric => {
-      const uploadDate = new Date(metric.upload_date);
-      const isAfterStart = uploadDate >= startTime;
-      const isBeforeEnd = endTime ? uploadDate <= endTime : true;
-      return isAfterStart && isBeforeEnd;
-    });
+    // Don't filter by upload_date - filter by actual data point timestamps instead
+    const filteredMetrics = metricsData;
 
     // Extract relevant metrics by name patterns (more flexible matching)
     const sessionMetrics = filteredMetrics.filter(m => 
       m.name && (m.name.toLowerCase().includes('session') || m.name.toLowerCase().includes('request'))
     );
     const locMetrics = filteredMetrics.filter(m => 
-      m.name && (m.name.toLowerCase().includes('code') || m.name.toLowerCase().includes('line'))
+      m.name && m.name === 'claude_code.lines_of_code.count'
     );
+
 
     // Calculate totals
     let totalSessions = 0;
@@ -265,15 +257,17 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     locMetrics.forEach(metric => {
       if (metric.data_points && Array.isArray(metric.data_points)) {
         metric.data_points.forEach((dp: DataPoint) => {
-          const timestamp = parseInt(dp.timeUnixNano) / 1000000;
+          const timestamp = parseInt(dp.timeUnixNano) / 1000000; // Convert nanoseconds to milliseconds
           const dataPointTime = new Date(timestamp);
           
           // Only include data points within the time range
           const isAfterStart = dataPointTime >= startTime;
           const isBeforeEnd = endTime ? dataPointTime <= endTime : true;
+          
           if (isAfterStart && isBeforeEnd) {
             const value = dp.value?.asDouble || dp.value?.asInt || 0;
-            linesOfCode += typeof value === 'string' ? parseFloat(value) : value;
+            const parsedValue = typeof value === 'string' ? parseFloat(value) : value;
+            linesOfCode += parsedValue;
           }
         });
       }
@@ -291,65 +285,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const processLogsData = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date) => {
-    const entries: LogEntry[] = logsData
-      .filter(log => log.body)
-      .filter(log => {
-        // Filter logs by time range
-        const logTime = new Date(log.timestamp);
-        const isAfterStart = logTime >= startTime;
-        const isBeforeEnd = endTime ? logTime <= endTime : true;
-        return isAfterStart && isBeforeEnd;
-      })
-      .map(log => {
-        // Determine log level from severity field
-        let level: 'info' | 'success' | 'error' | 'warning' = 'info';
-        if (log.severity) {
-          const severity = log.severity.toLowerCase();
-          if (severity.includes('error') || severity.includes('fatal')) level = 'error';
-          else if (severity.includes('warn')) level = 'warning';
-          else if (severity.includes('success') || severity.includes('info')) level = 'success';
-        }
-
-        // Extract timestamp - use timestamp field directly
-        const timestamp = log.timestamp 
-          ? new Date(log.timestamp)
-          : new Date(log.upload_date || Date.now());
-
-        // Get message
-        const message = typeof log.body === 'string' ? log.body : JSON.stringify(log.body);
-
-        // Extract metadata from resource attributes
-        const metadata: Record<string, unknown> = {};
-        if (log.resource?.attributes && Array.isArray(log.resource.attributes)) {
-          log.resource.attributes.forEach((attr: ResourceAttribute) => {
-            if (attr.value?.stringValue) {
-              metadata[attr.key] = attr.value.stringValue;
-            } else if (attr.value?.intValue !== undefined) {
-              metadata[attr.key] = attr.value.intValue;
-            } else if (attr.value?.boolValue !== undefined) {
-              metadata[attr.key] = attr.value.boolValue;
-            }
-          });
-        }
-
-        // Add log attributes to metadata if available
-        if (log.attributes && typeof log.attributes === 'object') {
-          Object.assign(metadata, log.attributes);
-        }
-
-        return {
-          timestamp,
-          level,
-          message,
-          metadata: Object.keys(metadata).length > 0 ? metadata : undefined
-        };
-      })
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 50); // Limit to 50 most recent entries
-
-    setLogEntries(entries);
-  }, []);
 
   const processTokenUsageFromLogs = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date): TimeSeriesDataPoint[] => {
 
@@ -655,7 +590,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
       // Process metrics data with time filtering
       processMetricsData(metricsResponse.metrics || [], startTime, endTime);
-      processLogsData(logsResponse.logs || [], startTime, endTime);
       
       // Process token usage from logs instead of metrics
       const tokenDataFromLogs = processTokenUsageFromLogs(logsResponse.logs || [], startTime, endTime);
@@ -761,7 +695,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       setCostData([]);
       setTokenData([]);
       setToolUsageData([]);
-      setLogEntries([]);
     } finally {
       setLoading(false);
     }
@@ -1258,21 +1191,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
 
 
-      {/* Event Logs */}
-      <div>
-        <Typography variant="h6" className="font-semibold mb-3">
-          Event Logs
-        </Typography>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <LogViewer
-              title="Recent Events"
-              logs={logEntries}
-              maxHeight={400}
-            />
-          </Grid>
-        </Grid>
-      </div>
 
       {/* Custom Date Range Modal */}
       <Dialog 
