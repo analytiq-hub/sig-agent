@@ -352,9 +352,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   }, []);
 
   const processTokenUsageFromLogs = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date): TimeSeriesDataPoint[] => {
-    console.log('Processing token data from logs...');
-    console.log('Total logs available:', logsData.length);
-    console.log('Time range:', startTime.toISOString(), 'to', endTime?.toISOString() || 'now');
 
     const detectedTokenTypes: Set<string> = new Set();
     const tokenEntries: Array<{ timestamp: number; tokenType: string; tokens: number; model: string }> = [];
@@ -366,16 +363,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       const isBeforeEnd = endTime ? logTime <= endTime : true;
       
       if (!isAfterStart || !isBeforeEnd) return;
-
-      const body = typeof log.body === 'string' ? log.body : JSON.stringify(log.body);
-      
-      // Debug: Log each log to understand the structure
-      console.log('Analyzing log for tokens:', {
-        timestamp: log.timestamp,
-        body: body.substring(0, 300) + (body.length > 300 ? '...' : ''),
-        attributes: log.attributes,
-        resource: log.resource
-      });
 
       // Check log attributes for token information (this is where the real data is)
       if (log.attributes && typeof log.attributes === 'object') {
@@ -394,14 +381,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           const parsedCount = typeof tokenCount === 'string' ? parseInt(tokenCount, 10) : (typeof tokenCount === 'number' ? tokenCount : 0);
           
           if (parsedCount && !isNaN(parsedCount) && parsedCount > 0) {
-            console.log('Found token entry:', { 
-              timestamp: log.timestamp, 
-              tokenType, 
-              tokens: parsedCount, 
-              model,
-              originalValue: tokenCount,
-              attributes: log.attributes 
-            });
             detectedTokenTypes.add(tokenType);
             tokenEntries.push({
               timestamp: logTime.getTime(),
@@ -414,12 +393,8 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       }
     });
 
-    console.log('Total token entries found:', tokenEntries.length);
-    console.log('Detected token types:', Array.from(detectedTokenTypes));
-
     // If no token data found, return empty array (no bogus data)
     if (tokenEntries.length === 0) {
-      console.log('No token data found in logs. Returning empty token data.');
       return [];
     }
 
@@ -455,8 +430,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       tokenTimeSeries.push(dataPoint);
     });
 
-    console.log('Generated incremental token data:', tokenTimeSeries);
-    console.log('Final token totals:', tokenTotals);
     
     // Update token breakdown state
     setTokenBreakdown({
@@ -470,10 +443,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   }, []);
 
   const processToolUsageFromLogs = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date): { usageData: BarChartDataPoint[], averageDuration: Record<string, number> } => {
-    console.log('Processing tool usage data from logs...');
-    console.log('Total logs available:', logsData.length);
-    console.log('Time range:', startTime.toISOString(), 'to', endTime?.toISOString() || 'now');
-
     const toolUsageCounts: Record<string, number> = {};
     const toolDurations: Record<string, number[]> = {};
 
@@ -485,8 +454,8 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
       if (!isAfterStart || !isBeforeEnd) return;
 
-      // Check if this is a tool_result log
-      if (log.body === 'claude_code.tool_result' && log.attributes && typeof log.attributes === 'object') {
+      // Check if this is a tool_result log - try multiple possible patterns
+      if ((log.body === 'tool_result' || log.body === 'claude_code.tool_result' || log.body.includes('tool_result')) && log.attributes && typeof log.attributes === 'object') {
         const toolName = log.attributes.tool_name as string;
         const success = log.attributes.success as string;
         const duration = log.attributes.duration_ms as string;
@@ -495,13 +464,29 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           const parsedDuration = typeof duration === 'string' ? parseInt(duration, 10) : (typeof duration === 'number' ? duration : 0);
           
           if (!isNaN(parsedDuration) && parsedDuration > 0) {
-            console.log('Found tool usage:', { 
-              timestamp: log.timestamp, 
-              toolName, 
-              duration: parsedDuration,
-              attributes: log.attributes 
-            });
+            // Count tool usage
+            toolUsageCounts[toolName] = (toolUsageCounts[toolName] || 0) + 1;
+            
+            // Track durations for average calculation
+            if (!toolDurations[toolName]) {
+              toolDurations[toolName] = [];
+            }
+            toolDurations[toolName].push(parsedDuration);
+          }
+        }
+      }
 
+      // Also check for tool usage in other log types (like api_request logs that might contain tool information)
+      if (log.attributes && typeof log.attributes === 'object') {
+        const toolName = log.attributes.tool_name as string;
+        const success = log.attributes.success as string | boolean;
+        const duration = log.attributes.duration_ms as string;
+        
+        // If we find tool-related attributes in any log, process them
+        if (toolName && (success === 'true' || success === true) && duration) {
+          const parsedDuration = typeof duration === 'string' ? parseInt(duration, 10) : (typeof duration === 'number' ? duration : 0);
+          
+          if (!isNaN(parsedDuration) && parsedDuration > 0) {
             // Count tool usage
             toolUsageCounts[toolName] = (toolUsageCounts[toolName] || 0) + 1;
             
@@ -514,9 +499,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         }
       }
     });
-
-    console.log('Tool usage counts:', toolUsageCounts);
-    console.log('Tool durations:', toolDurations);
 
     // Convert to bar chart data format
     const usageData: BarChartDataPoint[] = Object.entries(toolUsageCounts)
@@ -534,16 +516,11 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       averageDuration[toolName] = Math.round(avg);
     });
 
-    console.log('Generated tool usage data:', usageData);
-    console.log('Average durations:', averageDuration);
 
     return { usageData, averageDuration };
   }, []);
 
   const processCostDataFromLogs = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date): TimeSeriesDataPoint[] => {
-    console.log('Processing cost data from logs...');
-    console.log('Total logs available:', logsData.length);
-    console.log('Time range:', startTime.toISOString(), 'to', endTime?.toISOString() || 'now');
 
     const detectedModels: Set<string> = new Set();
     const costEntries: Array<{ timestamp: number; model: string; cost: number }> = [];
@@ -556,16 +533,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       
       if (!isAfterStart || !isBeforeEnd) return;
 
-      const body = typeof log.body === 'string' ? log.body : JSON.stringify(log.body);
-      
-      // Debug: Log each log to understand the structure
-      console.log('Analyzing log:', {
-        timestamp: log.timestamp,
-        body: body.substring(0, 300) + (body.length > 300 ? '...' : ''),
-        attributes: log.attributes,
-        resource: log.resource
-      });
-
       // Check log attributes for cost information (this is where the real data is)
       if (log.attributes && typeof log.attributes === 'object') {
         const cost = log.attributes.cost_usd;
@@ -575,13 +542,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         const parsedCost = typeof cost === 'string' ? parseFloat(cost) : (typeof cost === 'number' ? cost : 0);
         
         if (parsedCost && !isNaN(parsedCost) && parsedCost > 0 && model && typeof model === 'string') {
-          console.log('Found cost entry from attributes:', { 
-            timestamp: log.timestamp, 
-            model, 
-            cost: parsedCost, 
-            originalValue: cost,
-            attributes: log.attributes 
-          });
           detectedModels.add(model);
           costEntries.push({
             timestamp: logTime.getTime(),
@@ -591,9 +551,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         }
       }
     });
-
-    console.log('Total cost entries found:', costEntries.length);
-    console.log('Detected models:', Array.from(detectedModels));
 
     // Initialize enabled language models if not set
     if (Object.keys(enabledLanguageModels).length === 0 && detectedModels.size > 0) {
@@ -606,7 +563,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     // If no cost data found, return empty array (no bogus data)
     if (costEntries.length === 0) {
-      console.log('No cost data found in logs. Returning empty cost data.');
       return [];
     }
 
@@ -642,8 +598,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       costTimeSeries.push(dataPoint);
     });
 
-    console.log('Generated incremental cost data:', costTimeSeries);
-    console.log('Final model totals:', modelTotals);
     
     return costTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
   }, [enabledLanguageModels]);
@@ -658,7 +612,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         throw new Error('Organization ID is required');
       }
 
-      console.log('Loading analytics data for organization:', organizationId);
 
       // Calculate time range for filtering
       let startTime: Date;
@@ -671,8 +624,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         
         // The datetime-local input gives us local time, but we need to ensure
         // we're comparing with UTC timestamps from the metrics
-        console.log('Custom date range - Local start:', customStartDate, 'UTC start:', startTime.toISOString());
-        console.log('Custom date range - Local end:', customEndDate, 'UTC end:', endTime.toISOString());
       } else {
         const now = new Date();
         const timeRangeMs = getTimeRangeMs(timeRange);
@@ -681,11 +632,9 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       }
 
       // Fetch metrics from the existing API (API limit is 100)
-      console.log('Fetching metrics for organization:', organizationId);
       let metricsResponse;
       try {
         metricsResponse = await docRouterOrgApi.listMetrics({ limit: 100 });
-        console.log('Metrics response:', metricsResponse);
         setMetrics(metricsResponse.metrics || []);
       } catch (metricsError) {
         console.warn('Failed to fetch metrics:', metricsError);
@@ -694,11 +643,9 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       }
 
       // Fetch logs (API limit is 100)
-      console.log('Fetching logs for organization:', organizationId);
       let logsResponse;
       try {
         logsResponse = await docRouterOrgApi.listLogs({ limit: 100 });
-        console.log('Logs response:', logsResponse);
         setLogs(logsResponse.logs || []);
       } catch (logsError) {
         console.warn('Failed to fetch logs:', logsError);
