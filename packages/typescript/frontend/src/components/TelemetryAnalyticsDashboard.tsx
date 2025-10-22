@@ -222,38 +222,13 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     // Metrics are already filtered by timestamp on the server side
     const filteredMetrics = metricsData;
 
-    // Extract relevant metrics by name patterns (more flexible matching)
-    const sessionMetrics = filteredMetrics.filter(m => 
-      m.name && (m.name.toLowerCase().includes('session') || m.name.toLowerCase().includes('request'))
-    );
+    // Extract lines of code metrics
     const locMetrics = filteredMetrics.filter(m => 
       m.name && m.name === 'claude_code.lines_of_code.count'
     );
 
-
-    // Calculate totals
-    let totalSessions = 0;
+    // Calculate lines of code from metrics
     let linesOfCode = 0;
-
-    sessionMetrics.forEach(metric => {
-      if (metric.data_points && Array.isArray(metric.data_points)) {
-        metric.data_points.forEach((dp: DataPoint) => {
-          const timestamp = parseInt(dp.timeUnixNano) / 1000000;
-          const dataPointTime = new Date(timestamp);
-          
-          // Only include data points within the time range
-          const isAfterStart = dataPointTime >= startTime;
-          const isBeforeEnd = endTime ? dataPointTime <= endTime : true;
-          if (isAfterStart && isBeforeEnd) {
-            const value = dp.value?.asDouble || dp.value?.asInt || 0;
-            totalSessions += typeof value === 'string' ? parseFloat(value) : value;
-          }
-        });
-      }
-    });
-
-
-
     locMetrics.forEach(metric => {
       if (metric.data_points && Array.isArray(metric.data_points)) {
         metric.data_points.forEach((dp: DataPoint) => {
@@ -273,18 +248,43 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       }
     });
 
-    setStats({
-      totalSessions: Math.round(totalSessions),
-      totalCost: 0, // Will be calculated from logs
-      totalTokens: 0, // Will be calculated from logs
+    setStats(prevStats => ({
+      ...prevStats,
       linesOfCode: Math.round(linesOfCode)
-    });
+    }));
 
-
-    // Tool usage data is now processed from logs, not metrics
+    // Note: Active sessions are now calculated from logs, not metrics
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+
+  const processActiveSessionsFromLogs = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date): number => {
+    const uniqueSessions = new Set<string>();
+
+    // Process all logs to find unique session IDs
+    logsData.forEach(log => {
+      const logTime = new Date(log.timestamp);
+      const isAfterStart = logTime >= startTime;
+      const isBeforeEnd = endTime ? logTime <= endTime : true;
+      
+      if (!isAfterStart || !isBeforeEnd) return;
+
+      // Check log attributes for session ID
+      if (log.attributes && typeof log.attributes === 'object') {
+        // Try different possible session ID field names
+        const sessionId = log.attributes['session.id'] || 
+                         log.attributes['session_id'] || 
+                         log.attributes['sessionId'] ||
+                         log.attributes['session'];
+        
+        if (sessionId && typeof sessionId === 'string' && sessionId.trim() !== '') {
+          uniqueSessions.add(sessionId);
+        }
+      }
+    });
+
+    return uniqueSessions.size;
+  }, []);
 
   const processTokenUsageFromLogs = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date): TimeSeriesDataPoint[] => {
 
@@ -599,6 +599,9 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       // Process metrics data with time filtering
       processMetricsData(metricsResponse.metrics || [], startTime, endTime);
       
+      // Process active sessions from logs
+      const activeSessionsFromLogs = processActiveSessionsFromLogs(logsResponse.logs || [], startTime, endTime);
+      
       // Process token usage from logs instead of metrics
       const tokenDataFromLogs = processTokenUsageFromLogs(logsResponse.logs || [], startTime, endTime);
       setTokenData(tokenDataFromLogs);
@@ -637,6 +640,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       // Update stats with totals from logs
       setStats(prevStats => ({
         ...prevStats,
+        totalSessions: activeSessionsFromLogs,
         totalTokens: Math.round(totalTokensFromLogs),
         totalCost: Number(totalCostFromLogs.toFixed(2))
       }));
