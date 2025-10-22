@@ -460,7 +460,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
         const info = getSalientInfo(params.row);
         const icon = getEventIcon(info.eventName);
         return (
-          <Box display="flex" alignItems="center" gap={0.5}>
+          <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px' }}>
             {icon}
             <span className="text-sm font-medium">
               {info.eventName}
