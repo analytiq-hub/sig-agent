@@ -957,6 +957,8 @@ export interface ListTelemetryLogsParams {
   severity?: string;
   start_time?: string; // Start time in UTC ISO format (e.g., 2025-10-22T15:00:00.000Z)
   end_time?: string; // End time in UTC ISO format (e.g., 2025-10-22T16:00:00.000Z)
+  message_search?: string; // Search term for log messages
+  attribute_filters?: string; // Comma-separated attribute filters in key=value format (e.g., session_id=abc123,model=gpt-4)
 }
 
 export interface ListTelemetryLogsResponse {

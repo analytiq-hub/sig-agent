@@ -492,6 +492,8 @@ async def list_telemetry_logs(
     severity: str = Query(None, description="Filter by log severity"),
     start_time: str = Query(None, description="Start time in UTC ISO format (e.g., 2025-10-22T15:00:00.000Z)"),
     end_time: str = Query(None, description="End time in UTC ISO format (e.g., 2025-10-22T16:00:00.000Z)"),
+    message_search: str = Query(None, description="Search term for log messages"),
+    attribute_filters: str = Query(None, description="Comma-separated attribute filters in key=value format (e.g., session_id=abc123,model=gpt-4)"),
     current_user: User = Depends(get_org_user)
 ):
     """List OpenTelemetry logs"""
@@ -507,6 +509,28 @@ async def list_telemetry_logs(
 
     if severity:
         query["severity"] = severity
+
+    if message_search:
+        query["body"] = {"$regex": message_search, "$options": "i"}
+
+    if attribute_filters:
+        # Parse attribute filters in key=value format
+        # Example: "session_id=abc123,model=gpt-4,user_id=user456"
+        filter_pairs = [pair.strip() for pair in attribute_filters.split(",")]
+        for filter_pair in filter_pairs:
+            if "=" in filter_pair:
+                key, value = filter_pair.split("=", 1)
+                key = key.strip()
+                value = value.strip()
+                if key and value:
+                    # Support both exact match and regex search
+                    if value.startswith("~"):
+                        # Regex search (value starts with ~)
+                        regex_value = value[1:]  # Remove the ~ prefix
+                        query[f"attributes.{key}"] = {"$regex": regex_value, "$options": "i"}
+                    else:
+                        # Exact match
+                        query[f"attributes.{key}"] = value
 
     # Add timestamp filtering
     if start_time or end_time:

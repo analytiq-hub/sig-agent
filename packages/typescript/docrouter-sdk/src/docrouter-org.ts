@@ -548,6 +548,8 @@ export class DocRouterOrg {
     if (params?.severity) queryParams.severity = params.severity;
     if (params?.start_time) queryParams.start_time = params.start_time;
     if (params?.end_time) queryParams.end_time = params.end_time;
+    if (params?.message_search) queryParams.message_search = params.message_search;
+    if (params?.attribute_filters) queryParams.attribute_filters = params.attribute_filters;
 
     return this.http.get<ListTelemetryLogsResponse>(
       `/v0/orgs/${this.organizationId}/telemetry/logs`,

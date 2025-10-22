@@ -167,6 +167,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [attributeFilters, setAttributeFilters] = useState('');
   const [severityFilter, setSeverityFilter] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -199,7 +200,9 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
         limit: pageSize,
         severity: severityFilter || undefined,
         start_time: startDate || undefined,
-        end_time: endDate || undefined
+        end_time: endDate || undefined,
+        message_search: searchTerm || undefined,
+        attribute_filters: attributeFilters || undefined
       });
       setLogs(response.logs);
       setTotal(response.total);
@@ -209,7 +212,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, severityFilter, startDate, endDate, docRouterOrgApi]);
+  }, [page, pageSize, severityFilter, startDate, endDate, searchTerm, attributeFilters, docRouterOrgApi]);
 
   const loadTags = useCallback(async () => {
     try {
@@ -233,6 +236,15 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
 
     loadData();
   }, [loadLogs, loadTags]);
+
+  // Debounced search effect - reset to first page when search parameters change
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setPage(0); // Reset to first page when search changes
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, attributeFilters, severityFilter, startDate, endDate]);
 
   const getTagName = (tagId: string) => {
     const tag = availableTags.find(t => t.id === tagId);
@@ -707,13 +719,8 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
     }
   ];
 
-  const filteredLogs = useMemo(() => {
-    if (!searchTerm) return logs;
-    return logs.filter(log =>
-      log.body.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.trace_id?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [logs, searchTerm]);
+  // No need for client-side filtering since we're using server-side filtering
+  const filteredLogs = logs;
 
   return (
     <div className="w-full">
@@ -721,7 +728,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
         <TextField
           fullWidth
           size="small"
-          placeholder="Search logs by message or trace ID..."
+          placeholder="Search logs by message..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           InputProps={{
@@ -732,6 +739,22 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
             ),
           }}
         />
+        <Tooltip title="Search by OpenTelemetry attributes. Use key=value for exact match, key=~pattern for regex. Multiple filters: key1=value1,key2=~pattern2">
+          <TextField
+            size="small"
+            placeholder="Attributes (e.g., session_id=abc123, model=~gpt-4)..."
+            value={attributeFilters}
+            onChange={(e) => setAttributeFilters(e.target.value)}
+            sx={{ minWidth: 300 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Tooltip>
         <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>Severity</InputLabel>
           <Select

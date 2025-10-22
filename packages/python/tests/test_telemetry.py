@@ -670,6 +670,155 @@ async def test_list_logs_with_timestamp_filtering(test_db, mock_auth, setup_test
     logger.info("test_list_logs_with_timestamp_filtering() completed successfully")
 
 @pytest.mark.asyncio
+async def test_list_logs_with_generic_attribute_search(test_db, mock_auth, setup_test_models):
+    """Test listing logs with generic attribute search filters via FastAPI HTTP endpoint"""
+    logger.info("test_list_logs_with_generic_attribute_search() start")
+
+    # Create logs with different attributes
+    base_time = datetime.now(UTC)
+    log_data = {
+        "logs": [
+            {
+                "timestamp": base_time.isoformat(),
+                "severity": "INFO",
+                "body": "User login successful",
+                "attributes": {
+                    "session_id": "session_123",
+                    "user_id": "user_456",
+                    "model": "gpt-4"
+                },
+                "tag_ids": [],
+                "metadata": {"index": "0"}
+            },
+            {
+                "timestamp": base_time.isoformat(),
+                "severity": "ERROR",
+                "body": "Database connection failed",
+                "attributes": {
+                    "session_id": "session_123",
+                    "error_code": "DB_001",
+                    "model": "claude-3-opus"
+                },
+                "tag_ids": [],
+                "metadata": {"index": "1"}
+            },
+            {
+                "timestamp": base_time.isoformat(),
+                "severity": "INFO",
+                "body": "User logout successful",
+                "attributes": {
+                    "session_id": "session_789",
+                    "user_id": "user_456",
+                    "model": "gpt-3.5-turbo"
+                },
+                "tag_ids": [],
+                "metadata": {"index": "2"}
+            },
+            {
+                "timestamp": base_time.isoformat(),
+                "severity": "WARN",
+                "body": "API rate limit exceeded",
+                "attributes": {
+                    "session_id": "session_999",
+                    "endpoint": "/api/users",
+                    "model": "gpt-4-turbo"
+                },
+                "tag_ids": [],
+                "metadata": {"index": "3"}
+            }
+        ]
+    }
+
+    upload_response = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs",
+        json=log_data,
+        headers=get_auth_headers()
+    )
+    assert upload_response.status_code == 200
+
+    # Test single attribute filter - exact match
+    session_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs?attribute_filters=session_id=session_123",
+        headers=get_auth_headers()
+    )
+    assert session_response.status_code == 200
+    session_data = session_response.json()
+    assert "logs" in session_data
+    assert len(session_data["logs"]) >= 2  # Should include both logs with session_123
+    
+    # Verify all returned logs have the correct session_id
+    for log in session_data["logs"]:
+        if "attributes" in log and log["attributes"] and "session_id" in log["attributes"]:
+            assert log["attributes"]["session_id"] == "session_123"
+
+    # Test single attribute filter - regex match
+    model_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs?attribute_filters=model=~gpt",
+        headers=get_auth_headers()
+    )
+    assert model_response.status_code == 200
+    model_data = model_response.json()
+    assert "logs" in model_data
+    assert len(model_data["logs"]) >= 3  # Should include gpt-4, gpt-3.5-turbo, gpt-4-turbo
+    
+    # Verify all returned logs have model names containing "gpt"
+    for log in model_data["logs"]:
+        if "attributes" in log and log["attributes"] and "model" in log["attributes"]:
+            assert "gpt" in log["attributes"]["model"].lower()
+
+    # Test multiple attribute filters
+    combined_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs?attribute_filters=session_id=session_123,model=gpt-4",
+        headers=get_auth_headers()
+    )
+    assert combined_response.status_code == 200
+    combined_data = combined_response.json()
+    assert "logs" in combined_data
+    assert len(combined_data["logs"]) >= 1  # Should include the login log with session_123 and gpt-4
+    
+    # Verify the combined filter works correctly
+    for log in combined_data["logs"]:
+        if "attributes" in log and log["attributes"]:
+            if "session_id" in log["attributes"]:
+                assert log["attributes"]["session_id"] == "session_123"
+            if "model" in log["attributes"]:
+                assert log["attributes"]["model"] == "gpt-4"
+
+    # Test message search combined with attribute filters
+    message_attr_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs?message_search=successful&attribute_filters=user_id=user_456",
+        headers=get_auth_headers()
+    )
+    assert message_attr_response.status_code == 200
+    message_attr_data = message_attr_response.json()
+    assert "logs" in message_attr_data
+    assert len(message_attr_data["logs"]) >= 2  # Should include both successful logs with user_456
+    
+    # Verify the combined message and attribute filter works
+    for log in message_attr_data["logs"]:
+        assert "successful" in log["body"].lower()
+        if "attributes" in log and log["attributes"] and "user_id" in log["attributes"]:
+            assert log["attributes"]["user_id"] == "user_456"
+
+    # Test case-insensitive regex search
+    case_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs?attribute_filters=model=~GPT-4",
+        headers=get_auth_headers()
+    )
+    assert case_response.status_code == 200
+    case_data = case_response.json()
+    assert "logs" in case_data
+    assert len(case_data["logs"]) >= 2  # Should find gpt-4 and gpt-4-turbo (case-insensitive)
+    
+    # Verify case-insensitive regex search works
+    for log in case_data["logs"]:
+        if "attributes" in log and log["attributes"] and "model" in log["attributes"]:
+            assert "gpt-4" in log["attributes"]["model"].lower()
+
+    logger.info("test_list_logs_with_generic_attribute_search() completed successfully")
+
+
+@pytest.mark.asyncio
 async def test_telemetry_with_tags(test_db, mock_auth, setup_test_models):
     """Test telemetry data with tag associations"""
     logger.info("test_telemetry_with_tags() start")
