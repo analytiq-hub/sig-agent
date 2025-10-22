@@ -714,18 +714,30 @@ async def test_list_logs_with_generic_attribute_search(test_db, mock_auth, setup
                 "tag_ids": [],
                 "metadata": {"index": "2"}
             },
-            {
-                "timestamp": base_time.isoformat(),
-                "severity": "WARN",
-                "body": "API rate limit exceeded",
-                "attributes": {
-                    "session_id": "session_999",
-                    "endpoint": "/api/users",
-                    "model": "gpt-4-turbo"
-                },
-                "tag_ids": [],
-                "metadata": {"index": "3"}
-            }
+                    {
+                        "timestamp": base_time.isoformat(),
+                        "severity": "WARN",
+                        "body": "API rate limit exceeded",
+                        "attributes": {
+                            "session_id": "session_999",
+                            "endpoint": "/api/users",
+                            "model": "gpt-4-turbo"
+                        },
+                        "tag_ids": [],
+                        "metadata": {"index": "3"}
+                    },
+                    {
+                        "timestamp": base_time.isoformat(),
+                        "severity": "INFO",
+                        "body": "User session created",
+                        "attributes": {
+                            "session.id": "session_123",
+                            "user.id": "user_789",
+                            "model": "claude-3-sonnet"
+                        },
+                        "tag_ids": [],
+                        "metadata": {"index": "4"}
+                    }
         ]
     }
 
@@ -750,6 +762,19 @@ async def test_list_logs_with_generic_attribute_search(test_db, mock_auth, setup
     for log in session_data["logs"]:
         if "attributes" in log and log["attributes"] and "session_id" in log["attributes"]:
             assert log["attributes"]["session_id"] == "session_123"
+
+    # Test attribute filter with dots in key name (like session.id)
+    session_dot_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs?attribute_filters=session.id=session_123",
+        headers=get_auth_headers()
+    )
+    assert session_dot_response.status_code == 200
+    session_dot_data = session_dot_response.json()
+    assert "logs" in session_dot_data
+    # Should find logs with session.id attribute
+    for log in session_dot_data["logs"]:
+        if "attributes" in log and log["attributes"] and "session.id" in log["attributes"]:
+            assert log["attributes"]["session.id"] == "session_123"
 
     # Test single attribute filter - regex match
     model_response = client.get(

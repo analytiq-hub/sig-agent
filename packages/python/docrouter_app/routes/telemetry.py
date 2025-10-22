@@ -527,10 +527,35 @@ async def list_telemetry_logs(
                     if value.startswith("~"):
                         # Regex search (value starts with ~)
                         regex_value = value[1:]  # Remove the ~ prefix
-                        query[f"attributes.{key}"] = {"$regex": regex_value, "$options": "i"}
+                        # For keys with dots, we need to use $expr with $getField
+                        if "." in key:
+                            if "$expr" not in query:
+                                query["$expr"] = {"$and": []}
+                            query["$expr"]["$and"].append({
+                                "$regexMatch": {
+                                    "input": {"$getField": {"field": key, "input": "$attributes"}},
+                                    "regex": regex_value,
+                                    "options": "i"
+                                }
+                            })
+                        else:
+                            # Simple keys without dots can use dot notation
+                            query[f"attributes.{key}"] = {"$regex": regex_value, "$options": "i"}
                     else:
                         # Exact match
-                        query[f"attributes.{key}"] = value
+                        if "." in key:
+                            # For keys with dots, we need to use $expr with $getField
+                            if "$expr" not in query:
+                                query["$expr"] = {"$and": []}
+                            query["$expr"]["$and"].append({
+                                "$eq": [
+                                    {"$getField": {"field": key, "input": "$attributes"}},
+                                    value
+                                ]
+                            })
+                        else:
+                            # Simple keys without dots can use dot notation
+                            query[f"attributes.{key}"] = value
 
     # Add timestamp filtering
     if start_time or end_time:
