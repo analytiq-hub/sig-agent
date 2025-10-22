@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { DocRouterOrgApi } from '@/utils/api';
-import { Box, Typography, Grid, ToggleButton, ToggleButtonGroup, CircularProgress, Button, TextField, Paper, Dialog, DialogTitle, DialogContent, DialogActions, IconButton } from '@mui/material';
+import { Box, Typography, Grid, ToggleButton, ToggleButtonGroup, CircularProgress, Button, TextField, Paper, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, FormControlLabel, Checkbox, FormGroup } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
   AttachMoney as MoneyIcon,
@@ -54,6 +54,14 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   const [costData, setCostData] = useState<TimeSeriesDataPoint[]>([]);
   const [tokenData, setTokenData] = useState<TimeSeriesDataPoint[]>([]);
   const [toolUsageData, setToolUsageData] = useState<TimeSeriesDataPoint[]>([]);
+
+  // Token type selection state
+  const [enabledTokenTypes, setEnabledTokenTypes] = useState<Record<string, boolean>>({
+    input_tokens: true,
+    output_tokens: true,
+    cache_read_tokens: true,
+    cache_creation_tokens: true
+  });
 
   // Logs data
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
@@ -780,25 +788,27 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     // Default colors for unknown token types
     const defaultColors = ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#84cc16'];
     
-    return Array.from(keys).map((key, index) => {
-      const config = tokenTypeConfig[key];
-      if (config) {
-        return {
-          key,
-          label: config.label,
-          color: config.color,
-          lineWidth: config.lineWidth || 2
-        };
-      } else {
-        // For unknown token types, use default styling
-        return {
-          key,
-          label: key.charAt(0).toUpperCase() + key.slice(1) + ' Tokens',
-          color: defaultColors[index % defaultColors.length],
-          lineWidth: 2
-        };
-      }
-    });
+    return Array.from(keys)
+      .filter(key => enabledTokenTypes[key] !== false) // Only include enabled token types
+      .map((key, index) => {
+        const config = tokenTypeConfig[key];
+        if (config) {
+          return {
+            key,
+            label: config.label,
+            color: config.color,
+            lineWidth: config.lineWidth || 2
+          };
+        } else {
+          // For unknown token types, use default styling
+          return {
+            key,
+            label: key.charAt(0).toUpperCase() + key.slice(1) + ' Tokens',
+            color: defaultColors[index % defaultColors.length],
+            lineWidth: 2
+          };
+        }
+      });
   };
 
   const handleTimeRangeChange = (_event: React.MouseEvent<HTMLElement>, newTimeRange: TimeRange | null) => {
@@ -845,6 +855,13 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
   const handleEditCustomDateRange = () => {
     setIsCustomDateModalOpen(true);
+  };
+
+  const handleTokenTypeToggle = (tokenType: string) => {
+    setEnabledTokenTypes(prev => ({
+      ...prev,
+      [tokenType]: !prev[tokenType]
+    }));
   };
 
   if (loading) {
@@ -1024,12 +1041,57 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           </Grid>
           <Grid item xs={12} md={6}>
             {tokenData.length > 0 ? (
-              <TimeSeriesChart
-                title="Token Usage by Type"
-                data={tokenData}
-                dataKeys={getTokenUsageDataKeys(tokenData)}
-                yAxisLabel="Tokens"
-              />
+              <Box>
+                {/* Token Type Selection */}
+                <Box className="mb-4">
+                  <Typography variant="subtitle2" className="font-medium text-gray-700 mb-2">
+                    Token Types:
+                  </Typography>
+                  <FormGroup row>
+                    {Object.entries({
+                      input_tokens: 'Input Tokens',
+                      output_tokens: 'Output Tokens',
+                      cache_read_tokens: 'Cache Read Tokens',
+                      cache_creation_tokens: 'Cache Creation Tokens'
+                    }).map(([key, label]) => (
+                      <FormControlLabel
+                        key={key}
+                        control={
+                          <Checkbox
+                            checked={enabledTokenTypes[key] !== false}
+                            onChange={() => handleTokenTypeToggle(key)}
+                            size="small"
+                            sx={{
+                              color: key === 'input_tokens' ? '#f97316' :
+                                     key === 'output_tokens' ? '#22c55e' :
+                                     key === 'cache_read_tokens' ? '#3b82f6' :
+                                     key === 'cache_creation_tokens' ? '#a855f7' : '#666',
+                              '&.Mui-checked': {
+                                color: key === 'input_tokens' ? '#f97316' :
+                                       key === 'output_tokens' ? '#22c55e' :
+                                       key === 'cache_read_tokens' ? '#3b82f6' :
+                                       key === 'cache_creation_tokens' ? '#a855f7' : '#666',
+                              }
+                            }}
+                          />
+                        }
+                        label={
+                          <Typography variant="body2" className="text-sm">
+                            {label}
+                          </Typography>
+                        }
+                      />
+                    ))}
+                  </FormGroup>
+                </Box>
+                
+                <TimeSeriesChart
+                  title="Token Usage by Type"
+                  data={tokenData}
+                  dataKeys={getTokenUsageDataKeys(tokenData)}
+                  yAxisLabel="Tokens"
+                />
+              </Box>
             ) : (
               <Box className="p-6 bg-gray-50 rounded-lg text-center">
                 <Typography variant="body2" color="textSecondary">
