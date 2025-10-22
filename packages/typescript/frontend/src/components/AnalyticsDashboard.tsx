@@ -1,0 +1,747 @@
+'use client'
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { DocRouterOrgApi } from '@/utils/api';
+import { Box, Typography, Grid, ToggleButton, ToggleButtonGroup, CircularProgress, Button } from '@mui/material';
+import {
+  TrendingUp as TrendingUpIcon,
+  AttachMoney as MoneyIcon,
+  Code as CodeIcon,
+  Speed as PerformanceIcon
+} from '@mui/icons-material';
+import StatCard from './analytics/StatCard';
+import TimeSeriesChart, { TimeSeriesDataPoint } from './analytics/TimeSeriesChart';
+import LogViewer, { LogEntry } from './analytics/LogViewer';
+
+interface AnalyticsDashboardProps {
+  organizationId: string;
+}
+
+type TimeRange = '1h' | '6h' | '24h' | '7d';
+
+// Telemetry data interfaces
+interface TelemetryDataPoint {
+  timeUnixNano: string;
+  value?: {
+    asDouble?: number;
+    asInt?: string | number;
+  };
+  count?: string;
+  sum?: number;
+  bucket_counts?: string[];
+  explicit_bounds?: number[];
+}
+
+interface TelemetryResourceAttribute {
+  key: string;
+  value: {
+    stringValue?: string;
+    intValue?: number;
+    boolValue?: boolean;
+  };
+}
+
+interface TelemetryResource {
+  attributes?: TelemetryResourceAttribute[];
+}
+
+interface TelemetryMetric {
+  metric_id: string;
+  name: string;
+  description?: string;
+  unit?: string;
+  type: string;
+  data_points?: TelemetryDataPoint[];
+  data_point_count: number;
+  resource?: TelemetryResource;
+  upload_date: string;
+  uploaded_by: string;
+  tag_ids: string[];
+  metadata?: Record<string, string>;
+}
+
+interface TelemetryLog {
+  log_id: string;
+  timestamp: string;
+  severity?: string;
+  body: string;
+  attributes?: Record<string, unknown>;
+  resource?: TelemetryResource;
+  trace_id?: string;
+  span_id?: string;
+  upload_date: string;
+  uploaded_by: string;
+  tag_ids: string[];
+  metadata?: Record<string, string>;
+}
+
+const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationId }) => {
+  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const [timeRange, setTimeRange] = useState<TimeRange>('1h');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState<TelemetryMetric[]>([]);
+  const [logs, setLogs] = useState<TelemetryLog[]>([]);
+
+  // Stats state
+  const [stats, setStats] = useState({
+    totalSessions: 0,
+    totalCost: 0,
+    totalTokens: 0,
+    linesOfCode: 0
+  });
+
+  // Time series data
+  const [costData, setCostData] = useState<TimeSeriesDataPoint[]>([]);
+  const [tokenData, setTokenData] = useState<TimeSeriesDataPoint[]>([]);
+  const [toolUsageData, setToolUsageData] = useState<TimeSeriesDataPoint[]>([]);
+
+  // Logs data
+  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
+
+  const getTimeRangeMs = (range: TimeRange): number => {
+    switch (range) {
+      case '1h': return 60 * 60 * 1000;
+      case '6h': return 6 * 60 * 60 * 1000;
+      case '24h': return 24 * 60 * 60 * 1000;
+      case '7d': return 7 * 24 * 60 * 60 * 1000;
+      default: return 60 * 60 * 1000;
+    }
+  };
+
+  const processMetricsData = useCallback((metricsData: TelemetryMetric[], startTime: Date) => {
+    // Filter metrics by time range first
+    const filteredMetrics = metricsData.filter(metric => {
+      const uploadDate = new Date(metric.upload_date);
+      return uploadDate >= startTime;
+    });
+
+    // Extract relevant metrics by name patterns (more flexible matching)
+    const sessionMetrics = filteredMetrics.filter(m => 
+      m.name && (m.name.toLowerCase().includes('session') || m.name.toLowerCase().includes('request'))
+    );
+    const costMetrics = filteredMetrics.filter(m => 
+      m.name && (m.name.toLowerCase().includes('cost') || m.name.toLowerCase().includes('price') || m.name.toLowerCase().includes('usage'))
+    );
+    const tokenMetrics = filteredMetrics.filter(m => 
+      m.name && (m.name.toLowerCase().includes('token') || m.name.toLowerCase().includes('llm'))
+    );
+    const locMetrics = filteredMetrics.filter(m => 
+      m.name && (m.name.toLowerCase().includes('code') || m.name.toLowerCase().includes('line'))
+    );
+
+    // Calculate totals
+    let totalSessions = 0;
+    let totalCost = 0;
+    let totalTokens = 0;
+    let linesOfCode = 0;
+
+    sessionMetrics.forEach(metric => {
+      if (metric.data_points && Array.isArray(metric.data_points)) {
+        metric.data_points.forEach((dp: TelemetryDataPoint) => {
+          const value = dp.value?.asDouble || dp.value?.asInt || 0;
+          totalSessions += typeof value === 'string' ? parseFloat(value) : value;
+        });
+      }
+    });
+
+    costMetrics.forEach(metric => {
+      if (metric.data_points && Array.isArray(metric.data_points)) {
+        metric.data_points.forEach((dp: TelemetryDataPoint) => {
+          const value = dp.value?.asDouble || dp.value?.asInt || 0;
+          totalCost += typeof value === 'string' ? parseFloat(value) : value;
+        });
+      }
+    });
+
+    tokenMetrics.forEach(metric => {
+      if (metric.data_points && Array.isArray(metric.data_points)) {
+        metric.data_points.forEach((dp: TelemetryDataPoint) => {
+          const value = dp.value?.asDouble || dp.value?.asInt || 0;
+          totalTokens += typeof value === 'string' ? parseFloat(value) : value;
+        });
+      }
+    });
+
+    locMetrics.forEach(metric => {
+      if (metric.data_points && Array.isArray(metric.data_points)) {
+        metric.data_points.forEach((dp: TelemetryDataPoint) => {
+          const value = dp.value?.asDouble || dp.value?.asInt || 0;
+          linesOfCode += typeof value === 'string' ? parseFloat(value) : value;
+        });
+      }
+    });
+
+    setStats({
+      totalSessions: Math.round(totalSessions),
+      totalCost: Number(totalCost.toFixed(2)),
+      totalTokens: Math.round(totalTokens),
+      linesOfCode: Math.round(linesOfCode)
+    });
+
+    // Process time series data for charts
+    const costTimeSeries: TimeSeriesDataPoint[] = [];
+    const tokenTimeSeries: TimeSeriesDataPoint[] = [];
+
+    costMetrics.forEach(metric => {
+      if (metric.data_points && Array.isArray(metric.data_points)) {
+        metric.data_points.forEach((dp: TelemetryDataPoint) => {
+          const timestamp = parseInt(dp.timeUnixNano) / 1000000;
+          const dataPointTime = new Date(timestamp);
+          
+          // Only include data points within the time range
+          if (dataPointTime >= startTime) {
+            const value = dp.value?.asDouble || dp.value?.asInt || 0;
+            const numValue = typeof value === 'string' ? parseFloat(value) : value;
+            
+            costTimeSeries.push({
+              timestamp,
+              cost: numValue
+            });
+          }
+        });
+      }
+    });
+
+    tokenMetrics.forEach(metric => {
+      if (metric.data_points && Array.isArray(metric.data_points)) {
+        metric.data_points.forEach((dp: TelemetryDataPoint) => {
+          const timestamp = parseInt(dp.timeUnixNano) / 1000000;
+          const dataPointTime = new Date(timestamp);
+          
+          // Only include data points within the time range
+          if (dataPointTime >= startTime) {
+            const value = dp.value?.asDouble || dp.value?.asInt || 0;
+            const numValue = typeof value === 'string' ? parseFloat(value) : value;
+
+            // Get the type from resource attributes if available
+            let type = 'total';
+            if (metric.resource?.attributes && Array.isArray(metric.resource.attributes)) {
+              const typeAttr = metric.resource.attributes.find((attr: TelemetryResourceAttribute) => attr.key === 'type');
+              if (typeAttr?.value?.stringValue) {
+                type = typeAttr.value.stringValue;
+              }
+            }
+
+            const existing = tokenTimeSeries.find(t => t.timestamp === timestamp);
+            if (existing) {
+              existing[type] = numValue;
+            } else {
+              tokenTimeSeries.push({
+                timestamp,
+                [type]: numValue
+              });
+            }
+          }
+        });
+      }
+    });
+
+    setCostData(costTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp)));
+    setTokenData(tokenTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp)));
+
+    // Process tool usage data from real metrics
+    const toolData: TimeSeriesDataPoint[] = processToolUsageData(filteredMetrics, startTime);
+    setToolUsageData(toolData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const processLogsData = useCallback((logsData: TelemetryLog[], startTime: Date) => {
+    const entries: LogEntry[] = logsData
+      .filter(log => log.body)
+      .filter(log => {
+        // Filter logs by time range
+        const logTime = new Date(log.timestamp);
+        return logTime >= startTime;
+      })
+      .map(log => {
+        // Determine log level from severity field
+        let level: 'info' | 'success' | 'error' | 'warning' = 'info';
+        if (log.severity) {
+          const severity = log.severity.toLowerCase();
+          if (severity.includes('error') || severity.includes('fatal')) level = 'error';
+          else if (severity.includes('warn')) level = 'warning';
+          else if (severity.includes('success') || severity.includes('info')) level = 'success';
+        }
+
+        // Extract timestamp - use timestamp field directly
+        const timestamp = log.timestamp 
+          ? new Date(log.timestamp)
+          : new Date(log.upload_date || Date.now());
+
+        // Get message
+        const message = typeof log.body === 'string' ? log.body : JSON.stringify(log.body);
+
+        // Extract metadata from resource attributes
+        const metadata: Record<string, unknown> = {};
+        if (log.resource?.attributes && Array.isArray(log.resource.attributes)) {
+          log.resource.attributes.forEach((attr: TelemetryResourceAttribute) => {
+            if (attr.value?.stringValue) {
+              metadata[attr.key] = attr.value.stringValue;
+            } else if (attr.value?.intValue !== undefined) {
+              metadata[attr.key] = attr.value.intValue;
+            } else if (attr.value?.boolValue !== undefined) {
+              metadata[attr.key] = attr.value.boolValue;
+            }
+          });
+        }
+
+        // Add log attributes to metadata if available
+        if (log.attributes && typeof log.attributes === 'object') {
+          Object.assign(metadata, log.attributes);
+        }
+
+        return {
+          timestamp,
+          level,
+          message,
+          metadata: Object.keys(metadata).length > 0 ? metadata : undefined
+        };
+      })
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 50); // Limit to 50 most recent entries
+
+    setLogEntries(entries);
+  }, []);
+
+  const processToolUsageData = useCallback((metricsData: TelemetryMetric[], startTime: Date): TimeSeriesDataPoint[] => {
+    // Look for tool-related metrics
+    const toolMetrics = metricsData.filter(m => 
+      m.name && (
+        m.name.toLowerCase().includes('tool') ||
+        m.name.toLowerCase().includes('function') ||
+        m.name.toLowerCase().includes('call') ||
+        m.name.toLowerCase().includes('api') ||
+        m.name.toLowerCase().includes('read') ||
+        m.name.toLowerCase().includes('write') ||
+        m.name.toLowerCase().includes('bash') ||
+        m.name.toLowerCase().includes('grep')
+      )
+    );
+
+    const toolTimeSeries: TimeSeriesDataPoint[] = [];
+    const toolCounts: { [key: string]: { [timestamp: string]: number } } = {};
+
+    toolMetrics.forEach(metric => {
+      if (metric.data_points && Array.isArray(metric.data_points)) {
+        metric.data_points.forEach((dp: TelemetryDataPoint) => {
+          const timestamp = parseInt(dp.timeUnixNano) / 1000000;
+          const dataPointTime = new Date(timestamp);
+          
+          // Only include data points within the time range
+          if (dataPointTime >= startTime) {
+            const value = dp.value?.asDouble || dp.value?.asInt || 0;
+            const numValue = typeof value === 'string' ? parseFloat(value) : value;
+            
+            // Extract tool name from metric name or resource attributes
+            let toolName = 'Unknown';
+            if (metric.name) {
+              const name = metric.name.toLowerCase();
+              if (name.includes('read')) toolName = 'Read';
+              else if (name.includes('write')) toolName = 'Write';
+              else if (name.includes('bash')) toolName = 'Bash';
+              else if (name.includes('grep')) toolName = 'Grep';
+              else if (name.includes('api')) toolName = 'API';
+              else if (name.includes('function')) toolName = 'Function';
+              else toolName = metric.name.split('.').pop() || 'Tool';
+            }
+
+            if (!toolCounts[toolName]) {
+              toolCounts[toolName] = {};
+            }
+            if (!toolCounts[toolName][timestamp]) {
+              toolCounts[toolName][timestamp] = 0;
+            }
+            toolCounts[toolName][timestamp] += numValue;
+          }
+        });
+      }
+    });
+
+    // Convert to time series format
+    const allTimestamps = new Set<number>();
+    Object.values(toolCounts).forEach(toolData => {
+      Object.keys(toolData).forEach(ts => allTimestamps.add(parseInt(ts)));
+    });
+
+    allTimestamps.forEach(timestamp => {
+      const dataPoint: TimeSeriesDataPoint = { timestamp };
+      Object.keys(toolCounts).forEach(toolName => {
+        dataPoint[toolName] = toolCounts[toolName][timestamp] || 0;
+      });
+      toolTimeSeries.push(dataPoint);
+    });
+
+    // If no tool data found, return empty array instead of mock data
+    return toolTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+  }, []);
+
+  const loadAnalyticsData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Validate organization ID
+      if (!organizationId || organizationId.trim() === '') {
+        throw new Error('Organization ID is required');
+      }
+
+      console.log('Loading analytics data for organization:', organizationId);
+
+      // Calculate time range for filtering
+      const now = new Date();
+      const timeRangeMs = getTimeRangeMs(timeRange);
+      const startTime = new Date(now.getTime() - timeRangeMs);
+
+      // Fetch metrics from the existing API (API limit is 100)
+      console.log('Fetching metrics for organization:', organizationId);
+      let metricsResponse;
+      try {
+        metricsResponse = await docRouterOrgApi.listMetrics({ limit: 100 });
+        console.log('Metrics response:', metricsResponse);
+        setMetrics(metricsResponse.metrics || []);
+      } catch (metricsError) {
+        console.warn('Failed to fetch metrics:', metricsError);
+        setMetrics([]);
+        metricsResponse = { metrics: [] };
+      }
+
+      // Fetch logs (API limit is 100)
+      console.log('Fetching logs for organization:', organizationId);
+      let logsResponse;
+      try {
+        logsResponse = await docRouterOrgApi.listLogs({ limit: 100 });
+        console.log('Logs response:', logsResponse);
+        setLogs(logsResponse.logs || []);
+      } catch (logsError) {
+        console.warn('Failed to fetch logs:', logsError);
+        setLogs([]);
+        logsResponse = { logs: [] };
+      }
+
+      // Process metrics data with time filtering
+      processMetricsData(metricsResponse.metrics || [], startTime);
+      processLogsData(logsResponse.logs || [], startTime);
+
+      // Check if we have any data at all
+      if ((metricsResponse.metrics || []).length === 0 && (logsResponse.logs || []).length === 0) {
+        console.warn('No telemetry data available for organization:', organizationId);
+      }
+
+    } catch (error) {
+      console.error('Error loading analytics data:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error constructor:', error?.constructor?.name);
+      console.error('Error details:', error);
+      
+      let errorMessage = 'Failed to load analytics data';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        // Handle SDK-specific errors
+        if (error.message === '[object Object]') {
+          errorMessage = 'API request failed. Please check your authentication and try again.';
+        }
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        // Handle API error responses
+        if ('response' in error && error.response) {
+          const apiError = error.response as { data?: { detail?: string; message?: string }; status?: number; statusText?: string };
+          if (apiError.data?.detail) {
+            errorMessage = apiError.data.detail;
+          } else if (apiError.data?.message) {
+            errorMessage = apiError.data.message;
+          } else if (apiError.statusText) {
+            errorMessage = `${apiError.status}: ${apiError.statusText}`;
+          }
+        } else if ('message' in error) {
+          errorMessage = (error as { message: string }).message;
+        } else if ('status' in error) {
+          const statusError = error as { status: number; statusText?: string };
+          errorMessage = `HTTP ${statusError.status}: ${statusError.statusText || 'Request failed'}`;
+        } else {
+          // Try to extract meaningful information from the error object
+          const errorStr = JSON.stringify(error, null, 2);
+          if (errorStr !== '{}') {
+            errorMessage = `API Error: ${errorStr}`;
+          } else {
+            errorMessage = 'Unknown API error occurred. Please check your connection and try again.';
+          }
+        }
+      }
+      
+      setError(errorMessage);
+      
+      // Reset data on error
+      setMetrics([]);
+      setLogs([]);
+      setStats({
+        totalSessions: 0,
+        totalCost: 0,
+        totalTokens: 0,
+        linesOfCode: 0
+      });
+      setCostData([]);
+      setTokenData([]);
+      setToolUsageData([]);
+      setLogEntries([]);
+    } finally {
+      setLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeRange, organizationId, docRouterOrgApi]);
+
+  useEffect(() => {
+    loadAnalyticsData();
+  }, [loadAnalyticsData]);
+
+
+  const getToolUsageDataKeys = (data: TimeSeriesDataPoint[]) => {
+    if (data.length === 0) return [];
+    
+    // Get all unique keys from the data (excluding timestamp)
+    const keys = new Set<string>();
+    data.forEach(point => {
+      Object.keys(point).forEach(key => {
+        if (key !== 'timestamp') {
+          keys.add(key);
+        }
+      });
+    });
+
+    // Define colors for different tools
+    const colors = ['#3b82f6', '#22c55e', '#ef4444', '#f97316', '#a855f7', '#06b6d4', '#84cc16', '#f59e0b'];
+    
+    return Array.from(keys).map((key, index) => ({
+      key,
+      label: key,
+      color: colors[index % colors.length],
+      lineWidth: key.toLowerCase().includes('error') ? 3 : 2
+    }));
+  };
+
+  const handleTimeRangeChange = (_event: React.MouseEvent<HTMLElement>, newTimeRange: TimeRange | null) => {
+    if (newTimeRange !== null) {
+      setTimeRange(newTimeRange);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box className="flex items-center justify-center h-96">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <Typography variant="h4" className="font-bold text-gray-900">
+              Analytics Dashboard
+            </Typography>
+            <Typography variant="body2" className="text-gray-600 mt-1">
+              Monitor usage, costs, and performance metrics
+            </Typography>
+          </div>
+        </div>
+
+        {/* Error State */}
+        <Box className="p-6 bg-red-50 border border-red-200 rounded-lg">
+          <Typography variant="h6" className="text-red-800 font-semibold mb-2">
+            Error Loading Analytics Data
+          </Typography>
+          <Typography variant="body2" className="text-red-700 mb-4">
+            {error}
+          </Typography>
+          <Button 
+            variant="contained" 
+            color="error" 
+            onClick={loadAnalyticsData}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            Retry
+          </Button>
+        </Box>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <Typography variant="h4" className="font-bold text-gray-900">
+            Analytics Dashboard
+          </Typography>
+          <Typography variant="body2" className="text-gray-600 mt-1">
+            Monitor usage, costs, and performance metrics
+          </Typography>
+        </div>
+
+        <ToggleButtonGroup
+          value={timeRange}
+          exclusive
+          onChange={handleTimeRangeChange}
+          size="small"
+        >
+          <ToggleButton value="1h">1 Hour</ToggleButton>
+          <ToggleButton value="6h">6 Hours</ToggleButton>
+          <ToggleButton value="24h">24 Hours</ToggleButton>
+          <ToggleButton value="7d">7 Days</ToggleButton>
+        </ToggleButtonGroup>
+      </div>
+
+      {/* Overview Stats */}
+      <div>
+        <Typography variant="h6" className="font-semibold mb-3">
+          Overview
+        </Typography>
+        {metrics.length === 0 && logs.length === 0 ? (
+          <Box className="p-6 bg-gray-50 rounded-lg text-center">
+            <Typography variant="body2" color="textSecondary">
+              No telemetry data available for the selected time range. Try selecting a different time range or check if telemetry data is being collected.
+            </Typography>
+          </Box>
+        ) : (
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Active Sessions"
+              value={stats.totalSessions}
+              icon={<TrendingUpIcon />}
+              color="blue"
+              unit="sessions"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Total Cost"
+              value={`$${stats.totalCost}`}
+              icon={<MoneyIcon />}
+              color="green"
+              trend={{ value: 12.5, direction: 'up' }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Token Usage"
+              value={stats.totalTokens}
+              icon={<CodeIcon />}
+              color="purple"
+              unit="tokens"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Lines of Code"
+              value={stats.linesOfCode}
+              icon={<PerformanceIcon />}
+              color="orange"
+              unit="lines"
+            />
+          </Grid>
+        </Grid>
+        )}
+      </div>
+
+      {/* Cost & Usage Analysis */}
+      <div>
+        <Typography variant="h6" className="font-semibold mb-3">
+          Cost & Usage Analysis
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            {costData.length > 0 ? (
+              <TimeSeriesChart
+                title="Cost Over Time"
+                data={costData}
+                dataKeys={[
+                  { key: 'cost', label: 'Cost (USD)', color: '#22c55e' }
+                ]}
+                yAxisLabel="USD"
+                showArea
+              />
+            ) : (
+              <Box className="p-6 bg-gray-50 rounded-lg text-center">
+                <Typography variant="body2" color="textSecondary">
+                  No cost data available for the selected time range
+                </Typography>
+              </Box>
+            )}
+          </Grid>
+          <Grid item xs={12} md={6}>
+            {tokenData.length > 0 ? (
+              <TimeSeriesChart
+                title="Token Usage by Type"
+                data={tokenData}
+                dataKeys={[
+                  { key: 'input', label: 'Input', color: '#f97316' },
+                  { key: 'output', label: 'Output', color: '#22c55e' },
+                  { key: 'cacheRead', label: 'Cache Read', color: '#3b82f6', lineWidth: 3 },
+                  { key: 'cacheCreation', label: 'Cache Creation', color: '#a855f7' }
+                ]}
+                yAxisLabel="Tokens"
+              />
+            ) : (
+              <Box className="p-6 bg-gray-50 rounded-lg text-center">
+                <Typography variant="body2" color="textSecondary">
+                  No token data available for the selected time range
+                </Typography>
+              </Box>
+            )}
+          </Grid>
+        </Grid>
+      </div>
+
+      {/* Tool Usage & Performance */}
+      <div>
+        <Typography variant="h6" className="font-semibold mb-3">
+          Tool Usage & Performance
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            {toolUsageData.length > 0 ? (
+            <TimeSeriesChart
+              title="Tool Usage Rate"
+              data={toolUsageData}
+                dataKeys={getToolUsageDataKeys(toolUsageData)}
+              yAxisLabel="Usage Count"
+              height={300}
+            />
+            ) : (
+              <Box className="p-6 bg-gray-50 rounded-lg text-center">
+                <Typography variant="body2" color="textSecondary">
+                  No tool usage data available for the selected time range
+                </Typography>
+              </Box>
+            )}
+          </Grid>
+        </Grid>
+      </div>
+
+      {/* Event Logs */}
+      <div>
+        <Typography variant="h6" className="font-semibold mb-3">
+          Event Logs
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <LogViewer
+              title="Recent Events"
+              logs={logEntries}
+              maxHeight={400}
+            />
+          </Grid>
+        </Grid>
+      </div>
+    </div>
+  );
+};
+
+export default AnalyticsDashboard;
