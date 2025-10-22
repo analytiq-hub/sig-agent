@@ -729,9 +729,9 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                                 </Box>
                               </TableCell>
                               <TableCell sx={{ width: '50%' }}>
-                                <Box display="flex" justifyContent="space-between">
-                                  <strong>Tool</strong>
-                                  <span className="font-mono">{info.toolName}</span>
+                                <Box display="flex" alignItems="flex-start" gap={2}>
+                                  <strong style={{ minWidth: '60px', flexShrink: 0 }}>Tool</strong>
+                                  <span className="font-mono" style={{ wordBreak: 'break-all', lineHeight: '1.4' }}>{info.toolName}</span>
                                 </Box>
                               </TableCell>
                             </TableRow>
