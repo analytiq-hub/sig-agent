@@ -849,8 +849,12 @@ export interface TelemetryTraceResponse {
 export interface TelemetryMetricResponse {
   metric_id: string;
   name: string;
+  description?: string;
+  unit?: string;
   type: string;
+  data_points?: Record<string, unknown>[];
   data_point_count: number;
+  resource?: Record<string, unknown>;
   upload_date: string;
   uploaded_by: string;
   tag_ids: string[];

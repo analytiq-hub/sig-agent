@@ -173,6 +173,79 @@ describe('Telemetry Integration Tests', () => {
       expect(found?.name).toBe('test.metric.counter');
     });
 
+    test('upload and list metrics with enhanced fields', async () => {
+      const now = Date.now() * 1000000;
+      const uniqueId = Date.now().toString();
+
+      const uploaded = await client.uploadMetrics({
+        metrics: [{
+          name: `enhanced.metric.${uniqueId}`,
+          description: 'Enhanced metric with all fields',
+          unit: 'ms',
+          type: 'histogram',
+          data_points: [
+            {
+              timeUnixNano: String(now),
+              value: { asDouble: 100.5 }
+            },
+            {
+              timeUnixNano: String(now + 1000000),
+              value: { asDouble: 200.7 }
+            }
+          ],
+          resource: {
+            attributes: [
+              { key: 'service.name', value: { stringValue: 'enhanced-service' } },
+              { key: 'service.version', value: { stringValue: '1.2.3' } }
+            ]
+          },
+          tag_ids: [],
+          metadata: { 
+            enhanced: 'true',
+            test_id: uniqueId,
+            environment: 'test'
+          }
+        }]
+      });
+
+      // Verify upload response includes all enhanced fields
+      expect(uploaded.metrics[0].description).toBe('Enhanced metric with all fields');
+      expect(uploaded.metrics[0].unit).toBe('ms');
+      expect(uploaded.metrics[0].type).toBe('histogram');
+      expect(uploaded.metrics[0].data_point_count).toBe(2);
+      expect(uploaded.metrics[0].data_points).toBeDefined();
+      expect(uploaded.metrics[0].data_points?.length).toBe(2);
+      expect(uploaded.metrics[0].resource).toBeDefined();
+      expect(uploaded.metrics[0].uploaded_by).toBeDefined();
+      expect(uploaded.metrics[0].upload_date).toBeDefined();
+
+      // Verify data points structure
+      expect(uploaded.metrics[0].data_points?.[0]).toHaveProperty('timeUnixNano');
+      expect(uploaded.metrics[0].data_points?.[0]).toHaveProperty('value');
+      expect(uploaded.metrics[0].data_points?.[0].value).toHaveProperty('asDouble');
+
+      // Verify resource structure
+      expect(uploaded.metrics[0].resource).toHaveProperty('attributes');
+      expect(Array.isArray(uploaded.metrics[0].resource?.attributes)).toBe(true);
+
+      // List metrics and verify enhanced fields are present
+      const listed = await client.listMetrics({ name_search: `enhanced.metric.${uniqueId}` });
+      expect(listed.metrics.length).toBeGreaterThanOrEqual(1);
+      
+      const found = listed.metrics.find(m => m.metric_id === uploaded.metrics[0].metric_id);
+      expect(found).toBeDefined();
+      expect(found?.description).toBe('Enhanced metric with all fields');
+      expect(found?.unit).toBe('ms');
+      expect(found?.type).toBe('histogram');
+      expect(found?.data_point_count).toBe(2);
+      expect(found?.data_points).toBeDefined();
+      expect(found?.data_points?.length).toBe(2);
+      expect(found?.resource).toBeDefined();
+      expect(found?.metadata?.enhanced).toBe('true');
+      expect(found?.metadata?.test_id).toBe(uniqueId);
+      expect(found?.metadata?.environment).toBe('test');
+    });
+
     test('list metrics with name search', async () => {
       const now = Date.now() * 1000000;
       const uniqueId = Date.now().toString();
@@ -257,6 +330,102 @@ describe('Telemetry Integration Tests', () => {
       const found = listed.logs.find(l => l.log_id === uploaded.logs[0].log_id);
       expect(found).toBeDefined();
       expect(found?.body).toBe('Test log message');
+    });
+
+    test('upload and list logs with enhanced fields', async () => {
+      const uniqueId = Date.now().toString();
+      const timestamp = new Date().toISOString();
+      const traceId = `trace${uniqueId.padStart(24, '0')}`;
+      const spanId = `span${uniqueId.padStart(12, '0')}`;
+
+      const uploaded = await client.uploadLogs({
+        logs: [{
+          timestamp,
+          severity: 'ERROR',
+          body: `Enhanced log message ${uniqueId}`,
+          attributes: {
+            'log.level': 'ERROR',
+            'module': 'enhanced-test',
+            'function': 'testFunction',
+            'line_number': '42',
+            'error_code': 'E001',
+            'user_id': 'user123',
+            'session_id': 'session456'
+          },
+          resource: {
+            attributes: [
+              { key: 'service.name', value: { stringValue: 'enhanced-service' } },
+              { key: 'service.version', value: { stringValue: '2.0.0' } },
+              { key: 'deployment.environment', value: { stringValue: 'test' } },
+              { key: 'host.name', value: { stringValue: 'test-host' } }
+            ]
+          },
+          trace_id: traceId,
+          span_id: spanId,
+          tag_ids: [],
+          metadata: { 
+            enhanced: 'true',
+            test_id: uniqueId,
+            category: 'error',
+            source: 'sdk-test'
+          }
+        }]
+      });
+
+      // Verify upload response includes all enhanced fields
+      expect(uploaded.logs[0].log_id).toBeDefined();
+      expect(uploaded.logs[0].body).toBe(`Enhanced log message ${uniqueId}`);
+      expect(uploaded.logs[0].severity).toBe('ERROR');
+      expect(uploaded.logs[0].timestamp).toBeDefined();
+      expect(uploaded.logs[0].attributes).toBeDefined();
+      expect(uploaded.logs[0].resource).toBeDefined();
+      expect(uploaded.logs[0].trace_id).toBe(traceId);
+      expect(uploaded.logs[0].span_id).toBe(spanId);
+      expect(uploaded.logs[0].uploaded_by).toBeDefined();
+      expect(uploaded.logs[0].upload_date).toBeDefined();
+
+      // Verify attributes structure
+      expect(uploaded.logs[0].attributes).toHaveProperty('log.level', 'ERROR');
+      expect(uploaded.logs[0].attributes).toHaveProperty('module', 'enhanced-test');
+      expect(uploaded.logs[0].attributes).toHaveProperty('function', 'testFunction');
+      expect(uploaded.logs[0].attributes).toHaveProperty('line_number', '42');
+      expect(uploaded.logs[0].attributes).toHaveProperty('error_code', 'E001');
+      expect(uploaded.logs[0].attributes).toHaveProperty('user_id', 'user123');
+      expect(uploaded.logs[0].attributes).toHaveProperty('session_id', 'session456');
+
+      // Verify resource structure
+      expect(uploaded.logs[0].resource).toHaveProperty('attributes');
+      expect(Array.isArray(uploaded.logs[0].resource?.attributes)).toBe(true);
+      expect(uploaded.logs[0].resource?.attributes?.length).toBe(4);
+
+      // List logs and verify enhanced fields are present
+      const listed = await client.listLogs({ limit: 100 });
+      const found = listed.logs.find(l => l.log_id === uploaded.logs[0].log_id);
+      
+      expect(found).toBeDefined();
+      expect(found?.body).toBe(`Enhanced log message ${uniqueId}`);
+      expect(found?.severity).toBe('ERROR');
+      expect(found?.attributes).toBeDefined();
+      expect(found?.resource).toBeDefined();
+      expect(found?.trace_id).toBe(traceId);
+      expect(found?.span_id).toBe(spanId);
+      expect(found?.metadata?.enhanced).toBe('true');
+      expect(found?.metadata?.test_id).toBe(uniqueId);
+      expect(found?.metadata?.category).toBe('error');
+      expect(found?.metadata?.source).toBe('sdk-test');
+
+      // Verify attributes are preserved in list response
+      expect(found?.attributes).toHaveProperty('log.level', 'ERROR');
+      expect(found?.attributes).toHaveProperty('module', 'enhanced-test');
+      expect(found?.attributes).toHaveProperty('function', 'testFunction');
+      expect(found?.attributes).toHaveProperty('error_code', 'E001');
+      expect(found?.attributes).toHaveProperty('user_id', 'user123');
+      expect(found?.attributes).toHaveProperty('session_id', 'session456');
+
+      // Verify resource attributes are preserved
+      expect(found?.resource?.attributes?.length).toBe(4);
+      const serviceNameAttr = found?.resource?.attributes?.find((attr: any) => attr.key === 'service.name');
+      expect(serviceNameAttr?.value?.stringValue).toBe('enhanced-service');
     });
 
     test('list logs with severity filter', async () => {
@@ -372,6 +541,164 @@ describe('Telemetry Integration Tests', () => {
       expect(listedTraces.traces.some(t => t.trace_id === traces.traces[0].trace_id)).toBe(true);
       expect(listedMetrics.metrics.some(m => m.metric_id === metrics.metrics[0].metric_id)).toBe(true);
       expect(listedLogs.logs.some(l => l.log_id === logs.logs[0].log_id)).toBe(true);
+    });
+
+    test('upload all telemetry types with enhanced fields and cross-references', async () => {
+      const now = Date.now() * 1000000;
+      const timestamp = new Date().toISOString();
+      const uniqueId = Date.now().toString();
+      const traceId = `mixed${uniqueId.padStart(24, '0')}`;
+      const spanId = `mixed${uniqueId.padStart(12, '0')}`;
+
+      // Upload trace with enhanced fields
+      const traces = await client.uploadTraces({
+        traces: [{
+          resource_spans: [{
+            resource: {
+              attributes: [
+                { key: 'service.name', value: { stringValue: 'mixed-service' } },
+                { key: 'service.version', value: { stringValue: '3.0.0' } }
+              ]
+            },
+            scope_spans: [{
+              scope: { name: 'mixed-scope', version: '1.0.0' },
+              spans: [{
+                traceId,
+                spanId,
+                name: 'mixed-enhanced-span',
+                kind: 1,
+                startTimeUnixNano: String(now),
+                endTimeUnixNano: String(now + 1000000),
+                attributes: [
+                  { key: 'operation.name', value: { stringValue: 'mixed-operation' } },
+                  { key: 'user.id', value: { stringValue: 'user789' } }
+                ]
+              }]
+            }]
+          }],
+          metadata: { 
+            mixed: 'enhanced-trace',
+            test_id: uniqueId,
+            category: 'integration'
+          }
+        }]
+      });
+
+      // Upload metric with enhanced fields and trace reference
+      const metrics = await client.uploadMetrics({
+        metrics: [{
+          name: `mixed.enhanced.metric.${uniqueId}`,
+          description: 'Mixed telemetry enhanced metric',
+          unit: 'ms',
+          type: 'histogram',
+          data_points: [
+            {
+              timeUnixNano: String(now),
+              value: { asDouble: 150.5 }
+            },
+            {
+              timeUnixNano: String(now + 500000),
+              value: { asDouble: 250.3 }
+            }
+          ],
+          resource: {
+            attributes: [
+              { key: 'service.name', value: { stringValue: 'mixed-service' } },
+              { key: 'service.version', value: { stringValue: '3.0.0' } }
+            ]
+          },
+          metadata: { 
+            mixed: 'enhanced-metric',
+            test_id: uniqueId,
+            trace_id: traceId,
+            category: 'integration'
+          }
+        }]
+      });
+
+      // Upload log with enhanced fields and trace/span references
+      const logs = await client.uploadLogs({
+        logs: [{
+          timestamp,
+          severity: 'INFO',
+          body: `Mixed enhanced telemetry test ${uniqueId}`,
+          attributes: {
+            'log.level': 'INFO',
+            'module': 'mixed-integration',
+            'operation': 'mixed-operation',
+            'user_id': 'user789',
+            'trace_id': traceId,
+            'span_id': spanId
+          },
+          resource: {
+            attributes: [
+              { key: 'service.name', value: { stringValue: 'mixed-service' } },
+              { key: 'service.version', value: { stringValue: '3.0.0' } },
+              { key: 'deployment.environment', value: { stringValue: 'integration-test' } }
+            ]
+          },
+          trace_id: traceId,
+          span_id: spanId,
+          metadata: { 
+            mixed: 'enhanced-log',
+            test_id: uniqueId,
+            category: 'integration'
+          }
+        }]
+      });
+
+      // Verify all were uploaded with enhanced fields
+      expect(traces.traces[0].trace_id).toBeDefined();
+      expect(metrics.metrics[0].metric_id).toBeDefined();
+      expect(logs.logs[0].log_id).toBeDefined();
+
+      // Verify enhanced fields in upload responses
+      expect(metrics.metrics[0].description).toBe('Mixed telemetry enhanced metric');
+      expect(metrics.metrics[0].unit).toBe('ms');
+      expect(metrics.metrics[0].type).toBe('histogram');
+      expect(metrics.metrics[0].data_point_count).toBe(2);
+      expect(metrics.metrics[0].data_points).toBeDefined();
+      expect(metrics.metrics[0].resource).toBeDefined();
+
+      expect(logs.logs[0].attributes).toBeDefined();
+      expect(logs.logs[0].resource).toBeDefined();
+      expect(logs.logs[0].trace_id).toBe(traceId);
+      expect(logs.logs[0].span_id).toBe(spanId);
+
+      // Verify all are listable with enhanced fields preserved
+      const listedTraces = await client.listTraces({ limit: 100 });
+      const listedMetrics = await client.listMetrics({ limit: 100 });
+      const listedLogs = await client.listLogs({ limit: 100 });
+
+      const foundTrace = listedTraces.traces.find(t => t.trace_id === traces.traces[0].trace_id);
+      const foundMetric = listedMetrics.metrics.find(m => m.metric_id === metrics.metrics[0].metric_id);
+      const foundLog = listedLogs.logs.find(l => l.log_id === logs.logs[0].log_id);
+
+      expect(foundTrace).toBeDefined();
+      expect(foundMetric).toBeDefined();
+      expect(foundLog).toBeDefined();
+
+      // Verify enhanced fields are preserved in list responses
+      expect(foundMetric?.description).toBe('Mixed telemetry enhanced metric');
+      expect(foundMetric?.unit).toBe('ms');
+      expect(foundMetric?.type).toBe('histogram');
+      expect(foundMetric?.data_point_count).toBe(2);
+      expect(foundMetric?.data_points).toBeDefined();
+      expect(foundMetric?.resource).toBeDefined();
+      expect(foundMetric?.metadata?.test_id).toBe(uniqueId);
+      expect(foundMetric?.metadata?.trace_id).toBe(traceId);
+
+      expect(foundLog?.attributes).toBeDefined();
+      expect(foundLog?.resource).toBeDefined();
+      expect(foundLog?.trace_id).toBe(traceId);
+      expect(foundLog?.span_id).toBe(spanId);
+      expect(foundLog?.attributes).toHaveProperty('trace_id', traceId);
+      expect(foundLog?.attributes).toHaveProperty('span_id', spanId);
+      expect(foundLog?.metadata?.test_id).toBe(uniqueId);
+
+      // Verify cross-references are consistent
+      expect(foundMetric?.metadata?.trace_id).toBe(foundLog?.trace_id);
+      expect(foundLog?.attributes).toHaveProperty('trace_id', foundMetric?.metadata?.trace_id);
     });
   });
 

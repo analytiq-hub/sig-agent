@@ -338,8 +338,22 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
                         </TableCell>
                         <TableCell sx={{ width: '50%' }}>
                           <Box display="flex" justifyContent="space-between">
+                            <strong>Unit</strong>
+                            <span>{selectedMetric.unit || '-'}</span>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell sx={{ width: '50%' }}>
+                          <Box display="flex" justifyContent="space-between">
                             <strong>Uploaded By</strong>
                             <span>{selectedMetric.uploaded_by}</span>
+                          </Box>
+                        </TableCell>
+                        <TableCell sx={{ width: '50%' }}>
+                          <Box display="flex" justifyContent="space-between">
+                            <strong>Metric ID</strong>
+                            <span className="font-mono text-xs">{selectedMetric.metric_id}</span>
                           </Box>
                         </TableCell>
                       </TableRow>

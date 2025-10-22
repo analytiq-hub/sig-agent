@@ -86,8 +86,12 @@ class TelemetryMetricResponse(BaseModel):
     """Response for metric operations"""
     metric_id: str
     name: str
+    description: Optional[str] = Field(None, description="Metric description")
+    unit: Optional[str] = Field(None, description="Metric unit")
     type: str
+    data_points: Optional[List[Dict[str, Any]]] = Field(None, description="Metric data points")
     data_point_count: int
+    resource: Optional[Dict[str, Any]] = Field(None, description="Resource information")
     upload_date: datetime
     uploaded_by: str
     tag_ids: List[str]
@@ -304,14 +308,20 @@ async def upload_telemetry_metrics(
         }
 
         await db.telemetry_metrics.insert_one(metric_metadata)
-        uploaded_metrics.append({
-            "metric_id": metric_id,
-            "name": metric.name,
-            "type": metric.type,
-            "data_point_count": len(metric.data_points),
-            "tag_ids": metric.tag_ids,
-            "metadata": metric.metadata
-        })
+        uploaded_metrics.append(TelemetryMetricResponse(
+            metric_id=metric_id,
+            name=metric.name,
+            description=metric.description,
+            unit=metric.unit,
+            type=metric.type,
+            data_points=metric.data_points,
+            data_point_count=len(metric.data_points),
+            resource=metric.resource,
+            upload_date=metric_metadata["upload_date"],
+            uploaded_by=metric_metadata["uploaded_by"],
+            tag_ids=metric.tag_ids,
+            metadata=metric.metadata
+        ))
 
     return {"metrics": uploaded_metrics}
 
@@ -349,8 +359,12 @@ async def list_telemetry_metrics(
         metrics.append(TelemetryMetricResponse(
             metric_id=metric["metric_id"],
             name=metric["name"],
+            description=metric.get("description"),
+            unit=metric.get("unit"),
             type=metric["type"],
+            data_points=metric.get("data_points"),
             data_point_count=metric["data_point_count"],
+            resource=metric.get("resource"),
             upload_date=metric["upload_date"],
             uploaded_by=metric["uploaded_by"],
             tag_ids=metric["tag_ids"],
