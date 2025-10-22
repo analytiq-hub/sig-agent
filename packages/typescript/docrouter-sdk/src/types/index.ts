@@ -913,25 +913,11 @@ export interface UploadTracesResponse {
 }
 
 export interface UploadMetricsResponse {
-  metrics: Array<{
-    metric_id: string;
-    name: string;
-    type: string;
-    data_point_count: number;
-    tag_ids: string[];
-    metadata?: Record<string, string>;
-  }>;
+  metrics: TelemetryMetricResponse[];
 }
 
 export interface UploadLogsResponse {
-  logs: Array<{
-    log_id: string;
-    timestamp: string;
-    severity?: string;
-    body: string;
-    tag_ids: string[];
-    metadata?: Record<string, string>;
-  }>;
+  logs: TelemetryLogResponse[];
 }
 
 export interface ListTelemetryTracesParams {

@@ -2,7 +2,7 @@ import { DocRouterOrg } from '../../src';
 import { getTestDatabase, getBaseUrl, createTestFixtures } from '../setup/jest-setup';
 
 describe('Telemetry Integration Tests', () => {
-  let testFixtures: any;
+  let testFixtures: { member: { token: string }; org_id: string };
   let client: DocRouterOrg;
 
   beforeEach(async () => {
@@ -98,7 +98,7 @@ describe('Telemetry Integration Tests', () => {
     test('upload traces with tags', async () => {
       // Create a tag first
       const tag = await client.createTag({
-        tag: { name: 'trace-tag', description: 'Tag for traces' }
+        tag: { name: 'trace-tag', description: 'Tag for traces', color: '#FF0000' }
       });
 
       const now = Date.now() * 1000000;
@@ -290,6 +290,103 @@ describe('Telemetry Integration Tests', () => {
         expect(m.data_point_count).toBe(1);
       });
     });
+
+    test('list metrics with timestamp filtering', async () => {
+      const baseTime = new Date();
+      
+      // Upload metrics with small delays to ensure different upload times
+      // Upload old metric first
+      await client.uploadMetrics({
+        metrics: [{
+          name: 'test.metric.old',
+          description: 'Old metric',
+          unit: 'count',
+          type: 'sum',
+          data_points: [{
+            timeUnixNano: String(baseTime.getTime() * 1000000),
+            value: { asInt: 100 }
+          }],
+          metadata: { index: '0' }
+        }]
+      });
+
+      // Wait a bit to ensure different upload time
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Upload recent metric
+      const recentMetric = await client.uploadMetrics({
+        metrics: [{
+          name: 'test.metric.recent',
+          description: 'Recent metric',
+          unit: 'count',
+          type: 'sum',
+          data_points: [{
+            timeUnixNano: String(baseTime.getTime() * 1000000),
+            value: { asInt: 200 }
+          }],
+          metadata: { index: '1' }
+        }]
+      });
+
+      // Wait a bit more
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Upload current metric
+      const currentMetric = await client.uploadMetrics({
+        metrics: [{
+          name: 'test.metric.current',
+          description: 'Current metric',
+          unit: 'count',
+          type: 'sum',
+          data_points: [{
+            timeUnixNano: String(baseTime.getTime() * 1000000),
+            value: { asInt: 300 }
+          }],
+          metadata: { index: '2' }
+        }]
+      });
+
+      // Get the upload time of the recent metric (middle one)
+      const recentUploadTime = new Date(recentMetric.metrics[0].upload_date);
+      
+      // Test timestamp filtering - get metrics from recent upload time onwards
+      const startTime = new Date(recentUploadTime.getTime() - 1000).toISOString(); // 1 second before recent metric
+      const endTime = new Date().toISOString(); // Now
+      
+      const filtered = await client.listMetrics({ 
+        start_time: startTime, 
+        end_time: endTime 
+      });
+      
+      expect(filtered.metrics.length).toBeGreaterThanOrEqual(2); // Should include recent and current metrics
+      
+      // Verify we can find our recent and current metrics
+      const foundRecent = filtered.metrics.find(m => m.metric_id === recentMetric.metrics[0].metric_id);
+      const foundCurrent = filtered.metrics.find(m => m.metric_id === currentMetric.metrics[0].metric_id);
+      
+      expect(foundRecent).toBeDefined();
+      expect(foundCurrent).toBeDefined();
+
+      // Test with only start_time
+      const startOnly = await client.listMetrics({ start_time: startTime });
+      expect(startOnly.metrics.length).toBeGreaterThanOrEqual(2);
+
+      // Test with only end_time
+      const endOnly = await client.listMetrics({ end_time: endTime });
+      expect(endOnly.metrics.length).toBeGreaterThanOrEqual(3); // Should include all metrics
+
+      // Test invalid timestamp format should be handled gracefully by the API
+      // (The API will return a 400 error, which the SDK should handle)
+      try {
+        await client.listMetrics({ start_time: 'invalid-timestamp' });
+        // If we get here, the API didn't validate properly
+        fail('Expected API to return 400 error for invalid timestamp');
+      } catch (error: unknown) {
+        // Expected: API should return 400 for invalid timestamp
+        const httpError = error as { response?: { status: number }; status?: number };
+        expect(httpError.response?.status || httpError.status).toBe(400);
+      }
+    });
   });
 
   describe('Logs', () => {
@@ -424,7 +521,7 @@ describe('Telemetry Integration Tests', () => {
 
       // Verify resource attributes are preserved
       expect(found?.resource?.attributes?.length).toBe(4);
-      const serviceNameAttr = found?.resource?.attributes?.find((attr: any) => attr.key === 'service.name');
+      const serviceNameAttr = found?.resource?.attributes?.find((attr) => attr.key === 'service.name');
       expect(serviceNameAttr?.value?.stringValue).toBe('enhanced-service');
     });
 
@@ -478,6 +575,88 @@ describe('Telemetry Integration Tests', () => {
       const listed = await client.listLogs({ limit: 100 });
       const found = listed.logs.find(l => l.log_id === uploaded.logs[0].log_id);
       expect(found).toBeDefined();
+    });
+
+    test('list logs with timestamp filtering', async () => {
+      const baseTime = new Date();
+      
+      // Upload logs with small delays to ensure different upload times
+      // Upload old log first
+      await client.uploadLogs({
+        logs: [{
+          timestamp: baseTime.toISOString(),
+          severity: 'INFO',
+          body: 'Old log message',
+          metadata: { index: '0' }
+        }]
+      });
+
+      // Wait a bit to ensure different upload time
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Upload recent log
+      const recentLog = await client.uploadLogs({
+        logs: [{
+          timestamp: baseTime.toISOString(),
+          severity: 'INFO',
+          body: 'Recent log message',
+          metadata: { index: '1' }
+        }]
+      });
+
+      // Wait a bit more
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Upload current log
+      const currentLog = await client.uploadLogs({
+        logs: [{
+          timestamp: baseTime.toISOString(),
+          severity: 'INFO',
+          body: 'Current log message',
+          metadata: { index: '2' }
+        }]
+      });
+
+      // Get the upload time of the recent log (middle one)
+      const recentUploadTime = new Date(recentLog.logs[0].upload_date);
+      
+      // Test timestamp filtering - get logs from recent upload time onwards
+      const startTime = new Date(recentUploadTime.getTime() - 1000).toISOString(); // 1 second before recent log
+      const endTime = new Date().toISOString(); // Now
+      
+      const filtered = await client.listLogs({ 
+        start_time: startTime, 
+        end_time: endTime 
+      });
+      
+      expect(filtered.logs.length).toBeGreaterThanOrEqual(2); // Should include recent and current logs
+      
+      // Verify we can find our recent and current logs
+      const foundRecent = filtered.logs.find(l => l.log_id === recentLog.logs[0].log_id);
+      const foundCurrent = filtered.logs.find(l => l.log_id === currentLog.logs[0].log_id);
+      
+      expect(foundRecent).toBeDefined();
+      expect(foundCurrent).toBeDefined();
+
+      // Test with only start_time
+      const startOnly = await client.listLogs({ start_time: startTime });
+      expect(startOnly.logs.length).toBeGreaterThanOrEqual(2);
+
+      // Test with only end_time
+      const endOnly = await client.listLogs({ end_time: endTime });
+      expect(endOnly.logs.length).toBeGreaterThanOrEqual(3); // Should include all logs
+
+      // Test invalid timestamp format should be handled gracefully by the API
+      // (The API will return a 400 error, which the SDK should handle)
+      try {
+        await client.listLogs({ start_time: 'invalid-timestamp' });
+        // If we get here, the API didn't validate properly
+        fail('Expected API to return 400 error for invalid timestamp');
+      } catch (error: unknown) {
+        // Expected: API should return 400 for invalid timestamp
+        const httpError = error as { response?: { status: number }; status?: number };
+        expect(httpError.response?.status || httpError.status).toBe(400);
+      }
     });
   });
 
