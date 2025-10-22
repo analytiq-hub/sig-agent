@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { DocRouterOrgApi } from '@/utils/api';
-import { Box, Typography, Grid, ToggleButton, ToggleButtonGroup, CircularProgress, Button } from '@mui/material';
+import { Box, Typography, Grid, ToggleButton, ToggleButtonGroup, CircularProgress, Button, TextField, Paper } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
   AttachMoney as MoneyIcon,
   Code as CodeIcon,
-  Speed as PerformanceIcon
+  Speed as PerformanceIcon,
+  DateRange as DateRangeIcon,
+  Schedule as ScheduleIcon
 } from '@mui/icons-material';
 import StatCard from './analytics/StatCard';
 import TimeSeriesChart, { TimeSeriesDataPoint } from './analytics/TimeSeriesChart';
@@ -23,7 +25,7 @@ interface TelemetryAnalyticsDashboardProps {
   organizationId: string;
 }
 
-type TimeRange = '1h' | '6h' | '24h' | '7d';
+type TimeRange = '1h' | '6h' | '24h' | '7d' | 'custom';
 
 const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = ({ organizationId }) => {
   const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
@@ -32,6 +34,10 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   const [error, setError] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<TelemetryMetricResponse[]>([]);
   const [logs, setLogs] = useState<TelemetryLogResponse[]>([]);
+  
+  // Custom date range state
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
 
   // Stats state
   const [stats, setStats] = useState({
@@ -55,15 +61,44 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       case '6h': return 6 * 60 * 60 * 1000;
       case '24h': return 24 * 60 * 60 * 1000;
       case '7d': return 7 * 24 * 60 * 60 * 1000;
+      case 'custom': 
+        if (customStartDate && customEndDate) {
+          const start = new Date(customStartDate);
+          const end = new Date(customEndDate);
+          return end.getTime() - start.getTime();
+        }
+        return 60 * 60 * 1000; // fallback to 1h
       default: return 60 * 60 * 1000;
     }
   };
 
-  const processMetricsData = useCallback((metricsData: TelemetryMetricResponse[], startTime: Date) => {
+  // Helper function to format date for datetime-local input
+  const formatDateForInput = (date: Date): string => {
+    return date.toISOString().slice(0, 16);
+  };
+
+
+  // Initialize custom date range with default values
+  useEffect(() => {
+    if (timeRange === 'custom' && !customStartDate && !customEndDate) {
+      const now = new Date();
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const defaultRange = {
+        start: formatDateForInput(yesterday),
+        end: formatDateForInput(now)
+      };
+      setCustomStartDate(defaultRange.start);
+      setCustomEndDate(defaultRange.end);
+    }
+  }, [timeRange, customStartDate, customEndDate]);
+
+  const processMetricsData = useCallback((metricsData: TelemetryMetricResponse[], startTime: Date, endTime?: Date) => {
     // Filter metrics by time range first
     const filteredMetrics = metricsData.filter(metric => {
       const uploadDate = new Date(metric.upload_date);
-      return uploadDate >= startTime;
+      const isAfterStart = uploadDate >= startTime;
+      const isBeforeEnd = endTime ? uploadDate <= endTime : true;
+      return isAfterStart && isBeforeEnd;
     });
 
     // Extract relevant metrics by name patterns (more flexible matching)
@@ -93,7 +128,9 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           const dataPointTime = new Date(timestamp);
           
           // Only include data points within the time range
-          if (dataPointTime >= startTime) {
+          const isAfterStart = dataPointTime >= startTime;
+          const isBeforeEnd = endTime ? dataPointTime <= endTime : true;
+          if (isAfterStart && isBeforeEnd) {
             const value = dp.value?.asDouble || dp.value?.asInt || 0;
             totalSessions += typeof value === 'string' ? parseFloat(value) : value;
           }
@@ -108,7 +145,9 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           const dataPointTime = new Date(timestamp);
           
           // Only include data points within the time range
-          if (dataPointTime >= startTime) {
+          const isAfterStart = dataPointTime >= startTime;
+          const isBeforeEnd = endTime ? dataPointTime <= endTime : true;
+          if (isAfterStart && isBeforeEnd) {
             const value = dp.value?.asDouble || dp.value?.asInt || 0;
             totalCost += typeof value === 'string' ? parseFloat(value) : value;
           }
@@ -123,7 +162,9 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           const dataPointTime = new Date(timestamp);
           
           // Only include data points within the time range
-          if (dataPointTime >= startTime) {
+          const isAfterStart = dataPointTime >= startTime;
+          const isBeforeEnd = endTime ? dataPointTime <= endTime : true;
+          if (isAfterStart && isBeforeEnd) {
             const value = dp.value?.asDouble || dp.value?.asInt || 0;
             totalTokens += typeof value === 'string' ? parseFloat(value) : value;
           }
@@ -138,7 +179,9 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           const dataPointTime = new Date(timestamp);
           
           // Only include data points within the time range
-          if (dataPointTime >= startTime) {
+          const isAfterStart = dataPointTime >= startTime;
+          const isBeforeEnd = endTime ? dataPointTime <= endTime : true;
+          if (isAfterStart && isBeforeEnd) {
             const value = dp.value?.asDouble || dp.value?.asInt || 0;
             linesOfCode += typeof value === 'string' ? parseFloat(value) : value;
           }
@@ -164,7 +207,9 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           const dataPointTime = new Date(timestamp);
           
           // Only include data points within the time range
-          if (dataPointTime >= startTime) {
+          const isAfterStart = dataPointTime >= startTime;
+          const isBeforeEnd = endTime ? dataPointTime <= endTime : true;
+          if (isAfterStart && isBeforeEnd) {
             const value = dp.value?.asDouble || dp.value?.asInt || 0;
             const numValue = typeof value === 'string' ? parseFloat(value) : value;
             
@@ -184,7 +229,9 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           const dataPointTime = new Date(timestamp);
           
           // Only include data points within the time range
-          if (dataPointTime >= startTime) {
+          const isAfterStart = dataPointTime >= startTime;
+          const isBeforeEnd = endTime ? dataPointTime <= endTime : true;
+          if (isAfterStart && isBeforeEnd) {
             const value = dp.value?.asDouble || dp.value?.asInt || 0;
             const numValue = typeof value === 'string' ? parseFloat(value) : value;
 
@@ -215,18 +262,20 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     setTokenData(tokenTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp)));
 
     // Process tool usage data from real metrics
-    const toolData: TimeSeriesDataPoint[] = processToolUsageData(filteredMetrics, startTime);
+    const toolData: TimeSeriesDataPoint[] = processToolUsageData(filteredMetrics, startTime, endTime);
     setToolUsageData(toolData);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const processLogsData = useCallback((logsData: TelemetryLogResponse[], startTime: Date) => {
+  const processLogsData = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date) => {
     const entries: LogEntry[] = logsData
       .filter(log => log.body)
       .filter(log => {
         // Filter logs by time range
         const logTime = new Date(log.timestamp);
-        return logTime >= startTime;
+        const isAfterStart = logTime >= startTime;
+        const isBeforeEnd = endTime ? logTime <= endTime : true;
+        return isAfterStart && isBeforeEnd;
       })
       .map(log => {
         // Determine log level from severity field
@@ -278,7 +327,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     setLogEntries(entries);
   }, []);
 
-  const processToolUsageData = useCallback((metricsData: TelemetryMetricResponse[], startTime: Date): TimeSeriesDataPoint[] => {
+  const processToolUsageData = useCallback((metricsData: TelemetryMetricResponse[], startTime: Date, endTime?: Date): TimeSeriesDataPoint[] => {
     // Look for tool-related metrics
     const toolMetrics = metricsData.filter(m => 
       m.name && (
@@ -303,7 +352,9 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           const dataPointTime = new Date(timestamp);
           
           // Only include data points within the time range
-          if (dataPointTime >= startTime) {
+          const isAfterStart = dataPointTime >= startTime;
+          const isBeforeEnd = endTime ? dataPointTime <= endTime : true;
+          if (isAfterStart && isBeforeEnd) {
             const value = dp.value?.asDouble || dp.value?.asInt || 0;
             const numValue = typeof value === 'string' ? parseFloat(value) : value;
             
@@ -363,9 +414,24 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       console.log('Loading analytics data for organization:', organizationId);
 
       // Calculate time range for filtering
-      const now = new Date();
-      const timeRangeMs = getTimeRangeMs(timeRange);
-      const startTime = new Date(now.getTime() - timeRangeMs);
+      let startTime: Date;
+      let endTime: Date;
+      
+      if (timeRange === 'custom' && customStartDate && customEndDate) {
+        // Convert local time to UTC for comparison with UTC metrics
+        startTime = new Date(customStartDate);
+        endTime = new Date(customEndDate);
+        
+        // The datetime-local input gives us local time, but we need to ensure
+        // we're comparing with UTC timestamps from the metrics
+        console.log('Custom date range - Local start:', customStartDate, 'UTC start:', startTime.toISOString());
+        console.log('Custom date range - Local end:', customEndDate, 'UTC end:', endTime.toISOString());
+      } else {
+        const now = new Date();
+        const timeRangeMs = getTimeRangeMs(timeRange);
+        startTime = new Date(now.getTime() - timeRangeMs);
+        endTime = now;
+      }
 
       // Fetch metrics from the existing API (API limit is 100)
       console.log('Fetching metrics for organization:', organizationId);
@@ -394,8 +460,8 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       }
 
       // Process metrics data with time filtering
-      processMetricsData(metricsResponse.metrics || [], startTime);
-      processLogsData(logsResponse.logs || [], startTime);
+      processMetricsData(metricsResponse.metrics || [], startTime, endTime);
+      processLogsData(logsResponse.logs || [], startTime, endTime);
 
       // Check if we have any data at all
       if ((metricsResponse.metrics || []).length === 0 && (logsResponse.logs || []).length === 0) {
@@ -464,7 +530,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeRange, organizationId, docRouterOrgApi]);
+  }, [timeRange, organizationId, docRouterOrgApi, customStartDate, customEndDate]);
 
   useEffect(() => {
     loadAnalyticsData();
@@ -498,6 +564,26 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   const handleTimeRangeChange = (_event: React.MouseEvent<HTMLElement>, newTimeRange: TimeRange | null) => {
     if (newTimeRange !== null) {
       setTimeRange(newTimeRange);
+      
+      // Initialize custom date range if switching to custom
+      if (newTimeRange === 'custom' && !customStartDate && !customEndDate) {
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const defaultRange = {
+          start: formatDateForInput(yesterday),
+          end: formatDateForInput(now)
+        };
+        setCustomStartDate(defaultRange.start);
+        setCustomEndDate(defaultRange.end);
+      }
+    }
+  };
+
+  const handleCustomDateChange = (field: 'start' | 'end', value: string) => {
+    if (field === 'start') {
+      setCustomStartDate(value);
+    } else {
+      setCustomEndDate(value);
     }
   };
 
@@ -558,17 +644,56 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           </Typography>
         </div>
 
-        <ToggleButtonGroup
-          value={timeRange}
-          exclusive
-          onChange={handleTimeRangeChange}
-          size="small"
-        >
-          <ToggleButton value="1h">1 Hour</ToggleButton>
-          <ToggleButton value="6h">6 Hours</ToggleButton>
-          <ToggleButton value="24h">24 Hours</ToggleButton>
-          <ToggleButton value="7d">7 Days</ToggleButton>
-        </ToggleButtonGroup>
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <ToggleButtonGroup
+            value={timeRange}
+            exclusive
+            onChange={handleTimeRangeChange}
+            size="small"
+          >
+            <ToggleButton value="1h">1 Hour</ToggleButton>
+            <ToggleButton value="6h">6 Hours</ToggleButton>
+            <ToggleButton value="24h">24 Hours</ToggleButton>
+            <ToggleButton value="7d">7 Days</ToggleButton>
+            <ToggleButton value="custom">
+              <DateRangeIcon className="mr-1" />
+              Custom
+            </ToggleButton>
+          </ToggleButtonGroup>
+          
+          {timeRange === 'custom' && (
+            <Paper className="p-4 bg-gray-50 border border-gray-200">
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="flex items-center gap-2">
+                  <ScheduleIcon className="text-gray-600" />
+                  <Typography variant="body2" className="text-gray-700 font-medium">
+                    Custom Date Range:
+                  </Typography>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <TextField
+                    label="Start Date & Time"
+                    type="datetime-local"
+                    value={customStartDate}
+                    onChange={(e) => handleCustomDateChange('start', e.target.value)}
+                    size="small"
+                    InputLabelProps={{ shrink: true }}
+                    className="min-w-[200px]"
+                  />
+                  <TextField
+                    label="End Date & Time"
+                    type="datetime-local"
+                    value={customEndDate}
+                    onChange={(e) => handleCustomDateChange('end', e.target.value)}
+                    size="small"
+                    InputLabelProps={{ shrink: true }}
+                    className="min-w-[200px]"
+                  />
+                </div>
+              </div>
+            </Paper>
+          )}
+        </div>
       </div>
 
       {/* Overview Stats */}
