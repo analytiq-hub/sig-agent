@@ -485,7 +485,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   }, [getToolColor]);
 
   const processCostDataFromLogs = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date): TimeSeriesDataPoint[] => {
-
     const detectedModels: Set<string> = new Set();
     const costEntries: Array<{ timestamp: number; model: string; cost: number }> = [];
 
@@ -592,7 +591,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         const now = new Date();
         const timeRangeMs = getTimeRangeMs(timeRange);
         startTime = new Date(now.getTime() - timeRangeMs);
-        endTime = now;
+        endTime = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Add 24 hour buffer to include recent logs
       }
 
       // Fetch metrics using date range filtering (API limit is 100)
