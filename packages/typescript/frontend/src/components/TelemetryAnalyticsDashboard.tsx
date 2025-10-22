@@ -219,7 +219,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   }, [timeRange, customStartDate, customEndDate]);
 
   const processMetricsData = useCallback((metricsData: TelemetryMetricResponse[], startTime: Date, endTime?: Date) => {
-    // Don't filter by upload_date - filter by actual data point timestamps instead
+    // Metrics are already filtered by timestamp on the server side
     const filteredMetrics = metricsData;
 
     // Extract relevant metrics by name patterns (more flexible matching)
@@ -566,10 +566,14 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         endTime = now;
       }
 
-      // Fetch metrics from the existing API (API limit is 100)
+      // Fetch metrics using date range filtering (API limit is 100)
       let metricsResponse;
       try {
-        metricsResponse = await docRouterOrgApi.listMetrics({ limit: 100 });
+        metricsResponse = await docRouterOrgApi.listMetrics({ 
+          limit: 100,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString()
+        });
         setMetrics(metricsResponse.metrics || []);
       } catch (metricsError) {
         console.warn('Failed to fetch metrics:', metricsError);
@@ -577,10 +581,14 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         metricsResponse = { metrics: [] };
       }
 
-      // Fetch logs (API limit is 100)
+      // Fetch logs using date range filtering (API limit is 100)
       let logsResponse;
       try {
-        logsResponse = await docRouterOrgApi.listLogs({ limit: 100 });
+        logsResponse = await docRouterOrgApi.listLogs({ 
+          limit: 100,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString()
+        });
         setLogs(logsResponse.logs || []);
       } catch (logsError) {
         console.warn('Failed to fetch logs:', logsError);
