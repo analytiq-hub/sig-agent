@@ -699,27 +699,27 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
             <ToggleButton value="6h">6 Hours</ToggleButton>
             <ToggleButton value="24h">24 Hours</ToggleButton>
             <ToggleButton value="7d">7 Days</ToggleButton>
-            <ToggleButton value="custom">
-              <DateRangeIcon className="mr-1" />
-              Custom
-            </ToggleButton>
+            {timeRange !== 'custom' && (
+              <ToggleButton value="custom">
+                <DateRangeIcon className="mr-1" />
+                Custom
+              </ToggleButton>
+            )}
           </ToggleButtonGroup>
           
           {timeRange === 'custom' && (
-            <Paper className="p-3 bg-blue-50 border border-blue-200 flex items-center gap-3">
-              <ScheduleIcon className="text-blue-600" />
-              <div className="flex flex-col">
-                <Typography variant="body2" className="text-blue-800 font-medium">
-                  Custom Range
-                </Typography>
-                <Typography variant="caption" className="text-blue-600">
+            <Paper className="flex items-center gap-3 px-3 py-2 border border-gray-300 bg-white" style={{ height: '32px' }}>
+              <ScheduleIcon className="text-gray-600" />
+              <div className="flex flex-col justify-center">
+                <Typography variant="caption" className="text-gray-600 leading-none">
                   {formatDateRangeForDisplay(customStartDate, customEndDate)}
                 </Typography>
               </div>
               <IconButton 
                 size="small" 
                 onClick={handleEditCustomDateRange}
-                className="text-blue-600 hover:bg-blue-100"
+                className="text-gray-600 hover:bg-gray-100"
+                style={{ padding: '4px' }}
               >
                 <EditIcon fontSize="small" />
               </IconButton>
