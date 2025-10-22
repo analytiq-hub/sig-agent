@@ -6,7 +6,8 @@ import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip
 export interface BarChartDataPoint {
   name: string;
   value: number;
-  [key: string]: string | number;
+  color?: string;
+  [key: string]: string | number | undefined;
 }
 
 export interface BarChartProps {
@@ -17,6 +18,7 @@ export interface BarChartProps {
   yAxisLabel?: string;
   color?: string;
   height?: number;
+  horizontal?: boolean;
 }
 
 const BarChart: React.FC<BarChartProps> = ({
@@ -66,9 +68,12 @@ const BarChart: React.FC<BarChartProps> = ({
               formatter={(value: number) => [value, dataKey]}
               labelFormatter={(label: string) => `Tool: ${label}`}
             />
-            <Bar dataKey={dataKey} radius={[4, 4, 0, 0]}>
+            <Bar dataKey={dataKey} radius={[4, 4, 0, 0]} maxBarSize={60}>
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={entry.color ? String(entry.color) : colors[index % colors.length]} 
+                />
               ))}
             </Bar>
           </RechartsBarChart>

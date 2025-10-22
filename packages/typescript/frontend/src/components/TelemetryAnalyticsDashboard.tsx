@@ -61,7 +61,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
   // Tool usage state
   const [toolUsageData, setToolUsageData] = useState<BarChartDataPoint[]>([]);
-  const [toolAverageDuration, setToolAverageDuration] = useState<Record<string, number>>({});
+  const [toolAverageDuration, setToolAverageDuration] = useState<BarChartDataPoint[]>([]);
 
   // Time series data
   const [costData, setCostData] = useState<TimeSeriesDataPoint[]>([]);
@@ -377,7 +377,27 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     return tokenTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
   }, []);
 
-  const processToolUsageFromLogs = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date): { usageData: BarChartDataPoint[], averageDuration: Record<string, number> } => {
+  // Shared color palette for consistent tool coloring across charts
+  const getToolColor = useCallback((toolName: string, allTools: string[]): string => {
+    const colors = [
+      '#3b82f6', // blue
+      '#10b981', // emerald
+      '#f59e0b', // amber
+      '#ef4444', // red
+      '#8b5cf6', // violet
+      '#06b6d4', // cyan
+      '#84cc16', // lime
+      '#f97316', // orange
+      '#ec4899', // pink
+      '#6b7280'  // gray
+    ];
+    
+    const sortedTools = [...allTools].sort();
+    const toolIndex = sortedTools.indexOf(toolName);
+    return colors[toolIndex % colors.length];
+  }, []);
+
+  const processToolUsageFromLogs = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date): { usageData: BarChartDataPoint[], averageDuration: BarChartDataPoint[] } => {
     const toolUsageCounts: Record<string, number> = {};
     const toolDurations: Record<string, number[]> = {};
 
@@ -435,25 +455,34 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       }
     });
 
+    // Get all tool names for consistent color mapping
+    const allToolNames = Object.keys(toolUsageCounts);
+
     // Convert to bar chart data format
     const usageData: BarChartDataPoint[] = Object.entries(toolUsageCounts)
       .map(([toolName, count]) => ({
         name: toolName.replace('mcp__docrouter__', ''), // Clean up tool names
         value: count,
-        fullName: toolName
+        fullName: toolName,
+        color: getToolColor(toolName, allToolNames)
       }))
       .sort((a, b) => b.value - a.value); // Sort by usage count descending
 
-    // Calculate average durations
-    const averageDuration: Record<string, number> = {};
-    Object.entries(toolDurations).forEach(([toolName, durations]) => {
-      const avg = durations.reduce((sum, duration) => sum + duration, 0) / durations.length;
-      averageDuration[toolName] = Math.round(avg);
-    });
+    // Calculate average durations and convert to bar chart data format
+    const averageDurationData: BarChartDataPoint[] = Object.entries(toolDurations)
+      .map(([toolName, durations]) => {
+        const avg = durations.reduce((sum, duration) => sum + duration, 0) / durations.length;
+        return {
+          name: toolName.replace('mcp__docrouter__', ''), // Clean up tool names
+          value: Math.round(avg),
+          fullName: toolName,
+          color: getToolColor(toolName, allToolNames)
+        };
+      })
+      .sort((a, b) => b.value - a.value); // Sort by duration descending
 
-
-    return { usageData, averageDuration };
-  }, []);
+    return { usageData, averageDuration: averageDurationData };
+  }, [getToolColor]);
 
   const processCostDataFromLogs = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date): TimeSeriesDataPoint[] => {
 
@@ -1151,7 +1180,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           Tool Usage Analysis
         </Typography>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={8}>
+          <Grid item xs={12} md={6}>
             {toolUsageData.length > 0 ? (
               <BarChart
                 title="Tool Usage Count"
@@ -1169,34 +1198,23 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
               </Box>
             )}
           </Grid>
-          <Grid item xs={12} md={4}>
-            <Box className="p-6 bg-white rounded-lg shadow-sm border">
-              <Typography variant="h6" className="font-semibold mb-4">
-                Average Duration
-              </Typography>
-              {Object.keys(toolAverageDuration).length > 0 ? (
-                <div className="space-y-3">
-                  {Object.entries(toolAverageDuration)
-                    .sort(([, a], [, b]) => b - a) // Sort by duration descending
-                    .map(([toolName, avgDuration]) => (
-                      <div key={toolName} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <Typography variant="body2" className="font-medium text-gray-900">
-                            {toolName.replace('mcp__docrouter__', '')}
-                          </Typography>
-                        </div>
-                        <Typography variant="body2" className="text-gray-600">
-                          {avgDuration}ms
-                        </Typography>
-                      </div>
-                    ))}
-                </div>
-              ) : (
+          <Grid item xs={12} md={6}>
+            {toolAverageDuration.length > 0 ? (
+              <BarChart
+                title="Average Duration"
+                data={toolAverageDuration}
+                dataKey="value"
+                xAxisLabel="Tools"
+                yAxisLabel="Duration (ms)"
+                height={400}
+              />
+            ) : (
+              <Box className="p-6 bg-gray-50 rounded-lg text-center">
                 <Typography variant="body2" color="textSecondary">
-                  No duration data available
+                  No duration data available for the selected time range
                 </Typography>
-              )}
-            </Box>
+              </Box>
+            )}
           </Grid>
         </Grid>
       </div>
