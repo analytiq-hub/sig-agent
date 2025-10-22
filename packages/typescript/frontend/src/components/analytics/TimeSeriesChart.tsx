@@ -41,7 +41,13 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     return data.map(point => ({
       ...point,
       timestamp: typeof point.timestamp === 'number'
-        ? new Date(point.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+        ? new Date(point.timestamp).toLocaleString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true
+          })
         : point.timestamp
     }));
   }, [data]);
