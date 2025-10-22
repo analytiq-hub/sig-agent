@@ -377,7 +377,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                     </TableCell>
                     <TableCell sx={{ width: '50%' }}>
                       <Box display="flex" justifyContent="space-between">
-                        <strong>Upload Date</strong>
+                        <strong>Timestamp</strong>
                         <span>{formatLocalDateWithTZ(log.upload_date, true)}</span>
                       </Box>
                     </TableCell>

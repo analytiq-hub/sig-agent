@@ -361,7 +361,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
                     <TableCell sx={{ width: '50%' }}>{metric.uploaded_by}</TableCell>
                   </TableRow>
                   <TableRow sx={{ backgroundColor: 'action.hover' }}>
-                    <TableCell sx={{ width: '50%' }}>Upload Date</TableCell>
+                    <TableCell sx={{ width: '50%' }}>Timestamp</TableCell>
                     <TableCell sx={{ width: '50%' }}>
                       {formatLocalDateWithTZ(metric.upload_date, true)}
                     </TableCell>
@@ -575,7 +575,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
     },
     {
       field: 'upload_date',
-      headerName: 'Upload Date',
+      headerName: 'Timestamp',
       width: 180,
       filterable: true,
       filterOperators: [
@@ -794,7 +794,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
                         </TableCell>
                         <TableCell sx={{ width: '50%' }}>
                           <Box display="flex" justifyContent="space-between">
-                            <strong>Upload Date</strong>
+                            <strong>Timestamp</strong>
                             <span>{formatLocalDateWithTZ(selectedMetric.upload_date, true)}</span>
                           </Box>
                         </TableCell>
