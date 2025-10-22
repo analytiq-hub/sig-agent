@@ -12,6 +12,12 @@ import {
 import StatCard from './analytics/StatCard';
 import TimeSeriesChart, { TimeSeriesDataPoint } from './analytics/TimeSeriesChart';
 import LogViewer, { LogEntry } from './analytics/LogViewer';
+import { 
+  DataPoint, 
+  ResourceAttribute, 
+  TelemetryMetricResponse, 
+  TelemetryLogResponse 
+} from '@docrouter/sdk';
 
 interface TelemetryAnalyticsDashboardProps {
   organizationId: string;
@@ -19,69 +25,13 @@ interface TelemetryAnalyticsDashboardProps {
 
 type TimeRange = '1h' | '6h' | '24h' | '7d';
 
-// Telemetry data interfaces
-interface TelemetryDataPoint {
-  timeUnixNano: string;
-  value?: {
-    asDouble?: number;
-    asInt?: string | number;
-  };
-  count?: string;
-  sum?: number;
-  bucket_counts?: string[];
-  explicit_bounds?: number[];
-}
-
-interface TelemetryResourceAttribute {
-  key: string;
-  value: {
-    stringValue?: string;
-    intValue?: number;
-    boolValue?: boolean;
-  };
-}
-
-interface TelemetryResource {
-  attributes?: TelemetryResourceAttribute[];
-}
-
-interface TelemetryMetric {
-  metric_id: string;
-  name: string;
-  description?: string;
-  unit?: string;
-  type: string;
-  data_points?: TelemetryDataPoint[];
-  data_point_count: number;
-  resource?: TelemetryResource;
-  upload_date: string;
-  uploaded_by: string;
-  tag_ids: string[];
-  metadata?: Record<string, string>;
-}
-
-interface TelemetryLog {
-  log_id: string;
-  timestamp: string;
-  severity?: string;
-  body: string;
-  attributes?: Record<string, unknown>;
-  resource?: TelemetryResource;
-  trace_id?: string;
-  span_id?: string;
-  upload_date: string;
-  uploaded_by: string;
-  tag_ids: string[];
-  metadata?: Record<string, string>;
-}
-
 const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = ({ organizationId }) => {
   const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [timeRange, setTimeRange] = useState<TimeRange>('1h');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [metrics, setMetrics] = useState<TelemetryMetric[]>([]);
-  const [logs, setLogs] = useState<TelemetryLog[]>([]);
+  const [metrics, setMetrics] = useState<TelemetryMetricResponse[]>([]);
+  const [logs, setLogs] = useState<TelemetryLogResponse[]>([]);
 
   // Stats state
   const [stats, setStats] = useState({
@@ -109,7 +59,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     }
   };
 
-  const processMetricsData = useCallback((metricsData: TelemetryMetric[], startTime: Date) => {
+  const processMetricsData = useCallback((metricsData: TelemetryMetricResponse[], startTime: Date) => {
     // Filter metrics by time range first
     const filteredMetrics = metricsData.filter(metric => {
       const uploadDate = new Date(metric.upload_date);
@@ -138,7 +88,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     sessionMetrics.forEach(metric => {
       if (metric.data_points && Array.isArray(metric.data_points)) {
-        metric.data_points.forEach((dp: TelemetryDataPoint) => {
+        metric.data_points.forEach((dp: DataPoint) => {
           const value = dp.value?.asDouble || dp.value?.asInt || 0;
           totalSessions += typeof value === 'string' ? parseFloat(value) : value;
         });
@@ -147,7 +97,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     costMetrics.forEach(metric => {
       if (metric.data_points && Array.isArray(metric.data_points)) {
-        metric.data_points.forEach((dp: TelemetryDataPoint) => {
+        metric.data_points.forEach((dp: DataPoint) => {
           const value = dp.value?.asDouble || dp.value?.asInt || 0;
           totalCost += typeof value === 'string' ? parseFloat(value) : value;
         });
@@ -156,7 +106,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     tokenMetrics.forEach(metric => {
       if (metric.data_points && Array.isArray(metric.data_points)) {
-        metric.data_points.forEach((dp: TelemetryDataPoint) => {
+        metric.data_points.forEach((dp: DataPoint) => {
           const value = dp.value?.asDouble || dp.value?.asInt || 0;
           totalTokens += typeof value === 'string' ? parseFloat(value) : value;
         });
@@ -165,7 +115,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     locMetrics.forEach(metric => {
       if (metric.data_points && Array.isArray(metric.data_points)) {
-        metric.data_points.forEach((dp: TelemetryDataPoint) => {
+        metric.data_points.forEach((dp: DataPoint) => {
           const value = dp.value?.asDouble || dp.value?.asInt || 0;
           linesOfCode += typeof value === 'string' ? parseFloat(value) : value;
         });
@@ -185,7 +135,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     costMetrics.forEach(metric => {
       if (metric.data_points && Array.isArray(metric.data_points)) {
-        metric.data_points.forEach((dp: TelemetryDataPoint) => {
+        metric.data_points.forEach((dp: DataPoint) => {
           const timestamp = parseInt(dp.timeUnixNano) / 1000000;
           const dataPointTime = new Date(timestamp);
           
@@ -205,7 +155,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     tokenMetrics.forEach(metric => {
       if (metric.data_points && Array.isArray(metric.data_points)) {
-        metric.data_points.forEach((dp: TelemetryDataPoint) => {
+        metric.data_points.forEach((dp: DataPoint) => {
           const timestamp = parseInt(dp.timeUnixNano) / 1000000;
           const dataPointTime = new Date(timestamp);
           
@@ -217,7 +167,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
             // Get the type from resource attributes if available
             let type = 'total';
             if (metric.resource?.attributes && Array.isArray(metric.resource.attributes)) {
-              const typeAttr = metric.resource.attributes.find((attr: TelemetryResourceAttribute) => attr.key === 'type');
+              const typeAttr = metric.resource.attributes.find((attr: ResourceAttribute) => attr.key === 'type');
               if (typeAttr?.value?.stringValue) {
                 type = typeAttr.value.stringValue;
               }
@@ -246,7 +196,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const processLogsData = useCallback((logsData: TelemetryLog[], startTime: Date) => {
+  const processLogsData = useCallback((logsData: TelemetryLogResponse[], startTime: Date) => {
     const entries: LogEntry[] = logsData
       .filter(log => log.body)
       .filter(log => {
@@ -275,7 +225,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         // Extract metadata from resource attributes
         const metadata: Record<string, unknown> = {};
         if (log.resource?.attributes && Array.isArray(log.resource.attributes)) {
-          log.resource.attributes.forEach((attr: TelemetryResourceAttribute) => {
+          log.resource.attributes.forEach((attr: ResourceAttribute) => {
             if (attr.value?.stringValue) {
               metadata[attr.key] = attr.value.stringValue;
             } else if (attr.value?.intValue !== undefined) {
@@ -304,7 +254,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     setLogEntries(entries);
   }, []);
 
-  const processToolUsageData = useCallback((metricsData: TelemetryMetric[], startTime: Date): TimeSeriesDataPoint[] => {
+  const processToolUsageData = useCallback((metricsData: TelemetryMetricResponse[], startTime: Date): TimeSeriesDataPoint[] => {
     // Look for tool-related metrics
     const toolMetrics = metricsData.filter(m => 
       m.name && (
@@ -324,7 +274,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     toolMetrics.forEach(metric => {
       if (metric.data_points && Array.isArray(metric.data_points)) {
-        metric.data_points.forEach((dp: TelemetryDataPoint) => {
+        metric.data_points.forEach((dp: DataPoint) => {
           const timestamp = parseInt(dp.timeUnixNano) / 1000000;
           const dataPointTime = new Date(timestamp);
           
