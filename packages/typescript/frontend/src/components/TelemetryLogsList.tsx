@@ -54,6 +54,8 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
@@ -69,7 +71,9 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       const response = await docRouterOrgApi.listLogs({
         skip: page * pageSize,
         limit: pageSize,
-        severity: severityFilter || undefined
+        severity: severityFilter || undefined,
+        start_time: startDate || undefined,
+        end_time: endDate || undefined
       });
       setLogs(response.logs);
       setTotal(response.total);
@@ -79,7 +83,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, severityFilter, docRouterOrgApi]);
+  }, [page, pageSize, severityFilter, startDate, endDate, docRouterOrgApi]);
 
   const loadTags = useCallback(async () => {
     try {
@@ -140,7 +144,9 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
           const response = await docRouterOrgApi.listLogs({
             skip: nextPage * pageSize,
             limit: pageSize,
-            severity: severityFilter || undefined
+            severity: severityFilter || undefined,
+            start_time: startDate || undefined,
+            end_time: endDate || undefined
           });
           
           if (response.logs.length > 0) {
@@ -171,7 +177,9 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
           const response = await docRouterOrgApi.listLogs({
             skip: prevPage * pageSize,
             limit: pageSize,
-            severity: severityFilter || undefined
+            severity: severityFilter || undefined,
+            start_time: startDate || undefined,
+            end_time: endDate || undefined
           });
           
           if (response.logs.length > 0) {
@@ -565,37 +573,70 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
 
   return (
     <div className="w-full">
-      <div className="mb-4 flex gap-4">
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Search logs by message or trace ID..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Severity</InputLabel>
-          <Select
-            value={severityFilter}
-            label="Severity"
-            onChange={(e) => setSeverityFilter(e.target.value)}
+      <div className="mb-4 space-y-4">
+        <div className="flex gap-4">
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Search logs by message or trace ID..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Severity</InputLabel>
+            <Select
+              value={severityFilter}
+              label="Severity"
+              onChange={(e) => setSeverityFilter(e.target.value)}
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="TRACE">TRACE</MenuItem>
+              <MenuItem value="DEBUG">DEBUG</MenuItem>
+              <MenuItem value="INFO">INFO</MenuItem>
+              <MenuItem value="WARN">WARN</MenuItem>
+              <MenuItem value="ERROR">ERROR</MenuItem>
+              <MenuItem value="FATAL">FATAL</MenuItem>
+            </Select>
+          </FormControl>
+        </div>
+        <div className="flex gap-4">
+          <TextField
+            size="small"
+            label="Start Date"
+            type="datetime-local"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            sx={{ minWidth: 200 }}
+          />
+          <TextField
+            size="small"
+            label="End Date"
+            type="datetime-local"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            sx={{ minWidth: 200 }}
+          />
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => {
+              setStartDate('');
+              setEndDate('');
+            }}
+            sx={{ minWidth: 100 }}
           >
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="TRACE">TRACE</MenuItem>
-            <MenuItem value="DEBUG">DEBUG</MenuItem>
-            <MenuItem value="INFO">INFO</MenuItem>
-            <MenuItem value="WARN">WARN</MenuItem>
-            <MenuItem value="ERROR">ERROR</MenuItem>
-            <MenuItem value="FATAL">FATAL</MenuItem>
-          </Select>
-        </FormControl>
+            Clear Dates
+          </Button>
+        </div>
       </div>
 
       {message && (

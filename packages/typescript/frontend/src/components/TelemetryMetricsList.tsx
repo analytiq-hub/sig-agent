@@ -36,6 +36,8 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
@@ -51,7 +53,9 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
       const response = await docRouterOrgApi.listMetrics({
         skip: page * pageSize,
         limit: pageSize,
-        name_search: searchTerm || undefined
+        name_search: searchTerm || undefined,
+        start_time: startDate || undefined,
+        end_time: endDate || undefined
       });
       setMetrics(response.metrics);
       setTotal(response.total);
@@ -61,7 +65,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, searchTerm, docRouterOrgApi]);
+  }, [page, pageSize, searchTerm, startDate, endDate, docRouterOrgApi]);
 
   const loadTags = useCallback(async () => {
     try {
@@ -122,7 +126,9 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
           const response = await docRouterOrgApi.listMetrics({
             skip: nextPage * pageSize,
             limit: pageSize,
-            name_search: searchTerm || undefined
+            name_search: searchTerm || undefined,
+            start_time: startDate || undefined,
+            end_time: endDate || undefined
           });
           
           if (response.metrics.length > 0) {
@@ -153,7 +159,9 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
           const response = await docRouterOrgApi.listMetrics({
             skip: prevPage * pageSize,
             limit: pageSize,
-            name_search: searchTerm || undefined
+            name_search: searchTerm || undefined,
+            start_time: startDate || undefined,
+            end_time: endDate || undefined
           });
           
           if (response.metrics.length > 0) {
@@ -462,21 +470,54 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
 
   return (
     <div className="w-full">
-      <div className="mb-4">
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Search metrics by name..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
+      <div className="mb-4 space-y-4">
+        <div className="flex gap-4">
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Search metrics by name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </div>
+        <div className="flex gap-4">
+          <TextField
+            size="small"
+            label="Start Date"
+            type="datetime-local"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            sx={{ minWidth: 200 }}
+          />
+          <TextField
+            size="small"
+            label="End Date"
+            type="datetime-local"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            sx={{ minWidth: 200 }}
+          />
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => {
+              setStartDate('');
+              setEndDate('');
+            }}
+            sx={{ minWidth: 100 }}
+          >
+            Clear Dates
+          </Button>
+        </div>
       </div>
 
       {message && (
