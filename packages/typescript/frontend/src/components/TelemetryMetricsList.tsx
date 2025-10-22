@@ -105,11 +105,77 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
     setSelectedTab(0);
   };
 
-  const handleNavigateMetric = (direction: 'prev' | 'next') => {
+  const handleNavigateMetric = async (direction: 'prev' | 'next') => {
     if (selectedMetricIndex === -1) return;
     
     const newIndex = direction === 'prev' ? selectedMetricIndex - 1 : selectedMetricIndex + 1;
     
+    // Check if we need to load a different page
+    if (direction === 'next' && newIndex >= metrics.length) {
+      // We're at the end of current page, load next page
+      const nextPage = page + 1;
+      const totalPages = Math.ceil(total / pageSize);
+      
+      if (nextPage < totalPages) {
+        try {
+          setIsLoading(true);
+          const response = await docRouterOrgApi.listMetrics({
+            skip: nextPage * pageSize,
+            limit: pageSize,
+            name_search: searchTerm || undefined
+          });
+          
+          if (response.metrics.length > 0) {
+            // Load the first element of the next page
+            setPage(nextPage);
+            setMetrics(response.metrics);
+            setTotal(response.total);
+            setSelectedMetric(response.metrics[0]);
+            setSelectedMetricIndex(0);
+          }
+        } catch (error) {
+          const errorMsg = getApiErrorMsg(error) || 'Error loading next page';
+          setMessage('Error: ' + errorMsg);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+      return;
+    }
+    
+    if (direction === 'prev' && newIndex < 0) {
+      // We're at the beginning of current page, load previous page
+      const prevPage = page - 1;
+      
+      if (prevPage >= 0) {
+        try {
+          setIsLoading(true);
+          const response = await docRouterOrgApi.listMetrics({
+            skip: prevPage * pageSize,
+            limit: pageSize,
+            name_search: searchTerm || undefined
+          });
+          
+          if (response.metrics.length > 0) {
+            // Load the last element of the previous page
+            setPage(prevPage);
+            setMetrics(response.metrics);
+            setTotal(response.total);
+            const lastIndex = response.metrics.length - 1;
+            setSelectedMetric(response.metrics[lastIndex]);
+            setSelectedMetricIndex(lastIndex);
+          }
+        } catch (error) {
+          const errorMsg = getApiErrorMsg(error) || 'Error loading previous page';
+          setMessage('Error: ' + errorMsg);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+      return;
+    }
+    
+    // Normal navigation within current page
     if (newIndex >= 0 && newIndex < metrics.length) {
       const newMetric = metrics[newIndex];
       setSelectedMetric(newMetric);
@@ -464,13 +530,13 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
             <Typography variant="h6">Telemetry Metric Details</Typography>
             <Box display="flex" alignItems="center" gap={1}>
               <Typography variant="body2" color="text.secondary">
-                {selectedMetricIndex + 1} of {metrics.length}
+                {page * pageSize + selectedMetricIndex + 1} of {total}
               </Typography>
               <Tooltip title="Previous metric">
                 <IconButton
                   size="small"
                   onClick={() => handleNavigateMetric('prev')}
-                  disabled={selectedMetricIndex <= 0}
+                  disabled={page === 0 && selectedMetricIndex <= 0}
                   sx={{
                     boxShadow: 2,
                     backgroundColor: 'background.paper',
@@ -494,7 +560,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
                 <IconButton
                   size="small"
                   onClick={() => handleNavigateMetric('next')}
-                  disabled={selectedMetricIndex >= metrics.length - 1}
+                  disabled={page * pageSize + selectedMetricIndex >= total - 1}
                   sx={{
                     boxShadow: 2,
                     backgroundColor: 'background.paper',

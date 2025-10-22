@@ -123,11 +123,77 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
     setSelectedTab(0);
   };
 
-  const handleNavigateLog = (direction: 'prev' | 'next') => {
+  const handleNavigateLog = async (direction: 'prev' | 'next') => {
     if (selectedLogIndex === -1) return;
     
     const newIndex = direction === 'prev' ? selectedLogIndex - 1 : selectedLogIndex + 1;
     
+    // Check if we need to load a different page
+    if (direction === 'next' && newIndex >= filteredLogs.length) {
+      // We're at the end of current page, load next page
+      const nextPage = page + 1;
+      const totalPages = Math.ceil(total / pageSize);
+      
+      if (nextPage < totalPages) {
+        try {
+          setIsLoading(true);
+          const response = await docRouterOrgApi.listLogs({
+            skip: nextPage * pageSize,
+            limit: pageSize,
+            severity: severityFilter || undefined
+          });
+          
+          if (response.logs.length > 0) {
+            // Load the first element of the next page
+            setPage(nextPage);
+            setLogs(response.logs);
+            setTotal(response.total);
+            setSelectedLog(response.logs[0]);
+            setSelectedLogIndex(0);
+          }
+        } catch (error) {
+          const errorMsg = getApiErrorMsg(error) || 'Error loading next page';
+          setMessage('Error: ' + errorMsg);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+      return;
+    }
+    
+    if (direction === 'prev' && newIndex < 0) {
+      // We're at the beginning of current page, load previous page
+      const prevPage = page - 1;
+      
+      if (prevPage >= 0) {
+        try {
+          setIsLoading(true);
+          const response = await docRouterOrgApi.listLogs({
+            skip: prevPage * pageSize,
+            limit: pageSize,
+            severity: severityFilter || undefined
+          });
+          
+          if (response.logs.length > 0) {
+            // Load the last element of the previous page
+            setPage(prevPage);
+            setLogs(response.logs);
+            setTotal(response.total);
+            const lastIndex = response.logs.length - 1;
+            setSelectedLog(response.logs[lastIndex]);
+            setSelectedLogIndex(lastIndex);
+          }
+        } catch (error) {
+          const errorMsg = getApiErrorMsg(error) || 'Error loading previous page';
+          setMessage('Error: ' + errorMsg);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+      return;
+    }
+    
+    // Normal navigation within current page
     if (newIndex >= 0 && newIndex < filteredLogs.length) {
       const newLog = filteredLogs[newIndex];
       setSelectedLog(newLog);
@@ -583,13 +649,13 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
             <Typography variant="h6">Telemetry Log Details</Typography>
             <Box display="flex" alignItems="center" gap={1}>
               <Typography variant="body2" color="text.secondary">
-                {selectedLogIndex + 1} of {filteredLogs.length}
+                {page * pageSize + selectedLogIndex + 1} of {total}
               </Typography>
               <Tooltip title="Previous log">
                 <IconButton
                   size="small"
                   onClick={() => handleNavigateLog('prev')}
-                  disabled={selectedLogIndex <= 0}
+                  disabled={page === 0 && selectedLogIndex <= 0}
                   sx={{
                     boxShadow: 2,
                     backgroundColor: 'background.paper',
@@ -613,7 +679,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                 <IconButton
                   size="small"
                   onClick={() => handleNavigateLog('next')}
-                  disabled={selectedLogIndex >= filteredLogs.length - 1}
+                  disabled={page * pageSize + selectedLogIndex >= total - 1}
                   sx={{
                     boxShadow: 2,
                     backgroundColor: 'background.paper',
