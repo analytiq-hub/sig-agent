@@ -89,8 +89,14 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     sessionMetrics.forEach(metric => {
       if (metric.data_points && Array.isArray(metric.data_points)) {
         metric.data_points.forEach((dp: DataPoint) => {
-          const value = dp.value?.asDouble || dp.value?.asInt || 0;
-          totalSessions += typeof value === 'string' ? parseFloat(value) : value;
+          const timestamp = parseInt(dp.timeUnixNano) / 1000000;
+          const dataPointTime = new Date(timestamp);
+          
+          // Only include data points within the time range
+          if (dataPointTime >= startTime) {
+            const value = dp.value?.asDouble || dp.value?.asInt || 0;
+            totalSessions += typeof value === 'string' ? parseFloat(value) : value;
+          }
         });
       }
     });
@@ -98,8 +104,14 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     costMetrics.forEach(metric => {
       if (metric.data_points && Array.isArray(metric.data_points)) {
         metric.data_points.forEach((dp: DataPoint) => {
-          const value = dp.value?.asDouble || dp.value?.asInt || 0;
-          totalCost += typeof value === 'string' ? parseFloat(value) : value;
+          const timestamp = parseInt(dp.timeUnixNano) / 1000000;
+          const dataPointTime = new Date(timestamp);
+          
+          // Only include data points within the time range
+          if (dataPointTime >= startTime) {
+            const value = dp.value?.asDouble || dp.value?.asInt || 0;
+            totalCost += typeof value === 'string' ? parseFloat(value) : value;
+          }
         });
       }
     });
@@ -107,8 +119,14 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     tokenMetrics.forEach(metric => {
       if (metric.data_points && Array.isArray(metric.data_points)) {
         metric.data_points.forEach((dp: DataPoint) => {
-          const value = dp.value?.asDouble || dp.value?.asInt || 0;
-          totalTokens += typeof value === 'string' ? parseFloat(value) : value;
+          const timestamp = parseInt(dp.timeUnixNano) / 1000000;
+          const dataPointTime = new Date(timestamp);
+          
+          // Only include data points within the time range
+          if (dataPointTime >= startTime) {
+            const value = dp.value?.asDouble || dp.value?.asInt || 0;
+            totalTokens += typeof value === 'string' ? parseFloat(value) : value;
+          }
         });
       }
     });
@@ -116,8 +134,14 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     locMetrics.forEach(metric => {
       if (metric.data_points && Array.isArray(metric.data_points)) {
         metric.data_points.forEach((dp: DataPoint) => {
-          const value = dp.value?.asDouble || dp.value?.asInt || 0;
-          linesOfCode += typeof value === 'string' ? parseFloat(value) : value;
+          const timestamp = parseInt(dp.timeUnixNano) / 1000000;
+          const dataPointTime = new Date(timestamp);
+          
+          // Only include data points within the time range
+          if (dataPointTime >= startTime) {
+            const value = dp.value?.asDouble || dp.value?.asInt || 0;
+            linesOfCode += typeof value === 'string' ? parseFloat(value) : value;
+          }
         });
       }
     });
