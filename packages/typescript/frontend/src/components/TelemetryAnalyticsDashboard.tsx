@@ -268,6 +268,15 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
               }
             }
 
+            // Debug: Log token metric details
+            console.log('Token metric:', {
+              name: metric.name,
+              type: type,
+              value: numValue,
+              resourceAttributes: metric.resource?.attributes,
+              timestamp: new Date(timestamp).toISOString()
+            });
+
             const existing = tokenTimeSeries.find(t => t.timestamp === timestamp);
             if (existing) {
               existing[type] = numValue;
@@ -283,6 +292,19 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     });
 
     setCostData(costTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp)));
+    
+    // Debug: Log token data to understand what types are available
+    console.log('Token time series data:', tokenTimeSeries);
+    const tokenTypes = new Set<string>();
+    tokenTimeSeries.forEach(point => {
+      Object.keys(point).forEach(key => {
+        if (key !== 'timestamp') {
+          tokenTypes.add(key);
+        }
+      });
+    });
+    console.log('Available token types:', Array.from(tokenTypes));
+    
     setTokenData(tokenTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp)));
 
     // Process tool usage data from real metrics
@@ -585,6 +607,54 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     }));
   };
 
+  const getTokenUsageDataKeys = (data: TimeSeriesDataPoint[]) => {
+    if (data.length === 0) return [];
+    
+    // Get all unique keys from the data (excluding timestamp)
+    const keys = new Set<string>();
+    data.forEach(point => {
+      Object.keys(point).forEach(key => {
+        if (key !== 'timestamp') {
+          keys.add(key);
+        }
+      });
+    });
+
+    // Define colors and labels for different token types
+    const tokenTypeConfig: Record<string, { label: string; color: string; lineWidth?: number }> = {
+      'input': { label: 'Input Tokens', color: '#f97316' },
+      'output': { label: 'Output Tokens', color: '#22c55e' },
+      'cacheRead': { label: 'Cache Read', color: '#3b82f6', lineWidth: 3 },
+      'cacheCreation': { label: 'Cache Creation', color: '#a855f7' },
+      'total': { label: 'Total Tokens', color: '#ef4444' },
+      'prompt': { label: 'Prompt Tokens', color: '#f59e0b' },
+      'completion': { label: 'Completion Tokens', color: '#06b6d4' }
+    };
+
+    // Default colors for unknown token types
+    const defaultColors = ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#84cc16'];
+    
+    return Array.from(keys).map((key, index) => {
+      const config = tokenTypeConfig[key];
+      if (config) {
+        return {
+          key,
+          label: config.label,
+          color: config.color,
+          lineWidth: config.lineWidth || 2
+        };
+      } else {
+        // For unknown token types, use default styling
+        return {
+          key,
+          label: key.charAt(0).toUpperCase() + key.slice(1) + ' Tokens',
+          color: defaultColors[index % defaultColors.length],
+          lineWidth: 2
+        };
+      }
+    });
+  };
+
   const handleTimeRangeChange = (_event: React.MouseEvent<HTMLElement>, newTimeRange: TimeRange | null) => {
     if (newTimeRange !== null) {
       if (newTimeRange === 'custom') {
@@ -811,12 +881,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
               <TimeSeriesChart
                 title="Token Usage by Type"
                 data={tokenData}
-                dataKeys={[
-                  { key: 'input', label: 'Input', color: '#f97316' },
-                  { key: 'output', label: 'Output', color: '#22c55e' },
-                  { key: 'cacheRead', label: 'Cache Read', color: '#3b82f6', lineWidth: 3 },
-                  { key: 'cacheCreation', label: 'Cache Creation', color: '#a855f7' }
-                ]}
+                dataKeys={getTokenUsageDataKeys(tokenData)}
                 yAxisLabel="Tokens"
               />
             ) : (
