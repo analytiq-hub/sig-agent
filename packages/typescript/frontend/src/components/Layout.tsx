@@ -86,11 +86,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [open, isClient]);
 
   const fileMenuItems = [
-    { text: 'Documents', icon: ListBulletIcon, tooltip: 'Documents', href: `/orgs/${currentOrganization?.id}/docs`},
-    { text: 'Tags', icon: LocalOfferIcon, tooltip: 'Tags', href: `/orgs/${currentOrganization?.id}/tags`},
-    { text: 'Schemas', icon: SchemaIcon, tooltip: 'Schemas', href: `/orgs/${currentOrganization?.id}/schemas`},
-    { text: 'Prompts', icon: PromptIcon, tooltip: 'Prompts', href: `/orgs/${currentOrganization?.id}/prompts`},
-    { text: 'Forms', icon: FormsIcon, tooltip: 'Forms', href: `/orgs/${currentOrganization?.id}/forms`},
+    // { text: 'Documents', icon: ListBulletIcon, tooltip: 'Documents', href: `/orgs/${currentOrganization?.id}/docs`},
+    // { text: 'Tags', icon: LocalOfferIcon, tooltip: 'Tags', href: `/orgs/${currentOrganization?.id}/tags`},
+    // { text: 'Schemas', icon: SchemaIcon, tooltip: 'Schemas', href: `/orgs/${currentOrganization?.id}/schemas`},
+    // { text: 'Prompts', icon: PromptIcon, tooltip: 'Prompts', href: `/orgs/${currentOrganization?.id}/prompts`},
+    // { text: 'Forms', icon: FormsIcon, tooltip: 'Forms', href: `/orgs/${currentOrganization?.id}/forms`},
     { text: 'Analytics', icon: AnalyticsIcon, tooltip: 'Analytics Dashboard', href: `/orgs/${currentOrganization?.id}/analytics`},
     { text: 'Telemetry', icon: TelemetryIcon, tooltip: 'Telemetry', href: `/orgs/${currentOrganization?.id}/telemetry`},
   ];
