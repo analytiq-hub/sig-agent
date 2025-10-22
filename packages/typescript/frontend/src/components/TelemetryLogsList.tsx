@@ -453,14 +453,14 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
         const decision = info.decision;
         if (decision && decision !== '-') {
           const color = decision === 'accept' ? 'success' : decision === 'reject' ? 'error' : 'default';
-          return (
-            <Chip
+        return (
+          <Chip
               label={decision}
-              size="small"
+            size="small"
               color={color as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'}
-              sx={{ height: '20px', fontSize: '0.75rem' }}
-            />
-          );
+            sx={{ height: '20px', fontSize: '0.75rem' }}
+          />
+        );
         }
         return <span className="text-sm">-</span>;
       }
@@ -561,7 +561,13 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
           },
           '& .MuiDataGrid-row': {
             cursor: 'pointer',
-          }
+          },
+          '& .MuiDataGrid-row:nth-of-type(odd)': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+          },
+          '& .MuiDataGrid-row:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+          },
         }}
       />
 

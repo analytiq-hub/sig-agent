@@ -170,7 +170,13 @@ const TelemetryTracesList: React.FC<{ organizationId: string }> = ({ organizatio
         sx={{
           '& .MuiDataGrid-cell': {
             padding: '8px',
-          }
+          },
+          '& .MuiDataGrid-row:nth-of-type(odd)': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+          },
+          '& .MuiDataGrid-row:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+          },
         }}
       />
     </div>

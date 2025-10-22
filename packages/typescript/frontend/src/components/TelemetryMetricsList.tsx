@@ -442,7 +442,13 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
           },
           '& .MuiDataGrid-row': {
             cursor: 'pointer',
-          }
+          },
+          '& .MuiDataGrid-row:nth-of-type(odd)': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+          },
+          '& .MuiDataGrid-row:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+          },
         }}
       />
 
