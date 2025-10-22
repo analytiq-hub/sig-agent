@@ -436,14 +436,20 @@ async def upload_telemetry_logs(
         }
 
         await db.telemetry_logs.insert_one(log_metadata)
-        uploaded_logs.append({
-            "log_id": log_id,
-            "timestamp": log.timestamp,
-            "severity": log.severity,
-            "body": log.body,
-            "tag_ids": log.tag_ids,
-            "metadata": log.metadata
-        })
+        uploaded_logs.append(TelemetryLogResponse(
+            log_id=log_id,
+            timestamp=log.timestamp,
+            severity=log.severity,
+            body=log.body,
+            attributes=log.attributes,
+            resource=log.resource,
+            trace_id=log.trace_id,
+            span_id=log.span_id,
+            upload_date=log_metadata["upload_date"],
+            uploaded_by=log_metadata["uploaded_by"],
+            tag_ids=log.tag_ids,
+            metadata=log.metadata
+        ))
 
     return {"logs": uploaded_logs}
 
