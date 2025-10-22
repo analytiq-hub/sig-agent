@@ -1,11 +1,11 @@
 'use client'
 
-import AnalyticsDashboard from '@/components/AnalyticsDashboard';
+import TelemetryAnalyticsDashboard from '@/components/TelemetryAnalyticsDashboard';
 
 const AnalyticsPage: React.FC<{ params: { organizationId: string } }> = ({ params }) => {
   return (
     <div className="container mx-auto p-4">
-      <AnalyticsDashboard organizationId={params.organizationId} />
+      <TelemetryAnalyticsDashboard organizationId={params.organizationId} />
     </div>
   );
 };

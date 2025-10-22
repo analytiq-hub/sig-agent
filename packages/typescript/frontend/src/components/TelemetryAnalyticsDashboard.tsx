@@ -13,7 +13,7 @@ import StatCard from './analytics/StatCard';
 import TimeSeriesChart, { TimeSeriesDataPoint } from './analytics/TimeSeriesChart';
 import LogViewer, { LogEntry } from './analytics/LogViewer';
 
-interface AnalyticsDashboardProps {
+interface TelemetryAnalyticsDashboardProps {
   organizationId: string;
 }
 
@@ -75,7 +75,7 @@ interface TelemetryLog {
   metadata?: Record<string, string>;
 }
 
-const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationId }) => {
+const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = ({ organizationId }) => {
   const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
   const [timeRange, setTimeRange] = useState<TimeRange>('1h');
   const [loading, setLoading] = useState(true);
@@ -744,4 +744,4 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationId 
   );
 };
 
-export default AnalyticsDashboard;
+export default TelemetryAnalyticsDashboard;
