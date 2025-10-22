@@ -5,7 +5,7 @@ import pytest
 import grpc
 from bson import ObjectId
 import os
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timedelta
 import logging
 import asyncio
 
@@ -349,6 +349,157 @@ async def test_list_metrics_http(test_db, mock_auth, setup_test_models):
 
     logger.info("test_list_metrics_http() completed successfully")
 
+
+@pytest.mark.asyncio
+async def test_list_metrics_with_timestamp_filtering(test_db, mock_auth, setup_test_models):
+    """Test listing metrics with timestamp filtering via FastAPI HTTP endpoint"""
+    logger.info("test_list_metrics_with_timestamp_filtering() start")
+
+    # Create metrics with different upload dates by uploading them at different times
+    base_time = datetime.now(UTC)
+    
+    # Upload old metric first (2 hours ago)
+    old_time = base_time - timedelta(hours=2)
+    old_metric_data = {
+        "metrics": [{
+            "name": "test.metric.old",
+            "description": "Old metric",
+            "unit": "count",
+            "type": "sum",
+            "data_points": [{
+                "timeUnixNano": str(int(old_time.timestamp() * 1_000_000_000)),
+                "value": {"asInt": 100}
+            }],
+            "tag_ids": [],
+            "metadata": {"index": "0"}
+        }]
+    }
+    
+    # Manually set upload_date to old_time by directly inserting into database
+    # since the API always uses current time for upload_date
+    upload_response = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics",
+        json=old_metric_data,
+        headers=get_auth_headers()
+    )
+    assert upload_response.status_code == 200
+    
+    # Update the upload_date in the database to simulate old upload
+    import analytiq_data as ad
+    db = ad.common.get_async_db()
+    old_metric_id = upload_response.json()["metrics"][0]["metric_id"]
+    await db.telemetry_metrics.update_one(
+        {"metric_id": old_metric_id},
+        {"$set": {"upload_date": old_time}}
+    )
+    
+    # Upload recent metric (30 minutes ago)
+    recent_time = base_time - timedelta(minutes=30)
+    recent_metric_data = {
+        "metrics": [{
+            "name": "test.metric.recent",
+            "description": "Recent metric", 
+            "unit": "count",
+            "type": "sum",
+            "data_points": [{
+                "timeUnixNano": str(int(recent_time.timestamp() * 1_000_000_000)),
+                "value": {"asInt": 200}
+            }],
+            "tag_ids": [],
+            "metadata": {"index": "1"}
+        }]
+    }
+    
+    upload_response = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics",
+        json=recent_metric_data,
+        headers=get_auth_headers()
+    )
+    assert upload_response.status_code == 200
+    
+    # Update the upload_date in the database to simulate recent upload
+    recent_metric_id = upload_response.json()["metrics"][0]["metric_id"]
+    await db.telemetry_metrics.update_one(
+        {"metric_id": recent_metric_id},
+        {"$set": {"upload_date": recent_time}}
+    )
+    
+    # Upload current metric (now)
+    current_metric_data = {
+        "metrics": [{
+            "name": "test.metric.current",
+            "description": "Current metric",
+            "unit": "count", 
+            "type": "sum",
+            "data_points": [{
+                "timeUnixNano": str(int(base_time.timestamp() * 1_000_000_000)),
+                "value": {"asInt": 300}
+            }],
+            "tag_ids": [],
+            "metadata": {"index": "2"}
+        }]
+    }
+    
+    upload_response = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics",
+        json=current_metric_data,
+        headers=get_auth_headers()
+    )
+    assert upload_response.status_code == 200
+    
+    # Update the upload_date in the database to ensure it matches base_time
+    current_metric_id = upload_response.json()["metrics"][0]["metric_id"]
+    await db.telemetry_metrics.update_one(
+        {"metric_id": current_metric_id},
+        {"$set": {"upload_date": base_time}}
+    )
+
+    # Test timestamp filtering - get metrics from last hour only
+    start_time = (base_time - timedelta(hours=1)).isoformat()
+    end_time = base_time.isoformat()
+    
+    # URL encode the timestamps to handle +00:00 timezone
+    import urllib.parse
+    start_time_encoded = urllib.parse.quote(start_time, safe='')
+    end_time_encoded = urllib.parse.quote(end_time, safe='')
+    
+    filtered_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics?start_time={start_time_encoded}&end_time={end_time_encoded}",
+        headers=get_auth_headers()
+    )
+    assert filtered_response.status_code == 200
+    filtered_data = filtered_response.json()
+    assert "metrics" in filtered_data
+    assert len(filtered_data["metrics"]) >= 2  # Should include recent and current metrics
+
+    # Test with only start_time
+    start_only_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics?start_time={start_time_encoded}",
+        headers=get_auth_headers()
+    )
+    assert start_only_response.status_code == 200
+    start_only_data = start_only_response.json()
+    assert len(start_only_data["metrics"]) >= 2
+
+    # Test with only end_time
+    end_only_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics?end_time={end_time_encoded}",
+        headers=get_auth_headers()
+    )
+    assert end_only_response.status_code == 200
+    end_only_data = end_only_response.json()
+    assert len(end_only_data["metrics"]) >= 3  # Should include all metrics
+
+    # Test invalid timestamp format
+    invalid_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/metrics?start_time=invalid-timestamp",
+        headers=get_auth_headers()
+    )
+    assert invalid_response.status_code == 400
+    assert "Invalid start_time format" in invalid_response.json()["detail"]
+
+    logger.info("test_list_metrics_with_timestamp_filtering() completed successfully")
+
 @pytest.mark.asyncio
 async def test_upload_logs_http(test_db, mock_auth, setup_test_models):
     """Test uploading logs via FastAPI HTTP endpoint"""
@@ -466,6 +617,93 @@ async def test_list_logs_http(test_db, mock_auth, setup_test_models):
             assert log["severity"] == "ERROR"
 
     logger.info("test_list_logs_http() completed successfully")
+
+
+@pytest.mark.asyncio
+async def test_list_logs_with_timestamp_filtering(test_db, mock_auth, setup_test_models):
+    """Test listing logs with timestamp filtering via FastAPI HTTP endpoint"""
+    logger.info("test_list_logs_with_timestamp_filtering() start")
+
+    # Create logs with different timestamps
+    base_time = datetime.now(UTC)
+    log_data = {
+        "logs": [
+            {
+                "timestamp": (base_time - timedelta(hours=2)).isoformat(),
+                "severity": "INFO",
+                "body": "Old log message",
+                "tag_ids": [],
+                "metadata": {"index": "0"}
+            },
+            {
+                "timestamp": (base_time - timedelta(minutes=30)).isoformat(),
+                "severity": "INFO", 
+                "body": "Recent log message",
+                "tag_ids": [],
+                "metadata": {"index": "1"}
+            },
+            {
+                "timestamp": base_time.isoformat(),
+                "severity": "INFO",
+                "body": "Current log message", 
+                "tag_ids": [],
+                "metadata": {"index": "2"}
+            }
+        ]
+    }
+
+    upload_response = client.post(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs",
+        json=log_data,
+        headers=get_auth_headers()
+    )
+    assert upload_response.status_code == 200
+
+    # Test timestamp filtering - get logs from last hour only
+    start_time = (base_time - timedelta(hours=1)).isoformat()
+    end_time = base_time.isoformat()
+    
+    # URL encode the timestamps to handle +00:00 timezone
+    import urllib.parse
+    start_time_encoded = urllib.parse.quote(start_time, safe='')
+    end_time_encoded = urllib.parse.quote(end_time, safe='')
+    
+    filtered_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs?start_time={start_time_encoded}&end_time={end_time_encoded}",
+        headers=get_auth_headers()
+    )
+    assert filtered_response.status_code == 200
+    filtered_data = filtered_response.json()
+    assert "logs" in filtered_data
+    assert len(filtered_data["logs"]) >= 2  # Should include recent and current logs
+
+    # Test with only start_time
+    start_only_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs?start_time={start_time_encoded}",
+        headers=get_auth_headers()
+    )
+    assert start_only_response.status_code == 200
+    start_only_data = start_only_response.json()
+    assert len(start_only_data["logs"]) >= 2
+
+    # Test with only end_time
+    end_only_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs?end_time={end_time_encoded}",
+        headers=get_auth_headers()
+    )
+    assert end_only_response.status_code == 200
+    end_only_data = end_only_response.json()
+    assert len(end_only_data["logs"]) >= 3  # Should include all logs
+
+    # Test invalid timestamp format
+    invalid_response = client.get(
+        f"/v0/orgs/{TEST_ORG_ID}/telemetry/logs?start_time=invalid-timestamp",
+        headers=get_auth_headers()
+    )
+    assert invalid_response.status_code == 400
+    assert "Invalid start_time format" in invalid_response.json()["detail"]
+
+    logger.info("test_list_logs_with_timestamp_filtering() completed successfully")
 
 @pytest.mark.asyncio
 async def test_telemetry_with_tags(test_db, mock_auth, setup_test_models):

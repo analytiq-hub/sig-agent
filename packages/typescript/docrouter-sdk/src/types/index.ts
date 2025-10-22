@@ -953,6 +953,8 @@ export interface ListTelemetryMetricsParams {
   limit?: number;
   tag_ids?: string; // Comma-separated list of tag IDs
   name_search?: string;
+  start_time?: string; // Start time in UTC ISO format (e.g., 2025-10-22T15:00:00.000Z)
+  end_time?: string; // End time in UTC ISO format (e.g., 2025-10-22T16:00:00.000Z)
 }
 
 export interface ListTelemetryMetricsResponse {
@@ -967,6 +969,8 @@ export interface ListTelemetryLogsParams {
   limit?: number;
   tag_ids?: string; // Comma-separated list of tag IDs
   severity?: string;
+  start_time?: string; // Start time in UTC ISO format (e.g., 2025-10-22T15:00:00.000Z)
+  end_time?: string; // End time in UTC ISO format (e.g., 2025-10-22T16:00:00.000Z)
 }
 
 export interface ListTelemetryLogsResponse {

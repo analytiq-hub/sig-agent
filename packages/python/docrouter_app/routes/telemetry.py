@@ -332,6 +332,8 @@ async def list_telemetry_metrics(
     limit: int = Query(10, ge=1, le=100),
     tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
     name_search: str = Query(None, description="Search term for metric names"),
+    start_time: str = Query(None, description="Start time in UTC ISO format (e.g., 2025-10-22T15:00:00.000Z)"),
+    end_time: str = Query(None, description="End time in UTC ISO format (e.g., 2025-10-22T16:00:00.000Z)"),
     current_user: User = Depends(get_org_user)
 ):
     """List OpenTelemetry metrics"""
@@ -347,6 +349,29 @@ async def list_telemetry_metrics(
 
     if name_search:
         query["name"] = {"$regex": name_search, "$options": "i"}
+
+    # Add timestamp filtering
+    if start_time or end_time:
+        timestamp_query = {}
+        if start_time:
+            try:
+                start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                timestamp_query["$gte"] = start_dt
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid start_time format. Use ISO format like '2025-10-22T15:00:00.000Z'"
+                )
+        if end_time:
+            try:
+                end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+                timestamp_query["$lte"] = end_dt
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid end_time format. Use ISO format like '2025-10-22T16:00:00.000Z'"
+                )
+        query["upload_date"] = timestamp_query
 
     # Get total count
     total = await db.telemetry_metrics.count_documents(query)
@@ -460,6 +485,8 @@ async def list_telemetry_logs(
     limit: int = Query(10, ge=1, le=100),
     tag_ids: str = Query(None, description="Comma-separated list of tag IDs"),
     severity: str = Query(None, description="Filter by log severity"),
+    start_time: str = Query(None, description="Start time in UTC ISO format (e.g., 2025-10-22T15:00:00.000Z)"),
+    end_time: str = Query(None, description="End time in UTC ISO format (e.g., 2025-10-22T16:00:00.000Z)"),
     current_user: User = Depends(get_org_user)
 ):
     """List OpenTelemetry logs"""
@@ -475,6 +502,29 @@ async def list_telemetry_logs(
 
     if severity:
         query["severity"] = severity
+
+    # Add timestamp filtering
+    if start_time or end_time:
+        timestamp_query = {}
+        if start_time:
+            try:
+                start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                timestamp_query["$gte"] = start_dt
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid start_time format. Use ISO format like '2025-10-22T15:00:00.000Z'"
+                )
+        if end_time:
+            try:
+                end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+                timestamp_query["$lte"] = end_dt
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid end_time format. Use ISO format like '2025-10-22T16:00:00.000Z'"
+                )
+        query["timestamp"] = timestamp_query
 
     # Get total count
     total = await db.telemetry_logs.count_documents(query)

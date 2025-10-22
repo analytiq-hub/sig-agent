@@ -516,6 +516,8 @@ export class DocRouterOrg {
     };
     if (params?.tag_ids) queryParams.tag_ids = params.tag_ids;
     if (params?.name_search) queryParams.name_search = params.name_search;
+    if (params?.start_time) queryParams.start_time = params.start_time;
+    if (params?.end_time) queryParams.end_time = params.end_time;
 
     return this.http.get<ListTelemetryMetricsResponse>(
       `/v0/orgs/${this.organizationId}/telemetry/metrics`,
@@ -544,6 +546,8 @@ export class DocRouterOrg {
     };
     if (params?.tag_ids) queryParams.tag_ids = params.tag_ids;
     if (params?.severity) queryParams.severity = params.severity;
+    if (params?.start_time) queryParams.start_time = params.start_time;
+    if (params?.end_time) queryParams.end_time = params.end_time;
 
     return this.http.get<ListTelemetryLogsResponse>(
       `/v0/orgs/${this.organizationId}/telemetry/logs`,
