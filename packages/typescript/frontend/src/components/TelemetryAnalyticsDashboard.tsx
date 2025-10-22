@@ -2,14 +2,16 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { DocRouterOrgApi } from '@/utils/api';
-import { Box, Typography, Grid, ToggleButton, ToggleButtonGroup, CircularProgress, Button, TextField, Paper } from '@mui/material';
+import { Box, Typography, Grid, ToggleButton, ToggleButtonGroup, CircularProgress, Button, TextField, Paper, Dialog, DialogTitle, DialogContent, DialogActions, IconButton } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
   AttachMoney as MoneyIcon,
   Code as CodeIcon,
   Speed as PerformanceIcon,
   DateRange as DateRangeIcon,
-  Schedule as ScheduleIcon
+  Schedule as ScheduleIcon,
+  Close as CloseIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
 import StatCard from './analytics/StatCard';
 import TimeSeriesChart, { TimeSeriesDataPoint } from './analytics/TimeSeriesChart';
@@ -38,6 +40,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   // Custom date range state
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [isCustomDateModalOpen, setIsCustomDateModalOpen] = useState<boolean>(false);
 
   // Stats state
   const [stats, setStats] = useState({
@@ -75,6 +78,27 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   // Helper function to format date for datetime-local input
   const formatDateForInput = (date: Date): string => {
     return date.toISOString().slice(0, 16);
+  };
+
+  // Helper function to format date range for display
+  const formatDateRangeForDisplay = (startDate: string, endDate: string): string => {
+    if (!startDate || !endDate) return 'Select date range';
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    const formatOptions: Intl.DateTimeFormatOptions = {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    };
+    
+    const startStr = start.toLocaleDateString('en-US', formatOptions);
+    const endStr = end.toLocaleDateString('en-US', formatOptions);
+    
+    return `${startStr} - ${endStr}`;
   };
 
 
@@ -563,18 +587,23 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
   const handleTimeRangeChange = (_event: React.MouseEvent<HTMLElement>, newTimeRange: TimeRange | null) => {
     if (newTimeRange !== null) {
-      setTimeRange(newTimeRange);
-      
-      // Initialize custom date range if switching to custom
-      if (newTimeRange === 'custom' && !customStartDate && !customEndDate) {
-        const now = new Date();
-        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        const defaultRange = {
-          start: formatDateForInput(yesterday),
-          end: formatDateForInput(now)
-        };
-        setCustomStartDate(defaultRange.start);
-        setCustomEndDate(defaultRange.end);
+      if (newTimeRange === 'custom') {
+        // Open modal for custom date range selection
+        setIsCustomDateModalOpen(true);
+        
+        // Initialize custom date range if not set
+        if (!customStartDate && !customEndDate) {
+          const now = new Date();
+          const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          const defaultRange = {
+            start: formatDateForInput(yesterday),
+            end: formatDateForInput(now)
+          };
+          setCustomStartDate(defaultRange.start);
+          setCustomEndDate(defaultRange.end);
+        }
+      } else {
+        setTimeRange(newTimeRange);
       }
     }
   };
@@ -585,6 +614,21 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     } else {
       setCustomEndDate(value);
     }
+  };
+
+  const handleApplyCustomDateRange = () => {
+    if (customStartDate && customEndDate) {
+      setTimeRange('custom');
+      setIsCustomDateModalOpen(false);
+    }
+  };
+
+  const handleCancelCustomDateRange = () => {
+    setIsCustomDateModalOpen(false);
+  };
+
+  const handleEditCustomDateRange = () => {
+    setIsCustomDateModalOpen(true);
   };
 
   if (loading) {
@@ -662,35 +706,23 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           </ToggleButtonGroup>
           
           {timeRange === 'custom' && (
-            <Paper className="p-4 bg-gray-50 border border-gray-200">
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                <div className="flex items-center gap-2">
-                  <ScheduleIcon className="text-gray-600" />
-                  <Typography variant="body2" className="text-gray-700 font-medium">
-                    Custom Date Range:
-                  </Typography>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <TextField
-                    label="Start Date & Time"
-                    type="datetime-local"
-                    value={customStartDate}
-                    onChange={(e) => handleCustomDateChange('start', e.target.value)}
-                    size="small"
-                    InputLabelProps={{ shrink: true }}
-                    className="min-w-[200px]"
-                  />
-                  <TextField
-                    label="End Date & Time"
-                    type="datetime-local"
-                    value={customEndDate}
-                    onChange={(e) => handleCustomDateChange('end', e.target.value)}
-                    size="small"
-                    InputLabelProps={{ shrink: true }}
-                    className="min-w-[200px]"
-                  />
-                </div>
+            <Paper className="p-3 bg-blue-50 border border-blue-200 flex items-center gap-3">
+              <ScheduleIcon className="text-blue-600" />
+              <div className="flex flex-col">
+                <Typography variant="body2" className="text-blue-800 font-medium">
+                  Custom Range
+                </Typography>
+                <Typography variant="caption" className="text-blue-600">
+                  {formatDateRangeForDisplay(customStartDate, customEndDate)}
+                </Typography>
               </div>
+              <IconButton 
+                size="small" 
+                onClick={handleEditCustomDateRange}
+                className="text-blue-600 hover:bg-blue-100"
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
             </Paper>
           )}
         </div>
@@ -839,6 +871,89 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           </Grid>
         </Grid>
       </div>
+
+      {/* Custom Date Range Modal */}
+      <Dialog 
+        open={isCustomDateModalOpen} 
+        onClose={handleCancelCustomDateRange}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <DateRangeIcon className="text-blue-600" />
+            <Typography variant="h6" className="font-semibold">
+              Custom Date Range
+            </Typography>
+          </div>
+          <IconButton 
+            onClick={handleCancelCustomDateRange}
+            size="small"
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        
+        <DialogContent className="pt-4">
+          <div className="space-y-4">
+            <Typography variant="body2" className="text-gray-600 mb-4">
+              Select the start and end date/time for your custom range. Times are in your local timezone.
+            </Typography>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TextField
+                label="Start Date & Time"
+                type="datetime-local"
+                value={customStartDate}
+                onChange={(e) => handleCustomDateChange('start', e.target.value)}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                helperText="Beginning of the range"
+              />
+              <TextField
+                label="End Date & Time"
+                type="datetime-local"
+                value={customEndDate}
+                onChange={(e) => handleCustomDateChange('end', e.target.value)}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                helperText="End of the range"
+              />
+            </div>
+            
+            {customStartDate && customEndDate && (
+              <Paper className="p-3 bg-gray-50 border border-gray-200">
+                <Typography variant="body2" className="text-gray-700 font-medium mb-1">
+                  Selected Range:
+                </Typography>
+                <Typography variant="body2" className="text-gray-600">
+                  {formatDateRangeForDisplay(customStartDate, customEndDate)}
+                </Typography>
+              </Paper>
+            )}
+          </div>
+        </DialogContent>
+        
+        <DialogActions className="p-4 pt-2">
+          <Button 
+            onClick={handleCancelCustomDateRange}
+            variant="outlined"
+            color="inherit"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleApplyCustomDateRange}
+            variant="contained"
+            color="primary"
+            disabled={!customStartDate || !customEndDate}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            Apply Range
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
