@@ -16,6 +16,7 @@ import {
 import StatCard from './analytics/StatCard';
 import TimeSeriesChart, { TimeSeriesDataPoint } from './analytics/TimeSeriesChart';
 import LogViewer, { LogEntry } from './analytics/LogViewer';
+import TokenBreakdownCard from './analytics/TokenBreakdownCard';
 import { 
   DataPoint, 
   ResourceAttribute, 
@@ -48,6 +49,14 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     totalCost: 0,
     totalTokens: 0,
     linesOfCode: 0
+  });
+
+  // Token breakdown state
+  const [tokenBreakdown, setTokenBreakdown] = useState({
+    input_tokens: 0,
+    output_tokens: 0,
+    cache_read_tokens: 0,
+    cache_creation_tokens: 0
   });
 
   // Time series data
@@ -359,6 +368,14 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     console.log('Generated incremental token data:', tokenTimeSeries);
     console.log('Final token totals:', tokenTotals);
+    
+    // Update token breakdown state
+    setTokenBreakdown({
+      input_tokens: tokenTotals.input_tokens || 0,
+      output_tokens: tokenTotals.output_tokens || 0,
+      cache_read_tokens: tokenTotals.cache_read_tokens || 0,
+      cache_creation_tokens: tokenTotals.cache_creation_tokens || 0
+    });
     
     return tokenTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
   }, []);
@@ -1007,12 +1024,11 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <StatCard
+            <TokenBreakdownCard
               title="Token Usage"
-              value={stats.totalTokens}
+              tokenBreakdown={tokenBreakdown}
               icon={<CodeIcon />}
               color="purple"
-              unit="tokens"
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -1036,49 +1052,13 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             {costData.length > 0 ? (
-              <Box>
-                {/* Language Model Selection */}
-                {Object.keys(enabledLanguageModels).length > 0 && (
-                  <Box className="mb-4">
-                    <Typography variant="subtitle2" className="font-medium text-gray-700 mb-2">
-                      Language Models:
-                    </Typography>
-                    <FormGroup row>
-                      {Object.entries(enabledLanguageModels).map(([model, enabled]) => (
-                        <FormControlLabel
-                          key={model}
-                          control={
-                            <Checkbox
-                              checked={enabled}
-                              onChange={() => handleLanguageModelToggle(model)}
-                              size="small"
-                              sx={{
-                                color: '#22c55e',
-                                '&.Mui-checked': {
-                                  color: '#22c55e',
-                                }
-                              }}
-                            />
-                          }
-                          label={
-                            <Typography variant="body2" className="text-sm">
-                              {model}
-                            </Typography>
-                          }
-                        />
-                      ))}
-                    </FormGroup>
-                  </Box>
-                )}
-                
-                <TimeSeriesChart
-                  title="Cost Over Time"
-                  data={costData}
-                  dataKeys={getCostDataKeys(costData)}
-                  yAxisLabel="USD"
-                  showArea
-                />
-              </Box>
+              <TimeSeriesChart
+                title="Cost Over Time"
+                data={costData}
+                dataKeys={getCostDataKeys(costData)}
+                yAxisLabel="USD"
+                showArea
+              />
             ) : (
               <Box className="p-6 bg-gray-50 rounded-lg text-center">
                 <Typography variant="body2" color="textSecondary">
@@ -1089,62 +1069,105 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           </Grid>
           <Grid item xs={12} md={6}>
             {tokenData.length > 0 ? (
-              <Box>
-                {/* Token Type Selection */}
-                <Box className="mb-4">
-                  <Typography variant="subtitle2" className="font-medium text-gray-700 mb-2">
-                    Token Types:
-                  </Typography>
-                  <FormGroup row>
-                    {Object.entries({
-                      input_tokens: 'Input Tokens',
-                      output_tokens: 'Output Tokens',
-                      cache_read_tokens: 'Cache Read Tokens',
-                      cache_creation_tokens: 'Cache Creation Tokens'
-                    }).map(([key, label]) => (
-                      <FormControlLabel
-                        key={key}
-                        control={
-                          <Checkbox
-                            checked={enabledTokenTypes[key] !== false}
-                            onChange={() => handleTokenTypeToggle(key)}
-                            size="small"
-                            sx={{
-                              color: key === 'input_tokens' ? '#f97316' :
-                                     key === 'output_tokens' ? '#22c55e' :
-                                     key === 'cache_read_tokens' ? '#3b82f6' :
-                                     key === 'cache_creation_tokens' ? '#a855f7' : '#666',
-                              '&.Mui-checked': {
-                                color: key === 'input_tokens' ? '#f97316' :
-                                       key === 'output_tokens' ? '#22c55e' :
-                                       key === 'cache_read_tokens' ? '#3b82f6' :
-                                       key === 'cache_creation_tokens' ? '#a855f7' : '#666',
-                              }
-                            }}
-                          />
-                        }
-                        label={
-                          <Typography variant="body2" className="text-sm">
-                            {label}
-                          </Typography>
-                        }
-                      />
-                    ))}
-                  </FormGroup>
-                </Box>
-                
-                <TimeSeriesChart
-                  title="Token Usage by Type"
-                  data={tokenData}
-                  dataKeys={getTokenUsageDataKeys(tokenData)}
-                  yAxisLabel="Tokens"
-                />
-              </Box>
+              <TimeSeriesChart
+                title="Token Usage by Type"
+                data={tokenData}
+                dataKeys={getTokenUsageDataKeys(tokenData)}
+                yAxisLabel="Tokens"
+              />
             ) : (
               <Box className="p-6 bg-gray-50 rounded-lg text-center">
                 <Typography variant="body2" color="textSecondary">
                   No token data available for the selected time range
                 </Typography>
+              </Box>
+            )}
+          </Grid>
+        </Grid>
+      </div>
+
+      {/* Global Controls */}
+      <div>
+        <Typography variant="h6" className="font-semibold mb-3">
+          Chart Controls
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            {/* Token Type Selection */}
+            <Box className="p-4 bg-gray-50 rounded-lg">
+              <Typography variant="subtitle2" className="font-medium text-gray-700 mb-3">
+                Token Types:
+              </Typography>
+              <FormGroup row>
+                {Object.entries({
+                  input_tokens: 'Input Tokens',
+                  output_tokens: 'Output Tokens',
+                  cache_read_tokens: 'Cache Read Tokens',
+                  cache_creation_tokens: 'Cache Creation Tokens'
+                }).map(([key, label]) => (
+                  <FormControlLabel
+                    key={key}
+                    control={
+                      <Checkbox
+                        checked={enabledTokenTypes[key] !== false}
+                        onChange={() => handleTokenTypeToggle(key)}
+                        size="small"
+                        sx={{
+                          color: key === 'input_tokens' ? '#f97316' :
+                                 key === 'output_tokens' ? '#22c55e' :
+                                 key === 'cache_read_tokens' ? '#3b82f6' :
+                                 key === 'cache_creation_tokens' ? '#a855f7' : '#666',
+                          '&.Mui-checked': {
+                            color: key === 'input_tokens' ? '#f97316' :
+                                   key === 'output_tokens' ? '#22c55e' :
+                                   key === 'cache_read_tokens' ? '#3b82f6' :
+                                   key === 'cache_creation_tokens' ? '#a855f7' : '#666',
+                          }
+                        }}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" className="text-sm">
+                        {label}
+                      </Typography>
+                    }
+                  />
+                ))}
+              </FormGroup>
+            </Box>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            {/* Language Model Selection */}
+            {Object.keys(enabledLanguageModels).length > 0 && (
+              <Box className="p-4 bg-gray-50 rounded-lg">
+                <Typography variant="subtitle2" className="font-medium text-gray-700 mb-3">
+                  Language Models:
+                </Typography>
+                <FormGroup row>
+                  {Object.entries(enabledLanguageModels).map(([model, enabled]) => (
+                    <FormControlLabel
+                      key={model}
+                      control={
+                        <Checkbox
+                          checked={enabled}
+                          onChange={() => handleLanguageModelToggle(model)}
+                          size="small"
+                          sx={{
+                            color: '#22c55e',
+                            '&.Mui-checked': {
+                              color: '#22c55e',
+                            }
+                          }}
+                        />
+                      }
+                      label={
+                        <Typography variant="body2" className="text-sm">
+                          {model}
+                        </Typography>
+                      }
+                    />
+                  ))}
+                </FormGroup>
               </Box>
             )}
           </Grid>
