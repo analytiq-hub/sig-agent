@@ -385,13 +385,13 @@ describe('Telemetry Integration Tests', () => {
       expect(uploaded.logs[0].upload_date).toBeDefined();
 
       // Verify attributes structure
-      expect(uploaded.logs[0].attributes).toHaveProperty('log.level', 'ERROR');
-      expect(uploaded.logs[0].attributes).toHaveProperty('module', 'enhanced-test');
-      expect(uploaded.logs[0].attributes).toHaveProperty('function', 'testFunction');
-      expect(uploaded.logs[0].attributes).toHaveProperty('line_number', '42');
-      expect(uploaded.logs[0].attributes).toHaveProperty('error_code', 'E001');
-      expect(uploaded.logs[0].attributes).toHaveProperty('user_id', 'user123');
-      expect(uploaded.logs[0].attributes).toHaveProperty('session_id', 'session456');
+      expect(uploaded.logs[0].attributes?.['log.level']).toBe('ERROR');
+      expect(uploaded.logs[0].attributes?.['module']).toBe('enhanced-test');
+      expect(uploaded.logs[0].attributes?.['function']).toBe('testFunction');
+      expect(uploaded.logs[0].attributes?.['line_number']).toBe('42');
+      expect(uploaded.logs[0].attributes?.['error_code']).toBe('E001');
+      expect(uploaded.logs[0].attributes?.['user_id']).toBe('user123');
+      expect(uploaded.logs[0].attributes?.['session_id']).toBe('session456');
 
       // Verify resource structure
       expect(uploaded.logs[0].resource).toHaveProperty('attributes');
@@ -415,12 +415,12 @@ describe('Telemetry Integration Tests', () => {
       expect(found?.metadata?.source).toBe('sdk-test');
 
       // Verify attributes are preserved in list response
-      expect(found?.attributes).toHaveProperty('log.level', 'ERROR');
-      expect(found?.attributes).toHaveProperty('module', 'enhanced-test');
-      expect(found?.attributes).toHaveProperty('function', 'testFunction');
-      expect(found?.attributes).toHaveProperty('error_code', 'E001');
-      expect(found?.attributes).toHaveProperty('user_id', 'user123');
-      expect(found?.attributes).toHaveProperty('session_id', 'session456');
+      expect(found?.attributes?.['log.level']).toBe('ERROR');
+      expect(found?.attributes?.['module']).toBe('enhanced-test');
+      expect(found?.attributes?.['function']).toBe('testFunction');
+      expect(found?.attributes?.['error_code']).toBe('E001');
+      expect(found?.attributes?.['user_id']).toBe('user123');
+      expect(found?.attributes?.['session_id']).toBe('session456');
 
       // Verify resource attributes are preserved
       expect(found?.resource?.attributes?.length).toBe(4);
@@ -692,13 +692,13 @@ describe('Telemetry Integration Tests', () => {
       expect(foundLog?.resource).toBeDefined();
       expect(foundLog?.trace_id).toBe(traceId);
       expect(foundLog?.span_id).toBe(spanId);
-      expect(foundLog?.attributes).toHaveProperty('trace_id', traceId);
-      expect(foundLog?.attributes).toHaveProperty('span_id', spanId);
+      expect(foundLog?.attributes?.['trace_id']).toBe(traceId);
+      expect(foundLog?.attributes?.['span_id']).toBe(spanId);
       expect(foundLog?.metadata?.test_id).toBe(uniqueId);
 
       // Verify cross-references are consistent
       expect(foundMetric?.metadata?.trace_id).toBe(foundLog?.trace_id);
-      expect(foundLog?.attributes).toHaveProperty('trace_id', foundMetric?.metadata?.trace_id);
+      expect(foundLog?.attributes?.['trace_id']).toBe(foundMetric?.metadata?.trace_id);
     });
   });
 
