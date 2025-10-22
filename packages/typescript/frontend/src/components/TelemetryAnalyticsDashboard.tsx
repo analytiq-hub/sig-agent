@@ -16,6 +16,7 @@ import StatCard from './analytics/StatCard';
 import TimeSeriesChart, { TimeSeriesDataPoint } from './analytics/TimeSeriesChart';
 import LogViewer, { LogEntry } from './analytics/LogViewer';
 import TokenBreakdownCard from './analytics/TokenBreakdownCard';
+import BarChart, { BarChartDataPoint } from './analytics/BarChart';
 import { 
   DataPoint, 
   ResourceAttribute, 
@@ -60,10 +61,13 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     cache_creation_tokens: 0
   });
 
+  // Tool usage state
+  const [toolUsageData, setToolUsageData] = useState<BarChartDataPoint[]>([]);
+  const [toolAverageDuration, setToolAverageDuration] = useState<Record<string, number>>({});
+
   // Time series data
   const [costData, setCostData] = useState<TimeSeriesDataPoint[]>([]);
   const [tokenData, setTokenData] = useState<TimeSeriesDataPoint[]>([]);
-  const [toolUsageData, setToolUsageData] = useState<TimeSeriesDataPoint[]>([]);
 
   // Token type selection state
   const [enabledTokenTypes, setEnabledTokenTypes] = useState<Record<string, boolean>>({
@@ -283,9 +287,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     });
 
 
-    // Process tool usage data from real metrics
-    const toolData: TimeSeriesDataPoint[] = processToolUsageData(filteredMetrics, startTime, endTime);
-    setToolUsageData(toolData);
+    // Tool usage data is now processed from logs, not metrics
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -467,6 +469,77 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     return tokenTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
   }, []);
 
+  const processToolUsageFromLogs = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date): { usageData: BarChartDataPoint[], averageDuration: Record<string, number> } => {
+    console.log('Processing tool usage data from logs...');
+    console.log('Total logs available:', logsData.length);
+    console.log('Time range:', startTime.toISOString(), 'to', endTime?.toISOString() || 'now');
+
+    const toolUsageCounts: Record<string, number> = {};
+    const toolDurations: Record<string, number[]> = {};
+
+    // Process all logs to find tool_result entries
+    logsData.forEach(log => {
+      const logTime = new Date(log.timestamp);
+      const isAfterStart = logTime >= startTime;
+      const isBeforeEnd = !endTime || logTime <= endTime;
+
+      if (!isAfterStart || !isBeforeEnd) return;
+
+      // Check if this is a tool_result log
+      if (log.body === 'claude_code.tool_result' && log.attributes && typeof log.attributes === 'object') {
+        const toolName = log.attributes.tool_name as string;
+        const success = log.attributes.success as string;
+        const duration = log.attributes.duration_ms as string;
+
+        if (toolName && success === 'true' && duration) {
+          const parsedDuration = typeof duration === 'string' ? parseInt(duration, 10) : (typeof duration === 'number' ? duration : 0);
+          
+          if (!isNaN(parsedDuration) && parsedDuration > 0) {
+            console.log('Found tool usage:', { 
+              timestamp: log.timestamp, 
+              toolName, 
+              duration: parsedDuration,
+              attributes: log.attributes 
+            });
+
+            // Count tool usage
+            toolUsageCounts[toolName] = (toolUsageCounts[toolName] || 0) + 1;
+            
+            // Track durations for average calculation
+            if (!toolDurations[toolName]) {
+              toolDurations[toolName] = [];
+            }
+            toolDurations[toolName].push(parsedDuration);
+          }
+        }
+      }
+    });
+
+    console.log('Tool usage counts:', toolUsageCounts);
+    console.log('Tool durations:', toolDurations);
+
+    // Convert to bar chart data format
+    const usageData: BarChartDataPoint[] = Object.entries(toolUsageCounts)
+      .map(([toolName, count]) => ({
+        name: toolName.replace('mcp__docrouter__', ''), // Clean up tool names
+        value: count,
+        fullName: toolName
+      }))
+      .sort((a, b) => b.value - a.value); // Sort by usage count descending
+
+    // Calculate average durations
+    const averageDuration: Record<string, number> = {};
+    Object.entries(toolDurations).forEach(([toolName, durations]) => {
+      const avg = durations.reduce((sum, duration) => sum + duration, 0) / durations.length;
+      averageDuration[toolName] = Math.round(avg);
+    });
+
+    console.log('Generated tool usage data:', usageData);
+    console.log('Average durations:', averageDuration);
+
+    return { usageData, averageDuration };
+  }, []);
+
   const processCostDataFromLogs = useCallback((logsData: TelemetryLogResponse[], startTime: Date, endTime?: Date): TimeSeriesDataPoint[] => {
     console.log('Processing cost data from logs...');
     console.log('Total logs available:', logsData.length);
@@ -575,80 +648,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     return costTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
   }, [enabledLanguageModels]);
 
-  const processToolUsageData = useCallback((metricsData: TelemetryMetricResponse[], startTime: Date, endTime?: Date): TimeSeriesDataPoint[] => {
-    // Look for tool-related metrics
-    const toolMetrics = metricsData.filter(m => 
-      m.name && (
-        m.name.toLowerCase().includes('tool') ||
-        m.name.toLowerCase().includes('function') ||
-        m.name.toLowerCase().includes('call') ||
-        m.name.toLowerCase().includes('api') ||
-        m.name.toLowerCase().includes('read') ||
-        m.name.toLowerCase().includes('write') ||
-        m.name.toLowerCase().includes('bash') ||
-        m.name.toLowerCase().includes('grep')
-      )
-    );
-
-    const toolTimeSeries: TimeSeriesDataPoint[] = [];
-    const toolCounts: { [key: string]: { [timestamp: string]: number } } = {};
-
-    toolMetrics.forEach(metric => {
-      if (metric.data_points && Array.isArray(metric.data_points)) {
-        metric.data_points.forEach((dp: DataPoint) => {
-          const timestamp = parseInt(dp.timeUnixNano) / 1000000;
-          const dataPointTime = new Date(timestamp);
-          
-          // Only include data points within the time range
-          const isAfterStart = dataPointTime >= startTime;
-          const isBeforeEnd = endTime ? dataPointTime <= endTime : true;
-          if (isAfterStart && isBeforeEnd) {
-            const value = dp.value?.asDouble || dp.value?.asInt || 0;
-            const numValue = typeof value === 'string' ? parseFloat(value) : value;
-            
-            // Extract tool name from metric name or resource attributes
-            let toolName = 'Unknown';
-            if (metric.name) {
-              const name = metric.name.toLowerCase();
-              if (name.includes('read')) toolName = 'Read';
-              else if (name.includes('write')) toolName = 'Write';
-              else if (name.includes('bash')) toolName = 'Bash';
-              else if (name.includes('grep')) toolName = 'Grep';
-              else if (name.includes('api')) toolName = 'API';
-              else if (name.includes('function')) toolName = 'Function';
-              else toolName = metric.name.split('.').pop() || 'Tool';
-            }
-
-            if (!toolCounts[toolName]) {
-              toolCounts[toolName] = {};
-            }
-            if (!toolCounts[toolName][timestamp]) {
-              toolCounts[toolName][timestamp] = 0;
-            }
-            toolCounts[toolName][timestamp] += numValue;
-          }
-        });
-      }
-    });
-
-    // Convert to time series format
-    const allTimestamps = new Set<number>();
-    Object.values(toolCounts).forEach(toolData => {
-      Object.keys(toolData).forEach(ts => allTimestamps.add(parseInt(ts)));
-    });
-
-    allTimestamps.forEach(timestamp => {
-      const dataPoint: TimeSeriesDataPoint = { timestamp };
-      Object.keys(toolCounts).forEach(toolName => {
-        dataPoint[toolName] = toolCounts[toolName][timestamp] || 0;
-      });
-      toolTimeSeries.push(dataPoint);
-    });
-
-    // If no tool data found, return empty array instead of mock data
-    return toolTimeSeries.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
-  }, []);
-
   const loadAnalyticsData = useCallback(async () => {
     try {
       setLoading(true);
@@ -718,6 +717,11 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       // Process cost data from logs instead of metrics
       const costDataFromLogs = processCostDataFromLogs(logsResponse.logs || [], startTime, endTime);
       setCostData(costDataFromLogs);
+      
+      // Process tool usage from logs
+      const toolUsageResult = processToolUsageFromLogs(logsResponse.logs || [], startTime, endTime);
+      setToolUsageData(toolUsageResult.usageData);
+      setToolAverageDuration(toolUsageResult.averageDuration);
       
       // Calculate total tokens from logs
       const totalTokensFromLogs = tokenDataFromLogs.reduce((total, point) => {
@@ -822,29 +826,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   }, [loadAnalyticsData]);
 
 
-  const getToolUsageDataKeys = (data: TimeSeriesDataPoint[]) => {
-    if (data.length === 0) return [];
-    
-    // Get all unique keys from the data (excluding timestamp)
-    const keys = new Set<string>();
-    data.forEach(point => {
-      Object.keys(point).forEach(key => {
-        if (key !== 'timestamp') {
-          keys.add(key);
-        }
-      });
-    });
-
-    // Define colors for different tools
-    const colors = ['#3b82f6', '#22c55e', '#ef4444', '#f97316', '#a855f7', '#06b6d4', '#84cc16', '#f59e0b'];
-    
-    return Array.from(keys).map((key, index) => ({
-      key,
-      label: key,
-      color: colors[index % colors.length],
-      lineWidth: key.toLowerCase().includes('error') ? 3 : 2
-    }));
-  };
 
   const getCostDataKeys = (data: TimeSeriesDataPoint[]) => {
     if (data.length === 0) return [];
@@ -1184,6 +1165,62 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         </Grid>
       </div>
 
+      {/* Tool Usage Analysis */}
+      <div>
+        <Typography variant="h6" className="font-semibold mb-3">
+          Tool Usage Analysis
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={8}>
+            {toolUsageData.length > 0 ? (
+              <BarChart
+                title="Tool Usage Count"
+                data={toolUsageData}
+                dataKey="value"
+                xAxisLabel="Tools"
+                yAxisLabel="Usage Count"
+                height={400}
+              />
+            ) : (
+              <Box className="p-6 bg-gray-50 rounded-lg text-center">
+                <Typography variant="body2" color="textSecondary">
+                  No tool usage data available for the selected time range
+                </Typography>
+              </Box>
+            )}
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Box className="p-6 bg-white rounded-lg shadow-sm border">
+              <Typography variant="h6" className="font-semibold mb-4">
+                Average Duration
+              </Typography>
+              {Object.keys(toolAverageDuration).length > 0 ? (
+                <div className="space-y-3">
+                  {Object.entries(toolAverageDuration)
+                    .sort(([, a], [, b]) => b - a) // Sort by duration descending
+                    .map(([toolName, avgDuration]) => (
+                      <div key={toolName} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <Typography variant="body2" className="font-medium text-gray-900">
+                            {toolName.replace('mcp__docrouter__', '')}
+                          </Typography>
+                        </div>
+                        <Typography variant="body2" className="text-gray-600">
+                          {avgDuration}ms
+                        </Typography>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <Typography variant="body2" color="textSecondary">
+                  No duration data available
+                </Typography>
+              )}
+            </Box>
+          </Grid>
+        </Grid>
+      </div>
+
       {/* Global Controls */}
       <div>
         <Typography variant="h6" className="font-semibold mb-3">
@@ -1272,31 +1309,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         </Grid>
       </div>
 
-      {/* Tool Usage & Performance */}
-      <div>
-        <Typography variant="h6" className="font-semibold mb-3">
-          Tool Usage & Performance
-        </Typography>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            {toolUsageData.length > 0 ? (
-            <TimeSeriesChart
-              title="Tool Usage Rate"
-              data={toolUsageData}
-                dataKeys={getToolUsageDataKeys(toolUsageData)}
-              yAxisLabel="Usage Count"
-              height={300}
-            />
-            ) : (
-              <Box className="p-6 bg-gray-50 rounded-lg text-center">
-                <Typography variant="body2" color="textSecondary">
-                  No tool usage data available for the selected time range
-                </Typography>
-              </Box>
-            )}
-          </Grid>
-        </Grid>
-      </div>
 
       {/* Event Logs */}
       <div>
