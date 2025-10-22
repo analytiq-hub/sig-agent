@@ -85,27 +85,20 @@ const TokenBreakdownCard: React.FC<TokenBreakdownCardProps> = ({
           )}
         </div>
 
-        <div className="flex items-baseline gap-2 mb-2">
-          <Typography variant="h4" className={`font-bold ${colors.text}`}>
-            {totalTokens.toLocaleString()}
-          </Typography>
-          <Typography variant="body2" className="text-gray-500">
-            tokens
-          </Typography>
-        </div>
-
-        <div className="grid grid-cols-2 gap-1 text-xs">
+        <div className="grid grid-cols-2 gap-2 text-sm">
           {tokenTypes.map((tokenType) => {
             const percentage = totalTokens > 0 ? (tokenType.value / totalTokens) * 100 : 0;
             return (
-              <div key={tokenType.key} className="flex items-center gap-1">
+              <div key={tokenType.key} className="flex items-center gap-2">
                 <div 
-                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  className="w-3 h-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: tokenType.color }}
                 />
-                <span className="text-gray-600 truncate">{tokenType.label}:</span>
-                <span className="font-semibold">{tokenType.value.toLocaleString()}</span>
-                <span className="text-gray-500">({percentage.toFixed(1)}%)</span>
+                <div className="flex-1">
+                  <div className="text-gray-600 text-xs">{tokenType.label}</div>
+                  <div className="font-semibold">{tokenType.value.toLocaleString()}</div>
+                  <div className="text-gray-500 text-xs">{percentage.toFixed(1)}%</div>
+                </div>
               </div>
             );
           })}
