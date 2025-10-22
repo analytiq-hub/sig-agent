@@ -612,27 +612,27 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       setToolUsageData(toolUsageResult.usageData);
       setToolAverageDuration(toolUsageResult.averageDuration);
       
-      // Calculate total tokens from logs
-      const totalTokensFromLogs = tokenDataFromLogs.reduce((total, point) => {
-        let pointTotal = 0;
-        Object.keys(point).forEach(key => {
-          if (key !== 'timestamp') {
-            pointTotal += point[key] as number;
+      // Calculate total tokens from logs - take the last data point (cumulative total)
+      let totalTokensFromLogs = 0;
+      if (tokenDataFromLogs.length > 0) {
+        const lastPoint = tokenDataFromLogs[tokenDataFromLogs.length - 1];
+        Object.keys(lastPoint).forEach(key => {
+          if (key !== 'timestamp' && enabledTokenTypes[key] !== false) {
+            totalTokensFromLogs += lastPoint[key] as number;
           }
         });
-        return total + pointTotal;
-      }, 0);
+      }
       
-      // Calculate total cost from logs
-      const totalCostFromLogs = costDataFromLogs.reduce((total, point) => {
-        let pointTotal = 0;
-        Object.keys(point).forEach(key => {
-          if (key !== 'timestamp') {
-            pointTotal += point[key] as number;
+      // Calculate total cost from logs - take the last data point (cumulative total)
+      let totalCostFromLogs = 0;
+      if (costDataFromLogs.length > 0) {
+        const lastPoint = costDataFromLogs[costDataFromLogs.length - 1];
+        Object.keys(lastPoint).forEach(key => {
+          if (key !== 'timestamp' && enabledLanguageModels[key] !== false) {
+            totalCostFromLogs += lastPoint[key] as number;
           }
         });
-        return total + pointTotal;
-      }, 0);
+      }
       
       // Update stats with totals from logs
       setStats(prevStats => ({
