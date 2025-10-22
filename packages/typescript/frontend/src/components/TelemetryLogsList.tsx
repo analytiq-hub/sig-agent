@@ -652,7 +652,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                         const info = getSalientInfo(selectedLog);
                         return (
                           <>
-                            <TableRow sx={{ backgroundColor: 'background.default' }}>
+                            <TableRow>
                               <TableCell sx={{ width: '50%' }}>
                                 <Box display="flex" justifyContent="space-between">
                                   <strong>Event</strong>
@@ -669,7 +669,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                                 </Box>
                               </TableCell>
                             </TableRow>
-                            <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                            <TableRow>
                               <TableCell sx={{ width: '50%' }}>
                                 <Box display="flex" justifyContent="space-between">
                                   <strong>Status</strong>
@@ -697,7 +697,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                                 </Box>
                               </TableCell>
                             </TableRow>
-                            <TableRow sx={{ backgroundColor: 'background.default' }}>
+                            <TableRow>
                               <TableCell sx={{ width: '50%' }}>
                                 <Box display="flex" justifyContent="space-between">
                                   <strong>Decision</strong>
@@ -721,7 +721,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                                 </Box>
                               </TableCell>
                             </TableRow>
-                            <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                            <TableRow>
                               <TableCell sx={{ width: '50%' }}>
                                 <Box display="flex" justifyContent="space-between">
                                   <strong>Session</strong>
