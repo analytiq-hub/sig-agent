@@ -25,37 +25,10 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
-import { Tag, TelemetryMetricResponse } from '@docrouter/sdk';
+import { Tag, TelemetryMetricResponse, DataPoint, ResourceAttribute } from '@docrouter/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
 type TelemetryMetric = TelemetryMetricResponse;
-
-// Type definitions for OpenTelemetry data structures
-interface DataPointValue {
-  asDouble?: number;
-  asInt?: number;
-}
-
-interface DataPoint {
-  timeUnixNano: string;
-  value: DataPointValue;
-}
-
-interface ResourceAttributeValue {
-  stringValue?: string;
-  boolValue?: boolean;
-  intValue?: number;
-  doubleValue?: number;
-}
-
-interface ResourceAttribute {
-  key: string;
-  value: ResourceAttributeValue;
-}
-
-interface Resource {
-  attributes: ResourceAttribute[];
-}
 
 const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
@@ -224,7 +197,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {(metric.data_points as unknown as DataPoint[]).map((dataPoint: DataPoint, index) => {
+                    {metric.data_points?.map((dataPoint: DataPoint, index) => {
                       const timestamp = new Date(parseInt(dataPoint.timeUnixNano) / 1000000);
                       const valueType = dataPoint.value?.asDouble !== undefined ? 'Double' : 
                                       dataPoint.value?.asInt !== undefined ? 'Int' : 'Unknown';
@@ -265,7 +238,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
       case 2: // Resource
         return (
           <Box>
-            {metric.resource && (metric.resource as unknown as Resource).attributes ? (
+            {metric.resource && metric.resource.attributes ? (
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableHead>
@@ -276,7 +249,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {(metric.resource as unknown as Resource).attributes.map((attr: ResourceAttribute, index: number) => {
+                    {metric.resource.attributes.map((attr: ResourceAttribute, index: number) => {
                       const valueType = attr.value.stringValue !== undefined ? 'String' :
                                       attr.value.boolValue !== undefined ? 'Boolean' :
                                       attr.value.intValue !== undefined ? 'Int' :

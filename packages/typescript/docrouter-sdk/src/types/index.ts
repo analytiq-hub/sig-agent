@@ -782,6 +782,33 @@ export interface AWSConfig {
 
 // OpenTelemetry types
 
+// OpenTelemetry data structure types
+export interface DataPointValue {
+  asDouble?: number;
+  asInt?: number;
+}
+
+export interface DataPoint {
+  timeUnixNano: string;
+  value: DataPointValue;
+}
+
+export interface ResourceAttributeValue {
+  stringValue?: string;
+  boolValue?: boolean;
+  intValue?: number;
+  doubleValue?: number;
+}
+
+export interface ResourceAttribute {
+  key: string;
+  value: ResourceAttributeValue;
+}
+
+export interface Resource {
+  attributes: ResourceAttribute[];
+}
+
 export interface TelemetrySpan {
   trace_id: string;
   span_id: string;
@@ -807,8 +834,8 @@ export interface TelemetryMetric {
   description?: string;
   unit?: string;
   type: string; // counter, gauge, histogram, etc.
-  data_points: Array<Record<string, unknown>>;
-  resource?: Record<string, unknown>;
+  data_points: DataPoint[];
+  resource?: Resource;
   tag_ids?: string[];
   metadata?: Record<string, string>;
 }
@@ -818,7 +845,7 @@ export interface TelemetryLog {
   severity?: string;
   body: string;
   attributes?: Record<string, unknown>;
-  resource?: Record<string, unknown>;
+  resource?: Resource;
   trace_id?: string;
   span_id?: string;
   tag_ids?: string[];
@@ -852,9 +879,9 @@ export interface TelemetryMetricResponse {
   description?: string;
   unit?: string;
   type: string;
-  data_points?: Record<string, unknown>[];
+  data_points?: DataPoint[];
   data_point_count: number;
-  resource?: Record<string, unknown>;
+  resource?: Resource;
   upload_date: string;
   uploaded_by: string;
   tag_ids: string[];
@@ -867,7 +894,7 @@ export interface TelemetryLogResponse {
   severity?: string;
   body: string;
   attributes?: Record<string, unknown>;
-  resource?: Record<string, unknown>;
+  resource?: Resource;
   trace_id?: string;
   span_id?: string;
   upload_date: string;

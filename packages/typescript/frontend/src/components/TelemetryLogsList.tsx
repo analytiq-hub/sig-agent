@@ -33,7 +33,7 @@ import BuildIcon from '@mui/icons-material/Build';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import ApiIcon from '@mui/icons-material/Api';
 import PersonIcon from '@mui/icons-material/Person';
-import { Tag, TelemetryLogResponse } from '@docrouter/sdk';
+import { Tag, TelemetryLogResponse, Resource, ResourceAttribute } from '@docrouter/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
 type TelemetryLog = TelemetryLogResponse;
@@ -320,29 +320,23 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
 
 
   // Helper function to parse OpenTelemetry resource attributes
-  const parseResourceAttributes = (resource: Record<string, unknown>) => {
+  const parseResourceAttributes = (resource: Resource | Record<string, unknown>) => {
     // Check if this is the OpenTelemetry format with attributes array
-    if (resource.attributes && Array.isArray(resource.attributes)) {
+    if ('attributes' in resource && Array.isArray(resource.attributes)) {
       const parsedAttributes: Record<string, string> = {};
-      resource.attributes.forEach((attr: unknown) => {
-        const typedAttr = attr as Record<string, unknown>;
-        if (typedAttr.key && typedAttr.value) {
-          const value = typedAttr.value as Record<string, unknown>;
+      resource.attributes.forEach((attr: ResourceAttribute) => {
+        if (attr.key && attr.value) {
           // Handle different value types from OpenTelemetry
-          if (value.stringValue) {
-            parsedAttributes[typedAttr.key as string] = value.stringValue as string;
-          } else if (value.intValue !== undefined) {
-            parsedAttributes[typedAttr.key as string] = (value.intValue as number).toString();
-          } else if (value.doubleValue !== undefined) {
-            parsedAttributes[typedAttr.key as string] = (value.doubleValue as number).toString();
-          } else if (value.boolValue !== undefined) {
-            parsedAttributes[typedAttr.key as string] = (value.boolValue as boolean).toString();
-          } else if (value.arrayValue) {
-            parsedAttributes[typedAttr.key as string] = JSON.stringify(value.arrayValue);
-          } else if (value.kvlistValue) {
-            parsedAttributes[typedAttr.key as string] = JSON.stringify(value.kvlistValue);
+          if (attr.value.stringValue !== undefined) {
+            parsedAttributes[attr.key] = attr.value.stringValue;
+          } else if (attr.value.intValue !== undefined) {
+            parsedAttributes[attr.key] = attr.value.intValue.toString();
+          } else if (attr.value.doubleValue !== undefined) {
+            parsedAttributes[attr.key] = attr.value.doubleValue.toString();
+          } else if (attr.value.boolValue !== undefined) {
+            parsedAttributes[attr.key] = attr.value.boolValue.toString();
           } else {
-            parsedAttributes[typedAttr.key as string] = JSON.stringify(value);
+            parsedAttributes[attr.key] = JSON.stringify(attr.value);
           }
         }
       });
@@ -350,7 +344,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
     }
     
     // If not in OpenTelemetry format, return as-is
-    return resource;
+    return resource as Record<string, string>;
   };
 
   // Helper function to extract salient information from attributes
