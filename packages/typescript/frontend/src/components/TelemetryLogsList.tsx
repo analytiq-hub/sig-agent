@@ -399,33 +399,63 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       >
         <DialogTitle>
           <Box display="flex" alignItems="center" justifyContent="space-between">
+            <Typography variant="h6">Telemetry Log Details</Typography>
             <Box display="flex" alignItems="center" gap={1}>
-              <Typography variant="h6">Telemetry Log Details</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {selectedLogIndex + 1} of {filteredLogs.length}
+              </Typography>
               <Tooltip title="Previous log">
                 <IconButton
                   size="small"
                   onClick={() => handleNavigateLog('prev')}
                   disabled={selectedLogIndex <= 0}
+                  sx={{
+                    boxShadow: 2,
+                    backgroundColor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    '&:hover': {
+                      boxShadow: 4,
+                      backgroundColor: 'action.hover',
+                    },
+                    '&:disabled': {
+                      boxShadow: 1,
+                      backgroundColor: 'action.disabledBackground',
+                      borderColor: 'action.disabled',
+                    }
+                  }}
                 >
                   <NavigateBeforeIcon />
                 </IconButton>
               </Tooltip>
-              <Typography variant="body2" color="text.secondary">
-                {selectedLogIndex + 1} of {filteredLogs.length}
-              </Typography>
               <Tooltip title="Next log">
                 <IconButton
                   size="small"
                   onClick={() => handleNavigateLog('next')}
                   disabled={selectedLogIndex >= filteredLogs.length - 1}
+                  sx={{
+                    boxShadow: 2,
+                    backgroundColor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    '&:hover': {
+                      boxShadow: 4,
+                      backgroundColor: 'action.hover',
+                    },
+                    '&:disabled': {
+                      boxShadow: 1,
+                      backgroundColor: 'action.disabledBackground',
+                      borderColor: 'action.disabled',
+                    }
+                  }}
                 >
                   <NavigateNextIcon />
                 </IconButton>
               </Tooltip>
+              <Button onClick={handleCloseDetailModal} variant="outlined" size="small">
+                Close
+              </Button>
             </Box>
-            <Button onClick={handleCloseDetailModal} variant="outlined" size="small">
-              Close
-            </Button>
           </Box>
         </DialogTitle>
         <DialogContent>
