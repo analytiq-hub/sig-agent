@@ -37,20 +37,25 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
   showLegend = true,
   showGrid = true
 }) => {
+  // Keep timestamps as numbers for proper time-based spacing
   const formattedData = useMemo(() => {
     return data.map(point => ({
       ...point,
-      timestamp: typeof point.timestamp === 'number'
-        ? new Date(point.timestamp).toLocaleString('en-US', { 
-            month: 'short', 
-            day: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit',
-            hour12: true
-          })
-        : point.timestamp
+      // Keep timestamp as number (milliseconds) for numeric X-axis
+      timestampMs: typeof point.timestamp === 'number' ? point.timestamp : new Date(point.timestamp).getTime()
     }));
   }, [data]);
+
+  // Format timestamp for display on axis
+  const formatXAxis = (timestamp: number) => {
+    return new Date(timestamp).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
 
   const ChartComponent = showArea ? AreaChart : LineChart;
 
@@ -64,7 +69,11 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
           <ChartComponent data={formattedData}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />}
             <XAxis
-              dataKey="timestamp"
+              dataKey="timestampMs"
+              type="number"
+              domain={['dataMin', 'dataMax']}
+              scale="time"
+              tickFormatter={formatXAxis}
               label={xAxisLabel ? { value: xAxisLabel, position: 'insideBottom', offset: -5 } : undefined}
               tick={{ fontSize: 12 }}
             />
@@ -73,6 +82,7 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
               tick={{ fontSize: 12 }}
             />
             <Tooltip
+              labelFormatter={formatXAxis}
               contentStyle={{
                 backgroundColor: 'rgba(255, 255, 255, 0.95)',
                 border: '1px solid #ccc',

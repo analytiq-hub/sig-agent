@@ -780,10 +780,46 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
       // Process token usage from logs instead of metrics
       const tokenDataFromLogs = processTokenUsageFromLogs(allLogs, startTime, endTime);
+      console.log('=== TOKEN DATA DEBUG ===');
+      console.log('Token data points:', tokenDataFromLogs.length);
+      if (tokenDataFromLogs.length > 0) {
+        console.log('First token data point:', {
+          timestamp: tokenDataFromLogs[0].timestamp,
+          timestampDate: new Date(tokenDataFromLogs[0].timestamp).toLocaleString(),
+          data: tokenDataFromLogs[0]
+        });
+        console.log('Last token data point:', {
+          timestamp: tokenDataFromLogs[tokenDataFromLogs.length - 1].timestamp,
+          timestampDate: new Date(tokenDataFromLogs[tokenDataFromLogs.length - 1].timestamp).toLocaleString(),
+          data: tokenDataFromLogs[tokenDataFromLogs.length - 1]
+        });
+        // Sample some middle points to check distribution
+        if (tokenDataFromLogs.length > 10) {
+          const middleIdx = Math.floor(tokenDataFromLogs.length / 2);
+          console.log('Middle token data point:', {
+            timestamp: tokenDataFromLogs[middleIdx].timestamp,
+            timestampDate: new Date(tokenDataFromLogs[middleIdx].timestamp).toLocaleString()
+          });
+        }
+      }
       setTokenData(tokenDataFromLogs);
 
       // Process cost data from logs instead of metrics
       const costDataFromLogs = processCostDataFromLogs(allLogs, startTime, endTime);
+      console.log('=== COST DATA DEBUG ===');
+      console.log('Cost data points:', costDataFromLogs.length);
+      if (costDataFromLogs.length > 0) {
+        console.log('First cost data point:', {
+          timestamp: costDataFromLogs[0].timestamp,
+          timestampDate: new Date(costDataFromLogs[0].timestamp).toLocaleString(),
+          data: costDataFromLogs[0]
+        });
+        console.log('Last cost data point:', {
+          timestamp: costDataFromLogs[costDataFromLogs.length - 1].timestamp,
+          timestampDate: new Date(costDataFromLogs[costDataFromLogs.length - 1].timestamp).toLocaleString(),
+          data: costDataFromLogs[costDataFromLogs.length - 1]
+        });
+      }
       setCostData(costDataFromLogs);
 
       // Process tool usage from logs
