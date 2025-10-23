@@ -55,3 +55,4 @@ COPY packages/python/requirements.txt ./packages/python/
 RUN uv pip install --system --no-cache-dir -r packages/python/requirements.txt
 
 EXPOSE 8000
+EXPOSE 4317
