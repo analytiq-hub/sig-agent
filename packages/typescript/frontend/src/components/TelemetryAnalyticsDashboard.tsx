@@ -151,15 +151,21 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   // Filter token data based on enabled language models
   const filterTokenDataByModels = useCallback((data: TimeSeriesDataPoint[], logsData: TelemetryLogResponse[]): TimeSeriesDataPoint[] => {
     if (Object.keys(enabledLanguageModels).length === 0) return data;
-    
+
     // Create a map of timestamps to enabled models
     const timestampToModels: Record<number, Set<string>> = {};
-    
+
     logsData.forEach(log => {
       if (log.attributes && log.attributes.model) {
         const model = log.attributes.model as string;
-        const timestamp = new Date(log.timestamp).getTime();
-        
+        // API returns UTC timestamps, but they may be missing the "Z" suffix
+        // Ensure we treat them as UTC by appending "Z" if not present
+        let timestampStr = log.timestamp;
+        if (!timestampStr.endsWith('Z') && !timestampStr.includes('+') && !timestampStr.includes('-', 10)) {
+          timestampStr = timestampStr + 'Z';
+        }
+        const timestamp = new Date(timestampStr).getTime();
+
         if (!timestampToModels[timestamp]) {
           timestampToModels[timestamp] = new Set();
         }
@@ -178,8 +184,14 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   }, [enabledLanguageModels]);
 
   // Helper function to format date for datetime-local input
+  // datetime-local expects local time in format "YYYY-MM-DDTHH:mm"
   const formatDateForInput = (date: Date): string => {
-    return date.toISOString().slice(0, 16);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   // Helper function to format date range for display
@@ -263,10 +275,16 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     // Process all logs to find unique session IDs
     logsData.forEach(log => {
-      const logTime = new Date(log.timestamp);
+      // API returns UTC timestamps, but they may be missing the "Z" suffix
+      // Ensure we treat them as UTC by appending "Z" if not present
+      let timestampStr = log.timestamp;
+      if (!timestampStr.endsWith('Z') && !timestampStr.includes('+') && !timestampStr.includes('-', 10)) {
+        timestampStr = timestampStr + 'Z';
+      }
+      const logTime = new Date(timestampStr);
       const isAfterStart = logTime >= startTime;
       const isBeforeEnd = endTime ? logTime <= endTime : true;
-      
+
       if (!isAfterStart || !isBeforeEnd) return;
 
       // Check log attributes for session ID
@@ -290,14 +308,26 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     const detectedTokenTypes: Set<string> = new Set();
     const tokenEntries: Array<{ timestamp: number; tokenType: string; tokens: number; model: string }> = [];
+    let totalLogs = 0;
+    let filteredOutLogs = 0;
 
     // Process all logs to find token-related entries
     logsData.forEach(log => {
-      const logTime = new Date(log.timestamp);
+      totalLogs++;
+      // API returns UTC timestamps, but they may be missing the "Z" suffix
+      // Ensure we treat them as UTC by appending "Z" if not present
+      let timestampStr = log.timestamp;
+      if (!timestampStr.endsWith('Z') && !timestampStr.includes('+') && !timestampStr.includes('-', 10)) {
+        timestampStr = timestampStr + 'Z';
+      }
+      const logTime = new Date(timestampStr);
       const isAfterStart = logTime >= startTime;
       const isBeforeEnd = endTime ? logTime <= endTime : true;
-      
-      if (!isAfterStart || !isBeforeEnd) return;
+
+      if (!isAfterStart || !isBeforeEnd) {
+        filteredOutLogs++;
+        return;
+      }
 
       // Check log attributes for token information (this is where the real data is)
       if (log.attributes && typeof log.attributes === 'object') {
@@ -403,7 +433,13 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     // Process all logs to find tool_result entries
     logsData.forEach(log => {
-      const logTime = new Date(log.timestamp);
+      // API returns UTC timestamps, but they may be missing the "Z" suffix
+      // Ensure we treat them as UTC by appending "Z" if not present
+      let timestampStr = log.timestamp;
+      if (!timestampStr.endsWith('Z') && !timestampStr.includes('+') && !timestampStr.includes('-', 10)) {
+        timestampStr = timestampStr + 'Z';
+      }
+      const logTime = new Date(timestampStr);
       const isAfterStart = logTime >= startTime;
       const isBeforeEnd = !endTime || logTime <= endTime;
 
@@ -490,10 +526,16 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     // Process all logs to find cost-related entries
     logsData.forEach(log => {
-      const logTime = new Date(log.timestamp);
+      // API returns UTC timestamps, but they may be missing the "Z" suffix
+      // Ensure we treat them as UTC by appending "Z" if not present
+      let timestampStr = log.timestamp;
+      if (!timestampStr.endsWith('Z') && !timestampStr.includes('+') && !timestampStr.includes('-', 10)) {
+        timestampStr = timestampStr + 'Z';
+      }
+      const logTime = new Date(timestampStr);
       const isAfterStart = logTime >= startTime;
       const isBeforeEnd = endTime ? logTime <= endTime : true;
-      
+
       if (!isAfterStart || !isBeforeEnd) return;
 
       // Check log attributes for cost information (this is where the real data is)
@@ -577,69 +619,175 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
 
       // Calculate time range for filtering
+      //
+      // TIMEZONE HANDLING:
+      // 1. datetime-local input provides time in format "YYYY-MM-DDTHH:mm" (local time, no timezone)
+      // 2. new Date() interprets this string as local time and creates a Date object (stored internally as UTC)
+      // 3. .toISOString() converts the Date object to UTC format for API transmission (e.g., "2025-10-22T14:00:00.000Z")
+      // 4. API returns timestamps in UTC format (e.g., "2025-10-22T14:00:00Z")
+      // 5. new Date(apiTimestamp) correctly interprets UTC strings and stores as UTC internally
+      // 6. Chart display: .toLocaleString() converts UTC timestamps back to user's local timezone for display
       let startTime: Date;
       let endTime: Date;
-      
+
       if (timeRange === 'custom' && customStartDate && customEndDate) {
-        // Convert local time to UTC for comparison with UTC metrics
+        // datetime-local gives us local time string without timezone (e.g., "2025-10-22T10:00")
+        // new Date() interprets this as local time
         startTime = new Date(customStartDate);
         endTime = new Date(customEndDate);
-        
-        // The datetime-local input gives us local time, but we need to ensure
-        // we're comparing with UTC timestamps from the metrics
       } else {
+        // For preset ranges, calculate from current time
         const now = new Date();
         const timeRangeMs = getTimeRangeMs(timeRange);
         startTime = new Date(now.getTime() - timeRangeMs);
-        endTime = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Add 24 hour buffer to include recent logs
+        // Add 1 hour buffer to account for clock skew and ensure recent logs are included
+        endTime = new Date(now.getTime() + 60 * 60 * 1000);
       }
 
-      // Fetch metrics using date range filtering (API limit is 100)
-      let metricsResponse;
+      // Debug logging for time range
+      console.log('=== TIME RANGE DEBUG ===');
+      console.log('Selected time range:', timeRange);
+      console.log('Start time (local):', startTime.toLocaleString());
+      console.log('End time (local):', endTime.toLocaleString());
+      console.log('Start time (UTC for API):', startTime.toISOString());
+      console.log('End time (UTC for API):', endTime.toISOString());
+      console.log('Time range duration (hours):', (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60));
+
+      // Fetch metrics using pagination to get all results within the time range
+      // .toISOString() converts local Date objects to UTC format for API
+      let allMetrics: TelemetryMetricResponse[] = [];
       try {
-        metricsResponse = await docRouterOrgApi.listMetrics({ 
-          limit: 100,
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString()
-        });
-        setMetrics(metricsResponse.metrics || []);
+        const batchSize = 100;
+        let skip = 0;
+        let hasMore = true;
+        let totalFetched = 0;
+
+        console.log('Starting paginated metrics fetch...');
+
+        while (hasMore) {
+          const metricsParams = {
+            limit: batchSize,
+            skip: skip,
+            start_time: startTime.toISOString(), // Converts to UTC: "2025-10-22T14:00:00.000Z"
+            end_time: endTime.toISOString()       // Converts to UTC: "2025-10-22T18:00:00.000Z"
+          };
+
+          const metricsResponse = await docRouterOrgApi.listMetrics(metricsParams);
+          const fetchedMetrics = metricsResponse.metrics || [];
+
+          allMetrics = allMetrics.concat(fetchedMetrics);
+          totalFetched += fetchedMetrics.length;
+
+          console.log(`Fetched ${fetchedMetrics.length} metrics (skip=${skip}, total so far: ${totalFetched})`);
+
+          // Check if we got fewer results than the batch size, meaning we've reached the end
+          hasMore = fetchedMetrics.length === batchSize;
+          skip += batchSize;
+
+          // Safety limit to prevent infinite loops
+          if (skip > 10000) {
+            console.warn('Reached safety limit of 10,000 metrics');
+            hasMore = false;
+          }
+        }
+
+        console.log(`Metrics pagination complete. Total metrics fetched: ${allMetrics.length}`);
+        setMetrics(allMetrics);
       } catch (metricsError) {
         console.warn('Failed to fetch metrics:', metricsError);
         setMetrics([]);
-        metricsResponse = { metrics: [] };
+        allMetrics = [];
       }
 
-      // Fetch logs using date range filtering (API limit is 100)
-      let logsResponse;
+      // Fetch logs using pagination to get all results within the time range
+      // .toISOString() converts local Date objects to UTC format for API
+      let allLogs: TelemetryLogResponse[] = [];
       try {
-        logsResponse = await docRouterOrgApi.listLogs({ 
-          limit: 100,
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString()
-        });
-        setLogs(logsResponse.logs || []);
+        const batchSize = 100;
+        let skip = 0;
+        let hasMore = true;
+        let totalFetched = 0;
+
+        console.log('Starting paginated logs fetch...');
+
+        while (hasMore) {
+          const logsParams = {
+            limit: batchSize,
+            skip: skip,
+            start_time: startTime.toISOString(), // Converts to UTC: "2025-10-22T14:00:00.000Z"
+            end_time: endTime.toISOString()       // Converts to UTC: "2025-10-22T18:00:00.000Z"
+          };
+
+          const logsResponse = await docRouterOrgApi.listLogs(logsParams);
+          const fetchedLogs = logsResponse.logs || [];
+
+          allLogs = allLogs.concat(fetchedLogs);
+          totalFetched += fetchedLogs.length;
+
+          console.log(`Fetched ${fetchedLogs.length} logs (skip=${skip}, total so far: ${totalFetched})`);
+
+          // Check if we got fewer results than the batch size, meaning we've reached the end
+          hasMore = fetchedLogs.length === batchSize;
+          skip += batchSize;
+
+          // Safety limit to prevent infinite loops
+          if (skip > 10000) {
+            console.warn('Reached safety limit of 10,000 logs');
+            hasMore = false;
+          }
+        }
+
+        console.log(`Logs pagination complete. Total logs fetched: ${allLogs.length}`);
+
+        // Log first and last log timestamps for verification
+        if (allLogs.length > 0) {
+          const sortedLogs = [...allLogs].sort((a, b) => {
+            // Ensure timestamps are treated as UTC
+            const aTime = a.timestamp.endsWith('Z') || a.timestamp.includes('+') || a.timestamp.includes('-', 10)
+              ? a.timestamp : a.timestamp + 'Z';
+            const bTime = b.timestamp.endsWith('Z') || b.timestamp.includes('+') || b.timestamp.includes('-', 10)
+              ? b.timestamp : b.timestamp + 'Z';
+            return new Date(aTime).getTime() - new Date(bTime).getTime();
+          });
+
+          // Fix timestamps by ensuring they have Z suffix
+          const firstTimestamp = sortedLogs[0].timestamp.endsWith('Z') || sortedLogs[0].timestamp.includes('+') || sortedLogs[0].timestamp.includes('-', 10)
+            ? sortedLogs[0].timestamp : sortedLogs[0].timestamp + 'Z';
+          const lastTimestamp = sortedLogs[sortedLogs.length - 1].timestamp.endsWith('Z') || sortedLogs[sortedLogs.length - 1].timestamp.includes('+') || sortedLogs[sortedLogs.length - 1].timestamp.includes('-', 10)
+            ? sortedLogs[sortedLogs.length - 1].timestamp : sortedLogs[sortedLogs.length - 1].timestamp + 'Z';
+
+          console.log('First log timestamp (raw from API):', sortedLogs[0].timestamp);
+          console.log('First log timestamp (corrected UTC):', firstTimestamp);
+          console.log('First log timestamp (local):', new Date(firstTimestamp).toLocaleString());
+          console.log('Last log timestamp (raw from API):', sortedLogs[sortedLogs.length - 1].timestamp);
+          console.log('Last log timestamp (corrected UTC):', lastTimestamp);
+          console.log('Last log timestamp (local):', new Date(lastTimestamp).toLocaleString());
+        }
+
+        setLogs(allLogs);
       } catch (logsError) {
         console.warn('Failed to fetch logs:', logsError);
         setLogs([]);
-        logsResponse = { logs: [] };
+        allLogs = [];
       }
+      console.log('=== END TIME RANGE DEBUG ===');
 
       // Process metrics data with time filtering
-      processMetricsData(metricsResponse.metrics || [], startTime, endTime);
-      
+      processMetricsData(allMetrics, startTime, endTime);
+
       // Process active sessions from logs
-      const activeSessionsFromLogs = processActiveSessionsFromLogs(logsResponse.logs || [], startTime, endTime);
-      
+      const activeSessionsFromLogs = processActiveSessionsFromLogs(allLogs, startTime, endTime);
+
       // Process token usage from logs instead of metrics
-      const tokenDataFromLogs = processTokenUsageFromLogs(logsResponse.logs || [], startTime, endTime);
+      const tokenDataFromLogs = processTokenUsageFromLogs(allLogs, startTime, endTime);
       setTokenData(tokenDataFromLogs);
-      
+
       // Process cost data from logs instead of metrics
-      const costDataFromLogs = processCostDataFromLogs(logsResponse.logs || [], startTime, endTime);
+      const costDataFromLogs = processCostDataFromLogs(allLogs, startTime, endTime);
       setCostData(costDataFromLogs);
-      
+
       // Process tool usage from logs
-      const toolUsageResult = processToolUsageFromLogs(logsResponse.logs || [], startTime, endTime);
+      const toolUsageResult = processToolUsageFromLogs(allLogs, startTime, endTime);
       setToolUsageData(toolUsageResult.usageData);
       setToolAverageDuration(toolUsageResult.averageDuration);
       
@@ -674,7 +822,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       }));
 
       // Check if we have any data at all
-      if ((metricsResponse.metrics || []).length === 0 && (logsResponse.logs || []).length === 0) {
+      if (allMetrics.length === 0 && allLogs.length === 0) {
         console.warn('No telemetry data available for organization:', organizationId);
       }
 
