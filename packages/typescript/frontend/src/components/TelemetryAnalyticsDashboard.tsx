@@ -1324,6 +1324,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
                 data={displayMode === 'rate' ? convertToRateData(costData) : costData}
                 dataKeys={getCostDataKeys(displayMode === 'rate' ? convertToRateData(costData) : costData)}
                 yAxisLabel={displayMode === 'rate' ? `USD ${getTimeInterval(timeRange).label}` : "USD"}
+                yAxisFormat="currency"
                 showArea={displayMode === 'cumulative'}
               />
             ) : (

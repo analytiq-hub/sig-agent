@@ -25,6 +25,7 @@ export interface TimeSeriesChartProps {
   showArea?: boolean;
   showLegend?: boolean;
   showGrid?: boolean;
+  yAxisFormat?: 'number' | 'currency';
 }
 
 const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
@@ -36,7 +37,8 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
   xAxisLabel,
   showArea = false,
   showLegend = true,
-  showGrid = true
+  showGrid = true,
+  yAxisFormat = 'number'
 }) => {
   // Keep timestamps as numbers for proper time-based spacing
   const formattedData = useMemo(() => {
@@ -68,6 +70,29 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  // Format Y-axis numbers with abbreviations (K, M, B)
+  const formatYAxis = (value: number) => {
+    if (value === 0) return yAxisFormat === 'currency' ? '$0' : '0';
+
+    const absValue = Math.abs(value);
+    const sign = value < 0 ? '-' : '';
+    const prefix = yAxisFormat === 'currency' ? '$' : '';
+
+    if (absValue >= 1_000_000_000) {
+      return prefix + sign + (absValue / 1_000_000_000).toFixed(1).replace(/\.0$/, '') + 'B';
+    }
+    if (absValue >= 1_000_000) {
+      return prefix + sign + (absValue / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    if (absValue >= 1_000) {
+      return prefix + sign + (absValue / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
+    }
+    if (yAxisFormat === 'currency') {
+      return prefix + sign + absValue.toFixed(2);
+    }
+    return sign + absValue.toFixed(0);
   };
 
   // Zoom in handler
@@ -201,8 +226,10 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
               allowDataOverflow
             />
             <YAxis
+              tickFormatter={formatYAxis}
               label={yAxisLabel ? { value: yAxisLabel, angle: -90, position: 'insideLeft' } : undefined}
               tick={{ fontSize: 12 }}
+              width={60}
             />
             <Tooltip
               labelFormatter={formatXAxis}
