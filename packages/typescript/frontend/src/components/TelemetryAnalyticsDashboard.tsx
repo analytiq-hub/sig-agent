@@ -992,10 +992,10 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     // Define colors and labels for different token types
     const tokenTypeConfig: Record<string, { label: string; color: string; lineWidth?: number }> = {
-      'input_tokens': { label: 'Input Tokens', color: '#f97316' },
-      'output_tokens': { label: 'Output Tokens', color: '#22c55e' },
-      'cache_read_tokens': { label: 'Cache Read Tokens', color: '#3b82f6', lineWidth: 3 },
-      'cache_creation_tokens': { label: 'Cache Creation Tokens', color: '#a855f7' },
+      'input_tokens': { label: 'Input', color: '#f97316' },
+      'output_tokens': { label: 'Output', color: '#22c55e' },
+      'cache_read_tokens': { label: 'Cache Read', color: '#3b82f6', lineWidth: 3 },
+      'cache_creation_tokens': { label: 'Cache Creation', color: '#a855f7' },
       'total': { label: 'Total Tokens', color: '#ef4444' },
       'prompt': { label: 'Prompt Tokens', color: '#f59e0b' },
       'completion': { label: 'Completion Tokens', color: '#06b6d4' }
@@ -1250,50 +1250,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         </Typography>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            {/* Token Type Selection */}
-            <Box className="p-4 bg-gray-50 rounded-lg">
-              <Typography variant="subtitle2" className="font-medium text-gray-700 mb-3">
-                Token Types:
-              </Typography>
-              <FormGroup row>
-                {Object.entries({
-                  input_tokens: 'Input Tokens',
-                  output_tokens: 'Output Tokens',
-                  cache_read_tokens: 'Cache Read Tokens',
-                  cache_creation_tokens: 'Cache Creation Tokens'
-                }).map(([key, label]) => (
-                  <FormControlLabel
-                    key={key}
-                    control={
-                      <Checkbox
-                        checked={enabledTokenTypes[key] !== false}
-                        onChange={() => handleTokenTypeToggle(key)}
-                        size="small"
-                        sx={{
-                          color: key === 'input_tokens' ? '#f97316' :
-                                 key === 'output_tokens' ? '#22c55e' :
-                                 key === 'cache_read_tokens' ? '#3b82f6' :
-                                 key === 'cache_creation_tokens' ? '#a855f7' : '#666',
-                          '&.Mui-checked': {
-                            color: key === 'input_tokens' ? '#f97316' :
-                                   key === 'output_tokens' ? '#22c55e' :
-                                   key === 'cache_read_tokens' ? '#3b82f6' :
-                                   key === 'cache_creation_tokens' ? '#a855f7' : '#666',
-                          }
-                        }}
-                      />
-                    }
-                    label={
-                      <Typography variant="body2" className="text-sm">
-                        {label}
-                      </Typography>
-                    }
-                  />
-                ))}
-              </FormGroup>
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={6}>
             {/* Language Model Selection */}
             {Object.keys(enabledLanguageModels).length > 0 && (
               <Box className="p-4 bg-gray-50 rounded-lg">
@@ -1327,6 +1283,50 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
                 </FormGroup>
               </Box>
             )}
+          </Grid>
+          <Grid item xs={12} md={6}>
+            {/* Token Type Selection */}
+            <Box className="p-4 bg-gray-50 rounded-lg">
+              <Typography variant="subtitle2" className="font-medium text-gray-700 mb-3">
+                Token Types:
+              </Typography>
+              <FormGroup row>
+                {Object.entries({
+                  input_tokens: 'Input',
+                  output_tokens: 'Output',
+                  cache_read_tokens: 'Cache Read',
+                  cache_creation_tokens: 'Cache Creation'
+                }).map(([key, label]) => (
+                  <FormControlLabel
+                    key={key}
+                    control={
+                      <Checkbox
+                        checked={enabledTokenTypes[key] !== false}
+                        onChange={() => handleTokenTypeToggle(key)}
+                        size="small"
+                        sx={{
+                          color: key === 'input_tokens' ? '#f97316' :
+                                 key === 'output_tokens' ? '#22c55e' :
+                                 key === 'cache_read_tokens' ? '#3b82f6' :
+                                 key === 'cache_creation_tokens' ? '#a855f7' : '#666',
+                          '&.Mui-checked': {
+                            color: key === 'input_tokens' ? '#f97316' :
+                                   key === 'output_tokens' ? '#22c55e' :
+                                   key === 'cache_read_tokens' ? '#3b82f6' :
+                                   key === 'cache_creation_tokens' ? '#a855f7' : '#666',
+                          }
+                        }}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" className="text-sm">
+                        {label}
+                      </Typography>
+                    }
+                  />
+                ))}
+              </FormGroup>
+            </Box>
           </Grid>
         </Grid>
       </div>
