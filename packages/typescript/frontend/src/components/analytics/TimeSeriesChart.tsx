@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { Card, CardContent, Typography, IconButton, Box } from '@mui/material';
 import { ZoomIn, ZoomOut, RestartAlt } from '@mui/icons-material';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, Brush, ReferenceArea } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ReferenceArea } from 'recharts';
 
 export interface TimeSeriesDataPoint {
   timestamp: string | number;
@@ -137,16 +137,18 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
   }, []);
 
   // Handle mouse down for selection zoom
-  const handleMouseDown = useCallback((e: any) => {
+  const handleMouseDown = useCallback((e: { activeLabel?: string | number }) => {
     if (e && e.activeLabel) {
-      setRefAreaLeft(e.activeLabel);
+      const timestamp = typeof e.activeLabel === 'string' ? parseFloat(e.activeLabel) : e.activeLabel;
+      setRefAreaLeft(timestamp);
     }
   }, []);
 
   // Handle mouse move for selection zoom
-  const handleMouseMove = useCallback((e: any) => {
+  const handleMouseMove = useCallback((e: { activeLabel?: string | number }) => {
     if (refAreaLeft && e && e.activeLabel) {
-      setRefAreaRight(e.activeLabel);
+      const timestamp = typeof e.activeLabel === 'string' ? parseFloat(e.activeLabel) : e.activeLabel;
+      setRefAreaRight(timestamp);
     }
   }, [refAreaLeft]);
 
