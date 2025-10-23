@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react';
-import { Card, CardContent, Typography, Box } from '@mui/material';
+import { Card, CardContent, Typography } from '@mui/material';
 import { TrendingUp, TrendingDown } from '@mui/icons-material';
 
 export interface StatCardProps {
