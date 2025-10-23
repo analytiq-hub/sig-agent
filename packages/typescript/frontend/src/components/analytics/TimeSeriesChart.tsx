@@ -235,6 +235,12 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
             />
             <Tooltip
               labelFormatter={formatXAxis}
+              formatter={(value: number, name: string) => {
+                if (yAxisFormat === 'currency') {
+                  return [`$${value.toFixed(2)}`, name];
+                }
+                return [formatYAxis(value), name];
+              }}
               contentStyle={{
                 backgroundColor: 'rgba(255, 255, 255, 0.95)',
                 border: '1px solid #ccc',

@@ -119,6 +119,10 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     const rateData: TimeSeriesDataPoint[] = [];
     const { intervalMs } = getTimeInterval(timeRange);
     
+    console.log('=== RATE CONVERSION DEBUG ===');
+    console.log('Interval (ms):', intervalMs);
+    console.log('Original data points:', data.length);
+    
     for (let i = 1; i < data.length; i++) {
       const current = data[i];
       const previous = data[i - 1];
@@ -134,16 +138,36 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
             const previousValue = Number(previous[key]) || 0;
             const delta = currentValue - previousValue;
             
-            // Calculate rate: delta per interval
-            // If timeDiff is 10 minutes and interval is 5 minutes, rate = delta * (5/10) = delta * 0.5
-            const rate = delta * (intervalMs / timeDiffMs);
-            ratePoint[key] = Math.max(0, rate); // Ensure non-negative rates
+            // For cost data, show the actual cost increment (delta) for this time period
+            // This represents the cost incurred during the time between this point and the previous point
+            // No scaling needed - just show the actual cost delta
+            const rate = delta;
+            
+            // Round to reasonable precision to avoid floating point issues
+            const roundedRate = Math.round(rate * 1000000) / 1000000; // 6 decimal places
+            
+            ratePoint[key] = roundedRate;
+            
+            // Debug logging for first few points
+            if (i <= 3) {
+              console.log(`Point ${i}, Key: ${key}`);
+              console.log(`  Current: ${currentValue}, Previous: ${previousValue}, Delta: ${delta}`);
+              console.log(`  TimeDiff: ${timeDiffMs}ms, Interval: ${intervalMs}ms`);
+              console.log(`  Rate: ${rate}, Rounded: ${roundedRate}`);
+            }
           }
         });
         
         rateData.push(ratePoint);
       }
     }
+    
+    console.log('Rate data points:', rateData.length);
+    if (rateData.length > 0) {
+      console.log('First rate point:', rateData[0]);
+      console.log('Last rate point:', rateData[rateData.length - 1]);
+    }
+    console.log('=== END RATE CONVERSION DEBUG ===');
     
     return rateData;
   }, [timeRange, getTimeInterval]);
@@ -308,12 +332,9 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
     const detectedTokenTypes: Set<string> = new Set();
     const tokenEntries: Array<{ timestamp: number; tokenType: string; tokens: number; model: string }> = [];
-    let totalLogs = 0;
-    let filteredOutLogs = 0;
 
     // Process all logs to find token-related entries
     logsData.forEach(log => {
-      totalLogs++;
       // API returns UTC timestamps, but they may be missing the "Z" suffix
       // Ensure we treat them as UTC by appending "Z" if not present
       let timestampStr = log.timestamp;
@@ -325,7 +346,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       const isBeforeEnd = endTime ? logTime <= endTime : true;
 
       if (!isAfterStart || !isBeforeEnd) {
-        filteredOutLogs++;
         return;
       }
 
@@ -1320,10 +1340,10 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           <Grid item xs={12} md={6}>
             {costData.length > 0 ? (
               <TimeSeriesChart
-                title={displayMode === 'rate' ? `Cost Rate (${getTimeInterval(timeRange).label})` : "Cost Over Time"}
+                title={displayMode === 'rate' ? "Cost Increment per Time Period" : "Cost Over Time"}
                 data={displayMode === 'rate' ? convertToRateData(costData) : costData}
                 dataKeys={getCostDataKeys(displayMode === 'rate' ? convertToRateData(costData) : costData)}
-                yAxisLabel={displayMode === 'rate' ? `USD ${getTimeInterval(timeRange).label}` : "USD"}
+                yAxisLabel={displayMode === 'rate' ? "USD per Period" : "USD"}
                 yAxisFormat="currency"
                 showArea={displayMode === 'cumulative'}
               />
