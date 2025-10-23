@@ -51,14 +51,15 @@ const BarChart: React.FC<BarChartProps> = ({
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={height}>
-          <RechartsBarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+          <RechartsBarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis 
-              dataKey="name" 
-              tick={{ fontSize: 12 }}
+            <XAxis
+              dataKey="name"
+              tick={{ fontSize: 11 }}
               angle={-45}
               textAnchor="end"
-              height={80}
+              height={100}
+              interval={0}
             />
             <YAxis 
               tick={{ fontSize: 12 }}
