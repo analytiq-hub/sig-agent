@@ -19,6 +19,7 @@ export interface BarChartProps {
   color?: string;
   height?: number;
   horizontal?: boolean;
+  maxLabelLength?: number;
 }
 
 const BarChart: React.FC<BarChartProps> = ({
@@ -26,7 +27,8 @@ const BarChart: React.FC<BarChartProps> = ({
   data,
   dataKey,
   yAxisLabel,
-  height = 300
+  height = 300,
+  maxLabelLength = 36
 }) => {
   const colors = [
     '#3b82f6', // blue
@@ -40,6 +42,11 @@ const BarChart: React.FC<BarChartProps> = ({
     '#ec4899', // pink
     '#6b7280'  // gray
   ];
+
+  // Format x-axis labels with truncation
+  const formatXAxisLabel = (label: string) => {
+    return label.length > maxLabelLength ? label.substring(0, maxLabelLength) + '...' : label;
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -60,6 +67,7 @@ const BarChart: React.FC<BarChartProps> = ({
               textAnchor="end"
               height={100}
               interval={0}
+              tickFormatter={formatXAxisLabel}
             />
             <YAxis 
               tick={{ fontSize: 12 }}
