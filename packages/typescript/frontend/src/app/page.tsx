@@ -45,7 +45,7 @@ const Home = () => {
             
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-blue-800 text-sm">
-                <strong>Note:</strong> You&apos;ll need to create an organization access token first. 
+                <strong>Note:</strong> You&apos;ll need to create an organization access token first and use it in step 4. 
                 <a 
                   href={`${getBaseUrl()}/settings/user/developer/organization-access-tokens`}
                   className="text-blue-600 hover:text-blue-800 underline ml-1"
@@ -76,8 +76,8 @@ const Home = () => {
               </div>
               
               <div>
-                <span className="text-gray-400"># 4. Set authentication</span><br/>
-                <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_EXPORTER_OTLP_HEADERS</span>=<span className="text-green-300">&quot;Authorization=Bearer xxx&quot;</span>
+                <span className="text-gray-400"># 4. Set authentication (replace with your org access token)</span><br/>
+                <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_EXPORTER_OTLP_HEADERS</span>=<span className="text-green-300">&quot;Authorization=Bearer YOUR_ORG_ACCESS_TOKEN&quot;</span>
               </div>
             </div>
           </section>
