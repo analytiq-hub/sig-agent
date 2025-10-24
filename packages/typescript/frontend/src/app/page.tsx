@@ -36,13 +36,13 @@ const Home = () => {
         </header>
         
         <main>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column */}
-            <div className="space-y-8">
+          <div className="space-y-8">
+            {/* Top Row - About and Setup Instructions */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* About Section */}
-              <section className="bg-white rounded-lg shadow-lg p-8">
+              <section className="bg-white rounded-lg shadow-lg p-8 flex flex-col">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-4">About</h2>
-                <p className="text-gray-600 mb-6">
+                <p className="text-gray-600 mb-6 flex-grow">
                   SigAgent.AI is a comprehensive monitoring and telemetry platform designed specifically for Claude Agents. 
                   It provides real-time insights, performance metrics, and detailed analytics to help you optimize your AI agent deployments. 
                   <strong>Get started for free with no credit card required.</strong>
@@ -60,22 +60,8 @@ const Home = () => {
                 </div>
               </section>
 
-              {/* Contact Section */}
-              <section className="bg-white rounded-lg shadow-lg p-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">Contact Us</h2>
-                <p className="text-gray-600 mb-4">
-                  Get in touch for inquiries, partnerships, or more information about our products.
-                </p>
-                <ul className="text-gray-600 space-y-2">
-                  <li>Email: <a href="mailto:andrei@analytiqhub.com" className="text-blue-600 hover:text-blue-800">andrei@analytiqhub.com</a></li>
-                  <li>Website: <a href="https://analytiqhub.com" className="text-blue-600 hover:text-blue-800">analytiqhub.com</a></li>
-                </ul>
-              </section>
-            </div>
-
-            {/* Right Column - Setup Instructions */}
-            <div>
-              <section className="bg-white rounded-lg shadow-lg p-8">
+              {/* Setup Instructions */}
+              <section className="bg-white rounded-lg shadow-lg p-8 flex flex-col">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-4">Setup Instructions</h2>
 
                 <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -91,7 +77,7 @@ const Home = () => {
                     &nbsp;and use it in step 4. Then, configure the following environment variables before starting Claude Code:
                   </p>
                 </div>
-                <div className="bg-gray-900 rounded-lg p-6 text-green-400 font-mono text-xs overflow-x-auto">
+                <div className="bg-gray-900 rounded-lg p-6 text-green-400 font-mono text-xs overflow-x-auto flex-grow">
                   <div className="mb-4">
                     <span className="text-gray-400"># 1. Enable telemetry</span><br/>
                     <span className="text-blue-400">export</span> <span className="text-yellow-400">CLAUDE_CODE_ENABLE_TELEMETRY</span>=<span className="text-green-300">1</span>
@@ -116,6 +102,18 @@ const Home = () => {
                 </div>
               </section>
             </div>
+
+            {/* Bottom Row - Contact Us (Full Width) */}
+            <section className="bg-white rounded-lg shadow-lg p-8">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Contact Us</h2>
+              <p className="text-gray-600 mb-4">
+                Get in touch for inquiries, partnerships, or more information about our products.
+              </p>
+              <ul className="text-gray-600 space-y-2">
+                <li>Email: <a href="mailto:andrei@analytiqhub.com" className="text-blue-600 hover:text-blue-800">andrei@analytiqhub.com</a></li>
+                <li>Website: <a href="https://analytiqhub.com" className="text-blue-600 hover:text-blue-800">analytiqhub.com</a></li>
+              </ul>
+            </section>
           </div>
         </main>
         
