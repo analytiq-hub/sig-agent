@@ -1332,7 +1332,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
                 showArea={displayMode === 'cumulative'}
               />
             ) : (
-              <Box className="p-8 bg-gray-100 rounded-lg text-center border-2 border-dashed border-gray-300">
+              <Box className="p-8 bg-gray-100 rounded-lg text-center ">
                 <Typography color="textPrimary" className="font-small">
                   No Data Available
                 </Typography>
@@ -1352,7 +1352,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
                 yAxisLabel={displayMode === 'rate' ? `Tokens ${getTimeInterval(timeRange).label}` : "Tokens"}
               />
             ) : (
-              <Box className="p-8 bg-gray-100 rounded-lg text-center border-2 border-dashed border-gray-300">
+              <Box className="p-8 bg-gray-100 rounded-lg text-center ">
                 <Typography color="textPrimary" className="font-small">
                   No Data Available
                 </Typography>
