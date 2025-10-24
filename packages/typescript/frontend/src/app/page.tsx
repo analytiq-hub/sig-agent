@@ -32,7 +32,6 @@ const Home = () => {
           <div className="text-lg md:text-xl text-gray-600 space-y-1">
             <p>Advanced monitoring and telemetry</p>
             <p>for Claude Agents</p>
-            <p className="text-sm text-gray-500 mt-2">Free registration • No credit card required</p>
           </div>
         </header>
         
@@ -78,25 +77,21 @@ const Home = () => {
             <div>
               <section className="bg-white rounded-lg shadow-lg p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-4">Setup Instructions</h2>
-                <p className="text-gray-600 mb-6">
-                  To set up SigAgent.AI for monitoring your Claude Agents, configure the following environment variables before starting Claude Code:
-                </p>
-                
+
                 <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-blue-800 text-sm">
-                    <strong>Note:</strong> You&apos;ll need to create an organization access token first and use it in step 4. 
                     <a 
                       href={`${getBaseUrl()}/settings/user/developer/organization-access-tokens`}
-                      className="text-blue-600 hover:text-blue-800 underline ml-1"
+                      className="text-blue-600 hover:text-blue-800 underline"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      Set up your access token here →
+                      Create an organization access token
                     </a>
+                    &nbsp;and use it in step 4. Then, configure the following environment variables before starting Claude Code:
                   </p>
                 </div>
-                
-                <div className="bg-gray-900 rounded-lg p-6 text-green-400 font-mono text-sm overflow-x-auto">
+                <div className="bg-gray-900 rounded-lg p-6 text-green-400 font-mono text-xs overflow-x-auto">
                   <div className="mb-4">
                     <span className="text-gray-400"># 1. Enable telemetry</span><br/>
                     <span className="text-blue-400">export</span> <span className="text-yellow-400">CLAUDE_CODE_ENABLE_TELEMETRY</span>=<span className="text-green-300">1</span>
