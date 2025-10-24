@@ -44,7 +44,8 @@ const Home = () => {
                 <h2 className="text-2xl font-semibold text-gray-900 mb-4">About</h2>
                 <p className="text-gray-600 mb-6 flex-grow">
                   SigAgent.AI is a comprehensive monitoring and telemetry platform designed specifically for Claude Agents. 
-                  It provides real-time insights, performance metrics, and detailed analytics to help you optimize your AI agent deployments. 
+                </p>
+                <p className="text-gray-600 mb-6 flex-grow">
                   <strong>Get started for free with no credit card required.</strong>
                 </p>
                 
