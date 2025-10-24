@@ -35,7 +35,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
   const [displayMode, setDisplayMode] = useState<DisplayMode>('cumulative');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [metrics, setMetrics] = useState<TelemetryMetricResponse[]>([]);
+  const [, setMetrics] = useState<TelemetryMetricResponse[]>([]);
   const [logs, setLogs] = useState<TelemetryLogResponse[]>([]);
   
   // Custom date range state
@@ -675,7 +675,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         const batchSize = 100;
         let skip = 0;
         let hasMore = true;
-        let totalFetched = 0;
 
 
         while (hasMore) {
@@ -744,16 +743,11 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
 
         // Log first and last log timestamps for verification
         if (allLogs.length > 0) {
-          const sortedLogs = [...allLogs].sort((a, b) => {
-            // Ensure timestamps are treated as UTC
-            const aTime = a.timestamp.endsWith('Z') || a.timestamp.includes('+') || a.timestamp.includes('-', 10)
-              ? a.timestamp : a.timestamp + 'Z';
-            const bTime = b.timestamp.endsWith('Z') || b.timestamp.includes('+') || b.timestamp.includes('-', 10)
-              ? b.timestamp : b.timestamp + 'Z';
-            return new Date(aTime).getTime() - new Date(bTime).getTime();
-          });
-
-
+          // Ensure timestamps are treated as UTC for verification
+          const firstLog = allLogs[0];
+          const lastLog = allLogs[allLogs.length - 1];
+          console.log('First log timestamp:', firstLog.timestamp);
+          console.log('Last log timestamp:', lastLog.timestamp);
         }
 
         setLogs(allLogs);
