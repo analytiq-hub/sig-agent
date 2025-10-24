@@ -1308,11 +1308,8 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
               />
             ) : (
               <Box className="p-8 bg-gray-100 rounded-lg text-center border-2 border-dashed border-gray-300">
-                <Typography variant="h6" color="textPrimary" className="font-medium">
+                <Typography color="textPrimary" className="font-small">
                   No Data Available
-                </Typography>
-                <Typography variant="body2" color="textSecondary" className="mt-2">
-                  No cost data found for the selected time range
                 </Typography>
               </Box>
             )}
@@ -1331,11 +1328,8 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
               />
             ) : (
               <Box className="p-8 bg-gray-100 rounded-lg text-center border-2 border-dashed border-gray-300">
-                <Typography variant="h6" color="textPrimary" className="font-medium">
+                <Typography color="textPrimary" className="font-small">
                   No Data Available
-                </Typography>
-                <Typography variant="body2" color="textSecondary" className="mt-2">
-                  No token data found for the selected time range
                 </Typography>
               </Box>
             )}
@@ -1361,7 +1355,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
               />
             ) : (
               <Box className="p-6 bg-gray-50 rounded-lg text-center">
-                <Typography variant="body2" color="textSecondary">
+    <Typography color="textPrimary" className="font-small">
                   No Data Available
                 </Typography>
               </Box>
@@ -1379,7 +1373,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
               />
             ) : (
               <Box className="p-6 bg-gray-50 rounded-lg text-center">
-                <Typography variant="body2" color="textSecondary">
+                <Typography color="textPrimary" className="font-small">
                   No Data Available
                 </Typography>
               </Box>
