@@ -575,13 +575,18 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       }
     });
 
-    // Initialize enabled language models if not set
-    if (Object.keys(enabledLanguageModels).length === 0 && detectedModels.size > 0) {
-      const initialModelState: Record<string, boolean> = {};
-      detectedModels.forEach(model => {
-        initialModelState[model] = true;
-      });
-      setEnabledLanguageModels(initialModelState);
+    // Initialize enabled language models if not set, or clear if no models detected
+    if (detectedModels.size > 0) {
+      if (Object.keys(enabledLanguageModels).length === 0) {
+        const initialModelState: Record<string, boolean> = {};
+        detectedModels.forEach(model => {
+          initialModelState[model] = true;
+        });
+        setEnabledLanguageModels(initialModelState);
+      }
+    } else {
+      // Clear language models if no models detected
+      setEnabledLanguageModels({});
     }
 
     // If no cost data found, return empty array (no bogus data)
@@ -789,6 +794,16 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         }
       }
       setTokenData(tokenDataFromLogs);
+      
+      // Clear token breakdown if no token data
+      if (tokenDataFromLogs.length === 0) {
+        setTokenBreakdown({
+          input_tokens: 0,
+          output_tokens: 0,
+          cache_read_tokens: 0,
+          cache_creation_tokens: 0
+        });
+      }
 
       // Process cost data from logs instead of metrics
       const costDataFromLogs = processCostDataFromLogs(allLogs, startTime, endTime);
@@ -842,6 +857,16 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         totalTokens: Math.round(totalTokensFromLogs),
         totalCost: Number(totalCostFromLogs.toFixed(2))
       }));
+      
+      // Clear stats if no data available
+      if (allMetrics.length === 0 && allLogs.length === 0) {
+        setStats({
+          totalSessions: 0,
+          totalCost: 0,
+          totalTokens: 0,
+          linesOfCode: 0
+        });
+      }
 
       // Check if we have any data at all
       if (allMetrics.length === 0 && allLogs.length === 0) {
