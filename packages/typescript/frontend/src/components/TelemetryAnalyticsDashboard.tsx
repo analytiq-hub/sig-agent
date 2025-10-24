@@ -119,9 +119,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     const rateData: TimeSeriesDataPoint[] = [];
     const { intervalMs } = getTimeInterval(timeRange);
     
-    console.log('=== RATE CONVERSION DEBUG ===');
-    console.log('Interval (ms):', intervalMs);
-    console.log('Original data points:', data.length);
+
     
     for (let i = 1; i < data.length; i++) {
       const current = data[i];
@@ -664,14 +662,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         endTime = new Date(now.getTime() + 60 * 60 * 1000);
       }
 
-      // Debug logging for time range
-      console.log('=== TIME RANGE DEBUG ===');
-      console.log('Selected time range:', timeRange);
-      console.log('Start time (local):', startTime.toLocaleString());
-      console.log('End time (local):', endTime.toLocaleString());
-      console.log('Start time (UTC for API):', startTime.toISOString());
-      console.log('End time (UTC for API):', endTime.toISOString());
-      console.log('Time range duration (hours):', (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60));
 
       // Fetch metrics using pagination to get all results within the time range
       // .toISOString() converts local Date objects to UTC format for API
@@ -682,7 +672,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         let hasMore = true;
         let totalFetched = 0;
 
-        console.log('Starting paginated metrics fetch...');
 
         while (hasMore) {
           const metricsParams = {
@@ -696,10 +685,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           const fetchedMetrics = metricsResponse.metrics || [];
 
           allMetrics = allMetrics.concat(fetchedMetrics);
-          totalFetched += fetchedMetrics.length;
-
-          console.log(`Fetched ${fetchedMetrics.length} metrics (skip=${skip}, total so far: ${totalFetched})`);
-
           // Check if we got fewer results than the batch size, meaning we've reached the end
           hasMore = fetchedMetrics.length === batchSize;
           skip += batchSize;
@@ -711,7 +696,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           }
         }
 
-        console.log(`Metrics pagination complete. Total metrics fetched: ${allMetrics.length}`);
         setMetrics(allMetrics);
       } catch (metricsError) {
         console.warn('Failed to fetch metrics:', metricsError);
@@ -726,9 +710,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         const batchSize = 100;
         let skip = 0;
         let hasMore = true;
-        let totalFetched = 0;
-
-        console.log('Starting paginated logs fetch...');
 
         while (hasMore) {
           const logsParams = {
@@ -742,9 +723,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           const fetchedLogs = logsResponse.logs || [];
 
           allLogs = allLogs.concat(fetchedLogs);
-          totalFetched += fetchedLogs.length;
 
-          console.log(`Fetched ${fetchedLogs.length} logs (skip=${skip}, total so far: ${totalFetched})`);
 
           // Check if we got fewer results than the batch size, meaning we've reached the end
           hasMore = fetchedLogs.length === batchSize;
@@ -757,7 +736,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           }
         }
 
-        console.log(`Logs pagination complete. Total logs fetched: ${allLogs.length}`);
 
         // Log first and last log timestamps for verification
         if (allLogs.length > 0) {
@@ -770,18 +748,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
             return new Date(aTime).getTime() - new Date(bTime).getTime();
           });
 
-          // Fix timestamps by ensuring they have Z suffix
-          const firstTimestamp = sortedLogs[0].timestamp.endsWith('Z') || sortedLogs[0].timestamp.includes('+') || sortedLogs[0].timestamp.includes('-', 10)
-            ? sortedLogs[0].timestamp : sortedLogs[0].timestamp + 'Z';
-          const lastTimestamp = sortedLogs[sortedLogs.length - 1].timestamp.endsWith('Z') || sortedLogs[sortedLogs.length - 1].timestamp.includes('+') || sortedLogs[sortedLogs.length - 1].timestamp.includes('-', 10)
-            ? sortedLogs[sortedLogs.length - 1].timestamp : sortedLogs[sortedLogs.length - 1].timestamp + 'Z';
 
-          console.log('First log timestamp (raw from API):', sortedLogs[0].timestamp);
-          console.log('First log timestamp (corrected UTC):', firstTimestamp);
-          console.log('First log timestamp (local):', new Date(firstTimestamp).toLocaleString());
-          console.log('Last log timestamp (raw from API):', sortedLogs[sortedLogs.length - 1].timestamp);
-          console.log('Last log timestamp (corrected UTC):', lastTimestamp);
-          console.log('Last log timestamp (local):', new Date(lastTimestamp).toLocaleString());
         }
 
         setLogs(allLogs);
@@ -790,7 +757,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         setLogs([]);
         allLogs = [];
       }
-      console.log('=== END TIME RANGE DEBUG ===');
 
       // Process metrics data with time filtering
       processMetricsData(allMetrics, startTime, endTime);
@@ -1131,6 +1097,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     );
   }
 
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -1199,13 +1166,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
         <Typography variant="h6" className="font-semibold mb-3">
           Overview
         </Typography>
-        {metrics.length === 0 && logs.length === 0 ? (
-          <Box className="p-6 bg-gray-50 rounded-lg text-center">
-            <Typography variant="body2" color="textSecondary">
-              No telemetry data available for the selected time range. Try selecting a different time range or check if telemetry data is being collected.
-            </Typography>
-          </Box>
-        ) : (
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6} md={3}>
             <StatCard
@@ -1240,7 +1200,6 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
             />
           </Grid>
         </Grid>
-        )}
       </div>
 
       {/* Chart Controls */}
@@ -1348,9 +1307,12 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
                 showArea={displayMode === 'cumulative'}
               />
             ) : (
-              <Box className="p-6 bg-gray-50 rounded-lg text-center">
-                <Typography variant="body2" color="textSecondary">
-                  No cost data available for the selected time range
+              <Box className="p-8 bg-gray-100 rounded-lg text-center border-2 border-dashed border-gray-300">
+                <Typography variant="h6" color="textPrimary" className="font-medium">
+                  No Data Available
+                </Typography>
+                <Typography variant="body2" color="textSecondary" className="mt-2">
+                  No cost data found for the selected time range
                 </Typography>
               </Box>
             )}
@@ -1368,9 +1330,12 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
                 yAxisLabel={displayMode === 'rate' ? `Tokens ${getTimeInterval(timeRange).label}` : "Tokens"}
               />
             ) : (
-              <Box className="p-6 bg-gray-50 rounded-lg text-center">
-                <Typography variant="body2" color="textSecondary">
-                  No token data available for the selected time range
+              <Box className="p-8 bg-gray-100 rounded-lg text-center border-2 border-dashed border-gray-300">
+                <Typography variant="h6" color="textPrimary" className="font-medium">
+                  No Data Available
+                </Typography>
+                <Typography variant="body2" color="textSecondary" className="mt-2">
+                  No token data found for the selected time range
                 </Typography>
               </Box>
             )}
@@ -1397,7 +1362,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
             ) : (
               <Box className="p-6 bg-gray-50 rounded-lg text-center">
                 <Typography variant="body2" color="textSecondary">
-                  No tool usage data available for the selected time range
+                  No Data Available
                 </Typography>
               </Box>
             )}
@@ -1415,7 +1380,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
             ) : (
               <Box className="p-6 bg-gray-50 rounded-lg text-center">
                 <Typography variant="body2" color="textSecondary">
-                  No duration data available for the selected time range
+                  No Data Available
                 </Typography>
               </Box>
             )}
