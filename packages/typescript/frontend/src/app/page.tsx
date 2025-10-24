@@ -1,15 +1,21 @@
 'use client'
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const Home = () => {
-  // Get the base URL from NEXTAUTH_URL and replace the port with 4317
+  const [otlpEndpoint, setOtlpEndpoint] = useState('');
+
+  // Get the base URL from window.location and replace the port with 4317
   const getOtlpEndpoint = () => {
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const baseUrl = window.location.origin;
     const url = new URL(baseUrl);
     // Strip any existing port and use 4317
     return `${url.protocol}//${url.hostname}:4317`;
   };
+
+  useEffect(() => {
+    setOtlpEndpoint(getOtlpEndpoint());
+  }, []);
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -59,19 +65,19 @@ const Home = () => {
               </div>
               
               <div className="mb-4">
-                <span className="text-gray-400"># 2. Choose exporters (both are optional - configure only what you need)</span><br/>
-                <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_METRICS_EXPORTER</span>=<span className="text-green-300">otlp</span>       <span className="text-gray-400"># Options: otlp, prometheus, console</span><br/>
-                <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_LOGS_EXPORTER</span>=<span className="text-green-300">otlp</span>          <span className="text-gray-400"># Options: otlp, console</span>
+                <span className="text-gray-400"># 2. Enable exporters</span><br/>
+                <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_METRICS_EXPORTER</span>=<span className="text-green-300">otlp</span><br/>
+                <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_LOGS_EXPORTER</span>=<span className="text-green-300">otlp</span>
               </div>
               
               <div className="mb-4">
-                <span className="text-gray-400"># 3. Configure OTLP endpoint (for OTLP exporter)</span><br/>
+                <span className="text-gray-400"># 3. Configure OTLP endpoint</span><br/>
                 <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_EXPORTER_OTLP_PROTOCOL</span>=<span className="text-green-300">grpc</span><br/>
-                <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_EXPORTER_OTLP_ENDPOINT</span>=<span className="text-green-300">{getOtlpEndpoint()}</span>
+                <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_EXPORTER_OTLP_ENDPOINT</span>=<span className="text-green-300">{otlpEndpoint}</span>
               </div>
               
               <div>
-                <span className="text-gray-400"># 4. Set authentication (if required)</span><br/>
+                <span className="text-gray-400"># 4. Set authentication</span><br/>
                 <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_EXPORTER_OTLP_HEADERS</span>=<span className="text-green-300">&quot;Authorization=Bearer xxx&quot;</span>
               </div>
             </div>
