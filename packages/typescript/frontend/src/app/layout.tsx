@@ -11,8 +11,8 @@ import { ToastContainer } from 'react-toastify';
 import FormioProvider from '@/components/FormioProvider';
 
 export const metadata = {
-  title: 'Sig Agent',
-  description: 'Sig Agent',
+  title: 'SigAgent.AI',
+  description: 'SigAgent.AI is a comprehensive monitoring and telemetry platform designed specifically for Claude Agents. It provides real-time insights, performance metrics, and detailed analytics to help you optimize your AI agent deployments.',
   icons: {
     icon: '/favicon.ico',
   },
