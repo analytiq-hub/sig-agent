@@ -7,11 +7,11 @@ const Home = () => {
         {/* Hero Section */}
         <header className="text-center mb-12 hidden md:block">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            <span>Smart Document Router</span>
+            <span>SigAgent.AI</span>
           </h1>
           <div className="text-xl text-gray-600 space-y-1">
-            <p>AI-powered document processing</p>
-            <p>that connects directly to your ERP</p>
+            <p>Advanced monitoring and telemetry</p>
+            <p>for Claude Agents</p>
           </div>
         </header>
         
@@ -20,19 +20,51 @@ const Home = () => {
           <section className="bg-white rounded-lg shadow-lg p-8 mb-12">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">About</h2>
             <p className="text-gray-600 mb-6">
-              The Smart Document Router transforms unstructured documents into structured ERP data automatically. 
-              It processes incoming documents from multiple sources and enriches them with AI for seamless integration.
+              SigAgent.AI is a comprehensive monitoring and telemetry platform designed specifically for Claude Agents. 
+              It provides real-time insights, performance metrics, and detailed analytics to help you optimize your AI agent deployments.
             </p>
             
             <div className="bg-gray-50 rounded-lg p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-3">Key Features</h3>
               <ul className="list-disc list-inside text-gray-600 space-y-2">
-                <li>Ingests unstructured docs from faxes, email, and ERPs</li>
-                <li>Autonomous processing with LLMs and NLP</li>
-                <li>Human-in-the-loop design for financial accuracy</li>
-                <li>Direct ERP integration capabilities</li>
-                <li>REST APIs for all functions</li>
+                <li>Real-time telemetry collection from Claude Agents</li>
+                <li>Advanced analytics and performance monitoring</li>
+                <li>OTLP-compatible data export and integration</li>
+                <li>Comprehensive metrics and logging visualization</li>
+                <li>Secure authentication and data protection</li>
               </ul>
+            </div>
+          </section>
+
+          {/* Setup Section */}
+          <section className="bg-white rounded-lg shadow-lg p-8 mb-12">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Setup Instructions</h2>
+            <p className="text-gray-600 mb-6">
+              To set up SigAgent.AI for monitoring your Claude Agents, configure the following environment variables before starting Claude Code:
+            </p>
+            
+            <div className="bg-gray-900 rounded-lg p-6 text-green-400 font-mono text-sm overflow-x-auto">
+              <div className="mb-4">
+                <span className="text-gray-400"># 1. Enable telemetry</span><br/>
+                <span className="text-blue-400">export</span> <span className="text-yellow-400">CLAUDE_CODE_ENABLE_TELEMETRY</span>=<span className="text-green-300">1</span>
+              </div>
+              
+              <div className="mb-4">
+                <span className="text-gray-400"># 2. Choose exporters (both are optional - configure only what you need)</span><br/>
+                <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_METRICS_EXPORTER</span>=<span className="text-green-300">otlp</span>       <span className="text-gray-400"># Options: otlp, prometheus, console</span><br/>
+                <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_LOGS_EXPORTER</span>=<span className="text-green-300">otlp</span>          <span className="text-gray-400"># Options: otlp, console</span>
+              </div>
+              
+              <div className="mb-4">
+                <span className="text-gray-400"># 3. Configure OTLP endpoint (for OTLP exporter)</span><br/>
+                <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_EXPORTER_OTLP_PROTOCOL</span>=<span className="text-green-300">grpc</span><br/>
+                <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_EXPORTER_OTLP_ENDPOINT</span>=<span className="text-green-300">http://app.sigagent.ai:4317</span>
+              </div>
+              
+              <div>
+                <span className="text-gray-400"># 4. Set authentication (if required)</span><br/>
+                <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_EXPORTER_OTLP_HEADERS</span>=<span className="text-green-300">&quot;Authorization=Bearer xxx&quot;</span>
+              </div>
             </div>
           </section>
 
@@ -50,10 +82,10 @@ const Home = () => {
         </main>
         
         <footer className="mt-12 text-center text-gray-600">
-          <p>&copy; 2024 DocRouter.AI. All rights reserved.</p>
+          <p>&copy; 2024 SigAgent.AI. All rights reserved.</p>
           <div className="mt-4">
             <a 
-              href="https://github.com/analytiq-hub/doc-router" 
+              href="https://github.com/analytiq-hub/sig-agent" 
               className="text-blue-600 hover:text-blue-800"
             >
               View on GitHub
