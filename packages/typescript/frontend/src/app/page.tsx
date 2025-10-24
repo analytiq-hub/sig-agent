@@ -13,6 +13,11 @@ const Home = () => {
     return `${url.protocol}//${url.hostname}:4317`;
   };
 
+  // Get the base URL for internal links
+  const getBaseUrl = () => {
+    return window.location.origin;
+  };
+
   useEffect(() => {
     setOtlpEndpoint(getOtlpEndpoint());
   }, []);
@@ -37,6 +42,20 @@ const Home = () => {
             <p className="text-gray-600 mb-6">
               To set up SigAgent.AI for monitoring your Claude Agents, configure the following environment variables before starting Claude Code:
             </p>
+            
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-blue-800 text-sm">
+                <strong>Note:</strong> You&apos;ll need to create an organization access token first. 
+                <a 
+                  href={`${getBaseUrl()}/settings/user/developer/organization-access-tokens`}
+                  className="text-blue-600 hover:text-blue-800 underline ml-1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Set up your access token here →
+                </a>
+              </p>
+            </div>
             
             <div className="bg-gray-900 rounded-lg p-6 text-green-400 font-mono text-sm overflow-x-auto">
               <div className="mb-4">
