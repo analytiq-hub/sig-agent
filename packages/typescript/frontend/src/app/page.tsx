@@ -31,26 +31,6 @@ const Home = () => {
         </header>
         
         <main>
-          {/* About Section */}
-          <section className="bg-white rounded-lg shadow-lg p-8 mb-12">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">About</h2>
-            <p className="text-gray-600 mb-6">
-              SigAgent.AI is a comprehensive monitoring and telemetry platform designed specifically for Claude Agents. 
-              It provides real-time insights, performance metrics, and detailed analytics to help you optimize your AI agent deployments.
-            </p>
-            
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Key Features</h3>
-              <ul className="list-disc list-inside text-gray-600 space-y-2">
-                <li>Real-time telemetry collection from Claude Agents</li>
-                <li>Advanced analytics and performance monitoring</li>
-                <li>OTLP-compatible data export and integration</li>
-                <li>Comprehensive metrics and logging visualization</li>
-                <li>Secure authentication and data protection</li>
-              </ul>
-            </div>
-          </section>
-
           {/* Setup Section */}
           <section className="bg-white rounded-lg shadow-lg p-8 mb-12">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Setup Instructions</h2>
@@ -80,6 +60,26 @@ const Home = () => {
                 <span className="text-gray-400"># 4. Set authentication</span><br/>
                 <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_EXPORTER_OTLP_HEADERS</span>=<span className="text-green-300">&quot;Authorization=Bearer xxx&quot;</span>
               </div>
+            </div>
+          </section>
+
+          {/* About Section */}
+          <section className="bg-white rounded-lg shadow-lg p-8 mb-12">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">About</h2>
+            <p className="text-gray-600 mb-6">
+              SigAgent.AI is a comprehensive monitoring and telemetry platform designed specifically for Claude Agents. 
+              It provides real-time insights, performance metrics, and detailed analytics to help you optimize your AI agent deployments.
+            </p>
+            
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-3">Key Features</h3>
+              <ul className="list-disc list-inside text-gray-600 space-y-2">
+                <li>Real-time telemetry collection from Claude Agents</li>
+                <li>Advanced analytics and performance monitoring</li>
+                <li>OTLP-compatible data export and integration</li>
+                <li>Comprehensive metrics and logging visualization</li>
+                <li>Secure authentication and data protection</li>
+              </ul>
             </div>
           </section>
 
