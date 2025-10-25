@@ -60,36 +60,51 @@ const Home = () => {
                   >
                     Create an organization access token
                   </a>
-                  &nbsp;and use it in steps 4 and 5. Then, configure the following environment variables before starting Claude Code:
+                  &nbsp;and use it in the settings below. Then, add the following configuration to your <code>~/.claude/settings.json</code> file:
                 </p>
               </div>
               <div className="bg-gray-900 rounded-lg p-6 text-green-400 font-mono text-xs overflow-x-auto">
-                <div className="mb-4">
-                  <span className="text-gray-400"># 1. Enable telemetry</span><br/>
-                  <span className="text-blue-400">export</span> <span className="text-yellow-400">CLAUDE_CODE_ENABLE_TELEMETRY</span>=<span className="text-green-300">1</span>
+                <div className="mb-2">
+                  <span className="text-gray-400">{'// ~/.claude/settings.json'}</span>
                 </div>
-                
-                <div className="mb-4">
-                  <span className="text-gray-400"># 2. Enable exporters</span><br/>
-                  <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_METRICS_EXPORTER</span>=<span className="text-green-300">otlp</span><br/>
-                  <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_LOGS_EXPORTER</span>=<span className="text-green-300">otlp</span>
+                <div className="mb-2">
+                  <span className="text-yellow-400">{'{'}</span>
                 </div>
-                
-                <div className="mb-4">
-                  <span className="text-gray-400"># 3. Configure OTLP endpoint</span><br/>
-                  <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_EXPORTER_OTLP_PROTOCOL</span>=<span className="text-green-300">grpc</span><br/>
-                  <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_EXPORTER_OTLP_ENDPOINT</span>=<span className="text-green-300">{otlpEndpoint}</span>
+                <div className="ml-4 mb-2">
+                  <span className="text-blue-400">&quot;$schema&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;https://json.schemastore.org/claude-code-settings.json&quot;</span><span className="text-white">,</span>
                 </div>
-                
-                <div className="mb-4">
-                  <span className="text-gray-400"># 4. Set authentication (replace with your org access token)</span><br/>
-                  <span className="text-blue-400">export</span> <span className="text-yellow-400">OTEL_EXPORTER_OTLP_HEADERS</span>=<span className="text-green-300">&quot;Authorization=Bearer YOUR_ORG_ACCESS_TOKEN&quot;</span>
+                <div className="ml-4 mb-2">
+                  <span className="text-blue-400">&quot;env&quot;</span><span className="text-white">: </span><span className="text-yellow-400">{'{'}</span>
                 </div>
-                
-                <div className="mb-4">
-                  <span className="text-gray-400"># 5. Configure <strong>sig-agent-plugin</strong> environment variables</span><br/>
-                  <span className="text-blue-400">export</span> <span className="text-yellow-400">CLAUDE_HOOK_MONITOR_URL</span>=<span className="text-green-300">&quot;{getFastApiUrl()}/v0/claude/log&quot;</span><br/>
-                  <span className="text-blue-400">export</span> <span className="text-yellow-400">CLAUDE_HOOK_MONITOR_TOKEN</span>=<span className="text-green-300">&quot;YOUR_ORG_ACCESS_TOKEN&quot;</span>
+                <div className="ml-8 mb-2">
+                  <span className="text-blue-400">&quot;CLAUDE_CODE_ENABLE_TELEMETRY&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;1&quot;</span><span className="text-white">,</span>
+                </div>
+                <div className="ml-8 mb-2">
+                  <span className="text-blue-400">&quot;OTEL_METRICS_EXPORTER&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;otlp&quot;</span><span className="text-white">,</span>
+                </div>
+                <div className="ml-8 mb-2">
+                  <span className="text-blue-400">&quot;OTEL_LOGS_EXPORTER&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;otlp&quot;</span><span className="text-white">,</span>
+                </div>
+                <div className="ml-8 mb-2">
+                  <span className="text-blue-400">&quot;OTEL_EXPORTER_OTLP_PROTOCOL&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;grpc&quot;</span><span className="text-white">,</span>
+                </div>
+                <div className="ml-8 mb-2">
+                  <span className="text-blue-400">&quot;OTEL_EXPORTER_OTLP_ENDPOINT&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;{otlpEndpoint}&quot;</span><span className="text-white">,</span>
+                </div>
+                <div className="ml-8 mb-2">
+                  <span className="text-blue-400">&quot;OTEL_EXPORTER_OTLP_HEADERS&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;Authorization=Bearer YOUR_ORG_ACCESS_TOKEN&quot;</span><span className="text-white">,</span>
+                </div>
+                <div className="ml-8 mb-2">
+                  <span className="text-blue-400">&quot;CLAUDE_HOOK_MONITOR_URL&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;{getFastApiUrl()}/v0/claude/log&quot;</span><span className="text-white">,</span>
+                </div>
+                <div className="ml-8 mb-2">
+                  <span className="text-blue-400">&quot;CLAUDE_HOOK_MONITOR_TOKEN&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;YOUR_ORG_ACCESS_TOKEN&quot;</span>
+                </div>
+                <div className="ml-4 mb-2">
+                  <span className="text-yellow-400">{'}'}</span>
+                </div>
+                <div>
+                  <span className="text-yellow-400">{'}'}</span>
                 </div>
               </div>
             </section>
