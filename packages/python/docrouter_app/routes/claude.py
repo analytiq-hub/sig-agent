@@ -180,15 +180,15 @@ async def list_claude_logs(
                 )
         query["hook_timestamp"] = timestamp_query
     
-    # Add filtering for fields within hook_stdin
+    # Add filtering for fields within hook_stdin using regex for superset matching
     if session_id:
-        query["hook_stdin.session_id"] = session_id
+        query["hook_stdin.session_id"] = {"$regex": session_id, "$options": "i"}  # Case-insensitive superset matching
     
     if hook_event_name:
-        query["hook_stdin.hook_event_name"] = hook_event_name
+        query["hook_stdin.hook_event_name"] = {"$regex": hook_event_name, "$options": "i"}  # Case-insensitive superset matching
     
     if tool_name:
-        query["hook_stdin.tool_name"] = tool_name
+        query["hook_stdin.tool_name"] = {"$regex": tool_name, "$options": "i"}  # Case-insensitive superset matching
     
     if permission_mode:
         query["hook_stdin.permission_mode"] = permission_mode
