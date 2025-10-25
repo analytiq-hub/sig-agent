@@ -121,37 +121,37 @@ const Home = () => {
 
             {/* Claude Plugin Setup Section */}
             <section className="bg-white rounded-lg shadow-lg p-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">Claude Setup For <strong className="text-blue-600">sig-agent-plugin</strong></h2>
-              <p className="text-gray-600 mb-6">
-                Set up the <strong className="text-blue-600">sig-agent-marketplace</strong> directly in Claude to monitor tool usage and interactions. 
-                The environment variables are already configured above in the Client Setup section.
-              </p>
+              <div className="mb-8">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">Enable Claude Log Monitoring</h2>
+                <p className="text-gray-600">
+                  Start claude and run the following command to enable the <strong className="text-blue-600">sig-agent-marketplace</strong>
+                </p>
+              </div>
               
-              <div className="space-y-6">
-                {/* Step 1: Add Marketplace */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">1. Add the <strong className="text-blue-600">sig-agent-marketplace</strong> to Claude</h3>
-                  <p className="text-gray-600 mb-3">
-                    In Claude, run the following command:
-                  </p>
-                  <div className="bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-sm overflow-x-auto">
-                    <span className="text-blue-400">/plugin</span> <span className="text-yellow-400">marketplace</span> <span className="text-yellow-400">add</span> <span className="text-green-300">https://github.com/analytiq-hub/sig-agent-marketplace.git</span>
-                  </div>
+              <div className="space-y-4">
+                <div className="bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-sm overflow-x-auto">
+                  <span className="text-blue-400">/plugin</span> <span className="text-yellow-400">marketplace</span> <span className="text-yellow-400">add</span> <span className="text-green-300">https://github.com/analytiq-hub/sig-agent-marketplace.git</span>
                 </div>
-
-                {/* Step 2: Enable Plugin */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">2. Enable the <strong className="text-blue-600">sig-agent-plugin</strong> in Claude</h3>
-                  <p className="text-gray-600 mb-3">
-                    In Claude, use the <strong className="text-blue-600">/plugin</strong> command to enable the <strong className="text-blue-600">sig-agent-plugin</strong>.
-                  </p>
-                </div>
+                
+                <p className="text-gray-600">
+                  Then enable the <strong className="text-blue-600">sig-agent-plugin</strong> using the <strong className="text-blue-600">/plugin</strong> command.
+                </p>
               </div>
 
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-blue-800 text-sm">
-                  <strong>Note:</strong> The environment variables <code>CLAUDE_HOOK_MONITOR_URL</code> and <code>CLAUDE_HOOK_MONITOR_TOKEN</code>  are configured in the Client Setup section above. The plugin will automatically use these to send monitoring data to SigAgent.AI.
-                </p>
+              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-green-800 text-sm">
+                      <strong>That&apos;s it!</strong> Your environment variables are already configured above. 
+                      Claude will automatically start sending monitoring data to SigAgent.AI.
+                    </p>
+                  </div>
+                </div>
               </div>
             </section>
 
