@@ -33,7 +33,6 @@ import BuildIcon from '@mui/icons-material/Build';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import ApiIcon from '@mui/icons-material/Api';
 import PersonIcon from '@mui/icons-material/Person';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import CompactIcon from '@mui/icons-material/Compress';
@@ -425,19 +424,20 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
 
   // Helper function to get icon for event type with color coding
   // Color scheme:
-  // - Green (#2e7d32): Tool-related operations (PreToolUse, PostToolUse)
+  // - Green (#2e7d32): Pre-tool operations (PreToolUse)
+  // - Teal (#00acc1): Post-tool operations (PostToolUse)
+  // - Orange (#ed6c02): System operations (PreCompact, Notification, API calls)
   // - Purple (#9c27b0): User interactions (UserPromptSubmit)
   // - Blue (#1976d2): Session lifecycle (SessionStart, SessionEnd, messages)
   // - Red (#d32f2f): Control flow stops (Stop, SubagentStop)
-  // - Orange (#ed6c02): System operations (PreCompact, Notification, API calls)
   // - Gray (#757575): Unknown/fallback events
   const getEventIcon = (eventName: string) => {
     switch (eventName) {
       // Tool-related hooks
       case 'PreToolUse':
-        return <PlayArrowIcon fontSize="small" sx={{ color: '#2e7d32' }} />; // Green for pre-tool execution
+        return <BuildIcon fontSize="small" sx={{ color: '#2e7d32' }} />; // Green wrench for pre-tool execution
       case 'PostToolUse':
-        return <BuildIcon fontSize="small" sx={{ color: '#2e7d32' }} />; // Green for tool usage
+        return <BuildIcon fontSize="small" sx={{ color: '#00acc1' }} />; // Teal wrench for post-tool execution
       case 'tool_use':
         return <BuildIcon fontSize="small" sx={{ color: '#2e7d32' }} />; // Green for tool usage (legacy)
       
