@@ -175,6 +175,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedLogIndex, setSelectedLogIndex] = useState<number>(-1);
   const [selectedTab, setSelectedTab] = useState<number>(0);
+  const [rawDataModalOpen, setRawDataModalOpen] = useState(false);
 
   // Handle date range filter from DataGrid
   const handleDateRangeFilter = (filterValue: string) => {
@@ -237,6 +238,14 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     setSelectedLog(null);
     setSelectedLogIndex(-1);
     setSelectedTab(0);
+  };
+
+  const handleOpenRawDataModal = () => {
+    setRawDataModalOpen(true);
+  };
+
+  const handleCloseRawDataModal = () => {
+    setRawDataModalOpen(false);
   };
 
   const handleNavigateLog = async (direction: 'prev' | 'next') => {
@@ -424,6 +433,28 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     };
   };
 
+  // Helper function to format tool response for display
+  const formatToolResponse = (response: unknown): string => {
+    if (!response) return '';
+    
+    // If it's an array with one element of type "text"
+    if (Array.isArray(response) && response.length === 1 && response[0]?.type === 'text') {
+      const textContent = response[0].text;
+      
+      // Try to parse as JSON if it looks like stringified JSON
+      try {
+        const parsed = JSON.parse(textContent);
+        return JSON.stringify(parsed, null, 2);
+      } catch {
+        // If not valid JSON, return as-is
+        return textContent;
+      }
+    }
+    
+    // For other formats, stringify normally
+    return typeof response === 'string' ? response : JSON.stringify(response, null, 2);
+  };
+
   // Custom Tooltip component for tool information
   const ToolInfoTooltip: React.FC<{ log: ClaudeLog; children: React.ReactElement }> = ({ log, children }) => {
     const info = getSalientInfo(log);
@@ -489,10 +520,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                 overflow: 'auto'
               }}
             >
-              {typeof info.toolResponse === 'string' 
-                ? info.toolResponse 
-                : JSON.stringify(info.toolResponse, null, 2)
-              }
+              {formatToolResponse(info.toolResponse)}
             </Box>
           </Box>
         )}
@@ -865,6 +893,9 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                   <NavigateNextIcon />
                 </IconButton>
               </Tooltip>
+              <Button onClick={handleOpenRawDataModal} variant="outlined" size="small" sx={{ mr: 1 }}>
+                Raw Data
+              </Button>
               <Button onClick={handleCloseDetailModal} variant="outlined" size="small">
                 Close
               </Button>
@@ -981,6 +1012,46 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                   {renderTabContent(selectedLog)}
                 </Box>
               </Box>
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Raw Data Modal */}
+      <Dialog 
+        open={rawDataModalOpen} 
+        onClose={handleCloseRawDataModal}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" justifyContent="space-between">
+            <Typography variant="h6">Raw Log Data</Typography>
+            <Button onClick={handleCloseRawDataModal} variant="outlined" size="small">
+              Close
+            </Button>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {selectedLog && (
+            <Box 
+              component="pre" 
+              sx={{ 
+                fontSize: '0.875rem', 
+                fontFamily: 'monospace',
+                backgroundColor: 'grey.50',
+                color: 'text.primary',
+                padding: 2,
+                borderRadius: 1,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxHeight: '70vh',
+                overflow: 'auto',
+                border: '1px solid',
+                borderColor: 'divider'
+              }}
+            >
+              {JSON.stringify(selectedLog, null, 2)}
             </Box>
           )}
         </DialogContent>
