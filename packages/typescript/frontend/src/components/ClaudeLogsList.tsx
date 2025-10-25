@@ -418,8 +418,107 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
       toolName: hookData['tool_name'] as string || '-',
       permissionMode: hookData['permission_mode'] as string || '-',
       userId: hookData['user_id'] as string || '-',
-      model: hookData['model'] as string || '-'
+      model: hookData['model'] as string || '-',
+      toolInput: hookData['tool_input'] || null,
+      toolResponse: hookData['tool_response'] || null
     };
+  };
+
+  // Custom Tooltip component for tool information
+  const ToolInfoTooltip: React.FC<{ log: ClaudeLog; children: React.ReactElement }> = ({ log, children }) => {
+    const info = getSalientInfo(log);
+    const hasToolData = info.toolInput || info.toolResponse;
+    
+    if (!hasToolData) {
+      return <Tooltip title={info.toolName}>{children}</Tooltip>;
+    }
+
+    const tooltipContent = (
+      <Box sx={{ maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+          {info.toolName}
+        </Typography>
+        
+        {info.toolInput && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+              Input:
+            </Typography>
+            <Box 
+              component="pre" 
+              sx={{ 
+                fontSize: '0.75rem', 
+                fontFamily: 'monospace',
+                backgroundColor: 'grey.100',
+                color: 'text.primary',
+                padding: 1,
+                borderRadius: 1,
+                marginTop: 0.5,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxHeight: 120,
+                overflow: 'auto'
+              }}
+            >
+              {typeof info.toolInput === 'string' 
+                ? info.toolInput 
+                : JSON.stringify(info.toolInput, null, 2)
+              }
+            </Box>
+          </Box>
+        )}
+        
+        {info.toolResponse && (
+          <Box>
+            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+              Response:
+            </Typography>
+            <Box 
+              component="pre" 
+              sx={{ 
+                fontSize: '0.75rem', 
+                fontFamily: 'monospace',
+                backgroundColor: 'grey.50',
+                color: 'text.primary',
+                padding: 1,
+                borderRadius: 1,
+                marginTop: 0.5,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxHeight: 120,
+                overflow: 'auto'
+              }}
+            >
+              {typeof info.toolResponse === 'string' 
+                ? info.toolResponse 
+                : JSON.stringify(info.toolResponse, null, 2)
+              }
+            </Box>
+          </Box>
+        )}
+      </Box>
+    );
+
+    return (
+      <Tooltip 
+        title={tooltipContent}
+        placement="top"
+        arrow
+        componentsProps={{
+          tooltip: {
+            sx: {
+              maxWidth: 400,
+              backgroundColor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              boxShadow: 3
+            }
+          }
+        }}
+      >
+        {children}
+      </Tooltip>
+    );
   };
 
   // Helper function to get icon for event type with color coding
@@ -534,9 +633,11 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
         const toolName = info.toolName;
         const displayName = toolName.length > 35 ? toolName.substring(0, 35) + '...' : toolName;
         return (
-          <span className="text-sm font-mono" title={toolName}>
-            {displayName}
-          </span>
+          <ToolInfoTooltip log={params.row}>
+            <span className="text-sm font-mono" style={{ cursor: 'help' }}>
+              {displayName}
+            </span>
+          </ToolInfoTooltip>
         );
       }
     },
