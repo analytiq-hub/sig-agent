@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Python client library for the Smart Document Router API"
 readme = "README.md"
 authors = [
-    {name = "Analytiq Hub", email = "andrei@analytiqhub.com"}
+    {name = "SigAgent.AI", email = "andrei@analytiqhub.com"}
 ]
 license = "Apache-2.0"
 classifiers = [

@@ -93,6 +93,7 @@ const OrganizationTokenManager: React.FC = () => {
         className="mb-4"
         onClick={() => setOpenModal(true)}
         disabled={!currentOrganization?.id}
+        data-tour="create-token"
       >
         Generate Organization Token
       </Button>

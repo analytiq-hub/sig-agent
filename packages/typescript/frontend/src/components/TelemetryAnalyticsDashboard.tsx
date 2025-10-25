@@ -1130,7 +1130,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
           </Typography>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center" data-tour="analytics-time-range">
           <ToggleButtonGroup
             value={timeRange}
             exclusive

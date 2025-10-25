@@ -738,7 +738,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
   const filteredLogs = logs;
 
   return (
-    <div className="w-full">
+    <div className="w-full" data-tour="telemetry-logs">
       <div className="mb-4 flex gap-4">
         <TextField
           fullWidth
