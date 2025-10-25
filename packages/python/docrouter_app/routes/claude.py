@@ -5,14 +5,14 @@ Claude API Routes
 import json
 import logging
 from datetime import datetime, UTC
-from typing import Dict, Any
+from typing import Dict, Any, List
 from bson import ObjectId
 
-from fastapi import APIRouter, Depends, HTTPException, Body, Request
+from fastapi import APIRouter, Depends, HTTPException, Body, Request, Query
 from pydantic import BaseModel, Field
 
 import analytiq_data as ad
-from docrouter_app.auth import get_current_user, get_org_id_from_token
+from docrouter_app.auth import get_current_user, get_org_id_from_token, get_org_user
 from docrouter_app.models import User
 
 logger = logging.getLogger(__name__)
@@ -27,6 +27,21 @@ class ClaudeLogRequest(BaseModel):
 class ClaudeLogResponse(BaseModel):
     """Response for Claude log operations"""
     log_id: str
+
+class ClaudeLogItem(BaseModel):
+    """Individual Claude log item"""
+    log_id: str
+    organization_id: str
+    hook_stdin: Dict[str, Any]
+    hook_timestamp: datetime
+    upload_timestamp: datetime
+
+class ListClaudeLogsResponse(BaseModel):
+    """Response for listing Claude logs"""
+    logs: List[ClaudeLogItem]
+    total: int
+    skip: int
+    limit: int
 
 # Router
 claude_router = APIRouter()
@@ -118,4 +133,85 @@ async def claude_log(
     
     return ClaudeLogResponse(
         log_id=log_id
+    )
+
+@claude_router.get("/v0/orgs/{organization_id}/claude/logs", response_model=ListClaudeLogsResponse, tags=["claude"])
+async def list_claude_logs(
+    organization_id: str,
+    skip: int = Query(0, ge=0, description="Number of logs to skip"),
+    limit: int = Query(10, ge=1, le=100, description="Maximum number of logs to return"),
+    start_time: str = Query(None, description="Start time in UTC ISO format (e.g., 2025-10-25T02:00:00.000Z)"),
+    end_time: str = Query(None, description="End time in UTC ISO format (e.g., 2025-10-25T03:00:00.000Z)"),
+    session_id: str = Query(None, description="Filter by session ID"),
+    hook_event_name: str = Query(None, description="Filter by hook event name"),
+    tool_name: str = Query(None, description="Filter by tool name"),
+    permission_mode: str = Query(None, description="Filter by permission mode"),
+    current_user: User = Depends(get_org_user)
+):
+    """List Claude logs with filtering capabilities"""
+    logger.info(f"list_claude_logs(): skip={skip}, limit={limit}, user: {current_user.user_name}")
+    
+    analytiq_client = ad.common.get_analytiq_client()
+    db = ad.common.get_async_db(analytiq_client)
+    
+    # Build query
+    query = {"organization_id": organization_id}
+    
+    # Add timestamp filtering
+    if start_time or end_time:
+        timestamp_query = {}
+        if start_time:
+            try:
+                start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                timestamp_query["$gte"] = start_dt
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid start_time format. Use ISO format like '2025-10-25T02:00:00.000Z'"
+                )
+        if end_time:
+            try:
+                end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+                timestamp_query["$lte"] = end_dt
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid end_time format. Use ISO format like '2025-10-25T03:00:00.000Z'"
+                )
+        query["hook_timestamp"] = timestamp_query
+    
+    # Add filtering for fields within hook_stdin
+    if session_id:
+        query["hook_stdin.session_id"] = session_id
+    
+    if hook_event_name:
+        query["hook_stdin.hook_event_name"] = hook_event_name
+    
+    if tool_name:
+        query["hook_stdin.tool_name"] = tool_name
+    
+    if permission_mode:
+        query["hook_stdin.permission_mode"] = permission_mode
+    
+    # Get total count
+    total = await db.claude_logs.count_documents(query)
+    
+    # Get logs
+    cursor = db.claude_logs.find(query).skip(skip).limit(limit).sort("hook_timestamp", -1)
+    logs = []
+    
+    async for log in cursor:
+        logs.append(ClaudeLogItem(
+            log_id=str(log["_id"]),
+            organization_id=log["organization_id"],
+            hook_stdin=log["hook_stdin"],
+            hook_timestamp=log["hook_timestamp"],
+            upload_timestamp=log["upload_timestamp"]
+        ))
+    
+    return ListClaudeLogsResponse(
+        logs=logs,
+        total=total,
+        skip=skip,
+        limit=limit
     )
