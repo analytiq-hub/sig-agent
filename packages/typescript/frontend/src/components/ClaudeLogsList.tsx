@@ -33,7 +33,7 @@ import BuildIcon from '@mui/icons-material/Build';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import ApiIcon from '@mui/icons-material/Api';
 import PersonIcon from '@mui/icons-material/Person';
-import { Tag, ClaudeLogItem } from '@docrouter/sdk';
+import { ClaudeLogItem } from '@docrouter/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
 type ClaudeLog = ClaudeLogItem;
@@ -165,7 +165,6 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
-  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedLog, setSelectedLog] = useState<ClaudeLogItem | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedLogIndex, setSelectedLogIndex] = useState<number>(-1);
@@ -206,28 +205,19 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     }
   }, [page, pageSize, startDate, endDate, sessionIdFilter, hookEventNameFilter, toolNameFilter, permissionModeFilter, docRouterOrgApi]);
 
-  const loadTags = useCallback(async () => {
-    try {
-      const response = await docRouterOrgApi.listTags({ limit: 100 });
-      setAvailableTags(response.tags);
-    } catch (error) {
-      const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
-      setMessage('Error: ' + errorMsg);
-    }
-  }, [docRouterOrgApi]);
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        await Promise.all([loadLogs(), loadTags()]);
+        await loadLogs();
       } finally {
         setIsLoading(false);
       }
     };
 
     loadData();
-  }, [loadLogs, loadTags]);
+  }, [loadLogs]);
 
   // Debounced search effect - reset to first page when search parameters change
   useEffect(() => {
@@ -238,10 +228,6 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     return () => clearTimeout(timeoutId);
   }, [sessionIdFilter, hookEventNameFilter, toolNameFilter, permissionModeFilter, startDate, endDate]);
 
-  const getTagName = (tagId: string) => {
-    const tag = availableTags.find(t => t.id === tagId);
-    return tag?.name || tagId;
-  };
 
   const handleLogClick = (log: ClaudeLog) => {
     const index = filteredLogs.findIndex(l => l.log_id === log.log_id);
