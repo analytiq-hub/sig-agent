@@ -458,7 +458,8 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
       userId: hookData['user_id'] as string || '-',
       model: hookData['model'] as string || '-',
       toolInput: hookData['tool_input'] || null,
-      toolResponse: hookData['tool_response'] || null
+      toolResponse: hookData['tool_response'] || null,
+      prompt: hookData['prompt'] as string || null
     };
   };
 
@@ -519,6 +520,61 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     
     // For other formats, stringify normally
     return typeof response === 'string' ? response : JSON.stringify(response, null, 2);
+  };
+
+  // Custom Tooltip component for user prompt information
+  const PromptTooltip: React.FC<{ log: ClaudeLog; children: React.ReactElement }> = ({ log, children }) => {
+    const info = getSalientInfo(log);
+    
+    if (!info.prompt || info.hookEventName !== 'UserPromptSubmit') {
+      return <>{children}</>;
+    }
+
+    const tooltipContent = (
+      <Box sx={{ maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+          User Prompt
+        </Typography>
+        <Box 
+          component="pre" 
+          sx={{ 
+            fontSize: '0.75rem', 
+            fontFamily: 'monospace',
+            backgroundColor: 'grey.50',
+            color: 'text.primary',
+            padding: 1,
+            borderRadius: 1,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            maxHeight: 200,
+            overflow: 'auto'
+          }}
+        >
+          {info.prompt}
+        </Box>
+      </Box>
+    );
+
+    return (
+      <Tooltip 
+        title={tooltipContent}
+        placement="top"
+        arrow
+        componentsProps={{
+          tooltip: {
+            sx: {
+              maxWidth: 400,
+              backgroundColor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              boxShadow: 3
+            }
+          }
+        }}
+      >
+        {children}
+      </Tooltip>
+    );
   };
 
   // Custom Tooltip component for tool information
@@ -706,7 +762,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
         const icon = getEventIcon(info.hookEventName);
-        return (
+        const eventContent = (
           <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px' }}>
             {icon}
             <span className="text-sm font-medium">
@@ -714,6 +770,17 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
             </span>
           </Box>
         );
+
+        // Wrap UserPromptSubmit events with prompt tooltip
+        if (info.hookEventName === 'UserPromptSubmit') {
+          return (
+            <PromptTooltip log={params.row}>
+              {eventContent}
+            </PromptTooltip>
+          );
+        }
+
+        return eventContent;
       }
     },
     {
@@ -1011,8 +1078,19 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                                 <Box display="flex" justifyContent="space-between">
                                   <strong>Event</strong>
                                   <Box display="flex" alignItems="center" gap={0.5}>
-                                    {getEventIcon(info.hookEventName)}
-                                    <span>{info.hookEventName}</span>
+                                    {info.hookEventName === 'UserPromptSubmit' ? (
+                                      <PromptTooltip log={selectedLog}>
+                                        <Box display="flex" alignItems="center" gap={0.5}>
+                                          {getEventIcon(info.hookEventName)}
+                                          <span>{info.hookEventName}</span>
+                                        </Box>
+                                      </PromptTooltip>
+                                    ) : (
+                                      <>
+                                        {getEventIcon(info.hookEventName)}
+                                        <span>{info.hookEventName}</span>
+                                      </>
+                                    )}
                                   </Box>
                                 </Box>
                               </TableCell>
