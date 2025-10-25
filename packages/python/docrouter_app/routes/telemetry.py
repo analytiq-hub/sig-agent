@@ -376,7 +376,8 @@ async def list_telemetry_metrics(
                     detail=f"Invalid end_time format. Use ISO format like '2025-10-22T16:00:00.000Z'"
                 )
         # Filter based on data_points timestamps, not upload_date
-        query["data_points.timeUnixNano"] = timestamp_query
+        # Use $elemMatch to find documents where any data point's timeUnixNano falls within the range
+        query["data_points"] = {"$elemMatch": {"timeUnixNano": timestamp_query}}
 
     # Get total count
     total = await db.telemetry_metrics.count_documents(query)
