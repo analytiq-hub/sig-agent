@@ -517,7 +517,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     {
       field: 'hook_event_name',
       headerName: 'Event',
-      width: 120,
+      width: 160,
       filterable: false,
       sortable: false,
       renderCell: (params) => {
@@ -536,14 +536,16 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     {
       field: 'tool_name',
       headerName: 'Tool',
-      width: 180,
+      width: 280,
       filterable: false,
       sortable: false,
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
+        const toolName = info.toolName;
+        const displayName = toolName.length > 35 ? toolName.substring(0, 35) + '...' : toolName;
         return (
-          <span className="text-sm font-mono">
-            {info.toolName}
+          <span className="text-sm font-mono" title={toolName}>
+            {displayName}
           </span>
         );
       }
@@ -589,14 +591,14 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     {
       field: 'session_id',
       headerName: 'Session',
-      width: 120,
+      width: 140,
       filterable: false,
       sortable: false,
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
         return (
           <span className="text-xs font-mono">
-            {info.sessionId.substring(0, 8)}...
+            {info.sessionId.substring(0, 12)}...
           </span>
         );
       }
