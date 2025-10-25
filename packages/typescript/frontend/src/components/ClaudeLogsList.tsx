@@ -558,7 +558,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     return (
       <Tooltip 
         title={tooltipContent}
-        placement="top"
+        placement="right"
         arrow
         componentsProps={{
           tooltip: {
@@ -652,7 +652,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     return (
       <Tooltip 
         title={tooltipContent}
-        placement="top"
+        placement="right"
         arrow
         componentsProps={{
           tooltip: {
