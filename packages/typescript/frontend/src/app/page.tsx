@@ -41,7 +41,7 @@ const Home = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* About Section */}
               <section className="bg-white rounded-lg shadow-lg p-8 flex flex-col">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">About</h2>
+                <h2 className="text-2xl font-semibold text-gray-900 mb-4">About SigAgent.AI</h2>
                 <p className="text-gray-600 mb-6 flex-grow">
                   SigAgent.AI is a comprehensive monitoring and telemetry platform designed specifically for Claude Agents. 
                 </p>
@@ -63,7 +63,7 @@ const Home = () => {
 
               {/* Setup Instructions */}
               <section className="bg-white rounded-lg shadow-lg p-8 flex flex-col">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">Setup Instructions</h2>
+                <h2 className="text-2xl font-semibold text-gray-900 mb-4">Client Setup</h2>
 
                 <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-blue-800 text-sm">

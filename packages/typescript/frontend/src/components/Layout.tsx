@@ -98,7 +98,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   const systemMenuItems = [
-    { text: 'About', icon: AboutIcon, tooltip: 'About Page', href: '/' },
+    { text: 'Set Up Your Client', icon: AboutIcon, tooltip: 'Set up your SigAgent.AI client', href: '/' },
   ];
 
   useEffect(() => {
