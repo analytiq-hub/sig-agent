@@ -1,18 +1,32 @@
-import { DocRouterOrg } from '../../src';
+import { DocRouterOrg, DocRouterAccount } from '../../src';
 import { getTestDatabase, getBaseUrl, createTestFixtures } from '../setup/jest-setup';
 
 describe('Claude Integration Tests', () => {
-  let testFixtures: { member: { token: string }; org_id: string };
+  let testFixtures: { member: { token: string; account_token: string }; org_id: string };
   let client: DocRouterOrg;
+  let orgToken: string;
 
   beforeEach(async () => {
     const testDb = getTestDatabase();
     const baseUrl = getBaseUrl();
     testFixtures = await createTestFixtures(testDb, baseUrl);
 
+    // Create an organization token for the claudeLog endpoint
+    const accountClient = new DocRouterAccount({
+      baseURL: baseUrl,
+      accountToken: testFixtures.member.account_token
+    });
+
+    const tokenResponse: any = await accountClient.createOrganizationToken({
+      name: `Claude Test Token ${Date.now()}`,
+      lifetime: 86400
+    }, testFixtures.org_id);
+
+    orgToken = tokenResponse.token;
+
     client = new DocRouterOrg({
       baseURL: baseUrl,
-      orgToken: testFixtures.member.token,
+      orgToken: orgToken,
       organizationId: testFixtures.org_id
     });
   });
