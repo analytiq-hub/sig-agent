@@ -81,6 +81,8 @@ describe('SDK Client Unit Tests', () => {
       expect(typeof client.listTags).toBe('function');
       expect(typeof client.updateTag).toBe('function');
       expect(typeof client.deleteTag).toBe('function');
+      expect(typeof client.claudeLog).toBe('function');
+      expect(typeof client.listClaudeLogs).toBe('function');
     });
 
     test('should update org token', () => {

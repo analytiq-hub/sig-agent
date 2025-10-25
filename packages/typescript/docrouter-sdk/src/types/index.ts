@@ -967,3 +967,39 @@ export interface ListTelemetryLogsResponse {
   skip: number;
   limit: number;
 }
+
+// Claude Log types
+export interface ClaudeLogRequest {
+  hook_stdin: string;
+  hook_timestamp: string;
+}
+
+export interface ClaudeLogResponse {
+  log_id: string;
+}
+
+export interface ClaudeLogItem {
+  log_id: string;
+  organization_id: string;
+  hook_stdin: Record<string, unknown>;
+  hook_timestamp: string;
+  upload_timestamp: string;
+}
+
+export interface ListClaudeLogsParams {
+  skip?: number;
+  limit?: number;
+  start_time?: string; // Start time in UTC ISO format (e.g., 2025-10-25T02:00:00.000Z)
+  end_time?: string; // End time in UTC ISO format (e.g., 2025-10-25T03:00:00.000Z)
+  session_id?: string;
+  hook_event_name?: string;
+  tool_name?: string;
+  permission_mode?: string;
+}
+
+export interface ListClaudeLogsResponse {
+  logs: ClaudeLogItem[];
+  total: number;
+  skip: number;
+  limit: number;
+}
