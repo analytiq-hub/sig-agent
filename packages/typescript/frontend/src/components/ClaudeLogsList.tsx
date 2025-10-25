@@ -41,6 +41,7 @@ import CompactIcon from '@mui/icons-material/Compress';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import { ClaudeLogItem } from '@docrouter/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
@@ -178,6 +179,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   const [selectedLogIndex, setSelectedLogIndex] = useState<number>(-1);
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const [showRawData, setShowRawData] = useState(false);
+  const [filteredSessionId, setFilteredSessionId] = useState<string | null>(null);
   const rawDataRef = useRef<HTMLDivElement>(null);
 
   // Handle date range filter from DataGrid
@@ -242,6 +244,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     setSelectedLogIndex(-1);
     setSelectedTab(0);
     setShowRawData(false);
+    setFilteredSessionId(null);
   };
 
   const handleToggleRawData = () => {
@@ -257,6 +260,21 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
         });
       }, 100);
     }
+  };
+
+  const handleFilterBySession = (sessionId: string) => {
+    // Toggle the session filter
+    if (filteredSessionId === sessionId) {
+      // If this session is already filtered, clear the filter
+      setFilteredSessionId(null);
+      setSessionIdFilter('');
+    } else {
+      // Set the new session filter
+      setFilteredSessionId(sessionId);
+      setSessionIdFilter(sessionId);
+    }
+    // Reset to first page when filtering
+    setPage(0);
   };
 
   const handleNavigateLog = async (direction: 'prev' | 'next') => {
@@ -721,15 +739,42 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     {
       field: 'session_id',
       headerName: 'Session',
-      width: 140,
+      width: 180,
       filterable: false,
       sortable: false,
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
+        const isFiltered = filteredSessionId === info.sessionId;
         return (
-          <span className="text-xs font-mono">
-            {info.sessionId.substring(0, 12)}...
-          </span>
+          <Box display="flex" alignItems="center" gap={0.5}>
+            <span className="text-xs font-mono">
+              {info.sessionId.substring(0, 12)}...
+            </span>
+            <Tooltip title={isFiltered ? "Clear session filter" : "Filter by this session ID"}>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click
+                  handleFilterBySession(info.sessionId);
+                }}
+                sx={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  backgroundColor: isFiltered ? 'primary.main' : 'grey.100',
+                  color: isFiltered ? 'primary.contrastText' : 'text.primary',
+                  boxShadow: isFiltered ? 2 : 1,
+                  '&:hover': {
+                    backgroundColor: isFiltered ? 'primary.dark' : 'primary.light',
+                    color: 'primary.contrastText',
+                    boxShadow: 3
+                  }
+                }}
+              >
+                <FilterListIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
         );
       }
     }
@@ -966,9 +1011,35 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                             </TableRow>
                             <TableRow>
                               <TableCell sx={{ width: '50%' }}>
-                                <Box display="flex" justifyContent="space-between">
+                                <Box display="flex" justifyContent="space-between" alignItems="center">
                                   <strong>Session</strong>
-                                  <span className="font-mono text-xs">{info.sessionId}</span>
+                                  <Box display="flex" alignItems="center" gap={0.5}>
+                                    <span className="font-mono text-xs">{info.sessionId}</span>
+                                    <Tooltip title={filteredSessionId === info.sessionId ? "Clear session filter" : "Filter by this session ID"}>
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => {
+                                          handleFilterBySession(info.sessionId);
+                                          handleCloseDetailModal();
+                                        }}
+                                        sx={{
+                                          width: 24,
+                                          height: 24,
+                                          borderRadius: '50%',
+                                          backgroundColor: filteredSessionId === info.sessionId ? 'primary.main' : 'grey.100',
+                                          color: filteredSessionId === info.sessionId ? 'primary.contrastText' : 'text.primary',
+                                          boxShadow: filteredSessionId === info.sessionId ? 2 : 1,
+                                          '&:hover': {
+                                            backgroundColor: filteredSessionId === info.sessionId ? 'primary.dark' : 'primary.light',
+                                            color: 'primary.contrastText',
+                                            boxShadow: 3
+                                          }
+                                        }}
+                                      >
+                                        <FilterListIcon fontSize="small" />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </Box>
                                 </Box>
                               </TableCell>
                               <TableCell sx={{ width: '50%' }}>
