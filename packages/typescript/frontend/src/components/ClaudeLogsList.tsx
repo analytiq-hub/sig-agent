@@ -33,6 +33,13 @@ import BuildIcon from '@mui/icons-material/Build';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import ApiIcon from '@mui/icons-material/Api';
 import PersonIcon from '@mui/icons-material/Person';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import StopIcon from '@mui/icons-material/Stop';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import CompactIcon from '@mui/icons-material/Compress';
+import LoginIcon from '@mui/icons-material/Login';
+import LogoutIcon from '@mui/icons-material/Logout';
+import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
 import { ClaudeLogItem } from '@docrouter/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
@@ -427,18 +434,55 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   };
 
   // Helper function to get icon for event type with color coding
+  // Color scheme:
+  // - Green (#2e7d32): Tool-related operations (PreToolUse, PostToolUse)
+  // - Purple (#9c27b0): User interactions (UserPromptSubmit)
+  // - Blue (#1976d2): Session lifecycle (SessionStart, SessionEnd, messages)
+  // - Red (#d32f2f): Control flow stops (Stop, SubagentStop)
+  // - Orange (#ed6c02): System operations (PreCompact, Notification, API calls)
+  // - Gray (#757575): Unknown/fallback events
   const getEventIcon = (eventName: string) => {
     switch (eventName) {
-      case 'tool_use':
+      // Tool-related hooks
+      case 'PreToolUse':
+        return <PlayArrowIcon fontSize="small" sx={{ color: '#2e7d32' }} />; // Green for pre-tool execution
+      case 'PostToolUse':
         return <BuildIcon fontSize="small" sx={{ color: '#2e7d32' }} />; // Green for tool usage
+      case 'tool_use':
+        return <BuildIcon fontSize="small" sx={{ color: '#2e7d32' }} />; // Green for tool usage (legacy)
+      
+      // User interaction hooks
+      case 'UserPromptSubmit':
+        return <PersonIcon fontSize="small" sx={{ color: '#9c27b0' }} />; // Purple for user interaction
+      case 'user_prompt':
+        return <PersonIcon fontSize="small" sx={{ color: '#9c27b0' }} />; // Purple for user interaction (legacy)
+      
+      // Session lifecycle hooks
+      case 'SessionStart':
+        return <LoginIcon fontSize="small" sx={{ color: '#1976d2' }} />; // Blue for session start
+      case 'SessionEnd':
+        return <LogoutIcon fontSize="small" sx={{ color: '#1976d2' }} />; // Blue for session end
+      
+      // Control flow hooks
+      case 'Stop':
+        return <StopIcon fontSize="small" sx={{ color: '#d32f2f' }} />; // Red for stop
+      case 'SubagentStop':
+        return <SubdirectoryArrowRightIcon fontSize="small" sx={{ color: '#d32f2f' }} />; // Red for subagent stop
+      
+      // System hooks
+      case 'PreCompact':
+        return <CompactIcon fontSize="small" sx={{ color: '#ed6c02' }} />; // Orange for compaction
+      case 'Notification':
+        return <NotificationsIcon fontSize="small" sx={{ color: '#ed6c02' }} />; // Orange for notifications
+      
+      // Legacy/fallback cases
       case 'message':
         return <PsychologyIcon fontSize="small" sx={{ color: '#1976d2' }} />; // Blue for messages
       case 'api_request':
         return <ApiIcon fontSize="small" sx={{ color: '#ed6c02' }} />; // Orange for API calls
-      case 'user_prompt':
-        return <PersonIcon fontSize="small" sx={{ color: '#9c27b0' }} />; // Purple for user interaction
+      
       default:
-        return null;
+        return <PsychologyIcon fontSize="small" sx={{ color: '#757575' }} />; // Gray for unknown events
     }
   };
 
