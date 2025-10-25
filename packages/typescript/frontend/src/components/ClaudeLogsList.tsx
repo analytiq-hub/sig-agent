@@ -462,6 +462,43 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     };
   };
 
+  // Helper function to generate a consistent color for a session ID
+  const getSessionColor = (sessionId: string): string => {
+    // Simple hash function to convert session ID to a number
+    let hash = 0;
+    for (let i = 0; i < sessionId.length; i++) {
+      const char = sessionId.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    // Use absolute value and modulo to get a positive number
+    const positiveHash = Math.abs(hash);
+    
+    // Define a palette of colors that contrast well with white
+    const colors = [
+      '#1976d2', // Blue
+      '#388e3c', // Green
+      '#f57c00', // Orange
+      '#7b1fa2', // Purple
+      '#c2185b', // Pink
+      '#00796b', // Teal
+      '#5d4037', // Brown
+      '#455a64', // Blue Grey
+      '#e64a19', // Deep Orange
+      '#303f9f', // Indigo
+      '#689f38', // Light Green
+      '#d32f2f', // Red
+      '#512da8', // Deep Purple
+      '#fbc02d', // Yellow
+      '#795548', // Brown
+      '#607d8b'  // Blue Grey
+    ];
+    
+    // Use modulo to select a color from the palette
+    return colors[positiveHash % colors.length];
+  };
+
   // Helper function to format tool response for display
   const formatToolResponse = (response: unknown): string => {
     if (!response) return '';
@@ -745,6 +782,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
         const isFiltered = filteredSessionId === info.sessionId;
+        const sessionColor = getSessionColor(info.sessionId);
         return (
           <Box display="flex" alignItems="center" gap={0.5}>
             <span className="text-xs font-mono">
@@ -761,12 +799,12 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                   width: 24,
                   height: 24,
                   borderRadius: '50%',
-                  backgroundColor: isFiltered ? 'primary.main' : 'grey.100',
-                  color: isFiltered ? 'primary.contrastText' : 'text.primary',
+                  backgroundColor: isFiltered ? sessionColor : 'grey.100',
+                  color: isFiltered ? 'white' : sessionColor,
                   boxShadow: isFiltered ? 2 : 1,
                   '&:hover': {
-                    backgroundColor: isFiltered ? 'primary.dark' : 'primary.light',
-                    color: 'primary.contrastText',
+                    backgroundColor: isFiltered ? sessionColor : 'grey.200',
+                    color: isFiltered ? 'white' : sessionColor,
                     boxShadow: 3
                   }
                 }}
@@ -1026,12 +1064,12 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                                           width: 24,
                                           height: 24,
                                           borderRadius: '50%',
-                                          backgroundColor: filteredSessionId === info.sessionId ? 'primary.main' : 'grey.100',
-                                          color: filteredSessionId === info.sessionId ? 'primary.contrastText' : 'text.primary',
+                                          backgroundColor: filteredSessionId === info.sessionId ? getSessionColor(info.sessionId) : 'grey.100',
+                                          color: filteredSessionId === info.sessionId ? 'white' : getSessionColor(info.sessionId),
                                           boxShadow: filteredSessionId === info.sessionId ? 2 : 1,
                                           '&:hover': {
-                                            backgroundColor: filteredSessionId === info.sessionId ? 'primary.dark' : 'primary.light',
-                                            color: 'primary.contrastText',
+                                            backgroundColor: filteredSessionId === info.sessionId ? getSessionColor(info.sessionId) : 'grey.200',
+                                            color: filteredSessionId === info.sessionId ? 'white' : getSessionColor(info.sessionId),
                                             boxShadow: 3
                                           }
                                         }}
