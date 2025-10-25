@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DocRouterOrgApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef, GridFilterInputValueProps } from '@mui/x-data-grid';
@@ -178,7 +178,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   const [selectedTab, setSelectedTab] = useState<number>(0);
 
   // Handle date range filter from DataGrid
-  const handleDateRangeFilter = useCallback((filterValue: string) => {
+  const handleDateRangeFilter = (filterValue: string) => {
     if (filterValue && filterValue.includes('|')) {
       const [start, end] = filterValue.split('|');
       setStartDate(start);
@@ -187,44 +187,34 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
       setStartDate('');
       setEndDate('');
     }
-  }, []);
-
-  const loadLogs = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await docRouterOrgApi.listClaudeLogs({
-        skip: page * pageSize,
-        limit: pageSize,
-        start_time: startDate || undefined,
-        end_time: endDate || undefined,
-        session_id: sessionIdFilter || undefined,
-        hook_event_name: hookEventNameFilter || undefined,
-        tool_name: toolNameFilter || undefined,
-        permission_mode: permissionModeFilter || undefined
-      });
-      setLogs(response.logs);
-      setTotal(response.total);
-    } catch (error) {
-      const errorMsg = getApiErrorMsg(error) || 'Error loading Claude logs';
-      setMessage('Error: ' + errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [page, pageSize, startDate, endDate, sessionIdFilter, hookEventNameFilter, toolNameFilter, permissionModeFilter, docRouterOrgApi]);
-
+  };
 
   useEffect(() => {
     const loadData = async () => {
-      setIsLoading(true);
       try {
-        await loadLogs();
+        setIsLoading(true);
+        const response = await docRouterOrgApi.listClaudeLogs({
+          skip: page * pageSize,
+          limit: pageSize,
+          start_time: startDate || undefined,
+          end_time: endDate || undefined,
+          session_id: sessionIdFilter || undefined,
+          hook_event_name: hookEventNameFilter || undefined,
+          tool_name: toolNameFilter || undefined,
+          permission_mode: permissionModeFilter || undefined
+        });
+        setLogs(response.logs);
+        setTotal(response.total);
+      } catch (error) {
+        const errorMsg = getApiErrorMsg(error) || 'Error loading Claude logs';
+        setMessage('Error: ' + errorMsg);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadData();
-  }, [loadLogs]);
+  }, [page, pageSize, startDate, endDate, sessionIdFilter, hookEventNameFilter, toolNameFilter, permissionModeFilter, docRouterOrgApi]);
 
   // Debounced search effect - reset to first page when search parameters change
   useEffect(() => {
