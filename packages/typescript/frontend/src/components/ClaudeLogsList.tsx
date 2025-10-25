@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { DocRouterOrgApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef, GridFilterInputValueProps } from '@mui/x-data-grid';
@@ -24,7 +24,9 @@ import {
   TableRow,
   Paper,
   IconButton,
-  Tooltip
+  Tooltip,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
@@ -175,7 +177,8 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedLogIndex, setSelectedLogIndex] = useState<number>(-1);
   const [selectedTab, setSelectedTab] = useState<number>(0);
-  const [rawDataModalOpen, setRawDataModalOpen] = useState(false);
+  const [showRawData, setShowRawData] = useState(false);
+  const rawDataRef = useRef<HTMLDivElement>(null);
 
   // Handle date range filter from DataGrid
   const handleDateRangeFilter = (filterValue: string) => {
@@ -238,14 +241,22 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     setSelectedLog(null);
     setSelectedLogIndex(-1);
     setSelectedTab(0);
+    setShowRawData(false);
   };
 
-  const handleOpenRawDataModal = () => {
-    setRawDataModalOpen(true);
-  };
-
-  const handleCloseRawDataModal = () => {
-    setRawDataModalOpen(false);
+  const handleToggleRawData = () => {
+    const newShowRawData = !showRawData;
+    setShowRawData(newShowRawData);
+    
+    // If toggling on, scroll to raw data after a short delay to allow DOM update
+    if (newShowRawData && rawDataRef.current) {
+      setTimeout(() => {
+        rawDataRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 100);
+    }
   };
 
   const handleNavigateLog = async (direction: 'prev' | 'next') => {
@@ -893,9 +904,6 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                   <NavigateNextIcon />
                 </IconButton>
               </Tooltip>
-              <Button onClick={handleOpenRawDataModal} variant="outlined" size="small" sx={{ mr: 1 }}>
-                Raw Data
-              </Button>
               <Button onClick={handleCloseDetailModal} variant="outlined" size="small">
                 Close
               </Button>
@@ -1012,50 +1020,102 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                   {renderTabContent(selectedLog)}
                 </Box>
               </Box>
+
+              {/* Raw Toggle at bottom left when closed */}
+              {!showRawData && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'flex-start', 
+                  mt: 2, 
+                  pt: 2, 
+                  borderTop: '1px solid', 
+                  borderColor: 'divider' 
+                }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={showRawData}
+                        onChange={handleToggleRawData}
+                        size="small"
+                        color="primary"
+                      />
+                    }
+                    label={
+                      <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
+                        Raw
+                      </Typography>
+                    }
+                    sx={{ 
+                      margin: 0,
+                      '& .MuiFormControlLabel-label': {
+                        marginLeft: 0.5
+                      }
+                    }}
+                  />
+                </Box>
+              )}
+
+              {/* Raw Data Display */}
+              {showRawData && (
+                <Box ref={rawDataRef} mt={3}>
+                  {/* Raw Toggle at top of raw data when open */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'flex-start', 
+                    mb: 2, 
+                    pb: 1, 
+                    borderBottom: '1px solid', 
+                    borderColor: 'divider' 
+                  }}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={showRawData}
+                          onChange={handleToggleRawData}
+                          size="small"
+                          color="primary"
+                        />
+                      }
+                      label={
+                        <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
+                          Raw
+                        </Typography>
+                      }
+                      sx={{ 
+                        margin: 0,
+                        '& .MuiFormControlLabel-label': {
+                          marginLeft: 0.5
+                        }
+                      }}
+                    />
+                  </Box>
+                  <Typography variant="h6" gutterBottom>Raw Data</Typography>
+                  <Box 
+                    component="pre" 
+                    sx={{ 
+                      fontSize: '0.75rem', 
+                      fontFamily: 'monospace',
+                      backgroundColor: 'grey.50',
+                      color: 'text.primary',
+                      padding: 2,
+                      borderRadius: 1,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      maxHeight: '50vh',
+                      overflow: 'auto',
+                      border: '1px solid',
+                      borderColor: 'divider'
+                    }}
+                  >
+                    {JSON.stringify(selectedLog, null, 2)}
+                  </Box>
+                </Box>
+              )}
             </Box>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Raw Data Modal */}
-      <Dialog 
-        open={rawDataModalOpen} 
-        onClose={handleCloseRawDataModal}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box display="flex" alignItems="center" justifyContent="space-between">
-            <Typography variant="h6">Raw Log Data</Typography>
-            <Button onClick={handleCloseRawDataModal} variant="outlined" size="small">
-              Close
-            </Button>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {selectedLog && (
-            <Box 
-              component="pre" 
-              sx={{ 
-                fontSize: '0.875rem', 
-                fontFamily: 'monospace',
-                backgroundColor: 'grey.50',
-                color: 'text.primary',
-                padding: 2,
-                borderRadius: 1,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                maxHeight: '70vh',
-                overflow: 'auto',
-                border: '1px solid',
-                borderColor: 'divider'
-              }}
-            >
-              {JSON.stringify(selectedLog, null, 2)}
-            </Box>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
