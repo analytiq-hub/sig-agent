@@ -1136,7 +1136,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
     {
       field: 'model',
       headerName: 'Model',
-      width: 140,
+      width: 250,
       filterable: false,
       sortable: false,
       renderCell: (params) => {
