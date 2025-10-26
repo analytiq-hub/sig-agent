@@ -95,10 +95,10 @@ const Home = () => {
                   <span className="text-blue-400">&quot;OTEL_EXPORTER_OTLP_HEADERS&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;Authorization=Bearer YOUR_ORG_ACCESS_TOKEN&quot;</span><span className="text-white">,</span>
                 </div>
                 <div className="ml-8 mb-2">
-                  <span className="text-blue-400">&quot;CLAUDE_HOOK_MONITOR_URL&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;{getFastApiUrl()}/v0/claude/log&quot;</span><span className="text-white">,</span>
+                  <span className="text-blue-400">&quot;SIGAGENT_URL&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;{getFastApiUrl()}&quot;</span><span className="text-white">,</span>
                 </div>
                 <div className="ml-8 mb-2">
-                  <span className="text-blue-400">&quot;CLAUDE_HOOK_MONITOR_TOKEN&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;YOUR_ORG_ACCESS_TOKEN&quot;</span>
+                  <span className="text-blue-400">&quot;SIGAGENT_TOKEN&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;YOUR_ORG_ACCESS_TOKEN&quot;</span>
                 </div>
                 <div className="ml-4 mb-2">
                   <span className="text-yellow-400">{'}'}</span>
