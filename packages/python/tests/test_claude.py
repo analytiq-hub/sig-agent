@@ -27,37 +27,54 @@ assert os.environ["ENV"] == "pytest"
 def sample_claude_log_data():
     """Sample Claude log data for testing"""
     return {
-        "hook_stdin": json.dumps({
+        "hook_data": {
             "session_id": "test-session-123",
             "hook_event_name": "UserPromptSubmit",
             "prompt": "What documents are available?",
             "permission_mode": "default",
             "cwd": "/test/directory"
-        }),
-        "hook_timestamp": datetime.now(UTC).isoformat() + 'Z'
+        },
+        "transcript_records": [
+            {
+                "sessionId": "test-session-123",
+                "uuid": "transcript-uuid-1",
+                "timestamp": datetime.now(UTC).isoformat() + 'Z',
+                "content": "User asked about available documents"
+            }
+        ],
+        "upload_timestamp": datetime.now(UTC).isoformat() + 'Z'
     }
 
 @pytest.fixture
 def sample_claude_log_data_with_tool():
     """Sample Claude log data with tool usage for testing"""
     return {
-        "hook_stdin": json.dumps({
+        "hook_data": {
             "session_id": "test-session-456",
             "hook_event_name": "PreToolUse",
             "tool_name": "mcp__docrouter__list_documents",
             "tool_input": {"limit": 10},
             "permission_mode": "default",
             "cwd": "/test/directory"
-        }),
-        "hook_timestamp": datetime.now(UTC).isoformat() + 'Z'
+        },
+        "transcript_records": [
+            {
+                "sessionId": "test-session-456",
+                "uuid": "transcript-uuid-2",
+                "timestamp": datetime.now(UTC).isoformat() + 'Z',
+                "content": "Tool usage: list_documents with limit 10"
+            }
+        ],
+        "upload_timestamp": datetime.now(UTC).isoformat() + 'Z'
     }
 
 @pytest.fixture
 def invalid_claude_log_data():
     """Invalid Claude log data for testing error cases"""
     return {
-        "hook_stdin": "invalid json data",
-        "hook_timestamp": "invalid-timestamp"
+        "hook_data": "invalid data",
+        "transcript_records": "invalid records",
+        "upload_timestamp": "invalid-timestamp"
     }
 
 @pytest.fixture
@@ -112,11 +129,15 @@ class TestClaudeLogEndpoint:
         
         # Verify the log was saved to the database
         log_id = data["log_id"]
-        log_doc = await test_db.claude_logs.find_one({"_id": ObjectId(log_id)})
+        # The log_id is actually a batch ID, so we need to find by organization and hook_data
+        log_doc = await test_db.claude_logs.find_one({
+            "organization_id": org_and_users["org_id"],
+            "hook_data.session_id": "test-session-123"
+        })
         assert log_doc is not None
         assert log_doc["organization_id"] == org_and_users["org_id"]
-        assert log_doc["hook_stdin"]["session_id"] == "test-session-123"
-        assert log_doc["hook_stdin"]["hook_event_name"] == "UserPromptSubmit"
+        assert log_doc["hook_data"]["session_id"] == "test-session-123"
+        assert log_doc["hook_data"]["hook_event_name"] == "UserPromptSubmit"
 
     @pytest.mark.asyncio
     async def test_claude_log_with_tool_usage(self, test_db, org_and_users, sample_claude_log_data_with_tool):
@@ -135,10 +156,12 @@ class TestClaudeLogEndpoint:
         assert "log_id" in data
         
         # Verify the tool usage data was saved correctly
-        log_id = data["log_id"]
-        log_doc = await test_db.claude_logs.find_one({"_id": ObjectId(log_id)})
-        assert log_doc["hook_stdin"]["tool_name"] == "mcp__docrouter__list_documents"
-        assert log_doc["hook_stdin"]["tool_input"]["limit"] == 10
+        log_doc = await test_db.claude_logs.find_one({
+            "organization_id": org_and_users["org_id"],
+            "hook_data.session_id": "test-session-456"
+        })
+        assert log_doc["hook_data"]["tool_name"] == "mcp__docrouter__list_documents"
+        assert log_doc["hook_data"]["tool_input"]["limit"] == 10
 
     def test_claude_log_missing_auth_header(self, sample_claude_log_data):
         """Test Claude log creation without authorization header"""
@@ -181,31 +204,49 @@ class TestClaudeLogEndpoint:
         token = "test_token"
         headers = {"Authorization": f"Bearer {token}"}
         
-        # Missing hook_stdin
+        # Missing hook_data
         response = client.post(
             "/v0/claude/log",
-            json={"hook_timestamp": datetime.now(UTC).isoformat() + 'Z'},
+            json={
+                "transcript_records": [{"sessionId": "test"}],
+                "upload_timestamp": datetime.now(UTC).isoformat() + 'Z'
+            },
             headers=headers
         )
         assert response.status_code == 422
         
-        # Missing hook_timestamp
+        # Missing transcript_records
         response = client.post(
             "/v0/claude/log",
-            json={"hook_stdin": "test data"},
+            json={
+                "hook_data": {"test": "data"},
+                "upload_timestamp": datetime.now(UTC).isoformat() + 'Z'
+            },
+            headers=headers
+        )
+        assert response.status_code == 422
+        
+        # Missing upload_timestamp
+        response = client.post(
+            "/v0/claude/log",
+            json={
+                "hook_data": {"test": "data"},
+                "transcript_records": [{"sessionId": "test"}]
+            },
             headers=headers
         )
         assert response.status_code == 422
 
     @pytest.mark.asyncio
     async def test_claude_log_invalid_json_in_stdin(self, test_db, org_and_users):
-        """Test Claude log creation with invalid JSON in hook_stdin"""
+        """Test Claude log creation with invalid data structure"""
         token = org_and_users["member"]["token"]
         headers = {"Authorization": f"Bearer {token}"}
         
         data = {
-            "hook_stdin": "invalid json data {",
-            "hook_timestamp": datetime.now(UTC).isoformat() + 'Z'
+            "hook_data": {"test": "data"},
+            "transcript_records": [{"sessionId": "test-session"}],
+            "upload_timestamp": datetime.now(UTC).isoformat() + 'Z'
         }
         
         response = client.post(
@@ -214,12 +255,15 @@ class TestClaudeLogEndpoint:
             headers=headers
         )
         
-        assert response.status_code == 200  # Should still succeed, storing as string
+        assert response.status_code == 200  # Should succeed with valid structure
         log_id = response.json()["log_id"]
         
-        # Verify the invalid JSON was stored as a string
-        log_doc = await test_db.claude_logs.find_one({"_id": ObjectId(log_id)})
-        assert log_doc["hook_stdin"] == "invalid json data {"
+        # Verify the data was stored correctly
+        log_doc = await test_db.claude_logs.find_one({
+            "organization_id": org_and_users["org_id"],
+            "hook_data.test": "data"
+        })
+        assert log_doc["hook_data"]["test"] == "data"
 
     @pytest.mark.asyncio
     async def test_claude_log_invalid_timestamp_format(self, test_db, org_and_users):
@@ -228,8 +272,9 @@ class TestClaudeLogEndpoint:
         headers = {"Authorization": f"Bearer {token}"}
         
         data = {
-            "hook_stdin": json.dumps({"test": "data"}),
-            "hook_timestamp": "invalid-timestamp-format"
+            "hook_data": {"test": "data"},
+            "transcript_records": [{"sessionId": "test-session"}],
+            "upload_timestamp": "invalid-timestamp-format"
         }
         
         response = client.post(
@@ -242,9 +287,12 @@ class TestClaudeLogEndpoint:
         log_id = response.json()["log_id"]
         
         # Verify a timestamp was still stored (fallback to current time)
-        log_doc = await test_db.claude_logs.find_one({"_id": ObjectId(log_id)})
-        assert "hook_timestamp" in log_doc
-        assert isinstance(log_doc["hook_timestamp"], datetime)
+        log_doc = await test_db.claude_logs.find_one({
+            "organization_id": org_and_users["org_id"],
+            "hook_data.test": "data"
+        })
+        assert "upload_timestamp" in log_doc
+        assert isinstance(log_doc["upload_timestamp"], datetime)
 
     @pytest.mark.asyncio
     async def test_claude_log_account_level_token_rejected(self, test_db, org_and_users):
@@ -254,8 +302,9 @@ class TestClaudeLogEndpoint:
         headers = {"Authorization": f"Bearer {token}"}
         
         data = {
-            "hook_stdin": json.dumps({"test": "data"}),
-            "hook_timestamp": datetime.now(UTC).isoformat() + 'Z'
+            "hook_data": {"test": "data"},
+            "transcript_records": [{"sessionId": "test-session"}],
+            "upload_timestamp": datetime.now(UTC).isoformat() + 'Z'
         }
         
         response = client.post(
@@ -284,14 +333,14 @@ class TestListClaudeLogsEndpoint:
         await test_db.claude_logs.insert_many([
             {
                 "organization_id": org_id,
-                "hook_stdin": {"session_id": "test-1", "hook_event_name": "UserPromptSubmit"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"session_id": "test-1", "hook_event_name": "UserPromptSubmit"},
+                "transcript_record": {"sessionId": "test-1", "content": "Test log 1"},
                 "upload_timestamp": datetime.now(UTC)
             },
             {
                 "organization_id": org_id,
-                "hook_stdin": {"session_id": "test-2", "hook_event_name": "PreToolUse"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"session_id": "test-2", "hook_event_name": "PreToolUse"},
+                "transcript_record": {"sessionId": "test-2", "content": "Test log 2"},
                 "upload_timestamp": datetime.now(UTC)
             }
         ])
@@ -321,8 +370,8 @@ class TestListClaudeLogsEndpoint:
         await test_db.claude_logs.insert_many([
             {
                 "organization_id": org_id,
-                "hook_stdin": {"session_id": f"test-{i}"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"session_id": f"test-{i}"},
+                "transcript_record": {"sessionId": f"test-{i}", "content": f"Test log {i}"},
                 "upload_timestamp": datetime.now(UTC)
             }
             for i in range(5)
@@ -352,14 +401,14 @@ class TestListClaudeLogsEndpoint:
         await test_db.claude_logs.insert_many([
             {
                 "organization_id": org_id,
-                "hook_stdin": {"session_id": "session-0", "hook_event_name": "UserPromptSubmit"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"session_id": "session-0", "hook_event_name": "UserPromptSubmit"},
+                "transcript_record": {"sessionId": "session-0", "content": "Test log 0"},
                 "upload_timestamp": datetime.now(UTC)
             },
             {
                 "organization_id": org_id,
-                "hook_stdin": {"session_id": "session-1", "hook_event_name": "PreToolUse"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"session_id": "session-1", "hook_event_name": "PreToolUse"},
+                "transcript_record": {"sessionId": "session-1", "content": "Test log 1"},
                 "upload_timestamp": datetime.now(UTC)
             }
         ])
@@ -373,7 +422,7 @@ class TestListClaudeLogsEndpoint:
         data = response.json()
         assert data["total"] == 1
         assert len(data["logs"]) == 1
-        assert data["logs"][0]["hook_stdin"]["session_id"] == "session-0"
+        assert data["logs"][0]["hook_data"]["session_id"] == "session-0"
 
     @pytest.mark.asyncio
     async def test_list_claude_logs_filter_by_hook_event_name(self, test_db, org_and_users):
@@ -386,20 +435,20 @@ class TestListClaudeLogsEndpoint:
         await test_db.claude_logs.insert_many([
             {
                 "organization_id": org_id,
-                "hook_stdin": {"hook_event_name": "UserPromptSubmit", "session_id": "test-1"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"hook_event_name": "UserPromptSubmit", "session_id": "test-1"},
+                "transcript_record": {"sessionId": "test-1", "content": "Test log 1"},
                 "upload_timestamp": datetime.now(UTC)
             },
             {
                 "organization_id": org_id,
-                "hook_stdin": {"hook_event_name": "UserPromptSubmit", "session_id": "test-2"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"hook_event_name": "UserPromptSubmit", "session_id": "test-2"},
+                "transcript_record": {"sessionId": "test-2", "content": "Test log 2"},
                 "upload_timestamp": datetime.now(UTC)
             },
             {
                 "organization_id": org_id,
-                "hook_stdin": {"hook_event_name": "PreToolUse", "session_id": "test-3"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"hook_event_name": "PreToolUse", "session_id": "test-3"},
+                "transcript_record": {"sessionId": "test-3", "content": "Test log 3"},
                 "upload_timestamp": datetime.now(UTC)
             }
         ])
@@ -412,7 +461,7 @@ class TestListClaudeLogsEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["total"] == 2  # 2 logs with UserPromptSubmit
-        assert all(log["hook_stdin"]["hook_event_name"] == "UserPromptSubmit" for log in data["logs"])
+        assert all(log["hook_data"]["hook_event_name"] == "UserPromptSubmit" for log in data["logs"])
 
     @pytest.mark.asyncio
     async def test_list_claude_logs_filter_by_tool_name(self, test_db, org_and_users):
@@ -425,14 +474,14 @@ class TestListClaudeLogsEndpoint:
         await test_db.claude_logs.insert_many([
             {
                 "organization_id": org_id,
-                "hook_stdin": {"tool_name": "tool-1", "session_id": "test-1"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"tool_name": "tool-1", "session_id": "test-1"},
+                "transcript_record": {"sessionId": "test-1", "content": "Test log 1"},
                 "upload_timestamp": datetime.now(UTC)
             },
             {
                 "organization_id": org_id,
-                "hook_stdin": {"tool_name": "tool-2", "session_id": "test-2"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"tool_name": "tool-2", "session_id": "test-2"},
+                "transcript_record": {"sessionId": "test-2", "content": "Test log 2"},
                 "upload_timestamp": datetime.now(UTC)
             }
         ])
@@ -445,7 +494,7 @@ class TestListClaudeLogsEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["total"] == 1
-        assert data["logs"][0]["hook_stdin"]["tool_name"] == "tool-1"
+        assert data["logs"][0]["hook_data"]["tool_name"] == "tool-1"
 
     @pytest.mark.asyncio
     async def test_list_claude_logs_filter_by_permission_mode(self, test_db, org_and_users):
@@ -458,20 +507,20 @@ class TestListClaudeLogsEndpoint:
         await test_db.claude_logs.insert_many([
             {
                 "organization_id": org_id,
-                "hook_stdin": {"permission_mode": "default", "session_id": "test-1"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"permission_mode": "default", "session_id": "test-1"},
+                "transcript_record": {"sessionId": "test-1", "content": "Test log 1"},
                 "upload_timestamp": datetime.now(UTC)
             },
             {
                 "organization_id": org_id,
-                "hook_stdin": {"permission_mode": "default", "session_id": "test-2"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"permission_mode": "default", "session_id": "test-2"},
+                "transcript_record": {"sessionId": "test-2", "content": "Test log 2"},
                 "upload_timestamp": datetime.now(UTC)
             },
             {
                 "organization_id": org_id,
-                "hook_stdin": {"permission_mode": "restricted", "session_id": "test-3"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"permission_mode": "restricted", "session_id": "test-3"},
+                "transcript_record": {"sessionId": "test-3", "content": "Test log 3"},
                 "upload_timestamp": datetime.now(UTC)
             }
         ])
@@ -484,7 +533,7 @@ class TestListClaudeLogsEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["total"] == 2  # 2 logs have permission_mode=default
-        assert all(log["hook_stdin"]["permission_mode"] == "default" for log in data["logs"])
+        assert all(log["hook_data"]["permission_mode"] == "default" for log in data["logs"])
 
     @pytest.mark.asyncio
     async def test_list_claude_logs_filter_by_timestamp_range(self, test_db, org_and_users):
@@ -498,20 +547,20 @@ class TestListClaudeLogsEndpoint:
         await test_db.claude_logs.insert_many([
             {
                 "organization_id": org_id,
-                "hook_stdin": {"session_id": "test-1"},
-                "hook_timestamp": base_time - timedelta(minutes=3),
+                "hook_data": {"session_id": "test-1"},
+                "transcript_record": {"sessionId": "test-1", "content": "Test log 1"},
                 "upload_timestamp": base_time - timedelta(minutes=3)
             },
             {
                 "organization_id": org_id,
-                "hook_stdin": {"session_id": "test-2"},
-                "hook_timestamp": base_time - timedelta(minutes=2),
+                "hook_data": {"session_id": "test-2"},
+                "transcript_record": {"sessionId": "test-2", "content": "Test log 2"},
                 "upload_timestamp": base_time - timedelta(minutes=2)
             },
             {
                 "organization_id": org_id,
-                "hook_stdin": {"session_id": "test-3"},
-                "hook_timestamp": base_time - timedelta(minutes=1),
+                "hook_data": {"session_id": "test-3"},
+                "transcript_record": {"sessionId": "test-3", "content": "Test log 3"},
                 "upload_timestamp": base_time - timedelta(minutes=1)
             }
         ])
@@ -541,20 +590,20 @@ class TestListClaudeLogsEndpoint:
         await test_db.claude_logs.insert_many([
             {
                 "organization_id": org_id,
-                "hook_stdin": {"hook_event_name": "UserPromptSubmit", "permission_mode": "default", "session_id": "test-1"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"hook_event_name": "UserPromptSubmit", "permission_mode": "default", "session_id": "test-1"},
+                "transcript_record": {"sessionId": "test-1", "content": "Test log 1"},
                 "upload_timestamp": datetime.now(UTC)
             },
             {
                 "organization_id": org_id,
-                "hook_stdin": {"hook_event_name": "UserPromptSubmit", "permission_mode": "default", "session_id": "test-2"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"hook_event_name": "UserPromptSubmit", "permission_mode": "default", "session_id": "test-2"},
+                "transcript_record": {"sessionId": "test-2", "content": "Test log 2"},
                 "upload_timestamp": datetime.now(UTC)
             },
             {
                 "organization_id": org_id,
-                "hook_stdin": {"hook_event_name": "PreToolUse", "permission_mode": "default", "session_id": "test-3"},
-                "hook_timestamp": datetime.now(UTC),
+                "hook_data": {"hook_event_name": "PreToolUse", "permission_mode": "default", "session_id": "test-3"},
+                "transcript_record": {"sessionId": "test-3", "content": "Test log 3"},
                 "upload_timestamp": datetime.now(UTC)
             }
         ])
@@ -568,8 +617,8 @@ class TestListClaudeLogsEndpoint:
         data = response.json()
         assert data["limit"] == 2
         assert data["total"] == 2
-        assert all(log["hook_stdin"]["hook_event_name"] == "UserPromptSubmit" for log in data["logs"])
-        assert all(log["hook_stdin"]["permission_mode"] == "default" for log in data["logs"])
+        assert all(log["hook_data"]["hook_event_name"] == "UserPromptSubmit" for log in data["logs"])
+        assert all(log["hook_data"]["permission_mode"] == "default" for log in data["logs"])
 
     def test_list_claude_logs_unauthorized_access(self, org_and_users):
         """Test unauthorized access to Claude logs"""

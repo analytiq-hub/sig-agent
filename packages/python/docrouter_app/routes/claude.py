@@ -104,12 +104,11 @@ async def claude_log_handler(
     # Get the organization ID from the bearer token
     try:
         organization_id = await get_org_id_from_token(token)
-        # organization_id can be None for account-level tokens, which is valid
-        if organization_id is None:
-            # For account-level tokens, we'll use a default organization or handle differently
-            # For now, we'll use a placeholder - you may want to adjust this based on your requirements
-            organization_id = "account-level-token"
-            logger.info("Using account-level token for Claude logs")
+        if not organization_id:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid token or token not associated with an organization"
+            )
     except HTTPException:
         raise
     except Exception as e:
@@ -392,18 +391,18 @@ async def list_claude_hooks(
                 )
         query["upload_timestamp"] = timestamp_query
     
-    # Add filtering for fields within transcript_record and hook_data using regex for superset matching
+    # Add filtering for fields within hook_stdin using regex for superset matching
     if session_id:
-        query["transcript_record.sessionId"] = {"$regex": session_id, "$options": "i"}  # Case-insensitive superset matching
+        query["hook_stdin.session_id"] = {"$regex": session_id, "$options": "i"}  # Case-insensitive superset matching
     
     if hook_event_name:
-        query["hook_data.hook_event_name"] = {"$regex": hook_event_name, "$options": "i"}  # Case-insensitive superset matching
+        query["hook_stdin.hook_event_name"] = {"$regex": hook_event_name, "$options": "i"}  # Case-insensitive superset matching
     
     if tool_name:
-        query["hook_data.tool_name"] = {"$regex": tool_name, "$options": "i"}  # Case-insensitive superset matching
+        query["hook_stdin.tool_name"] = {"$regex": tool_name, "$options": "i"}  # Case-insensitive superset matching
     
     if permission_mode:
-        query["hook_data.permission_mode"] = permission_mode
+        query["hook_stdin.permission_mode"] = permission_mode
     
     # Get total count
     total = await db.claude_hooks.count_documents(query)
