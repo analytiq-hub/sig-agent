@@ -5,7 +5,6 @@ import { DataGrid, GridColDef, GridFilterInputValueProps } from '@mui/x-data-gri
 import { 
   TextField, 
   InputAdornment, 
-  Chip, 
   Select, 
   MenuItem, 
   FormControl, 
@@ -479,42 +478,10 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
             </TableContainer>
           </Box>
         );
-      case 1: // Trace Data
+      case 1: // Transcript Data
         return (
           <Box>
-            {/* Hook Data Section */}
-            {trace.hook_data && Object.keys(trace.hook_data).length > 0 && (
-              <Box mb={3}>
-                <Typography variant="h6" gutterBottom>Hook Data</Typography>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small" sx={{ tableLayout: 'fixed' }}>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ width: '50%' }}><strong>Key</strong></TableCell>
-                        <TableCell sx={{ width: '50%' }}><strong>Value</strong></TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {Object.entries(trace.hook_data).map(([key, value], index) => (
-                        <TableRow 
-                          key={key}
-                          sx={{ 
-                            backgroundColor: index % 2 === 0 ? 'background.default' : 'action.hover' 
-                          }}
-                        >
-                          <TableCell sx={{ width: '50%' }}>{key}</TableCell>
-                          <TableCell sx={{ width: '50%' }}>
-                            {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Box>
-            )}
-
-            {/* Transcript Record Section */}
+            {/* Transcript Record Section - Primary focus */}
             {trace.transcript_record && Object.keys(trace.transcript_record).length > 0 && (
               <Box mb={3}>
                 <Typography variant="h6" gutterBottom>Transcript Record</Typography>
@@ -546,11 +513,47 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
               </Box>
             )}
 
+            {/* Hook Data Section - Secondary/de-emphasized */}
+            {trace.hook_data && Object.keys(trace.hook_data).length > 0 && (
+              <Box mb={3}>
+                <Typography variant="h6" gutterBottom color="text.secondary">
+                  Hook Data (Metadata)
+                </Typography>
+                <TableContainer component={Paper} variant="outlined" sx={{ opacity: 0.8 }}>
+                  <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ width: '50%' }}><strong>Key</strong></TableCell>
+                        <TableCell sx={{ width: '50%' }}><strong>Value</strong></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {Object.entries(trace.hook_data).map(([key, value], index) => (
+                        <TableRow 
+                          key={key}
+                          sx={{ 
+                            backgroundColor: index % 2 === 0 ? 'background.default' : 'action.hover' 
+                          }}
+                        >
+                          <TableCell sx={{ width: '50%' }}>{key}</TableCell>
+                          <TableCell sx={{ width: '50%' }}>
+                            {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+
             {/* Legacy hook_stdin support */}
             {trace.hook_stdin && Object.keys(trace.hook_stdin).length > 0 && (
               <Box mb={3}>
-                <Typography variant="h6" gutterBottom>Hook Stdin (Legacy)</Typography>
-                <TableContainer component={Paper} variant="outlined">
+                <Typography variant="h6" gutterBottom color="text.secondary">
+                  Hook Stdin (Legacy)
+                </Typography>
+                <TableContainer component={Paper} variant="outlined" sx={{ opacity: 0.8 }}>
                   <Table size="small" sx={{ tableLayout: 'fixed' }}>
                     <TableHead>
                       <TableRow>
@@ -578,8 +581,8 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
               </Box>
             )}
 
-            {!trace.hook_data && !trace.transcript_record && !trace.hook_stdin && (
-              <Typography color="text.secondary">No trace data available</Typography>
+            {!trace.transcript_record && !trace.hook_data && !trace.hook_stdin && (
+              <Typography color="text.secondary">No transcript data available</Typography>
             )}
           </Box>
         );
@@ -590,20 +593,35 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
 
   // Helper function to extract salient information from trace data
   const getSalientInfo = (trace: ClaudeTrace) => {
-    // Handle new trace structure with hook_data and transcript_record
-    if (trace.hook_data && trace.transcript_record) {
-      const hookData = trace.hook_data;
+    // Handle new trace structure with transcript_record as primary source
+    if (trace.transcript_record) {
       const transcriptRecord = trace.transcript_record;
       const message = transcriptRecord.message;
       
+      // Determine message type and role
+      const messageType = transcriptRecord.type || 'unknown';
+      const role = message?.role || 'unknown';
+      const contentType = (message?.content?.[0] as { type?: string })?.type || 'unknown';
+      
+      // Extract tool information from content if it's a tool_use
+      let toolName = '-';
+      let toolInput = null;
+      if (contentType === 'tool_use' && message?.content?.[0]) {
+        const toolContent = message.content[0] as { name?: string; input?: unknown };
+        toolName = toolContent.name || '-';
+        toolInput = toolContent.input || null;
+      }
+      
       return {
-        sessionId: hookData.session_id || '-',
-        hookEventName: hookData.hook_event_name || '-',
-        toolName: hookData.tool_name || '-',
-        permissionMode: hookData.permission_mode || '-',
+        sessionId: transcriptRecord.sessionId || '-',
+        messageType: messageType,
+        role: role,
+        contentType: contentType,
+        toolName: toolName,
+        toolInput: toolInput,
+        permissionMode: trace.hook_data?.permission_mode || '-',
         userId: transcriptRecord.userType || '-',
         model: message?.model || '-',
-        toolInput: hookData.tool_input || null,
         toolResponse: null, // Not available in this structure
         prompt: null, // Not available in this structure
         usage: message?.usage || null,
@@ -611,8 +629,12 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
         requestId: transcriptRecord.requestId || '-',
         uuid: transcriptRecord.uuid || '-',
         timestamp: transcriptRecord.timestamp || '-',
-        cwd: hookData.cwd || '-',
-        transcriptPath: hookData.transcript_path || '-'
+        cwd: transcriptRecord.cwd || '-',
+        transcriptPath: trace.hook_data?.transcript_path || '-',
+        parentUuid: transcriptRecord.parentUuid || '-',
+        version: transcriptRecord.version || '-',
+        gitBranch: transcriptRecord.gitBranch || '-',
+        isSidechain: transcriptRecord.isSidechain || false
       };
     }
     
@@ -620,12 +642,14 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
     const hookData = trace.hook_stdin || {};
     return {
       sessionId: hookData['session_id'] as string || '-',
-      hookEventName: hookData['hook_event_name'] as string || '-',
+      messageType: hookData['hook_event_name'] as string || '-',
+      role: 'unknown',
+      contentType: 'unknown',
       toolName: hookData['tool_name'] as string || '-',
+      toolInput: hookData['tool_input'] || null,
       permissionMode: hookData['permission_mode'] as string || '-',
       userId: hookData['user_id'] as string || '-',
       model: hookData['model'] as string || '-',
-      toolInput: hookData['tool_input'] || null,
       toolResponse: hookData['tool_response'] || null,
       prompt: hookData['prompt'] as string || null,
       usage: null,
@@ -634,7 +658,11 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
       uuid: '-',
       timestamp: '-',
       cwd: '-',
-      transcriptPath: '-'
+      transcriptPath: '-',
+      parentUuid: '-',
+      version: '-',
+      gitBranch: '-',
+      isSidechain: false
     };
   };
 
@@ -777,7 +805,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
   const PromptTooltip: React.FC<{ trace: ClaudeTrace; children: React.ReactElement }> = ({ trace, children }) => {
     const info = getSalientInfo(trace);
     
-    if (!info.prompt || info.hookEventName !== 'UserPromptSubmit') {
+    if (!info.prompt || info.messageType !== 'user') {
       return <>{children}</>;
     }
 
@@ -966,18 +994,36 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
     );
   };
 
-  // Helper function to get icon for event type with color coding
-  // Color scheme:
-  // - Green (#2e7d32): Pre-tool operations (PreToolUse)
-  // - Teal (#00acc1): Post-tool operations (PostToolUse, ToolUse)
-  // - Orange (#ed6c02): System operations (PreCompact, Notification, API calls)
-  // - Purple (#9c27b0): User interactions (UserPromptSubmit)
-  // - Blue (#1976d2): Session lifecycle (SessionStart, SessionEnd, messages)
-  // - Red (#d32f2f): Control flow stops (Stop, SubagentStop)
+  // Helper function to get icon for message type with color coding
+  // Color scheme based on transcript message types:
+  // - Purple (#9c27b0): User messages
+  // - Blue (#1976d2): Assistant messages
+  // - Green (#2e7d32): Tool use messages
+  // - Orange (#ed6c02): Tool result messages
+  // - Teal (#00acc1): Summary messages
   // - Gray (#757575): Unknown/fallback events
-  const getEventIcon = (eventName: string) => {
-    switch (eventName) {
-      // Tool-related hooks
+  const getEventIcon = (messageType: string, contentType?: string) => {
+    // Handle transcript-based message types
+    if (messageType === 'user') {
+      if (contentType === 'tool_result') {
+        return <BuildIcon fontSize="small" sx={{ color: '#ed6c02' }} />; // Orange for tool results
+      }
+      return <PersonIcon fontSize="small" sx={{ color: '#9c27b0' }} />; // Purple for user messages
+    }
+    
+    if (messageType === 'assistant') {
+      if (contentType === 'tool_use') {
+        return <BuildIcon fontSize="small" sx={{ color: '#2e7d32' }} />; // Green for tool use
+      }
+      return <PsychologyIcon fontSize="small" sx={{ color: '#1976d2' }} />; // Blue for assistant messages
+    }
+    
+    if (messageType === 'summary') {
+      return <CompactIcon fontSize="small" sx={{ color: '#00acc1' }} />; // Teal for summary
+    }
+    
+    // Legacy hook-based event handling
+    switch (messageType) {
       case 'PreToolUse':
         return <BuildIcon fontSize="small" sx={{ color: '#2e7d32' }} />; // Green wrench for pre-tool execution
       case 'PostToolUse':
@@ -986,37 +1032,26 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
         return <BuildIcon fontSize="small" sx={{ color: '#00acc1' }} />; // Teal wrench for combined tool execution
       case 'tool_use':
         return <BuildIcon fontSize="small" sx={{ color: '#2e7d32' }} />; // Green for tool usage (legacy)
-      
-      // User interaction hooks
       case 'UserPromptSubmit':
         return <PersonIcon fontSize="small" sx={{ color: '#9c27b0' }} />; // Purple for user interaction
       case 'user_prompt':
         return <PersonIcon fontSize="small" sx={{ color: '#9c27b0' }} />; // Purple for user interaction (legacy)
-      
-      // Session lifecycle hooks
       case 'SessionStart':
         return <LoginIcon fontSize="small" sx={{ color: '#1976d2' }} />; // Blue for session start
       case 'SessionEnd':
         return <LogoutIcon fontSize="small" sx={{ color: '#1976d2' }} />; // Blue for session end
-      
-      // Control flow hooks
       case 'Stop':
         return <StopIcon fontSize="small" sx={{ color: '#d32f2f' }} />; // Red for stop
       case 'SubagentStop':
         return <SubdirectoryArrowRightIcon fontSize="small" sx={{ color: '#d32f2f' }} />; // Red for subagent stop
-      
-      // System hooks
       case 'PreCompact':
         return <CompactIcon fontSize="small" sx={{ color: '#ed6c02' }} />; // Orange for compaction
       case 'Notification':
         return <NotificationsIcon fontSize="small" sx={{ color: '#ed6c02' }} />; // Orange for notifications
-      
-      // Legacy/fallback cases
       case 'message':
         return <PsychologyIcon fontSize="small" sx={{ color: '#1976d2' }} />; // Blue for messages
       case 'api_request':
         return <ApiIcon fontSize="small" sx={{ color: '#ed6c02' }} />; // Orange for API calls
-      
       default:
         return <PsychologyIcon fontSize="small" sx={{ color: '#757575' }} />; // Gray for unknown events
     }
@@ -1051,86 +1086,106 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
       )
     },
     {
-      field: 'hook_event_name',
-      headerName: 'Event',
-      width: 160,
+      field: 'message_type',
+      headerName: 'Type',
+      width: 140,
       filterable: false,
       sortable: false,
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
-        const icon = getEventIcon(info.hookEventName);
-        const eventContent = (
+        const icon = getEventIcon(info.messageType, info.contentType);
+        const displayText = info.contentType === 'tool_use' ? 'Tool Use' : 
+                           info.contentType === 'tool_result' ? 'Tool Result' :
+                           info.messageType === 'user' ? 'User' :
+                           info.messageType === 'assistant' ? 'Assistant' :
+                           info.messageType === 'summary' ? 'Summary' :
+                           info.messageType;
+        
+        return (
           <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px', width: '100%' }}>
             {icon}
             <span className="text-sm font-medium">
-              {info.hookEventName}
+              {displayText}
             </span>
           </Box>
         );
-
-        // Wrap UserPromptSubmit events with prompt tooltip
-        if (info.hookEventName === 'UserPromptSubmit' && info.prompt) {
-          return (
-            <PromptTooltip trace={params.row}>
-              {eventContent}
-            </PromptTooltip>
-          );
-        }
-
-        return eventContent;
       }
     },
     {
       field: 'tool_name',
-      headerName: 'Tool',
-      width: 280,
+      headerName: 'Tool/Content',
+      width: 300,
       filterable: false,
       sortable: false,
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
-        const toolName = info.toolName;
-        const displayName = toolName.length > 35 ? toolName.substring(0, 35) + '...' : toolName;
-        const toolContent = (
+        
+        // Show tool name for tool_use messages
+        if (info.contentType === 'tool_use' && info.toolName !== '-') {
+          const displayName = info.toolName.length > 40 ? info.toolName.substring(0, 40) + '...' : info.toolName;
+          return (
+            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+              <span className="text-sm font-mono">
+                {displayName}
+              </span>
+            </Box>
+          );
+        }
+        
+        // Show content preview for other message types
+        if (info.messageType === 'user' && info.contentType === 'text') {
+          const content = params.row.transcript_record?.message?.content?.[0]?.text || '';
+          const preview = content.length > 50 ? content.substring(0, 50) + '...' : content;
+          return (
+            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+              <span className="text-sm">
+                {preview}
+              </span>
+            </Box>
+          );
+        }
+        
+        if (info.messageType === 'assistant' && info.contentType === 'text') {
+          const content = params.row.transcript_record?.message?.content?.[0]?.text || '';
+          const preview = content.length > 50 ? content.substring(0, 50) + '...' : content;
+          return (
+            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+              <span className="text-sm">
+                {preview}
+              </span>
+            </Box>
+          );
+        }
+        
+        // Show tool result info
+        if (info.contentType === 'tool_result') {
+          return (
+            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+              <span className="text-sm text-gray-600">
+                Tool Result
+              </span>
+            </Box>
+          );
+        }
+        
+        // Show summary info
+        if (info.messageType === 'summary') {
+          const summary = params.row.transcript_record?.summary || '';
+          const preview = summary.length > 50 ? summary.substring(0, 50) + '...' : summary;
+          return (
+            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+              <span className="text-sm">
+                {preview}
+              </span>
+            </Box>
+          );
+        }
+        
+        return (
           <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
-            <span className="text-sm font-mono">
-              {displayName}
-            </span>
+            <span className="text-sm text-gray-500">-</span>
           </Box>
         );
-
-        // Wrap tool events with tool info tooltip
-        if (info.toolInput || info.toolResponse) {
-          return (
-            <ToolInfoTooltip trace={params.row}>
-              {toolContent}
-            </ToolInfoTooltip>
-          );
-        }
-
-        return toolContent;
-      }
-    },
-    {
-      field: 'permission_mode',
-      headerName: 'Permission',
-      width: 100,
-      filterable: false,
-      sortable: false,
-      renderCell: (params) => {
-        const info = getSalientInfo(params.row);
-        const permission = info.permissionMode;
-        if (permission && permission !== '-') {
-          const color = permission === 'auto' ? 'success' : permission === 'manual' ? 'warning' : 'default';
-          return (
-            <Chip
-              label={permission}
-              size="small"
-              color={color as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'}
-              sx={{ height: '20px', fontSize: '0.75rem' }}
-            />
-          );
-        }
-        return <span className="text-sm">-</span>;
       }
     },
     {
@@ -1182,7 +1237,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
         
         // Determine which tooltip to use for the session cell
         const getSessionTooltip = () => {
-          if (info.hookEventName === 'UserPromptSubmit' && info.prompt) {
+          if (info.messageType === 'user' && info.prompt) {
             return (
               <PromptTooltip trace={params.row}>
                 <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px', width: '100%' }}>
@@ -1296,66 +1351,11 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
   ];
 
 
-  // Filter out PreToolUse events that are followed by PostToolUse events
-  // and rename PostToolUse to ToolUse when it follows a PreToolUse
+  // Simple filtering for transcript-based traces
   const filteredTraces = useMemo(() => {
-    const filtered: ClaudeTrace[] = [];
-    const preToolUseMap = new Map<string, ClaudeTrace>(); // Map session_id + tool_name to PreToolUse events
-    
-    // First pass: collect PreToolUse events
-    traces.forEach(trace => {
-      const info = getSalientInfo(trace);
-      if (info.hookEventName === 'PreToolUse') {
-        const key = `${info.sessionId}-${info.toolName}`;
-        preToolUseMap.set(key, trace);
-      }
-    });
-    
-    // Second pass: filter and rename events
-    traces.forEach(trace => {
-      const info = getSalientInfo(trace);
-      
-      if (info.hookEventName === 'PreToolUse') {
-        // Check if there's a corresponding PostToolUse
-        const hasPostToolUse = traces.some(t => {
-          const tInfo = getSalientInfo(t);
-          return tInfo.hookEventName === 'PostToolUse' && 
-                 tInfo.sessionId === info.sessionId && 
-                 tInfo.toolName === info.toolName &&
-                 new Date(t.upload_timestamp) > new Date(trace.upload_timestamp);
-        });
-        
-        // Only include PreToolUse if there's no corresponding PostToolUse
-        if (!hasPostToolUse) {
-          filtered.push(trace);
-        }
-      } else if (info.hookEventName === 'PostToolUse') {
-        // Check if this PostToolUse follows a PreToolUse
-        const key = `${info.sessionId}-${info.toolName}`;
-        const hasPreToolUse = preToolUseMap.has(key) && 
-          new Date(trace.upload_timestamp) > new Date(preToolUseMap.get(key)!.upload_timestamp);
-        
-        if (hasPreToolUse) {
-          // Create a modified trace with renamed event
-          const modifiedTrace = {
-            ...trace,
-            hook_stdin: {
-              ...trace.hook_stdin,
-              hook_event_name: 'ToolUse'
-            }
-          };
-          filtered.push(modifiedTrace);
-        } else {
-          // Include PostToolUse as-is if no corresponding PreToolUse
-          filtered.push(trace);
-        }
-      } else {
-        // Include all other events
-        filtered.push(trace);
-      }
-    });
-    
-    return filtered;
+    // For now, return all traces as-is since we're focusing on transcript data
+    // The filtering logic can be enhanced later based on transcript-specific needs
+    return traces;
   }, [traces]);
 
   return (
@@ -1546,56 +1546,35 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
                             <TableRow>
                               <TableCell sx={{ width: '50%' }}>
                                 <Box display="flex" justifyContent="space-between">
-                                  <strong>Event</strong>
+                                  <strong>Message Type</strong>
                                   <Box display="flex" alignItems="center" gap={0.5}>
-                                    {info.hookEventName === 'UserPromptSubmit' ? (
-                                      <PromptTooltip trace={selectedTrace}>
-                                        <Box display="flex" alignItems="center" gap={0.5}>
-                                          {getEventIcon(info.hookEventName)}
-                                          <span>{info.hookEventName}</span>
-                                        </Box>
-                                      </PromptTooltip>
-                                    ) : (
-                                      <>
-                                        {getEventIcon(info.hookEventName)}
-                                        <span>{info.hookEventName}</span>
-                                      </>
-                                    )}
+                                    {getEventIcon(info.messageType, info.contentType)}
+                                    <span>{info.messageType === 'user' ? 'User' : 
+                                           info.messageType === 'assistant' ? 'Assistant' :
+                                           info.messageType === 'summary' ? 'Summary' :
+                                           info.messageType}</span>
                                   </Box>
                                 </Box>
                               </TableCell>
                               <TableCell sx={{ width: '50%' }}>
                                 <Box display="flex" alignItems="flex-start" gap={2}>
-                                  <strong style={{ minWidth: '60px', flexShrink: 0 }}>Tool</strong>
-                                  <span className="font-mono" style={{ wordBreak: 'break-all', lineHeight: '1.4' }}>{info.toolName}</span>
+                                  <strong style={{ minWidth: '60px', flexShrink: 0 }}>Content</strong>
+                                  <span className="font-mono" style={{ wordBreak: 'break-all', lineHeight: '1.4' }}>
+                                    {info.contentType === 'tool_use' ? info.toolName :
+                                     info.contentType === 'tool_result' ? 'Tool Result' :
+                                     info.contentType === 'text' ? 'Text Message' :
+                                     info.contentType}
+                                  </span>
                                 </Box>
                               </TableCell>
                             </TableRow>
                             <TableRow>
-                              <TableCell sx={{ width: '50%' }}>
-                                <Box display="flex" justifyContent="space-between">
-                                  <strong>Permission Mode</strong>
-                                  <span>
-                                    {info.permissionMode !== '-' ? (
-                                      <Chip
-                                        label={info.permissionMode}
-                                        size="small"
-                                        color={info.permissionMode === 'auto' ? 'success' : info.permissionMode === 'manual' ? 'warning' : 'default'}
-                                      />
-                                    ) : (
-                                      <span>-</span>
-                                    )}
-                                  </span>
-                                </Box>
-                              </TableCell>
                               <TableCell sx={{ width: '50%' }}>
                                 <Box display="flex" justifyContent="space-between">
                                   <strong>Model</strong>
                                   <span className="font-mono">{info.model}</span>
                                 </Box>
                               </TableCell>
-                            </TableRow>
-                            <TableRow>
                               <TableCell sx={{ width: '50%' }}>
                                 <Box display="flex" justifyContent="space-between">
                                   <strong>Usage</strong>
@@ -1612,10 +1591,18 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
                                   </span>
                                 </Box>
                               </TableCell>
+                            </TableRow>
+                            <TableRow>
                               <TableCell sx={{ width: '50%' }}>
                                 <Box display="flex" justifyContent="space-between">
                                   <strong>Message ID</strong>
                                   <span className="font-mono text-xs">{info.messageId}</span>
+                                </Box>
+                              </TableCell>
+                              <TableCell sx={{ width: '50%' }}>
+                                <Box display="flex" justifyContent="space-between">
+                                  <strong>Request ID</strong>
+                                  <span className="font-mono text-xs">{info.requestId}</span>
                                 </Box>
                               </TableCell>
                             </TableRow>
@@ -1672,7 +1659,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
                 {/* Custom tab buttons */}
                 <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
                   <Box display="flex">
-                    {['Basic Information', 'Trace Data'].map((label, index) => (
+                    {['Basic Information', 'Transcript Data'].map((label, index) => (
                       <Button
                         key={index}
                         onClick={() => setSelectedTab(index)}
