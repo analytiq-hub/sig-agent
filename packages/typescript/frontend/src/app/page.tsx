@@ -107,6 +107,7 @@ const Home = () => {
                   <span className="text-yellow-400">{'}'}</span>
                 </div>
               </div>
+
             </section>
 
             {/* Claude Plugin Setup Section */}
@@ -125,6 +126,12 @@ const Home = () => {
                 
                 <p className="text-gray-600">
                   Then enable the <strong className="text-blue-600">sig-agent-plugin</strong> using the <strong className="text-blue-600">/plugin</strong> command.
+                </p>
+              </div>
+
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-blue-800 text-sm">
+                  <strong>Important:</strong> Claude Hooks and Traces monitoring requires a <strong>Claude Pro</strong> or <strong>Claude Max</strong> subscription.
                 </p>
               </div>
 
