@@ -21,8 +21,9 @@ logger = logging.getLogger(__name__)
 
 class ClaudeLogRequest(BaseModel):
     """Claude log data"""
-    hook_stdin: str = Field(..., description="Hook input data")
-    hook_timestamp: str = Field(..., description="Timestamp of the log in ISO format")
+    hook_data: Dict[str, Any] = Field(..., description="Hook data")
+    transcript_records: List[Dict[str, Any]] = Field(..., description="Transcript records")
+    upload_timestamp: str = Field(..., description="Upload timestamp in ISO format")
 
 class ClaudeLogResponse(BaseModel):
     """Response for Claude log operations"""
@@ -32,8 +33,8 @@ class ClaudeLogItem(BaseModel):
     """Individual Claude log item"""
     log_id: str
     organization_id: str
-    hook_stdin: Dict[str, Any]
-    hook_timestamp: datetime
+    hook_data: Dict[str, Any]
+    transcript_record: Dict[str, Any]
     upload_timestamp: datetime
 
 class ListClaudeLogsResponse(BaseModel):
@@ -77,8 +78,8 @@ async def claude_log_handler(
     log_request: ClaudeLogRequest = Body(...),
     request: Request = None
 ):
-    """Log Claude interaction data"""
-    logger.info(f"claude_log(): received log request")
+    """Log Claude interaction data with transcript records"""
+    logger.info(f"claude_log(): received log request with {len(log_request.transcript_records)} transcript records")
     
     analytiq_client = ad.common.get_analytiq_client()
     db = ad.common.get_async_db(analytiq_client)
@@ -103,11 +104,12 @@ async def claude_log_handler(
     # Get the organization ID from the bearer token
     try:
         organization_id = await get_org_id_from_token(token)
-        if not organization_id:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid token or token not associated with an organization"
-            )
+        # organization_id can be None for account-level tokens, which is valid
+        if organization_id is None:
+            # For account-level tokens, we'll use a default organization or handle differently
+            # For now, we'll use a placeholder - you may want to adjust this based on your requirements
+            organization_id = "account-level-token"
+            logger.info("Using account-level token for Claude logs")
     except HTTPException:
         raise
     except Exception as e:
@@ -117,48 +119,60 @@ async def claude_log_handler(
             detail="Failed to resolve organization ID from token"
         )
     
-    # Parse the hook_stdin as JSON if it's a string
-    try:
-        if isinstance(log_request.hook_stdin, str):
-            hook_stdin_json = json.loads(log_request.hook_stdin)
-        else:
-            hook_stdin_json = log_request.hook_stdin
-    except json.JSONDecodeError:
-        # If it's not valid JSON, store it as a string
-        hook_stdin_json = log_request.hook_stdin
-    
-    # Parse the ISO timestamp
+    # Parse the upload timestamp
     try:
         # Remove 'Z' suffix if present and parse as datetime
-        timestamp_str = log_request.hook_timestamp.rstrip('Z')
+        timestamp_str = log_request.upload_timestamp.rstrip('Z')
         if timestamp_str.endswith('+00:00'):
             timestamp_str = timestamp_str[:-6]  # Remove timezone info
-        timestamp = datetime.fromisoformat(timestamp_str)
+        upload_timestamp = datetime.fromisoformat(timestamp_str)
         # Convert to UTC if not already
-        if timestamp.tzinfo is None:
-            timestamp = timestamp.replace(tzinfo=UTC)
+        if upload_timestamp.tzinfo is None:
+            upload_timestamp = upload_timestamp.replace(tzinfo=UTC)
         else:
-            timestamp = timestamp.astimezone(UTC)
+            upload_timestamp = upload_timestamp.astimezone(UTC)
     except (ValueError, AttributeError) as e:
-        logger.warning(f"Failed to parse timestamp '{log_request.hook_timestamp}': {e}")
+        logger.warning(f"Failed to parse timestamp '{log_request.upload_timestamp}': {e}")
         # Fallback to current time
-        timestamp = datetime.now(UTC)
+        upload_timestamp = datetime.now(UTC)
     
-    log_metadata = {
-        "organization_id": organization_id,
-        "hook_stdin": hook_stdin_json,
-        "hook_timestamp": timestamp,
-        "upload_timestamp": datetime.now(UTC),
-    }
+    # Process transcript records and save them without duplication
+    saved_count = 0
+    for transcript_record in log_request.transcript_records:
+        # Extract session_id for deduplication
+        session_id = transcript_record.get('session_id')
+        if not session_id:
+            logger.warning("Transcript record missing session_id, skipping")
+            continue
+        
+        # Check if this transcript record already exists for this session
+        existing_record = await db.claude_logs.find_one({
+            "organization_id": organization_id,
+            "transcript_record.session_id": session_id,
+            "transcript_record.timestamp": transcript_record.get('timestamp'),
+            "transcript_record.content": transcript_record.get('content')
+        })
+        
+        if existing_record:
+            logger.debug(f"Transcript record already exists for session {session_id}, skipping")
+            continue
+        
+        # Create log entry for this transcript record
+        log_metadata = {
+            "organization_id": organization_id,
+            "hook_data": log_request.hook_data,
+            "transcript_record": transcript_record,
+            "upload_timestamp": upload_timestamp,
+        }
+        
+        # Save to claude_logs collection
+        await db.claude_logs.insert_one(log_metadata)
+        saved_count += 1
     
-    # Save to claude_logs collection and get the generated _id
-    result = await db.claude_logs.insert_one(log_metadata)
-    log_id = str(result.inserted_id)
-    
-    logger.info(f"Claude log saved: {log_id} for org: {organization_id}")
+    logger.info(f"Claude logs saved: {saved_count} transcript records for org: {organization_id}")
     
     return ClaudeLogResponse(
-        log_id=log_id
+        log_id=f"batch_{saved_count}_records"
     )
 
 @claude_router.post("/v0/claude/hook", response_model=ClaudeHookResponse, tags=["claude"])
@@ -293,34 +307,34 @@ async def list_claude_logs(
                     status_code=400,
                     detail=f"Invalid end_time format. Use ISO format like '2025-10-25T03:00:00.000Z'"
                 )
-        query["hook_timestamp"] = timestamp_query
+        query["upload_timestamp"] = timestamp_query
     
-    # Add filtering for fields within hook_stdin using regex for superset matching
+    # Add filtering for fields within transcript_record and hook_data using regex for superset matching
     if session_id:
-        query["hook_stdin.session_id"] = {"$regex": session_id, "$options": "i"}  # Case-insensitive superset matching
+        query["transcript_record.session_id"] = {"$regex": session_id, "$options": "i"}  # Case-insensitive superset matching
     
     if hook_event_name:
-        query["hook_stdin.hook_event_name"] = {"$regex": hook_event_name, "$options": "i"}  # Case-insensitive superset matching
+        query["hook_data.hook_event_name"] = {"$regex": hook_event_name, "$options": "i"}  # Case-insensitive superset matching
     
     if tool_name:
-        query["hook_stdin.tool_name"] = {"$regex": tool_name, "$options": "i"}  # Case-insensitive superset matching
+        query["hook_data.tool_name"] = {"$regex": tool_name, "$options": "i"}  # Case-insensitive superset matching
     
     if permission_mode:
-        query["hook_stdin.permission_mode"] = permission_mode
+        query["hook_data.permission_mode"] = permission_mode
     
     # Get total count
     total = await db.claude_logs.count_documents(query)
     
     # Get logs
-    cursor = db.claude_logs.find(query).skip(skip).limit(limit).sort("hook_timestamp", -1)
+    cursor = db.claude_logs.find(query).skip(skip).limit(limit).sort("upload_timestamp", -1)
     logs = []
     
     async for log in cursor:
         logs.append(ClaudeLogItem(
             log_id=str(log["_id"]),
             organization_id=log["organization_id"],
-            hook_stdin=log["hook_stdin"],
-            hook_timestamp=log["hook_timestamp"],
+            hook_data=log["hook_data"],
+            transcript_record=log["transcript_record"],
             upload_timestamp=log["upload_timestamp"]
         ))
     
@@ -374,20 +388,20 @@ async def list_claude_hooks(
                     status_code=400,
                     detail=f"Invalid end_time format. Use ISO format like '2025-10-25T03:00:00.000Z'"
                 )
-        query["hook_timestamp"] = timestamp_query
+        query["upload_timestamp"] = timestamp_query
     
-    # Add filtering for fields within hook_stdin using regex for superset matching
+    # Add filtering for fields within transcript_record and hook_data using regex for superset matching
     if session_id:
-        query["hook_stdin.session_id"] = {"$regex": session_id, "$options": "i"}  # Case-insensitive superset matching
+        query["transcript_record.session_id"] = {"$regex": session_id, "$options": "i"}  # Case-insensitive superset matching
     
     if hook_event_name:
-        query["hook_stdin.hook_event_name"] = {"$regex": hook_event_name, "$options": "i"}  # Case-insensitive superset matching
+        query["hook_data.hook_event_name"] = {"$regex": hook_event_name, "$options": "i"}  # Case-insensitive superset matching
     
     if tool_name:
-        query["hook_stdin.tool_name"] = {"$regex": tool_name, "$options": "i"}  # Case-insensitive superset matching
+        query["hook_data.tool_name"] = {"$regex": tool_name, "$options": "i"}  # Case-insensitive superset matching
     
     if permission_mode:
-        query["hook_stdin.permission_mode"] = permission_mode
+        query["hook_data.permission_mode"] = permission_mode
     
     # Get total count
     total = await db.claude_hooks.count_documents(query)
