@@ -95,6 +95,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { text: 'Analytics', icon: AnalyticsIcon, tooltip: 'Analytics Dashboard', href: `/orgs/${currentOrganization?.id}/analytics`},
     { text: 'Telemetry', icon: TelemetryIcon, tooltip: 'Telemetry', href: `/orgs/${currentOrganization?.id}/telemetry`},
     { text: 'Claude Hooks', icon: ClaudeIcon, tooltip: 'Claude Hook Interactions', href: `/orgs/${currentOrganization?.id}/claude/hooks`},
+    { text: 'Claude Traces', icon: ClaudeIcon, tooltip: 'Claude Trace Logs', href: `/orgs/${currentOrganization?.id}/claude/traces`},
   ];
 
   const systemMenuItems = [
