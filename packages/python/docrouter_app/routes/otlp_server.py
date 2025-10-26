@@ -39,7 +39,7 @@ _organization_services: Dict[str, Dict[str, any]] = {}
 async def export_traces(request: ExportTraceServiceRequest, context, organization_id: str):
     """Export traces via OTLP gRPC"""
     try:
-        logger.debug(f"OTLP Export traces for org {organization_id}: {len(request.resource_spans)} resource spans")
+        logger.info(f"OTLP Export traces for org {organization_id}: {len(request.resource_spans)} resource spans")
 
         # Convert OTLP traces to our format
         traces = []
@@ -149,7 +149,7 @@ def convert_resource_span(resource_span):
 async def export_metrics(request: ExportMetricsServiceRequest, context, organization_id: str):
     """Export metrics via OTLP gRPC"""
     try:
-        logger.debug(f"OTLP Export metrics for org {organization_id}: {len(request.resource_metrics)} resource metrics")
+        logger.info(f"OTLP Export metrics for org {organization_id}: {len(request.resource_metrics)} resource metrics")
 
         # Convert OTLP metrics to our format
         metrics = []
@@ -267,7 +267,7 @@ def convert_resource(resource):
 async def export_logs(request: ExportLogsServiceRequest, context, organization_id: str):
     """Export logs via OTLP gRPC"""
     try:
-        logger.debug(f"OTLP Export logs for org {organization_id}: {len(request.resource_logs)} resource logs")
+        logger.info(f"OTLP Export logs for org {organization_id}: {len(request.resource_logs)} resource logs")
 
         # Convert OTLP logs to our format
         logs = []
@@ -286,6 +286,9 @@ async def export_logs(request: ExportLogsServiceRequest, context, organization_i
                         "metadata": {"source": "otlp-grpc"}
                     }
                     logs.append(log_data)
+                    logger.info(f"Processed log record: severity={log_data['severity']}, body='{log_data['body'][:100]}...'")
+
+        logger.info(f"Converted {len(logs)} log records for database storage")
 
         # Store in database
         analytiq_client = ad.common.get_analytiq_client()
@@ -313,6 +316,7 @@ async def export_logs(request: ExportLogsServiceRequest, context, organization_i
             }
 
             await db.telemetry_logs.insert_one(log_metadata)
+            logger.info(f"Successfully inserted log {log_id} into database for org {organization_id}")
             uploaded_logs.append({
                 "log_id": log_id,
                 "timestamp": log_data["timestamp"],
@@ -322,6 +326,7 @@ async def export_logs(request: ExportLogsServiceRequest, context, organization_i
                 "metadata": log_data["metadata"]
             })
 
+        logger.info(f"OTLP logs export completed: {len(uploaded_logs)} logs saved to database for org {organization_id}")
         return ExportLogsServiceResponse(partial_success=None)
 
     except Exception as e:
@@ -363,10 +368,13 @@ def get_organization_from_metadata(context) -> Optional[str]:
     # Check for organization header in metadata
     metadata = dict(context.invocation_metadata())
     organization_id = metadata.get('organization-id')
+    
+    logger.info(f"OTLP metadata check: organization-id={organization_id}, all metadata keys={list(metadata.keys())}")
 
     if not organization_id:
         # Try to extract from authority (host header)
         authority = metadata.get(':authority', '')
+        logger.info(f"OTLP authority check: authority='{authority}'")
         if 'org-' in authority:
             # Extract org ID from subdomain like org-12345.localhost:4317
             try:
@@ -375,25 +383,38 @@ def get_organization_from_metadata(context) -> Optional[str]:
                 for part in parts:
                     if part.startswith('org-'):
                         organization_id = part
+                        logger.info(f"OTLP extracted org ID from authority: {organization_id}")
                         break
             except (IndexError, ValueError):
+                logger.warning(f"OTLP failed to parse authority: {authority}")
                 pass
 
+    logger.info(f"OTLP final organization ID from metadata: {organization_id}")
     return organization_id
 
 async def get_organization_from_token(context) -> Optional[str]:
     """Extract organization ID from Bearer token in gRPC metadata"""
     metadata = dict(context.invocation_metadata())
     authorization = metadata.get('authorization')
+    
+    logger.info(f"OTLP token check: authorization present={authorization is not None}")
 
     if not authorization or not authorization.startswith('Bearer '):
+        logger.info("OTLP no Bearer token found in metadata")
         return None
 
     token = authorization[7:]  # Remove 'Bearer ' prefix
+    logger.info(f"OTLP extracted token (first 10 chars): {token[:10]}...")
 
     # Use the centralized auth function
     from docrouter_app.auth import get_org_id_from_token
-    return await get_org_id_from_token(token)
+    try:
+        organization_id = await get_org_id_from_token(token)
+        logger.info(f"OTLP organization ID from token: {organization_id}")
+        return organization_id
+    except Exception as e:
+        logger.error(f"OTLP token validation failed: {e}")
+        return None
 
 async def start_otlp_server(port: int = 4317):
     """Start the OTLP gRPC server"""
@@ -482,6 +503,8 @@ class OrganizationRouterLogsService(logs_service_pb2_grpc.LogsServiceServicer):
 
     async def Export(self, request, context):
         """Route logs export to organization-specific service"""
+        logger.info("OTLP logs service Export called")
+        
         # Try to get organization ID from token first, then metadata
         organization_id = await get_organization_from_token(context)
 
@@ -489,10 +512,12 @@ class OrganizationRouterLogsService(logs_service_pb2_grpc.LogsServiceServicer):
             organization_id = get_organization_from_metadata(context)
 
         if not organization_id:
+            logger.error("OTLP logs service: No organization ID found in token or metadata")
             context.set_code(grpc.StatusCode.UNAUTHENTICATED)
             context.set_details("Organization ID required in Bearer token, metadata, or subdomain")
             return None
 
+        logger.info(f"OTLP logs service: Routing to organization {organization_id}")
         # OTLP is always enabled for all organizations - no need to check
         # Route to organization-specific service
         return await export_logs(request, context, organization_id)
