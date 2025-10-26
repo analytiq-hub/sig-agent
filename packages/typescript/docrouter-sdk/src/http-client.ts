@@ -119,7 +119,31 @@ export class HttpClient {
 
   private createApiError(error: unknown): ApiError {
     if (isAxiosError(error)) {
-      const message = error.response?.data?.detail || error.message || 'Request failed';
+      let message = 'Request failed';
+      
+      // Handle different types of error messages
+      if (error.response?.data?.detail) {
+        if (typeof error.response.data.detail === 'string') {
+          message = error.response.data.detail;
+        } else if (Array.isArray(error.response.data.detail)) {
+          // Handle array of validation errors
+          message = error.response.data.detail.map((err: any) => 
+            `${err.loc?.join('.')}: ${err.msg}`
+          ).join(', ');
+        } else if (typeof error.response.data.detail === 'object') {
+          // Try to extract a meaningful message from the object
+          if (error.response.data.detail.message) {
+            message = error.response.data.detail.message;
+          } else if (error.response.data.detail.error) {
+            message = error.response.data.detail.error;
+          } else {
+            message = JSON.stringify(error.response.data.detail);
+          }
+        }
+      } else if (error.message) {
+        message = error.message;
+      }
+      
       const apiError: ApiError = new Error(message);
       apiError.status = error.response?.status;
       apiError.code = error.code;

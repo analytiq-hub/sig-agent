@@ -44,8 +44,24 @@ describe('Claude Integration Tests', () => {
       };
 
       const logRequest = {
-        hook_stdin: JSON.stringify(hookData),
-        hook_timestamp: now
+        hook_data: hookData,
+        transcript_records: [
+          {
+            sessionId: 'test-session-123',
+            role: 'user',
+            content: 'Test message',
+            timestamp: now,
+            uuid: 'test-uuid-1'
+          },
+          {
+            sessionId: 'test-session-123',
+            role: 'assistant',
+            content: 'Test response',
+            timestamp: now,
+            uuid: 'test-uuid-2'
+          }
+        ],
+        upload_timestamp: now
       };
 
       const response = await client.claudeLog(logRequest);
@@ -55,11 +71,22 @@ describe('Claude Integration Tests', () => {
       expect(typeof response.log_id).toBe('string');
     });
 
-    test('should log Claude interaction with invalid JSON in hook_stdin', async () => {
+    test('should log Claude interaction with minimal data', async () => {
       const now = new Date().toISOString();
       const logRequest = {
-        hook_stdin: 'invalid json string',
-        hook_timestamp: now
+        hook_data: {
+          session_id: 'minimal-test-session',
+          event: 'test_event'
+        },
+        transcript_records: [
+          {
+            sessionId: 'minimal-test-session',
+            role: 'user',
+            content: 'Minimal test',
+            uuid: 'minimal-uuid-1'
+          }
+        ],
+        upload_timestamp: now
       };
 
       const response = await client.claudeLog(logRequest);
@@ -80,8 +107,16 @@ describe('Claude Integration Tests', () => {
 
       // Create a log entry first
       await client.claudeLog({
-        hook_stdin: JSON.stringify(hookData),
-        hook_timestamp: now
+        hook_data: hookData,
+        transcript_records: [
+          {
+            sessionId: 'list-test-session',
+            role: 'user',
+            content: 'Test message for listing',
+            uuid: 'list-uuid-1'
+          }
+        ],
+        upload_timestamp: now
       });
 
       // List logs
@@ -95,10 +130,10 @@ describe('Claude Integration Tests', () => {
 
       // Find our created log
       const found = response.logs.find(log => 
-        log.hook_stdin && 
-        typeof log.hook_stdin === 'object' && 
-        'session_id' in log.hook_stdin && 
-        log.hook_stdin.session_id === 'list-test-session'
+        log.hook_data && 
+        typeof log.hook_data === 'object' && 
+        'session_id' in log.hook_data && 
+        log.hook_data.session_id === 'list-test-session'
       );
       expect(found).toBeDefined();
       expect(found?.organization_id).toBe(testFixtures.org_id);
@@ -110,12 +145,20 @@ describe('Claude Integration Tests', () => {
       // Create multiple log entries
       for (let i = 0; i < 3; i++) {
         await client.claudeLog({
-          hook_stdin: JSON.stringify({
+          hook_data: {
             session_id: `pagination-test-${i}`,
             hook_event_name: 'test_event',
             index: i
-          }),
-          hook_timestamp: now
+          },
+          transcript_records: [
+            {
+              sessionId: `pagination-test-${i}`,
+              role: 'user',
+              content: `Test message ${i}`,
+              uuid: `pagination-uuid-${i}`
+            }
+          ],
+          upload_timestamp: now
         });
       }
 
@@ -136,12 +179,20 @@ describe('Claude Integration Tests', () => {
 
       // Create a log with specific session_id
       await client.claudeLog({
-        hook_stdin: JSON.stringify({
+        hook_data: {
           session_id: uniqueSessionId,
           hook_event_name: 'filter_test',
           tool_name: 'test_tool'
-        }),
-        hook_timestamp: now
+        },
+        transcript_records: [
+          {
+            sessionId: uniqueSessionId,
+            role: 'user',
+            content: 'Filter test message',
+            uuid: 'filter-uuid-1'
+          }
+        ],
+        upload_timestamp: now
       });
 
       // Filter by session_id
@@ -151,10 +202,10 @@ describe('Claude Integration Tests', () => {
 
       expect(response.logs.length).toBeGreaterThanOrEqual(1);
       const found = response.logs.find(log => 
-        log.hook_stdin && 
-        typeof log.hook_stdin === 'object' && 
-        'session_id' in log.hook_stdin && 
-        log.hook_stdin.session_id === uniqueSessionId
+        log.hook_data && 
+        typeof log.hook_data === 'object' && 
+        'session_id' in log.hook_data && 
+        log.hook_data.session_id === uniqueSessionId
       );
       expect(found).toBeDefined();
     });
@@ -165,12 +216,20 @@ describe('Claude Integration Tests', () => {
 
       // Create a log with specific hook_event_name
       await client.claudeLog({
-        hook_stdin: JSON.stringify({
+        hook_data: {
           session_id: 'event-filter-session',
           hook_event_name: uniqueEventName,
           tool_name: 'event_test_tool'
-        }),
-        hook_timestamp: now
+        },
+        transcript_records: [
+          {
+            sessionId: 'event-filter-session',
+            role: 'user',
+            content: 'Event filter test message',
+            uuid: 'event-uuid-1'
+          }
+        ],
+        upload_timestamp: now
       });
 
       // Filter by hook_event_name
@@ -180,10 +239,10 @@ describe('Claude Integration Tests', () => {
 
       expect(response.logs.length).toBeGreaterThanOrEqual(1);
       const found = response.logs.find(log => 
-        log.hook_stdin && 
-        typeof log.hook_stdin === 'object' && 
-        'hook_event_name' in log.hook_stdin && 
-        log.hook_stdin.hook_event_name === uniqueEventName
+        log.hook_data && 
+        typeof log.hook_data === 'object' && 
+        'hook_event_name' in log.hook_data && 
+        log.hook_data.hook_event_name === uniqueEventName
       );
       expect(found).toBeDefined();
     });
@@ -194,12 +253,20 @@ describe('Claude Integration Tests', () => {
 
       // Create a log with specific tool_name
       await client.claudeLog({
-        hook_stdin: JSON.stringify({
+        hook_data: {
           session_id: 'tool-filter-session',
           hook_event_name: 'tool_use',
           tool_name: uniqueToolName
-        }),
-        hook_timestamp: now
+        },
+        transcript_records: [
+          {
+            sessionId: 'tool-filter-session',
+            role: 'user',
+            content: 'Tool filter test message',
+            uuid: 'tool-uuid-1'
+          }
+        ],
+        upload_timestamp: now
       });
 
       // Filter by tool_name
@@ -209,10 +276,10 @@ describe('Claude Integration Tests', () => {
 
       expect(response.logs.length).toBeGreaterThanOrEqual(1);
       const found = response.logs.find(log => 
-        log.hook_stdin && 
-        typeof log.hook_stdin === 'object' && 
-        'tool_name' in log.hook_stdin && 
-        log.hook_stdin.tool_name === uniqueToolName
+        log.hook_data && 
+        typeof log.hook_data === 'object' && 
+        'tool_name' in log.hook_data && 
+        log.hook_data.tool_name === uniqueToolName
       );
       expect(found).toBeDefined();
     });
@@ -223,13 +290,21 @@ describe('Claude Integration Tests', () => {
 
       // Create a log with specific permission_mode
       await client.claudeLog({
-        hook_stdin: JSON.stringify({
+        hook_data: {
           session_id: 'permission-filter-session',
           hook_event_name: 'permission_check',
           tool_name: 'permission_test_tool',
           permission_mode: uniquePermissionMode
-        }),
-        hook_timestamp: now
+        },
+        transcript_records: [
+          {
+            sessionId: 'permission-filter-session',
+            role: 'user',
+            content: 'Permission filter test message',
+            uuid: 'permission-uuid-1'
+          }
+        ],
+        upload_timestamp: now
       });
 
       // Filter by permission_mode
@@ -239,10 +314,10 @@ describe('Claude Integration Tests', () => {
 
       expect(response.logs.length).toBeGreaterThanOrEqual(1);
       const found = response.logs.find(log => 
-        log.hook_stdin && 
-        typeof log.hook_stdin === 'object' && 
-        'permission_mode' in log.hook_stdin && 
-        log.hook_stdin.permission_mode === uniquePermissionMode
+        log.hook_data && 
+        typeof log.hook_data === 'object' && 
+        'permission_mode' in log.hook_data && 
+        log.hook_data.permission_mode === uniquePermissionMode
       );
       expect(found).toBeDefined();
     });
@@ -254,12 +329,20 @@ describe('Claude Integration Tests', () => {
 
       // Create a log within the time range
       await client.claudeLog({
-        hook_stdin: JSON.stringify({
+        hook_data: {
           session_id: 'timestamp-filter-session',
           hook_event_name: 'timestamp_test',
           tool_name: 'timestamp_tool'
-        }),
-        hook_timestamp: now.toISOString()
+        },
+        transcript_records: [
+          {
+            sessionId: 'timestamp-filter-session',
+            role: 'user',
+            content: 'Timestamp filter test message',
+            uuid: 'timestamp-uuid-1'
+          }
+        ],
+        upload_timestamp: now.toISOString()
       });
 
       // Filter by timestamp range
@@ -278,13 +361,21 @@ describe('Claude Integration Tests', () => {
 
       // Create a log with specific values
       await client.claudeLog({
-        hook_stdin: JSON.stringify({
+        hook_data: {
           session_id: uniqueSessionId,
           hook_event_name: uniqueEventName,
           tool_name: 'combined_test_tool',
           permission_mode: 'auto'
-        }),
-        hook_timestamp: now
+        },
+        transcript_records: [
+          {
+            sessionId: uniqueSessionId,
+            role: 'user',
+            content: 'Combined filter test message',
+            uuid: 'combined-uuid-1'
+          }
+        ],
+        upload_timestamp: now
       });
 
       // Filter by multiple criteria
@@ -297,12 +388,12 @@ describe('Claude Integration Tests', () => {
 
       expect(response.logs.length).toBeGreaterThanOrEqual(1);
       const found = response.logs.find(log => 
-        log.hook_stdin && 
-        typeof log.hook_stdin === 'object' && 
-        'session_id' in log.hook_stdin && 
-        log.hook_stdin.session_id === uniqueSessionId &&
-        'hook_event_name' in log.hook_stdin && 
-        log.hook_stdin.hook_event_name === uniqueEventName
+        log.hook_data && 
+        typeof log.hook_data === 'object' && 
+        'session_id' in log.hook_data && 
+        log.hook_data.session_id === uniqueSessionId &&
+        'hook_event_name' in log.hook_data && 
+        log.hook_data.hook_event_name === uniqueEventName
       );
       expect(found).toBeDefined();
     });

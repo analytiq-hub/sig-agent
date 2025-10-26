@@ -970,8 +970,9 @@ export interface ListTelemetryLogsResponse {
 
 // Claude Log types
 export interface ClaudeLogRequest {
-  hook_stdin: string;
-  hook_timestamp: string;
+  hook_data: Record<string, unknown>;
+  transcript_records: Array<Record<string, unknown>>;
+  upload_timestamp: string;
 }
 
 export interface ClaudeLogResponse {
@@ -981,8 +982,8 @@ export interface ClaudeLogResponse {
 export interface ClaudeLogItem {
   log_id: string;
   organization_id: string;
-  hook_stdin: Record<string, unknown>;
-  hook_timestamp: string;
+  hook_data: Record<string, unknown>;
+  transcript_record: Record<string, unknown>;
   upload_timestamp: string;
 }
 
