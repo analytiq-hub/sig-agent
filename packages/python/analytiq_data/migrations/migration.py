@@ -1888,6 +1888,60 @@ class AddAccessTokenUniquenessIndex(Migration):
             logger.error(f"Failed to remove unique index on access_tokens.token: {e}")
             return False
 
+class RenameClaudeLogsToClaudeHooks(Migration):
+    def __init__(self):
+        super().__init__(description="Rename claude_logs collection to claude_hooks")
+
+    async def up(self, db) -> bool:
+        """Rename claude_logs collection to claude_hooks"""
+        try:
+            # Check if claude_logs collection exists
+            collections = await db.list_collection_names()
+            
+            if "claude_logs" in collections:
+                # Create new collection with data from old one
+                claude_logs_cursor = db.claude_logs.find({})
+                async for doc in claude_logs_cursor:
+                    await db.claude_hooks.insert_one(doc)
+                
+                # Drop the old collection
+                await db.claude_logs.drop()
+                
+                logger.info("Successfully renamed claude_logs collection to claude_hooks")
+            else:
+                logger.info("claude_logs collection not found, skipping migration")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Collection rename migration failed: {e}")
+            return False
+    
+    async def down(self, db) -> bool:
+        """Revert collection renaming: claude_hooks → claude_logs"""
+        try:
+            # Check if claude_hooks collection exists
+            collections = await db.list_collection_names()
+            
+            if "claude_hooks" in collections:
+                # Create old collection with data from new one
+                claude_hooks_cursor = db.claude_hooks.find({})
+                async for doc in claude_hooks_cursor:
+                    await db.claude_logs.insert_one(doc)
+                
+                # Drop the new collection
+                await db.claude_hooks.drop()
+                
+                logger.info("Successfully reverted claude_hooks collection back to claude_logs")
+            else:
+                logger.info("claude_hooks collection not found, skipping revert")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Collection rename migration revert failed: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -1914,6 +1968,7 @@ MIGRATIONS = [
     RenameUserFields(),
     UpgradeTokens(),
     AddAccessTokenUniquenessIndex(),
+    RenameClaudeLogsToClaudeHooks(),
     # Add more migrations here
 ]
 

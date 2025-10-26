@@ -42,10 +42,10 @@ import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import { ClaudeLogItem } from '@docrouter/sdk';
+import { ClaudeHookItem } from '@docrouter/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
-type ClaudeLog = ClaudeLogItem;
+type ClaudeLog = ClaudeHookItem;
 
 // Custom Date Range Filter Component
 const DateRangeFilter: React.FC<GridFilterInputValueProps> = ({ item, applyValue }) => {
@@ -162,7 +162,7 @@ const DateRangeFilter: React.FC<GridFilterInputValueProps> = ({ item, applyValue
 
 const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
-  const [logs, setLogs] = useState<ClaudeLog[]>([]);
+  const [hooks, setHooks] = useState<ClaudeLog[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sessionIdFilter, setSessionIdFilter] = useState('');
@@ -174,9 +174,9 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
-  const [selectedLog, setSelectedLog] = useState<ClaudeLogItem | null>(null);
+  const [selectedHook, setSelectedHook] = useState<ClaudeHookItem | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [selectedLogIndex, setSelectedLogIndex] = useState<number>(-1);
+  const [selectedHookIndex, setSelectedHookIndex] = useState<number>(-1);
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const [showRawData, setShowRawData] = useState(false);
   const [filteredSessionId, setFilteredSessionId] = useState<string | null>(null);
@@ -198,7 +198,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const response = await docRouterOrgApi.listClaudeLogs({
+        const response = await docRouterOrgApi.listClaudeHooks({
           skip: page * pageSize,
           limit: pageSize,
           start_time: startDate || undefined,
@@ -208,10 +208,10 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
           tool_name: toolNameFilter || undefined,
           permission_mode: permissionModeFilter || undefined
         });
-        setLogs(response.logs);
+        setHooks(response.hooks);
         setTotal(response.total);
       } catch (error) {
-        const errorMsg = getApiErrorMsg(error) || 'Error loading Claude logs';
+        const errorMsg = getApiErrorMsg(error) || 'Error loading Claude hooks';
         setMessage('Error: ' + errorMsg);
       } finally {
         setIsLoading(false);
@@ -231,17 +231,17 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   }, [sessionIdFilter, hookEventNameFilter, toolNameFilter, permissionModeFilter, startDate, endDate]);
 
 
-  const handleLogClick = (log: ClaudeLog) => {
-    const index = filteredLogs.findIndex(l => l.log_id === log.log_id);
-    setSelectedLog(log);
-    setSelectedLogIndex(index);
+  const handleHookClick = (hook: ClaudeLog) => {
+    const index = filteredHooks.findIndex(h => h.hook_id === hook.hook_id);
+    setSelectedHook(hook);
+    setSelectedHookIndex(index);
     setDetailModalOpen(true);
   };
 
   const handleCloseDetailModal = () => {
     setDetailModalOpen(false);
-    setSelectedLog(null);
-    setSelectedLogIndex(-1);
+    setSelectedHook(null);
+    setSelectedHookIndex(-1);
     setSelectedTab(0);
     setShowRawData(false);
     setFilteredSessionId(null);
@@ -277,13 +277,13 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     setPage(0);
   };
 
-  const handleNavigateLog = async (direction: 'prev' | 'next') => {
-    if (selectedLogIndex === -1) return;
+  const handleNavigateHook = async (direction: 'prev' | 'next') => {
+    if (selectedHookIndex === -1) return;
     
-    const newIndex = direction === 'prev' ? selectedLogIndex - 1 : selectedLogIndex + 1;
+    const newIndex = direction === 'prev' ? selectedHookIndex - 1 : selectedHookIndex + 1;
     
     // Check if we need to load a different page
-    if (direction === 'next' && newIndex >= filteredLogs.length) {
+    if (direction === 'next' && newIndex >= filteredHooks.length) {
       // We're at the end of current page, load next page
       const nextPage = page + 1;
       const totalPages = Math.ceil(total / pageSize);
@@ -291,7 +291,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
       if (nextPage < totalPages) {
         try {
           setIsLoading(true);
-          const response = await docRouterOrgApi.listClaudeLogs({
+          const response = await docRouterOrgApi.listClaudeHooks({
             skip: nextPage * pageSize,
             limit: pageSize,
             start_time: startDate || undefined,
@@ -302,13 +302,13 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
             permission_mode: permissionModeFilter || undefined
           });
           
-          if (response.logs.length > 0) {
+          if (response.hooks.length > 0) {
             // Load the first element of the next page
             setPage(nextPage);
-            setLogs(response.logs);
+            setHooks(response.hooks);
             setTotal(response.total);
-            setSelectedLog(response.logs[0]);
-            setSelectedLogIndex(0);
+            setSelectedHook(response.hooks[0]);
+            setSelectedHookIndex(0);
           }
         } catch (error) {
           const errorMsg = getApiErrorMsg(error) || 'Error loading next page';
@@ -327,7 +327,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
       if (prevPage >= 0) {
         try {
           setIsLoading(true);
-          const response = await docRouterOrgApi.listClaudeLogs({
+          const response = await docRouterOrgApi.listClaudeHooks({
             skip: prevPage * pageSize,
             limit: pageSize,
             start_time: startDate || undefined,
@@ -338,14 +338,14 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
             permission_mode: permissionModeFilter || undefined
           });
           
-          if (response.logs.length > 0) {
+          if (response.hooks.length > 0) {
             // Load the last element of the previous page
             setPage(prevPage);
-            setLogs(response.logs);
+            setHooks(response.hooks);
             setTotal(response.total);
-            const lastIndex = response.logs.length - 1;
-            setSelectedLog(response.logs[lastIndex]);
-            setSelectedLogIndex(lastIndex);
+            const lastIndex = response.hooks.length - 1;
+            setSelectedHook(response.hooks[lastIndex]);
+            setSelectedHookIndex(lastIndex);
           }
         } catch (error) {
           const errorMsg = getApiErrorMsg(error) || 'Error loading previous page';
@@ -358,16 +358,16 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     }
     
     // Normal navigation within current page
-    if (newIndex >= 0 && newIndex < filteredLogs.length) {
-      const newLog = filteredLogs[newIndex];
-      setSelectedLog(newLog);
-      setSelectedLogIndex(newIndex);
+    if (newIndex >= 0 && newIndex < filteredHooks.length) {
+      const newHook = filteredHooks[newIndex];
+      setSelectedHook(newHook);
+      setSelectedHookIndex(newIndex);
       // Keep the same tab selected when navigating
     }
   };
 
   // Function to render tab content
-  const renderTabContent = (log: ClaudeLogItem) => {
+  const renderTabContent = (hook: ClaudeHookItem) => {
     switch (selectedTab) {
       case 0: // Basic Information
         return (
@@ -378,14 +378,14 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                   <TableRow sx={{ backgroundColor: 'background.default' }}>
                     <TableCell sx={{ width: '50%' }}>
                       <Box display="flex" justifyContent="space-between">
-                        <strong>Log ID</strong>
-                        <span>{log.log_id}</span>
+                        <strong>Hook ID</strong>
+                        <span>{hook.hook_id}</span>
                       </Box>
                     </TableCell>
                     <TableCell sx={{ width: '50%' }}>
                       <Box display="flex" justifyContent="space-between">
                         <strong>Organization ID</strong>
-                        <span>{log.organization_id}</span>
+                        <span>{hook.organization_id}</span>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -393,13 +393,13 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                     <TableCell sx={{ width: '50%' }}>
                       <Box display="flex" justifyContent="space-between">
                         <strong>Hook Timestamp</strong>
-                        <span>{formatLocalDateWithTZ(log.hook_timestamp, true)}</span>
+                        <span>{formatLocalDateWithTZ(hook.hook_timestamp, true)}</span>
                       </Box>
                     </TableCell>
                     <TableCell sx={{ width: '50%' }}>
                       <Box display="flex" justifyContent="space-between">
                         <strong>Upload Timestamp</strong>
-                        <span>{formatLocalDateWithTZ(log.upload_timestamp, true)}</span>
+                        <span>{formatLocalDateWithTZ(hook.upload_timestamp, true)}</span>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -411,7 +411,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
       case 1: // Hook Data
         return (
           <Box>
-            {log.hook_stdin && Object.keys(log.hook_stdin).length > 0 ? (
+            {hook.hook_stdin && Object.keys(hook.hook_stdin).length > 0 ? (
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableHead>
@@ -421,7 +421,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {Object.entries(log.hook_stdin).map(([key, value], index) => (
+                    {Object.entries(hook.hook_stdin).map(([key, value], index) => (
                       <TableRow 
                         key={key}
                         sx={{ 
@@ -448,8 +448,8 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   };
 
   // Helper function to extract salient information from hook_stdin
-  const getSalientInfo = (log: ClaudeLog) => {
-    const hookData = log.hook_stdin || {};
+  const getSalientInfo = (hook: ClaudeLog) => {
+    const hookData = hook.hook_stdin || {};
     return {
       sessionId: hookData['session_id'] as string || '-',
       hookEventName: hookData['hook_event_name'] as string || '-',
@@ -523,8 +523,8 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   };
 
   // Custom Tooltip component for user prompt information
-  const PromptTooltip: React.FC<{ log: ClaudeLog; children: React.ReactElement }> = ({ log, children }) => {
-    const info = getSalientInfo(log);
+  const PromptTooltip: React.FC<{ hook: ClaudeLog; children: React.ReactElement }> = ({ hook, children }) => {
+    const info = getSalientInfo(hook);
     
     if (!info.prompt || info.hookEventName !== 'UserPromptSubmit') {
       return <>{children}</>;
@@ -578,8 +578,8 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   };
 
   // Custom Tooltip component for tool information
-  const ToolInfoTooltip: React.FC<{ log: ClaudeLog; children: React.ReactElement }> = ({ log, children }) => {
-    const info = getSalientInfo(log);
+  const ToolInfoTooltip: React.FC<{ hook: ClaudeLog; children: React.ReactElement }> = ({ hook, children }) => {
+    const info = getSalientInfo(hook);
     const hasToolData = info.toolInput || info.toolResponse;
     
     if (!hasToolData) {
@@ -774,7 +774,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
         // Wrap UserPromptSubmit events with prompt tooltip
         if (info.hookEventName === 'UserPromptSubmit') {
           return (
-            <PromptTooltip log={params.row}>
+            <PromptTooltip hook={params.row}>
               {eventContent}
             </PromptTooltip>
           );
@@ -794,7 +794,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
         const toolName = info.toolName;
         const displayName = toolName.length > 35 ? toolName.substring(0, 35) + '...' : toolName;
         return (
-          <ToolInfoTooltip log={params.row}>
+          <ToolInfoTooltip hook={params.row}>
             <span className="text-sm font-mono" style={{ cursor: 'help' }}>
               {displayName}
             </span>
@@ -886,7 +886,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   ];
 
   // No need for client-side filtering since we're using server-side filtering
-  const filteredLogs = logs;
+  const filteredHooks = hooks;
 
   return (
     <div className="w-full" data-tour="claude-logs">
@@ -954,9 +954,9 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
       )}
 
       <DataGrid
-        rows={filteredLogs}
+        rows={filteredHooks}
         columns={columns}
-        getRowId={(row) => row.log_id}
+        getRowId={(row) => row.hook_id}
         pagination
         paginationMode="server"
         rowCount={total}
@@ -974,7 +974,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
         pageSizeOptions={[5, 10, 25, 50]}
         loading={isLoading}
         disableRowSelectionOnClick
-        onRowClick={(params) => handleLogClick(params.row)}
+        onRowClick={(params) => handleHookClick(params.row)}
         autoHeight
         sx={{
           '& .MuiDataGrid-cell': {
@@ -1001,16 +1001,16 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
       >
         <DialogTitle>
           <Box display="flex" alignItems="center" justifyContent="space-between">
-            <Typography variant="h6">Claude Log Details</Typography>
+            <Typography variant="h6">Claude Hook Details</Typography>
             <Box display="flex" alignItems="center" gap={1}>
               <Typography variant="body2" color="text.secondary">
-                {page * pageSize + selectedLogIndex + 1} of {total}
+                {page * pageSize + selectedHookIndex + 1} of {total}
               </Typography>
-              <Tooltip title="Previous log">
+              <Tooltip title="Previous hook">
                 <IconButton
                   size="small"
-                  onClick={() => handleNavigateLog('prev')}
-                  disabled={page === 0 && selectedLogIndex <= 0}
+                  onClick={() => handleNavigateHook('prev')}
+                  disabled={page === 0 && selectedHookIndex <= 0}
                   sx={{
                     boxShadow: 2,
                     backgroundColor: 'background.paper',
@@ -1030,11 +1030,11 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                   <NavigateBeforeIcon />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Next log">
+              <Tooltip title="Next hook">
                 <IconButton
                   size="small"
-                  onClick={() => handleNavigateLog('next')}
-                  disabled={page * pageSize + selectedLogIndex >= total - 1}
+                  onClick={() => handleNavigateHook('next')}
+                  disabled={page * pageSize + selectedHookIndex >= total - 1}
                   sx={{
                     boxShadow: 2,
                     backgroundColor: 'background.paper',
@@ -1061,7 +1061,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
           </Box>
         </DialogTitle>
         <DialogContent>
-          {selectedLog && (
+          {selectedHook && (
             <Box>
               {/* Summary Information */}
               <Box mb={3}>
@@ -1070,7 +1070,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                   <Table size="small" sx={{ tableLayout: 'fixed' }}>
                     <TableBody>
                       {(() => {
-                        const info = getSalientInfo(selectedLog);
+                        const info = getSalientInfo(selectedHook);
                         return (
                           <>
                             <TableRow>
@@ -1079,7 +1079,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                                   <strong>Event</strong>
                                   <Box display="flex" alignItems="center" gap={0.5}>
                                     {info.hookEventName === 'UserPromptSubmit' ? (
-                                      <PromptTooltip log={selectedLog}>
+                                      <PromptTooltip hook={selectedHook}>
                                         <Box display="flex" alignItems="center" gap={0.5}>
                                           {getEventIcon(info.hookEventName)}
                                           <span>{info.hookEventName}</span>
@@ -1161,7 +1161,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                               <TableCell sx={{ width: '50%' }}>
                                 <Box display="flex" justifyContent="space-between">
                                   <strong>Timestamp</strong>
-                                  <span>{formatLocalDateWithTZ(selectedLog.hook_timestamp, true)}</span>
+                                  <span>{formatLocalDateWithTZ(selectedHook.hook_timestamp, true)}</span>
                                 </Box>
                               </TableCell>
                             </TableRow>
@@ -1204,7 +1204,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                   </Box>
                 </Box>
                 <Box mt={2}>
-                  {renderTabContent(selectedLog)}
+                  {renderTabContent(selectedHook)}
                 </Box>
               </Box>
 
@@ -1294,7 +1294,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                       borderColor: 'divider'
                     }}
                   >
-                    {JSON.stringify(selectedLog, null, 2)}
+                    {JSON.stringify(selectedHook, null, 2)}
                   </Box>
                 </Box>
               )}
