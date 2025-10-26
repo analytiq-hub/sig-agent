@@ -797,7 +797,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   // Helper function to get icon for event type with color coding
   // Color scheme:
   // - Green (#2e7d32): Pre-tool operations (PreToolUse)
-  // - Teal (#00acc1): Post-tool operations (PostToolUse)
+  // - Teal (#00acc1): Post-tool operations (PostToolUse, ToolUse)
   // - Orange (#ed6c02): System operations (PreCompact, Notification, API calls)
   // - Purple (#9c27b0): User interactions (UserPromptSubmit)
   // - Blue (#1976d2): Session lifecycle (SessionStart, SessionEnd, messages)
@@ -810,6 +810,8 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
         return <BuildIcon fontSize="small" sx={{ color: '#2e7d32' }} />; // Green wrench for pre-tool execution
       case 'PostToolUse':
         return <BuildIcon fontSize="small" sx={{ color: '#00acc1' }} />; // Teal wrench for post-tool execution
+      case 'ToolUse':
+        return <BuildIcon fontSize="small" sx={{ color: '#00acc1' }} />; // Teal wrench for combined tool execution
       case 'tool_use':
         return <BuildIcon fontSize="small" sx={{ color: '#2e7d32' }} />; // Green for tool usage (legacy)
       
@@ -1008,8 +1010,67 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     }
   ];
 
-  // No need for client-side filtering since we're using server-side filtering
-  const filteredHooks = hooks;
+  // Filter out PreToolUse events that are followed by PostToolUse events
+  // and rename PostToolUse to ToolUse when it follows a PreToolUse
+  const filteredHooks = useMemo(() => {
+    const filtered: ClaudeLog[] = [];
+    const preToolUseMap = new Map<string, ClaudeLog>(); // Map session_id + tool_name to PreToolUse events
+    
+    // First pass: collect PreToolUse events
+    hooks.forEach(hook => {
+      const info = getSalientInfo(hook);
+      if (info.hookEventName === 'PreToolUse') {
+        const key = `${info.sessionId}-${info.toolName}`;
+        preToolUseMap.set(key, hook);
+      }
+    });
+    
+    // Second pass: filter and rename events
+    hooks.forEach(hook => {
+      const info = getSalientInfo(hook);
+      
+      if (info.hookEventName === 'PreToolUse') {
+        // Check if there's a corresponding PostToolUse
+        const hasPostToolUse = hooks.some(h => {
+          const hInfo = getSalientInfo(h);
+          return hInfo.hookEventName === 'PostToolUse' && 
+                 hInfo.sessionId === info.sessionId && 
+                 hInfo.toolName === info.toolName &&
+                 new Date(h.hook_timestamp) > new Date(hook.hook_timestamp);
+        });
+        
+        // Only include PreToolUse if there's no corresponding PostToolUse
+        if (!hasPostToolUse) {
+          filtered.push(hook);
+        }
+      } else if (info.hookEventName === 'PostToolUse') {
+        // Check if this PostToolUse follows a PreToolUse
+        const key = `${info.sessionId}-${info.toolName}`;
+        const hasPreToolUse = preToolUseMap.has(key) && 
+          new Date(hook.hook_timestamp) > new Date(preToolUseMap.get(key)!.hook_timestamp);
+        
+        if (hasPreToolUse) {
+          // Create a modified hook with renamed event
+          const modifiedHook = {
+            ...hook,
+            hook_stdin: {
+              ...hook.hook_stdin,
+              hook_event_name: 'ToolUse'
+            }
+          };
+          filtered.push(modifiedHook);
+        } else {
+          // Include PostToolUse as-is if no corresponding PreToolUse
+          filtered.push(hook);
+        }
+      } else {
+        // Include all other events
+        filtered.push(hook);
+      }
+    });
+    
+    return filtered;
+  }, [hooks]);
 
   return (
     <div className="w-full" data-tour="claude-logs">
