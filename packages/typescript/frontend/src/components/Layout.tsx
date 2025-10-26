@@ -24,7 +24,8 @@ import {
   Timeline as TelemetryIcon,
   BarChart as AnalyticsIcon,
   InfoOutlined as AboutIcon,
-  Psychology as ClaudeIcon
+  Psychology as ClaudeIcon,
+  History as TracesIcon
 } from '@mui/icons-material';
 import { SvgIconProps } from '@mui/material';
 import TourGuide from '@/components/TourGuide';
@@ -95,7 +96,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { text: 'Analytics', icon: AnalyticsIcon, tooltip: 'Analytics Dashboard', href: `/orgs/${currentOrganization?.id}/analytics`},
     { text: 'Telemetry', icon: TelemetryIcon, tooltip: 'Telemetry', href: `/orgs/${currentOrganization?.id}/telemetry`},
     { text: 'Claude Hooks', icon: ClaudeIcon, tooltip: 'Claude Hook Interactions', href: `/orgs/${currentOrganization?.id}/claude/hooks`},
-    { text: 'Claude Traces', icon: ClaudeIcon, tooltip: 'Claude Trace Logs', href: `/orgs/${currentOrganization?.id}/claude/traces`},
+    { text: 'Claude Traces', icon: TracesIcon, tooltip: 'Claude Trace Logs', href: `/orgs/${currentOrganization?.id}/claude/traces`},
   ];
 
   const systemMenuItems = [
