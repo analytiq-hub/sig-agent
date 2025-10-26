@@ -112,7 +112,7 @@ const Home = () => {
             {/* Claude Plugin Setup Section */}
             <section className="bg-white rounded-lg shadow-lg p-8">
               <div className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">Enable Claude Log Monitoring</h2>
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">Enable Claude Hook Monitoring</h2>
                 <p className="text-gray-600">
                   Start claude and run the following command to enable the <strong className="text-blue-600">sig-agent-marketplace</strong>
                 </p>

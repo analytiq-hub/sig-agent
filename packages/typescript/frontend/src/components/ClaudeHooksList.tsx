@@ -48,7 +48,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { ClaudeHookItem } from '@docrouter/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
-type ClaudeLog = ClaudeHookItem;
+type ClaudeHook = ClaudeHookItem;
 
 // Custom Date Range Filter Component
 const DateRangeFilter: React.FC<GridFilterInputValueProps> = ({ item, applyValue }) => {
@@ -163,9 +163,9 @@ const DateRangeFilter: React.FC<GridFilterInputValueProps> = ({ item, applyValue
   );
 };
 
-const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
+const ClaudeHooksList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
-  const [hooks, setHooks] = useState<ClaudeLog[]>([]);
+  const [hooks, setHooks] = useState<ClaudeHook[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sessionIdFilter, setSessionIdFilter] = useState('');
@@ -234,7 +234,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   }, [sessionIdFilter, hookEventNameFilter, toolNameFilter, permissionModeFilter, startDate, endDate]);
 
 
-  const handleHookClick = (hook: ClaudeLog) => {
+  const handleHookClick = (hook: ClaudeHook) => {
     const index = filteredHooks.findIndex(h => h.hook_id === hook.hook_id);
     setSelectedHook(hook);
     setSelectedHookIndex(index);
@@ -451,7 +451,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   };
 
   // Helper function to extract salient information from hook_stdin
-  const getSalientInfo = (hook: ClaudeLog) => {
+  const getSalientInfo = (hook: ClaudeHook) => {
     const hookData = hook.hook_stdin || {};
     return {
       sessionId: hookData['session_id'] as string || '-',
@@ -602,7 +602,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   };
 
   // Custom Tooltip component for user prompt information
-  const PromptTooltip: React.FC<{ hook: ClaudeLog; children: React.ReactElement }> = ({ hook, children }) => {
+  const PromptTooltip: React.FC<{ hook: ClaudeHook; children: React.ReactElement }> = ({ hook, children }) => {
     const info = getSalientInfo(hook);
     
     if (!info.prompt || info.hookEventName !== 'UserPromptSubmit') {
@@ -657,7 +657,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   };
 
   // Custom Tooltip component for tool information
-  const ToolInfoTooltip: React.FC<{ hook: ClaudeLog; children: React.ReactElement }> = ({ hook, children }) => {
+  const ToolInfoTooltip: React.FC<{ hook: ClaudeHook; children: React.ReactElement }> = ({ hook, children }) => {
     const info = getSalientInfo(hook);
     const hasToolData = info.toolInput || info.toolResponse;
     
@@ -1106,8 +1106,8 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   // Filter out PreToolUse events that are followed by PostToolUse events
   // and rename PostToolUse to ToolUse when it follows a PreToolUse
   const filteredHooks = useMemo(() => {
-    const filtered: ClaudeLog[] = [];
-    const preToolUseMap = new Map<string, ClaudeLog>(); // Map session_id + tool_name to PreToolUse events
+    const filtered: ClaudeHook[] = [];
+    const preToolUseMap = new Map<string, ClaudeHook>(); // Map session_id + tool_name to PreToolUse events
     
     // First pass: collect PreToolUse events
     hooks.forEach(hook => {
@@ -1584,4 +1584,4 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
   );
 };
 
-export default ClaudeLogsList;
+export default ClaudeHooksList;
