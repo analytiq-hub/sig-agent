@@ -139,22 +139,24 @@ async def claude_log_handler(
     # Process transcript records and save them without duplication
     saved_count = 0
     for transcript_record in log_request.transcript_records:
+        logger.info(f"Processing transcript record: {transcript_record}")
+
         # Extract session_id for deduplication
-        session_id = transcript_record.get('session_id')
+        session_id = transcript_record.get('sessionId')  # Note: field is 'sessionId', not 'session_id'
         if not session_id:
-            logger.warning("Transcript record missing session_id, skipping")
+            logger.warning("Transcript record missing sessionId, skipping")
             continue
         
         # Check if this transcript record already exists for this session
         existing_record = await db.claude_logs.find_one({
             "organization_id": organization_id,
-            "transcript_record.session_id": session_id,
-            "transcript_record.timestamp": transcript_record.get('timestamp'),
-            "transcript_record.content": transcript_record.get('content')
+            "transcript_record.sessionId": session_id,
+            "transcript_record.uuid": transcript_record.get('uuid'),
+            "transcript_record.timestamp": transcript_record.get('timestamp')
         })
         
         if existing_record:
-            logger.debug(f"Transcript record already exists for session {session_id}, skipping")
+            logger.info(f"Transcript record already exists for session {session_id} with uuid {transcript_record.get('uuid')}, skipping")
             continue
         
         # Create log entry for this transcript record
@@ -311,7 +313,7 @@ async def list_claude_logs(
     
     # Add filtering for fields within transcript_record and hook_data using regex for superset matching
     if session_id:
-        query["transcript_record.session_id"] = {"$regex": session_id, "$options": "i"}  # Case-insensitive superset matching
+        query["transcript_record.sessionId"] = {"$regex": session_id, "$options": "i"}  # Case-insensitive superset matching
     
     if hook_event_name:
         query["hook_data.hook_event_name"] = {"$regex": hook_event_name, "$options": "i"}  # Case-insensitive superset matching
@@ -392,7 +394,7 @@ async def list_claude_hooks(
     
     # Add filtering for fields within transcript_record and hook_data using regex for superset matching
     if session_id:
-        query["transcript_record.session_id"] = {"$regex": session_id, "$options": "i"}  # Case-insensitive superset matching
+        query["transcript_record.sessionId"] = {"$regex": session_id, "$options": "i"}  # Case-insensitive superset matching
     
     if hook_event_name:
         query["hook_data.hook_event_name"] = {"$regex": hook_event_name, "$options": "i"}  # Case-insensitive superset matching
