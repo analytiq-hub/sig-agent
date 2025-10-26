@@ -602,7 +602,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
               sx={{ 
                 fontSize: '0.75rem', 
                 fontFamily: 'monospace',
-                backgroundColor: 'grey.100',
+                backgroundColor: 'primary.light',
                 color: 'text.primary',
                 padding: 1,
                 borderRadius: 1,
@@ -610,7 +610,23 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 maxHeight: 120,
-                overflow: 'auto'
+                overflow: 'auto',
+                border: '1px solid',
+                borderColor: 'primary.main',
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: 'primary.light',
+                  borderRadius: '4px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: 'primary.main',
+                  borderRadius: '4px',
+                  '&:hover': {
+                    backgroundColor: 'primary.dark',
+                  },
+                },
               }}
             >
               {typeof info.toolInput === 'string' 
@@ -631,7 +647,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
               sx={{ 
                 fontSize: '0.75rem', 
                 fontFamily: 'monospace',
-                backgroundColor: 'grey.50',
+                backgroundColor: 'success.light',
                 color: 'text.primary',
                 padding: 1,
                 borderRadius: 1,
@@ -639,7 +655,23 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 maxHeight: 120,
-                overflow: 'auto'
+                overflow: 'auto',
+                border: '1px solid',
+                borderColor: 'success.main',
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: 'success.light',
+                  borderRadius: '4px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: 'success.main',
+                  borderRadius: '4px',
+                  '&:hover': {
+                    backgroundColor: 'success.dark',
+                  },
+                },
               }}
             >
               {formatToolResponse(info.toolResponse)}
