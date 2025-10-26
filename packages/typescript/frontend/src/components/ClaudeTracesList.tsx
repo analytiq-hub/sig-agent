@@ -48,7 +48,47 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { ClaudeLogItem } from '@docrouter/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
-type ClaudeTrace = ClaudeLogItem;
+type ClaudeTrace = ClaudeLogItem & {
+  hook_data?: {
+    session_id?: string;
+    transcript_path?: string;
+    cwd?: string;
+    permission_mode?: string;
+    hook_event_name?: string;
+    tool_name?: string;
+    tool_input?: unknown;
+  };
+  transcript_record?: {
+    parentUuid?: string;
+    isSidechain?: boolean;
+    userType?: string;
+    cwd?: string;
+    sessionId?: string;
+    version?: string;
+    gitBranch?: string;
+    message?: {
+      model?: string;
+      id?: string;
+      type?: string;
+      role?: string;
+      content?: unknown[];
+      stop_reason?: unknown;
+      stop_sequence?: unknown;
+      usage?: {
+        input_tokens?: number;
+        cache_creation_input_tokens?: number;
+        cache_read_input_tokens?: number;
+        cache_creation?: unknown;
+        output_tokens?: number;
+        service_tier?: string;
+      };
+    };
+    requestId?: string;
+    type?: string;
+    uuid?: string;
+    timestamp?: string;
+  };
+};
 
 // Custom Date Range Filter Component
 const DateRangeFilter: React.FC<GridFilterInputValueProps> = ({ item, applyValue }) => {
@@ -177,7 +217,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
-  const [selectedTrace, setSelectedTrace] = useState<ClaudeLogItem | null>(null);
+  const [selectedTrace, setSelectedTrace] = useState<ClaudeTrace | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedTraceIndex, setSelectedTraceIndex] = useState<number>(-1);
   const [selectedTab, setSelectedTab] = useState<number>(0);
@@ -370,7 +410,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
   };
 
   // Function to render tab content
-  const renderTabContent = (trace: ClaudeLogItem) => {
+  const renderTabContent = (trace: ClaudeTrace) => {
     switch (selectedTab) {
       case 0: // Basic Information
         return (
@@ -382,13 +422,13 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
                     <TableCell sx={{ width: '50%' }}>
                       <Box display="flex" justifyContent="space-between">
                         <strong>Log ID</strong>
-                        <span>{trace.log_id}</span>
+                        <span className="font-mono text-xs">{trace.log_id}</span>
                       </Box>
                     </TableCell>
                     <TableCell sx={{ width: '50%' }}>
                       <Box display="flex" justifyContent="space-between">
                         <strong>Organization ID</strong>
-                        <span>{trace.organization_id}</span>
+                        <span className="font-mono text-xs">{trace.organization_id}</span>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -401,8 +441,36 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
                     </TableCell>
                     <TableCell sx={{ width: '50%' }}>
                       <Box display="flex" justifyContent="space-between">
-                        <strong>Upload Timestamp</strong>
-                        <span>{formatLocalDateWithTZ(trace.upload_timestamp, true)}</span>
+                        <strong>Message ID</strong>
+                        <span className="font-mono text-xs">{trace.transcript_record?.message?.id || '-'}</span>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow sx={{ backgroundColor: 'background.default' }}>
+                    <TableCell sx={{ width: '50%' }}>
+                      <Box display="flex" justifyContent="space-between">
+                        <strong>Request ID</strong>
+                        <span className="font-mono text-xs">{trace.transcript_record?.requestId || '-'}</span>
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ width: '50%' }}>
+                      <Box display="flex" justifyContent="space-between">
+                        <strong>UUID</strong>
+                        <span className="font-mono text-xs">{trace.transcript_record?.uuid || '-'}</span>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                    <TableCell sx={{ width: '50%' }}>
+                      <Box display="flex" justifyContent="space-between">
+                        <strong>Working Directory</strong>
+                        <span className="font-mono text-xs">{trace.hook_data?.cwd || '-'}</span>
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ width: '50%' }}>
+                      <Box display="flex" justifyContent="space-between">
+                        <strong>Transcript Path</strong>
+                        <span className="font-mono text-xs">{trace.hook_data?.transcript_path || '-'}</span>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -414,33 +482,103 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
       case 1: // Trace Data
         return (
           <Box>
-            {trace.hook_stdin && Object.keys(trace.hook_stdin).length > 0 ? (
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small" sx={{ tableLayout: 'fixed' }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ width: '50%' }}><strong>Key</strong></TableCell>
-                      <TableCell sx={{ width: '50%' }}><strong>Value</strong></TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Object.entries(trace.hook_stdin).map(([key, value], index) => (
-                      <TableRow 
-                        key={key}
-                        sx={{ 
-                          backgroundColor: index % 2 === 0 ? 'background.default' : 'action.hover' 
-                        }}
-                      >
-                        <TableCell sx={{ width: '50%' }}>{key}</TableCell>
-                        <TableCell sx={{ width: '50%' }}>
-                          {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
-                        </TableCell>
+            {/* Hook Data Section */}
+            {trace.hook_data && Object.keys(trace.hook_data).length > 0 && (
+              <Box mb={3}>
+                <Typography variant="h6" gutterBottom>Hook Data</Typography>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ width: '50%' }}><strong>Key</strong></TableCell>
+                        <TableCell sx={{ width: '50%' }}><strong>Value</strong></TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
+                    </TableHead>
+                    <TableBody>
+                      {Object.entries(trace.hook_data).map(([key, value], index) => (
+                        <TableRow 
+                          key={key}
+                          sx={{ 
+                            backgroundColor: index % 2 === 0 ? 'background.default' : 'action.hover' 
+                          }}
+                        >
+                          <TableCell sx={{ width: '50%' }}>{key}</TableCell>
+                          <TableCell sx={{ width: '50%' }}>
+                            {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+
+            {/* Transcript Record Section */}
+            {trace.transcript_record && Object.keys(trace.transcript_record).length > 0 && (
+              <Box mb={3}>
+                <Typography variant="h6" gutterBottom>Transcript Record</Typography>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ width: '50%' }}><strong>Key</strong></TableCell>
+                        <TableCell sx={{ width: '50%' }}><strong>Value</strong></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {Object.entries(trace.transcript_record).map(([key, value], index) => (
+                        <TableRow 
+                          key={key}
+                          sx={{ 
+                            backgroundColor: index % 2 === 0 ? 'background.default' : 'action.hover' 
+                          }}
+                        >
+                          <TableCell sx={{ width: '50%' }}>{key}</TableCell>
+                          <TableCell sx={{ width: '50%' }}>
+                            {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+
+            {/* Legacy hook_stdin support */}
+            {trace.hook_stdin && Object.keys(trace.hook_stdin).length > 0 && (
+              <Box mb={3}>
+                <Typography variant="h6" gutterBottom>Hook Stdin (Legacy)</Typography>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ width: '50%' }}><strong>Key</strong></TableCell>
+                        <TableCell sx={{ width: '50%' }}><strong>Value</strong></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {Object.entries(trace.hook_stdin).map(([key, value], index) => (
+                        <TableRow 
+                          key={key}
+                          sx={{ 
+                            backgroundColor: index % 2 === 0 ? 'background.default' : 'action.hover' 
+                          }}
+                        >
+                          <TableCell sx={{ width: '50%' }}>{key}</TableCell>
+                          <TableCell sx={{ width: '50%' }}>
+                            {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+
+            {!trace.hook_data && !trace.transcript_record && !trace.hook_stdin && (
               <Typography color="text.secondary">No trace data available</Typography>
             )}
           </Box>
@@ -450,8 +588,35 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
     }
   };
 
-  // Helper function to extract salient information from hook_stdin
+  // Helper function to extract salient information from trace data
   const getSalientInfo = (trace: ClaudeTrace) => {
+    // Handle new trace structure with hook_data and transcript_record
+    if (trace.hook_data && trace.transcript_record) {
+      const hookData = trace.hook_data;
+      const transcriptRecord = trace.transcript_record;
+      const message = transcriptRecord.message;
+      
+      return {
+        sessionId: hookData.session_id || '-',
+        hookEventName: hookData.hook_event_name || '-',
+        toolName: hookData.tool_name || '-',
+        permissionMode: hookData.permission_mode || '-',
+        userId: transcriptRecord.userType || '-',
+        model: message?.model || '-',
+        toolInput: hookData.tool_input || null,
+        toolResponse: null, // Not available in this structure
+        prompt: null, // Not available in this structure
+        usage: message?.usage || null,
+        messageId: message?.id || '-',
+        requestId: transcriptRecord.requestId || '-',
+        uuid: transcriptRecord.uuid || '-',
+        timestamp: transcriptRecord.timestamp || '-',
+        cwd: hookData.cwd || '-',
+        transcriptPath: hookData.transcript_path || '-'
+      };
+    }
+    
+    // Fallback to old structure for backward compatibility
     const hookData = trace.hook_stdin || {};
     return {
       sessionId: hookData['session_id'] as string || '-',
@@ -462,7 +627,14 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
       model: hookData['model'] as string || '-',
       toolInput: hookData['tool_input'] || null,
       toolResponse: hookData['tool_response'] || null,
-      prompt: hookData['prompt'] as string || null
+      prompt: hookData['prompt'] as string || null,
+      usage: null,
+      messageId: '-',
+      requestId: '-',
+      uuid: '-',
+      timestamp: '-',
+      cwd: '-',
+      transcriptPath: '-'
     };
   };
 
@@ -964,7 +1136,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
     {
       field: 'model',
       headerName: 'Model',
-      width: 120,
+      width: 140,
       filterable: false,
       sortable: false,
       renderCell: (params) => {
@@ -974,6 +1146,27 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
             {info.model}
           </span>
         );
+      }
+    },
+    {
+      field: 'usage',
+      headerName: 'Usage',
+      width: 120,
+      filterable: false,
+      sortable: false,
+      renderCell: (params) => {
+        const info = getSalientInfo(params.row);
+        if (info.usage) {
+          const totalTokens = (info.usage.input_tokens || 0) + (info.usage.output_tokens || 0);
+          return (
+            <Tooltip title={`Input: ${info.usage.input_tokens || 0}, Output: ${info.usage.output_tokens || 0}`}>
+              <span className="text-sm font-mono">
+                {totalTokens.toLocaleString()}
+              </span>
+            </Tooltip>
+          );
+        }
+        return <span className="text-sm">-</span>;
       }
     },
     {
@@ -1399,6 +1592,30 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
                                 <Box display="flex" justifyContent="space-between">
                                   <strong>Model</strong>
                                   <span className="font-mono">{info.model}</span>
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell sx={{ width: '50%' }}>
+                                <Box display="flex" justifyContent="space-between">
+                                  <strong>Usage</strong>
+                                  <span>
+                                    {info.usage ? (
+                                      <Tooltip title={`Input: ${info.usage.input_tokens || 0}, Output: ${info.usage.output_tokens || 0}`}>
+                                        <span className="font-mono">
+                                          {(info.usage.input_tokens || 0) + (info.usage.output_tokens || 0)} tokens
+                                        </span>
+                                      </Tooltip>
+                                    ) : (
+                                      <span>-</span>
+                                    )}
+                                  </span>
+                                </Box>
+                              </TableCell>
+                              <TableCell sx={{ width: '50%' }}>
+                                <Box display="flex" justifyContent="space-between">
+                                  <strong>Message ID</strong>
+                                  <span className="font-mono text-xs">{info.messageId}</span>
                                 </Box>
                               </TableCell>
                             </TableRow>
