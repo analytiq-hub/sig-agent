@@ -42,6 +42,9 @@ import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { ClaudeHookItem } from '@docrouter/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
@@ -522,6 +525,82 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
     return typeof response === 'string' ? response : JSON.stringify(response, null, 2);
   };
 
+  // Helper function to render todo data as checkboxes
+  const renderTodoData = (data: unknown) => {
+    try {
+      let todoData;
+      
+      // Handle different data formats
+      if (typeof data === 'string') {
+        todoData = JSON.parse(data);
+      } else if (Array.isArray(data) && data.length === 1 && data[0]?.type === 'text') {
+        todoData = JSON.parse(data[0].text);
+      } else {
+        todoData = data;
+      }
+      
+      // Get the latest todos (prefer newTodos if available, otherwise use todos)
+      let todosToRender = [];
+      if (todoData && typeof todoData === 'object') {
+        if ('newTodos' in todoData && Array.isArray(todoData.newTodos)) {
+          todosToRender = todoData.newTodos;
+        } else if ('todos' in todoData && Array.isArray(todoData.todos)) {
+          todosToRender = todoData.todos;
+        }
+      }
+      
+      if (todosToRender.length > 0) {
+        return (
+          <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
+            {todosToRender.map((todo: { content: string; status: string; activeForm?: string }, index: number) => {
+              const isCompleted = todo.status === 'completed';
+              const isInProgress = todo.status === 'in_progress';
+              
+              return (
+                <Box 
+                  key={index} 
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'flex-start', 
+                    gap: 1, 
+                    mb: 0.5,
+                    py: 0.5
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.1, minWidth: '20px' }}>
+                    {isCompleted ? (
+                      <CheckBoxIcon sx={{ color: 'primary.main', fontSize: '1.1rem' }} />
+                    ) : isInProgress ? (
+                      <AccessTimeIcon sx={{ color: 'primary.main', fontSize: '1.1rem' }} />
+                    ) : (
+                      <CheckBoxOutlineBlankIcon sx={{ color: 'primary.main', fontSize: '1.1rem' }} />
+                    )}
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontSize: '0.8rem',
+                        color: 'text.primary',
+                        lineHeight: 1.3
+                      }}
+                    >
+                      {todo.content}
+                    </Typography>
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
+        );
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
   // Custom Tooltip component for user prompt information
   const PromptTooltip: React.FC<{ hook: ClaudeLog; children: React.ReactElement }> = ({ hook, children }) => {
     const info = getSalientInfo(hook);
@@ -592,48 +671,54 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
           {info.toolName}
         </Typography>
         
-        {info.toolInput && (
+        {info.toolInput && !renderTodoData(info.toolResponse) && (
           <Box sx={{ mb: 2 }}>
             <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
               Input:
             </Typography>
-            <Box 
-              component="pre" 
-              sx={{ 
-                fontSize: '0.75rem', 
-                fontFamily: 'monospace',
-                backgroundColor: 'primary.light',
-                color: 'text.primary',
-                padding: 1,
-                borderRadius: 1,
-                marginTop: 0.5,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                maxHeight: 120,
-                overflow: 'auto',
-                border: '1px solid',
-                borderColor: 'primary.main',
-                '&::-webkit-scrollbar': {
-                  width: '8px',
-                },
-                '&::-webkit-scrollbar-track': {
+            {renderTodoData(info.toolInput) ? (
+              <Box sx={{ marginTop: 0.5 }}>
+                {renderTodoData(info.toolInput)}
+              </Box>
+            ) : (
+              <Box 
+                component="pre" 
+                sx={{ 
+                  fontSize: '0.75rem', 
+                  fontFamily: 'monospace',
                   backgroundColor: 'primary.light',
-                  borderRadius: '4px',
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  backgroundColor: 'primary.main',
-                  borderRadius: '4px',
-                  '&:hover': {
-                    backgroundColor: 'primary.dark',
+                  color: 'text.primary',
+                  padding: 1,
+                  borderRadius: 1,
+                  marginTop: 0.5,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  maxHeight: 120,
+                  overflow: 'auto',
+                  border: '1px solid',
+                  borderColor: 'primary.main',
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
                   },
-                },
-              }}
-            >
-              {typeof info.toolInput === 'string' 
-                ? info.toolInput 
-                : JSON.stringify(info.toolInput, null, 2)
-              }
-            </Box>
+                  '&::-webkit-scrollbar-track': {
+                    backgroundColor: 'primary.light',
+                    borderRadius: '4px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: 'primary.main',
+                    borderRadius: '4px',
+                    '&:hover': {
+                      backgroundColor: 'primary.dark',
+                    },
+                  },
+                }}
+              >
+                {typeof info.toolInput === 'string' 
+                  ? info.toolInput 
+                  : JSON.stringify(info.toolInput, null, 2)
+                }
+              </Box>
+            )}
           </Box>
         )}
         
@@ -642,40 +727,46 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
             <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'success.main' }}>
               Response:
             </Typography>
-            <Box 
-              component="pre" 
-              sx={{ 
-                fontSize: '0.75rem', 
-                fontFamily: 'monospace',
-                backgroundColor: 'success.light',
-                color: 'text.primary',
-                padding: 1,
-                borderRadius: 1,
-                marginTop: 0.5,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                maxHeight: 120,
-                overflow: 'auto',
-                border: '1px solid',
-                borderColor: 'success.main',
-                '&::-webkit-scrollbar': {
-                  width: '8px',
-                },
-                '&::-webkit-scrollbar-track': {
+            {renderTodoData(info.toolResponse) ? (
+              <Box sx={{ marginTop: 0.5 }}>
+                {renderTodoData(info.toolResponse)}
+              </Box>
+            ) : (
+              <Box 
+                component="pre" 
+                sx={{ 
+                  fontSize: '0.75rem', 
+                  fontFamily: 'monospace',
                   backgroundColor: 'success.light',
-                  borderRadius: '4px',
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  backgroundColor: 'success.main',
-                  borderRadius: '4px',
-                  '&:hover': {
-                    backgroundColor: 'success.dark',
+                  color: 'text.primary',
+                  padding: 1,
+                  borderRadius: 1,
+                  marginTop: 0.5,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  maxHeight: 120,
+                  overflow: 'auto',
+                  border: '1px solid',
+                  borderColor: 'success.main',
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
                   },
-                },
-              }}
-            >
-              {formatToolResponse(info.toolResponse)}
-            </Box>
+                  '&::-webkit-scrollbar-track': {
+                    backgroundColor: 'success.light',
+                    borderRadius: '4px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: 'success.main',
+                    borderRadius: '4px',
+                    '&:hover': {
+                      backgroundColor: 'success.dark',
+                    },
+                  },
+                }}
+              >
+                {formatToolResponse(info.toolResponse)}
+              </Box>
+            )}
           </Box>
         )}
       </Box>
