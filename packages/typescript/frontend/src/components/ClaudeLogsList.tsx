@@ -888,7 +888,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
         const info = getSalientInfo(params.row);
         const icon = getEventIcon(info.hookEventName);
         const eventContent = (
-          <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px' }}>
+          <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px', width: '100%' }}>
             {icon}
             <span className="text-sm font-medium">
               {info.hookEventName}
@@ -897,7 +897,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
         );
 
         // Wrap UserPromptSubmit events with prompt tooltip
-        if (info.hookEventName === 'UserPromptSubmit') {
+        if (info.hookEventName === 'UserPromptSubmit' && info.prompt) {
           return (
             <PromptTooltip hook={params.row}>
               {eventContent}
@@ -918,13 +918,24 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
         const info = getSalientInfo(params.row);
         const toolName = info.toolName;
         const displayName = toolName.length > 35 ? toolName.substring(0, 35) + '...' : toolName;
-        return (
-          <ToolInfoTooltip hook={params.row}>
-            <span className="text-sm font-mono" style={{ cursor: 'help' }}>
+        const toolContent = (
+          <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+            <span className="text-sm font-mono">
               {displayName}
             </span>
-          </ToolInfoTooltip>
+          </Box>
         );
+
+        // Wrap tool events with tool info tooltip
+        if (info.toolInput || info.toolResponse) {
+          return (
+            <ToolInfoTooltip hook={params.row}>
+              {toolContent}
+            </ToolInfoTooltip>
+          );
+        }
+
+        return toolContent;
       }
     },
     {
@@ -975,8 +986,89 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
         const info = getSalientInfo(params.row);
         const isFiltered = filteredSessionId === info.sessionId;
         const sessionColor = getSessionColor(info.sessionId);
+        
+        // Determine which tooltip to use for the session cell
+        const getSessionTooltip = () => {
+          if (info.hookEventName === 'UserPromptSubmit' && info.prompt) {
+            return (
+              <PromptTooltip hook={params.row}>
+                <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px', width: '100%' }}>
+                  <span className="text-xs font-mono">
+                    {info.sessionId.substring(0, 12)}...
+                  </span>
+                  <Tooltip title={isFiltered ? "Clear session filter" : "Filter by this session ID"}>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent row click
+                        handleFilterBySession(info.sessionId);
+                      }}
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        backgroundColor: isFiltered ? sessionColor : 'grey.100',
+                        color: isFiltered ? 'white' : sessionColor,
+                        boxShadow: isFiltered ? 2 : 1,
+                        '&:hover': {
+                          backgroundColor: isFiltered ? sessionColor : 'grey.200',
+                          color: isFiltered ? 'white' : sessionColor,
+                          boxShadow: 3
+                        }
+                      }}
+                    >
+                      <FilterListIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </PromptTooltip>
+            );
+          } else if (info.toolInput || info.toolResponse) {
+            return (
+              <ToolInfoTooltip hook={params.row}>
+                <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px', width: '100%' }}>
+                  <span className="text-xs font-mono">
+                    {info.sessionId.substring(0, 12)}...
+                  </span>
+                  <Tooltip title={isFiltered ? "Clear session filter" : "Filter by this session ID"}>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent row click
+                        handleFilterBySession(info.sessionId);
+                      }}
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        backgroundColor: isFiltered ? sessionColor : 'grey.100',
+                        color: isFiltered ? 'white' : sessionColor,
+                        boxShadow: isFiltered ? 2 : 1,
+                        '&:hover': {
+                          backgroundColor: isFiltered ? sessionColor : 'grey.200',
+                          color: isFiltered ? 'white' : sessionColor,
+                          boxShadow: 3
+                        }
+                      }}
+                    >
+                      <FilterListIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </ToolInfoTooltip>
+            );
+          }
+          return null;
+        };
+
+        const tooltipContent = getSessionTooltip();
+        if (tooltipContent) {
+          return tooltipContent;
+        }
+
+        // Default session cell without tooltip
         return (
-          <Box display="flex" alignItems="center" gap={0.5}>
+          <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px', width: '100%' }}>
             <span className="text-xs font-mono">
               {info.sessionId.substring(0, 12)}...
             </span>
@@ -1009,6 +1101,7 @@ const ClaudeLogsList: React.FC<{ organizationId: string }> = ({ organizationId }
       }
     }
   ];
+
 
   // Filter out PreToolUse events that are followed by PostToolUse events
   // and rename PostToolUse to ToolUse when it follows a PreToolUse
