@@ -60,6 +60,35 @@ def invalid_claude_log_data():
         "hook_timestamp": "invalid-timestamp"
     }
 
+@pytest.fixture
+def sample_claude_hook_data():
+    """Sample Claude hook data for testing"""
+    return {
+        "hook_stdin": json.dumps({
+            "session_id": "test-session-456",
+            "hook_event_name": "ToolUse",
+            "tool_name": "mcp__docrouter__get_document",
+            "tool_input": {"document_id": "doc-123"},
+            "permission_mode": "default",
+            "cwd": "/test/directory"
+        }),
+        "hook_timestamp": datetime.now(UTC).isoformat() + 'Z'
+    }
+
+@pytest.fixture
+def sample_claude_hook_data_with_error():
+    """Sample Claude hook data with error for testing"""
+    return {
+        "hook_stdin": json.dumps({
+            "session_id": "test-session-789",
+            "hook_event_name": "ToolError",
+            "tool_name": "mcp__docrouter__invalid_tool",
+            "error": "Tool not found",
+            "permission_mode": "default"
+        }),
+        "hook_timestamp": datetime.now(UTC).isoformat() + 'Z'
+    }
+
 class TestClaudeLogEndpoint:
     """Test the POST /v0/claude/log endpoint"""
 
@@ -634,6 +663,364 @@ class TestListClaudeLogsEndpoint:
         # Test negative skip (should be at least 0)
         response = client.get(
             f"/v0/orgs/{org_id}/claude/logs?skip=-1",
+            headers=headers
+        )
+        
+        assert response.status_code == 422  # Validation error
+
+
+class TestClaudeHookEndpoint:
+    """Test the POST /v0/claude/hook endpoint"""
+
+    @pytest.mark.asyncio
+    async def test_claude_hook_success(self, test_db, org_and_users, sample_claude_hook_data):
+        """Test successful Claude hook creation"""
+        # Use the member token (has access to the org)
+        token = org_and_users["member"]["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        response = client.post(
+            "/v0/claude/hook",
+            json=sample_claude_hook_data,
+            headers=headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "hook_id" in data
+        assert data["hook_id"] is not None
+        
+        # Verify the hook was saved to the database
+        hook_id = data["hook_id"]
+        hook_doc = await test_db.claude_hooks.find_one({"_id": ObjectId(hook_id)})
+        assert hook_doc is not None
+        assert hook_doc["organization_id"] == org_and_users["org_id"]
+        assert hook_doc["hook_stdin"]["session_id"] == "test-session-456"
+        assert hook_doc["hook_stdin"]["hook_event_name"] == "ToolUse"
+
+    @pytest.mark.asyncio
+    async def test_claude_hook_with_error(self, test_db, org_and_users, sample_claude_hook_data_with_error):
+        """Test Claude hook creation with error data"""
+        token = org_and_users["member"]["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        response = client.post(
+            "/v0/claude/hook",
+            json=sample_claude_hook_data_with_error,
+            headers=headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "hook_id" in data
+        
+        # Verify the error data was saved correctly
+        hook_id = data["hook_id"]
+        hook_doc = await test_db.claude_hooks.find_one({"_id": ObjectId(hook_id)})
+        assert hook_doc["hook_stdin"]["hook_event_name"] == "ToolError"
+        assert hook_doc["hook_stdin"]["error"] == "Tool not found"
+
+    def test_claude_hook_missing_auth_header(self, sample_claude_hook_data):
+        """Test Claude hook creation without authorization header"""
+        response = client.post(
+            "/v0/claude/hook",
+            json=sample_claude_hook_data
+        )
+        
+        assert response.status_code == 401
+        assert "Missing Authorization header" in response.json()["detail"]
+
+    def test_claude_hook_invalid_auth_format(self, sample_claude_hook_data):
+        """Test Claude hook creation with invalid authorization format"""
+        headers = {"Authorization": "InvalidFormat token123"}
+        
+        response = client.post(
+            "/v0/claude/hook",
+            json=sample_claude_hook_data,
+            headers=headers
+        )
+        
+        assert response.status_code == 401
+        assert "Invalid Authorization header format" in response.json()["detail"]
+
+    def test_claude_hook_invalid_token(self, sample_claude_hook_data):
+        """Test Claude hook creation with invalid token"""
+        headers = {"Authorization": "Bearer invalid-token"}
+        
+        response = client.post(
+            "/v0/claude/hook",
+            json=sample_claude_hook_data,
+            headers=headers
+        )
+        
+        assert response.status_code == 401
+        assert "Invalid token" in response.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_claude_hook_invalid_timestamp(self, test_db, org_and_users):
+        """Test Claude hook creation with invalid timestamp"""
+        token = org_and_users["member"]["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        invalid_hook_data = {
+            "hook_stdin": json.dumps({"session_id": "test-session"}),
+            "hook_timestamp": "invalid-timestamp"
+        }
+        
+        response = client.post(
+            "/v0/claude/hook",
+            json=invalid_hook_data,
+            headers=headers
+        )
+        
+        # Should still succeed but use current time as fallback
+        assert response.status_code == 200
+        data = response.json()
+        assert "hook_id" in data
+        
+        # Verify the hook was saved with current time
+        hook_id = data["hook_id"]
+        hook_doc = await test_db.claude_hooks.find_one({"_id": ObjectId(hook_id)})
+        assert hook_doc is not None
+        # The timestamp should be close to current time (within 1 minute)
+        current_time = datetime.now(UTC)
+        # Ensure both datetimes are timezone-aware for comparison
+        hook_timestamp = hook_doc["hook_timestamp"]
+        if hook_timestamp.tzinfo is None:
+            hook_timestamp = hook_timestamp.replace(tzinfo=UTC)
+        time_diff = abs((current_time - hook_timestamp).total_seconds())
+        assert time_diff < 60  # Within 1 minute
+
+    @pytest.mark.asyncio
+    async def test_claude_hook_account_level_token_rejected(self, test_db, org_and_users):
+        """Test that account-level tokens are rejected for hook creation"""
+        # Create an account-level token (no organization_id)
+        account_token = org_and_users["member"]["account_token"]
+        headers = {"Authorization": f"Bearer {account_token}"}
+        
+        hook_data = {
+            "hook_stdin": json.dumps({"session_id": "test-session"}),
+            "hook_timestamp": datetime.now(UTC).isoformat() + 'Z'
+        }
+        
+        response = client.post(
+            "/v0/claude/hook",
+            json=hook_data,
+            headers=headers
+        )
+        
+        assert response.status_code == 401
+        assert "Invalid token or token not associated with an organization" in response.json()["detail"]
+
+
+class TestListClaudeHooksEndpoint:
+    """Test the GET /v0/orgs/{organization_id}/claude/hooks endpoint"""
+
+    @pytest.mark.asyncio
+    async def test_list_claude_hooks_success(self, test_db, org_and_users):
+        """Test successful listing of Claude hooks"""
+        org_id = org_and_users["org_id"]
+        token = org_and_users["member"]["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Create some test hooks first
+        await test_db.claude_hooks.insert_many([
+            {
+                "organization_id": org_id,
+                "hook_stdin": {"session_id": "test-1", "hook_event_name": "ToolUse"},
+                "hook_timestamp": datetime.now(UTC),
+                "upload_timestamp": datetime.now(UTC)
+            },
+            {
+                "organization_id": org_id,
+                "hook_stdin": {"session_id": "test-2", "hook_event_name": "ToolError"},
+                "hook_timestamp": datetime.now(UTC),
+                "upload_timestamp": datetime.now(UTC)
+            }
+        ])
+        
+        response = client.get(
+            f"/v0/orgs/{org_id}/claude/hooks",
+            headers=headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "hooks" in data
+        assert "total" in data
+        assert "skip" in data
+        assert "limit" in data
+        assert data["total"] == 2
+        assert len(data["hooks"]) == 2
+
+    @pytest.mark.asyncio
+    async def test_list_claude_hooks_pagination(self, test_db, org_and_users):
+        """Test pagination for listing Claude hooks"""
+        org_id = org_and_users["org_id"]
+        token = org_and_users["member"]["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Create 5 test hooks
+        hooks_data = []
+        for i in range(5):
+            hooks_data.append({
+                "organization_id": org_id,
+                "hook_stdin": {"session_id": f"test-{i}", "hook_event_name": "ToolUse"},
+                "hook_timestamp": datetime.now(UTC),
+                "upload_timestamp": datetime.now(UTC)
+            })
+        await test_db.claude_hooks.insert_many(hooks_data)
+        
+        # Test first page
+        response = client.get(
+            f"/v0/orgs/{org_id}/claude/hooks?skip=0&limit=2",
+            headers=headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 5
+        assert data["skip"] == 0
+        assert data["limit"] == 2
+        assert len(data["hooks"]) == 2
+        
+        # Test second page
+        response = client.get(
+            f"/v0/orgs/{org_id}/claude/hooks?skip=2&limit=2",
+            headers=headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 5
+        assert data["skip"] == 2
+        assert data["limit"] == 2
+        assert len(data["hooks"]) == 2
+
+    @pytest.mark.asyncio
+    async def test_list_claude_hooks_filtering(self, test_db, org_and_users):
+        """Test filtering for listing Claude hooks"""
+        org_id = org_and_users["org_id"]
+        token = org_and_users["member"]["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Create test hooks with different session IDs
+        await test_db.claude_hooks.insert_many([
+            {
+                "organization_id": org_id,
+                "hook_stdin": {"session_id": "session-123", "hook_event_name": "ToolUse"},
+                "hook_timestamp": datetime.now(UTC),
+                "upload_timestamp": datetime.now(UTC)
+            },
+            {
+                "organization_id": org_id,
+                "hook_stdin": {"session_id": "session-456", "hook_event_name": "ToolError"},
+                "hook_timestamp": datetime.now(UTC),
+                "upload_timestamp": datetime.now(UTC)
+            }
+        ])
+        
+        # Filter by session ID
+        response = client.get(
+            f"/v0/orgs/{org_id}/claude/hooks?session_id=session-123",
+            headers=headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert data["hooks"][0]["hook_stdin"]["session_id"] == "session-123"
+        
+        # Filter by hook event name
+        response = client.get(
+            f"/v0/orgs/{org_id}/claude/hooks?hook_event_name=ToolError",
+            headers=headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert data["hooks"][0]["hook_stdin"]["hook_event_name"] == "ToolError"
+
+    def test_list_claude_hooks_unauthorized_user(self, org_and_users):
+        """Test listing hooks with unauthorized user"""
+        org_id = org_and_users["org_id"]
+        # Use a token from a user who is not a member of the organization
+        outsider_token = org_and_users["outsider"]["token"]
+        headers = {"Authorization": f"Bearer {outsider_token}"}
+        
+        response = client.get(
+            f"/v0/orgs/{org_id}/claude/hooks",
+            headers=headers
+        )
+        
+        assert response.status_code == 403
+        assert "not a member of this organization" in response.json()["detail"]
+
+    def test_list_claude_hooks_invalid_timestamp_format(self, org_and_users):
+        """Test invalid timestamp format in filters"""
+        org_id = org_and_users["org_id"]
+        token = org_and_users["member"]["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        response = client.get(
+            f"/v0/orgs/{org_id}/claude/hooks?start_time=invalid-timestamp",
+            headers=headers
+        )
+        
+        assert response.status_code == 400
+        assert "Invalid start_time format" in response.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_list_claude_hooks_empty_result(self, test_db, org_and_users):
+        """Test listing hooks when no hooks exist"""
+        org_id = org_and_users["org_id"]
+        token = org_and_users["member"]["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        response = client.get(
+            f"/v0/orgs/{org_id}/claude/hooks",
+            headers=headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 0
+        assert len(data["hooks"]) == 0
+
+    @pytest.mark.asyncio
+    async def test_list_claude_hooks_limit_validation(self, test_db, org_and_users):
+        """Test limit parameter validation"""
+        org_id = org_and_users["org_id"]
+        token = org_and_users["member"]["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Test limit too high (should be capped at 100)
+        response = client.get(
+            f"/v0/orgs/{org_id}/claude/hooks?limit=200",
+            headers=headers
+        )
+        
+        assert response.status_code == 422  # FastAPI validation error for limit > 100
+        
+        # Test limit too low (should be at least 1)
+        response = client.get(
+            f"/v0/orgs/{org_id}/claude/hooks?limit=0",
+            headers=headers
+        )
+        
+        assert response.status_code == 422  # Validation error
+
+    @pytest.mark.asyncio
+    async def test_list_claude_hooks_skip_validation(self, test_db, org_and_users):
+        """Test skip parameter validation"""
+        org_id = org_and_users["org_id"]
+        token = org_and_users["member"]["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Test negative skip (should be at least 0)
+        response = client.get(
+            f"/v0/orgs/{org_id}/claude/hooks?skip=-1",
             headers=headers
         )
         

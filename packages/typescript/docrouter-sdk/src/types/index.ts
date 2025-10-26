@@ -1003,3 +1003,39 @@ export interface ListClaudeLogsResponse {
   skip: number;
   limit: number;
 }
+
+// Claude Hook types
+export interface ClaudeHookRequest {
+  hook_stdin: string;
+  hook_timestamp: string;
+}
+
+export interface ClaudeHookResponse {
+  hook_id: string;
+}
+
+export interface ClaudeHookItem {
+  hook_id: string;
+  organization_id: string;
+  hook_stdin: Record<string, unknown>;
+  hook_timestamp: string;
+  upload_timestamp: string;
+}
+
+export interface ListClaudeHooksParams {
+  skip?: number;
+  limit?: number;
+  start_time?: string; // Start time in UTC ISO format (e.g., 2025-10-25T02:00:00.000Z)
+  end_time?: string; // End time in UTC ISO format (e.g., 2025-10-25T03:00:00.000Z)
+  session_id?: string;
+  hook_event_name?: string;
+  tool_name?: string;
+  permission_mode?: string;
+}
+
+export interface ListClaudeHooksResponse {
+  hooks: ClaudeHookItem[];
+  total: number;
+  skip: number;
+  limit: number;
+}

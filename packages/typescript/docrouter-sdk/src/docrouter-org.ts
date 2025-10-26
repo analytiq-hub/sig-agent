@@ -73,6 +73,11 @@ import {
   ClaudeLogResponse,
   ListClaudeLogsParams,
   ListClaudeLogsResponse,
+  // Claude Hooks
+  ClaudeHookRequest,
+  ClaudeHookResponse,
+  ListClaudeHooksParams,
+  ListClaudeHooksResponse,
 } from './types';
 
 /**
@@ -588,6 +593,36 @@ export class DocRouterOrg {
 
     return this.http.get<ListClaudeLogsResponse>(
       `/v0/orgs/${this.organizationId}/claude/logs`,
+      { params: queryParams }
+    );
+  }
+
+  // ---------------- Claude Hooks ----------------
+
+  /**
+   * Log Claude hook data
+   */
+  async claudeHook(request: ClaudeHookRequest): Promise<ClaudeHookResponse> {
+    return this.http.post<ClaudeHookResponse>('/v0/claude/hook', request);
+  }
+
+  /**
+   * List Claude hooks with filtering capabilities
+   */
+  async listClaudeHooks(params?: ListClaudeHooksParams): Promise<ListClaudeHooksResponse> {
+    const queryParams: Record<string, string | number | undefined> = {
+      skip: params?.skip || 0,
+      limit: params?.limit || 10,
+    };
+    if (params?.start_time) queryParams.start_time = params.start_time;
+    if (params?.end_time) queryParams.end_time = params.end_time;
+    if (params?.session_id) queryParams.session_id = params.session_id;
+    if (params?.hook_event_name) queryParams.hook_event_name = params.hook_event_name;
+    if (params?.tool_name) queryParams.tool_name = params.tool_name;
+    if (params?.permission_mode) queryParams.permission_mode = params.permission_mode;
+
+    return this.http.get<ListClaudeHooksResponse>(
+      `/v0/orgs/${this.organizationId}/claude/hooks`,
       { params: queryParams }
     );
   }
