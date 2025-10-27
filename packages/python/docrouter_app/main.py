@@ -44,6 +44,7 @@ import analytiq_data as ad
 
 # Import OTLP server
 from docrouter_app.routes.otlp_server import start_otlp_server, stop_otlp_server
+from docrouter_app.routes.otlp_http import otlp_http_router
 
 # Set up the environment variables. This reads the .env file.
 ad.common.setup()
@@ -164,3 +165,4 @@ app.include_router(users_router)
 app.include_router(emails_router)
 app.include_router(telemetry_router)
 app.include_router(claude_router)
+app.include_router(otlp_http_router)
