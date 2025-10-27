@@ -57,6 +57,7 @@ type ClaudeTrace = ClaudeLogItem & {
     tool_name?: string;
     tool_input?: unknown;
   };
+  hook_stdin?: Record<string, unknown>;
   transcript_record?: {
     parentUuid?: string;
     isSidechain?: boolean;
