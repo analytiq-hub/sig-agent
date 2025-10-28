@@ -213,10 +213,16 @@ async def is_organization_member(org_id: str, user_id: str):
         logger.info(f"Org not found for org_id: {org_id}")
         return False
     
+    logger.info(f"Checking membership: user_id={user_id}, org_id={org_id}")
+    logger.info(f"Org members: {org.get('members', [])}")
+    
     for member in org.get("members", []):
+        logger.info(f"Checking member: {member.get('user_id')} == {user_id} ? {member.get('user_id') == user_id}")
         if member.get("user_id") == user_id:
+            logger.info(f"Found matching member: {member}")
             return True
 
+    logger.info(f"User {user_id} not found in org {org_id} members")
     return False
 
 async def get_org_user(

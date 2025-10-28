@@ -41,22 +41,31 @@ async def export_traces_http(request: Request):
         from google.protobuf.json_format import Parse
         
         # Convert JSON to protobuf (OTLP HTTP typically sends JSON)
+        if not body:
+            raise HTTPException(status_code=400, detail="Empty request body")
+            
         try:
             # Try to parse as JSON first
             import json
             json_data = json.loads(body.decode('utf-8'))
             otlp_request = Parse(json.dumps(json_data), ExportTraceServiceRequest())
-        except:
+        except (json.JSONDecodeError, UnicodeDecodeError):
             # If not JSON, try to parse as protobuf binary
-            otlp_request = ExportTraceServiceRequest()
-            otlp_request.ParseFromString(body)
+            try:
+                otlp_request = ExportTraceServiceRequest()
+                otlp_request.ParseFromString(body)
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid protobuf data: {str(e)}")
         
         # Call the existing gRPC export function
-        await export_traces(otlp_request, None, organization_id)
+        await export_traces(otlp_request, None, organization_id, "otlp-http")
         
         logger.info(f"OTLP HTTP: Successfully exported traces for org {organization_id}")
         return Response(status_code=200)
         
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 401) as-is
+        raise
     except Exception as e:
         logger.error(f"OTLP HTTP traces export failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -86,20 +95,29 @@ async def export_metrics_http(request: Request):
         from google.protobuf.json_format import Parse
         
         # Convert JSON to protobuf
+        if not body:
+            raise HTTPException(status_code=400, detail="Empty request body")
+            
         try:
             import json
             json_data = json.loads(body.decode('utf-8'))
             otlp_request = Parse(json.dumps(json_data), ExportMetricsServiceRequest())
-        except:
-            otlp_request = ExportMetricsServiceRequest()
-            otlp_request.ParseFromString(body)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            try:
+                otlp_request = ExportMetricsServiceRequest()
+                otlp_request.ParseFromString(body)
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid protobuf data: {str(e)}")
         
         # Call the existing gRPC export function
-        await export_metrics(otlp_request, None, organization_id)
+        await export_metrics(otlp_request, None, organization_id, "otlp-http")
         
         logger.info(f"OTLP HTTP: Successfully exported metrics for org {organization_id}")
         return Response(status_code=200)
         
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 401) as-is
+        raise
     except Exception as e:
         logger.error(f"OTLP HTTP metrics export failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -129,20 +147,29 @@ async def export_logs_http(request: Request):
         from google.protobuf.json_format import Parse
         
         # Convert JSON to protobuf
+        if not body:
+            raise HTTPException(status_code=400, detail="Empty request body")
+            
         try:
             import json
             json_data = json.loads(body.decode('utf-8'))
             otlp_request = Parse(json.dumps(json_data), ExportLogsServiceRequest())
-        except:
-            otlp_request = ExportLogsServiceRequest()
-            otlp_request.ParseFromString(body)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            try:
+                otlp_request = ExportLogsServiceRequest()
+                otlp_request.ParseFromString(body)
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid protobuf data: {str(e)}")
         
         # Call the existing gRPC export function
-        await export_logs(otlp_request, None, organization_id)
+        await export_logs(otlp_request, None, organization_id, "otlp-http")
         
         logger.info(f"OTLP HTTP: Successfully exported logs for org {organization_id}")
         return Response(status_code=200)
         
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 401) as-is
+        raise
     except Exception as e:
         logger.error(f"OTLP HTTP logs export failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -5,6 +5,7 @@ import pytest
 import grpc
 from bson import ObjectId
 import os
+import secrets
 from datetime import datetime, UTC, timedelta
 import logging
 import asyncio
@@ -12,7 +13,7 @@ import asyncio
 # Import shared test utilities
 from .conftest_utils import (
     client, TEST_ORG_ID,
-    get_auth_headers
+    get_auth_headers, get_token_headers
 )
 import analytiq_data as ad
 
@@ -1141,6 +1142,532 @@ async def test_pagination(test_db, mock_auth, setup_test_models):
     assert len(page3_data["metrics"]) == 5, "Page 3 should have 5 items"
 
     logger.info("test_pagination() completed successfully")
+
+# OTLP HTTP Upload Tests
+
+@pytest.mark.asyncio
+async def test_otlp_http_export_traces(test_db, setup_test_models, org_and_users):
+    """Test uploading traces via OTLP HTTP endpoint"""
+    logger.info("test_otlp_http_export_traces() start")
+
+    # Create OTLP trace request
+    otlp_request = create_otlp_trace_request(
+        trace_id_hex="aabbccddeeff00112233445566778899",
+        span_id_hex="1122334455667788"
+    )
+
+    # Convert protobuf to JSON for HTTP request
+    from google.protobuf.json_format import MessageToJson
+    json_data = MessageToJson(otlp_request)
+
+    # Use the admin token from the test setup
+    admin_token = org_and_users["admin"]["token"]
+
+    # Upload via OTLP HTTP endpoint
+    response = client.post(
+        "/v1/traces",
+        content=json_data,
+        headers={
+            "Authorization": f"Bearer {admin_token}",
+            "Content-Type": "application/json"
+        }
+    )
+
+    assert response.status_code == 200
+
+    # Verify via HTTP list endpoint
+    org_id = org_and_users["org_id"]
+    admin_token = org_and_users["admin"]["token"]
+    list_response = client.get(
+        f"/v0/orgs/{org_id}/telemetry/traces",
+        headers=get_token_headers(admin_token)
+    )
+
+    assert list_response.status_code == 200
+    traces = list_response.json()["traces"]
+
+    # Find our uploaded trace
+    found = False
+    for trace in traces:
+        if trace["span_count"] == 1:  # Our test trace has 1 span
+            found = True
+            assert trace["uploaded_by"] == "otlp-http"
+            assert trace["metadata"]["source"] == "otlp-http"
+            break
+
+    assert found, "Should find trace uploaded via OTLP HTTP"
+
+    logger.info("test_otlp_http_export_traces() completed successfully")
+
+@pytest.mark.asyncio
+async def test_otlp_http_export_metrics(test_db, setup_test_models, org_and_users):
+    """Test uploading metrics via OTLP HTTP endpoint"""
+    logger.info("test_otlp_http_export_metrics() start")
+
+    # Create OTLP metric request
+    otlp_request = create_otlp_metric_request(metric_name="otlp.http.test.metric")
+
+    # Convert protobuf to JSON for HTTP request
+    from google.protobuf.json_format import MessageToJson
+    json_data = MessageToJson(otlp_request)
+
+    # Use the admin token from the test setup
+    admin_token = org_and_users["admin"]["token"]
+
+    # Upload via OTLP HTTP endpoint
+    response = client.post(
+        "/v1/metrics",
+        content=json_data,
+        headers={
+            "Authorization": f"Bearer {admin_token}",
+            "Content-Type": "application/json"
+        }
+    )
+
+    assert response.status_code == 200
+
+    # Verify via HTTP list endpoint with name search
+    org_id = org_and_users["org_id"]
+    admin_token = org_and_users["admin"]["token"]
+    list_response = client.get(
+        f"/v0/orgs/{org_id}/telemetry/metrics?name_search=otlp.http.test",
+        headers=get_token_headers(admin_token)
+    )
+
+    assert list_response.status_code == 200
+    metrics = list_response.json()["metrics"]
+
+    # Find our uploaded metric
+    found = False
+    for metric in metrics:
+        if metric["name"] == "otlp.http.test.metric":
+            found = True
+            assert metric["type"] == "gauge"
+            assert metric["uploaded_by"] == "otlp-http"
+            assert metric["metadata"]["source"] == "otlp-http"
+            # Verify new fields are present
+            assert "description" in metric
+            assert "unit" in metric
+            assert "data_points" in metric
+            assert "resource" in metric
+            break
+
+    assert found, "Should find metric uploaded via OTLP HTTP"
+
+    logger.info("test_otlp_http_export_metrics() completed successfully")
+
+@pytest.mark.asyncio
+async def test_otlp_http_export_logs(test_db, setup_test_models, org_and_users):
+    """Test uploading logs via OTLP HTTP endpoint"""
+    logger.info("test_otlp_http_export_logs() start")
+
+    # Create OTLP log request
+    unique_message = f"OTLP HTTP test log message {datetime.now(UTC).isoformat()}"
+    otlp_request = create_otlp_log_request(body=unique_message)
+
+    # Convert protobuf to JSON for HTTP request
+    from google.protobuf.json_format import MessageToJson
+    json_data = MessageToJson(otlp_request)
+
+    # Use the admin token from the test setup
+    admin_token = org_and_users["admin"]["token"]
+
+    # Upload via OTLP HTTP endpoint
+    response = client.post(
+        "/v1/logs",
+        content=json_data,
+        headers={
+            "Authorization": f"Bearer {admin_token}",
+            "Content-Type": "application/json"
+        }
+    )
+
+    assert response.status_code == 200
+
+    # Verify via HTTP list endpoint
+    org_id = org_and_users["org_id"]
+    admin_token = org_and_users["admin"]["token"]
+    list_response = client.get(
+        f"/v0/orgs/{org_id}/telemetry/logs?severity=INFO",
+        headers=get_token_headers(admin_token)
+    )
+
+    assert list_response.status_code == 200
+    logs = list_response.json()["logs"]
+
+    # Find our uploaded log
+    found = False
+    for log in logs:
+        if log["body"] == unique_message:
+            found = True
+            assert log["severity"] == "INFO"
+            assert log["uploaded_by"] == "otlp-http"
+            assert log["metadata"]["source"] == "otlp-http"
+            break
+
+    assert found, "Should find log uploaded via OTLP HTTP"
+
+    logger.info("test_otlp_http_export_logs() completed successfully")
+
+@pytest.mark.asyncio
+async def test_otlp_http_authentication_invalid_token(test_db, setup_test_models):
+    """Test OTLP HTTP endpoints with invalid token"""
+    logger.info("test_otlp_http_authentication_invalid_token() start")
+
+    # Create OTLP trace request
+    otlp_request = create_otlp_trace_request()
+    from google.protobuf.json_format import MessageToJson
+    json_data = MessageToJson(otlp_request)
+
+    # Test with invalid token
+    response = client.post(
+        "/v1/traces",
+        content=json_data,
+        headers={
+            "Authorization": "Bearer invalid_token_12345",
+            "Content-Type": "application/json"
+        }
+    )
+
+    assert response.status_code == 401
+    assert "Invalid token" in response.json()["detail"]
+
+    logger.info("test_otlp_http_authentication_invalid_token() completed successfully")
+
+@pytest.mark.asyncio
+async def test_otlp_http_authentication_missing_token(test_db, setup_test_models):
+    """Test OTLP HTTP endpoints with missing token"""
+    logger.info("test_otlp_http_authentication_missing_token() start")
+
+    # Create OTLP trace request
+    otlp_request = create_otlp_trace_request()
+    from google.protobuf.json_format import MessageToJson
+    json_data = MessageToJson(otlp_request)
+
+    # Test without Authorization header
+    response = client.post(
+        "/v1/traces",
+        content=json_data,
+        headers={
+            "Content-Type": "application/json"
+        }
+    )
+
+    assert response.status_code == 401
+    assert "Missing or invalid Authorization header" in response.json()["detail"]
+
+    logger.info("test_otlp_http_authentication_missing_token() completed successfully")
+
+@pytest.mark.asyncio
+async def test_otlp_http_authentication_account_level_token(test_db, mock_auth, setup_test_models):
+    """Test OTLP HTTP endpoints with account-level token (should fail)"""
+    logger.info("test_otlp_http_authentication_account_level_token() start")
+
+    # Create an account-level token (organization_id = None)
+    db = ad.common.get_async_db()
+    account_token = f"acc_{secrets.token_urlsafe(32)}"
+    encrypted_token = ad.crypto.encrypt_token(account_token)
+    
+    await db.access_tokens.insert_one({
+        "user_id": "test_user_id",
+        "organization_id": None,  # Account-level token
+        "name": "account-token",
+        "token": encrypted_token,
+        "created_at": datetime.now(UTC),
+        "lifetime": 30
+    })
+
+    # Create OTLP trace request
+    otlp_request = create_otlp_trace_request()
+    from google.protobuf.json_format import MessageToJson
+    json_data = MessageToJson(otlp_request)
+
+    # Test with account-level token
+    response = client.post(
+        "/v1/traces",
+        content=json_data,
+        headers={
+            "Authorization": f"Bearer {account_token}",
+            "Content-Type": "application/json"
+        }
+    )
+
+    assert response.status_code == 401
+    assert "Invalid token or account-level token not supported" in response.json()["detail"]
+
+    logger.info("test_otlp_http_authentication_account_level_token() completed successfully")
+
+@pytest.mark.asyncio
+async def test_otlp_http_protobuf_binary_format(test_db, setup_test_models, org_and_users):
+    """Test OTLP HTTP endpoints with protobuf binary format"""
+    logger.info("test_otlp_http_protobuf_binary_format() start")
+
+    # Create OTLP trace request
+    otlp_request = create_otlp_trace_request(
+        trace_id_hex="b1a2b3c4d5e6f789abcdef0123456789",
+        span_id_hex="b1a2b3c4d5e6f789"
+    )
+
+    # Use the admin token from the test setup
+    admin_token = org_and_users["admin"]["token"]
+
+    # Upload via OTLP HTTP endpoint with binary protobuf
+    response = client.post(
+        "/v1/traces",
+        content=otlp_request.SerializeToString(),
+        headers={
+            "Authorization": f"Bearer {admin_token}",
+            "Content-Type": "application/x-protobuf"
+        }
+    )
+
+    assert response.status_code == 200
+
+    # Verify via HTTP list endpoint
+    org_id = org_and_users["org_id"]
+    admin_token = org_and_users["admin"]["token"]
+    list_response = client.get(
+        f"/v0/orgs/{org_id}/telemetry/traces",
+        headers=get_token_headers(admin_token)
+    )
+
+    assert list_response.status_code == 200
+    traces = list_response.json()["traces"]
+
+    # Find our uploaded trace
+    found = False
+    for trace in traces:
+        if trace["span_count"] == 1:  # Our test trace has 1 span
+            found = True
+            assert trace["uploaded_by"] == "otlp-http"
+            assert trace["metadata"]["source"] == "otlp-http"
+            break
+
+    assert found, "Should find trace uploaded via OTLP HTTP with binary protobuf"
+
+    logger.info("test_otlp_http_protobuf_binary_format() completed successfully")
+
+@pytest.mark.asyncio
+async def test_otlp_http_malformed_request(test_db, setup_test_models, org_and_users):
+    """Test OTLP HTTP endpoints with malformed request data"""
+    logger.info("test_otlp_http_malformed_request() start")
+
+    # Use the admin token from the test setup
+    admin_token = org_and_users["admin"]["token"]
+
+    # Test with invalid JSON
+    response = client.post(
+        "/v1/traces",
+        content="invalid json data",
+        headers={
+            "Authorization": f"Bearer {admin_token}",
+            "Content-Type": "application/json"
+        }
+    )
+
+    assert response.status_code == 400
+    assert "Invalid protobuf data" in response.json()["detail"]
+
+    # Test with empty body
+    response = client.post(
+        "/v1/traces",
+        content="",
+        headers={
+            "Authorization": f"Bearer {admin_token}",
+            "Content-Type": "application/json"
+        }
+    )
+
+    assert response.status_code == 400
+    assert "Empty request body" in response.json()["detail"]
+
+    logger.info("test_otlp_http_malformed_request() completed successfully")
+
+@pytest.mark.asyncio
+async def test_otlp_http_all_endpoints_roundtrip(test_db, setup_test_models, org_and_users):
+    """Test uploading all three telemetry types via OTLP HTTP and reading via HTTP"""
+    logger.info("test_otlp_http_all_endpoints_roundtrip() start")
+
+    import uuid
+    test_id = uuid.uuid4().hex[:8]
+
+    # Upload trace via OTLP HTTP
+    trace_request = create_otlp_trace_request(
+        trace_id_hex=f"{test_id}0123456789abcdef01234567"[:32],
+        span_id_hex="0123456789abcdef"
+    )
+    from google.protobuf.json_format import MessageToJson
+    trace_json = MessageToJson(trace_request)
+
+    # Use the admin token from the test setup
+    admin_token = org_and_users["admin"]["token"]
+
+    trace_response = client.post(
+        "/v1/traces",
+        content=trace_json,
+        headers={
+            "Authorization": f"Bearer {admin_token}",
+            "Content-Type": "application/json"
+        }
+    )
+    assert trace_response.status_code == 200
+
+    # Upload metric via OTLP HTTP
+    metric_request = create_otlp_metric_request(metric_name=f"otlp.http.complete.{test_id}")
+    metric_json = MessageToJson(metric_request)
+
+    metric_response = client.post(
+        "/v1/metrics",
+        content=metric_json,
+        headers={
+            "Authorization": f"Bearer {admin_token}",
+            "Content-Type": "application/json"
+        }
+    )
+    assert metric_response.status_code == 200
+
+    # Upload log via OTLP HTTP
+    log_request = create_otlp_log_request(body=f"OTLP HTTP complete test {test_id}")
+    log_json = MessageToJson(log_request)
+
+    log_response = client.post(
+        "/v1/logs",
+        content=log_json,
+        headers={
+            "Authorization": f"Bearer {admin_token}",
+            "Content-Type": "application/json"
+        }
+    )
+    assert log_response.status_code == 200
+
+    # Verify all three via HTTP
+    org_id = org_and_users["org_id"]
+    admin_token = org_and_users["admin"]["token"]
+    traces = client.get(
+        f"/v0/orgs/{org_id}/telemetry/traces",
+        headers=get_token_headers(admin_token)
+    )
+    assert traces.status_code == 200
+    assert any(t["uploaded_by"] == "otlp-http" for t in traces.json()["traces"])
+
+    metrics = client.get(
+        f"/v0/orgs/{org_id}/telemetry/metrics?name_search=otlp.http.complete.{test_id}",
+        headers=get_token_headers(admin_token)
+    )
+    assert metrics.status_code == 200
+    metrics_data = metrics.json()["metrics"]
+    assert len(metrics_data) >= 1
+    
+    # Verify new fields are present in OTLP HTTP complete test
+    otlp_metric = metrics_data[0]
+    assert "description" in otlp_metric
+    assert "unit" in otlp_metric
+    assert "data_points" in otlp_metric
+    assert "resource" in otlp_metric
+
+    logs = client.get(
+        f"/v0/orgs/{org_id}/telemetry/logs",
+        headers=get_token_headers(admin_token)
+    )
+    assert logs.status_code == 200
+    log_bodies = [l["body"] for l in logs.json()["logs"]]
+    assert any(f"OTLP HTTP complete test {test_id}" in body for body in log_bodies)
+
+    logger.info("test_otlp_http_all_endpoints_roundtrip() completed successfully")
+
+@pytest.mark.asyncio
+async def test_otlp_http_mixed_with_existing_endpoints(test_db, setup_test_models, org_and_users):
+    """Test that traces from OTLP HTTP, OTLP gRPC, and regular HTTP can coexist"""
+    logger.info("test_otlp_http_mixed_with_existing_endpoints() start")
+
+    # Upload via OTLP HTTP
+    trace_request = create_otlp_trace_request(
+        trace_id_hex="aabbccddeeff00112233445566778899",
+        span_id_hex="1122334455667788"
+    )
+    from google.protobuf.json_format import MessageToJson
+    trace_json = MessageToJson(trace_request)
+
+    # Use the admin token from the test setup
+    admin_token = org_and_users["admin"]["token"]
+
+    http_otlp_response = client.post(
+        "/v1/traces",
+        content=trace_json,
+        headers={
+            "Authorization": f"Bearer {admin_token}",
+            "Content-Type": "application/json"
+        }
+    )
+    assert http_otlp_response.status_code == 200
+
+    # Upload via regular HTTP
+    regular_trace_data = {
+        "traces": [{
+            "resource_spans": [{
+                "scope_spans": [{
+                    "spans": [{
+                        "traceId": "regular0123456789abcdef0123456789ab",
+                        "spanId": "regular01234567",
+                        "name": "regular-span",
+                        "kind": 1,
+                        "startTimeUnixNano": str(int(datetime.now(UTC).timestamp() * 1e9)),
+                        "endTimeUnixNano": str(int(datetime.now(UTC).timestamp() * 1e9) + 1000000)
+                    }]
+                }]
+            }],
+            "metadata": {"source": "regular-http"}
+        }]
+    }
+
+    org_id = org_and_users["org_id"]
+    admin_token = org_and_users["admin"]["token"]
+    regular_response = client.post(
+        f"/v0/orgs/{org_id}/telemetry/traces",
+        json=regular_trace_data,
+        headers=get_token_headers(admin_token)
+    )
+    assert regular_response.status_code == 200
+
+    # Upload via OTLP gRPC
+    from docrouter_app.routes.otlp_server import export_traces
+    grpc_request = create_otlp_trace_request(
+        trace_id_hex="aabbccddeeff00112233445566778899",
+        span_id_hex="1122334455667788"
+    )
+
+    class MockGRPCContext:
+        def __init__(self):
+            self.metadata = {'organization-id': org_id}
+        def invocation_metadata(self):
+            return [(k, v) for k, v in self.metadata.items()]
+        def set_code(self, code):
+            self.code = code
+        def set_details(self, details):
+            self.details = details
+
+    context = MockGRPCContext()
+    await export_traces(grpc_request, context, org_id)
+
+    # List all traces
+    list_response = client.get(
+        f"/v0/orgs/{org_id}/telemetry/traces?limit=100",
+        headers=get_token_headers(admin_token)
+    )
+
+    assert list_response.status_code == 200
+    traces = list_response.json()["traces"]
+
+    # Should have traces from all three sources
+    sources = set()
+    for trace in traces:
+        if "uploaded_by" in trace:
+            sources.add(trace["uploaded_by"])
+
+    # We should see otlp-http, otlp-grpc, and the test user
+    assert len(sources) >= 3, "Should have traces from OTLP HTTP, OTLP gRPC, and regular HTTP sources"
+
+    logger.info("test_otlp_http_mixed_with_existing_endpoints() completed successfully")
 
 # OTLP gRPC Upload Tests
 

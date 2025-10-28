@@ -36,7 +36,7 @@ _otlp_server = None
 _organization_services: Dict[str, Dict[str, any]] = {}
 
 # OTLP Service Functions
-async def export_traces(request: ExportTraceServiceRequest, context, organization_id: str):
+async def export_traces(request: ExportTraceServiceRequest, context, organization_id: str, source: str = "otlp-grpc"):
     """Export traces via OTLP gRPC"""
     try:
         logger.info(f"OTLP Export traces for org {organization_id}: {len(request.resource_spans)} resource spans")
@@ -48,7 +48,7 @@ async def export_traces(request: ExportTraceServiceRequest, context, organizatio
             trace_data = {
                 "resource_spans": [convert_resource_span(resource_span)],
                 "tag_ids": [],
-                "metadata": {"source": "otlp-grpc"}
+                "metadata": {"source": source}
             }
             traces.append(trace_data)
 
@@ -74,7 +74,7 @@ async def export_traces(request: ExportTraceServiceRequest, context, organizatio
                 "resource_spans": trace_data["resource_spans"],
                 "span_count": span_count,
                 "upload_date": datetime.now(UTC),
-                "uploaded_by": "otlp-grpc",
+                "uploaded_by": source,
                 "tag_ids": trace_data["tag_ids"],
                 "metadata": trace_data["metadata"],
                 "organization_id": organization_id
@@ -146,7 +146,7 @@ def convert_resource_span(resource_span):
 
     return result
 
-async def export_metrics(request: ExportMetricsServiceRequest, context, organization_id: str):
+async def export_metrics(request: ExportMetricsServiceRequest, context, organization_id: str, source: str = "otlp-grpc"):
     """Export metrics via OTLP gRPC"""
     try:
         logger.info(f"OTLP Export metrics for org {organization_id}: {len(request.resource_metrics)} resource metrics")
@@ -164,7 +164,7 @@ async def export_metrics(request: ExportMetricsServiceRequest, context, organiza
                         "data_points": convert_data_points(metric),
                         "resource": convert_resource(resource_metric.resource),
                         "tag_ids": [],
-                        "metadata": {"source": "otlp-grpc"}
+                        "metadata": {"source": source}
                     }
                     metrics.append(metric_data)
 
@@ -187,7 +187,7 @@ async def export_metrics(request: ExportMetricsServiceRequest, context, organiza
                 "resource": metric_data["resource"],
                 "data_point_count": len(metric_data["data_points"]),
                 "upload_date": datetime.now(UTC),
-                "uploaded_by": "otlp-grpc",
+                "uploaded_by": source,
                 "tag_ids": metric_data["tag_ids"],
                 "metadata": metric_data["metadata"],
                 "organization_id": organization_id
@@ -264,7 +264,7 @@ def convert_resource(resource):
         ]
     }
 
-async def export_logs(request: ExportLogsServiceRequest, context, organization_id: str):
+async def export_logs(request: ExportLogsServiceRequest, context, organization_id: str, source: str = "otlp-grpc"):
     """Export logs via OTLP gRPC"""
     try:
         logger.info(f"OTLP Export logs for org {organization_id}: {len(request.resource_logs)} resource logs")
@@ -283,7 +283,7 @@ async def export_logs(request: ExportLogsServiceRequest, context, organization_i
                         "trace_id": log_record.trace_id.hex() if log_record.trace_id else None,
                         "span_id": log_record.span_id.hex() if log_record.span_id else None,
                         "tag_ids": [],
-                        "metadata": {"source": "otlp-grpc"}
+                        "metadata": {"source": source}
                     }
                     logs.append(log_data)
                     logger.info(f"Processed log record: severity={log_data['severity']}, body='{log_data['body'][:100]}...'")
@@ -309,7 +309,7 @@ async def export_logs(request: ExportLogsServiceRequest, context, organization_i
                 "trace_id": log_data["trace_id"],
                 "span_id": log_data["span_id"],
                 "upload_date": datetime.now(UTC),
-                "uploaded_by": "otlp-grpc",
+                "uploaded_by": source,
                 "tag_ids": log_data["tag_ids"],
                 "metadata": log_data["metadata"],
                 "organization_id": organization_id
