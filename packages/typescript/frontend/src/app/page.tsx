@@ -51,7 +51,8 @@ const Home = () => {
                   >
                     Create an organization access token
                   </a>
-                  &nbsp;and use it in the settings below. Then, add the following configuration to your <code>~/.claude/settings.json</code> file:
+                  &nbsp;and use it in the settings below. Then, add the following configuration to your <code>~/.claude/settings.json</code> file. <br>
+                  </br>You must use <code>http/protobuf</code> as the protocol.
                 </p>
               </div>
               <div className="bg-gray-900 rounded-lg p-6 text-green-400 font-mono text-xs overflow-x-auto">
@@ -84,12 +85,6 @@ const Home = () => {
                 </div>
                 <div className="ml-8 mb-2">
                   <span className="text-blue-400">&quot;OTEL_EXPORTER_OTLP_HEADERS&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;Authorization=Bearer YOUR_ORG_ACCESS_TOKEN&quot;</span><span className="text-white">,</span>
-                </div>
-                <div className="ml-8 mb-2">
-                  <span className="text-blue-400">&quot;SIGAGENT_URL&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;{getFastApiUrl()}&quot;</span><span className="text-white">,</span>
-                </div>
-                <div className="ml-8 mb-2">
-                  <span className="text-blue-400">&quot;SIGAGENT_TOKEN&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;YOUR_ORG_ACCESS_TOKEN&quot;</span>
                 </div>
                 <div className="ml-4 mb-2">
                   <span className="text-yellow-400">{'}'}</span>
