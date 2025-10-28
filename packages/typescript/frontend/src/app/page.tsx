@@ -11,8 +11,8 @@ const Home = () => {
     if (typeof window === 'undefined') return '';
     const baseUrl = window.location.origin;
     const url = new URL(baseUrl);
-    // Strip any existing port and use 4317
-    return `${url.protocol}//${url.hostname}:4317`;
+    // Always use http:// for OTLP endpoint, regardless of current protocol
+    return `http://${url.hostname}:4317`;
   };
 
   // Get the base URL for internal links
