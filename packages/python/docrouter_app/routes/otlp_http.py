@@ -9,47 +9,26 @@ from fastapi.responses import Response
 import analytiq_data as ad
 from docrouter_app.auth import get_org_user
 from docrouter_app.models import User
+from docrouter_app.auth import get_org_id_from_token
 
 logger = logging.getLogger(__name__)
 
 # Create router for OTLP HTTP endpoints
 otlp_http_router = APIRouter(prefix="/v1", tags=["otlp-http"])
 
-async def get_organization_from_token(request: Request) -> Optional[str]:
-    """Extract organization ID from Authorization header"""
-    try:
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            logger.warning("OTLP HTTP: Missing or invalid Authorization header")
-            return None
-        
-        token = auth_header[7:]  # Remove "Bearer " prefix
-        
-        # Validate token and get organization
-        analytiq_client = ad.common.get_analytiq_client()
-        db = ad.common.get_async_db(analytiq_client)
-        
-        # Find organization by token
-        org = await db.organizations.find_one({"api_tokens.token": token})
-        if org:
-            logger.info(f"OTLP HTTP: Valid token for organization {org['_id']}")
-            return str(org["_id"])
-        else:
-            logger.warning("OTLP HTTP: Invalid token")
-            return None
-            
-    except Exception as e:
-        logger.error(f"OTLP HTTP token validation failed: {e}")
-        return None
-
 @otlp_http_router.post("/traces")
 async def export_traces_http(request: Request):
     """Export traces via OTLP HTTP"""
     try:
         # Get organization from token
-        organization_id = await get_organization_from_token(request)
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+        
+        token = auth_header[7:]  # Remove "Bearer " prefix
+        organization_id = await get_org_id_from_token(token)
         if not organization_id:
-            raise HTTPException(status_code=401, detail="Invalid or missing authorization token")
+            raise HTTPException(status_code=401, detail="Invalid token or account-level token not supported")
         
         # Read the request body
         body = await request.body()
@@ -87,9 +66,14 @@ async def export_metrics_http(request: Request):
     """Export metrics via OTLP HTTP"""
     try:
         # Get organization from token
-        organization_id = await get_organization_from_token(request)
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+        
+        token = auth_header[7:]  # Remove "Bearer " prefix
+        organization_id = await get_org_id_from_token(token)
         if not organization_id:
-            raise HTTPException(status_code=401, detail="Invalid or missing authorization token")
+            raise HTTPException(status_code=401, detail="Invalid token or account-level token not supported")
         
         # Read the request body
         body = await request.body()
@@ -125,9 +109,14 @@ async def export_logs_http(request: Request):
     """Export logs via OTLP HTTP"""
     try:
         # Get organization from token
-        organization_id = await get_organization_from_token(request)
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+        
+        token = auth_header[7:]  # Remove "Bearer " prefix
+        organization_id = await get_org_id_from_token(token)
         if not organization_id:
-            raise HTTPException(status_code=401, detail="Invalid or missing authorization token")
+            raise HTTPException(status_code=401, detail="Invalid token or account-level token not supported")
         
         # Read the request body
         body = await request.body()
