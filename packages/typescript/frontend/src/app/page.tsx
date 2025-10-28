@@ -6,15 +6,6 @@ const Home = () => {
   const [otlpEndpoint, setOtlpEndpoint] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
 
-  // Get the base URL from window.location and replace the port with 4317
-  const getOtlpEndpoint = () => {
-    if (typeof window === 'undefined') return '';
-    const baseUrl = window.location.origin;
-    const url = new URL(baseUrl);
-    // Always use http:// for OTLP endpoint, regardless of current protocol
-    return `http://${url.hostname}:4317`;
-  };
-
   // Get the base URL for internal links
   const getBaseUrl = () => {
     if (typeof window === 'undefined') return '';
@@ -27,7 +18,7 @@ const Home = () => {
   };
 
   useEffect(() => {
-    setOtlpEndpoint(getOtlpEndpoint());
+    setOtlpEndpoint(getFastApiUrl());
     setBaseUrl(getBaseUrl());
   }, []);
   return (
@@ -86,7 +77,7 @@ const Home = () => {
                   <span className="text-blue-400">&quot;OTEL_LOGS_EXPORTER&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;otlp&quot;</span><span className="text-white">,</span>
                 </div>
                 <div className="ml-8 mb-2">
-                  <span className="text-blue-400">&quot;OTEL_EXPORTER_OTLP_PROTOCOL&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;grpc&quot;</span><span className="text-white">,</span>
+                  <span className="text-blue-400">&quot;OTEL_EXPORTER_OTLP_PROTOCOL&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;http/protobuf&quot;</span><span className="text-white">,</span>
                 </div>
                 <div className="ml-8 mb-2">
                   <span className="text-blue-400">&quot;OTEL_EXPORTER_OTLP_ENDPOINT&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;{otlpEndpoint}&quot;</span><span className="text-white">,</span>
