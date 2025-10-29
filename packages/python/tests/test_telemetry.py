@@ -1630,7 +1630,7 @@ async def test_otlp_http_mixed_with_existing_endpoints(test_db, setup_test_model
     assert regular_response.status_code == 200
 
     # Upload via OTLP gRPC
-    from docrouter_app.routes.otlp_server import export_traces
+    from app.routes.otlp_server import export_traces
     grpc_request = create_otlp_trace_request(
         trace_id_hex="aabbccddeeff00112233445566778899",
         span_id_hex="1122334455667788"
@@ -1677,7 +1677,7 @@ async def test_otlp_grpc_upload_traces(test_db, mock_auth, setup_test_models):
     logger.info("test_otlp_grpc_upload_traces() start")
 
     # Import OTLP server module to access export functions directly
-    from docrouter_app.routes.otlp_server import export_traces
+    from app.routes.otlp_server import export_traces
 
     # Create OTLP trace request
     otlp_request = create_otlp_trace_request(
@@ -1734,7 +1734,7 @@ async def test_otlp_grpc_upload_metrics(test_db, mock_auth, setup_test_models):
     """Test uploading metrics via OTLP gRPC and reading via HTTP"""
     logger.info("test_otlp_grpc_upload_metrics() start")
 
-    from docrouter_app.routes.otlp_server import export_metrics
+    from app.routes.otlp_server import export_metrics
 
     # Create OTLP metric request
     otlp_request = create_otlp_metric_request(metric_name="otlp.grpc.test.metric")
@@ -1788,7 +1788,7 @@ async def test_otlp_grpc_upload_logs(test_db, mock_auth, setup_test_models):
     """Test uploading logs via OTLP gRPC and reading via HTTP"""
     logger.info("test_otlp_grpc_upload_logs() start")
 
-    from docrouter_app.routes.otlp_server import export_logs
+    from app.routes.otlp_server import export_logs
 
     # Create OTLP log request
     unique_message = f"OTLP gRPC test log message {datetime.now(UTC).isoformat()}"
@@ -1838,7 +1838,7 @@ async def test_mixed_upload_sources(test_db, mock_auth, setup_test_models):
     """Test that traces from both OTLP gRPC and HTTP can be listed together"""
     logger.info("test_mixed_upload_sources() start")
 
-    from docrouter_app.routes.otlp_server import export_traces
+    from app.routes.otlp_server import export_traces
 
     # Upload via OTLP gRPC
     otlp_request = create_otlp_trace_request(
@@ -2016,7 +2016,7 @@ async def test_all_telemetry_types_otlp_to_http(test_db, mock_auth, setup_test_m
     """Test uploading all three telemetry types via OTLP and reading via HTTP"""
     logger.info("test_all_telemetry_types_otlp_to_http() start")
 
-    from docrouter_app.routes.otlp_server import export_traces, export_metrics, export_logs
+    from app.routes.otlp_server import export_traces, export_metrics, export_logs
 
     import uuid
     test_id = uuid.uuid4().hex[:8]

@@ -12,8 +12,8 @@ from fastapi import APIRouter, Depends, HTTPException, Body, Request, Query
 from pydantic import BaseModel, Field
 
 import analytiq_data as ad
-from docrouter_app.auth import get_current_user, get_org_id_from_token, get_org_user
-from docrouter_app.models import User
+from app.auth import get_current_user, get_org_id_from_token, get_org_user
+from app.models import User
 
 logger = logging.getLogger(__name__)
 

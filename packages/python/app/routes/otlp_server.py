@@ -407,7 +407,7 @@ async def get_organization_from_token(context) -> Optional[str]:
     logger.info(f"OTLP extracted token (first 10 chars): {token[:10]}...")
 
     # Use the centralized auth function
-    from docrouter_app.auth import get_org_id_from_token
+    from app.auth import get_org_id_from_token
     try:
         organization_id = await get_org_id_from_token(token)
         logger.info(f"OTLP organization ID from token: {organization_id}")

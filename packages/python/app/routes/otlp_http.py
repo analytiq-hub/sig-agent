@@ -7,9 +7,9 @@ from typing import Optional
 from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.responses import Response
 import analytiq_data as ad
-from docrouter_app.auth import get_org_user
-from docrouter_app.models import User
-from docrouter_app.auth import get_org_id_from_token
+from app.auth import get_org_user
+from app.models import User
+from app.auth import get_org_id_from_token
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ async def export_traces_http(request: Request):
         body = await request.body()
         
         # Import the OTLP server functions
-        from docrouter_app.routes.otlp_server import export_traces
+        from app.routes.otlp_server import export_traces
         
         # Parse the protobuf data
         from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
@@ -88,7 +88,7 @@ async def export_metrics_http(request: Request):
         body = await request.body()
         
         # Import the OTLP server functions
-        from docrouter_app.routes.otlp_server import export_metrics
+        from app.routes.otlp_server import export_metrics
         
         # Parse the protobuf data
         from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import ExportMetricsServiceRequest
@@ -140,7 +140,7 @@ async def export_logs_http(request: Request):
         body = await request.body()
         
         # Import the OTLP server functions
-        from docrouter_app.routes.otlp_server import export_logs
+        from app.routes.otlp_server import export_logs
         
         # Parse the protobuf data
         from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import ExportLogsServiceRequest
