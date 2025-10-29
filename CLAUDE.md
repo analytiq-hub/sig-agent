@@ -55,10 +55,10 @@ The Smart Document Router is a full-stack document processing platform with huma
 - LLM integrations via LiteLLM (OpenAI, Anthropic, Gemini, Groq)
 - Document processing pipelines
 
-**SDK (`packages/python/docrouter_sdk/`)**
+**SDK (`packages/python/sdk/`)**
 - Python client library for API integration
 - Type-safe models and API clients
-- Examples in `packages/python/docrouter_sdk/examples/`
+- Examples in `packages/python/sdk/examples/`
 
 ### Key Architectural Patterns
 

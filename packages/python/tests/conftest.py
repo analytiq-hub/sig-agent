@@ -14,7 +14,7 @@ from filelock import FileLock
 cwd = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(f"{cwd}/..")
 # Ensure SDK src is importable without editable install
-sdk_src_path = os.path.normpath(os.path.join(cwd, "../docrouter_sdk/src"))
+sdk_src_path = os.path.normpath(os.path.join(cwd, "../sdk/src"))
 if os.path.isdir(sdk_src_path) and sdk_src_path not in sys.path:
     sys.path.append(sdk_src_path)
 
