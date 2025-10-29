@@ -173,26 +173,84 @@ function writeClaudeSettings(server: string, token?: string) {
 }
 
 function updateMarketplaceConfig(marketplaceUrl: string) {
-  const claudeDir = path.join(os.homedir(), '.claude');
+  // Update ~/.claude/settings.json with the marketplace entry under extraKnownMarketplaces
+  const { claudeDir, settingsPath } = getClaudePaths();
   ensureDirExists(claudeDir);
-  const marketplacesPath = path.join(claudeDir, 'marketplaces.json');
 
-  let data: { marketplaces: string[] } = { marketplaces: [] };
-  if (fs.existsSync(marketplacesPath)) {
+  // Helper: parse GitHub URL to owner/repo and choose a marketplace id
+  function parseGitHubRepo(inputUrl: string): { ownerRepo: string | null; id: string | null } {
     try {
-      data = JSON.parse(fs.readFileSync(marketplacesPath, 'utf-8'));
+      // Accept forms like:
+      // - https://github.com/owner/repo.git
+      // - https://github.com/owner/repo
+      // - git@github.com:owner/repo.git
+      // - owner/repo
+      let ownerRepo: string | null = null;
+      let id: string | null = null;
+
+      // SSH form
+      const sshMatch = /^git@github\.com:(.+?)\/?$/.exec(inputUrl.trim());
+      if (sshMatch) {
+        ownerRepo = sshMatch[1].replace(/\.git$/i, '');
+      }
+
+      // HTTPS form
+      if (!ownerRepo && inputUrl.includes('github.com')) {
+        try {
+          const u = new URL(inputUrl);
+          const parts = u.pathname.replace(/^\//, '').split('/').filter(Boolean);
+          if (parts.length >= 2) {
+            ownerRepo = `${parts[0]}/${parts[1].replace(/\.git$/i, '')}`;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // owner/repo form
+      if (!ownerRepo && /.+\/.+/.test(inputUrl)) {
+        ownerRepo = inputUrl.trim().replace(/\.git$/i, '');
+      }
+
+      if (ownerRepo) {
+        const repoName = ownerRepo.split('/')[1];
+        id = repoName || ownerRepo.replace(/[\/]/g, '-');
+      }
+
+      return { ownerRepo, id };
     } catch {
-      // If corrupted, overwrite with fresh structure
-      data = { marketplaces: [] };
+      return { ownerRepo: null, id: null };
     }
   }
 
-  if (!data.marketplaces.includes(marketplaceUrl)) {
-    data.marketplaces.push(marketplaceUrl);
-    fs.writeFileSync(marketplacesPath, JSON.stringify(data, null, 2), 'utf-8');
+  // Read existing settings or initialize baseline
+  let settings: any = {};
+  if (fs.existsSync(settingsPath)) {
+    try {
+      const raw = fs.readFileSync(settingsPath, 'utf-8');
+      settings = JSON.parse(raw || '{}');
+    } catch {
+      settings = {};
+    }
   }
 
-  return marketplacesPath;
+  const { ownerRepo, id } = parseGitHubRepo(marketplaceUrl);
+  if (!ownerRepo || !id) {
+    throw new Error(`Unable to parse GitHub repository from marketplace: ${marketplaceUrl}`);
+  }
+
+  const next = {
+    $schema: settings.$schema || 'https://json.schemastore.org/claude-code-settings.json',
+    ...settings,
+    extraKnownMarketplaces: {
+      ...(settings.extraKnownMarketplaces || {}),
+      [id]: { source: { source: 'github', repo: ownerRepo } }
+    }
+    // Note: we intentionally do not auto-enable specific plugins here.
+  };
+
+  fs.writeFileSync(settingsPath, JSON.stringify(next, null, 2), 'utf-8');
+  return settingsPath;
 }
 
 async function performSetup(opts: SetupOptions) {
@@ -276,9 +334,9 @@ Opening ${chalk.underline(tokenUrl.toString())} in your browser...
     const settingsPath = writeClaudeSettings(server, effectiveToken);
     spinner.succeed(`Updated ${chalk.cyan(settingsPath)} with telemetry configuration`);
 
-    const spinnerMk = ora('Adding SigAgent marketplace...').start();
-    const mpPath = updateMarketplaceConfig(marketplace);
-    spinnerMk.succeed(`Ensured marketplace at ${chalk.cyan(mpPath)}`);
+  const spinnerMk = ora('Adding SigAgent marketplace to Claude settings...').start();
+  const mpPath = updateMarketplaceConfig(marketplace);
+  spinnerMk.succeed(`Updated ${chalk.cyan(mpPath)} with extraKnownMarketplaces entry`);
 
     console.log(`\n${chalk.green('Setup complete.')} Restart Claude to apply changes.`);
   } catch (err: any) {
@@ -320,5 +378,6 @@ program
   });
 
 program.parseAsync(process.argv);
+
 
 
