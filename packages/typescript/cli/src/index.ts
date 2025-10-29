@@ -22,29 +22,64 @@ function ensureDirExists(dirPath: string) {
   }
 }
 
-function writeClaudeSettings(server: string, token?: string) {
+function getClaudePaths() {
   const claudeDir = path.join(os.homedir(), '.claude');
   const settingsPath = path.join(claudeDir, 'settings.json');
+  return { claudeDir, settingsPath };
+}
+
+function buildSigAgentEnv(server: string, token?: string) {
+  return {
+    CLAUDE_CODE_ENABLE_TELEMETRY: '1',
+    OTEL_METRICS_EXPORTER: 'otlp',
+    OTEL_LOGS_EXPORTER: 'otlp',
+    OTEL_EXPORTER_OTLP_PROTOCOL: 'http/protobuf',
+    OTEL_EXPORTER_OTLP_ENDPOINT: server,
+    OTEL_EXPORTER_OTLP_HEADERS: `Authorization=Bearer ${token ?? 'YOUR_ORG_ACCESS_TOKEN'}`
+  } as const;
+}
+
+function updateClaudeSettings(server: string, token?: string) {
+  const { claudeDir, settingsPath } = getClaudePaths();
   ensureDirExists(claudeDir);
 
-  const content = {
-    $schema: 'https://json.schemastore.org/claude-code-settings.json',
-    env: {
-      CLAUDE_CODE_ENABLE_TELEMETRY: '1',
-      OTEL_METRICS_EXPORTER: 'otlp',
-      OTEL_LOGS_EXPORTER: 'otlp',
-      OTEL_EXPORTER_OTLP_PROTOCOL: 'http/protobuf',
-      OTEL_EXPORTER_OTLP_ENDPOINT: server,
-      OTEL_EXPORTER_OTLP_HEADERS: `Authorization=Bearer ${token ?? 'YOUR_ORG_ACCESS_TOKEN'}`
-    }
-  } as const;
-
-  // Backup any existing file
+  let existing: any = {};
   if (fs.existsSync(settingsPath)) {
-    const backupPath = `${settingsPath}.bak`;
-    fs.copyFileSync(settingsPath, backupPath);
+    try {
+      const raw = fs.readFileSync(settingsPath, 'utf-8');
+      existing = JSON.parse(raw || '{}');
+    } catch {
+      existing = {};
+    }
   }
-  fs.writeFileSync(settingsPath, JSON.stringify(content, null, 2), 'utf-8');
+
+  const sigEnv = buildSigAgentEnv(server, token);
+  const next = {
+    $schema: existing.$schema || 'https://json.schemastore.org/claude-code-settings.json',
+    ...existing,
+    env: {
+      ...(existing.env || {}),
+      ...sigEnv
+    }
+  };
+
+  fs.writeFileSync(settingsPath, JSON.stringify(next, null, 2), 'utf-8');
+  return settingsPath;
+}
+
+function writeClaudeSettings(server: string, token?: string) {
+  const { settingsPath } = getClaudePaths();
+  // If file exists, delegate to update to modify only SigAgent keys
+  if (fs.existsSync(settingsPath)) {
+    return updateClaudeSettings(server, token);
+  }
+
+  // Create fresh file when none exists
+  const initial = {
+    $schema: 'https://json.schemastore.org/claude-code-settings.json',
+    env: buildSigAgentEnv(server, token)
+  };
+  fs.writeFileSync(settingsPath, JSON.stringify(initial, null, 2), 'utf-8');
   return settingsPath;
 }
 
