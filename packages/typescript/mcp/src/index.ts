@@ -15,7 +15,7 @@ import { fileURLToPath } from 'url';
 
 // Configuration schema
 const ConfigSchema = z.object({
-  baseURL: z.string().default('https://app.docrouter.ai/fastapi'),
+  baseURL: z.string().default('https://app.sigagent.ai/fastapi'),
   orgToken: z.string(),
   timeout: z.number().default(30000),
   retries: z.number().default(3),
@@ -53,7 +53,7 @@ function showHelp() {
 SigAgent MCP Server v0.1.0
 
 USAGE:
-    docrouter-mcp [OPTIONS]
+    sigagent-mcp [OPTIONS]
 
 DESCRIPTION:
     SigAgent MCP (Model Context Protocol) server that provides access to SigAgent
@@ -61,7 +61,7 @@ DESCRIPTION:
 
 OPTIONS:
     --url <URL>              SigAgent API base URL
-                            (default: https://app.docrouter.ai/fastapi)
+                            (default: https://app.sigagent.ai/fastapi)
     --org-token <TOKEN>      SigAgent organization API token (required)
     --timeout <MS>           Request timeout in milliseconds (default: 30000)
     --retries <COUNT>        Number of retry attempts (default: 3)
@@ -70,25 +70,25 @@ OPTIONS:
     -h, --help               Show this help message
 
 ENVIRONMENT VARIABLES:
-    DOCROUTER_API_URL        SigAgent API base URL
-    DOCROUTER_ORG_API_TOKEN  SigAgent organization API token (required)
+    SIGAGENT_API_URL        SigAgent API base URL
+    SIGAGENT_ORG_API_TOKEN  SigAgent organization API token (required)
 
 EXAMPLES:
     # Using command line arguments (organization ID will be resolved from token)
-    docrouter-mcp --org-token "token456"
+    sigagent-mcp --org-token "token456"
 
     # Using environment variables (organization ID will be resolved from token)
-    export DOCROUTER_ORG_API_TOKEN="token456"
-    docrouter-mcp
+    export SIGAGENT_ORG_API_TOKEN="token456"
+    sigagent-mcp
 
     # With custom API URL
-    docrouter-mcp --url "https://custom.docrouter.ai/fastapi" --org-token "token456"
+    sigagent-mcp --url "https://custom.sigagent.ai/fastapi" --org-token "token456"
 
 REQUIRED:
     DOCROUTER_ORG_API_TOKEN environment variable or --org-token argument.
     Organization ID will be automatically resolved from the token.
 
-For more information about SigAgent, visit: https://docrouter.ai
+For more information about SigAgent, visit: https://sigagent.ai
 `);
 }
 
@@ -136,8 +136,8 @@ function parseConfig(): Config {
   }
 
   // Fall back to environment variables
-  config.baseURL = config.baseURL || process.env.DOCROUTER_API_URL || 'https://app.docrouter.ai/fastapi';
-  config.orgToken = config.orgToken || process.env.DOCROUTER_ORG_API_TOKEN || '';
+  config.baseURL = config.baseURL || process.env.SIGAGENT_API_URL || 'https://app.sigagent.ai/fastapi';
+  config.orgToken = config.orgToken || process.env.SIGAGENT_ORG_API_TOKEN || '';
 
   return ConfigSchema.parse(config);
 }
@@ -145,7 +145,7 @@ function parseConfig(): Config {
 // Create the MCP server
 const server = new Server(
   {
-    name: 'docrouter-mcp',
+    name: 'sigagent-mcp',
     version: '0.1.0',
   },
   {
@@ -156,7 +156,7 @@ const server = new Server(
 );
 
 // Global SigAgent client
-let docrouterClient: SigAgentOrg;
+let sigagentClient: SigAgentOrg;
 
 // Initialize SigAgent client
 async function initializeClient(config: Config) {
@@ -178,7 +178,7 @@ async function initializeClient(config: Config) {
     
     console.error(`Resolved organization ID: ${organizationId}`);
     
-    docrouterClient = new SigAgentOrg({
+    sigagentClient = new SigAgentOrg({
       baseURL: config.baseURL,
       orgToken: config.orgToken,
       organizationId: organizationId,
@@ -1224,7 +1224,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     switch (name) {
       case 'list_documents': {
-        const result = await docrouterClient.listDocuments({
+        const result = await sigagentClient.listDocuments({
           skip: getOptionalArg(args, 'skip', 0),
           limit: getOptionalArg(args, 'limit', 10),
           nameSearch: getOptionalArg(args, 'nameSearch'),
@@ -1241,7 +1241,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_document': {
-        const result = await docrouterClient.getDocument({
+        const result = await sigagentClient.getDocument({
           documentId: getArg(args, 'documentId'),
           fileType: getArg(args, 'fileType', 'pdf'),
         });
@@ -1265,7 +1265,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_ocr_text': {
-        const result = await docrouterClient.getOCRText({
+        const result = await sigagentClient.getOCRText({
           documentId: getArg(args, 'documentId'),
           pageNum: getOptionalArg(args, 'pageNum'),
         });
@@ -1280,7 +1280,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_ocr_metadata': {
-        const result = await docrouterClient.getOCRMetadata({
+        const result = await sigagentClient.getOCRMetadata({
           documentId: getArg(args, 'documentId'),
         });
         return {
@@ -1294,7 +1294,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'list_tags': {
-        const result = await docrouterClient.listTags({
+        const result = await sigagentClient.listTags({
           skip: getOptionalArg(args, 'skip', 0),
           limit: getOptionalArg(args, 'limit', 10),
           nameSearch: getOptionalArg(args, 'nameSearch'),
@@ -1310,7 +1310,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_tag': {
-        const result = await docrouterClient.getTag({
+        const result = await sigagentClient.getTag({
           tagId: getArg(args, 'tagId'),
         });
         return {
@@ -1324,7 +1324,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'list_prompts': {
-        const result = await docrouterClient.listPrompts({
+        const result = await sigagentClient.listPrompts({
           skip: getOptionalArg(args, 'skip', 0),
           limit: getOptionalArg(args, 'limit', 10),
           nameSearch: getOptionalArg(args, 'nameSearch'),
@@ -1342,7 +1342,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_prompt': {
-        const result = await docrouterClient.getPrompt({
+        const result = await sigagentClient.getPrompt({
           promptRevId: getArg(args, 'promptRevId'),
         });
         return {
@@ -1356,7 +1356,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_llm_result': {
-        const result = await docrouterClient.getLLMResult({
+        const result = await sigagentClient.getLLMResult({
           documentId: getArg(args, 'documentId'),
           promptRevId: getArg(args, 'promptRevId'),
           fallback: getOptionalArg(args, 'fallback', false),
@@ -1373,7 +1373,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 
       case 'run_llm': {
-        const result = await docrouterClient.runLLM({
+        const result = await sigagentClient.runLLM({
           documentId: getArg(args, 'documentId'),
           promptRevId: getArg(args, 'promptRevId'),
           force: getOptionalArg(args, 'force', false),
@@ -1392,7 +1392,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'upload_documents': {
         const documentsInput = getArg(args, 'documents') as Array<{ name: string; content: string; tag_ids?: string[]; metadata?: Record<string, string>; }>;
         // No need to convert content - SDK now accepts base64 strings directly
-        const result = await docrouterClient.uploadDocuments({ documents: documentsInput });
+        const result = await sigagentClient.uploadDocuments({ documents: documentsInput });
         return {
           content: [
             {
@@ -1404,7 +1404,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'update_document': {
-        const result = await docrouterClient.updateDocument({
+        const result = await sigagentClient.updateDocument({
           documentId: getArg(args, 'documentId'),
           documentName: getOptionalArg(args, 'documentName'),
           tagIds: getOptionalArg(args, 'tagIds'),
@@ -1421,7 +1421,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'delete_document': {
-        const result = await docrouterClient.deleteDocument({
+        const result = await sigagentClient.deleteDocument({
           documentId: getArg(args, 'documentId'),
         });
         return {
@@ -1436,7 +1436,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // ========== OCR ==========
       case 'get_ocr_blocks': {
-        const result = await docrouterClient.getOCRBlocks({
+        const result = await sigagentClient.getOCRBlocks({
           documentId: getArg(args, 'documentId'),
         });
         return {
@@ -1451,7 +1451,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // ========== LLM ==========
       case 'update_llm_result': {
-        const result = await docrouterClient.updateLLMResult({
+        const result = await sigagentClient.updateLLMResult({
           documentId: getArg(args, 'documentId'),
           promptId: getArg(args, 'promptId'),
           result: getArg(args, 'result'),
@@ -1468,7 +1468,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'delete_llm_result': {
-        const result = await docrouterClient.deleteLLMResult({
+        const result = await sigagentClient.deleteLLMResult({
           documentId: getArg(args, 'documentId'),
           promptId: getArg(args, 'promptId'),
         });
@@ -1485,7 +1485,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // ========== TAGS ==========
       case 'create_tag': {
-        const result = await docrouterClient.createTag({
+        const result = await sigagentClient.createTag({
           tag: getArg(args, 'tag'),
         });
         return {
@@ -1499,7 +1499,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'update_tag': {
-        const result = await docrouterClient.updateTag({
+        const result = await sigagentClient.updateTag({
           tagId: getArg(args, 'tagId'),
           tag: getArg(args, 'tag'),
         });
@@ -1514,7 +1514,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'delete_tag': {
-        const result = await docrouterClient.deleteTag({
+        const result = await sigagentClient.deleteTag({
           tagId: getArg(args, 'tagId'),
         });
         return {
@@ -1529,7 +1529,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // ========== FORMS ==========
       case 'create_form': {
-        const result = await docrouterClient.createForm({
+        const result = await sigagentClient.createForm({
           name: getArg(args, 'name'),
           response_format: getArg(args, 'response_format'),
         });
@@ -1544,7 +1544,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'list_forms': {
-        const result = await docrouterClient.listForms({
+        const result = await sigagentClient.listForms({
           skip: getOptionalArg(args, 'skip', 0),
           limit: getOptionalArg(args, 'limit', 10),
           tag_ids: getOptionalArg(args, 'tag_ids'),
@@ -1560,7 +1560,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_form': {
-        const result = await docrouterClient.getForm({
+        const result = await sigagentClient.getForm({
           formRevId: getArg(args, 'formRevId'),
         });
         return {
@@ -1574,7 +1574,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'update_form': {
-        const result = await docrouterClient.updateForm({
+        const result = await sigagentClient.updateForm({
           formId: getArg(args, 'formId'),
           form: getArg(args, 'form'),
         });
@@ -1589,7 +1589,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'delete_form': {
-        const result = await docrouterClient.deleteForm({
+        const result = await sigagentClient.deleteForm({
           formId: getArg(args, 'formId'),
         });
         return {
@@ -1603,7 +1603,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'submit_form': {
-        const result = await docrouterClient.submitForm({
+        const result = await sigagentClient.submitForm({
           documentId: getArg(args, 'documentId'),
           formRevId: getArg(args, 'formRevId'),
           submission_data: getArg(args, 'submission_data'),
@@ -1620,7 +1620,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_form_submission': {
-        const result = await docrouterClient.getFormSubmission({
+        const result = await sigagentClient.getFormSubmission({
           documentId: getArg(args, 'documentId'),
           formRevId: getArg(args, 'formRevId'),
         });
@@ -1635,7 +1635,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'delete_form_submission': {
-        const result = await docrouterClient.deleteFormSubmission({
+        const result = await sigagentClient.deleteFormSubmission({
           documentId: getArg(args, 'documentId'),
           formRevId: getArg(args, 'formRevId'),
         });
@@ -1651,7 +1651,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // ========== PROMPTS ==========
       case 'create_prompt': {
-        const result = await docrouterClient.createPrompt({
+        const result = await sigagentClient.createPrompt({
           prompt: getArg(args, 'prompt'),
         });
         return {
@@ -1665,7 +1665,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'update_prompt': {
-        const result = await docrouterClient.updatePrompt({
+        const result = await sigagentClient.updatePrompt({
           promptId: getArg(args, 'promptId'),
           prompt: getArg(args, 'prompt'),
         });
@@ -1680,7 +1680,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'delete_prompt': {
-        const result = await docrouterClient.deletePrompt({
+        const result = await sigagentClient.deletePrompt({
           promptId: getArg(args, 'promptId'),
         });
         return {
@@ -1695,7 +1695,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // ========== SCHEMAS ==========
       case 'create_schema': {
-        const result = await docrouterClient.createSchema({
+        const result = await sigagentClient.createSchema({
           name: getArg(args, 'name'),
           response_format: getArg(args, 'response_format'),
         });
@@ -1710,7 +1710,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'list_schemas': {
-        const result = await docrouterClient.listSchemas({
+        const result = await sigagentClient.listSchemas({
           skip: getOptionalArg(args, 'skip', 0),
           limit: getOptionalArg(args, 'limit', 10),
           nameSearch: getOptionalArg(args, 'nameSearch'),
@@ -1726,7 +1726,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_schema': {
-        const result = await docrouterClient.getSchema({
+        const result = await sigagentClient.getSchema({
           schemaRevId: getArg(args, 'schemaRevId'),
         });
         return {
@@ -1740,7 +1740,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'update_schema': {
-        const result = await docrouterClient.updateSchema({
+        const result = await sigagentClient.updateSchema({
           schemaId: getArg(args, 'schemaId'),
           schema: getArg(args, 'schema'),
         });
@@ -1755,7 +1755,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'delete_schema': {
-        const result = await docrouterClient.deleteSchema({
+        const result = await sigagentClient.deleteSchema({
           schemaId: getArg(args, 'schemaId'),
         });
         return {
@@ -1769,7 +1769,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'validate_against_schema': {
-        const result = await docrouterClient.validateAgainstSchema({
+        const result = await sigagentClient.validateAgainstSchema({
           schemaRevId: getArg(args, 'schemaRevId'),
           data: getArg(args, 'data'),
         });
@@ -1847,7 +1847,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // ========== LLM CHAT ==========
       case 'run_llm_chat': {
-        const result = await docrouterClient.runLLMChat({
+        const result = await sigagentClient.runLLMChat({
           messages: getArg(args, 'messages'),
           model: getArg(args, 'model'),
           temperature: getOptionalArg(args, 'temperature'),

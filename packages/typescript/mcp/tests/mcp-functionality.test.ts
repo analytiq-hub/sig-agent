@@ -276,14 +276,14 @@ describe('MCP Server Functionality', () => {
   describe('MCP Server Configuration', () => {
     it('should have correct server configuration structure', () => {
       const serverConfig = {
-        name: 'docrouter-mcp',
+        name: 'sigagent-mcp',
         version: '0.1.0',
         capabilities: {
           tools: {}
         }
       };
 
-      expect(serverConfig.name).toBe('docrouter-mcp');
+      expect(serverConfig.name).toBe('sigagent-mcp');
       expect(serverConfig.version).toMatch(/^\d+\.\d+\.\d+$/);
       expect(serverConfig.capabilities.tools).toBeDefined();
     });

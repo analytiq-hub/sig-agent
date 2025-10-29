@@ -1,22 +1,22 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when using DocRouter MCP tools.
+This file provides guidance to Claude Code when using SigAgent MCP tools.
 
-## Working with DocRouter MCP Tools
+## Working with SigAgent MCP Tools
 
 ### CRITICAL: Always Call Help Tools First
 
-Before creating or modifying DocRouter resources, **ALWAYS** follow this workflow:
+Before creating or modifying SigAgent resources, **ALWAYS** follow this workflow:
 
 1. **Call help tools FIRST**:
-   - `mcp__docrouter__help_schemas()` - Before creating/modifying schemas
-   - `mcp__docrouter__help_prompts()` - Before creating/modifying prompts
-   - `mcp__docrouter__help_forms()` - Before creating/modifying forms
-   - `mcp__docrouter__help()` - For general API guidance
+   - `mcp__sigagent__help_schemas()` - Before creating/modifying schemas
+   - `mcp__sigagent__help_prompts()` - Before creating/modifying prompts
+   - `mcp__sigagent__help_forms()` - Before creating/modifying forms
+   - `mcp__sigagent__help()` - For general API guidance
 
 2. **Validate before creating**:
-   - `mcp__docrouter__validate_schema(schema)` - ALWAYS validate schemas before creating them
-   - `mcp__docrouter__validate_form(form)` - ALWAYS validate forms before creating them
+   - `mcp__sigagent__validate_schema(schema)` - ALWAYS validate schemas before creating them
+   - `mcp__sigagent__validate_form(form)` - ALWAYS validate forms before creating them
    - Check the validation response for errors and fix any issues
 
 3. **Then create the resource**:
@@ -64,24 +64,24 @@ Before creating or modifying DocRouter resources, **ALWAYS** follow this workflo
 ### Mandatory Workflow for Schema Creation
 
 ```
-1. mcp__docrouter__help_schemas()       // Read the documentation
-2. mcp__docrouter__validate_schema()    // Validate your schema
+1. mcp__sigagent__help_schemas()       // Read the documentation
+2. mcp__sigagent__validate_schema()    // Validate your schema
 3. Fix any validation errors
-4. mcp__docrouter__create_schema()      // Only if validation passes
+4. mcp__sigagent__create_schema()      // Only if validation passes
 ```
 
 ### Mandatory Workflow for Form Creation
 
 ```
-1. mcp__docrouter__help_forms()         // Read the documentation
-2. mcp__docrouter__validate_form()      // Validate your form
+1. mcp__sigagent__help_forms()         // Read the documentation
+2. mcp__sigagent__validate_form()      // Validate your form
 3. Fix any validation errors
-4. mcp__docrouter__create_form()        // Only if validation passes
+4. mcp__sigagent__create_form()        // Only if validation passes
 ```
 
 ### Form Creation Rules
 
-**CRITICAL**: Form.io forms in DocRouter require:
+**CRITICAL**: Form.io forms in SigAgent require:
 
 - **`json_formio` array** - Must contain array of Form.io component definitions
 - **Unique field keys** - Each input field must have a unique `key` property
