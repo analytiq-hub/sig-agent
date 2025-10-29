@@ -1,5 +1,5 @@
 """
-Test for the DocRouterClient class.
+Test for the SigAgentClient class.
 """
 
 import pytest
@@ -23,35 +23,35 @@ from tests.conftest_utils import (
     get_auth_headers
 )
 
-# Import the DocRouterClient
-from docrouter_sdk import DocRouterClient
+# Import the SigAgentClient
+from sigagent_sdk import SigAgentClient
 
 @pytest.fixture
-def docrouter_client():
-    """Create a DocRouterClient instance for testing"""
-    return DocRouterClient(
+def sigagent_client():
+    """Create a SigAgentClient instance for testing"""
+    return SigAgentClient(
         base_url="http://test-api.example.com",
         api_token="test-token"
     )
 
 
-def test_init(docrouter_client):
+def test_init(sigagent_client):
     """Test client initialization"""
-    assert docrouter_client.base_url == "http://test-api.example.com"
-    assert docrouter_client.api_token == "test-token"
-    assert docrouter_client.session is not None
+    assert sigagent_client.base_url == "http://test-api.example.com"
+    assert sigagent_client.api_token == "test-token"
+    assert sigagent_client.session is not None
     
     # Check that the API modules are initialized
-    assert hasattr(docrouter_client, "documents")
-    assert hasattr(docrouter_client, "ocr")
-    assert hasattr(docrouter_client, "llm")
-    assert hasattr(docrouter_client, "schemas")
-    assert hasattr(docrouter_client, "prompts")
-    assert hasattr(docrouter_client, "tags")
+    assert hasattr(sigagent_client, "documents")
+    assert hasattr(sigagent_client, "ocr")
+    assert hasattr(sigagent_client, "llm")
+    assert hasattr(sigagent_client, "schemas")
+    assert hasattr(sigagent_client, "prompts")
+    assert hasattr(sigagent_client, "tags")
 
 
 @patch("requests.Session.request")
-def test_request_with_token(mock_request, docrouter_client):
+def test_request_with_token(mock_request, sigagent_client):
     """Test request method with authorization token"""
     # Setup mock response
     mock_response = MagicMock()
@@ -61,7 +61,7 @@ def test_request_with_token(mock_request, docrouter_client):
     mock_request.return_value = mock_response
     
     # Call the request method
-    result = docrouter_client.request("GET", "/test/path", params={"key": "value"})
+    result = sigagent_client.request("GET", "/test/path", params={"key": "value"})
     
     # Verify the request was made with the correct parameters
     mock_request.assert_called_once_with(
@@ -79,7 +79,7 @@ def test_request_with_token(mock_request, docrouter_client):
 def test_request_without_token(mock_request):
     """Test request method without authorization token"""
     # Create client without token
-    client_without_token = DocRouterClient(base_url="http://test-api.example.com")
+    client_without_token = SigAgentClient(base_url="http://test-api.example.com")
     
     # Setup mock response
     mock_response = MagicMock()
@@ -103,7 +103,7 @@ def test_request_without_token(mock_request):
 
 
 @patch("requests.Session.request")
-def test_request_error_handling(mock_request, docrouter_client):
+def test_request_error_handling(mock_request, sigagent_client):
     """Test error handling in request method"""
     # Setup mock error response
     mock_response = MagicMock()
@@ -114,14 +114,14 @@ def test_request_error_handling(mock_request, docrouter_client):
     
     # Test error handling
     with pytest.raises(Exception) as excinfo:
-        docrouter_client.request("GET", "/error/path")
+        sigagent_client.request("GET", "/error/path")
     
     # Verify error message contains the custom error detail
     assert "API Error (400): Custom error message" in str(excinfo.value)
 
 
 @patch("requests.Session.request")
-def test_request_text_response(mock_request, docrouter_client):
+def test_request_text_response(mock_request, sigagent_client):
     """Test handling of text response"""
     # Setup mock text response
     mock_response = MagicMock()
@@ -131,14 +131,14 @@ def test_request_text_response(mock_request, docrouter_client):
     mock_request.return_value = mock_response
     
     # Call the request method
-    result = docrouter_client.request("GET", "/text/path")
+    result = sigagent_client.request("GET", "/text/path")
     
     # Verify the result
     assert result == "Sample text response"
 
 
 @patch("requests.Session.request")
-def test_request_binary_response(mock_request, docrouter_client):
+def test_request_binary_response(mock_request, sigagent_client):
     """Test handling of binary response"""
     # Setup mock binary response
     binary_data = b"\x00\x01\x02\x03"
@@ -148,7 +148,7 @@ def test_request_binary_response(mock_request, docrouter_client):
     mock_request.return_value = mock_response
     
     # Call the request method
-    result = docrouter_client.request("GET", "/binary/path")
+    result = sigagent_client.request("GET", "/binary/path")
     
     # Verify the result
     assert result == binary_data

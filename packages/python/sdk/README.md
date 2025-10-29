@@ -1,33 +1,33 @@
-# DocRouter Python SDK
+# SigAgent Python SDK
 
-A Python client library for the Document Router API.
+A Python client library for the SigAgent API.
 
 ## Quick Start
 * Install from PyPI (recommended):
   ```bash
-  pip install docrouter-sdk
+  pip install sigagent-sdk
   ```
-* Get your DocRouter organization ID from the URL, e.g. `https://app.docrouter.ai/orgs/<docrouter_org_id>`
+* Get your SigAgent organization ID from the URL, e.g. `https://app.sigagent.ai/orgs/<sigagent_org_id>`
 * Create an organization token. 
-* Run the `basic_docrouter_client.py` example:
+* Run the `basic_sigagent_client.py` example:
   ```bash
-  export DOCROUTER_URL="https://app.docrouter.ai/fastapi"
-  # export DOCROUTER_URL="http://localhost:8000" # for local development
-  export DOCROUTER_ORG_ID=<docrouter_org_id>
-  export DOCROUTER_ORG_API_TOKEN=<docrouter_org_api_token> 
-  python packages/python/sdk/examples/basic_docrouter_client.py
+  export SIGAGENT_URL="https://app.sigagent.ai/fastapi"
+  # export SIGAGENT_URL="http://localhost:8000" # for local development
+  export SIGAGENT_ORG_ID=<sigagent_org_id>
+  export SIGAGENT_ORG_API_TOKEN=<sigagent_org_api_token> 
+  python packages/python/sdk/examples/basic_sigagent_client.py
 ```
 
 ## Installation
 
 ### From PyPI (production)
 ```bash
-pip install docrouter-sdk
+pip install sigagent-sdk
 ```
 
 ### From TestPyPI (pre-release validation)
 ```bash
-pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ docrouter-sdk
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ sigagent-sdk
 ```
 
 ### Local editable install (development)
@@ -39,10 +39,10 @@ pip install -e .
 ## Usage
 
 ```python
-from docrouter_sdk import DocRouterClient
+from sigagent_sdk import SigAgentClient
 
 # Initialize the client
-client = DocRouterClient(
+client = SigAgentClient(
     base_url="https://api.analytiq.ai",  # Replace with your API URL
     api_token="your_api_token"           # Replace with your API token
 )

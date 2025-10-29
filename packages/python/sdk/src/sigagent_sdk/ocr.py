@@ -8,7 +8,7 @@ class OCRAPI:
         Initialize the OCR API client
         
         Args:
-            client: The parent DocRouterClient instance
+            client: The parent SigAgentClient instance
         """
         self.client = client
     

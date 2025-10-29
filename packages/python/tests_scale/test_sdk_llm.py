@@ -9,7 +9,7 @@ from bson import ObjectId
 from typing import Any
 from tests.conftest_utils import client, get_token_headers, TEST_ORG_ID, get_auth_headers
 from tests.conftest_llm import WorkerAppliance, MockLLMResponse
-from tests.docrouter_sdk.test_sdk_client import mock_docrouter_client
+from tests.sigagent_sdk.test_sdk_client import mock_sigagent_client
 import analytiq_data as ad
 import logging
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.asyncio
-async def test_textract_and_llm_default_pipeline_sdk(test_db, mock_auth, setup_test_models, mock_docrouter_client):
+async def test_textract_and_llm_default_pipeline_sdk(test_db, mock_auth, setup_test_models, mock_sigagent_client):
     """Test the document Textract pipeline using WorkerAppliance and SDK"""
 
     # Create a test PDF document
@@ -38,7 +38,7 @@ async def test_textract_and_llm_default_pipeline_sdk(test_db, mock_auth, setup_t
     # Start the worker appliance with mocked functions
     with WorkerAppliance(n_workers=1) as worker_appliance:
         # Upload the document using SDK
-        upload_result = mock_docrouter_client.documents.upload(TEST_ORG_ID, upload_data)
+        upload_result = mock_sigagent_client.documents.upload(TEST_ORG_ID, upload_data)
         assert "documents" in upload_result, f"Failed to upload document: {upload_result}"
         document_id = upload_result["documents"][0]["document_id"]
 
@@ -49,7 +49,7 @@ async def test_textract_and_llm_default_pipeline_sdk(test_db, mock_auth, setup_t
 
         while retry_count < max_retries:
             # Check document status using SDK
-            doc_data = mock_docrouter_client.documents.get(TEST_ORG_ID, document_id)
+            doc_data = mock_sigagent_client.documents.get(TEST_ORG_ID, document_id)
 
             logger.info(f"Document state: {doc_data.state}")
 
@@ -64,14 +64,14 @@ async def test_textract_and_llm_default_pipeline_sdk(test_db, mock_auth, setup_t
         assert ocr_completed, f"OCR processing did not complete within expected time. Final state: {doc_data.state}"
 
         # Test OCR metadata endpoint using SDK
-        metadata_data = mock_docrouter_client.ocr.get_metadata(TEST_ORG_ID, document_id)
+        metadata_data = mock_sigagent_client.ocr.get_metadata(TEST_ORG_ID, document_id)
 
         assert "n_pages" in metadata_data, "OCR metadata should contain n_pages"
         assert "ocr_date" in metadata_data, "OCR metadata should contain ocr_date"
         assert metadata_data["n_pages"] > 0, "Document should have at least 1 page"
 
         # Test OCR text endpoint using SDK
-        ocr_text = mock_docrouter_client.ocr.get_text(TEST_ORG_ID, document_id)
+        ocr_text = mock_sigagent_client.ocr.get_text(TEST_ORG_ID, document_id)
         
         # Handle both string and bytes responses
         if isinstance(ocr_text, bytes):
@@ -83,13 +83,13 @@ async def test_textract_and_llm_default_pipeline_sdk(test_db, mock_auth, setup_t
         assert "Vendor: Acme Corp" in ocr_text, "OCR text should contain mocked vendor"
 
         # Test OCR text endpoint with specific page using SDK
-        page_text = mock_docrouter_client.ocr.get_text(TEST_ORG_ID, document_id, page_num=1)
+        page_text = mock_sigagent_client.ocr.get_text(TEST_ORG_ID, document_id, page_num=1)
         if isinstance(page_text, bytes):
             page_text = page_text.decode('utf-8')
         assert "INVOICE #12345" in page_text, "Page 1 OCR text should contain mocked invoice data"
 
         # Test OCR blocks/JSON endpoint using SDK
-        blocks_data = mock_docrouter_client.ocr.get_blocks(TEST_ORG_ID, document_id)
+        blocks_data = mock_sigagent_client.ocr.get_blocks(TEST_ORG_ID, document_id)
 
         # Verify we got the mocked Textract blocks
         assert isinstance(blocks_data, list), "OCR blocks should be a list"
@@ -103,7 +103,7 @@ async def test_textract_and_llm_default_pipeline_sdk(test_db, mock_auth, setup_t
         assert invoice_block["Confidence"] > 99, "Invoice block should have high confidence"
 
         # Verify the document status shows OCR processing completed
-        final_doc_data = mock_docrouter_client.documents.get(TEST_ORG_ID, document_id)
+        final_doc_data = mock_sigagent_client.documents.get(TEST_ORG_ID, document_id)
 
         logger.info(f"Final document data: {final_doc_data}")
 
@@ -117,7 +117,7 @@ async def test_textract_and_llm_default_pipeline_sdk(test_db, mock_auth, setup_t
         llm_completed = False
 
         while retry_count < max_retries:
-            doc_data = mock_docrouter_client.documents.get(TEST_ORG_ID, document_id)
+            doc_data = mock_sigagent_client.documents.get(TEST_ORG_ID, document_id)
 
             logger.info(f"Document state: {doc_data.state}")
 
@@ -133,7 +133,7 @@ async def test_textract_and_llm_default_pipeline_sdk(test_db, mock_auth, setup_t
 
         # Check if LLM default prompt has run and retrieve the result using SDK
         try:
-            llm_result_data = mock_docrouter_client.llm.get_result(TEST_ORG_ID, document_id, prompt_revid="default")
+            llm_result_data = mock_sigagent_client.llm.get_result(TEST_ORG_ID, document_id, prompt_revid="default")
 
             if llm_result_data:
                 logger.info("LLM default prompt has completed")
@@ -164,7 +164,7 @@ async def test_full_document_llm_processing_pipeline_sdk(org_and_users, setup_te
     admin = org_and_users["admin"]
     
     # Create a custom mock client that uses the proper authentication headers
-    from docrouter_sdk import DocRouterClient
+    from sigagent_sdk import SigAgentClient
     from unittest.mock import patch
     
     def mock_request_with_auth(self, method: str, path: str, **kwargs) -> Any:
@@ -213,7 +213,7 @@ async def test_full_document_llm_processing_pipeline_sdk(org_and_users, setup_te
         return response.content
     
     # Create a client with proper authentication
-    mock_docrouter_client = DocRouterClient(
+    mock_sigagent_client = SigAgentClient(
         base_url="",  # Doesn't matter, not used for requests
         api_token="test_token"   # Doesn't matter, we use get_token_headers
     )
@@ -230,7 +230,7 @@ async def test_full_document_llm_processing_pipeline_sdk(org_and_users, setup_te
 
     # Start the worker appliance with mocked functions
     with WorkerAppliance(n_workers=1, mock_llm_response=mock_llm_response) as worker_appliance, \
-         patch.object(DocRouterClient, 'request', mock_request_with_auth):
+         patch.object(SigAgentClient, 'request', mock_request_with_auth):
 
         # Step 1: Create a JSON schema using SDK
         schema_data = {
@@ -269,7 +269,7 @@ async def test_full_document_llm_processing_pipeline_sdk(org_and_users, setup_te
             }
         }
 
-        schema_result = mock_docrouter_client.schemas.create(org_id, schema_data)
+        schema_result = mock_sigagent_client.schemas.create(org_id, schema_data)
         assert hasattr(schema_result, "schema_revid"), f"Failed to create schema: {schema_result}"
         schema_revid = schema_result.schema_revid
 
@@ -280,7 +280,7 @@ async def test_full_document_llm_processing_pipeline_sdk(org_and_users, setup_te
             "description": "Invoice documents"
         }
 
-        tag_result = mock_docrouter_client.tags.create(org_id, tag_data)
+        tag_result = mock_sigagent_client.tags.create(org_id, tag_data)
         assert hasattr(tag_result, "id"), f"Failed to create tag: {tag_result}"
         tag_id = tag_result.id
 
@@ -293,7 +293,7 @@ async def test_full_document_llm_processing_pipeline_sdk(org_and_users, setup_te
             "schema_revid": schema_revid
         }
 
-        prompt_result = mock_docrouter_client.prompts.create(org_id, prompt_data)
+        prompt_result = mock_sigagent_client.prompts.create(org_id, prompt_data)
         assert hasattr(prompt_result, "prompt_revid"), f"Failed to create prompt: {prompt_result}"
         prompt_revid = prompt_result.prompt_revid
 
@@ -313,7 +313,7 @@ async def test_full_document_llm_processing_pipeline_sdk(org_and_users, setup_te
         }]
 
         # Upload the document
-        upload_result = mock_docrouter_client.documents.upload(org_id, upload_data)
+        upload_result = mock_sigagent_client.documents.upload(org_id, upload_data)
         assert "documents" in upload_result, f"Failed to upload document: {upload_result}"
         document_id = upload_result["documents"][0]["document_id"]
 
@@ -323,7 +323,7 @@ async def test_full_document_llm_processing_pipeline_sdk(org_and_users, setup_te
         ocr_completed = False
 
         while retry_count < max_retries:
-            doc_data = mock_docrouter_client.documents.get(org_id, document_id)
+            doc_data = mock_sigagent_client.documents.get(org_id, document_id)
 
             logger.info(f"Document state: {doc_data.state}")
 
@@ -343,7 +343,7 @@ async def test_full_document_llm_processing_pipeline_sdk(org_and_users, setup_te
 
         while retry_count < max_retries:
             try:
-                llm_result = mock_docrouter_client.llm.get_result(org_id, document_id, prompt_revid=prompt_revid)
+                llm_result = mock_sigagent_client.llm.get_result(org_id, document_id, prompt_revid=prompt_revid)
 
                 if llm_result:
                     logger.info(f"LLM result found: {llm_result}")
@@ -375,7 +375,7 @@ async def test_full_document_llm_processing_pipeline_sdk(org_and_users, setup_te
         assert extracted_data["vendor"]["name"] == "Acme Corp"
 
         # Verify document status and metadata
-        final_doc_data = mock_docrouter_client.documents.get(org_id, document_id)
+        final_doc_data = mock_sigagent_client.documents.get(org_id, document_id)
 
         logger.info(f"Final document data: {final_doc_data}")
 
@@ -403,7 +403,7 @@ async def test_full_document_llm_processing_pipeline_sdk(org_and_users, setup_te
             }
         }
         
-        update_result = mock_docrouter_client.llm.update_result(
+        update_result = mock_sigagent_client.llm.update_result(
             org_id, 
             document_id, 
             updated_llm_result=updated_data,
@@ -452,12 +452,12 @@ async def test_full_document_llm_processing_pipeline_sdk(org_and_users, setup_te
         assert found_updated_result, "Updated result should be found in downloaded data"
         
         # Step 4: Delete the LLM result using SDK
-        delete_result = mock_docrouter_client.llm.delete_result(org_id, document_id, prompt_revid=prompt_revid)
+        delete_result = mock_sigagent_client.llm.delete_result(org_id, document_id, prompt_revid=prompt_revid)
         assert delete_result.get("status") == "success", f"Delete should return success status: {delete_result}"
         
         # Verify the LLM result was actually deleted
         try:
-            verify_delete_result = mock_docrouter_client.llm.get_result(org_id, document_id, prompt_revid=prompt_revid)
+            verify_delete_result = mock_sigagent_client.llm.get_result(org_id, document_id, prompt_revid=prompt_revid)
             assert verify_delete_result is None, "LLM result should no longer exist after deletion"
         except Exception:
             # Expected behavior - result should not exist

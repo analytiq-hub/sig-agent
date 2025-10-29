@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "docrouter-sdk"
+name = "sigagent-sdk"
 version = "0.1.5"
-description = "SDK for interacting with the DocRouter API"
+description = "SDK for interacting with the SigAgent API"
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "Apache-2.0" }
@@ -21,8 +21,8 @@ dependencies = [
 Repository = "https://github.com/analytiq/doc-router"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/docrouter_sdk"]
-include = ["src/docrouter_sdk/py.typed"]
+packages = ["src/sigagent_sdk"]
+include = ["src/sigagent_sdk/py.typed"]
 exclude = ["tests/**", "examples/**"]
 
 [tool.hatch.build.targets.sdist]
