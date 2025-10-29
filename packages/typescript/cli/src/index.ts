@@ -22,6 +22,23 @@ function ensureDirExists(dirPath: string) {
   }
 }
 
+function withTrailingSlash(url: string) {
+  return url.endsWith('/') ? url : url + '/';
+}
+
+function maskToken(token: string): string {
+  if (!token) return '';
+  const last4 = token.slice(-4);
+  if (token.startsWith('org_')) {
+    return `org_***${last4}`;
+  }
+  return `***${last4}`;
+}
+
+function maskedAuthHeader(token: string) {
+  return { Authorization: `Bearer ${maskToken(token)}` };
+}
+
 function getClaudePaths() {
   const claudeDir = path.join(os.homedir(), '.claude');
   const settingsPath = path.join(claudeDir, 'settings.json');
@@ -37,6 +54,62 @@ function buildSigAgentEnv(server: string, token?: string) {
     OTEL_EXPORTER_OTLP_ENDPOINT: server,
     OTEL_EXPORTER_OTLP_HEADERS: `Authorization=Bearer ${token ?? 'YOUR_ORG_ACCESS_TOKEN'}`
   } as const;
+}
+
+function extractTokenFromHeaders(headersValue?: string): string | undefined {
+  if (!headersValue) return undefined;
+  const cleaned = headersValue.trim().replace(/^"|"$/g, '');
+  const parts = cleaned.split(/[,;]+/).map(p => p.trim());
+  for (const part of parts) {
+    // Authorization=Bearer TOKEN
+    let m = /^Authorization\s*=\s*Bearer\s+(.+)$/i.exec(part);
+    if (m) return m[1].trim();
+    // Authorization: Bearer TOKEN
+    m = /^Authorization\s*:\s*Bearer\s+(.+)$/i.exec(part);
+    if (m) return m[1].trim();
+    // Bearer TOKEN
+    m = /^Bearer\s+(.+)$/.exec(part);
+    if (m) return m[1].trim();
+    // Raw token (fallback) if it looks like org_...
+    if (part.startsWith('org_')) return part;
+  }
+  return undefined;
+}
+
+async function resolveOrganizationId(server: string, token: string): Promise<string | undefined> {
+  try {
+    const base = server.replace(/\/$/, '');
+    const url = `${base}/v0/account/token/organization?token=${encodeURIComponent(token)}`;
+    console.log(chalk.gray(`[HTTP] GET ${url}`));
+    const res = await fetch(url, { method: 'GET' });
+    const bodyText = await res.text();
+    console.log(chalk.gray(`[HTTP] <= ${res.status} ${res.statusText} body: ${bodyText.slice(0, 500)}`));
+    if (!res.ok) return undefined;
+    const data = JSON.parse(bodyText || '{}');
+    return data?.organization_id || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function isOrgTokenValid(server: string, token: string): Promise<boolean> {
+  // Resolve org id from token first
+  const orgId = await resolveOrganizationId(server, token);
+  if (!orgId) return false;
+  try {
+    const base = server.replace(/\/$/, '');
+    const url = `${base}/v0/orgs/${encodeURIComponent(orgId)}/telemetry/logs?limit=1`;
+    console.log(chalk.gray(`[HTTP] GET ${url} headers: ${JSON.stringify(maskedAuthHeader(token))}`));
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const bodyText = await res.text();
+    console.log(chalk.gray(`[HTTP] <= ${res.status} ${res.statusText} body: ${bodyText.slice(0, 500)}`));
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 function updateClaudeSettings(server: string, token?: string) {
@@ -111,14 +184,39 @@ async function performSetup(opts: SetupOptions) {
   const marketplace = opts.marketplace || DEFAULT_MARKETPLACE;
   const spinner = ora('Configuring Claude for SigAgent...').start();
   try {
-    const settingsPath = writeClaudeSettings(server, opts.token);
+    // If no token provided, try to reuse an existing valid org_ token in settings
+    let effectiveToken = opts.token;
+    if (!effectiveToken) {
+      const { settingsPath } = getClaudePaths();
+      if (fs.existsSync(settingsPath)) {
+        try {
+          const raw = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+          const existingToken = extractTokenFromHeaders(raw?.env?.OTEL_EXPORTER_OTLP_HEADERS);
+          console.log(chalk.gray(`Parsed token from settings.json: ${existingToken ? maskToken(existingToken) : 'none'}`));
+          if (existingToken && existingToken.startsWith('org_')) {
+            const validSpinner = ora('Validating existing organization token...').start();
+            const valid = await isOrgTokenValid(server, existingToken);
+            if (valid) {
+              validSpinner.succeed('Existing token is valid. Reusing it.');
+              effectiveToken = existingToken;
+            } else {
+              validSpinner.warn('Existing token is invalid. You will need a new token.');
+            }
+          }
+        } catch {
+          // ignore parsing errors
+        }
+      }
+    }
+
+    const settingsPath = writeClaudeSettings(server, effectiveToken);
     spinner.succeed(`Updated ${chalk.cyan(settingsPath)} with telemetry configuration`);
 
     const spinnerMk = ora('Adding SigAgent marketplace...').start();
     const mpPath = updateMarketplaceConfig(marketplace);
     spinnerMk.succeed(`Ensured marketplace at ${chalk.cyan(mpPath)}`);
 
-    if (!opts.token) {
+    if (!effectiveToken) {
       const tokenUrl = new URL('/settings/user/developer/organization-access-tokens', server.replace('/fastapi', ''));
       const msg = `
 No organization token provided. Please create one, then re-run with --token <ORG_TOKEN>.
