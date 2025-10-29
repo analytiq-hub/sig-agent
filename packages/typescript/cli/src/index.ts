@@ -11,10 +11,13 @@ type SetupOptions = {
   marketplace?: string;
   token?: string;
   nonInteractive?: boolean;
+  debug?: boolean;
 };
 
 const DEFAULT_SERVER = process.env.SIGAGENT_SERVER_URL || 'https://app.sigagent.ai/fastapi';
 const DEFAULT_MARKETPLACE = 'https://github.com/analytiq-hub/sig-agent-marketplace.git';
+
+let DEBUG = false;
 
 function ensureDirExists(dirPath: string) {
   if (!fs.existsSync(dirPath)) {
@@ -80,10 +83,10 @@ async function resolveOrganizationId(server: string, token: string): Promise<str
   try {
     const base = server.replace(/\/$/, '');
     const url = `${base}/v0/account/token/organization?token=${encodeURIComponent(token)}`;
-    console.log(chalk.gray(`[HTTP] GET ${url}`));
+    if (DEBUG) console.log(chalk.gray(`[HTTP] GET ${url}`));
     const res = await fetch(url, { method: 'GET' });
     const bodyText = await res.text();
-    console.log(chalk.gray(`[HTTP] <= ${res.status} ${res.statusText} body: ${bodyText.slice(0, 500)}`));
+    if (DEBUG) console.log(chalk.gray(`[HTTP] <= ${res.status} ${res.statusText} body: ${bodyText.slice(0, 500)}`));
     if (!res.ok) return undefined;
     const data = JSON.parse(bodyText || '{}');
     return data?.organization_id || undefined;
@@ -99,13 +102,13 @@ async function isOrgTokenValid(server: string, token: string): Promise<boolean> 
   try {
     const base = server.replace(/\/$/, '');
     const url = `${base}/v0/orgs/${encodeURIComponent(orgId)}/telemetry/logs?limit=1`;
-    console.log(chalk.gray(`[HTTP] GET ${url} headers: ${JSON.stringify(maskedAuthHeader(token))}`));
+    if (DEBUG) console.log(chalk.gray(`[HTTP] GET ${url} headers: ${JSON.stringify(maskedAuthHeader(token))}`));
     const res = await fetch(url, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` }
     });
     const bodyText = await res.text();
-    console.log(chalk.gray(`[HTTP] <= ${res.status} ${res.statusText} body: ${bodyText.slice(0, 500)}`));
+    if (DEBUG) console.log(chalk.gray(`[HTTP] <= ${res.status} ${res.statusText} body: ${bodyText.slice(0, 500)}`));
     return res.ok;
   } catch {
     return false;
@@ -256,7 +259,9 @@ program
   .option('--server <url>', 'SigAgent FastAPI server URL', DEFAULT_SERVER)
   .option('--marketplace <gitUrl>', 'Claude marketplace repository URL', DEFAULT_MARKETPLACE)
   .option('--token <orgToken>', 'Organization access token (recommended)')
+  .option('-d, --debug', 'Enable verbose HTTP trace logs', false)
   .action(async (options: SetupOptions) => {
+    DEBUG = Boolean(options.debug);
     await performSetup(options);
   });
 
