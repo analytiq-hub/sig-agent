@@ -1,12 +1,12 @@
-# DocRouter MCP Server Installation and Setup Guide
+# SigAgent MCP Server Installation and Setup Guide
 
 ## Overview
 
-The DocRouter MCP (Model Context Protocol) Server provides AI applications with seamless access to DocRouter's document processing capabilities. This guide covers everything you need to know to install, configure, and use the DocRouter MCP server.
+The SigAgent MCP (Model Context Protocol) Server provides AI applications with seamless access to SigAgent's document processing capabilities. This guide covers everything you need to know to install, configure, and use the SigAgent MCP server.
 
-## What is the DocRouter MCP Server?
+## What is the SigAgent MCP Server?
 
-The DocRouter MCP Server is a TypeScript-based server that implements the Model Context Protocol, allowing AI applications like Claude Desktop, Cursor IDE, and other MCP-compatible tools to interact with DocRouter's API for:
+The SigAgent MCP Server is a TypeScript-based server that implements the Model Context Protocol, allowing AI applications like Claude Desktop, Cursor IDE, and other MCP-compatible tools to interact with SigAgent's API for:
 
 - Document management and retrieval
 - OCR text extraction
@@ -18,20 +18,20 @@ The DocRouter MCP Server is a TypeScript-based server that implements the Model 
 
 ### Method 1: Global Installation (Recommended)
 
-Install the package globally to make the `docrouter-mcp` binary available system-wide:
+Install the package globally to make the `sigagent-mcp` binary available system-wide:
 
 ```bash
-npm install -g @docrouter/mcp
+npm install -g @sigagent/mcp
 ```
 
 After installation, verify the binary is available:
 
 ```bash
-which docrouter-mcp
-# Should output: /path/to/node/bin/docrouter-mcp
+which sigagent-mcp
+# Should output: /path/to/node/bin/sigagent-mcp
 
 # Test the installation
-docrouter-mcp --help
+sigagent-mcp --help
 ```
 
 ### Method 2: Local Installation
@@ -39,7 +39,7 @@ docrouter-mcp --help
 Install the package locally in your project:
 
 ```bash
-npm install @docrouter/mcp
+npm install @sigagent/mcp
 ```
 
 This method requires you to reference the full path to the executable in your MCP configuration.
@@ -49,10 +49,10 @@ This method requires you to reference the full path to the executable in your MC
 Before setting up the MCP server, ensure you have:
 
 1. **Node.js 18+** installed on your system
-2. **DocRouter Account** with API access
-3. **DocRouter Credentials**:
-   - Organization ID (`DOCROUTER_ORG_ID`)
-   - Organization API Token (`DOCROUTER_ORG_API_TOKEN`)
+2. **SigAgent Account** with API access
+3. **SigAgent Credentials**:
+   - Organization ID (`SIGAGENT_ORG_ID`)
+   - Organization API Token (`SIGAGENT_ORG_API_TOKEN`)
    - API URL (optional, defaults to production)
 
 ## Configuration
@@ -62,9 +62,9 @@ Before setting up the MCP server, ensure you have:
 The MCP server can be configured using environment variables:
 
 ```bash
-export DOCROUTER_API_URL="https://app.docrouter.ai/fastapi"
-export DOCROUTER_ORG_ID="your-org-id"
-export DOCROUTER_ORG_API_TOKEN="your-api-token"
+export SIGAGENT_API_URL="https://app.sigagent.ai/fastapi"
+export SIGAGENT_ORG_ID="your-org-id"
+export SIGAGENT_ORG_API_TOKEN="your-api-token"
 ```
 
 ### MCP Configuration Files
@@ -78,12 +78,12 @@ Create `.mcp.json` in your project root:
 ```json
 {
   "mcpServers": {
-    "docrouter": {
-      "command": "docrouter-mcp",
+    "sigagent": {
+      "command": "sigagent-mcp",
       "env": {
-        "DOCROUTER_API_URL": "https://app.docrouter.ai/fastapi",
-        "DOCROUTER_ORG_ID": "your-org-id",
-        "DOCROUTER_ORG_API_TOKEN": "your-api-token"
+        "SIGAGENT_API_URL": "https://app.sigagent.ai/fastapi",
+        "SIGAGENT_ORG_ID": "your-org-id",
+        "SIGAGENT_ORG_API_TOKEN": "your-api-token"
       }
     }
   }
@@ -97,12 +97,12 @@ Add to your `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "docrouter": {
-      "command": "docrouter-mcp",
+    "sigagent": {
+      "command": "sigagent-mcp",
       "env": {
-        "DOCROUTER_API_URL": "https://app.docrouter.ai/fastapi",
-        "DOCROUTER_ORG_ID": "your-org-id",
-        "DOCROUTER_ORG_API_TOKEN": "your-api-token"
+        "SIGAGENT_API_URL": "https://app.sigagent.ai/fastapi",
+        "SIGAGENT_ORG_ID": "your-org-id",
+        "SIGAGENT_ORG_API_TOKEN": "your-api-token"
       }
     }
   }
@@ -116,13 +116,13 @@ If you installed locally, use the full path:
 ```json
 {
   "mcpServers": {
-    "docrouter": {
+    "sigagent": {
       "command": "node",
-      "args": ["node_modules/@docrouter/mcp/dist/index.js"],
+      "args": ["node_modules/@sigagent/mcp/dist/index.js"],
       "env": {
-        "DOCROUTER_API_URL": "https://app.docrouter.ai/fastapi",
-        "DOCROUTER_ORG_ID": "your-org-id",
-        "DOCROUTER_ORG_API_TOKEN": "your-api-token"
+        "SIGAGENT_API_URL": "https://app.sigagent.ai/fastapi",
+        "SIGAGENT_ORG_ID": "your-org-id",
+        "SIGAGENT_ORG_API_TOKEN": "your-api-token"
       }
     }
   }
@@ -135,20 +135,20 @@ If you installed locally, use the full path:
 
 ```bash
 # Global installation (recommended)
-npm install -g @docrouter/mcp
+npm install -g @sigagent/mcp
 
 # Or local installation
-npm install @docrouter/mcp
+npm install @sigagent/mcp
 ```
 
 ### 2. Verify Installation
 
 ```bash
 # Check if binary is available (global install)
-which docrouter-mcp
+which sigagent-mcp
 
 # Or check package installation (local install)
-npm list @docrouter/mcp
+npm list @sigagent/mcp
 ```
 
 ### 3. Create Configuration File
@@ -162,9 +162,9 @@ touch .mcp.json
 ### 4. Add Configuration
 
 Copy the appropriate configuration from above and replace:
-- `your-org-id` with your actual DocRouter organization ID
-- `your-api-token` with your actual DocRouter API token
-- `https://app.docrouter.ai/fastapi` with your API URL (if different)
+- `your-org-id` with your actual SigAgent organization ID
+- `your-api-token` with your actual SigAgent API token
+- `https://app.sigagent.ai/fastapi` with your API URL (if different)
 
 ### 5. Test the Configuration
 
@@ -172,11 +172,11 @@ Test the MCP server manually:
 
 ```bash
 # Set environment variables
-export DOCROUTER_ORG_ID="your-org-id"
-export DOCROUTER_ORG_API_TOKEN="your-api-token"
+export SIGAGENT_ORG_ID="your-org-id"
+export SIGAGENT_ORG_API_TOKEN="your-api-token"
 
 # Run the server directly
-docrouter-mcp
+sigagent-mcp
 ```
 
 ## Available MCP Tools
@@ -184,29 +184,29 @@ docrouter-mcp
 Once configured, the following tools become available in your AI application:
 
 ### Document Management
-- `get_docrouter_documents()` - List all documents
-- `get_docrouter_document(documentId)` - Get document by ID
-- `get_docrouter_document_ocr(documentId)` - Get raw OCR text
-- `get_docrouter_document_ocr_metadata(documentId)` - Get OCR metadata
+- `get_sigagent_documents()` - List all documents
+- `get_sigagent_document(documentId)` - Get document by ID
+- `get_sigagent_document_ocr(documentId)` - Get raw OCR text
+- `get_sigagent_document_ocr_metadata(documentId)` - Get OCR metadata
 
 ### Data Extraction
-- `run_docrouter_extraction(documentId, promptRevId, force)` - Run AI extraction
-- `get_docrouter_extraction(documentId, promptRevId)` - Get extraction results
+- `run_sigagent_extraction(documentId, promptRevId, force)` - Run AI extraction
+- `get_sigagent_extraction(documentId, promptRevId)` - Get extraction results
 
 ### Search and Discovery
-- `search_docrouter_documents(query, tagIds)` - Search documents
-- `search_docrouter_prompts(query)` - Search prompts
-- `search_docrouter_tags(query)` - Search tags
+- `search_sigagent_documents(query, tagIds)` - Search documents
+- `search_sigagent_prompts(query)` - Search prompts
+- `search_sigagent_tags(query)` - Search tags
 
 ### Management
-- `get_docrouter_prompts()` - List all prompts
-- `get_docrouter_prompt(promptRevId)` - Get prompt by ID
-- `get_docrouter_tags()` - List all tags
-- `get_docrouter_tag(tagId)` - Get tag by ID
+- `get_sigagent_prompts()` - List all prompts
+- `get_sigagent_prompt(promptRevId)` - Get prompt by ID
+- `get_sigagent_tags()` - List all tags
+- `get_sigagent_tag(tagId)` - Get tag by ID
 
 ### Help and Guidance
-- `docrouter_help()` - Get help information
-- `docrouter_document_analysis_guide(documentId)` - Generate analysis guide
+- `sigagent_help()` - Get help information
+- `sigagent_document_analysis_guide(documentId)` - Generate analysis guide
 
 ## Example Workflows
 
@@ -214,16 +214,16 @@ Once configured, the following tools become available in your AI application:
 
 ```typescript
 // Search for invoice documents
-const documents = await search_docrouter_documents("invoice");
+const documents = await search_sigagent_documents("invoice");
 
 // Get OCR text for the first document
-const ocrText = await get_docrouter_document_ocr(documents.documents[0].id);
+const ocrText = await get_sigagent_document_ocr(documents.documents[0].id);
 
 // Find available prompts for invoice processing
-const prompts = await search_docrouter_prompts("invoice");
+const prompts = await search_sigagent_prompts("invoice");
 
 // Run extraction with a specific prompt
-const extraction = await run_docrouter_extraction(
+const extraction = await run_sigagent_extraction(
   documents.documents[0].id, 
   prompts.prompts[0].id
 );
@@ -233,20 +233,20 @@ const extraction = await run_docrouter_extraction(
 
 ```typescript
 // Get all documents
-const allDocuments = await get_docrouter_documents();
+const allDocuments = await get_sigagent_documents();
 
 // Get all available prompts
-const allPrompts = await get_docrouter_prompts();
+const allPrompts = await get_sigagent_prompts();
 
 // Get all tags for categorization
-const allTags = await get_docrouter_tags();
+const allTags = await get_sigagent_tags();
 ```
 
 ### 3. Guided Analysis Workflow
 
 ```typescript
 // Get a step-by-step guide for analyzing a specific document
-const guide = await docrouter_document_analysis_guide("document-id");
+const guide = await sigagent_document_analysis_guide("document-id");
 
 // Follow the guide to analyze the document
 // The guide will provide specific prompts and extraction strategies
@@ -259,22 +259,22 @@ const guide = await docrouter_document_analysis_guide("document-id");
 #### 1. "MCP server not connecting"
 
 **Solutions:**
-- Verify the binary exists: `which docrouter-mcp`
+- Verify the binary exists: `which sigagent-mcp`
 - Check configuration syntax in your `.mcp.json`
 - Ensure environment variables are set correctly
-- Test the server manually: `docrouter-mcp`
+- Test the server manually: `sigagent-mcp`
 
 #### 2. "Command not found"
 
 **Solutions:**
-- Reinstall globally: `npm install -g @docrouter/mcp`
+- Reinstall globally: `npm install -g @sigagent/mcp`
 - Check your PATH: `echo $PATH`
 - Use full path in configuration if needed
 
 #### 3. "Environment variables not set"
 
 **Solutions:**
-- Verify variable names: `DOCROUTER_ORG_ID`, `DOCROUTER_ORG_API_TOKEN`
+- Verify variable names: `SIGAGENT_ORG_ID`, `SIGAGENT_ORG_API_TOKEN`
 - Check variable values are correct and not expired
 - Test API access with your credentials
 
@@ -292,12 +292,12 @@ Enable debug logging by adding to your environment:
 ```json
 {
   "mcpServers": {
-    "docrouter": {
-      "command": "docrouter-mcp",
+    "sigagent": {
+      "command": "sigagent-mcp",
       "env": {
-        "DOCROUTER_API_URL": "https://app.docrouter.ai/fastapi",
-        "DOCROUTER_ORG_ID": "your-org-id",
-        "DOCROUTER_ORG_API_TOKEN": "your-api-token",
+        "SIGAGENT_API_URL": "https://app.sigagent.ai/fastapi",
+        "SIGAGENT_ORG_ID": "your-org-id",
+        "SIGAGENT_ORG_API_TOKEN": "your-api-token",
         "DEBUG": "mcp:*"
       }
     }
@@ -309,17 +309,17 @@ Enable debug logging by adding to your environment:
 
 ```bash
 # Check package installation
-npm list -g @docrouter/mcp
+npm list -g @sigagent/mcp
 
 # Check binary location
-which docrouter-mcp
+which sigagent-mcp
 
 # Test server startup
-docrouter-mcp --help
+sigagent-mcp --help
 
 # Verify environment variables
-echo $DOCROUTER_ORG_ID
-echo $DOCROUTER_ORG_API_TOKEN
+echo $SIGAGENT_ORG_ID
+echo $SIGAGENT_ORG_API_TOKEN
 ```
 
 ## Security Best Practices
@@ -336,8 +336,8 @@ echo $DOCROUTER_ORG_API_TOKEN
 
 ```bash
 # Set environment variables in your shell profile
-echo 'export DOCROUTER_ORG_ID="your-org-id"' >> ~/.bashrc
-echo 'export DOCROUTER_ORG_API_TOKEN="your-token"' >> ~/.bashrc
+echo 'export SIGAGENT_ORG_ID="your-org-id"' >> ~/.bashrc
+echo 'export SIGAGENT_ORG_API_TOKEN="your-token"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
@@ -346,11 +346,11 @@ Then use environment variables in your configuration:
 ```json
 {
   "mcpServers": {
-    "docrouter": {
-      "command": "docrouter-mcp",
+    "sigagent": {
+      "command": "sigagent-mcp",
       "env": {
-        "DOCROUTER_ORG_ID": "${DOCROUTER_ORG_ID}",
-        "DOCROUTER_ORG_API_TOKEN": "${DOCROUTER_ORG_API_TOKEN}"
+        "SIGAGENT_ORG_ID": "${SIGAGENT_ORG_ID}",
+        "SIGAGENT_ORG_API_TOKEN": "${SIGAGENT_ORG_API_TOKEN}"
       }
     }
   }
@@ -366,12 +366,12 @@ For development or custom deployments:
 ```json
 {
   "mcpServers": {
-    "docrouter": {
-      "command": "docrouter-mcp",
+    "sigagent": {
+      "command": "sigagent-mcp",
       "env": {
-        "DOCROUTER_API_URL": "http://localhost:8000",
-        "DOCROUTER_ORG_ID": "your-org-id",
-        "DOCROUTER_ORG_API_TOKEN": "your-token"
+        "SIGAGENT_API_URL": "http://localhost:8000",
+        "SIGAGENT_ORG_ID": "your-org-id",
+        "SIGAGENT_ORG_API_TOKEN": "your-token"
       }
     }
   }
@@ -380,25 +380,25 @@ For development or custom deployments:
 
 ### Multiple Environments
 
-You can configure multiple DocRouter instances:
+You can configure multiple SigAgent instances:
 
 ```json
 {
   "mcpServers": {
-    "docrouter-prod": {
-      "command": "docrouter-mcp",
+    "sigagent-prod": {
+      "command": "sigagent-mcp",
       "env": {
-        "DOCROUTER_API_URL": "https://app.docrouter.ai/fastapi",
-        "DOCROUTER_ORG_ID": "prod-org-id",
-        "DOCROUTER_ORG_API_TOKEN": "prod-token"
+        "SIGAGENT_API_URL": "https://app.sigagent.ai/fastapi",
+        "SIGAGENT_ORG_ID": "prod-org-id",
+        "SIGAGENT_ORG_API_TOKEN": "prod-token"
       }
     },
-    "docrouter-dev": {
-      "command": "docrouter-mcp",
+    "sigagent-dev": {
+      "command": "sigagent-mcp",
       "env": {
-        "DOCROUTER_API_URL": "http://localhost:8000",
-        "DOCROUTER_ORG_ID": "dev-org-id",
-        "DOCROUTER_ORG_API_TOKEN": "dev-token"
+        "SIGAGENT_API_URL": "http://localhost:8000",
+        "SIGAGENT_ORG_ID": "dev-org-id",
+        "SIGAGENT_ORG_API_TOKEN": "dev-token"
       }
     }
   }
@@ -407,7 +407,7 @@ You can configure multiple DocRouter instances:
 
 ## Package Information
 
-- **Package Name**: `@docrouter/mcp`
+- **Package Name**: `@sigagent/mcp`
 - **Current Version**: 0.1.0
 - **Node.js Requirement**: >=18.0.0
 - **License**: MIT
@@ -429,19 +429,19 @@ The published package includes:
 1. **Check the troubleshooting section** above
 2. **Review the README.md** in the package
 3. **Test with debug mode** enabled
-4. **Verify your DocRouter API access** independently
+4. **Verify your SigAgent API access** independently
 
 ### Package Management
 
 ```bash
 # Update to latest version
-npm update -g @docrouter/mcp
+npm update -g @sigagent/mcp
 
 # Check current version
-npm list -g @docrouter/mcp
+npm list -g @sigagent/mcp
 
 # Uninstall if needed
-npm uninstall -g @docrouter/mcp
+npm uninstall -g @sigagent/mcp
 ```
 
 ### Development
@@ -451,7 +451,7 @@ For developers working on the MCP server:
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd docrouter-mcp
+cd sigagent-mcp
 
 # Install dependencies
 npm install

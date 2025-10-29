@@ -18,7 +18,7 @@
 1. **Log into AWS Console** and navigate to S3
 2. **Click "Create bucket"**
 3. **Configure bucket settings:**
-   - **Bucket name**: Choose a unique name (e.g., `my-company-docrouter-data`)
+   - **Bucket name**: Choose a unique name (e.g., `my-company-sigagent-data`)
    - **Region**: Select your preferred region (e.g., `us-east-1`)
    - **Block Public Access**: Keep all blocks enabled (recommended)
    - **Bucket Versioning**: Enable if needed for compliance
@@ -30,7 +30,7 @@
 1. **Navigate to IAM** in AWS Console
 2. **Click "Users" → "Create user"**
 3. **User details:**
-   - **User name**: `docrouter-app-user` (or your preferred name)
+   - **User name**: `sigagent-app-user` (or your preferred name)
    - **Access type**: Select "Programmatic access"
 4. **Click "Next: Permissions"**
 
@@ -75,7 +75,7 @@
 }
 ```
 
-6. **Save the policy** as `DocRouterPolicy` and attach it to your IAM user
+6. **Save the policy** as `SigAgentPolicy` and attach it to your IAM user
 7. **Generate access keys**:
    - Go to "Security credentials" tab
    - Click "Create access key"

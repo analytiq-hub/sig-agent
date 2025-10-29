@@ -1,10 +1,10 @@
 # Environment Variables Documentation
 
-This document explains all environment variables used in the DocRouter project, their purpose, and how they are used throughout the codebase.
+This document explains all environment variables used in the SigAgent project, their purpose, and how they are used throughout the codebase.
 
 ## Overview
 
-The DocRouter project uses a single `.env` file at the project root that is shared between the FastAPI backend, Next.js frontend, and worker processes. The environment variables are loaded using `python-dotenv` and are accessible to all components of the system.
+The SigAgent project uses a single `.env` file at the project root that is shared between the FastAPI backend, Next.js frontend, and worker processes. The environment variables are loaded using `python-dotenv` and are accessible to all components of the system.
 
 ## Core Application Variables
 
@@ -217,17 +217,17 @@ The following environment variables are used for various LLM providers:
 
 ## MCP (Model Context Protocol) Variables
 
-### `DOCROUTER_URL`
-- **Purpose**: DocRouter API URL for MCP server
-- **Usage**: MCP server configuration (`packages/docrouter_mcp/docrouter_mcp_server.py`)
+### `SIGAGENT_URL`
+- **Purpose**: SigAgent API URL for MCP server
+- **Usage**: MCP server configuration (`packages/sigagent_mcp/sigagent_mcp_server.py`)
 
-### `DOCROUTER_ORG_ID`
+### `SIGAGENT_ORG_ID`
 - **Purpose**: Organization ID for MCP server
-- **Usage**: MCP server configuration (`packages/docrouter_mcp/docrouter_mcp_server.py`)
+- **Usage**: MCP server configuration (`packages/sigagent_mcp/sigagent_mcp_server.py`)
 
-### `DOCROUTER_ORG_API_TOKEN`
+### `SIGAGENT_ORG_API_TOKEN`
 - **Purpose**: Organization API token for MCP server
-- **Usage**: MCP server configuration (`packages/docrouter_mcp/docrouter_mcp_server.py`)
+- **Usage**: MCP server configuration (`packages/sigagent_mcp/sigagent_mcp_server.py`)
 
 ## Database Configuration
 

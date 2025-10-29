@@ -9,8 +9,8 @@ A TypeScript-based Model Context Protocol (MCP) server for SigAgent API integrat
 npm install @sigagent/mcp
 
 # Configure with your SigAgent credentials
-export DOCROUTER_ORG_ID="your-org-id"
-export DOCROUTER_ORG_API_TOKEN="your-token"
+export SIGAGENT_ORG_ID="your-org-id"
+export SIGAGENT_ORG_API_TOKEN="your-token"
 
 # Use in your MCP client configuration
 ```
@@ -68,9 +68,9 @@ The server can be configured using environment variables or command line argumen
 
 ### Environment Variables
 
-- `DOCROUTER_API_URL` - SigAgent API base URL (default: https://app.sigagent.ai/fastapi)
-- `DOCROUTER_ORG_ID` - Your SigAgent organization ID (required)
-- `DOCROUTER_ORG_API_TOKEN` - Your SigAgent organization API token (required)
+- `SIGAGENT_API_URL` - SigAgent API base URL (default: https://app.sigagent.ai/fastapi)
+- `SIGAGENT_ORG_ID` - Your SigAgent organization ID (required)
+- `SIGAGENT_ORG_API_TOKEN` - Your SigAgent organization API token (required)
 
 ### Command Line Arguments
 
@@ -168,9 +168,9 @@ Before configuring MCP integration, ensure you have:
    ```
 
 2. **SigAgent credentials**:
-   - `DOCROUTER_ORG_ID` - Your SigAgent organization ID
-   - `DOCROUTER_ORG_API_TOKEN` - Your SigAgent organization API token
-   - `DOCROUTER_API_URL` - SigAgent API URL (optional, defaults to production)
+   - `SIGAGENT_ORG_ID` - Your SigAgent organization ID
+   - `SIGAGENT_ORG_API_TOKEN` - Your SigAgent organization API token
+   - `SIGAGENT_API_URL` - SigAgent API URL (optional, defaults to production)
 
 ### Configuration Files
 
@@ -187,9 +187,9 @@ Create `.mcp.json` in your project root:
       "command": "node",
       "args": ["node_modules/@sigagent/mcp/dist/index.js"],
       "env": {
-        "DOCROUTER_API_URL": "https://app.sigagent.ai/fastapi",
-        "DOCROUTER_ORG_ID": "your-org-id",
-        "DOCROUTER_ORG_API_TOKEN": "your-token"
+        "SIGAGENT_API_URL": "https://app.sigagent.ai/fastapi",
+        "SIGAGENT_ORG_ID": "your-org-id",
+        "SIGAGENT_ORG_API_TOKEN": "your-token"
       }
     }
   }
@@ -207,9 +207,9 @@ Add to your `claude_desktop_config.json`:
       "command": "node",
       "args": ["node_modules/@sigagent/mcp/dist/index.js"],
       "env": {
-        "DOCROUTER_API_URL": "https://app.sigagent.ai/fastapi",
-        "DOCROUTER_ORG_ID": "your-org-id",
-        "DOCROUTER_ORG_API_TOKEN": "your-token"
+        "SIGAGENT_API_URL": "https://app.sigagent.ai/fastapi",
+        "SIGAGENT_ORG_ID": "your-org-id",
+        "SIGAGENT_ORG_API_TOKEN": "your-token"
       }
     }
   }
@@ -227,9 +227,9 @@ Create a `.mcp.conf` file in your project root:
       "command": "node",
       "args": ["node_modules/@sigagent/mcp/dist/index.js"],
       "env": {
-        "DOCROUTER_API_URL": "https://app.sigagent.ai/fastapi",
-        "DOCROUTER_ORG_ID": "your-org-id",
-        "DOCROUTER_ORG_API_TOKEN": "your-token"
+        "SIGAGENT_API_URL": "https://app.sigagent.ai/fastapi",
+        "SIGAGENT_ORG_ID": "your-org-id",
+        "SIGAGENT_ORG_API_TOKEN": "your-token"
       }
     }
   }
@@ -246,9 +246,9 @@ If you installed the package globally, you can use the binary directly:
     "sigagent": {
       "command": "sigagent-mcp",
       "env": {
-        "DOCROUTER_API_URL": "https://app.sigagent.ai/fastapi",
-        "DOCROUTER_ORG_ID": "your-org-id",
-        "DOCROUTER_ORG_API_TOKEN": "your-token"
+        "SIGAGENT_API_URL": "https://app.sigagent.ai/fastapi",
+        "SIGAGENT_ORG_ID": "your-org-id",
+        "SIGAGENT_ORG_API_TOKEN": "your-token"
       }
     }
   }
@@ -298,8 +298,8 @@ You can test the MCP server manually:
 
 ```bash
 # Set environment variables
-export DOCROUTER_ORG_ID="your-org-id"
-export DOCROUTER_ORG_API_TOKEN="your-token"
+export SIGAGENT_ORG_ID="your-org-id"
+export SIGAGENT_ORG_API_TOKEN="your-token"
 
 # Run the server directly
 node node_modules/@sigagent/mcp/dist/index.js
@@ -324,7 +324,7 @@ node node_modules/@sigagent/mcp/dist/index.js
 
 **3. "Environment variables not set"**
 
-- ✅ **Check variable names**: Use exact names: `DOCROUTER_ORG_ID`, `DOCROUTER_ORG_API_TOKEN`
+- ✅ **Check variable names**: Use exact names: `SIGAGENT_ORG_ID`, `SIGAGENT_ORG_API_TOKEN`
 - ✅ **Verify values**: Ensure credentials are correct and not expired
 - ✅ **Test API access**: Verify your credentials work with SigAgent API
 
@@ -345,9 +345,9 @@ Add debug logging to your configuration:
       "command": "node",
       "args": ["node_modules/@sigagent/mcp/dist/index.js"],
       "env": {
-        "DOCROUTER_API_URL": "https://app.sigagent.ai/fastapi",
-        "DOCROUTER_ORG_ID": "your-org-id",
-        "DOCROUTER_ORG_API_TOKEN": "your-token",
+        "SIGAGENT_API_URL": "https://app.sigagent.ai/fastapi",
+        "SIGAGENT_ORG_ID": "your-org-id",
+        "SIGAGENT_ORG_API_TOKEN": "your-token",
         "DEBUG": "mcp:*"
       }
     }
@@ -366,9 +366,9 @@ Here's a complete example for Cursor IDE:
       "command": "node",
       "args": ["node_modules/@sigagent/mcp/dist/index.js"],
       "env": {
-        "DOCROUTER_API_URL": "http://localhost:8000",
-        "DOCROUTER_ORG_ID": "679c9a914cfaaaa3640811ed",
-        "DOCROUTER_ORG_API_TOKEN": "LK8RyD5OKn8taDQCbozI5payDk2xXqnW2SXXPZgMp88"
+        "SIGAGENT_API_URL": "http://localhost:8000",
+        "SIGAGENT_ORG_ID": "679c9a914cfaaaa3640811ed",
+        "SIGAGENT_ORG_API_TOKEN": "LK8RyD5OKn8taDQCbozI5payDk2xXqnW2SXXPZgMp88"
       }
     }
   }

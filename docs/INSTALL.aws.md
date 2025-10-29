@@ -16,7 +16,7 @@ Here are instructions on how to set up an AWS Lightsail instance and deploy the 
   * In my case, I create a file `/etc/nginx/sites-available/doc-router.conf` as follows:
   ```
   server {
-  server_name app.docrouter.ai;
+  server_name app.sigagent.ai;
   client_max_body_size 100M;
 
   # API requests                                                                
@@ -51,13 +51,13 @@ y.pem; # managed by Certbot
 }
 
 server {                                                   
-    if ($host = app.docrouter.ai) {
+    if ($host = app.sigagent.ai) {
         return 301 https://$host$request_uri;
     } # managed by Certbot                                                      
 
 
   listen 80;
-  server_name doc-router.analytiqhub.com app.docrouter.ai;
+  server_name doc-router.analytiqhub.com app.sigagent.ai;
   return 404; # managed by Certbot                                            
 }
 

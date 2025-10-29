@@ -1,8 +1,8 @@
-# DocRouter Prompt Configuration Guide
+# SigAgent Prompt Configuration Guide
 
 ## Overview
 
-Prompts in DocRouter are instructions that guide AI language models to extract structured information from documents. A well-configured prompt ensures consistent, accurate data extraction across your document processing pipeline.
+Prompts in SigAgent are instructions that guide AI language models to extract structured information from documents. A well-configured prompt ensures consistent, accurate data extraction across your document processing pipeline.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ Prompts in DocRouter are instructions that guide AI language models to extract s
 
 ## What is a Prompt?
 
-A prompt is a text instruction that tells an AI model what to do with a document. In DocRouter, prompts:
+A prompt is a text instruction that tells an AI model what to do with a document. In SigAgent, prompts:
 
 - Guide LLMs to extract specific data from documents
 - Can be linked to schemas for structured output validation
@@ -32,7 +32,7 @@ A prompt is a text instruction that tells an AI model what to do with a document
 
 ### Basic Components
 
-Every prompt in DocRouter has the following components:
+Every prompt in SigAgent has the following components:
 
 | Component | Required | Description |
 |-----------|----------|-------------|
@@ -91,7 +91,7 @@ When creating or editing a prompt, you can optionally select a schema from the d
 
 ### Schema Versioning
 
-DocRouter maintains schema versions automatically:
+SigAgent maintains schema versions automatically:
 
 - When you update a schema, a new version is created
 - Existing prompts continue to reference their original schema version
@@ -111,7 +111,7 @@ DocRouter maintains schema versions automatically:
 
 ### Available Models
 
-DocRouter supports multiple AI providers through LiteLLM, including:
+SigAgent supports multiple AI providers through LiteLLM, including:
 
 - **OpenAI** - GPT-4, GPT-4o models
 - **Anthropic** - Claude 3.5, Claude 4 Sonnet and Opus models
@@ -127,7 +127,7 @@ DocRouter supports multiple AI providers through LiteLLM, including:
 
 ### Default Model
 
-If no model is specified, DocRouter uses **`gpt-4o-mini`** as the default model.
+If no model is specified, SigAgent uses **`gpt-4o-mini`** as the default model.
 
 ### How to Choose a Model
 
@@ -266,9 +266,9 @@ Return empty strings for fields not found in the document.
 
 ## API Integration
 
-DocRouter provides multiple ways to interact with prompts programmatically:
+SigAgent provides multiple ways to interact with prompts programmatically:
 
-- **TypeScript/JavaScript SDK** - Type-safe client library for Node.js and browsers (see `packages/typescript/docrouter-sdk/`)
+- **TypeScript/JavaScript SDK** - Type-safe client library for Node.js and browsers (see `packages/typescript/sigagent-sdk/`)
 - **Python SDK** - Type-safe Python client library (see `packages/sdk/`)
 - **REST API** - Direct HTTP requests (see API documentation for endpoints)
 - **MCP (Model Context Protocol)** - Integration with AI assistants like Claude Code
@@ -450,7 +450,7 @@ Format all data according to the provided schema. Use empty strings where inform
 
 ## Version Control
 
-DocRouter maintains prompt versioning:
+SigAgent maintains prompt versioning:
 
 - Each prompt update creates a new version
 - `prompt_version` increments with each change
@@ -463,10 +463,10 @@ DocRouter maintains prompt versioning:
 
 - [Schema Definition Manual](./schemas.md)
 - [LiteLLM Documentation](https://docs.litellm.ai/)
-- [DocRouter API Documentation](../README.md)
+- [SigAgent API Documentation](../README.md)
 
 ---
 
 **Document Version:** 1.0
 **Last Updated:** 2025-01-11
-**Maintained by:** DocRouter Development Team
+**Maintained by:** SigAgent Development Team

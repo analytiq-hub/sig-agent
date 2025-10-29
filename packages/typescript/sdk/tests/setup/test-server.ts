@@ -33,7 +33,7 @@ export class TestServer {
     this.setupSignalHandlers();
 
     const packagesDir = path.join(__dirname, '../../../../python'); // Go up to packages directory
-    const sdkDir = path.join(__dirname, '../..'); // docrouter_ts_sdk directory
+    const sdkDir = path.join(__dirname, '../..'); // sigagent_ts_sdk directory
     const venvPython = path.join(sdkDir, '.venv/bin/python');
 
     // Check if virtual environment exists, if not create it
@@ -152,7 +152,7 @@ export class TestServer {
     }
 
     console.log('Creating virtual environment...');
-    // Create virtual environment in docrouter_ts_sdk directory
+    // Create virtual environment in sigagent_ts_sdk directory
     // Try python3.11 first, then fallback to python3.9, then python3
     const pythonVersions = ['python3.13', 'python3.11', 'python3.9', 'python3'];
     let venvCreated = false;

@@ -52,7 +52,7 @@ def sample_claude_log_data_with_tool():
         "hook_data": {
             "session_id": "test-session-456",
             "hook_event_name": "PreToolUse",
-            "tool_name": "mcp__docrouter__list_documents",
+            "tool_name": "mcp__sigagent__list_documents",
             "tool_input": {"limit": 10},
             "permission_mode": "default",
             "cwd": "/test/directory"
@@ -84,7 +84,7 @@ def sample_claude_hook_data():
         "hook_stdin": json.dumps({
             "session_id": "test-session-456",
             "hook_event_name": "ToolUse",
-            "tool_name": "mcp__docrouter__get_document",
+            "tool_name": "mcp__sigagent__get_document",
             "tool_input": {"document_id": "doc-123"},
             "permission_mode": "default",
             "cwd": "/test/directory"
@@ -99,7 +99,7 @@ def sample_claude_hook_data_with_error():
         "hook_stdin": json.dumps({
             "session_id": "test-session-789",
             "hook_event_name": "ToolError",
-            "tool_name": "mcp__docrouter__invalid_tool",
+            "tool_name": "mcp__sigagent__invalid_tool",
             "error": "Tool not found",
             "permission_mode": "default"
         }),
@@ -160,7 +160,7 @@ class TestClaudeLogEndpoint:
             "organization_id": org_and_users["org_id"],
             "hook_data.session_id": "test-session-456"
         })
-        assert log_doc["hook_data"]["tool_name"] == "mcp__docrouter__list_documents"
+        assert log_doc["hook_data"]["tool_name"] == "mcp__sigagent__list_documents"
         assert log_doc["hook_data"]["tool_input"]["limit"] == 10
 
     def test_claude_log_missing_auth_header(self, sample_claude_log_data):

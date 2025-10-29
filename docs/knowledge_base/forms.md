@@ -1,8 +1,8 @@
-# DocRouter Forms Configuration Guide
+# SigAgent Forms Configuration Guide
 
 ## Overview
 
-Forms in DocRouter provide a human-in-the-loop interface for verifying, editing, and completing AI-extracted data from documents. Forms use the **Form.io JSON format** to define interactive UI components with validation rules and field mappings.
+Forms in SigAgent provide a human-in-the-loop interface for verifying, editing, and completing AI-extracted data from documents. Forms use the **Form.io JSON format** to define interactive UI components with validation rules and field mappings.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ Forms in DocRouter provide a human-in-the-loop interface for verifying, editing,
 
 ## What is a Form?
 
-A form in DocRouter is an interactive UI definition that:
+A form in SigAgent is an interactive UI definition that:
 
 - Displays AI-extracted data for human review and editing
 - Provides validation rules for data quality
@@ -62,7 +62,7 @@ A form in DocRouter is an interactive UI definition that:
 
 ## Form.io Field Types
 
-DocRouter supports standard Form.io field types for building interactive forms:
+SigAgent supports standard Form.io field types for building interactive forms:
 
 ### Text Field
 
@@ -432,9 +432,9 @@ Map form fields to schema fields to auto-populate from AI extraction:
 
 ## API Integration
 
-DocRouter provides multiple ways to interact with forms programmatically:
+SigAgent provides multiple ways to interact with forms programmatically:
 
-- **TypeScript/JavaScript SDK** - Type-safe client library (see `packages/typescript/docrouter-sdk/`)
+- **TypeScript/JavaScript SDK** - Type-safe client library (see `packages/typescript/sigagent-sdk/`)
 - **Python SDK** - Type-safe Python client library (see `packages/sdk/`)
 - **REST API** - Direct HTTP requests
 - **MCP (Model Context Protocol)** - Integration with AI assistants like Claude Code
@@ -699,7 +699,7 @@ All methods support: create, list, retrieve, update, delete forms, and submit/re
 
 ## Version Control
 
-DocRouter maintains form versioning:
+SigAgent maintains form versioning:
 
 - Each form update creates a new version (if response_format changes)
 - Name-only updates do not create new versions
@@ -713,7 +713,7 @@ DocRouter maintains form versioning:
 
 - [Form.io Documentation](https://help.form.io/)
 - [Form.io Field Components](https://help.form.io/userguide/forms/form-components)
-- [DocRouter API Documentation](../README.md)
+- [SigAgent API Documentation](../README.md)
 - [Schema Definition Manual](./schemas.md)
 - [Prompt Configuration Guide](./prompts.md)
 
@@ -721,4 +721,4 @@ DocRouter maintains form versioning:
 
 **Document Version:** 1.0
 **Last Updated:** 2025-01-11
-**Maintained by:** DocRouter Development Team
+**Maintained by:** SigAgent Development Team

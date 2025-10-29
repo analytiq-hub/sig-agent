@@ -85,7 +85,7 @@ EXAMPLES:
     sigagent-mcp --url "https://custom.sigagent.ai/fastapi" --org-token "token456"
 
 REQUIRED:
-    DOCROUTER_ORG_API_TOKEN environment variable or --org-token argument.
+    SIGAGENT_ORG_API_TOKEN environment variable or --org-token argument.
     Organization ID will be automatically resolved from the token.
 
 For more information about SigAgent, visit: https://sigagent.ai
@@ -2085,7 +2085,7 @@ async function main() {
     const config = parseConfig();
     
     if (!config.orgToken) {
-      console.error('Error: DOCROUTER_ORG_API_TOKEN environment variable is required');
+      console.error('Error: SIGAGENT_ORG_API_TOKEN environment variable is required');
       console.error('Or provide it as command line argument: --org-token <token>');
       console.error('Organization ID will be automatically resolved from the token.');
       process.exit(1);

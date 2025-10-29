@@ -3,7 +3,7 @@ import { SigAgent, SigAgentAccount, SigAgentOrg } from '../src';
 // Example 1: Using SigAgentAccount for server-to-server operations
 async function accountExample() {
   const client = new SigAgentAccount({
-    baseURL: 'https://api.docrouter.com',
+    baseURL: 'https://api.sigagent.com',
     accountToken: 'your-account-token-here'
   });
 
@@ -29,7 +29,7 @@ async function accountExample() {
 // Example 2: Using SigAgentOrg for organization-scoped operations
 async function orgExample() {
   const client = new SigAgentOrg({
-    baseURL: 'https://api.docrouter.com',
+    baseURL: 'https://api.sigagent.com',
     orgToken: 'your-org-token-here',
     organizationId: 'org-123'
   });
@@ -65,7 +65,7 @@ async function orgExample() {
 // Example 3: Using SigAgent for browser applications
 async function browserExample() {
   const client = new SigAgent({
-    baseURL: 'https://api.docrouter.com',
+    baseURL: 'https://api.sigagent.com',
     token: 'your-jwt-token-here'
   });
 
@@ -92,7 +92,7 @@ async function browserExample() {
 // Example 4: Error handling
 async function errorHandlingExample() {
   const client = new SigAgent({
-    baseURL: 'https://api.docrouter.com',
+    baseURL: 'https://api.sigagent.com',
     token: 'invalid-token',
     onAuthError: (error) => {
       console.error('Authentication failed:', error.message);
@@ -116,7 +116,7 @@ async function errorHandlingExample() {
 // Example 5: Token provider for dynamic tokens
 async function tokenProviderExample() {
   const client = new SigAgent({
-    baseURL: 'https://api.docrouter.com',
+    baseURL: 'https://api.sigagent.com',
     tokenProvider: async () => {
       // Fetch fresh token from your auth service
       const response = await fetch('/api/auth/token');

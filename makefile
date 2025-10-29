@@ -46,7 +46,7 @@ tests-ui-debug: setup-ui
 
 tests-ts:
 	cd packages/typescript/sdk && npm install && npm run test:all
-	cd packages/typescript/docrouter-mcp && npm install && npm run test
+	cd packages/typescript/mcp && npm install && npm run test
 
 clean:
 	rm -rf .venv

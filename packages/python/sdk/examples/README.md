@@ -1,11 +1,11 @@
-# DocRouter Client Examples
+# SigAgent Client Examples
 
-This directory contains examples demonstrating how to use the DocRouter Client API.
+This directory contains examples demonstrating how to use the SigAgent Client API.
 
 ## Basic Usage Example
 
 The `basic_usage.py` example shows how to:
-- Initialize the DocRouter client
+- Initialize the SigAgent client
 - List documents, tags, and LLM models
 - Handle errors gracefully
 
@@ -13,11 +13,11 @@ The `basic_usage.py` example shows how to:
 
 ```bash
 # Set your API credentials as environment variables
-export DOCROUTER_URL="https://app.docrouter.ai/fastapi"
-# export DOCROUTER_URL="http://localhost:8000" # for local development
-export DOCROUTER_API_TOKEN="your_actual_token_here"
-export DOCROUTER_ORGANIZATION_ID="your_actual_org_id_here"
+export SIGAGENT_URL="https://app.sigagent.ai/fastapi"
+# export SIGAGENT_URL="http://localhost:8000" # for local development
+export SIGAGENT_API_TOKEN="your_actual_token_here"
+export SIGAGENT_ORGANIZATION_ID="your_actual_org_id_here"
 
 # Then run the example
-./basic_docrouter_client.py
+./basic_sigagent_client.py
 ```

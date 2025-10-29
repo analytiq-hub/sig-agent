@@ -8,9 +8,9 @@ describe('MCP Server Integration', () => {
     jest.resetModules();
     process.env = {
       ...originalEnv,
-      DOCROUTER_API_URL: 'https://api.test.com',
-      DOCROUTER_ORG_ID: 'test-org-id',
-      DOCROUTER_ORG_API_TOKEN: 'test-token'
+      SIGAGENT_API_URL: 'https://api.test.com',
+      SIGAGENT_ORG_ID: 'test-org-id',
+      SIGAGENT_ORG_API_TOKEN: 'test-token'
     };
   });
 
@@ -58,22 +58,22 @@ describe('MCP Server Integration', () => {
 
     it('should handle missing environment variables gracefully', () => {
       // Test with missing environment variables
-      delete process.env.DOCROUTER_API_URL;
-      delete process.env.DOCROUTER_ORG_ID;
-      delete process.env.DOCROUTER_ORG_API_TOKEN;
+      delete process.env.SIGAGENT_API_URL;
+      delete process.env.SIGAGENT_ORG_ID;
+      delete process.env.SIGAGENT_ORG_API_TOKEN;
 
       // The server should still be importable even with missing env vars
       // (actual validation happens at runtime)
-      expect(process.env.DOCROUTER_API_URL).toBeUndefined();
-      expect(process.env.DOCROUTER_ORG_ID).toBeUndefined();
-      expect(process.env.DOCROUTER_ORG_API_TOKEN).toBeUndefined();
+      expect(process.env.SIGAGENT_API_URL).toBeUndefined();
+      expect(process.env.SIGAGENT_ORG_ID).toBeUndefined();
+      expect(process.env.SIGAGENT_ORG_API_TOKEN).toBeUndefined();
     });
 
     it('should validate required environment variables format', () => {
       // Test environment variable formats
-      const apiUrl = process.env.DOCROUTER_API_URL;
-      const orgId = process.env.DOCROUTER_ORG_ID;
-      const token = process.env.DOCROUTER_ORG_API_TOKEN;
+      const apiUrl = process.env.SIGAGENT_API_URL;
+      const orgId = process.env.SIGAGENT_ORG_ID;
+      const token = process.env.SIGAGENT_ORG_API_TOKEN;
 
       if (apiUrl) {
         expect(apiUrl).toMatch(/^https?:\/\//);

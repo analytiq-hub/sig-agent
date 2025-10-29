@@ -84,7 +84,7 @@ npm install @sigagent/sdk
 import { SigAgentAccount } from '@sigagent/sdk';
 
 const client = new SigAgentAccount({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   accountToken: 'your-account-token-here'
 });
 
@@ -104,7 +104,7 @@ const token = await client.tokens.createOrganizationToken({
 import { SigAgentOrg } from '@sigagent/sdk';
 
 const client = new SigAgentOrg({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   orgToken: 'your-org-token-here',
   organizationId: 'org-123'
 });
@@ -131,7 +131,7 @@ const documents = await client.documents.list();
 import { SigAgentOrg } from '@sigagent/sdk';
 
 const client = new SigAgentOrg({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   orgToken: 'your-jwt-token-here',
   organizationId: 'your-org-id'
 });
@@ -162,7 +162,7 @@ Use for account-level operations with account tokens.
 
 ```typescript
 const client = new SigAgentAccount({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   accountToken: 'your-account-token'
 });
 
@@ -178,7 +178,7 @@ Use when you have an organization token and want to work within that org.
 
 ```typescript
 const client = new SigAgentOrg({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   orgToken: 'your-org-token',
   organizationId: 'org-123'
 });

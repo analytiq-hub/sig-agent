@@ -1,8 +1,8 @@
-# DocRouter Schema Definition Manual
+# SigAgent Schema Definition Manual
 
 ## Overview
 
-DocRouter uses **OpenAI's Structured Outputs JSON Schema format** to define extraction schemas for document processing. Schemas ensure that AI-extracted data from documents follows a consistent, validated structure.
+SigAgent uses **OpenAI's Structured Outputs JSON Schema format** to define extraction schemas for document processing. Schemas ensure that AI-extracted data from documents follows a consistent, validated structure.
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@ DocRouter uses **OpenAI's Structured Outputs JSON Schema format** to define extr
 
 ### Root Structure
 
-All DocRouter schemas follow this format:
+All SigAgent schemas follow this format:
 
 ```json
 {
@@ -51,7 +51,7 @@ All DocRouter schemas follow this format:
 
 ### Strict Mode Constraints
 
-When `strict: true` is enabled (mandatory for DocRouter), the following rules apply:
+When `strict: true` is enabled (mandatory for SigAgent), the following rules apply:
 
 1. **All properties MUST be in the `required` array** - No optional fields allowed
 2. **`additionalProperties: false` MUST be set** - At every level, including nested objects
@@ -98,7 +98,7 @@ When `strict: true` is enabled (mandatory for DocRouter), the following rules ap
 
 ## Field Types
 
-DocRouter schemas support standard JSON Schema data types:
+SigAgent schemas support standard JSON Schema data types:
 
 ### String Fields
 
@@ -203,7 +203,7 @@ DocRouter schemas support standard JSON Schema data types:
 
 ### Strict Mode Requirements
 
-**IMPORTANT:** When using OpenAI's Structured Outputs with `strict: true` (which DocRouter uses), **ALL properties MUST be listed in the `required` array**. This is a mandatory requirement from OpenAI's API.
+**IMPORTANT:** When using OpenAI's Structured Outputs with `strict: true` (which SigAgent uses), **ALL properties MUST be listed in the `required` array**. This is a mandatory requirement from OpenAI's API.
 
 ```json
 {
@@ -234,7 +234,7 @@ Since all fields must be required in strict mode, the LLM handles missing data a
 
 ## Advanced Schema Features
 
-**⚠️ PORTABILITY WARNING:** The features below are supported by OpenAI's Structured Outputs, but **not recommended** for DocRouter schemas. These constraints may not be portable across different LLM providers (Anthropic Claude, Google Gemini, etc.). For maximum compatibility and reliability:
+**⚠️ PORTABILITY WARNING:** The features below are supported by OpenAI's Structured Outputs, but **not recommended** for SigAgent schemas. These constraints may not be portable across different LLM providers (Anthropic Claude, Google Gemini, etc.). For maximum compatibility and reliability:
 
 - **Use basic types only**: string, number, integer, boolean, array, object
 - **Avoid** enums, patterns, minimum/maximum, minItems/maxItems, uniqueItems
@@ -760,9 +760,9 @@ Include clear descriptions that explain:
 
 ## API Integration
 
-DocRouter provides multiple ways to interact with schemas programmatically:
+SigAgent provides multiple ways to interact with schemas programmatically:
 
-- **TypeScript/JavaScript SDK** - Type-safe client library for Node.js and browsers (see `packages/typescript/docrouter-sdk/`)
+- **TypeScript/JavaScript SDK** - Type-safe client library for Node.js and browsers (see `packages/typescript/sigagent-sdk/`)
 - **Python SDK** - Type-safe Python client library (see `packages/sdk/`)
 - **REST API** - Direct HTTP requests (see API documentation for endpoints)
 - **MCP (Model Context Protocol)** - Integration with AI assistants like Claude Code
@@ -830,7 +830,7 @@ All methods support the same schema operations: create, list, retrieve, update, 
 
 ## Version Control
 
-DocRouter maintains schema versioning:
+SigAgent maintains schema versioning:
 
 - Each schema update creates a new version
 - `schema_version` increments with each change
@@ -843,10 +843,10 @@ DocRouter maintains schema versioning:
 
 - [JSON Schema Specification](https://json-schema.org/)
 - [OpenAI Structured Outputs Documentation](https://platform.openai.com/docs/guides/structured-outputs)
-- [DocRouter API Documentation](../README.md)
+- [SigAgent API Documentation](../README.md)
 
 ---
 
 **Document Version:** 1.0
 **Last Updated:** 2025-10-11
-**Maintained by:** DocRouter Development Team
+**Maintained by:** SigAgent Development Team

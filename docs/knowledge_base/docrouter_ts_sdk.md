@@ -48,7 +48,7 @@ Use `SigAgentAccount` for account-level operations with account tokens:
 import { SigAgentAccount } from '@sigagent/sdk';
 
 const client = new SigAgentAccount({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   accountToken: 'your-account-token-here'
 });
 ```
@@ -67,7 +67,7 @@ Use `SigAgentOrg` for organization-scoped operations:
 import { SigAgentOrg } from '@sigagent/sdk';
 
 const client = new SigAgentOrg({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   orgToken: 'your-org-token-here',
   organizationId: 'org-123'
 });
@@ -87,7 +87,7 @@ Use `SigAgentOrg` with JWT tokens for browser applications:
 import { SigAgentOrg } from '@sigagent/sdk';
 
 const client = new SigAgentOrg({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   orgToken: 'your-jwt-token-here',
   organizationId: 'your-org-id'
 });
@@ -106,7 +106,7 @@ const client = new SigAgentOrg({
 import { SigAgentAccount } from '@sigagent/sdk';
 
 const client = new SigAgentAccount({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   accountToken: 'your-account-token'
 });
 
@@ -126,7 +126,7 @@ const token = await client.createOrganizationToken({
 import { SigAgentOrg } from '@sigagent/sdk';
 
 const client = new SigAgentOrg({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   orgToken: 'your-org-token',
   organizationId: 'org-123'
 });
@@ -160,7 +160,7 @@ The `SigAgentAccount` client provides account-level operations:
 
 ```typescript
 const client = new SigAgentAccount({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   accountToken: 'your-account-token'
 });
 
@@ -257,7 +257,7 @@ The `SigAgentOrg` client provides organization-scoped operations:
 
 ```typescript
 const client = new SigAgentOrg({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   orgToken: 'your-org-token',
   organizationId: 'org-123'
 });
@@ -587,7 +587,7 @@ The SDK provides comprehensive error handling with retry logic and authenticatio
 import { SigAgentOrg } from '@sigagent/sdk';
 
 const client = new SigAgentOrg({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   orgToken: 'your-org-token',
   organizationId: 'org-123',
   onAuthError: (error) => {
@@ -620,7 +620,7 @@ The SDK supports real-time streaming for LLM operations:
 import { SigAgentOrg } from '@sigagent/sdk';
 
 const client = new SigAgentOrg({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   orgToken: 'your-jwt-token',
   organizationId: 'your-org-id'
 });
@@ -656,7 +656,7 @@ The SDK works in browser environments with proper polyfills:
 import { SigAgentOrg } from '@sigagent/sdk';
 
 const client = new SigAgentOrg({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   orgToken: 'your-jwt-token',
   organizationId: 'your-org-id'
 });
@@ -690,7 +690,7 @@ You can provide custom configuration for the underlying HTTP client:
 import { SigAgentOrg } from '@sigagent/sdk';
 
 const client = new SigAgentOrg({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   orgToken: 'your-org-token',
   organizationId: 'org-123',
   timeout: 30000, // 30 seconds
@@ -707,13 +707,13 @@ import { SigAgentOrg } from '@sigagent/sdk';
 const config = {
   development: {
     baseURL: 'http://localhost:8000',
-    orgToken: process.env.DOCROUTER_DEV_TOKEN,
-    organizationId: process.env.DOCROUTER_DEV_ORG_ID
+    orgToken: process.env.SIGAGENT_DEV_TOKEN,
+    organizationId: process.env.SIGAGENT_DEV_ORG_ID
   },
   production: {
-    baseURL: 'https://api.docrouter.com',
-    orgToken: process.env.DOCROUTER_PROD_TOKEN,
-    organizationId: process.env.DOCROUTER_PROD_ORG_ID
+    baseURL: 'https://api.sigagent.com',
+    orgToken: process.env.SIGAGENT_PROD_TOKEN,
+    organizationId: process.env.SIGAGENT_PROD_ORG_ID
   }
 };
 
@@ -850,9 +850,9 @@ Use environment variables for configuration:
 import { SigAgentOrg } from '@sigagent/sdk';
 
 const client = new SigAgentOrg({
-  baseURL: process.env.DOCROUTER_API_URL || 'https://api.docrouter.com',
-  orgToken: process.env.DOCROUTER_ORG_TOKEN!,
-  organizationId: process.env.DOCROUTER_ORG_ID!
+  baseURL: process.env.SIGAGENT_API_URL || 'https://api.sigagent.com',
+  orgToken: process.env.SIGAGENT_ORG_TOKEN!,
+  organizationId: process.env.SIGAGENT_ORG_ID!
 });
 ```
 
@@ -904,7 +904,7 @@ Enable debug logging:
 
 ```typescript
 const client = new SigAgentOrg({
-  baseURL: 'https://api.docrouter.com',
+  baseURL: 'https://api.sigagent.com',
   orgToken: 'your-org-token',
   organizationId: 'org-123',
   debug: true // Enable debug logging
@@ -962,7 +962,7 @@ For developers working on the SDK:
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd packages/typescript/docrouter-sdk
+cd packages/typescript/sdk
 
 # Install dependencies
 npm install

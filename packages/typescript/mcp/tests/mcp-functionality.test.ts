@@ -290,13 +290,13 @@ describe('MCP Server Functionality', () => {
 
     it('should have correct environment variable handling', () => {
       const expectedEnvVars = [
-        'DOCROUTER_API_URL',
-        'DOCROUTER_ORG_ID', 
-        'DOCROUTER_ORG_API_TOKEN'
+        'SIGAGENT_API_URL',
+        'SIGAGENT_ORG_ID', 
+        'SIGAGENT_ORG_API_TOKEN'
       ];
 
       expectedEnvVars.forEach(envVar => {
-        expect(envVar).toMatch(/^DOCROUTER_[A-Z_]+$/);
+        expect(envVar).toMatch(/^SIGAGENT_[A-Z_]+$/);
         expect(envVar.length).toBeGreaterThan(0);
       });
     });
