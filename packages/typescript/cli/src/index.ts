@@ -5,6 +5,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import open from 'open';
+import { createInterface } from 'node:readline/promises';
+import { stdin as input, stdout as output } from 'node:process';
 
 type SetupOptions = {
   server?: string;
@@ -77,6 +79,17 @@ function extractTokenFromHeaders(headersValue?: string): string | undefined {
     if (part.startsWith('org_')) return part;
   }
   return undefined;
+}
+
+async function promptForToken(promptMessage = 'Enter new organization token (org_...): '): Promise<string | undefined> {
+  const rl = createInterface({ input, output });
+  try {
+    const answer = await rl.question(promptMessage);
+    const trimmed = (answer || '').trim();
+    return trimmed || undefined;
+  } finally {
+    rl.close();
+  }
 }
 
 async function resolveOrganizationId(server: string, token: string): Promise<string | undefined> {
@@ -185,7 +198,7 @@ function updateMarketplaceConfig(marketplaceUrl: string) {
 async function performSetup(opts: SetupOptions) {
   const server = opts.server || DEFAULT_SERVER;
   const marketplace = opts.marketplace || DEFAULT_MARKETPLACE;
-  const spinner = ora('Configuring Claude for SigAgent...').start();
+  let spinner = ora('Configuring Claude for SigAgent...').start();
   try {
     // If no token provided, try to reuse an existing valid org_ token in settings
     let effectiveToken = opts.token;
@@ -195,12 +208,13 @@ async function performSetup(opts: SetupOptions) {
         try {
           const raw = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
           const existingToken = extractTokenFromHeaders(raw?.env?.OTEL_EXPORTER_OTLP_HEADERS);
-          console.log(chalk.gray(`Parsed token from settings.json: ${existingToken ? maskToken(existingToken) : 'none'}`));
+          ora().succeed(`Parsed OTLP token: ${existingToken ? maskToken(existingToken) : 'none'}`);
           if (existingToken && existingToken.startsWith('org_')) {
             const validSpinner = ora('Validating existing organization token...').start();
             const valid = await isOrgTokenValid(server, existingToken);
             if (valid) {
-              validSpinner.succeed('Existing token is valid. Reusing it.');
+              const orgId = await resolveOrganizationId(server, existingToken);
+              validSpinner.succeed(`Existing token is valid${orgId ? ` for org ${orgId}` : ''}. Reusing it.`);
               effectiveToken = existingToken;
             } else {
               validSpinner.warn('Existing token is invalid. You will need a new token.');
@@ -212,26 +226,59 @@ async function performSetup(opts: SetupOptions) {
       }
     }
 
+    // If we still don't have a valid token, open creation page and interactively prompt the user
+    if (!effectiveToken) {
+      // pause the main spinner to avoid interfering with prompt output
+      if (spinner && spinner.isSpinning) spinner.stop();
+      const tokenUrl = new URL('/settings/user/developer/organization-access-tokens', server.replace('/fastapi', ''));
+      if (opts.nonInteractive) {
+        const msg = `
+No organization token provided. Please create one, then re-run with --token <ORG_TOKEN>.
+Opening ${chalk.underline(tokenUrl.toString())} in your browser...
+`;
+        console.log(msg);
+        try { await open(tokenUrl.toString()); } catch {}
+        return;
+      }
+      const msg = `
+No organization token provided. Please create one if needed.
+Opening ${chalk.underline(tokenUrl.toString())} in your browser...
+`;
+      console.log(msg);
+      try { await open(tokenUrl.toString()); } catch {}
+
+      // Prompt up to 3 attempts for a valid token
+      for (let attempt = 1; attempt <= 3 && !effectiveToken; attempt++) {
+        const entered = await promptForToken(`Enter organization token (attempt ${attempt}/3) or press Enter to cancel: `);
+        if (!entered) break;
+        const checkSpinner = ora('Validating provided organization token...').start();
+        const valid = await isOrgTokenValid(server, entered);
+        if (valid) {
+          const orgId = await resolveOrganizationId(server, entered);
+          checkSpinner.succeed(`Token is valid${orgId ? ` for org ${orgId}` : ''}.`);
+          effectiveToken = entered;
+          break;
+        } else {
+          checkSpinner.warn('Provided token is invalid.');
+        }
+      }
+
+      if (!effectiveToken) {
+        console.log(chalk.yellow('No valid token provided. Aborting without updating settings.'));
+        // ensure spinner is stopped before exit
+        return;
+      }
+
+      // resume main spinner now that we can proceed
+      spinner = ora('Configuring Claude for SigAgent...').start();
+    }
+
     const settingsPath = writeClaudeSettings(server, effectiveToken);
     spinner.succeed(`Updated ${chalk.cyan(settingsPath)} with telemetry configuration`);
 
     const spinnerMk = ora('Adding SigAgent marketplace...').start();
     const mpPath = updateMarketplaceConfig(marketplace);
     spinnerMk.succeed(`Ensured marketplace at ${chalk.cyan(mpPath)}`);
-
-    if (!effectiveToken) {
-      const tokenUrl = new URL('/settings/user/developer/organization-access-tokens', server.replace('/fastapi', ''));
-      const msg = `
-No organization token provided. Please create one, then re-run with --token <ORG_TOKEN>.
-Opening ${chalk.underline(tokenUrl.toString())} in your browser...
-`;
-      console.log(msg);
-      try {
-        await open(tokenUrl.toString());
-      } catch {
-        // Ignore if browser cannot be opened (e.g., headless)
-      }
-    }
 
     console.log(`\n${chalk.green('Setup complete.')} Restart Claude to apply changes.`);
   } catch (err: any) {
