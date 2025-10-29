@@ -1,9 +1,9 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-// Mock the DocRouter SDK
-jest.mock('@docrouter/sdk', () => ({
-  DocRouterOrg: jest.fn().mockImplementation(() => ({
+// Mock the SigAgent SDK
+jest.mock('@sigagent/sdk', () => ({
+  SigAgentOrg: jest.fn().mockImplementation(() => ({
     listDocuments: jest.fn().mockResolvedValue({
       documents: [
         {

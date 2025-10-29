@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { DocRouterAccountApi } from '@/utils/api';
+import { SigAgentAccountApi } from '@/utils/api';
 import { useAppSession } from '@/contexts/AppSessionContext';
 
 export default function VerifyEmailPage() {
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
   const [error, setError] = useState<string | null>(null);
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
   const searchParams = useSearchParams();
   const router = useRouter();
   const { session } = useAppSession();
@@ -24,7 +24,7 @@ export default function VerifyEmailPage() {
 
       try {
         console.log(`Verifying email with token: ${token}`);
-        await docRouterAccountApi.verifyEmail(token);
+        await sigAgentAccountApi.verifyEmail(token);
         setStatus('success');
         // Only redirect to signin if user is not already logged in
         setTimeout(() => {
@@ -42,7 +42,7 @@ export default function VerifyEmailPage() {
     };
 
     verifyEmail();
-  }, [searchParams, router, session, docRouterAccountApi]);
+  }, [searchParams, router, session, sigAgentAccountApi]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

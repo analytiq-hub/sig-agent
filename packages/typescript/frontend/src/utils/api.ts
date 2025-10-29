@@ -1,7 +1,7 @@
 import axios, { isAxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
 import { AppSession } from '@/types/AppSession';
-import { DocRouterOrg, DocRouterAccount } from '@docrouter/sdk';
+import { SigAgentOrg, SigAgentAccount } from '@sigagent/sdk';
 
 // Session cache to avoid repeated calls
 let sessionCache: { session: AppSession | null; timestamp: number } | null = null;
@@ -166,7 +166,7 @@ api.interceptors.response.use(
   }
 );
 
-export class DocRouterOrgApi extends DocRouterOrg {
+export class SigAgentOrgApi extends SigAgentOrg {
  constructor(organizationId: string) {
     super({
       baseURL: NEXT_PUBLIC_FASTAPI_FRONTEND_URL,
@@ -189,7 +189,7 @@ export class DocRouterOrgApi extends DocRouterOrg {
   }
 }
 
-export class DocRouterAccountApi extends DocRouterAccount {
+export class SigAgentAccountApi extends SigAgentAccount {
   constructor() {
     super({
       baseURL: NEXT_PUBLIC_FASTAPI_FRONTEND_URL,

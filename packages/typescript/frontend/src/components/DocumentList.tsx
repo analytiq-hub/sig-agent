@@ -4,8 +4,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { Box, IconButton, TextField, InputAdornment, Autocomplete, Menu, MenuItem } from '@mui/material';
 import { isAxiosError } from 'axios';
-// All API calls now use docRouterOrgApi
-import { Tag, Document } from '@docrouter/sdk';
+// All API calls now use sigAgentOrgApi
+import { Tag, Document } from '@sigagent/sdk';
 import Link from 'next/link';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -20,7 +20,7 @@ import DocumentRenameModal from './DocumentRename';
 import { formatLocalDateWithTZ } from '@/utils/date';
 import { BoltIcon } from '@heroicons/react/24/outline';
 import { DocumentBulkUpdate } from './DocumentBulkUpdate';
-import { DocRouterOrgApi } from '@/utils/api';
+import { SigAgentOrgApi } from '@/utils/api';
 
 // Helper function to parse and URL-encode metadata search
 const parseAndEncodeMetadataSearch = (searchStr: string): string | null => {
@@ -55,7 +55,7 @@ const parseAndEncodeMetadataSearch = (searchStr: string): string | null => {
 };
 
 const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [totalRows, setTotalRows] = useState<number>(0);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
@@ -107,7 +107,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         }
       }
       
-      const response = await docRouterOrgApi.listDocuments({
+      const response = await sigAgentOrgApi.listDocuments({
         skip: paginationModel.page * paginationModel.pageSize,
         limit: paginationModel.pageSize,
         nameSearch: searchTerm.trim() || undefined,
@@ -125,7 +125,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         console.log('Unauthorized, waiting for token and retrying...');
         await new Promise(resolve => setTimeout(resolve, 1000));
         try {
-          const retryResponse = await docRouterOrgApi.listDocuments({
+          const retryResponse = await sigAgentOrgApi.listDocuments({
             skip: paginationModel.page * paginationModel.pageSize,
             limit: paginationModel.pageSize
           }); 
@@ -143,7 +143,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     } finally {
       setIsLoading(false);
     }
-  }, [paginationModel, searchTerm, selectedTagFilters, metadataSearch, docRouterOrgApi]);
+  }, [paginationModel, searchTerm, selectedTagFilters, metadataSearch, sigAgentOrgApi]);
 
   useEffect(() => {
     console.log('FileList component mounted or pagination changed');
@@ -154,14 +154,14 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
   useEffect(() => {
     const loadTags = async () => {
       try {
-        const response = await docRouterOrgApi.listTags({ limit: 100 });
+        const response = await sigAgentOrgApi.listTags({ limit: 100 });
         setTags(response.tags);
       } catch (error) {
         console.error('Error loading tags:', error);
       }
     };
     loadTags();
-  }, [docRouterOrgApi]);
+  }, [sigAgentOrgApi]);
 
   // Menu handlers
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, document: Document) => {
@@ -176,7 +176,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   const handleDeleteFile = async (fileId: string) => {
     try {
-      await docRouterOrgApi.deleteDocument({ documentId: fileId });
+      await sigAgentOrgApi.deleteDocument({ documentId: fileId });
       // Refresh the file list after deletion
       fetchFiles();
       handleMenuClose();
@@ -201,7 +201,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
 
   const handleDownloadFile = async (doc: Document) => {
     try {
-      const response = await docRouterOrgApi.getDocument({
+      const response = await sigAgentOrgApi.getDocument({
         documentId: doc.id,
         fileType: "original"
       });
@@ -250,7 +250,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
         newMetadata: metadata
       });
       
-      await docRouterOrgApi.updateDocument({
+      await sigAgentOrgApi.updateDocument({
         documentId: editingDocument.id,
         tagIds: tagIds,
         metadata: metadata
@@ -270,7 +270,7 @@ const DocumentList: React.FC<{ organizationId: string }> = ({ organizationId }) 
     if (!editingDocument) return;
 
     try {
-      await docRouterOrgApi.updateDocument({
+      await sigAgentOrgApi.updateDocument({
         documentId: editingDocument.id,
         documentName: newName
       });

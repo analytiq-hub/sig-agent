@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { DocRouterAccountApi } from '@/utils/api';
-import { LLMChatRequest, LLMMessage } from '@docrouter/sdk';
+import { SigAgentAccountApi } from '@/utils/api';
+import { LLMChatRequest, LLMMessage } from '@sigagent/sdk';
 
 interface LLMTestModalProps {
   open: boolean;
@@ -15,7 +15,7 @@ const LLMTestModal: React.FC<LLMTestModalProps> = ({ open, onClose, modelName })
   const [testError, setTestError] = useState<string | null>(null);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
 
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
 
   const handleRunTest = async () => {
     if (!modelName || !testPrompt.trim()) return;
@@ -38,7 +38,7 @@ const LLMTestModal: React.FC<LLMTestModalProps> = ({ open, onClose, modelName })
         stream: true
       };
 
-      await docRouterAccountApi.runLLMChatStream(
+      await sigAgentAccountApi.runLLMChatStream(
         request,
         (chunk) => {
           if ('error' in chunk) {

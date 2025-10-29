@@ -1,12 +1,12 @@
-import { DocRouterAccount } from '../../src';
+import { SigAgentAccount } from '../../src';
 import { HttpClient } from '../../src/http-client';
 
 // Mock the HttpClient
 jest.mock('../../src/http-client');
 const MockedHttpClient = HttpClient as jest.MockedClass<typeof HttpClient>;
 
-describe('DocRouterAccount New APIs Unit Tests', () => {
-  let client: DocRouterAccount;
+describe('SigAgentAccount New APIs Unit Tests', () => {
+  let client: SigAgentAccount;
   let mockHttpClient: jest.Mocked<HttpClient>;
 
   beforeEach(() => {
@@ -26,7 +26,7 @@ describe('DocRouterAccount New APIs Unit Tests', () => {
     MockedHttpClient.mockImplementation(() => mockHttpClient);
 
     // Create the client
-    client = new DocRouterAccount({
+    client = new SigAgentAccount({
       baseURL: 'https://api.example.com',
       accountToken: 'test-token'
     });

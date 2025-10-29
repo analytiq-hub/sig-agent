@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DocRouterAccountApi } from '@/utils/api';
+import { SigAgentAccountApi } from '@/utils/api';
 import SubscriptionPlans from './SubscriptionPlans';
 import SubscriptionUsage from './SubscriptionUsage';
 import SubscriptionCredits from './SubscriptionCredits';
@@ -29,7 +29,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
   const [activeTab, setActiveTab] = useState<'credits' | 'plans' | 'usage'>('credits');
   const [userSelectedTab, setUserSelectedTab] = useState<boolean>(false);
   const [creditsRefreshKey, setCreditsRefreshKey] = useState<number>(0);
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
 
   // Handle URL parameters for tab navigation
   useEffect(() => {
@@ -47,7 +47,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
     const fetchPortalUrl = async () => {
       try {
         setLoading(true);
-        const response = await docRouterAccountApi.getCustomerPortal(organizationId);
+        const response = await sigAgentAccountApi.getCustomerPortal(organizationId);
         // Set URL only if it's not empty, otherwise leave as null
         setCustomerPortalUrl(response.payment_portal_url || null);
         // Set Stripe enabled status
@@ -61,7 +61,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
     };
 
     fetchPortalUrl();
-  }, [organizationId, docRouterAccountApi]);
+  }, [organizationId, sigAgentAccountApi]);
 
   useEffect(() => {
     // Check for success/cancel parameters in URL
@@ -131,7 +131,7 @@ const SubscriptionManager: React.FC<SubscriptionProps> = ({ organizationId }) =>
     if (!confirmed) return;
     setLoading(true);
     try {
-      await docRouterAccountApi.cancelSubscription(organizationId);
+      await sigAgentAccountApi.cancelSubscription(organizationId);
       setSubscriptionStatus('cancelling');
     } catch (e) {
       console.error('Error cancelling subscription:', e);

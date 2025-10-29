@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { DocRouterOrgApi, DocRouterAccountApi } from '@/utils/api';
-import { LLMModel } from '@docrouter/sdk';
-import { Tag, Prompt, Schema, SchemaResponseFormat } from '@docrouter/sdk';
+import { SigAgentOrgApi, SigAgentAccountApi } from '@/utils/api';
+import { LLMModel } from '@sigagent/sdk';
+import { Tag, Prompt, Schema, SchemaResponseFormat } from '@sigagent/sdk';
 
 // Type alias for prompt creation/update (without id and timestamps)
 type PromptConfig = Omit<Prompt, 'prompt_revid' | 'prompt_id' | 'prompt_version' | 'created_at' | 'created_by'>;
@@ -19,8 +19,8 @@ const DEFAULT_LLM_MODEL = 'gemini-2.0-flash';
 
 const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> = ({ organizationId, promptRevId }) => {
   const router = useRouter();
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
   const [currentPromptId, setCurrentPromptId] = useState<string | null>(null);
   const [currentPrompt, setCurrentPrompt] = useState<PromptConfig>({
     name: '',
@@ -58,7 +58,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
             (b.schema_version || 0) - (a.schema_version || 0)
           )[0];
           
-          const schema = await docRouterOrgApi.getSchema({ 
+          const schema = await sigAgentOrgApi.getSchema({ 
             schemaRevId: schemaDoc.schema_revid 
           });
 
@@ -76,7 +76,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
     } else {
       setSelectedSchemaDetails(null);
     }
-  }, [schemas, docRouterOrgApi, setSelectedSchema, setSelectedSchemaDetails, setCurrentPrompt])
+  }, [schemas, sigAgentOrgApi, setSelectedSchema, setSelectedSchemaDetails, setCurrentPrompt])
 
   // Load editing prompt if available
   useEffect(() => {
@@ -84,7 +84,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
       if (promptRevId) {
         try {
           setIsLoading(true);
-          const prompt = await docRouterOrgApi.getPrompt({ promptRevId });
+          const prompt = await sigAgentOrgApi.getPrompt({ promptRevId });
           setCurrentPromptId(prompt.prompt_id);
           setCurrentPrompt({
             name: prompt.name,
@@ -126,7 +126,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
           )[0];
           
           try {
-            const schema = await docRouterOrgApi.getSchema({ 
+            const schema = await sigAgentOrgApi.getSchema({ 
               schemaRevId: schemaDoc.schema_revid 
             });
             setSelectedSchemaDetails(schema);
@@ -143,7 +143,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
     };
     
     initSchema();
-  }, [schemas, currentPrompt.schema_id, docRouterOrgApi]);
+  }, [schemas, currentPrompt.schema_id, sigAgentOrgApi]);
 
   const savePrompt = async () => {
     try {
@@ -157,10 +157,10 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
 
       if (currentPromptId) {
         // Update existing prompt
-        await docRouterOrgApi.updatePrompt({ promptId: currentPromptId, prompt: promptToSave });
+        await sigAgentOrgApi.updatePrompt({ promptId: currentPromptId, prompt: promptToSave });
       } else {
         // Create new prompt
-        await docRouterOrgApi.createPrompt({ prompt: promptToSave });
+        await sigAgentOrgApi.createPrompt({ prompt: promptToSave });
       }
 
       // Clear the form
@@ -189,27 +189,27 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
 
   const loadSchemas = useCallback(async () => {
     try {
-      const response = await docRouterOrgApi.listSchemas({ limit: 100 });
+      const response = await sigAgentOrgApi.listSchemas({ limit: 100 });
       setSchemas(response.schemas);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
       toast.error(errorMsg);
     }
-  }, [docRouterOrgApi]);
+  }, [sigAgentOrgApi]);
 
   const loadTags = useCallback(async () => {
     try {
-      const response = await docRouterOrgApi.listTags({ limit: 100 });
+      const response = await sigAgentOrgApi.listTags({ limit: 100 });
       setAvailableTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
       toast.error(errorMsg);
     }
-  }, [docRouterOrgApi]);
+  }, [sigAgentOrgApi]);
 
   const loadLLMModels = useCallback(async () => {
     try {
-      const response = await docRouterAccountApi.listLLMModels({
+      const response = await sigAgentAccountApi.listLLMModels({
         providerEnabled: true,
         llmEnabled: true
       });
@@ -218,7 +218,7 @@ const PromptCreate: React.FC<{ organizationId: string, promptRevId?: string }> =
       const errorMsg = getApiErrorMsg(error) || 'Error loading LLM models';
       toast.error(errorMsg);
     }
-  }, [docRouterAccountApi]);
+  }, [sigAgentAccountApi]);
 
   useEffect(() => {
     loadSchemas();

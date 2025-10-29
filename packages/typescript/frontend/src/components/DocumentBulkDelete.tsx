@@ -1,8 +1,8 @@
 import { useState, forwardRef, useImperativeHandle, useMemo } from 'react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
-import { DocRouterOrgApi } from '@/utils/api'
+import { SigAgentOrgApi } from '@/utils/api'
 import { toast } from 'react-hot-toast'
-import { Document, Tag } from '@docrouter/sdk';
+import { Document, Tag } from '@sigagent/sdk';
 
 interface DocumentBulkDeleteProps {
   organizationId: string
@@ -29,7 +29,7 @@ export const DocumentBulkDelete = forwardRef<DocumentBulkDeleteRef, DocumentBulk
   onProgress,
   onComplete
 }, ref) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [isDeleting, setIsDeleting] = useState(false)
   const [deletedCount, setDeletedCount] = useState(0)
 
@@ -81,7 +81,7 @@ export const DocumentBulkDelete = forwardRef<DocumentBulkDeleteRef, DocumentBulk
 
       while (true) {
         // Fetch next batch of documents
-        const batchResponse = await docRouterOrgApi.listDocuments({
+        const batchResponse = await sigAgentOrgApi.listDocuments({
           skip,
           limit,
           nameSearch: searchParameters.searchTerm.trim() || undefined,
@@ -105,7 +105,7 @@ export const DocumentBulkDelete = forwardRef<DocumentBulkDeleteRef, DocumentBulk
 
           const deletePromises = batch.map(async (doc: Document) => {
             try {
-              await docRouterOrgApi.deleteDocument({
+              await sigAgentOrgApi.deleteDocument({
                 documentId: doc.id
               });
               return { success: true, name: doc.document_name };

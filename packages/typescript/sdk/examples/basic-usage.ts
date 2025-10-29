@@ -1,8 +1,8 @@
-import { DocRouter, DocRouterAccount, DocRouterOrg } from '../src';
+import { SigAgent, SigAgentAccount, SigAgentOrg } from '../src';
 
-// Example 1: Using DocRouterAccount for server-to-server operations
+// Example 1: Using SigAgentAccount for server-to-server operations
 async function accountExample() {
-  const client = new DocRouterAccount({
+  const client = new SigAgentAccount({
     baseURL: 'https://api.docrouter.com',
     accountToken: 'your-account-token-here'
   });
@@ -26,9 +26,9 @@ async function accountExample() {
   console.log('Created token:', token);
 }
 
-// Example 2: Using DocRouterOrg for organization-scoped operations
+// Example 2: Using SigAgentOrg for organization-scoped operations
 async function orgExample() {
-  const client = new DocRouterOrg({
+  const client = new SigAgentOrg({
     baseURL: 'https://api.docrouter.com',
     orgToken: 'your-org-token-here',
     organizationId: 'org-123'
@@ -62,9 +62,9 @@ async function orgExample() {
   console.log('LLM result:', llmResult);
 }
 
-// Example 3: Using DocRouter for browser applications
+// Example 3: Using SigAgent for browser applications
 async function browserExample() {
-  const client = new DocRouter({
+  const client = new SigAgent({
     baseURL: 'https://api.docrouter.com',
     token: 'your-jwt-token-here'
   });
@@ -91,7 +91,7 @@ async function browserExample() {
 
 // Example 4: Error handling
 async function errorHandlingExample() {
-  const client = new DocRouter({
+  const client = new SigAgent({
     baseURL: 'https://api.docrouter.com',
     token: 'invalid-token',
     onAuthError: (error) => {
@@ -115,7 +115,7 @@ async function errorHandlingExample() {
 
 // Example 5: Token provider for dynamic tokens
 async function tokenProviderExample() {
-  const client = new DocRouter({
+  const client = new SigAgent({
     baseURL: 'https://api.docrouter.com',
     tokenProvider: async () => {
       // Fetch fresh token from your auth service

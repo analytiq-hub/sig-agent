@@ -1,8 +1,8 @@
 import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, BoltIcon, PlusIcon, MinusIcon, DocumentArrowDownIcon, TrashIcon, CpuChipIcon } from '@heroicons/react/24/outline'
-import { Document, Tag } from '@docrouter/sdk';
-import { DocRouterOrgApi } from '@/utils/api';
+import { Document, Tag } from '@sigagent/sdk';
+import { SigAgentOrgApi } from '@/utils/api';
 
 // Operation data types
 type TagsOperationData = Tag[];
@@ -57,7 +57,7 @@ export function DocumentBulkUpdate({
   searchParameters,
   onRefresh
 }: DocumentBulkUpdateProps) {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [previewDocuments, setPreviewDocuments] = useState<Document[]>([])
   // Remove individual state - now handled by sub-components
   const [isLoading, setIsLoading] = useState(false)
@@ -142,7 +142,7 @@ export function DocumentBulkUpdate({
         }
       };
 
-      const response = await docRouterOrgApi.listDocuments({
+      const response = await sigAgentOrgApi.listDocuments({
         skip: 0,
         limit: 3,
         nameSearch: searchParameters.searchTerm.trim() || undefined,
@@ -157,7 +157,7 @@ export function DocumentBulkUpdate({
     } finally {
       setIsLoading(false)
     }
-  }, [searchParameters, docRouterOrgApi])
+  }, [searchParameters, sigAgentOrgApi])
 
   useEffect(() => {
     if (isOpen) {
@@ -203,7 +203,7 @@ export function DocumentBulkUpdate({
 
   const countTotalMatchingDocuments = async (): Promise<number> => {
     try {
-      const response = await docRouterOrgApi.listDocuments({
+      const response = await sigAgentOrgApi.listDocuments({
         skip: 0,
         limit: 1, // We only need the count, not the documents
         nameSearch: searchParameters.searchTerm.trim() || undefined,

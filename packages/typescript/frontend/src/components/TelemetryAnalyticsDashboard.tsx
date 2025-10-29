@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { DocRouterOrgApi } from '@/utils/api';
+import { SigAgentOrgApi } from '@/utils/api';
 import { Box, Typography, Grid, ToggleButton, ToggleButtonGroup, CircularProgress, Button, TextField, Paper, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, FormControlLabel, Checkbox, FormGroup } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -20,7 +20,7 @@ import {
   DataPoint, 
   TelemetryMetricResponse, 
   TelemetryLogResponse 
-} from '@docrouter/sdk';
+} from '@sigagent/sdk';
 
 interface TelemetryAnalyticsDashboardProps {
   organizationId: string;
@@ -30,7 +30,7 @@ type TimeRange = '1h' | '6h' | '24h' | '7d' | 'custom';
 type DisplayMode = 'cumulative' | 'rate';
 
 const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = ({ organizationId }) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [timeRange, setTimeRange] = useState<TimeRange>('1h');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('cumulative');
   const [loading, setLoading] = useState(true);
@@ -515,7 +515,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
     // Convert to bar chart data format
     const usageData: BarChartDataPoint[] = Object.entries(toolUsageCounts)
       .map(([toolName, count]) => ({
-        name: toolName.replace('mcp__docrouter__', ''), // Clean up tool names
+        name: toolName.replace('mcp__sigagent__', ''), // Clean up tool names
         value: count,
         fullName: toolName,
         color: getToolColor(toolName, allToolNames)
@@ -527,7 +527,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       .map(([toolName, durations]) => {
         const avg = durations.reduce((sum, duration) => sum + duration, 0) / durations.length;
         return {
-          name: toolName.replace('mcp__docrouter__', ''), // Clean up tool names
+          name: toolName.replace('mcp__sigagent__', ''), // Clean up tool names
           value: Math.round(avg),
           fullName: toolName,
           color: getToolColor(toolName, allToolNames)
@@ -685,7 +685,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
             end_time: endTime.toISOString()       // Converts to UTC: "2025-10-22T18:00:00.000Z"
           };
 
-          const metricsResponse = await docRouterOrgApi.listMetrics(metricsParams);
+          const metricsResponse = await sigAgentOrgApi.listMetrics(metricsParams);
           const fetchedMetrics = metricsResponse.metrics || [];
 
           allMetrics = allMetrics.concat(fetchedMetrics);
@@ -723,7 +723,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
             end_time: endTime.toISOString()       // Converts to UTC: "2025-10-22T18:00:00.000Z"
           };
 
-          const logsResponse = await docRouterOrgApi.listLogs(logsParams);
+          const logsResponse = await sigAgentOrgApi.listLogs(logsParams);
           const fetchedLogs = logsResponse.logs || [];
 
           allLogs = allLogs.concat(fetchedLogs);
@@ -928,7 +928,7 @@ const TelemetryAnalyticsDashboard: React.FC<TelemetryAnalyticsDashboardProps> = 
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeRange, organizationId, docRouterOrgApi, customStartDate, customEndDate]);
+  }, [timeRange, organizationId, sigAgentOrgApi, customStartDate, customEndDate]);
 
   useEffect(() => {
     loadAnalyticsData();

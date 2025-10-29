@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { pdfjs, Document, Page } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import { DocRouterOrgApi } from '@/utils/api';
+import { SigAgentOrgApi } from '@/utils/api';
 import { Toolbar, Typography, IconButton, TextField, Menu, MenuItem, Divider, Dialog, DialogTitle, DialogContent, DialogActions, Button, List, Tooltip, Box, CircularProgress } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
@@ -29,7 +29,7 @@ import { PanelGroup, Panel } from 'react-resizable-panels';
 import CheckIcon from '@mui/icons-material/Check';
 import TextSnippetIcon from '@mui/icons-material/TextSnippet';
 import { OCRProvider } from '@/contexts/OCRContext';
-import type { OCRBlock } from '@docrouter/sdk';
+import type { OCRBlock } from '@sigagent/sdk';
 import type { HighlightInfo } from '@/types/index';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -89,7 +89,7 @@ interface PDFViewerProps {
 }
 
 const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +114,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
 
     const loadPDF = async () => {
       try {
-        const response = await docRouterOrgApi.getDocument(
+        const response = await sigAgentOrgApi.getDocument(
           {
             documentId: id,
             fileType: "pdf"
@@ -160,7 +160,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
       }
       setFile(null);
     };
-  }, [id, organizationId, docRouterOrgApi]);
+  }, [id, organizationId, sigAgentOrgApi]);
 
   const pageRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -482,7 +482,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
 
   const handleDownloadOcrText = async () => {
     try {
-      const text = await docRouterOrgApi.getOCRText({
+      const text = await sigAgentOrgApi.getOCRText({
         documentId: id
       });
       const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
@@ -496,7 +496,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
 
   const handleDownloadOcrJson = async () => {
     try {
-      const blocks = await docRouterOrgApi.getOCRBlocks({
+      const blocks = await sigAgentOrgApi.getOCRBlocks({
         documentId: id
       });
       const blob = new Blob([JSON.stringify(blocks, null, 2)], { type: 'application/json' });
@@ -515,7 +515,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
       try {
         setOcrLoading(true);
         setOcrError(null);
-        const text = await docRouterOrgApi.getOCRText({
+        const text = await sigAgentOrgApi.getOCRText({
           documentId: id,
           pageNum: pageNumber
         });
@@ -529,7 +529,7 @@ const PDFViewer = ({ organizationId, id, highlightInfo }: PDFViewerProps) => {
     };
 
     fetchOcrText();
-  }, [id, pageNumber, showOcr, organizationId, docRouterOrgApi]);
+  }, [id, pageNumber, showOcr, organizationId, sigAgentOrgApi]);
 
   // This is called once for each page
   const renderHighlights = useCallback((page: number) => {

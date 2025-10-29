@@ -1,4 +1,4 @@
-import { DocRouterAccount, DocRouterOrg } from '../../src';
+import { SigAgentAccount, SigAgentOrg } from '../../src';
 import { getTestDatabase, getBaseUrl, createTestFixtures } from '../setup/jest-setup';
 
 describe('Authentication Integration Tests', () => {
@@ -12,11 +12,11 @@ describe('Authentication Integration Tests', () => {
     testFixtures = await createTestFixtures(testDb, baseUrl);
   });
 
-  // DocRouter removed
+  // SigAgent removed
 
-  describe('DocRouterAccount (Account-level)', () => {
+  describe('SigAgentAccount (Account-level)', () => {
     test('should authenticate with account token', async () => {
-      const client = new DocRouterAccount({
+      const client = new SigAgentAccount({
         baseURL: getBaseUrl(),
         accountToken: testFixtures.admin.account_token
       });
@@ -27,7 +27,7 @@ describe('Authentication Integration Tests', () => {
     });
 
     test('should create organization tokens', async () => {
-      const client = new DocRouterAccount({
+      const client = new SigAgentAccount({
         baseURL: getBaseUrl(),
         accountToken: testFixtures.admin.account_token
       });
@@ -42,7 +42,7 @@ describe('Authentication Integration Tests', () => {
     });
 
     test('should list account tokens', async () => {
-      const client = new DocRouterAccount({
+      const client = new SigAgentAccount({
         baseURL: getBaseUrl(),
         accountToken: testFixtures.admin.account_token
       });
@@ -53,9 +53,9 @@ describe('Authentication Integration Tests', () => {
     });
   });
 
-  describe('DocRouterOrg (Organization-scoped)', () => {
+  describe('SigAgentOrg (Organization-scoped)', () => {
     test('should authenticate with org token', async () => {
-      const client = new DocRouterOrg({
+      const client = new SigAgentOrg({
         baseURL: getBaseUrl(),
         orgToken: testFixtures.member.token,
         organizationId: testFixtures.org_id
@@ -67,7 +67,7 @@ describe('Authentication Integration Tests', () => {
     });
 
     test('should handle invalid org token', async () => {
-      const client = new DocRouterOrg({
+      const client = new SigAgentOrg({
         baseURL: getBaseUrl(),
         orgToken: 'invalid_token',
         organizationId: testFixtures.org_id,
@@ -80,7 +80,7 @@ describe('Authentication Integration Tests', () => {
     });
 
     test('should update token', async () => {
-      const client = new DocRouterOrg({
+      const client = new SigAgentOrg({
         baseURL: getBaseUrl(),
         orgToken: testFixtures.member.token,
         organizationId: testFixtures.org_id
@@ -97,7 +97,7 @@ describe('Authentication Integration Tests', () => {
 
   describe('Permission Tests', () => {
     test('org admin (member) should have full access', async () => {
-      const client = new DocRouterOrg({
+      const client = new SigAgentOrg({
         baseURL: getBaseUrl(),
         orgToken: testFixtures.member.token,
         organizationId: testFixtures.org_id
@@ -109,7 +109,7 @@ describe('Authentication Integration Tests', () => {
     });
 
     test('outsider should not have access', async () => {
-      const client = new DocRouterOrg({
+      const client = new SigAgentOrg({
         baseURL: getBaseUrl(),
         orgToken: testFixtures.outsider.token,
         organizationId: testFixtures.org_id,

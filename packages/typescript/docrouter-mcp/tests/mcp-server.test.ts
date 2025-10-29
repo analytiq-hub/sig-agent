@@ -20,9 +20,9 @@ describe('MCP Server Integration', () => {
 
   describe('Server Initialization', () => {
     it('should initialize MCP server with correct configuration', async () => {
-      // Mock the DocRouter SDK
-      jest.doMock('@docrouter/sdk', () => ({
-        DocRouterOrg: jest.fn().mockImplementation(() => ({
+      // Mock the SigAgent SDK
+      jest.doMock('@sigagent/sdk', () => ({
+        SigAgentOrg: jest.fn().mockImplementation(() => ({
           listDocuments: jest.fn(),
           getDocument: jest.fn(),
           getOCRText: jest.fn(),

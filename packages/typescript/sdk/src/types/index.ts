@@ -1,7 +1,7 @@
 // Core SDK types
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
-export interface DocRouterConfig {
+export interface SigAgentConfig {
   baseURL: string;
   token?: string;
   tokenProvider?: () => Promise<string>;
@@ -10,7 +10,7 @@ export interface DocRouterConfig {
   onAuthError?: (error: Error) => void;
 }
 
-export interface DocRouterAccountConfig {
+export interface SigAgentAccountConfig {
   baseURL: string;
   accountToken: string;
   timeout?: number;
@@ -18,7 +18,7 @@ export interface DocRouterAccountConfig {
   onAuthError?: (error: Error) => void;
 }
 
-export interface DocRouterOrgConfig {
+export interface SigAgentOrgConfig {
   baseURL: string;
   orgToken: string;
   organizationId: string;

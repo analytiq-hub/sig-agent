@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
-import { DocRouterAccountApi } from '@/utils/api';
-import { CreateTokenRequest, AccessToken } from '@docrouter/sdk';
+import { SigAgentAccountApi } from '@/utils/api';
+import { CreateTokenRequest, AccessToken } from '@sigagent/sdk';
 import { copyToClipboard } from '@/utils/clipboard';
 
 const AccountTokenManager: React.FC = () => {
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
   const [tokens, setTokens] = useState<AccessToken[]>([]);
   const [openModal, setOpenModal] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');
@@ -18,7 +18,7 @@ const AccountTokenManager: React.FC = () => {
   useEffect(() => {
     const getTokensData = async () => {
       try {
-        const tokensData = await docRouterAccountApi.getAccountTokens();
+        const tokensData = await sigAgentAccountApi.getAccountTokens();
         setTokens(tokensData);
       } catch (error) {
         console.error('Error fetching tokens:', error);
@@ -26,7 +26,7 @@ const AccountTokenManager: React.FC = () => {
     };
 
     getTokensData();
-  }, [docRouterAccountApi]);
+  }, [sigAgentAccountApi]);
 
   const createToken = async () => {
     try {
@@ -42,7 +42,7 @@ const AccountTokenManager: React.FC = () => {
         name: trimmedName,
         lifetime: lifetime
       }
-      const response = await docRouterAccountApi.createAccountToken(request)
+      const response = await sigAgentAccountApi.createAccountToken(request)
 
       setNewToken(response);
       setShowTokenModal(true);
@@ -66,7 +66,7 @@ const AccountTokenManager: React.FC = () => {
 
   const handleDeleteToken = async (tokenId: string) => {
     try {
-      await docRouterAccountApi.deleteAccountToken(tokenId);
+      await sigAgentAccountApi.deleteAccountToken(tokenId);
       setTokens(tokens.filter(token => token.id !== tokenId));
     } catch (error) {
       console.error('Error deleting token:', error);

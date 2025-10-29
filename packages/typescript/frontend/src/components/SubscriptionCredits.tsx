@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { DocRouterAccountApi } from '@/utils/api';
+import { SigAgentAccountApi } from '@/utils/api';
 import { UsageData } from '@/types/index';
 
 interface SubscriptionCreditsProps {
@@ -19,13 +19,13 @@ const SubscriptionCredits: React.FC<SubscriptionCreditsProps> = ({
 }) => {
   const [usageData, setUsageData] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const usageResponse = await docRouterAccountApi.getCurrentUsage(organizationId);
+        const usageResponse = await sigAgentAccountApi.getCurrentUsage(organizationId);
         
         if (usageResponse.data) {
           setUsageData(usageResponse.data);
@@ -38,7 +38,7 @@ const SubscriptionCredits: React.FC<SubscriptionCreditsProps> = ({
     };
 
     fetchData();
-  }, [organizationId, refreshKey, docRouterAccountApi]);
+  }, [organizationId, refreshKey, sigAgentAccountApi]);
 
   if (loading) {
     return (

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { DocRouterOrgApi } from '@/utils/api';
+import { SigAgentOrgApi } from '@/utils/api';
 import Link from 'next/link';
 import { 
   Description as DocumentIcon,
@@ -40,7 +40,7 @@ interface RecentDocument {
 
 
 const Dashboard: React.FC<DashboardProps> = ({ organizationId }) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [stats, setStats] = useState<DashboardStats>({
     documents: 0,
     schemas: 0,
@@ -58,11 +58,11 @@ const Dashboard: React.FC<DashboardProps> = ({ organizationId }) => {
       try {
         setLoading(true);
         const [documentsRes, schemasRes, promptsRes, tagsRes, formsRes] = await Promise.all([
-          docRouterOrgApi.listDocuments({ limit: 5 }),
-          docRouterOrgApi.listSchemas({ limit: 1 }),
-          docRouterOrgApi.listPrompts({ limit: 1 }),
-          docRouterOrgApi.listTags({ limit: 10 }),
-          docRouterOrgApi.listForms({ limit: 1 })
+          sigAgentOrgApi.listDocuments({ limit: 5 }),
+          sigAgentOrgApi.listSchemas({ limit: 1 }),
+          sigAgentOrgApi.listPrompts({ limit: 1 }),
+          sigAgentOrgApi.listTags({ limit: 10 }),
+          sigAgentOrgApi.listForms({ limit: 1 })
         ]);
 
         setStats({
@@ -83,7 +83,7 @@ const Dashboard: React.FC<DashboardProps> = ({ organizationId }) => {
     };
 
     fetchDashboardData();
-  }, [docRouterOrgApi]);
+  }, [sigAgentOrgApi]);
 
   const widgets = [
     {

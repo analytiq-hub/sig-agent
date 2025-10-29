@@ -1,9 +1,9 @@
-import { DocRouterOrg, DocRouterAccount } from '../../src';
+import { SigAgentOrg, SigAgentAccount } from '../../src';
 import { getTestDatabase, getBaseUrl, createTestFixtures } from '../setup/jest-setup';
 
 describe('Claude Integration Tests', () => {
   let testFixtures: { member: { token: string; account_token: string }; org_id: string };
-  let client: DocRouterOrg;
+  let client: SigAgentOrg;
   let orgToken: string;
 
   beforeEach(async () => {
@@ -12,7 +12,7 @@ describe('Claude Integration Tests', () => {
     testFixtures = await createTestFixtures(testDb, baseUrl);
 
     // Create an organization token for the claudeLog endpoint
-    const accountClient = new DocRouterAccount({
+    const accountClient = new SigAgentAccount({
       baseURL: baseUrl,
       accountToken: testFixtures.member.account_token
     });
@@ -24,7 +24,7 @@ describe('Claude Integration Tests', () => {
 
     orgToken = tokenResponse.token;
 
-    client = new DocRouterOrg({
+    client = new SigAgentOrg({
       baseURL: baseUrl,
       orgToken: orgToken,
       organizationId: testFixtures.org_id

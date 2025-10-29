@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button, TextField, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableContainer, TableHead, Paper, TableRow, TableCell, Alert, Snackbar } from '@mui/material';
 import { Delete as DeleteIcon, ContentCopy as ContentCopyIcon } from '@mui/icons-material';
-import { DocRouterAccountApi } from '@/utils/api';
-import { CreateTokenRequest, AccessToken } from '@docrouter/sdk';
+import { SigAgentAccountApi } from '@/utils/api';
+import { CreateTokenRequest, AccessToken } from '@sigagent/sdk';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { copyToClipboard } from '@/utils/clipboard';
 
 const OrganizationTokenManager: React.FC = () => {
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
   const { currentOrganization } = useOrganization();
   const [tokens, setTokens] = useState<AccessToken[]>([]);
   const [openModal, setOpenModal] = useState(false);
@@ -22,7 +22,7 @@ const OrganizationTokenManager: React.FC = () => {
       if (!currentOrganization?.id) return;
       
       try {
-        const tokensData = await docRouterAccountApi.getOrganizationTokens(currentOrganization.id);
+        const tokensData = await sigAgentAccountApi.getOrganizationTokens(currentOrganization.id);
         setTokens(tokensData);
       } catch (error) {
         console.error('Error fetching tokens:', error);
@@ -30,7 +30,7 @@ const OrganizationTokenManager: React.FC = () => {
     };
 
     getTokensData();
-  }, [currentOrganization?.id, docRouterAccountApi]);
+  }, [currentOrganization?.id, sigAgentAccountApi]);
 
   const createToken = async () => {
     if (!currentOrganization?.id) {
@@ -51,7 +51,7 @@ const OrganizationTokenManager: React.FC = () => {
         name: trimmedName,
         lifetime: lifetime
       };
-      const response = await docRouterAccountApi.createOrganizationToken(request, currentOrganization.id);
+      const response = await sigAgentAccountApi.createOrganizationToken(request, currentOrganization.id);
 
       setNewToken(response);
       setShowTokenModal(true);
@@ -77,7 +77,7 @@ const OrganizationTokenManager: React.FC = () => {
     if (!currentOrganization?.id) return;
     
     try {
-      await docRouterAccountApi.deleteOrganizationToken(tokenId, currentOrganization.id);
+      await sigAgentAccountApi.deleteOrganizationToken(tokenId, currentOrganization.id);
       setTokens(tokens.filter(token => token.id !== tokenId));
     } catch (error) {
       console.error('Error deleting token:', error);

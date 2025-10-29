@@ -1,17 +1,17 @@
-import { DocRouterAccount, DocRouterOrg } from '../../src';
+import { SigAgentAccount, SigAgentOrg } from '../../src';
 
 describe('SDK Functionality Tests', () => {
   describe('Client Instantiation', () => {
-    test('DocRouterAccount should be constructible', () => {
-      const client = new DocRouterAccount({
+    test('SigAgentAccount should be constructible', () => {
+      const client = new SigAgentAccount({
         baseURL: 'https://api.example.com',
         accountToken: 'test-token'
       });
       expect(client).toBeDefined();
     });
 
-    test('DocRouterAccount should expose account-level APIs', () => {
-      const client = new DocRouterAccount({
+    test('SigAgentAccount should expose account-level APIs', () => {
+      const client = new SigAgentAccount({
         baseURL: 'https://api.example.com',
         accountToken: 'account-token'
       });
@@ -24,8 +24,8 @@ describe('SDK Functionality Tests', () => {
       expect(typeof client.listUsers).toBe('function');
     });
 
-    test('DocRouterOrg should create organization-scoped API modules', () => {
-      const client = new DocRouterOrg({
+    test('SigAgentOrg should create organization-scoped API modules', () => {
+      const client = new SigAgentOrg({
         baseURL: 'https://api.example.com',
         orgToken: 'org-token',
         organizationId: 'org-123'
@@ -55,10 +55,10 @@ describe('SDK Functionality Tests', () => {
   });
 
   describe('Token Management', () => {
-    // DocRouter removed
+    // SigAgent removed
 
-    test('should update tokens on DocRouterAccount', () => {
-      const client = new DocRouterAccount({
+    test('should update tokens on SigAgentAccount', () => {
+      const client = new SigAgentAccount({
         baseURL: 'https://api.example.com',
         accountToken: 'initial-token'
       });
@@ -67,8 +67,8 @@ describe('SDK Functionality Tests', () => {
       expect(client).toBeDefined();
     });
 
-    test('should update tokens on DocRouterOrg', () => {
-      const client = new DocRouterOrg({
+    test('should update tokens on SigAgentOrg', () => {
+      const client = new SigAgentOrg({
         baseURL: 'https://api.example.com',
         orgToken: 'initial-token',
         organizationId: 'org-123'
@@ -78,12 +78,12 @@ describe('SDK Functionality Tests', () => {
       expect(client).toBeDefined();
     });
 
-    // DocRouter removed
+    // SigAgent removed
   });
 
   describe('API Module Methods', () => {
-    test('DocRouterAccount organizations methods should exist', () => {
-      const client = new DocRouterAccount({
+    test('SigAgentAccount organizations methods should exist', () => {
+      const client = new SigAgentAccount({
         baseURL: 'https://api.example.com',
         accountToken: 'test-token'
       });
@@ -94,12 +94,12 @@ describe('SDK Functionality Tests', () => {
       expect(typeof client.deleteOrganization).toBe('function');
     });
 
-    // DocRouter removed
+    // SigAgent removed
 
-    // DocRouter removed
+    // SigAgent removed
 
     test('account token methods should exist', () => {
-      const client = new DocRouterAccount({
+      const client = new SigAgentAccount({
         baseURL: 'https://api.example.com',
         accountToken: 'test-token'
       });
@@ -111,7 +111,7 @@ describe('SDK Functionality Tests', () => {
     });
 
     test('account user methods should exist', () => {
-      const client = new DocRouterAccount({
+      const client = new SigAgentAccount({
         baseURL: 'https://api.example.com',
         accountToken: 'test-token'
       });
@@ -125,10 +125,10 @@ describe('SDK Functionality Tests', () => {
   });
 
   describe('Configuration', () => {
-    // DocRouter removed
+    // SigAgent removed
 
-    // DocRouter removed
+    // SigAgent removed
 
-    // DocRouter removed
+    // SigAgent removed
   });
 });

@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { DocRouterOrgApi, getApiErrorMsg } from '@/utils/api';
-import { Tag } from '@docrouter/sdk';
+import { SigAgentOrgApi, getApiErrorMsg } from '@/utils/api';
+import { Tag } from '@sigagent/sdk';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton, Menu, MenuItem } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
@@ -16,7 +16,7 @@ import Link from 'next/link';
 
 const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +32,7 @@ const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const loadTags = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await docRouterOrgApi.listTags({ skip: page * pageSize, limit: pageSize, nameSearch: searchTerm || undefined });
+      const response = await sigAgentOrgApi.listTags({ skip: page * pageSize, limit: pageSize, nameSearch: searchTerm || undefined });
       setTags(response.tags);
       if (response.total_count !== undefined) {
         setTotal(response.total_count);
@@ -43,7 +43,7 @@ const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [docRouterOrgApi, page, pageSize, searchTerm]);
+  }, [sigAgentOrgApi, page, pageSize, searchTerm]);
 
   useEffect(() => {
     loadTags();
@@ -63,7 +63,7 @@ const TagList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const handleDelete = async (tagId: string) => {
     try {
       setIsLoading(true);
-      await docRouterOrgApi.deleteTag({ tagId });
+      await sigAgentOrgApi.deleteTag({ tagId });
       setTags(tags.filter(tag => tag.id !== tagId));
       setMessage('Tag deleted successfully');
       handleMenuClose();

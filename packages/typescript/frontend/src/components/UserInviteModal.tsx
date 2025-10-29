@@ -2,8 +2,8 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
-import { DocRouterAccountApi } from '@/utils/api';
-import { Organization } from '@docrouter/sdk';
+import { SigAgentAccountApi } from '@/utils/api';
+import { Organization } from '@sigagent/sdk';
 import { toast } from 'react-toastify';
 import debounce from 'lodash/debounce';
 import { isAxiosError } from 'axios';
@@ -25,7 +25,7 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
   const [searchResults, setSearchResults] = useState<Organization[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
 
   // Debounced search function
   const searchOrganizations = useCallback((query: string) => {
@@ -35,7 +35,7 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
     }
     
     setIsSearching(true);
-    docRouterAccountApi.listOrganizations({ nameSearch: query, limit: 20 })
+    sigAgentAccountApi.listOrganizations({ nameSearch: query, limit: 20 })
       .then(response => {
         // Filter to only show team and enterprise organizations
         const filteredOrgs = response.organizations.filter(org => 
@@ -50,7 +50,7 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
       .finally(() => {
         setIsSearching(false);
       });
-  }, [docRouterAccountApi]);
+  }, [sigAgentAccountApi]);
 
   // Use debounce when calling the function
   useEffect(() => {
@@ -72,7 +72,7 @@ const UserInviteModal: React.FC<UserInviteModalProps> = ({
     setIsSubmitting(true);
     try {
       // Send invitation with optional organization
-      await docRouterAccountApi.createInvitation({
+      await sigAgentAccountApi.createInvitation({
         email,
         organization_id: selectedOrg?.id, // Now just one optional org
         role: 'user'

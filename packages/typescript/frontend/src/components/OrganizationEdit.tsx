@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { OrganizationMember, OrganizationType } from '@/types/index'
-import { DocRouterAccountApi } from '@/utils/api'
+import { SigAgentAccountApi } from '@/utils/api'
 import { isAxiosError } from 'axios'
-import { User } from '@docrouter/sdk'
+import { User } from '@sigagent/sdk'
 import { 
   DataGrid, 
   GridColDef, 
@@ -65,7 +65,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedMember, setSelectedMember] = useState<{ id: string, isAdmin: boolean } | null>(null);
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
 
   // Filter current organization members
   const filteredMembers = members.filter(member => {
@@ -103,7 +103,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
         let total = 0;
 
         do {
-          const usersResponse = await docRouterAccountApi.listUsers({ organization_id: organizationId, skip, limit });
+          const usersResponse = await sigAgentAccountApi.listUsers({ organization_id: organizationId, skip, limit });
           allUsers = allUsers.concat(usersResponse.users);
           total = usersResponse.total_count;
           skip += limit;
@@ -114,7 +114,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     };
 
     fetchUsers();
-  }, [organizationId, organization, session, docRouterAccountApi]);
+  }, [organizationId, organization, session, sigAgentAccountApi]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,7 +137,7 @@ const OrganizationEdit: React.FC<OrganizationEditProps> = ({ organizationId }) =
     }
 
     try {
-      await docRouterAccountApi.updateOrganization(organizationId, { 
+      await sigAgentAccountApi.updateOrganization(organizationId, { 
         name,
         type,
         members 

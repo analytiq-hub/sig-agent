@@ -1,6 +1,6 @@
 import { HttpClient } from './http-client';
 import {
-  DocRouterOrgConfig,
+  SigAgentOrgConfig,
   UploadDocumentsResponse,
   ListDocumentsResponse,
   GetDocumentResponse,
@@ -81,14 +81,14 @@ import {
 } from './types';
 
 /**
- * DocRouterOrg - For organization-scoped operations with org tokens
+ * SigAgentOrg - For organization-scoped operations with org tokens
  * Use this when you have an organization token and want to work within that org
  */
-export class DocRouterOrg {
+export class SigAgentOrg {
   public readonly organizationId: string;
   private http: HttpClient;
 
-  constructor(config: DocRouterOrgConfig) {
+  constructor(config: SigAgentOrgConfig) {
     this.organizationId = config.organizationId;
     this.http = new HttpClient({
       baseURL: config.baseURL,

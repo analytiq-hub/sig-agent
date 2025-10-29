@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react';
-import { DocRouterAccountApi } from '@/utils/api';
+import { SigAgentAccountApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 
 interface SubscriptionAdminCreditProps {
@@ -15,7 +15,7 @@ const SubscriptionAdminCredit: React.FC<SubscriptionAdminCreditProps> = ({
 }) => {
   const [amount, setAmount] = useState<number>(100);
   const [loading, setLoading] = useState(false);
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
 
   const handleAddCredits = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +27,7 @@ const SubscriptionAdminCredit: React.FC<SubscriptionAdminCreditProps> = ({
 
     setLoading(true);
     try {
-      await docRouterAccountApi.addCredits(organizationId, amount);
+      await sigAgentAccountApi.addCredits(organizationId, amount);
       setAmount(100); // Reset to default
       if (onCreditsAdded) {
         onCreditsAdded();

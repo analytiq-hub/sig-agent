@@ -8,7 +8,7 @@ import {
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { DocRouterOrg, DocRouterAccount } from '@docrouter/sdk';
+import { SigAgentOrg, SigAgentAccount } from '@sigagent/sdk';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -50,19 +50,19 @@ function showClaudeMd() {
 // Show help information
 function showHelp() {
   console.log(`
-DocRouter MCP Server v0.1.0
+SigAgent MCP Server v0.1.0
 
 USAGE:
     docrouter-mcp [OPTIONS]
 
 DESCRIPTION:
-    DocRouter MCP (Model Context Protocol) server that provides access to DocRouter
+    SigAgent MCP (Model Context Protocol) server that provides access to SigAgent
     document processing, OCR, LLM extraction, and form management capabilities.
 
 OPTIONS:
-    --url <URL>              DocRouter API base URL
+    --url <URL>              SigAgent API base URL
                             (default: https://app.docrouter.ai/fastapi)
-    --org-token <TOKEN>      DocRouter organization API token (required)
+    --org-token <TOKEN>      SigAgent organization API token (required)
     --timeout <MS>           Request timeout in milliseconds (default: 30000)
     --retries <COUNT>        Number of retry attempts (default: 3)
     --tools                  List all supported MCP tools
@@ -70,8 +70,8 @@ OPTIONS:
     -h, --help               Show this help message
 
 ENVIRONMENT VARIABLES:
-    DOCROUTER_API_URL        DocRouter API base URL
-    DOCROUTER_ORG_API_TOKEN  DocRouter organization API token (required)
+    DOCROUTER_API_URL        SigAgent API base URL
+    DOCROUTER_ORG_API_TOKEN  SigAgent organization API token (required)
 
 EXAMPLES:
     # Using command line arguments (organization ID will be resolved from token)
@@ -88,7 +88,7 @@ REQUIRED:
     DOCROUTER_ORG_API_TOKEN environment variable or --org-token argument.
     Organization ID will be automatically resolved from the token.
 
-For more information about DocRouter, visit: https://docrouter.ai
+For more information about SigAgent, visit: https://docrouter.ai
 `);
 }
 
@@ -155,14 +155,14 @@ const server = new Server(
   }
 );
 
-// Global DocRouter client
-let docrouterClient: DocRouterOrg;
+// Global SigAgent client
+let docrouterClient: SigAgentOrg;
 
-// Initialize DocRouter client
+// Initialize SigAgent client
 async function initializeClient(config: Config) {
   try {
     console.error('Resolving organization ID from token...');
-    const accountClient = new DocRouterAccount({
+    const accountClient = new SigAgentAccount({
       baseURL: config.baseURL,
       accountToken: config.orgToken,
       timeout: config.timeout,
@@ -178,7 +178,7 @@ async function initializeClient(config: Config) {
     
     console.error(`Resolved organization ID: ${organizationId}`);
     
-    docrouterClient = new DocRouterOrg({
+    docrouterClient = new SigAgentOrg({
       baseURL: config.baseURL,
       orgToken: config.orgToken,
       organizationId: organizationId,
@@ -647,7 +647,7 @@ const tools: Tool[] = [
   // ========== DOCUMENTS ==========
   {
     name: 'upload_documents',
-    description: 'Upload documents to DocRouter',
+    description: 'Upload documents to SigAgent',
     inputSchema: {
       type: 'object',
       properties: {
@@ -671,7 +671,7 @@ const tools: Tool[] = [
   },
   {
     name: 'list_documents',
-    description: 'List documents from DocRouter',
+    description: 'List documents from SigAgent',
     inputSchema: {
       type: 'object',
       properties: {
@@ -685,7 +685,7 @@ const tools: Tool[] = [
   },
   {
     name: 'get_document',
-    description: 'Get document by ID from DocRouter',
+    description: 'Get document by ID from SigAgent',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1122,7 +1122,7 @@ const tools: Tool[] = [
   },
   {
     name: 'validate_schema',
-    description: 'Validate schema format for correctness and DocRouter compliance',
+    description: 'Validate schema format for correctness and SigAgent compliance',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1133,7 +1133,7 @@ const tools: Tool[] = [
   },
   {
     name: 'validate_form',
-    description: 'Validate Form.io form format for correctness and DocRouter compliance',
+    description: 'Validate Form.io form format for correctness and SigAgent compliance',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1184,7 +1184,7 @@ const tools: Tool[] = [
   },
   {
     name: 'help_prompts',
-    description: 'Get help information about creating and configuring prompts in DocRouter',
+    description: 'Get help information about creating and configuring prompts in SigAgent',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -1192,7 +1192,7 @@ const tools: Tool[] = [
   },
   {
     name: 'help_schemas',
-    description: 'Get help information about creating and configuring schemas in DocRouter',
+    description: 'Get help information about creating and configuring schemas in SigAgent',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -1200,7 +1200,7 @@ const tools: Tool[] = [
   },
   {
     name: 'help_forms',
-    description: 'Get help information about creating and configuring forms in DocRouter',
+    description: 'Get help information about creating and configuring forms in SigAgent',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -1867,9 +1867,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // ========== HELPER TOOLS ==========
       case 'help': {
         const helpText = `
-# DocRouter API Help
+# SigAgent API Help
 
-This server provides access to DocRouter resources and tools.
+This server provides access to SigAgent resources and tools.
 
 ## Available Tools
 
@@ -2096,21 +2096,21 @@ async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
     
-    console.error('DocRouter MCP server started successfully');
+    console.error('SigAgent MCP server started successfully');
   } catch (error) {
-    console.error('Failed to start DocRouter MCP server:', error);
+    console.error('Failed to start SigAgent MCP server:', error);
     process.exit(1);
   }
 }
 
 // Handle graceful shutdown
 process.on('SIGINT', async () => {
-  console.error('Shutting down DocRouter MCP server...');
+  console.error('Shutting down SigAgent MCP server...');
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.error('Shutting down DocRouter MCP server...');
+  console.error('Shutting down SigAgent MCP server...');
   process.exit(0);
 });
 

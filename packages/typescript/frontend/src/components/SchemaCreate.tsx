@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { DocRouterOrgApi } from '@/utils/api';
-import { Schema, SchemaResponseFormat, SchemaProperty } from '@docrouter/sdk';
+import { SigAgentOrgApi } from '@/utils/api';
+import { Schema, SchemaResponseFormat, SchemaProperty } from '@sigagent/sdk';
 import { SchemaField } from '@/types/ui';
 
 // Type alias for schema creation/update (without id and timestamps)
@@ -165,7 +165,7 @@ const NestedFieldsEditor: React.FC<NestedFieldsEditorProps> = ({ fields, onChang
 
 const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> = ({ organizationId, schemaRevId }) => {
   const router = useRouter();
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [currentSchemaId, setCurrentSchemaId] = useState<string | null>(null);
   const [currentSchema, setCurrentSchema] = useState<SchemaConfig>({
     name: '',
@@ -280,7 +280,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       if (schemaRevId) {
         setIsLoading(true);
         try {
-          const schema = await docRouterOrgApi.getSchema({ schemaRevId });
+          const schema = await sigAgentOrgApi.getSchema({ schemaRevId });
           setCurrentSchemaId(schema.schema_id);
           setCurrentSchema({
             name: schema.name,
@@ -315,7 +315,7 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
     }
     loadSchema();
     // Only run when schemaId or organizationId changes
-  }, [schemaRevId, docRouterOrgApi, jsonSchemaToFields]);
+  }, [schemaRevId, sigAgentOrgApi, jsonSchemaToFields]);
 
   // Update jsonSchema when currentSchema changes
   useEffect(() => {
@@ -839,9 +839,9 @@ const SchemaCreate: React.FC<{ organizationId: string, schemaRevId?: string }> =
       setIsLoading(true);
       
       if (currentSchemaId) {
-        await docRouterOrgApi.updateSchema({ schemaId: currentSchemaId, schema });
+        await sigAgentOrgApi.updateSchema({ schemaId: currentSchemaId, schema });
       } else {
-        await docRouterOrgApi.createSchema(schema);
+        await sigAgentOrgApi.createSchema(schema);
       }      
 
       router.push(`/orgs/${organizationId}/schemas`);

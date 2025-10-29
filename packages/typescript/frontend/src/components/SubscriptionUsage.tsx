@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { DocRouterAccountApi } from '@/utils/api';
+import { SigAgentAccountApi } from '@/utils/api';
 import { UsageData, SubscriptionResponse } from '@/types/index';
 import SubscriptionSPUUsageChart from './SubscriptionSPUUsageChart';
 
@@ -14,7 +14,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId, r
   const [usageData, setUsageData] = useState<UsageData | null>(null);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -23,8 +23,8 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId, r
         
         // Fetch both usage and subscription data in parallel
         const [usageResponse, subscriptionResponse] = await Promise.all([
-          docRouterAccountApi.getCurrentUsage(organizationId),
-          docRouterAccountApi.getSubscription(organizationId)
+          sigAgentAccountApi.getCurrentUsage(organizationId),
+          sigAgentAccountApi.getSubscription(organizationId)
         ]);
         
         if (usageResponse.data) {
@@ -40,7 +40,7 @@ const SubscriptionUsage: React.FC<SubscriptionUsageProps> = ({ organizationId, r
     };
 
     fetchData();
-  }, [organizationId, refreshKey, docRouterAccountApi]);
+  }, [organizationId, refreshKey, sigAgentAccountApi]);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString('en-US', {

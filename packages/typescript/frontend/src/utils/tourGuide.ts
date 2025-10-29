@@ -1,4 +1,4 @@
-import { DocRouterAccountApi } from './api';
+import { SigAgentAccountApi } from './api';
 import { AppSession } from '@/types/AppSession';
 
 export const getTourKey = async (session: AppSession | null): Promise<string> => {
@@ -16,8 +16,8 @@ export const hasSeenTour = async (session: AppSession | null): Promise<boolean> 
   }
   // If not, check the backend
   if (session?.user?.id) {
-    const docRouterAccountApi = new DocRouterAccountApi();
-    const user = await docRouterAccountApi.getUser(session.user.id);
+    const sigAgentAccountApi = new SigAgentAccountApi();
+    const user = await sigAgentAccountApi.getUser(session.user.id);
     return user.has_seen_tour;
   }
   return false;
@@ -32,8 +32,8 @@ export const setHasSeenTour = async (hasSeenTour: boolean, session: AppSession |
   // Save to backend via API if user is logged in
   if (session?.user?.id) {
     try {
-      const docRouterAccountApi = new DocRouterAccountApi();
-      await docRouterAccountApi.updateUser(session.user.id, { has_seen_tour: hasSeenTour });
+      const sigAgentAccountApi = new SigAgentAccountApi();
+      await sigAgentAccountApi.updateUser(session.user.id, { has_seen_tour: hasSeenTour });
     } catch (error) {
       console.error('Failed to update tour state in backend:', error);
       // Continue even if API call fails, as localStorage is set

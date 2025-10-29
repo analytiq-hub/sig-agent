@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
-import { DocRouterAccountApi } from '@/utils/api';
-import { User } from '@docrouter/sdk';
+import { SigAgentAccountApi } from '@/utils/api';
+import { User } from '@sigagent/sdk';
 import { toast } from 'react-toastify';
 
 interface UserAddToOrgModalProps {
@@ -24,7 +24,7 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
   const [email, setEmail] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
 
   useEffect(() => {
     if (!email) {
@@ -33,7 +33,7 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
     }
 
     const timeoutId = setTimeout(() => {
-      docRouterAccountApi.listUsers({ limit: 1000 })
+      sigAgentAccountApi.listUsers({ limit: 1000 })
         .then(response => {
           const filteredUsers = response.users.filter(user =>
             !currentMembers.includes(user.id) && (
@@ -49,7 +49,7 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [email, currentMembers, docRouterAccountApi]);
+  }, [email, currentMembers, sigAgentAccountApi]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +64,7 @@ const UserAddToOrgModal: React.FC<UserAddToOrgModalProps> = ({
       if (existingUser) {
         await onAdd(existingUser.id);
       } else {
-        await docRouterAccountApi.createInvitation({
+        await sigAgentAccountApi.createInvitation({
           email,
           organization_id: organizationId,
           role: 'user'

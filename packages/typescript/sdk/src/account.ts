@@ -1,6 +1,6 @@
 import { HttpClient } from './http-client';
 import {
-  DocRouterAccountConfig,
+  SigAgentAccountConfig,
   AccessToken,
   ListOrganizationsResponse,
   Organization,
@@ -40,13 +40,13 @@ import {
 } from './types';
 
 /**
- * DocRouterAccount - For account-level operations with account tokens
+ * SigAgentAccount - For account-level operations with account tokens
  * Use this for server-to-server integrations that need full account access
  */
-export class DocRouterAccount {
+export class SigAgentAccount {
   private http: HttpClient;
 
-  constructor(config: DocRouterAccountConfig) {
+  constructor(config: SigAgentAccountConfig) {
     this.http = new HttpClient({
       baseURL: config.baseURL,
       token: config.accountToken,

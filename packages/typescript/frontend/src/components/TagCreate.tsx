@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { DocRouterOrgApi, getApiErrorMsg } from '@/utils/api';
-import { Tag } from '@docrouter/sdk';
+import { SigAgentOrgApi, getApiErrorMsg } from '@/utils/api';
+import { Tag } from '@sigagent/sdk';
 
 // Type alias for tag creation/update (without id and timestamps)
 type TagConfig = Omit<Tag, 'id' | 'created_at' | 'updated_at'>;
@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 
 const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organizationId, tagId }) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [currentTag, setCurrentTag] = useState<{id?: string; name: string; color: string; description?: string}>({
     name: '',
     color: colors.blue[500], // default blue color
@@ -28,7 +28,7 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
       if (tagId) {
         setIsLoading(true);
         try {
-          const tag = await docRouterOrgApi.getTag({ tagId });
+          const tag = await sigAgentOrgApi.getTag({ tagId });
           setCurrentTag({
             id: tag.id,
             name: tag.name,
@@ -46,7 +46,7 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
       }
     }
     loadTag();
-  }, [tagId, docRouterOrgApi]);
+  }, [tagId, sigAgentOrgApi]);
 
   const saveTag = async (tag: TagConfig) => {
     try {
@@ -54,13 +54,13 @@ const TagCreate: React.FC<{ organizationId: string, tagId?: string }> = ({ organ
       
       if (currentTag.id) {
         // Update existing tag
-        await docRouterOrgApi.updateTag({
+        await sigAgentOrgApi.updateTag({
           tagId: currentTag.id,
           tag: tag
         });
       } else {
         // Create new tag
-        await docRouterOrgApi.createTag({ 
+        await sigAgentOrgApi.createTag({ 
           tag: tag
         });
       }

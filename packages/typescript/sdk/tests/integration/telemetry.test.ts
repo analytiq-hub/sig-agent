@@ -1,16 +1,16 @@
-import { DocRouterOrg } from '../../src';
+import { SigAgentOrg } from '../../src';
 import { getTestDatabase, getBaseUrl, createTestFixtures } from '../setup/jest-setup';
 
 describe('Telemetry Integration Tests', () => {
   let testFixtures: { member: { token: string }; org_id: string };
-  let client: DocRouterOrg;
+  let client: SigAgentOrg;
 
   beforeEach(async () => {
     const testDb = getTestDatabase();
     const baseUrl = getBaseUrl();
     testFixtures = await createTestFixtures(testDb, baseUrl);
 
-    client = new DocRouterOrg({
+    client = new SigAgentOrg({
       baseURL: baseUrl,
       orgToken: testFixtures.member.token,
       organizationId: testFixtures.org_id

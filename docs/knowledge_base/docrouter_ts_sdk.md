@@ -1,8 +1,8 @@
-# DocRouter TypeScript SDK Installation and Usage Guide
+# SigAgent TypeScript SDK Installation and Usage Guide
 
 ## Overview
 
-The DocRouter TypeScript SDK provides type-safe access to the DocRouter API, enabling developers to integrate document processing, OCR, LLM operations, and organization management into their applications. The SDK supports both Node.js and browser environments with comprehensive TypeScript support.
+The SigAgent TypeScript SDK provides type-safe access to the SigAgent API, enabling developers to integrate document processing, OCR, LLM operations, and organization management into their applications. The SDK supports both Node.js and browser environments with comprehensive TypeScript support.
 
 ## Installation
 
@@ -10,12 +10,12 @@ The DocRouter TypeScript SDK provides type-safe access to the DocRouter API, ena
 
 - **Node.js 16+** (for Node.js usage)
 - **TypeScript 4.9+** (recommended for type safety)
-- **DocRouter API access** with appropriate tokens
+- **SigAgent API access** with appropriate tokens
 
 ### Install the Package
 
 ```bash
-npm install @docrouter/sdk
+npm install @sigagent/sdk
 ```
 
 ### TypeScript Configuration
@@ -42,12 +42,12 @@ The SDK supports three authentication strategies:
 
 ### 1. Account Token (Server-to-Server)
 
-Use `DocRouterAccount` for account-level operations with account tokens:
+Use `SigAgentAccount` for account-level operations with account tokens:
 
 ```typescript
-import { DocRouterAccount } from '@docrouter/sdk';
+import { SigAgentAccount } from '@sigagent/sdk';
 
-const client = new DocRouterAccount({
+const client = new SigAgentAccount({
   baseURL: 'https://api.docrouter.com',
   accountToken: 'your-account-token-here'
 });
@@ -61,12 +61,12 @@ const client = new DocRouterAccount({
 
 ### 2. Organization Token
 
-Use `DocRouterOrg` for organization-scoped operations:
+Use `SigAgentOrg` for organization-scoped operations:
 
 ```typescript
-import { DocRouterOrg } from '@docrouter/sdk';
+import { SigAgentOrg } from '@sigagent/sdk';
 
-const client = new DocRouterOrg({
+const client = new SigAgentOrg({
   baseURL: 'https://api.docrouter.com',
   orgToken: 'your-org-token-here',
   organizationId: 'org-123'
@@ -81,12 +81,12 @@ const client = new DocRouterOrg({
 
 ### 3. JWT Token (Browser)
 
-Use `DocRouterOrg` with JWT tokens for browser applications:
+Use `SigAgentOrg` with JWT tokens for browser applications:
 
 ```typescript
-import { DocRouterOrg } from '@docrouter/sdk';
+import { SigAgentOrg } from '@sigagent/sdk';
 
-const client = new DocRouterOrg({
+const client = new SigAgentOrg({
   baseURL: 'https://api.docrouter.com',
   orgToken: 'your-jwt-token-here',
   organizationId: 'your-org-id'
@@ -103,9 +103,9 @@ const client = new DocRouterOrg({
 ### Basic Account Operations
 
 ```typescript
-import { DocRouterAccount } from '@docrouter/sdk';
+import { SigAgentAccount } from '@sigagent/sdk';
 
-const client = new DocRouterAccount({
+const client = new SigAgentAccount({
   baseURL: 'https://api.docrouter.com',
   accountToken: 'your-account-token'
 });
@@ -123,9 +123,9 @@ const token = await client.createOrganizationToken({
 ### Document Processing
 
 ```typescript
-import { DocRouterOrg } from '@docrouter/sdk';
+import { SigAgentOrg } from '@sigagent/sdk';
 
-const client = new DocRouterOrg({
+const client = new SigAgentOrg({
   baseURL: 'https://api.docrouter.com',
   orgToken: 'your-org-token',
   organizationId: 'org-123'
@@ -154,12 +154,12 @@ const document = await client.getDocument({
 
 ## API Reference
 
-### DocRouterAccount Client
+### SigAgentAccount Client
 
-The `DocRouterAccount` client provides account-level operations:
+The `SigAgentAccount` client provides account-level operations:
 
 ```typescript
-const client = new DocRouterAccount({
+const client = new SigAgentAccount({
   baseURL: 'https://api.docrouter.com',
   accountToken: 'your-account-token'
 });
@@ -251,12 +251,12 @@ await client.updateUser('user-123', {
 });
 ```
 
-### DocRouterOrg Client
+### SigAgentOrg Client
 
-The `DocRouterOrg` client provides organization-scoped operations:
+The `SigAgentOrg` client provides organization-scoped operations:
 
 ```typescript
-const client = new DocRouterOrg({
+const client = new SigAgentOrg({
   baseURL: 'https://api.docrouter.com',
   orgToken: 'your-org-token',
   organizationId: 'org-123'
@@ -584,9 +584,9 @@ const creditUpdate = await client.payments.updateCreditConfig({
 The SDK provides comprehensive error handling with retry logic and authentication callbacks:
 
 ```typescript
-import { DocRouterOrg } from '@docrouter/sdk';
+import { SigAgentOrg } from '@sigagent/sdk';
 
-const client = new DocRouterOrg({
+const client = new SigAgentOrg({
   baseURL: 'https://api.docrouter.com',
   orgToken: 'your-org-token',
   organizationId: 'org-123',
@@ -617,9 +617,9 @@ try {
 The SDK supports real-time streaming for LLM operations:
 
 ```typescript
-import { DocRouterOrg } from '@docrouter/sdk';
+import { SigAgentOrg } from '@sigagent/sdk';
 
-const client = new DocRouterOrg({
+const client = new SigAgentOrg({
   baseURL: 'https://api.docrouter.com',
   orgToken: 'your-jwt-token',
   organizationId: 'your-org-id'
@@ -653,9 +653,9 @@ The SDK works in browser environments with proper polyfills:
 
 ```typescript
 // In a browser environment
-import { DocRouterOrg } from '@docrouter/sdk';
+import { SigAgentOrg } from '@sigagent/sdk';
 
-const client = new DocRouterOrg({
+const client = new SigAgentOrg({
   baseURL: 'https://api.docrouter.com',
   orgToken: 'your-jwt-token',
   organizationId: 'your-org-id'
@@ -687,9 +687,9 @@ if (file) {
 You can provide custom configuration for the underlying HTTP client:
 
 ```typescript
-import { DocRouterOrg } from '@docrouter/sdk';
+import { SigAgentOrg } from '@sigagent/sdk';
 
-const client = new DocRouterOrg({
+const client = new SigAgentOrg({
   baseURL: 'https://api.docrouter.com',
   orgToken: 'your-org-token',
   organizationId: 'org-123',
@@ -702,7 +702,7 @@ const client = new DocRouterOrg({
 ### Environment-Specific Configuration
 
 ```typescript
-import { DocRouterOrg } from '@docrouter/sdk';
+import { SigAgentOrg } from '@sigagent/sdk';
 
 const config = {
   development: {
@@ -718,7 +718,7 @@ const config = {
 };
 
 const environment = process.env.NODE_ENV || 'development';
-const client = new DocRouterOrg(config[environment]);
+const client = new SigAgentOrg(config[environment]);
 ```
 
 ## Testing
@@ -739,10 +739,10 @@ npm run test:all
 ### Mocking for Tests
 
 ```typescript
-import { DocRouterOrg } from '@docrouter/sdk';
+import { SigAgentOrg } from '@sigagent/sdk';
 
 // Mock the client for testing
-jest.mock('@docrouter/sdk');
+jest.mock('@sigagent/sdk');
 
 const mockClient = {
   documents: {
@@ -755,7 +755,7 @@ const mockClient = {
   }
 };
 
-(DocRouterOrg as jest.Mock).mockImplementation(() => mockClient);
+(SigAgentOrg as jest.Mock).mockImplementation(() => mockClient);
 ```
 
 ## Best Practices
@@ -788,9 +788,9 @@ try {
 Leverage TypeScript for type safety:
 
 ```typescript
-import { DocRouterOrg, Document, UploadDocumentsParams } from '@docrouter/sdk';
+import { SigAgentOrg, Document, UploadDocumentsParams } from '@sigagent/sdk';
 
-const client = new DocRouterOrg(config);
+const client = new SigAgentOrg(config);
 
 // Type-safe parameters
 const uploadParams: UploadDocumentsParams = {
@@ -815,10 +815,10 @@ Properly manage resources and connections:
 
 ```typescript
 class DocumentService {
-  private client: DocRouterOrg;
+  private client: SigAgentOrg;
   
-  constructor(config: DocRouterOrgConfig) {
-    this.client = new DocRouterOrg(config);
+  constructor(config: SigAgentOrgConfig) {
+    this.client = new SigAgentOrg(config);
   }
   
   async uploadDocument(file: File): Promise<Document> {
@@ -847,9 +847,9 @@ class DocumentService {
 Use environment variables for configuration:
 
 ```typescript
-import { DocRouterOrg } from '@docrouter/sdk';
+import { SigAgentOrg } from '@sigagent/sdk';
 
-const client = new DocRouterOrg({
+const client = new SigAgentOrg({
   baseURL: process.env.DOCROUTER_API_URL || 'https://api.docrouter.com',
   orgToken: process.env.DOCROUTER_ORG_TOKEN!,
   organizationId: process.env.DOCROUTER_ORG_ID!
@@ -867,7 +867,7 @@ const client = new DocRouterOrg({
 **Solutions**:
 - Verify your token is valid and not expired
 - Check that you're using the correct token type for your client
-- Ensure the organization ID is correct for `DocRouterOrg`
+- Ensure the organization ID is correct for `SigAgentOrg`
 
 #### 2. TypeScript Errors
 
@@ -903,7 +903,7 @@ const client = new DocRouterOrg({
 Enable debug logging:
 
 ```typescript
-const client = new DocRouterOrg({
+const client = new SigAgentOrg({
   baseURL: 'https://api.docrouter.com',
   orgToken: 'your-org-token',
   organizationId: 'org-123',
@@ -913,7 +913,7 @@ const client = new DocRouterOrg({
 
 ## Package Information
 
-- **Package Name**: `@docrouter/sdk`
+- **Package Name**: `@sigagent/sdk`
 - **Current Version**: 0.1.0
 - **Node.js Requirement**: >=16.0.0
 - **TypeScript Requirement**: >=4.9.0
@@ -946,13 +946,13 @@ const client = new DocRouterOrg({
 
 ```bash
 # Update to latest version
-npm update @docrouter/sdk
+npm update @sigagent/sdk
 
 # Check current version
-npm list @docrouter/sdk
+npm list @sigagent/sdk
 
 # Install specific version
-npm install @docrouter/sdk@0.1.0
+npm install @sigagent/sdk@0.1.0
 ```
 
 ### Development
@@ -977,4 +977,4 @@ npm run test:all
 npm run dev
 ```
 
-The DocRouter TypeScript SDK provides a powerful, type-safe way to integrate DocRouter's document processing capabilities into your applications. With comprehensive API coverage, streaming support, and excellent TypeScript integration, it's the ideal choice for building document processing applications.
+The SigAgent TypeScript SDK provides a powerful, type-safe way to integrate SigAgent's document processing capabilities into your applications. With comprehensive API coverage, streaming support, and excellent TypeScript integration, it's the ideal choice for building document processing applications.

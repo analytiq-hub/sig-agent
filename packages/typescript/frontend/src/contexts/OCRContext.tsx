@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
-import { DocRouterOrgApi } from '@/utils/api';
-import type { OCRBlock } from '@docrouter/sdk';
+import { SigAgentOrgApi } from '@/utils/api';
+import type { OCRBlock } from '@sigagent/sdk';
 
 export interface HighlightInfo {
   blocks: OCRBlock[];
@@ -39,8 +39,8 @@ export function OCRProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       setError(null);
-      const docRouterOrgApi = new DocRouterOrgApi(organizationId);
-      const blocks = await docRouterOrgApi.getOCRBlocks({ documentId });
+      const sigAgentOrgApi = new SigAgentOrgApi(organizationId);
+      const blocks = await sigAgentOrgApi.getOCRBlocks({ documentId });
       
       // Cache the result
       blockCache.set(cacheKey, blocks);

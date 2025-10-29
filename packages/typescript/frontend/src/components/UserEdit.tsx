@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { DocRouterAccountApi } from '@/utils/api';
-import { User, UserUpdate } from '@docrouter/sdk';
+import { SigAgentAccountApi } from '@/utils/api';
+import { User, UserUpdate } from '@sigagent/sdk';
 import { signOut } from 'next-auth/react';
 import { useAppSession } from '@/contexts/AppSessionContext';
 import { toast } from 'react-toastify';
@@ -153,7 +153,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
     emailVerified: false
   });
 
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
 
   const hasChanges = () => {
     return name !== originalValues.name ||
@@ -164,7 +164,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const userData = await docRouterAccountApi.getUser(userId);
+        const userData = await sigAgentAccountApi.getUser(userId);
         setUser(userData);
         setName(userData.name || '');
         setRole(userData.role);
@@ -181,11 +181,11 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
     };
 
     fetchUser();
-  }, [userId, docRouterAccountApi]);
+  }, [userId, sigAgentAccountApi]);
 
   const handlePasswordUpdate = async (newPassword: string) => {
     try {
-      await docRouterAccountApi.updateUser(userId, { password: newPassword });
+      await sigAgentAccountApi.updateUser(userId, { password: newPassword });
       setSuccess(true);
     } catch (error) {
       setError('Failed to update password');
@@ -205,7 +205,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
         email_verified: emailVerified
       };
 
-      await docRouterAccountApi.updateUser(userId, update);
+      await sigAgentAccountApi.updateUser(userId, update);
       setSuccess(true);
       
       // Update original values after successful save
@@ -222,7 +222,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
 
   const handleDeleteUser = async () => {
     try {
-      await docRouterAccountApi.deleteUser(userId);
+      await sigAgentAccountApi.deleteUser(userId);
       
       // Check if deleting current user
       if (session?.user?.id === userId) {
@@ -240,7 +240,7 @@ const UserEdit: React.FC<UserEditProps> = ({ userId }) => {
 
   const handleSendVerification = async () => {
     try {
-      await docRouterAccountApi.sendVerificationEmail(userId);
+      await sigAgentAccountApi.sendVerificationEmail(userId);
       setSuccess(true);
       toast.success('Verification email sent successfully');
     } catch (error) {

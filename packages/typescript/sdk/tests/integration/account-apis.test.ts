@@ -1,9 +1,9 @@
-import { DocRouterAccount } from '../../src';
+import { SigAgentAccount } from '../../src';
 import { getTestDatabase, getBaseUrl, createTestFixtures } from '../setup/jest-setup';
 
-describe('DocRouterAccount Missing APIs Integration Tests', () => {
+describe('SigAgentAccount Missing APIs Integration Tests', () => {
   let testFixtures: any;
-  let client: DocRouterAccount;
+  let client: SigAgentAccount;
   let createdOrganizations: string[] = [];
 
   beforeEach(async () => {
@@ -11,7 +11,7 @@ describe('DocRouterAccount Missing APIs Integration Tests', () => {
     const baseUrl = getBaseUrl();
     testFixtures = await createTestFixtures(testDb, baseUrl);
 
-    client = new DocRouterAccount({
+    client = new SigAgentAccount({
       baseURL: baseUrl,
       accountToken: testFixtures.admin.account_token
     });

@@ -1,7 +1,7 @@
 {
-  "name": "@docrouter/sdk",
+  "name": "@sigagent/sdk",
   "version": "0.2.1",
-  "description": "TypeScript SDK for DocRouter API",
+  "description": "TypeScript SDK for SigAgent API",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -31,7 +31,7 @@
     "publish:beta": "npm publish --tag beta"
   },
   "keywords": [
-    "docrouter",
+    "sigagent",
     "api",
     "sdk",
     "typescript",
@@ -70,7 +70,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/analytiq/doc-router.git",
-    "directory": "packages/typescript/docrouter-sdk"
+    "directory": "packages/typescript/sdk"
   },
   "bugs": {
     "url": "https://github.com/analytiq/doc-router/issues"

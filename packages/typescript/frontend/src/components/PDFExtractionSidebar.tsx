@@ -8,10 +8,10 @@ import {
   XMarkIcon,
   ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
-import { DocRouterOrgApi } from '@/utils/api';
-import type { Prompt } from '@docrouter/sdk';
+import { SigAgentOrgApi } from '@/utils/api';
+import type { Prompt } from '@sigagent/sdk';
 import { useOCR, OCRProvider } from '@/contexts/OCRContext';
-import type { GetLLMResultResponse } from '@docrouter/sdk';
+import type { GetLLMResultResponse } from '@sigagent/sdk';
 import type { HighlightInfo } from '@/contexts/OCRContext';
 
 interface Props {
@@ -31,7 +31,7 @@ interface EditingState {
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const { loadOCRBlocks, findBlocksWithContext } = useOCR();
   const [llmResults, setLlmResults] = useState<Record<string, GetLLMResultResponse>>({});
   const [matchingPrompts, setMatchingPrompts] = useState<Prompt[]>([]);
@@ -45,13 +45,13 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const promptsResponse = await docRouterOrgApi.listPrompts({document_id: id, limit: 100 });
+        const promptsResponse = await sigAgentOrgApi.listPrompts({document_id: id, limit: 100 });
         setMatchingPrompts(promptsResponse.prompts);
         
         // Fetch default prompt results
         setLoadingPrompts(prev => new Set(prev).add('default'));
         try {
-          const defaultResults = await docRouterOrgApi.getLLMResult({
+          const defaultResults = await sigAgentOrgApi.getLLMResult({
             documentId: id, 
             promptRevId: 'default',
             fallback: false
@@ -80,7 +80,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
     };
     
     fetchData();
-  }, [organizationId, id, docRouterOrgApi]);
+  }, [organizationId, id, sigAgentOrgApi]);
 
   useEffect(() => {
     // Load OCR blocks in the background
@@ -98,7 +98,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
     if (!llmResults[promptId]) {
       setLoadingPrompts(prev => new Set(prev).add(promptId));
       try {
-        const results = await docRouterOrgApi.getLLMResult({
+        const results = await sigAgentOrgApi.getLLMResult({
           documentId: id, 
           promptRevId: promptId,
           fallback: true
@@ -128,13 +128,13 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
   const handleRunPrompt = async (promptId: string) => {
     setRunningPrompts(prev => new Set(prev).add(promptId));
     try {
-      await docRouterOrgApi.runLLM({
+      await sigAgentOrgApi.runLLM({
         documentId: id,
         promptRevId: promptId,
         force: true
       });
       
-      const result = await docRouterOrgApi.getLLMResult({
+      const result = await sigAgentOrgApi.getLLMResult({
         documentId: id,
         promptRevId: promptId,
         fallback: false
@@ -253,7 +253,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
         }
       }
 
-      const result = await docRouterOrgApi.updateLLMResult({
+      const result = await sigAgentOrgApi.updateLLMResult({
         documentId: id,
         promptId: editing.promptId,
         result: updatedResult,
@@ -635,7 +635,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
         current.splice(arrayIndex, 1);
         
         // Update the result with API
-        const apiResult = await docRouterOrgApi.updateLLMResult({
+        const apiResult = await sigAgentOrgApi.updateLLMResult({
           documentId: id,
           promptId: promptId,
           result: updatedResult,
@@ -697,7 +697,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
         parent[lastKey].push(defaultValue);
         
         // Update the result with API
-        const apiResult = await docRouterOrgApi.updateLLMResult({
+        const apiResult = await sigAgentOrgApi.updateLLMResult({
           documentId: id,
           promptId: promptId,
           result: updatedResult,
@@ -770,7 +770,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
         parent[lastKey].push(defaultValue);
         
         // Update the result with API
-        const apiResult = await docRouterOrgApi.updateLLMResult({
+        const apiResult = await sigAgentOrgApi.updateLLMResult({
           documentId: id,
           promptId: promptId,
           result: updatedResult,
@@ -790,7 +790,7 @@ const PDFExtractionSidebarContent = ({ organizationId, id, onHighlight }: Props)
   const handleDownloadResult = async (promptId: string) => {
     try {
       // Try to get the latest result from the API, even if not currently loaded
-      const result = await docRouterOrgApi.getLLMResult({
+      const result = await sigAgentOrgApi.getLLMResult({
         documentId: id,
         promptRevId: promptId,
         fallback: true

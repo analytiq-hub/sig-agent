@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { DocRouterOrgApi } from '@/utils/api';
+import { SigAgentOrgApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef, GridFilterInputValueProps } from '@mui/x-data-grid';
 import { 
@@ -33,7 +33,7 @@ import BuildIcon from '@mui/icons-material/Build';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import ApiIcon from '@mui/icons-material/Api';
 import PersonIcon from '@mui/icons-material/Person';
-import { Tag, TelemetryLogResponse, Resource, ResourceAttribute } from '@docrouter/sdk';
+import { Tag, TelemetryLogResponse, Resource, ResourceAttribute } from '@sigagent/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
 type TelemetryLog = TelemetryLogResponse;
@@ -162,7 +162,7 @@ const severityColors: Record<string, string> = {
 };
 
 const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [logs, setLogs] = useState<TelemetryLog[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -195,7 +195,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
   const loadLogs = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await docRouterOrgApi.listLogs({
+      const response = await sigAgentOrgApi.listLogs({
         skip: page * pageSize,
         limit: pageSize,
         severity: severityFilter || undefined,
@@ -212,17 +212,17 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, severityFilter, startDate, endDate, searchTerm, attributeFilters, docRouterOrgApi]);
+  }, [page, pageSize, severityFilter, startDate, endDate, searchTerm, attributeFilters, sigAgentOrgApi]);
 
   const loadTags = useCallback(async () => {
     try {
-      const response = await docRouterOrgApi.listTags({ limit: 100 });
+      const response = await sigAgentOrgApi.listTags({ limit: 100 });
       setAvailableTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
       setMessage('Error: ' + errorMsg);
     }
-  }, [docRouterOrgApi]);
+  }, [sigAgentOrgApi]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -279,7 +279,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       if (nextPage < totalPages) {
         try {
           setIsLoading(true);
-          const response = await docRouterOrgApi.listLogs({
+          const response = await sigAgentOrgApi.listLogs({
             skip: nextPage * pageSize,
             limit: pageSize,
             severity: severityFilter || undefined,
@@ -312,7 +312,7 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
       if (prevPage >= 0) {
         try {
           setIsLoading(true);
-          const response = await docRouterOrgApi.listLogs({
+          const response = await sigAgentOrgApi.listLogs({
             skip: prevPage * pageSize,
             limit: pageSize,
             severity: severityFilter || undefined,

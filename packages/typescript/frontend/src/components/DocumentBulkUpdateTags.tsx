@@ -1,7 +1,7 @@
 import { useState, forwardRef, useImperativeHandle, useMemo } from 'react'
-import { Tag } from '@docrouter/sdk';
+import { Tag } from '@sigagent/sdk';
 import TagSelector from './TagSelector';
-import { DocRouterOrgApi } from '@/utils/api';
+import { SigAgentOrgApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
 
 interface DocumentBulkUpdateTagsProps {
@@ -36,7 +36,7 @@ export const DocumentBulkUpdateTags = forwardRef<DocumentBulkUpdateTagsRef, Docu
   onProgress,
   onComplete
 }, ref) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
 
   const handleTagChange = (tagIds: string[]) => {
@@ -84,7 +84,7 @@ export const DocumentBulkUpdateTags = forwardRef<DocumentBulkUpdateTagsRef, Docu
 
       while (true) {
         // Fetch next batch of documents
-        const batchResponse = await docRouterOrgApi.listDocuments({
+        const batchResponse = await sigAgentOrgApi.listDocuments({
           skip,
           limit,
           nameSearch: searchParameters.searchTerm.trim() || undefined,
@@ -115,7 +115,7 @@ export const DocumentBulkUpdateTags = forwardRef<DocumentBulkUpdateTagsRef, Docu
               updatedTagIds = doc.tag_ids.filter((tagId: string) => !selectedTagIds.includes(tagId));
             }
 
-            await docRouterOrgApi.updateDocument({
+            await sigAgentOrgApi.updateDocument({
               documentId: doc.id,
               tagIds: updatedTagIds,
               metadata: doc.metadata || {}

@@ -13,9 +13,9 @@ import ImageIcon from '@mui/icons-material/Image';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { 
-  DocRouterOrgApi
+  SigAgentOrgApi
 } from '@/utils/api';
-import { UploadDocument, Tag } from '@docrouter/sdk';
+import { UploadDocument, Tag } from '@sigagent/sdk';
 import { isColorLight } from '@/utils/colors';
 import InfoTooltip from '@/components/InfoTooltip';
 import TagSelector from './TagSelector';
@@ -25,7 +25,7 @@ interface DocumentUploadProps {
 }
 
 const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [files, setFiles] = useState<UploadDocument[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
@@ -39,14 +39,14 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
   useEffect(() => {
     const fetchTags = async () => {
       try {
-        const response = await docRouterOrgApi.listTags({ limit: 100 });
+        const response = await sigAgentOrgApi.listTags({ limit: 100 });
         setAvailableTags(response.tags);
       } catch (error) {
         console.error('Error fetching tags:', error);
       }
     };
     fetchTags();
-  }, [organizationId, docRouterOrgApi]);
+  }, [organizationId, sigAgentOrgApi]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const readFiles = acceptedFiles.map(file => 
@@ -113,7 +113,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ organizationId }) => {
     setUploadStatus(null);
 
     try {
-      const response = await docRouterOrgApi.uploadDocuments({
+      const response = await sigAgentOrgApi.uploadDocuments({
         documents: filesWithTagsAndMetadata
       });
       

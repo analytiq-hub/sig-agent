@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { DocRouterOrgApi } from '@/utils/api';
+import { SigAgentOrgApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef, GridFilterInputValueProps } from '@mui/x-data-grid';
 import { 
@@ -44,7 +44,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import { ClaudeLogItem } from '@docrouter/sdk';
+import { ClaudeLogItem } from '@sigagent/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
 type ClaudeTrace = ClaudeLogItem & {
@@ -204,7 +204,7 @@ const DateRangeFilter: React.FC<GridFilterInputValueProps> = ({ item, applyValue
 };
 
 const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [traces, setTraces] = useState<ClaudeTrace[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -241,7 +241,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const response = await docRouterOrgApi.listClaudeLogs({
+        const response = await sigAgentOrgApi.listClaudeLogs({
           skip: page * pageSize,
           limit: pageSize,
           start_time: startDate || undefined,
@@ -262,7 +262,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
     };
 
     loadData();
-  }, [page, pageSize, startDate, endDate, sessionIdFilter, hookEventNameFilter, toolNameFilter, permissionModeFilter, docRouterOrgApi]);
+  }, [page, pageSize, startDate, endDate, sessionIdFilter, hookEventNameFilter, toolNameFilter, permissionModeFilter, sigAgentOrgApi]);
 
   // Debounced search effect - reset to first page when search parameters change
   useEffect(() => {
@@ -334,7 +334,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
       if (nextPage < totalPages) {
         try {
           setIsLoading(true);
-          const response = await docRouterOrgApi.listClaudeLogs({
+          const response = await sigAgentOrgApi.listClaudeLogs({
             skip: nextPage * pageSize,
             limit: pageSize,
             start_time: startDate || undefined,
@@ -370,7 +370,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
       if (prevPage >= 0) {
         try {
           setIsLoading(true);
-          const response = await docRouterOrgApi.listClaudeLogs({
+          const response = await sigAgentOrgApi.listClaudeLogs({
             skip: prevPage * pageSize,
             limit: pageSize,
             start_time: startDate || undefined,

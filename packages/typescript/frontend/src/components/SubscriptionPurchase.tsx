@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { DocRouterAccountApi } from '@/utils/api';
+import { SigAgentAccountApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import { useAppSession } from '@/utils/useAppSession';
 import { isSysAdmin } from '@/utils/roles';
@@ -27,7 +27,7 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
   const { session } = useAppSession();
   const [creditConfig, setCreditConfig] = useState<CreditConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
   const [purchaseAmount, setPurchaseAmount] = useState<number>(500);
   const [adminAmount, setAdminAmount] = useState<number>(100);
   const [purchaseLoading, setPurchaseLoading] = useState(false);
@@ -39,7 +39,7 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
     const fetchData = async () => {
       try {
         setLoading(true);
-        const configResponse = await docRouterAccountApi.getCreditConfig(organizationId);
+        const configResponse = await sigAgentAccountApi.getCreditConfig(organizationId);
         setCreditConfig(configResponse);
       } catch (error) {
         console.error('Error fetching credits data:', error);
@@ -49,7 +49,7 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
     };
 
     fetchData();
-  }, [organizationId, refreshKey, docRouterAccountApi]);
+  }, [organizationId, refreshKey, sigAgentAccountApi]);
 
   const canPurchaseCredits = () => {
     if (!currentPlan) return true; // No subscription, can purchase
@@ -71,7 +71,7 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
     setPurchaseLoading(true);
     try {
       const currentUrl = window.location.href;
-      const response = await docRouterAccountApi.purchaseCredits(organizationId, { 
+      const response = await sigAgentAccountApi.purchaseCredits(organizationId, { 
         credits: purchaseAmount,
         success_url: currentUrl, 
         cancel_url: currentUrl 
@@ -100,7 +100,7 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
 
     setAdminLoading(true);
     try {
-      await docRouterAccountApi.addCredits(organizationId, adminAmount);
+      await sigAgentAccountApi.addCredits(organizationId, adminAmount);
       toast.success(`Added ${adminAmount} credits successfully!`);
       setAdminAmount(100); // Reset to default
       // Trigger refresh of credits display

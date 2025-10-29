@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { DocRouterAccountApi } from '@/utils/api';
+import { SigAgentAccountApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import { signIn } from 'next-auth/react';
 import { useAppSession } from '@/contexts/AppSessionContext';
@@ -25,8 +25,8 @@ const handleExistingUserAccept = async (
   router: ReturnType<typeof useRouter>
 ) => {
   try {
-    const docRouterAccountApi = new DocRouterAccountApi();
-    await docRouterAccountApi.acceptInvitation(token, {
+    const sigAgentAccountApi = new SigAgentAccountApi();
+    await sigAgentAccountApi.acceptInvitation(token, {
       name: userName || '',
       password: ''
     });
@@ -53,7 +53,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
 
   useEffect(() => {
     let mounted = true;
@@ -64,7 +64,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
       
       try {
         if (!invitation) {
-          const invitationResp = await docRouterAccountApi.getInvitation(token);
+          const invitationResp = await sigAgentAccountApi.getInvitation(token);
           if (!mounted) return;
 
           const info = {
@@ -106,7 +106,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
     return () => {
       mounted = false;
     };
-  }, [token, session?.user?.email, session?.user?.name, router, invitation, docRouterAccountApi]);
+  }, [token, session?.user?.email, session?.user?.name, router, invitation, sigAgentAccountApi]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +130,7 @@ const UserAcceptInvitation: React.FC<UserAcceptInvitationProps> = ({ token }) =>
     setIsSubmitting(true);
     try {
       // First accept the invitation
-      await docRouterAccountApi.acceptInvitation(token, {
+      await sigAgentAccountApi.acceptInvitation(token, {
         name: formData.name,
         password: formData.password
       });

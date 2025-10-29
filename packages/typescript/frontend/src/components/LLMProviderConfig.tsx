@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import Switch from '@mui/material/Switch';
 import Button from '@mui/material/Button';
-import { DocRouterAccountApi } from '@/utils/api';
-import { LLMProvider } from '@docrouter/sdk';
-import { LLMModel } from '@docrouter/sdk';
+import { SigAgentAccountApi } from '@/utils/api';
+import { LLMProvider } from '@sigagent/sdk';
+import { LLMModel } from '@sigagent/sdk';
 import LLMTestModal from './LLMTestModal';
 
 interface LLMProviderConfigProps {
@@ -12,7 +12,7 @@ interface LLMProviderConfigProps {
 }
 
 const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) => {
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
   const [provider, setProvider] = useState<LLMProvider | null>(null);
   const [models, setModels] = useState<LLMModel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,12 +27,12 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
       try {
         setLoading(true);
         // Fetch provider data
-        const providerResponse = await docRouterAccountApi.listLLMProviders();
+        const providerResponse = await sigAgentAccountApi.listLLMProviders();
         const foundProvider = providerResponse.providers.find(p => p.name === providerName);
         if (foundProvider) {
           setProvider(foundProvider);
           // Fetch model data for this provider
-          const modelsResponse = await docRouterAccountApi.listLLMModels({
+          const modelsResponse = await sigAgentAccountApi.listLLMModels({
             providerName: providerName,
             providerEnabled: false,
             llmEnabled: false
@@ -50,7 +50,7 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
     };
 
     fetchData();
-  }, [providerName, docRouterAccountApi]);
+  }, [providerName, sigAgentAccountApi]);
 
   const handleToggleModel = async (model: string, enabled: boolean) => {
     if (!provider) return;
@@ -60,14 +60,14 @@ const LLMProviderConfig: React.FC<LLMProviderConfigProps> = ({ providerName }) =
         ? [...provider.litellm_models_enabled, model]
         : provider.litellm_models_enabled.filter(m => m !== model);
 
-      await docRouterAccountApi.setLLMProviderConfig(providerName, {
+      await sigAgentAccountApi.setLLMProviderConfig(providerName, {
         enabled: provider.enabled,
         token: provider.token,
         litellm_models_enabled: updatedModels
       });
 
       // Refresh provider data
-      const response = await docRouterAccountApi.listLLMProviders();
+      const response = await sigAgentAccountApi.listLLMProviders();
       const updatedProvider = response.providers.find(p => p.name === providerName);
       if (updatedProvider) {
         setProvider(updatedProvider);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { DocRouterOrgApi } from '@/utils/api';
-import { Tag } from '@docrouter/sdk';
-import { Prompt, Schema } from '@docrouter/sdk';
+import { SigAgentOrgApi } from '@/utils/api';
+import { Tag } from '@sigagent/sdk';
+import { Prompt, Schema } from '@sigagent/sdk';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { TextField, InputAdornment, IconButton, Menu, MenuItem, Autocomplete } from '@mui/material';
@@ -23,7 +23,7 @@ const DEFAULT_LLM_MODEL = 'gemini-2.0-flash';
 
 const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
   const router = useRouter();
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +44,7 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
   const loadPrompts = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await docRouterOrgApi.listPrompts({
+      const response = await sigAgentOrgApi.listPrompts({
         skip: page * pageSize,
         limit: pageSize,
         nameSearch: searchTerm || undefined,
@@ -58,27 +58,27 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, docRouterOrgApi, searchTerm, selectedTagIds]);
+  }, [page, pageSize, sigAgentOrgApi, searchTerm, selectedTagIds]);
 
   const loadTags = useCallback(async () => {
     try {
-      const response = await docRouterOrgApi.listTags({ limit: 100 });
+      const response = await sigAgentOrgApi.listTags({ limit: 100 });
       setAvailableTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
       setMessage('Error: ' + errorMsg);
     }
-  }, [docRouterOrgApi]);
+  }, [sigAgentOrgApi]);
 
   const loadSchemas = useCallback(async () => {
     try {
-      const response = await docRouterOrgApi.listSchemas({ limit: 100 });
+      const response = await sigAgentOrgApi.listSchemas({ limit: 100 });
       setAvailableSchemas(response.schemas);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading schemas';
       setMessage('Error: ' + errorMsg);
     }
-  }, [docRouterOrgApi]);
+  }, [sigAgentOrgApi]);
 
   useEffect(() => {
     // Load all required data at once
@@ -144,10 +144,10 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
       
       if (isCloning) {
         // For cloning, create a new prompt
-        await docRouterOrgApi.createPrompt({ prompt: promptConfig });
+        await sigAgentOrgApi.createPrompt({ prompt: promptConfig });
       } else {
         // For renaming, update existing prompt
-        await docRouterOrgApi.updatePrompt({
+        await sigAgentOrgApi.updatePrompt({
           promptId: selectedPrompt.prompt_id,
           prompt: promptConfig
         });
@@ -170,7 +170,7 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
   const handleDelete = async (promptId: string) => {
     try {
       setIsLoading(true);
-      await docRouterOrgApi.deletePrompt({ promptId });
+      await sigAgentOrgApi.deletePrompt({ promptId });
       setPrompts(prompts.filter(prompt => prompt.prompt_id !== promptId));
       handleMenuClose();
     } catch (error) {
@@ -201,7 +201,7 @@ const PromptList: React.FC<{ organizationId: string }> = ({ organizationId }) =>
         }
 
         // Fetch the full schema details
-        schema = await docRouterOrgApi.getSchema({
+        schema = await sigAgentOrgApi.getSchema({
           schemaRevId: matchingSchema.schema_revid
         });
       }

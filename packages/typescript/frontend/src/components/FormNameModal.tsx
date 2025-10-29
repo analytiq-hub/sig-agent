@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DocRouterOrgApi } from '@/utils/api';
+import { SigAgentOrgApi } from '@/utils/api';
 
 interface FormNameModalProps {
   isOpen: boolean;
@@ -18,7 +18,7 @@ const FormNameModal: React.FC<FormNameModalProps> = ({
   isCloning = false,
   organizationId
 }) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [newName, setNewName] = useState(formName);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +34,7 @@ const FormNameModal: React.FC<FormNameModalProps> = ({
     if (isOpen) {
       const fetchFormNames = async () => {
         try {
-          const response = await docRouterOrgApi.listForms({
+          const response = await sigAgentOrgApi.listForms({
             skip: 0,
             limit: 1000
           });
@@ -47,7 +47,7 @@ const FormNameModal: React.FC<FormNameModalProps> = ({
       
       fetchFormNames();
     }
-  }, [isOpen, docRouterOrgApi]);
+  }, [isOpen, sigAgentOrgApi]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,16 +1,16 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, isAxiosError } from 'axios';
-import { DocRouterConfig, ApiError, LLMChatStreamChunk, LLMChatStreamError } from './types';
+import { SigAgentConfig, ApiError, LLMChatStreamChunk, LLMChatStreamError } from './types';
 
 export class HttpClient {
   private axios: AxiosInstance;
-  private config: DocRouterConfig;
+  private config: SigAgentConfig;
   private isRefreshing = false;
   private failedQueue: Array<{
     resolve: (value?: unknown) => void;
     reject: (error: Error) => void;
   }> = [];
 
-  constructor(config: DocRouterConfig) {
+  constructor(config: SigAgentConfig) {
     this.config = config;
     this.axios = axios.create({
       baseURL: config.baseURL,

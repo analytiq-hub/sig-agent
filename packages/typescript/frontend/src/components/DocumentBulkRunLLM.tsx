@@ -1,7 +1,7 @@
 import { forwardRef, useImperativeHandle, useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Prompt } from '@docrouter/sdk';
-import { Document, Tag } from '@docrouter/sdk';
-import { DocRouterOrgApi } from '@/utils/api';
+import { Prompt } from '@sigagent/sdk';
+import { Document, Tag } from '@sigagent/sdk';
+import { SigAgentOrgApi } from '@/utils/api';
 import { toast } from 'react-hot-toast';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import SingleTagSelector from './SingleTagSelector';
@@ -57,7 +57,7 @@ type ExecutionMode = 'all' | 'missing' | 'outdated';
 
 export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulkRunLLMProps>(
   ({ organizationId, searchParameters, disabled, onProgress, onComplete, availableTags, onDataChange }, ref) => {
-    const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+    const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
     const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
     const [executionMode, setExecutionMode] = useState<ExecutionMode>('outdated');
     const [promptGroups, setPromptGroups] = useState<PromptExecutionGroup[]>([]);
@@ -116,7 +116,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       const limit = 100; // API maximum
 
       while (true) {
-        const response = await docRouterOrgApi.listPrompts({
+        const response = await sigAgentOrgApi.listPrompts({
           tag_ids: selectedTag!.id,
           skip,
           limit
@@ -133,7 +133,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       }
 
       return allPrompts;
-    }, [selectedTag, docRouterOrgApi]);
+    }, [selectedTag, sigAgentOrgApi]);
 
     // Helper function to fetch all documents with pagination
     const fetchAllDocuments = useCallback(async () => {
@@ -148,7 +148,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       }
 
       while (true) {
-        const response = await docRouterOrgApi.listDocuments({
+        const response = await sigAgentOrgApi.listDocuments({
           skip,
           limit,
           nameSearch: searchParameters.searchTerm.trim() || undefined,
@@ -169,7 +169,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
       }
 
       return allDocuments;
-    }, [selectedTag, searchParameters.searchTerm, searchParameters.selectedTagFilters, searchParameters.metadataSearch, docRouterOrgApi]);
+    }, [selectedTag, searchParameters.searchTerm, searchParameters.selectedTagFilters, searchParameters.metadataSearch, sigAgentOrgApi]);
 
     const analyzeExecutions = useCallback(async () => {
       if (!selectedTag) return;
@@ -253,7 +253,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                 } else if (executionMode === 'missing') {
                   // Only run if no result exists for any version of this prompt
                   try {
-                    await docRouterOrgApi.getLLMResult({
+                    await sigAgentOrgApi.getLLMResult({
                       documentId: document.id,
                       promptRevId: prompt.prompt_revid,
                       fallback: true
@@ -267,7 +267,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                 } else if (executionMode === 'outdated') {
                   // Run if no result exists OR if result exists but for older version
                   try {
-                    const existingResult = await docRouterOrgApi.getLLMResult({
+                    const existingResult = await sigAgentOrgApi.getLLMResult({
                       documentId: document.id,
                       promptRevId: prompt.prompt_revid,
                       fallback: true
@@ -327,7 +327,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
         setIsCancellingAnalysis(false);
         analysisAbortController.current = null;
       }
-    }, [selectedTag, executionMode, fetchAllPrompts, fetchAllDocuments, docRouterOrgApi]);
+    }, [selectedTag, executionMode, fetchAllPrompts, fetchAllDocuments, sigAgentOrgApi]);
 
     // Analyze what needs to be executed when tag selection, mode, or search parameters change
     useEffect(() => {
@@ -475,7 +475,7 @@ export const DocumentBulkRunLLM = forwardRef<DocumentBulkRunLLMRef, DocumentBulk
                 ));
 
                 // Run the LLM (force=true for 'all' mode to rerun existing results)
-                await docRouterOrgApi.runLLM({
+                await sigAgentOrgApi.runLLM({
                   documentId: execution.documentId,
                   promptRevId: execution.prompt.prompt_revid,
                   force: executionMode === 'all'

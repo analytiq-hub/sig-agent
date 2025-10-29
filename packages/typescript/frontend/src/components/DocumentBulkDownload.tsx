@@ -1,6 +1,6 @@
 import { useState, forwardRef, useImperativeHandle, useMemo } from 'react'
-import { DocRouterOrgApi } from '@/utils/api'
-import { Document, Tag } from '@docrouter/sdk';
+import { SigAgentOrgApi } from '@/utils/api'
+import { Document, Tag } from '@sigagent/sdk';
 import { toast } from 'react-hot-toast'
 
 interface DocumentBulkDownloadProps {
@@ -26,7 +26,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
   totalDocuments,
   onProgress
 }, ref) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadedCount, setDownloadedCount] = useState(0)
 
@@ -62,7 +62,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
 
   const downloadDocument = async (doc: Document): Promise<boolean> => {
     try {
-      const response = await docRouterOrgApi.getDocument({
+      const response = await sigAgentOrgApi.getDocument({
         documentId: doc.id,
         fileType: "original"
       });
@@ -112,7 +112,7 @@ export const DocumentBulkDownload = forwardRef<DocumentBulkDownloadRef, Document
 
       while (true) {
         // Fetch next batch of documents
-        const batchResponse = await docRouterOrgApi.listDocuments({
+        const batchResponse = await sigAgentOrgApi.listDocuments({
           skip,
           limit,
           nameSearch: searchParameters.searchTerm.trim() || undefined,

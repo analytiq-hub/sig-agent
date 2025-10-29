@@ -1,9 +1,9 @@
-import { DocRouterAccount, DocRouterOrg } from '../../src';
+import { SigAgentAccount, SigAgentOrg } from '../../src';
 
 describe('SDK Client Unit Tests', () => {
-  describe('DocRouterAccount', () => {
+  describe('SigAgentAccount', () => {
     test('should create instance with account token', () => {
-      const client = new DocRouterAccount({
+      const client = new SigAgentAccount({
         baseURL: 'https://api.example.com',
         accountToken: 'account-token'
       });
@@ -12,7 +12,7 @@ describe('SDK Client Unit Tests', () => {
     });
 
     test('should update account token', () => {
-      const client = new DocRouterAccount({
+      const client = new SigAgentAccount({
         baseURL: 'https://api.example.com',
         accountToken: 'initial-token'
       });
@@ -22,7 +22,7 @@ describe('SDK Client Unit Tests', () => {
     });
 
     test('should have all invitation APIs', () => {
-      const client = new DocRouterAccount({
+      const client = new SigAgentAccount({
         baseURL: 'https://api.example.com',
         accountToken: 'account-token'
       });
@@ -34,7 +34,7 @@ describe('SDK Client Unit Tests', () => {
     });
 
     test('should have all payment APIs', () => {
-      const client = new DocRouterAccount({
+      const client = new SigAgentAccount({
         baseURL: 'https://api.example.com',
         accountToken: 'account-token'
       });
@@ -52,9 +52,9 @@ describe('SDK Client Unit Tests', () => {
     });
   });
 
-  describe('DocRouterOrg', () => {
+  describe('SigAgentOrg', () => {
     test('should create instance with org token', () => {
-      const client = new DocRouterOrg({
+      const client = new SigAgentOrg({
         baseURL: 'https://api.example.com',
         orgToken: 'org-token',
         organizationId: 'org-123'
@@ -86,7 +86,7 @@ describe('SDK Client Unit Tests', () => {
     });
 
     test('should update org token', () => {
-      const client = new DocRouterOrg({
+      const client = new SigAgentOrg({
         baseURL: 'https://api.example.com',
         orgToken: 'initial-token',
         organizationId: 'org-123'

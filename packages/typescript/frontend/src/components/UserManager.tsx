@@ -5,8 +5,8 @@ import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { IconButton } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { DocRouterAccountApi } from '@/utils/api';
-import { User, UserCreate } from '@docrouter/sdk';
+import { SigAgentAccountApi } from '@/utils/api';
+import { User, UserCreate } from '@sigagent/sdk';
 import { isAxiosError } from 'axios';
 import colors from 'tailwindcss/colors';
 import { useRouter } from 'next/navigation';
@@ -67,7 +67,7 @@ const UserManager: React.FC = () => {
     page: 0,
   });
   const [searchQuery, setSearchQuery] = useState('');
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -76,7 +76,7 @@ const UserManager: React.FC = () => {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const response = await docRouterAccountApi.listUsers({
+      const response = await sigAgentAccountApi.listUsers({
         skip: paginationModel.page * paginationModel.pageSize,
         limit: paginationModel.pageSize,
         search_name: debouncedSearch || undefined
@@ -90,7 +90,7 @@ const UserManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [paginationModel, debouncedSearch, docRouterAccountApi]);
+  }, [paginationModel, debouncedSearch, sigAgentAccountApi]);
 
   useEffect(() => {
     fetchUsers();
@@ -114,7 +114,7 @@ const UserManager: React.FC = () => {
     if (!userToDelete) return;
 
     try {
-      await docRouterAccountApi.deleteUser(userToDelete.id);
+      await sigAgentAccountApi.deleteUser(userToDelete.id);
       
       if (session?.session?.user?.id === userToDelete.id) {
         signOut({ callbackUrl: '/auth/signin' });
@@ -203,7 +203,7 @@ const UserManager: React.FC = () => {
 
   const handleAddUser = async (userData: UserCreate) => {
     try {
-      await docRouterAccountApi.createUser(userData);
+      await sigAgentAccountApi.createUser(userData);
       await fetchUsers();
     } catch (error) {
       throw error; // Let the modal handle the error

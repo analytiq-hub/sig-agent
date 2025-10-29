@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { DocRouterOrgApi } from '@/utils/api';
+import { SigAgentOrgApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef, GridFilterInputValueProps } from '@mui/x-data-grid';
 import { 
@@ -25,7 +25,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
-import { Tag, TelemetryMetricResponse, DataPoint, ResourceAttribute } from '@docrouter/sdk';
+import { Tag, TelemetryMetricResponse, DataPoint, ResourceAttribute } from '@sigagent/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 
 type TelemetryMetric = TelemetryMetricResponse;
@@ -145,7 +145,7 @@ const DateRangeFilter: React.FC<GridFilterInputValueProps> = ({ item, applyValue
 };
 
 const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizationId }) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [metrics, setMetrics] = useState<TelemetryMetric[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -176,7 +176,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
   const loadMetrics = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await docRouterOrgApi.listMetrics({
+      const response = await sigAgentOrgApi.listMetrics({
         skip: page * pageSize,
         limit: pageSize,
         name_search: searchTerm || undefined,
@@ -191,17 +191,17 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, searchTerm, startDate, endDate, docRouterOrgApi]);
+  }, [page, pageSize, searchTerm, startDate, endDate, sigAgentOrgApi]);
 
   const loadTags = useCallback(async () => {
     try {
-      const response = await docRouterOrgApi.listTags({ limit: 100 });
+      const response = await sigAgentOrgApi.listTags({ limit: 100 });
       setAvailableTags(response.tags);
     } catch (error) {
       const errorMsg = getApiErrorMsg(error) || 'Error loading tags';
       setMessage('Error: ' + errorMsg);
     }
-  }, [docRouterOrgApi]);
+  }, [sigAgentOrgApi]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -249,7 +249,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
       if (nextPage < totalPages) {
         try {
           setIsLoading(true);
-          const response = await docRouterOrgApi.listMetrics({
+          const response = await sigAgentOrgApi.listMetrics({
             skip: nextPage * pageSize,
             limit: pageSize,
             name_search: searchTerm || undefined,
@@ -282,7 +282,7 @@ const TelemetryMetricsList: React.FC<{ organizationId: string }> = ({ organizati
       if (prevPage >= 0) {
         try {
           setIsLoading(true);
-          const response = await docRouterOrgApi.listMetrics({
+          const response = await sigAgentOrgApi.listMetrics({
             skip: prevPage * pageSize,
             limit: pageSize,
             name_search: searchTerm || undefined,

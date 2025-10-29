@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { DocRouterOrgApi } from '@/utils/api';
-import { Prompt } from '@docrouter/sdk';
-import { FieldMapping, FieldMappingSource } from '@docrouter/sdk';
+import { SigAgentOrgApi } from '@/utils/api';
+import { Prompt } from '@sigagent/sdk';
+import { FieldMapping, FieldMappingSource } from '@sigagent/sdk';
 
 import { FormComponent, FormField } from '@/types/ui';
 import { getApiErrorMsg } from '@/utils/api';
@@ -55,7 +55,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
   fieldMappings,
   onMappingChange
 }) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [schemaFields, setSchemaFields] = useState<MappedSchemaField[]>([]);
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [loading, setLoading] = useState(false);
@@ -75,7 +75,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
     setLoading(true);
     try {
       // First, fetch all schemas to get schema_revid mappings
-      const allSchemasResponse = await docRouterOrgApi.listSchemas({
+      const allSchemasResponse = await sigAgentOrgApi.listSchemas({
         limit: 100
       });
 
@@ -85,7 +85,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
       
       for (const tagId of selectedTagIds) {
         try {
-          const promptsResponse = await docRouterOrgApi.listPrompts({
+          const promptsResponse = await sigAgentOrgApi.listPrompts({
             tag_ids: tagId, // Single tag ID
             limit: 100
           });
@@ -101,7 +101,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
       
       // Also fetch prompts without tag filtering to include untagged prompts if needed
       if (selectedTagIds.length === 0) {
-        const promptsResponse = await docRouterOrgApi.listPrompts({
+        const promptsResponse = await sigAgentOrgApi.listPrompts({
           limit: 100
         });
         promptsResponse.prompts.forEach(prompt => {
@@ -127,7 +127,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
             }
 
             // Fetch the full schema using schema_revid
-            const schema = await docRouterOrgApi.getSchema({
+            const schema = await sigAgentOrgApi.getSchema({
               schemaRevId: matchingSchemas[0].schema_revid
             });
             return { [prompt.schema_id!]: schema };
@@ -197,7 +197,7 @@ const FormioMapper: React.FC<FormioMapperProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [docRouterOrgApi, selectedTagIds]);
+  }, [sigAgentOrgApi, selectedTagIds]);
 
   // Parse form components into flat field list
   const parseFormFields = useCallback((components: FormComponent[], path: string[] = []): FormField[] => {

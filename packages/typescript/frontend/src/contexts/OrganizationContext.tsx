@@ -1,8 +1,8 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
-import { DocRouterAccountApi } from '@/utils/api'
-import { Organization } from '@docrouter/sdk'
+import { SigAgentAccountApi } from '@/utils/api'
+import { Organization } from '@sigagent/sdk'
 import { useAppSession } from '@/contexts/AppSessionContext'
 import { AppSession } from '@/types/AppSession'
 import { usePathname } from 'next/navigation'
@@ -33,7 +33,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [isLoading, setIsLoading] = useState(true)
   const pathname = usePathname()
   const { session, status } = useAppSession()
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), [])
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), [])
 
   // Extract organization ID from pathname if we're on an organization-specific page
   const getOrganizationIdFromPath = useCallback(() => {
@@ -61,7 +61,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         // Fetch all organizations the user is a member of
-        const response = await docRouterAccountApi.listOrganizations({ userId: appSession.user.id, limit: 50 });
+        const response = await sigAgentAccountApi.listOrganizations({ userId: appSession.user.id, limit: 50 });
 
         // Filtering logic based on page and user role
         let filtered: Organization[] = response.organizations;
@@ -88,7 +88,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     fetchOrganizations();
-  }, [pathname, session, status, docRouterAccountApi]);
+  }, [pathname, session, status, sigAgentAccountApi]);
 
   useEffect(() => {
     const initializeCurrentOrganization = () => {
@@ -123,7 +123,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     initializeCurrentOrganization()
-  }, [organizations, currentOrganization, getOrganizationIdFromPath, docRouterAccountApi])
+  }, [organizations, currentOrganization, getOrganizationIdFromPath, sigAgentAccountApi])
 
   const switchOrganization = useCallback((organizationId: string) => {
     const organization = organizations.find(w => w.id === organizationId)
@@ -161,7 +161,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return;
       }
 
-      const response = await docRouterAccountApi.listOrganizations({ userId: appSession.user.id });
+      const response = await sigAgentAccountApi.listOrganizations({ userId: appSession.user.id });
       
       // Re-apply filtering logic
       let filtered: Organization[] = response.organizations;
@@ -188,7 +188,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch (error) {
       console.error('Failed to refresh organizations:', error);
     }
-  }, [pathname, currentOrganization, session, docRouterAccountApi])
+  }, [pathname, currentOrganization, session, sigAgentAccountApi])
 
   return (
     <OrganizationContext.Provider value={{

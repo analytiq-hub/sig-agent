@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Delete as DeleteIcon, Edit as EditIcon, MoreVert as MoreVertIcon, Settings as SettingsIcon, Close as CloseIcon } from '@mui/icons-material';
-import { DocRouterAccountApi } from '@/utils/api';
-import { LLMProvider } from '@docrouter/sdk';
+import { SigAgentAccountApi } from '@/utils/api';
+import { LLMProvider } from '@sigagent/sdk';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
@@ -11,7 +11,7 @@ import Switch from '@mui/material/Switch';
 import Link from 'next/link';
 
 const LLMManager: React.FC = () => {
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
   const [llmProviders, setLLMProviders] = useState<LLMProvider[]>([]);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
@@ -27,7 +27,7 @@ const LLMManager: React.FC = () => {
     const getLLMProvidersData = async () => {
       try {
         setLoading(true);
-        const response = await docRouterAccountApi.listLLMProviders();
+        const response = await sigAgentAccountApi.listLLMProviders();
         setLLMProviders(response.providers);
       } catch (error) {
         console.error('Error fetching LLM providers:', error);
@@ -37,7 +37,7 @@ const LLMManager: React.FC = () => {
     };
 
     getLLMProvidersData();
-  }, [docRouterAccountApi]);
+  }, [sigAgentAccountApi]);
 
   const handleEditLLMToken = (provider: string) => {
     setEditingProvider(provider);
@@ -49,14 +49,14 @@ const LLMManager: React.FC = () => {
     if (!editingProvider) return;
 
     try {
-      await docRouterAccountApi.setLLMProviderConfig(editingProvider, {
+      await sigAgentAccountApi.setLLMProviderConfig(editingProvider, {
         token: editTokenValue,
         enabled: true,
         litellm_models_enabled: null
       });
       setEditModalOpen(false);
       // Refresh the LLM providers list
-      const response = await docRouterAccountApi.listLLMProviders();
+      const response = await sigAgentAccountApi.listLLMProviders();
       setLLMProviders(response.providers);
     } catch (error) {
       console.error('Error saving LLM token:', error);
@@ -66,13 +66,13 @@ const LLMManager: React.FC = () => {
 
   const handleDeleteLLMToken = async (providerName: string) => {
     try {
-      await docRouterAccountApi.setLLMProviderConfig(providerName, {
+      await sigAgentAccountApi.setLLMProviderConfig(providerName, {
         token: null,
         enabled: false,
         litellm_models_enabled: null
       });
       // Refresh the LLM providers list
-      const response = await docRouterAccountApi.listLLMProviders();
+      const response = await sigAgentAccountApi.listLLMProviders();
       setLLMProviders(response.providers);
     } catch (error) {
       console.error('Error deleting LLM token:', error);
@@ -96,13 +96,13 @@ const LLMManager: React.FC = () => {
 
   const handleToggleProvider = async (providerName: string, enabled: boolean) => {
     try {
-      await docRouterAccountApi.setLLMProviderConfig(providerName, {
+      await sigAgentAccountApi.setLLMProviderConfig(providerName, {
         enabled,
         token: null,
         litellm_models_enabled: null
       });
       // Refresh the LLM providers list
-      const response = await docRouterAccountApi.listLLMProviders();
+      const response = await sigAgentAccountApi.listLLMProviders();
       setLLMProviders(response.providers);
     } catch (error) {
       console.error('Error toggling provider:', error);
@@ -119,13 +119,13 @@ const LLMManager: React.FC = () => {
         ? [...provider.litellm_models_enabled, model]
         : provider.litellm_models_enabled.filter(m => m !== model);
 
-      await docRouterAccountApi.setLLMProviderConfig(providerName, {
+      await sigAgentAccountApi.setLLMProviderConfig(providerName, {
         enabled: provider.enabled,
         token: provider.token,
         litellm_models_enabled: updatedModels
       });
       // Refresh the LLM providers list
-      const response = await docRouterAccountApi.listLLMProviders();
+      const response = await sigAgentAccountApi.listLLMProviders();
       setLLMProviders(response.providers);
     } catch (error) {
       console.error('Error toggling model:', error);

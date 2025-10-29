@@ -11,7 +11,7 @@ const PDFFormSidebar = dynamic(() => import('./PDFFormSidebar'), {
   loading: () => <div className="h-32 flex items-center justify-center">Loading forms...</div>
 });
 import type { HighlightInfo } from '@/types/index';
-import { DocRouterOrgApi } from '@/utils/api';
+import { SigAgentOrgApi } from '@/utils/api';
 
 interface Props {
   organizationId: string;
@@ -23,14 +23,14 @@ interface Props {
 type SidebarMode = 'extraction' | 'forms';
 
 const PDFSidebar = ({ organizationId, id, onHighlight, onClearHighlight }: Props) => {
-  const docRouterOrgApi = useMemo(() => new DocRouterOrgApi(organizationId), [organizationId]);
+  const sigAgentOrgApi = useMemo(() => new SigAgentOrgApi(organizationId), [organizationId]);
   const [activeMode, setActiveMode] = useState<SidebarMode>('extraction');
   const [documentName, setDocumentName] = useState<string>('');
 
   useEffect(() => {
     const fetchDocumentName = async () => {
       try {
-        const response = await docRouterOrgApi.getDocument({
+        const response = await sigAgentOrgApi.getDocument({
           documentId: id,
           fileType: "pdf"
         });
@@ -42,7 +42,7 @@ const PDFSidebar = ({ organizationId, id, onHighlight, onClearHighlight }: Props
     };
 
     fetchDocumentName();
-  }, [organizationId, id, docRouterOrgApi]);
+  }, [organizationId, id, sigAgentOrgApi]);
 
   return (
     <div className="w-full h-full flex flex-col border-r border-black/10">

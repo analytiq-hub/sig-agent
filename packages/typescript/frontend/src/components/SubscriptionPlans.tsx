@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { DocRouterAccountApi } from '@/utils/api';
+import { SigAgentAccountApi } from '@/utils/api';
 import { toast } from 'react-toastify';
 import { useAppSession } from '@/utils/useAppSession';
 import { isSysAdmin } from '@/utils/roles';
@@ -30,7 +30,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
 }) => {
   const { session } = useAppSession();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const docRouterAccountApi = useMemo(() => new DocRouterAccountApi(), []);
+  const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -44,11 +44,11 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         setLoading(true);
         
         // Fetch organization data to get the organization type
-        const organizationData = await docRouterAccountApi.getOrganization(organizationId);
+        const organizationData = await sigAgentAccountApi.getOrganization(organizationId);
         setOrganizationType(organizationData.type);
         
         // Fetch subscription data
-        const subscriptionData = await docRouterAccountApi.getSubscription(organizationId);
+        const subscriptionData = await sigAgentAccountApi.getSubscription(organizationId);
         
         setPlans(subscriptionData.plans);
         
@@ -97,7 +97,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
     };
 
     fetchData();
-  }, [organizationId, onSubscriptionStatusChange, onCancellationInfoChange, onCurrentPlanChange, onStripePaymentsPortalChange, docRouterAccountApi]);
+  }, [organizationId, onSubscriptionStatusChange, onCancellationInfoChange, onCurrentPlanChange, onStripePaymentsPortalChange, sigAgentAccountApi]);
 
   const canChangeToPlan = (currentPlan: string | null, targetPlan: string): boolean => {
     if (!currentPlan) return true; // No current plan, can select any
@@ -129,7 +129,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         setSelectedPlan(planId);
         
         // Update the organization type
-        await docRouterAccountApi.updateOrganization(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
+        await sigAgentAccountApi.updateOrganization(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
         
         // Update local state
         setCurrentPlan(planId);
@@ -159,10 +159,10 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
         setLoading(true);
         
         // Reactivate the subscription
-        await docRouterAccountApi.activateSubscription(organizationId);
+        await sigAgentAccountApi.activateSubscription(organizationId);
         
         // Refresh the subscription plans data
-        const subscriptionResponse = await docRouterAccountApi.getSubscription(organizationId);
+        const subscriptionResponse = await sigAgentAccountApi.getSubscription(organizationId);
         setSubscriptionStatus(subscriptionResponse.subscription_status);
         
         // Notify parent components
@@ -194,10 +194,10 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({
       setSelectedPlan(planId);
       
       // Step 1: Update the organization type
-      await docRouterAccountApi.updateOrganization(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
+      await sigAgentAccountApi.updateOrganization(organizationId, { type: planId as 'individual' | 'team' | 'enterprise' });
 
       // Step 2: Create checkout session and redirect
-      const checkoutResponse = await docRouterAccountApi.createCheckoutSession(organizationId, planId);
+      const checkoutResponse = await sigAgentAccountApi.createCheckoutSession(organizationId, planId);
       
       // Redirect to Stripe Checkout
       window.location.href = checkoutResponse.payment_portal_url;

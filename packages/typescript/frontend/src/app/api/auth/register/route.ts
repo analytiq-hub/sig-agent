@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDatabase } from '@/utils/mongodb';
 import { hash } from 'bcryptjs';
-import { DocRouterAccountApi } from '@/utils/api';
+import { SigAgentAccountApi } from '@/utils/api';
 
 export async function POST(req: Request) {
     try {
@@ -29,8 +29,8 @@ export async function POST(req: Request) {
         });
 
         // Send verification email using the new endpoint
-        const docRouterAccountApi = new DocRouterAccountApi();
-        await docRouterAccountApi.sendRegistrationVerificationEmail(result.insertedId.toString());
+        const sigAgentAccountApi = new SigAgentAccountApi();
+        await sigAgentAccountApi.sendRegistrationVerificationEmail(result.insertedId.toString());
 
         return NextResponse.json({ 
             success: true,

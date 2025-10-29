@@ -1,6 +1,6 @@
-# DocRouter TypeScript SDK
+# SigAgent TypeScript SDK
 
-A TypeScript SDK for the DocRouter API, providing type-safe access to document processing, OCR, LLM, and organization management features.
+A TypeScript SDK for the SigAgent API, providing type-safe access to document processing, OCR, LLM, and organization management features.
 
 ## Publishing to npm
 
@@ -11,20 +11,20 @@ A TypeScript SDK for the DocRouter API, providing type-safe access to document p
    # Login to npm
    npm login
    
-   # Create the @docrouter organization (via npm website or CLI)
+   # Create the @sigagent organization (via npm website or CLI)
    # Visit: https://www.npmjs.com/org/create
    ```
 
 2. **Verify organization access:**
    ```bash
-   npm org ls docrouter
+   npm org ls sigagent
    ```
 
 ### Publishing Steps
 
 1. **Build the package:**
    ```bash
-   cd packages/typescript/docrouter-sdk
+   cd packages/typescript/sdk
    npm run build
    ```
 
@@ -73,7 +73,7 @@ npm run publish:beta
 ## Installation
 
 ```bash
-npm install @docrouter/sdk
+npm install @sigagent/sdk
 ```
 
 ## Quick Start
@@ -81,9 +81,9 @@ npm install @docrouter/sdk
 ### Using Account Token (Server-to-Server)
 
 ```typescript
-import { DocRouterAccount } from '@docrouter/sdk';
+import { SigAgentAccount } from '@sigagent/sdk';
 
-const client = new DocRouterAccount({
+const client = new SigAgentAccount({
   baseURL: 'https://api.docrouter.com',
   accountToken: 'your-account-token-here'
 });
@@ -101,9 +101,9 @@ const token = await client.tokens.createOrganizationToken({
 ### Using Organization Token
 
 ```typescript
-import { DocRouterOrg } from '@docrouter/sdk';
+import { SigAgentOrg } from '@sigagent/sdk';
 
-const client = new DocRouterOrg({
+const client = new SigAgentOrg({
   baseURL: 'https://api.docrouter.com',
   orgToken: 'your-org-token-here',
   organizationId: 'org-123'
@@ -128,9 +128,9 @@ const documents = await client.documents.list();
 ### Using JWT Token (Browser)
 
 ```typescript
-import { DocRouterOrg } from '@docrouter/sdk';
+import { SigAgentOrg } from '@sigagent/sdk';
 
-const client = new DocRouterOrg({
+const client = new SigAgentOrg({
   baseURL: 'https://api.docrouter.com',
   orgToken: 'your-jwt-token-here',
   organizationId: 'your-org-id'
@@ -153,15 +153,15 @@ await client.llm.chatStream({
 - **Node.js & Browser**: Works in both environments with proper polyfills
 - **Error handling**: Comprehensive error handling with retry logic and auth callbacks
 - **Modular**: Import only what you need, or use the full SDK
-- **Two client types**: `DocRouterAccount` and `DocRouterOrg` for different use cases
+- **Two client types**: `SigAgentAccount` and `SigAgentOrg` for different use cases
 
 ## API Reference
 
-### DocRouterAccount (Server-to-Server)
+### SigAgentAccount (Server-to-Server)
 Use for account-level operations with account tokens.
 
 ```typescript
-const client = new DocRouterAccount({
+const client = new SigAgentAccount({
   baseURL: 'https://api.docrouter.com',
   accountToken: 'your-account-token'
 });
@@ -173,11 +173,11 @@ client.tokens.*       // Token management
 client.users.*        // User management
 ```
 
-### DocRouterOrg (Organization-Scoped)
+### SigAgentOrg (Organization-Scoped)
 Use when you have an organization token and want to work within that org.
 
 ```typescript
-const client = new DocRouterOrg({
+const client = new SigAgentOrg({
   baseURL: 'https://api.docrouter.com',
   orgToken: 'your-org-token',
   organizationId: 'org-123'
