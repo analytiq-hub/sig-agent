@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 
 const Home = () => {
-  const [otlpEndpoint, setOtlpEndpoint] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
 
   // Get the base URL for internal links
@@ -12,13 +11,9 @@ const Home = () => {
     return window.location.origin;
   };
 
-  // Get the FastAPI URL using the same mechanism as settings page
-  const getFastApiUrl = () => {
-    return process.env.NEXT_PUBLIC_FASTAPI_FRONTEND_URL || 'http://localhost:8000';
-  };
+  // (FastAPI URL helper removed because it was unused)
 
   useEffect(() => {
-    setOtlpEndpoint(getFastApiUrl());
     setBaseUrl(getBaseUrl());
   }, []);
   return (
