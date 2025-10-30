@@ -62,8 +62,11 @@ const Home = () => {
 
             </section>
 
-            {/* Removed plugin instructions; simplified to 3-step flow above */}
-
+            <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
+            <strong>Note:</strong> Claude Code hooks and traces are only supported with
+            Claude Code <span className="font-semibold">Pro</span> and <span className="font-semibold">Max</span> subscriptions.
+            </div>
+        
             {/* About and Contact - Side by Side */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* About Section */}
