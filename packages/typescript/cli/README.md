@@ -37,3 +37,49 @@ Notes:
 - Restart Claude after running the setup.
 
 
+Publishing to npm
+-----------------
+
+Prerequisites:
+- You must have publish access to the `@sig-agent` scope.
+- Ensure `package.json` has:
+
+```json
+{
+  "name": "@sig-agent/cli",
+  "publishConfig": { "access": "public" }
+}
+```
+
+Steps:
+
+```bash
+# From this package directory
+cd /home/andrei/build/analytiq/sig-agent/packages/typescript/cli
+
+# Log in (if needed)
+npm whoami || npm login
+
+# Install deps and build
+npm ci
+npm run build
+
+# Inspect the publish contents first
+npm publish --dry-run
+
+# Publish (use --access public for scoped public packages)
+npm publish --access public
+```
+
+Versioning:
+- Bump the version before publishing:
+
+```bash
+npm version patch   # or minor / major
+```
+
+Troubleshooting:
+- Scoped packages default to private — include `--access public` or `publishConfig.access=public`.
+- If 2FA is enabled on your npm account/org, follow prompts during `npm publish`.
+- Ensure `dist/index.js` exists and matches the `bin` field in `package.json`.
+
