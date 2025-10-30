@@ -18,6 +18,7 @@ type SetupOptions = {
 
 const DEFAULT_SERVER = process.env.SIGAGENT_SERVER_URL || 'https://app.sigagent.ai/fastapi';
 const DEFAULT_MARKETPLACE = 'https://github.com/analytiq-hub/sig-agent-marketplace.git';
+const DEFAULT_PLUGIN = 'sig-agent@sig-agent-marketplace';
 
 let DEBUG = false;
 
@@ -253,6 +254,31 @@ function updateMarketplaceConfig(marketplaceUrl: string) {
   return settingsPath;
 }
 
+function enablePlugin(pluginName: string) {
+  const { settingsPath } = getClaudePaths();
+  let settings: any = {};
+  if (fs.existsSync(settingsPath)) {
+    try {
+      const raw = fs.readFileSync(settingsPath, 'utf-8');
+      settings = JSON.parse(raw || '{}');
+    } catch {
+      settings = {};
+    }
+  }
+
+  const next = {
+    $schema: settings.$schema || 'https://json.schemastore.org/claude-code-settings.json',
+    ...settings,
+    enabledPlugins: {
+      ...(settings.enabledPlugins || {}),
+      [pluginName]: true
+    }
+  };
+
+  fs.writeFileSync(settingsPath, JSON.stringify(next, null, 2), 'utf-8');
+  return settingsPath;
+}
+
 async function performSetup(opts: SetupOptions) {
   const server = opts.server || DEFAULT_SERVER;
   const marketplace = opts.marketplace || DEFAULT_MARKETPLACE;
@@ -337,6 +363,10 @@ Opening ${chalk.underline(tokenUrl.toString())} in your browser...
   const spinnerMk = ora('Adding SigAgent marketplace to Claude settings...').start();
   const mpPath = updateMarketplaceConfig(marketplace);
   spinnerMk.succeed(`Updated ${chalk.cyan(mpPath)} with extraKnownMarketplaces entry`);
+
+  const spinnerPlugin = ora('Enabling sig-agent plugin in Claude settings...').start();
+  const pluginPath = enablePlugin(DEFAULT_PLUGIN);
+  spinnerPlugin.succeed(`Updated ${chalk.cyan(pluginPath)} with enabledPlugins entry for ${DEFAULT_PLUGIN}`);
 
     console.log(`\n${chalk.green('Setup complete.')} Restart Claude to apply changes.`);
   } catch (err: any) {
