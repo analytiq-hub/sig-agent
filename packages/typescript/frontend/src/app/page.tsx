@@ -62,7 +62,7 @@ const Home = () => {
 
             </section>
 
-            <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
             <strong>Note:</strong> Claude Code hooks and traces are only supported with
             Claude Code <span className="font-semibold">Pro</span> and <span className="font-semibold">Max</span> subscriptions.
             </div>
