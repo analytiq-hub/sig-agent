@@ -16,16 +16,15 @@ npm --workspace packages/typescript/cli run build
 Usage
 -----
 
-```bash
-# Configure Claude settings and marketplace
-npx -y @sigagent/cli setup \
-  --server https://app.sigagent.ai/fastapi \
-  --marketplace https://github.com/analytiq-hub/sig-agent-marketplace.git \
-  --token ORG_TOKEN
+Steps:
+- Create an organization token.
+- Run:
 
-# Upgrade (re-apply latest defaults)
-npx -y @sigagent/cli upgrade
+```bash
+npx -y @sigagent/cli setup
 ```
+
+When prompted, paste your organization token.
 
 What it does:
 - Writes `~/.claude/settings.json` with OTLP env variables pointing to the provided server.
@@ -33,7 +32,7 @@ What it does:
 - If `--token` not provided, opens the Organization Access Tokens page in the browser.
 
 Notes:
-- This CLI does not create tokens automatically because the API requires an authenticated context. Provide `--token` when available.
+- This CLI does not create tokens automatically because the API requires an authenticated context.
 - Restart Claude after running the setup.
 
 

@@ -42,101 +42,32 @@ const Home = () => {
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">Client Setup</h2>
 
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-blue-800 text-sm">
-                  <a 
-                    href={`${baseUrl}/settings/user/developer/organization-access-tokens`}
-                    className="text-blue-600 hover:text-blue-800 underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Create an organization access token
-                  </a>
-                  &nbsp;and use it in the settings below. Then, add the following configuration to your <code>~/.claude/settings.json</code> file. <br>
-                  </br>You must use <code>http/protobuf</code> as the protocol.
-                </p>
-              </div>
-              <div className="bg-gray-900 rounded-lg p-6 text-green-400 font-mono text-xs overflow-x-auto">
-                <div className="mb-2">
-                  <span className="text-gray-400">{'// ~/.claude/settings.json'}</span>
-                </div>
-                <div className="mb-2">
-                  <span className="text-yellow-400">{'{'}</span>
-                </div>
-                <div className="ml-4 mb-2">
-                  <span className="text-blue-400">&quot;$schema&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;https://json.schemastore.org/claude-code-settings.json&quot;</span><span className="text-white">,</span>
-                </div>
-                <div className="ml-4 mb-2">
-                  <span className="text-blue-400">&quot;env&quot;</span><span className="text-white">: </span><span className="text-yellow-400">{'{'}</span>
-                </div>
-                <div className="ml-8 mb-2">
-                  <span className="text-blue-400">&quot;CLAUDE_CODE_ENABLE_TELEMETRY&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;1&quot;</span><span className="text-white">,</span>
-                </div>
-                <div className="ml-8 mb-2">
-                  <span className="text-blue-400">&quot;OTEL_METRICS_EXPORTER&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;otlp&quot;</span><span className="text-white">,</span>
-                </div>
-                <div className="ml-8 mb-2">
-                  <span className="text-blue-400">&quot;OTEL_LOGS_EXPORTER&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;otlp&quot;</span><span className="text-white">,</span>
-                </div>
-                <div className="ml-8 mb-2">
-                  <span className="text-blue-400">&quot;OTEL_EXPORTER_OTLP_PROTOCOL&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;http/protobuf&quot;</span><span className="text-white">,</span>
-                </div>
-                <div className="ml-8 mb-2">
-                  <span className="text-blue-400">&quot;OTEL_EXPORTER_OTLP_ENDPOINT&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;{otlpEndpoint}&quot;</span><span className="text-white">,</span>
-                </div>
-                <div className="ml-8 mb-2">
-                  <span className="text-blue-400">&quot;OTEL_EXPORTER_OTLP_HEADERS&quot;</span><span className="text-white">: </span><span className="text-green-300">&quot;Authorization=Bearer YOUR_ORG_ACCESS_TOKEN&quot;</span><span className="text-white">,</span>
-                </div>
-                <div className="ml-4 mb-2">
-                  <span className="text-yellow-400">{'}'}</span>
-                </div>
-                <div>
-                  <span className="text-yellow-400">{'}'}</span>
-                </div>
+                <ol className="list-decimal list-inside text-blue-800 text-sm space-y-2">
+                  <li>
+                    <a 
+                      href={`${baseUrl}/settings/user/developer/organization-access-tokens`}
+                      className="text-blue-600 hover:text-blue-800 underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Create an organization access token
+                    </a>
+                  </li>
+                  <li>
+                    Run the following and provide the org token when prompted:
+                    <div className="mt-3 bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-sm overflow-x-auto">
+                      <span className="text-white">npx</span> <span className="text-green-300">-y</span> <span className="text-white">@sigagent/cli</span> <span className="text-yellow-400">setup</span>
+                    </div>
+                  </li>
+                  <li>
+                    Restart Claude Code.
+                  </li>
+                </ol>
               </div>
 
             </section>
 
-            {/* Claude Plugin Setup Section */}
-            <section className="bg-white rounded-lg shadow-lg p-8">
-              <div className="mb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">Enable Claude Hook Monitoring</h2>
-                <p className="text-gray-600">
-                  Start claude and run the following command to enable the <strong className="text-blue-600">sig-agent-marketplace</strong>
-                </p>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-sm overflow-x-auto">
-                  <span className="text-blue-400">/plugin</span> <span className="text-yellow-400">marketplace</span> <span className="text-yellow-400">add</span> <span className="text-green-300">https://github.com/analytiq-hub/sig-agent-marketplace.git</span>
-                </div>
-                
-                <p className="text-gray-600">
-                  Then enable the <strong className="text-blue-600">sig-agent-plugin</strong> using the <strong className="text-blue-600">/plugin</strong> command.
-                </p>
-              </div>
-
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-blue-800 text-sm">
-                  <strong>Important:</strong> Claude Hooks and Traces monitoring requires a <strong>Claude Pro</strong> or <strong>Claude Max</strong> subscription.
-                </p>
-              </div>
-
-              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-green-800 text-sm">
-                      <strong>That&apos;s it!</strong> Your environment variables are already configured above. 
-                      Claude will automatically start sending monitoring data to SigAgent.AI.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
+            {/* Removed plugin instructions; simplified to 3-step flow above */}
 
             {/* About and Contact - Side by Side */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
