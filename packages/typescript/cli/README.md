@@ -10,7 +10,7 @@ Install
 # From repo root
 npm --workspace packages/typescript/cli run build
 # Or publish/install as a package, then:
-# npx -y @sig-agent/cli setup --server https://app.sigagent.ai/fastapi
+# npx -y @sigagent/cli setup --server https://app.sigagent.ai/fastapi
 ```
 
 Usage
@@ -18,13 +18,13 @@ Usage
 
 ```bash
 # Configure Claude settings and marketplace
-npx -y @sig-agent/cli setup \
+npx -y @sigagent/cli setup \
   --server https://app.sigagent.ai/fastapi \
   --marketplace https://github.com/analytiq-hub/sig-agent-marketplace.git \
   --token ORG_TOKEN
 
 # Upgrade (re-apply latest defaults)
-npx -y @sig-agent/cli upgrade
+npx -y @sigagent/cli upgrade
 ```
 
 What it does:
@@ -41,12 +41,12 @@ Publishing to npm
 -----------------
 
 Prerequisites:
-- You must have publish access to the `@sig-agent` scope.
+- You must have publish access to the `@sigagent` scope.
 - Ensure `package.json` has:
 
 ```json
 {
-  "name": "@sig-agent/cli",
+  "name": "@sigagent/cli",
   "publishConfig": { "access": "public" }
 }
 ```

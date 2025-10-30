@@ -1,5 +1,5 @@
 {
-  "name": "@sig-agent/cli",
+  "name": "@sigagent/cli",
   "version": "0.1.0",
   "description": "SigAgent one-line setup CLI for Claude telemetry and plugins",
   "license": "MIT",
