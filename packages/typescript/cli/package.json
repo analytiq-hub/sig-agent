@@ -2,6 +2,7 @@
   "name": "@sig-agent/cli",
   "version": "0.1.0",
   "description": "SigAgent one-line setup CLI for Claude telemetry and plugins",
+  "license": "MIT",
   "private": false,
   "type": "module",
   "bin": {
