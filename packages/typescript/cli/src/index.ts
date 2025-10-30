@@ -158,13 +158,14 @@ function updateClaudeSettings(server: string, token?: string) {
 }
 
 function writeClaudeSettings(server: string, token?: string) {
-  const { settingsPath } = getClaudePaths();
+  const { claudeDir, settingsPath } = getClaudePaths();
   // If file exists, delegate to update to modify only SigAgent keys
   if (fs.existsSync(settingsPath)) {
     return updateClaudeSettings(server, token);
   }
 
   // Create fresh file when none exists
+  ensureDirExists(claudeDir);
   const initial = {
     $schema: 'https://json.schemastore.org/claude-code-settings.json',
     env: buildSigAgentEnv(server, token)
