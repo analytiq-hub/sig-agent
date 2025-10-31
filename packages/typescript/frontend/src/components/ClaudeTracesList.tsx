@@ -225,6 +225,20 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
   const [filteredSessionId, setFilteredSessionId] = useState<string | null>(null);
   const rawDataRef = useRef<HTMLDivElement>(null);
 
+  // Map tool_use_id -> tool name from currently loaded traces
+  const toolUseIdToName = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const t of traces) {
+      const rec = t.transcript_record;
+      const msg = rec?.message as { content?: unknown[] } | undefined;
+      const first = Array.isArray(msg?.content) ? msg?.content?.[0] as { type?: string; id?: string; name?: string } : undefined;
+      if (first?.type === 'tool_use' && first.id && first.name) {
+        map[first.id] = first.name;
+      }
+    }
+    return map;
+  }, [traces]);
+
   // Handle date range filter from DataGrid
   const handleDateRangeFilter = (filterValue: string) => {
     if (filterValue && filterValue.includes('|')) {
@@ -625,9 +639,12 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
         toolInput = toolContent.input || null;
       } else if (contentType === 'tool_result' && message?.content?.[0]) {
         // Tool result messages may not include the tool name in transcript; use hook_data.tool_name as fallback
-        const resultContent = message.content[0] as { content?: unknown };
+        const resultContent = message.content[0] as { content?: unknown; name?: string; tool_use_id?: string };
         toolResponse = 'content' in resultContent ? (resultContent.content ?? null) : null;
-        toolName = trace.hook_data?.tool_name || '-';
+        // Try several sources for tool name: embedded name, transcript alias, then hook_data
+        const transcriptToolName = (transcriptRecord as unknown as { toolUseName?: string }).toolUseName;
+        const linkedName = resultContent.tool_use_id ? toolUseIdToName[resultContent.tool_use_id] : undefined;
+        toolName = resultContent.name || linkedName || transcriptToolName || trace.hook_data?.tool_name || '-';
       }
       
       return {
