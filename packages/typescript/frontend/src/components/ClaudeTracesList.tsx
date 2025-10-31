@@ -855,7 +855,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
           sx={{ 
             fontSize: '0.75rem', 
             fontFamily: 'monospace',
-            backgroundColor: 'grey.50',
+            backgroundColor: 'grey.100',
             color: 'text.primary',
             padding: 1,
             borderRadius: 1,
@@ -879,10 +879,10 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
           tooltip: {
             sx: {
               maxWidth: 400,
-              backgroundColor: 'background.paper',
-              border: '1px solid',
-              borderColor: 'divider',
-              boxShadow: 3
+              backgroundColor: 'grey.100',
+              border: '2px solid',
+              borderColor: 'grey.300',
+              boxShadow: 6
             }
           }
         }}
@@ -907,7 +907,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
           sx={{ 
             fontSize: '0.75rem', 
             fontFamily: 'monospace',
-            backgroundColor: 'grey.50',
+            backgroundColor: 'grey.100',
             color: 'text.primary',
             padding: 1,
             borderRadius: 1,
@@ -949,10 +949,10 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
           tooltip: {
             sx: {
               maxWidth: 400,
-              backgroundColor: 'background.paper',
-              border: '1px solid',
-              borderColor: 'divider',
-              boxShadow: 3
+              backgroundColor: 'grey.100',
+              border: '2px solid',
+              borderColor: 'grey.300',
+              boxShadow: 6
             }
           }
         }}
@@ -995,7 +995,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
                 sx={{ 
                   fontSize: '0.75rem', 
                   fontFamily: 'monospace',
-                  backgroundColor: 'grey.50',
+                  backgroundColor: 'grey.100',
                   color: 'text.primary',
                   padding: 1,
                   borderRadius: 1,
@@ -1051,7 +1051,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
                   sx={{ 
                     fontSize: '0.75rem', 
                     fontFamily: 'monospace',
-                    backgroundColor: 'grey.50',
+                    backgroundColor: 'grey.100',
                     color: 'text.primary',
                     padding: 1,
                     borderRadius: 1,
@@ -1098,10 +1098,10 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
           tooltip: {
             sx: {
               maxWidth: 400,
-              backgroundColor: 'background.paper',
-              border: '1px solid',
-              borderColor: 'divider',
-              boxShadow: 3
+              backgroundColor: 'grey.100',
+              border: '2px solid',
+              borderColor: 'grey.300',
+              boxShadow: 6
             }
           }
         }}
@@ -1892,7 +1892,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
                     sx={{ 
                       fontSize: '0.75rem', 
                       fontFamily: 'monospace',
-                      backgroundColor: 'grey.50',
+                      backgroundColor: 'grey.100',
                       color: 'text.primary',
                       padding: 2,
                       borderRadius: 1,
