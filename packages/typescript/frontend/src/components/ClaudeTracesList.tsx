@@ -604,13 +604,19 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
       const role = message?.role || 'unknown';
       const contentType = (message?.content?.[0] as { type?: string })?.type || 'unknown';
       
-      // Extract tool information from content if it's a tool_use
+      // Extract tool information from content
       let toolName = '-';
       let toolInput = null;
+      let toolResponse = null as unknown | null;
       if (contentType === 'tool_use' && message?.content?.[0]) {
         const toolContent = message.content[0] as { name?: string; input?: unknown };
         toolName = toolContent.name || '-';
         toolInput = toolContent.input || null;
+      } else if (contentType === 'tool_result' && message?.content?.[0]) {
+        // Tool result messages may not include the tool name in transcript; use hook_data.tool_name as fallback
+        const resultContent = message.content[0] as { content?: unknown };
+        toolResponse = 'content' in resultContent ? (resultContent.content ?? null) : null;
+        toolName = trace.hook_data?.tool_name || '-';
       }
       
       return {
@@ -623,7 +629,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
         permissionMode: trace.hook_data?.permission_mode || '-',
         userId: transcriptRecord.userType || '-',
         model: message?.model || '-',
-        toolResponse: null, // Not available in this structure
+        toolResponse: toolResponse,
         prompt: null, // Not available in this structure
         usage: message?.usage || null,
         messageId: message?.id || '-',
@@ -727,7 +733,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
   };
 
   // Helper function to render todo data as checkboxes
-  const renderTodoData = (data: unknown) => {
+  const renderTodoData = (data: unknown): React.ReactNode | null => {
     try {
       let todoData;
       
@@ -872,14 +878,17 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
           {info.toolName}
         </Typography>
         
-        {info.toolInput && !renderTodoData(info.toolResponse) && (
+        {(() => {
+          const renderedInput = renderTodoData(info.toolInput);
+          const renderedResponse = renderTodoData(info.toolResponse);
+          return info.toolInput && !Boolean(renderedResponse) ? (
           <Box sx={{ mb: 2 }}>
             <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
               Input:
             </Typography>
-            {renderTodoData(info.toolInput) ? (
+            {Boolean(renderedInput) ? (
               <Box sx={{ marginTop: 0.5 }}>
-                {renderTodoData(info.toolInput)}
+                {renderedInput}
               </Box>
             ) : (
               <Box 
@@ -921,55 +930,59 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
               </Box>
             )}
           </Box>
-        )}
+          ) : null;
+        })()}
         
-        {info.toolResponse && (
-          <Box>
-            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-              Response:
-            </Typography>
-            {renderTodoData(info.toolResponse) ? (
-              <Box sx={{ marginTop: 0.5 }}>
-                {renderTodoData(info.toolResponse)}
-              </Box>
-            ) : (
-              <Box 
-                component="pre" 
-                sx={{ 
-                  fontSize: '0.75rem', 
-                  fontFamily: 'monospace',
-                  backgroundColor: 'success.light',
-                  color: 'text.primary',
-                  padding: 1,
-                  borderRadius: 1,
-                  marginTop: 0.5,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  maxHeight: 120,
-                  overflow: 'auto',
-                  border: '1px solid',
-                  borderColor: 'success.main',
-                  '&::-webkit-scrollbar': {
-                    width: '8px',
-                  },
-                  '&::-webkit-scrollbar-track': {
+        {Boolean(info.toolResponse) && (() => {
+          const renderedResponse = renderTodoData(info.toolResponse);
+          return (
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                Response:
+              </Typography>
+              {Boolean(renderedResponse) ? (
+                <Box sx={{ marginTop: 0.5 }}>
+                  {renderedResponse}
+                </Box>
+              ) : (
+                <Box 
+                  component="pre" 
+                  sx={{ 
+                    fontSize: '0.75rem', 
+                    fontFamily: 'monospace',
                     backgroundColor: 'success.light',
-                    borderRadius: '4px',
-                  },
-                  '&::-webkit-scrollbar-thumb': {
-                    backgroundColor: 'success.main',
-                    borderRadius: '4px',
-                    '&:hover': {
-                      backgroundColor: 'success.dark',
+                    color: 'text.primary',
+                    padding: 1,
+                    borderRadius: 1,
+                    marginTop: 0.5,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    maxHeight: 120,
+                    overflow: 'auto',
+                    border: '1px solid',
+                    borderColor: 'success.main',
+                    '&::-webkit-scrollbar': {
+                      width: '8px',
                     },
-                  },
-                }}
-              >
-                {formatToolResponse(info.toolResponse)}
-              </Box>
-            )}
-          </Box>
-        )}
+                    '&::-webkit-scrollbar-track': {
+                      backgroundColor: 'success.light',
+                      borderRadius: '4px',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      backgroundColor: 'success.main',
+                      borderRadius: '4px',
+                      '&:hover': {
+                        backgroundColor: 'success.dark',
+                      },
+                    },
+                  }}
+                >
+                  {formatToolResponse(info.toolResponse)}
+                </Box>
+              )}
+            </Box>
+          );
+        })()}
       </Box>
     );
 
@@ -1121,15 +1134,17 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
         
-        // Show tool name for tool_use messages
+        // Show tool name for tool_use messages with tooltip sourced from transcript
         if (info.contentType === 'tool_use' && info.toolName !== '-') {
           const displayName = info.toolName.length > 40 ? info.toolName.substring(0, 40) + '...' : info.toolName;
           return (
-            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
-              <span className="text-sm font-mono">
-                {displayName}
-              </span>
-            </Box>
+            <ToolInfoTooltip trace={params.row}>
+              <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+                <span className="text-sm font-mono">
+                  {displayName}
+                </span>
+              </Box>
+            </ToolInfoTooltip>
           );
         }
         
@@ -1158,14 +1173,19 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
           );
         }
         
-        // Show tool result info
+        // Show tool result info: display tool name if available, with tooltip
         if (info.contentType === 'tool_result') {
+          const displayName = info.toolName && info.toolName !== '-' ? (
+            info.toolName.length > 40 ? info.toolName.substring(0, 40) + '...' : info.toolName
+          ) : 'Tool Result';
           return (
-            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
-              <span className="text-sm text-gray-600">
-                Tool Result
-              </span>
-            </Box>
+            <ToolInfoTooltip trace={params.row}>
+              <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+                <span className="text-sm font-mono">
+                  {displayName}
+                </span>
+              </Box>
+            </ToolInfoTooltip>
           );
         }
         
