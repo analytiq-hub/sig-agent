@@ -876,7 +876,14 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
   };
 
   // Custom Tooltip component for text message content
-  const TextContentTooltip: React.FC<{ content: string; title: string; children: React.ReactElement }> = ({ content, title, children }) => {
+  const TextContentTooltip: React.FC<{ content: string; title: string; variant?: 'primary' | 'success'; children: React.ReactElement }> = ({ content, title, variant = 'primary', children }) => {
+    const isSuccess = variant === 'success';
+    const bgColor = isSuccess ? 'success.light' : 'primary.light';
+    const borderColor = isSuccess ? 'success.main' : 'primary.main';
+    const scrollbarTrack = isSuccess ? 'success.light' : 'primary.light';
+    const scrollbarThumb = isSuccess ? 'success.main' : 'primary.main';
+    const scrollbarThumbHover = isSuccess ? 'success.dark' : 'primary.dark';
+
     const tooltipContent = (
       <Box sx={{ maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
@@ -887,7 +894,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
           sx={{ 
             fontSize: '0.75rem', 
             fontFamily: 'monospace',
-            backgroundColor: 'grey.50',
+            backgroundColor: bgColor,
             color: 'text.primary',
             padding: 1,
             borderRadius: 1,
@@ -896,19 +903,19 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
             maxHeight: 200,
             overflow: 'auto',
             border: '1px solid',
-            borderColor: 'divider',
+            borderColor: borderColor,
             '&::-webkit-scrollbar': {
               width: '8px',
             },
             '&::-webkit-scrollbar-track': {
-              backgroundColor: 'grey.200',
+              backgroundColor: scrollbarTrack,
               borderRadius: '4px',
             },
             '&::-webkit-scrollbar-thumb': {
-              backgroundColor: 'grey.400',
+              backgroundColor: scrollbarThumb,
               borderRadius: '4px',
               '&:hover': {
-                backgroundColor: 'grey.500',
+                backgroundColor: scrollbarThumbHover,
               },
             },
           }}
@@ -1225,12 +1232,12 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
           );
         }
         
-        // Show content preview for user text messages with tooltip for full content
+        // Show content preview for user text messages with tooltip for full content (blue/primary for input)
         if (info.messageType === 'user' && info.contentType === 'text' && info.textContent) {
           const content = info.textContent;
           const preview = content.length > 50 ? content.substring(0, 50) + '...' : content;
           return (
-            <TextContentTooltip content={content} title="User Message">
+            <TextContentTooltip content={content} title="User Message" variant="primary">
               <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
                 <span className="text-sm">
                   {preview}
@@ -1240,12 +1247,12 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
           );
         }
         
-        // Show content preview for assistant text messages with tooltip for full content
+        // Show content preview for assistant text messages with tooltip for full content (green/success for response)
         if (info.messageType === 'assistant' && info.contentType === 'text' && info.textContent) {
           const content = info.textContent;
           const preview = content.length > 50 ? content.substring(0, 50) + '...' : content;
           return (
-            <TextContentTooltip content={content} title="Assistant Message">
+            <TextContentTooltip content={content} title="Assistant Message" variant="success">
               <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
                 <span className="text-sm">
                   {preview}
