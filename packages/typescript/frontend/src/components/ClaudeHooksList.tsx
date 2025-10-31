@@ -42,11 +42,14 @@ import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import CheckBoxIcon from '@mui/icons-material/CheckBox';
-import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { ClaudeHookItem } from '@sigagent/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
+import { 
+  ToolInfoTooltip as BaseToolInfoTooltip,
+  PromptTooltip as BasePromptTooltip,
+  type ToolInfo,
+  type PromptInfo
+} from '@/utils/tooltip';
 
 type ClaudeHook = ClaudeHookItem;
 
@@ -503,299 +506,28 @@ const ClaudeHooksList: React.FC<{ organizationId: string }> = ({ organizationId 
     return colors[positiveHash % colors.length];
   };
 
-  // Helper function to format tool response for display
-  const formatToolResponse = (response: unknown): string => {
-    if (!response) return '';
-    
-    // If it's an array with one element of type "text"
-    if (Array.isArray(response) && response.length === 1 && response[0]?.type === 'text') {
-      const textContent = response[0].text;
-      
-      // Try to parse as JSON if it looks like stringified JSON
-      try {
-        const parsed = JSON.parse(textContent);
-        return JSON.stringify(parsed, null, 2);
-      } catch {
-        // If not valid JSON, return as-is
-        return textContent;
-      }
-    }
-    
-    // For other formats, stringify normally
-    return typeof response === 'string' ? response : JSON.stringify(response, null, 2);
-  };
-
-  // Helper function to render todo data as checkboxes
-  const renderTodoData = (data: unknown) => {
-    try {
-      let todoData;
-      
-      // Handle different data formats
-      if (typeof data === 'string') {
-        todoData = JSON.parse(data);
-      } else if (Array.isArray(data) && data.length === 1 && data[0]?.type === 'text') {
-        todoData = JSON.parse(data[0].text);
-      } else {
-        todoData = data;
-      }
-      
-      // Get the latest todos (prefer newTodos if available, otherwise use todos)
-      let todosToRender = [];
-      if (todoData && typeof todoData === 'object') {
-        if ('newTodos' in todoData && Array.isArray(todoData.newTodos)) {
-          todosToRender = todoData.newTodos;
-        } else if ('todos' in todoData && Array.isArray(todoData.todos)) {
-          todosToRender = todoData.todos;
-        }
-      }
-      
-      if (todosToRender.length > 0) {
-        return (
-          <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
-            {todosToRender.map((todo: { content: string; status: string; activeForm?: string }, index: number) => {
-              const isCompleted = todo.status === 'completed';
-              const isInProgress = todo.status === 'in_progress';
-              
-              return (
-                <Box 
-                  key={index} 
-                  sx={{ 
-                    display: 'flex', 
-                    alignItems: 'flex-start', 
-                    gap: 1, 
-                    mb: 0.5,
-                    py: 0.5
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.1, minWidth: '20px' }}>
-                    {isCompleted ? (
-                      <CheckBoxIcon sx={{ color: 'primary.main', fontSize: '1.1rem' }} />
-                    ) : isInProgress ? (
-                      <AccessTimeIcon sx={{ color: 'primary.main', fontSize: '1.1rem' }} />
-                    ) : (
-                      <CheckBoxOutlineBlankIcon sx={{ color: 'primary.main', fontSize: '1.1rem' }} />
-                    )}
-                  </Box>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        fontSize: '0.8rem',
-                        color: 'text.primary',
-                        lineHeight: 1.3
-                      }}
-                    >
-                      {todo.content}
-                    </Typography>
-                  </Box>
-                </Box>
-              );
-            })}
-          </Box>
-        );
-      }
-      
-      return null;
-    } catch {
-      return null;
-    }
-  };
-
-  // Custom Tooltip component for user prompt information
+  // Wrapper components that adapt the generic tooltips to work with hooks
   const PromptTooltip: React.FC<{ hook: ClaudeHook; children: React.ReactElement }> = ({ hook, children }) => {
     const info = getSalientInfo(hook);
     
-    if (!info.prompt || info.hookEventName !== 'UserPromptSubmit') {
+    if (info.hookEventName !== 'UserPromptSubmit') {
       return <>{children}</>;
     }
 
-    const tooltipContent = (
-      <Box sx={{ maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
-          User Prompt
-        </Typography>
-        <Box 
-          component="pre" 
-          sx={{ 
-            fontSize: '0.75rem', 
-            fontFamily: 'monospace',
-            backgroundColor: 'grey.100',
-            color: 'text.primary',
-            padding: 1,
-            borderRadius: 1,
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            maxHeight: 200,
-            overflow: 'auto'
-          }}
-        >
-          {info.prompt}
-        </Box>
-      </Box>
-    );
-
-    return (
-      <Tooltip 
-        title={tooltipContent}
-        placement="right"
-        arrow
-        componentsProps={{
-          tooltip: {
-            sx: {
-              maxWidth: 400,
-              backgroundColor: 'grey.200',
-              border: '2px solid',
-              borderColor: 'grey.400',
-              boxShadow: 8
-            }
-          }
-        }}
-      >
-        {children}
-      </Tooltip>
-    );
+    const promptInfo: PromptInfo = { prompt: info.prompt };
+    return <BasePromptTooltip info={promptInfo}>{children}</BasePromptTooltip>;
   };
 
-  // Custom Tooltip component for tool information
   const ToolInfoTooltip: React.FC<{ hook: ClaudeHook; children: React.ReactElement }> = ({ hook, children }) => {
     const info = getSalientInfo(hook);
-    const hasToolData = info.toolInput || info.toolResponse;
     
-    if (!hasToolData) {
-      return <Tooltip title={info.toolName}>{children}</Tooltip>;
-    }
-
-    const tooltipContent = (
-      <Box sx={{ maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
-          {info.toolName}
-        </Typography>
-        
-        {info.toolInput && !renderTodoData(info.toolResponse) && (
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-              Input:
-            </Typography>
-            {renderTodoData(info.toolInput) ? (
-              <Box sx={{ marginTop: 0.5 }}>
-                {renderTodoData(info.toolInput)}
-              </Box>
-            ) : (
-              <Box 
-                component="pre" 
-                sx={{ 
-                  fontSize: '0.75rem', 
-                  fontFamily: 'monospace',
-                  backgroundColor: 'grey.200',
-                  color: 'text.primary',
-                  padding: 1,
-                  borderRadius: 1,
-                  marginTop: 0.5,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  maxHeight: 120,
-                  overflow: 'auto',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderLeft: '3px solid',
-                  borderLeftColor: 'primary.main',
-                  '&::-webkit-scrollbar': {
-                    width: '8px',
-                  },
-                  '&::-webkit-scrollbar-track': {
-                    backgroundColor: 'grey.200',
-                    borderRadius: '4px',
-                  },
-                  '&::-webkit-scrollbar-thumb': {
-                    backgroundColor: 'grey.400',
-                    borderRadius: '4px',
-                    '&:hover': {
-                      backgroundColor: 'grey.500',
-                    },
-                  },
-                }}
-              >
-                {typeof info.toolInput === 'string' 
-                  ? info.toolInput 
-                  : JSON.stringify(info.toolInput, null, 2)
-                }
-              </Box>
-            )}
-          </Box>
-        )}
-        
-        {info.toolResponse && (
-          <Box>
-            <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-              Response:
-            </Typography>
-            {renderTodoData(info.toolResponse) ? (
-              <Box sx={{ marginTop: 0.5 }}>
-                {renderTodoData(info.toolResponse)}
-              </Box>
-            ) : (
-              <Box 
-                component="pre" 
-                sx={{ 
-                  fontSize: '0.75rem', 
-                  fontFamily: 'monospace',
-                  backgroundColor: 'grey.200',
-                  color: 'text.primary',
-                  padding: 1,
-                  borderRadius: 1,
-                  marginTop: 0.5,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  maxHeight: 120,
-                  overflow: 'auto',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderLeft: '3px solid',
-                  borderLeftColor: 'success.main',
-                  '&::-webkit-scrollbar': {
-                    width: '8px',
-                  },
-                  '&::-webkit-scrollbar-track': {
-                    backgroundColor: 'grey.200',
-                    borderRadius: '4px',
-                  },
-                  '&::-webkit-scrollbar-thumb': {
-                    backgroundColor: 'grey.400',
-                    borderRadius: '4px',
-                    '&:hover': {
-                      backgroundColor: 'grey.500',
-                    },
-                  },
-                }}
-              >
-                {formatToolResponse(info.toolResponse)}
-              </Box>
-            )}
-          </Box>
-        )}
-      </Box>
-    );
-
-    return (
-      <Tooltip 
-        title={tooltipContent}
-        placement="right"
-        arrow
-        componentsProps={{
-          tooltip: {
-            sx: {
-              maxWidth: 400,
-              backgroundColor: 'grey.200',
-              border: '2px solid',
-              borderColor: 'grey.400',
-              boxShadow: 8
-            }
-          }
-        }}
-      >
-        {children}
-      </Tooltip>
-    );
+    const toolInfo: ToolInfo = {
+      toolName: info.toolName,
+      toolInput: info.toolInput,
+      toolResponse: info.toolResponse
+    };
+    
+    return <BaseToolInfoTooltip info={toolInfo}>{children}</BaseToolInfoTooltip>;
   };
 
   // Helper function to get icon for event type with color coding
