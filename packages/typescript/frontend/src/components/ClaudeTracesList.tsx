@@ -614,7 +614,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
       }
       
       return {
-        sessionId: transcriptRecord.sessionId || '-',
+        sessionId: transcriptRecord.sessionId || trace.hook_data?.session_id || '-',
         messageType: messageType,
         role: role,
         contentType: contentType,
