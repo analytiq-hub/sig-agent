@@ -135,38 +135,36 @@ async def claude_log_handler(
         # Fallback to current time
         upload_timestamp = datetime.now(UTC)
     
-    # Process transcript records and save them without duplication
+    # Process transcript records using backward-then-forward deduplication strategy
     saved_count = 0
-    for transcript_record in log_request.transcript_records:
-        logger.info(f"Processing transcript record: {transcript_record}")
+    records = log_request.transcript_records
 
-        # Extract session_id for deduplication
-        session_id = transcript_record.get('sessionId')  # Note: field is 'sessionId', not 'session_id'
-        if not session_id:
-            logger.warning("Transcript record missing sessionId, skipping")
+    # Find the last index that already exists (searching backwards)
+    last_existing_index = -1
+    for idx in range(len(records) - 1, -1, -1):
+        record = records[idx]
+        uuid_value = record.get('uuid')
+        if not uuid_value:
             continue
-        
-        # Check if this transcript record already exists for this session
-        existing_record = await db.claude_logs.find_one({
+        existing = await db.claude_logs.find_one({
             "organization_id": organization_id,
-            "transcript_record.sessionId": session_id,
-            "transcript_record.uuid": transcript_record.get('uuid'),
-            "transcript_record.timestamp": transcript_record.get('timestamp')
+            "transcript_record.uuid": uuid_value
         })
-        
-        if existing_record:
-            logger.info(f"Transcript record already exists for session {session_id} with uuid {transcript_record.get('uuid')}, skipping")
-            continue
-        
-        # Create log entry for this transcript record
+        if existing:
+            last_existing_index = idx
+            break
+
+    # Insert forward all records after last_existing_index
+    for idx in range(last_existing_index + 1, len(records)):
+        transcript_record = records[idx]
+
         log_metadata = {
             "organization_id": organization_id,
             "hook_data": log_request.hook_data,
             "transcript_record": transcript_record,
             "upload_timestamp": upload_timestamp,
         }
-        
-        # Save to claude_logs collection
+
         await db.claude_logs.insert_one(log_metadata)
         saved_count += 1
     

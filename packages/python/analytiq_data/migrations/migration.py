@@ -1942,6 +1942,35 @@ class RenameClaudeLogsToClaudeHooks(Migration):
             logger.error(f"Collection rename migration revert failed: {e}")
             return False
 
+# Add this new migration class before the MIGRATIONS list
+class AddClaudeLogsUuidIndex(Migration):
+    def __init__(self):
+        super().__init__(description="Add compound index on claude_logs: organization_id + transcript_record.uuid")
+
+    async def up(self, db) -> bool:
+        """Create compound index to optimize dedupe and listing queries."""
+        try:
+            await db.claude_logs.create_index([
+                ("organization_id", 1),
+                ("transcript_record.uuid", 1)
+            ], name="org_uuid_compound")
+            logger.info("Created index org_uuid_compound on claude_logs (organization_id, transcript_record.uuid)")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to create index on claude_logs: {e}")
+            return False
+
+    async def down(self, db) -> bool:
+        """Drop the compound index if it exists."""
+        try:
+            # Try by explicit name first
+            await db.claude_logs.drop_index("org_uuid_compound")
+            logger.info("Dropped index org_uuid_compound on claude_logs")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to drop index org_uuid_compound on claude_logs: {e}")
+            return False
+
 # List of all migrations in order
 MIGRATIONS = [
     OcrKeyMigration(),
@@ -1969,6 +1998,7 @@ MIGRATIONS = [
     UpgradeTokens(),
     AddAccessTokenUniquenessIndex(),
     RenameClaudeLogsToClaudeHooks(),
+    AddClaudeLogsUuidIndex(),
     # Add more migrations here
 ]
 
