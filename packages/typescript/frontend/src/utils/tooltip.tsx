@@ -341,3 +341,49 @@ export const PromptTooltip: React.FC<{
   );
 };
 
+// Custom Tooltip component for summary messages
+export interface SummaryInfo {
+  summary: string;
+}
+
+export const SummaryTooltip: React.FC<{ 
+  info: SummaryInfo;
+  children: React.ReactElement;
+}> = ({ info, children }) => {
+  if (!info.summary) {
+    return <>{children}</>;
+  }
+
+  const tooltipContent = (
+    <Box sx={{ maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+        Summary
+      </Typography>
+      <Box 
+        component="pre" 
+        sx={{ 
+          ...codeBlockStyles,
+          maxHeight: 200,
+        }}
+      >
+        {info.summary}
+      </Box>
+    </Box>
+  );
+
+  return (
+    <Tooltip 
+      title={tooltipContent}
+      placement="right"
+      arrow
+      componentsProps={{
+        tooltip: {
+          sx: tooltipContainerStyles
+        }
+      }}
+    >
+      {children}
+    </Tooltip>
+  );
+};
+

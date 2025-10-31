@@ -47,6 +47,7 @@ import {
   ToolInfoTooltip as BaseToolInfoTooltip,
   PromptTooltip as BasePromptTooltip,
   TextContentTooltip,
+  SummaryTooltip,
   type ToolInfo,
   type PromptInfo
 } from '@/utils/tooltip';
@@ -954,16 +955,18 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
           );
         }
         
-        // Show summary info
+        // Show summary info with tooltip
         if (info.messageType === 'summary') {
           const summary = params.row.transcript_record?.summary || '';
           const preview = summary.length > 50 ? summary.substring(0, 50) + '...' : summary;
           return (
-            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
-              <span className="text-sm">
-                {preview}
-              </span>
-            </Box>
+            <SummaryTooltip info={{ summary }}>
+              <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+                <span className="text-sm">
+                  {preview}
+                </span>
+              </Box>
+            </SummaryTooltip>
           );
         }
         
