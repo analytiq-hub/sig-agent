@@ -7,9 +7,9 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 // Shared tooltip container styles
 export const tooltipContainerStyles = {
   maxWidth: 400,
-  backgroundColor: 'grey.100',
+  backgroundColor: 'grey.200',
   border: '2px solid',
-  borderColor: 'grey.400',
+  borderColor: 'grey.500',
   boxShadow: 8
 };
 
