@@ -602,7 +602,18 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
       // Determine message type and role
       const messageType = transcriptRecord.type || 'unknown';
       const role = message?.role || 'unknown';
-      const contentType = (message?.content?.[0] as { type?: string })?.type || 'unknown';
+      let contentType = (message?.content?.[0] as { type?: string })?.type || 'unknown';
+      let textContent: string | null = null;
+      if (typeof message?.content === 'string') {
+        contentType = 'text';
+        textContent = message.content;
+      } else if (Array.isArray(message?.content) && message.content.length > 0) {
+        const firstContent = message.content[0] as { type?: string; text?: string };
+        if (firstContent.type === 'text' && firstContent.text) {
+          contentType = 'text';
+          textContent = firstContent.text;
+        }
+      }
       
       // Extract tool information from content
       let toolName = '-';
@@ -630,7 +641,8 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
         userId: transcriptRecord.userType || '-',
         model: message?.model || '-',
         toolResponse: toolResponse,
-        prompt: null, // Not available in this structure
+        prompt: role === 'user' && textContent ? textContent : null,
+        textContent: textContent,
         usage: message?.usage || null,
         messageId: message?.id || '-',
         requestId: transcriptRecord.requestId || '-',
@@ -837,6 +849,71 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
           }}
         >
           {info.prompt}
+        </Box>
+      </Box>
+    );
+
+    return (
+      <Tooltip 
+        title={tooltipContent}
+        placement="right"
+        arrow
+        componentsProps={{
+          tooltip: {
+            sx: {
+              maxWidth: 400,
+              backgroundColor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              boxShadow: 3
+            }
+          }
+        }}
+      >
+        {children}
+      </Tooltip>
+    );
+  };
+
+  // Custom Tooltip component for text message content
+  const TextContentTooltip: React.FC<{ content: string; title: string; children: React.ReactElement }> = ({ content, title, children }) => {
+    const tooltipContent = (
+      <Box sx={{ maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+          {title}
+        </Typography>
+        <Box 
+          component="pre" 
+          sx={{ 
+            fontSize: '0.75rem', 
+            fontFamily: 'monospace',
+            backgroundColor: 'grey.50',
+            color: 'text.primary',
+            padding: 1,
+            borderRadius: 1,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            maxHeight: 200,
+            overflow: 'auto',
+            border: '1px solid',
+            borderColor: 'divider',
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: 'grey.200',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: 'grey.400',
+              borderRadius: '4px',
+              '&:hover': {
+                backgroundColor: 'grey.500',
+              },
+            },
+          }}
+        >
+          {content}
         </Box>
       </Box>
     );
@@ -1148,28 +1225,33 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
           );
         }
         
-        // Show content preview for other message types
-        if (info.messageType === 'user' && info.contentType === 'text') {
-          const content = params.row.transcript_record?.message?.content?.[0]?.text || '';
+        // Show content preview for user text messages with tooltip for full content
+        if (info.messageType === 'user' && info.contentType === 'text' && info.textContent) {
+          const content = info.textContent;
           const preview = content.length > 50 ? content.substring(0, 50) + '...' : content;
           return (
-            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
-              <span className="text-sm">
-                {preview}
-              </span>
-            </Box>
+            <TextContentTooltip content={content} title="User Message">
+              <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+                <span className="text-sm">
+                  {preview}
+                </span>
+              </Box>
+            </TextContentTooltip>
           );
         }
         
-        if (info.messageType === 'assistant' && info.contentType === 'text') {
-          const content = params.row.transcript_record?.message?.content?.[0]?.text || '';
+        // Show content preview for assistant text messages with tooltip for full content
+        if (info.messageType === 'assistant' && info.contentType === 'text' && info.textContent) {
+          const content = info.textContent;
           const preview = content.length > 50 ? content.substring(0, 50) + '...' : content;
           return (
-            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
-              <span className="text-sm">
-                {preview}
-              </span>
-            </Box>
+            <TextContentTooltip content={content} title="Assistant Message">
+              <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+                <span className="text-sm">
+                  {preview}
+                </span>
+              </Box>
+            </TextContentTooltip>
           );
         }
         
