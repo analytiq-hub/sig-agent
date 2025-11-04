@@ -28,8 +28,8 @@ const SubscriptionPurchase: React.FC<SubscriptionPurchaseProps> = ({
   const [creditConfig, setCreditConfig] = useState<CreditConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
-  const [purchaseAmount, setPurchaseAmount] = useState<number>(500);
-  const [adminAmount, setAdminAmount] = useState<number>(100);
+  const [purchaseAmount, setPurchaseAmount] = useState<number>(5000);
+  const [adminAmount, setAdminAmount] = useState<number>(1000);
   const [purchaseLoading, setPurchaseLoading] = useState(false);
   const [adminLoading, setAdminLoading] = useState(false);
 
