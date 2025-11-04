@@ -459,7 +459,7 @@ def format_price_per_spu(price: float) -> str:
     rounded_price = round(price, 3)
     
     # Check if the third decimal place is significant
-    if rounded_price * 1000 == int(rounded_price * 1000):
+    if rounded_price * 100 == int(rounded_price * 100):
         # No significant third decimal, use 2 decimal places
         return f"{rounded_price:.2f}"
     else:
