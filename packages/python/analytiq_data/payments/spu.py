@@ -39,7 +39,9 @@ async def record_spu_usage(org_id: str, spus: int,
                           actual_cost: float = None) -> bool:
     """Record SPU usage with LLM metrics"""
 
-    logger.info(f"Recording {spus} spu usage for org_id: {org_id}, provider: {llm_provider}, model: {llm_model}")
+    # Apply 10x multiplier for LLM usage
+    if llm_provider is not None or llm_model is not None:
+        spus = spus * 10
 
     # If a hook is set, use it to record payment usage
     if record_payment_usage:
