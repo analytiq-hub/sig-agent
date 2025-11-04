@@ -215,7 +215,7 @@ CREDIT_CONFIG = {
     "max_spu_purchase": 0,
     "min_cost": 0.0,
     "max_cost": 0.0,
-    "granted_credits": 100 # Number of credits granted to each user
+    "granted_credits": 1000 # Number of credits granted to each user
 }
 
 # SPU limits per tier - populated from Stripe metadata at startup
