@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 import analytiq_data as ad
 from app.auth import get_org_user
 from app.models import User
+from app.routes.payments import SPUCreditException
 
 logger = logging.getLogger(__name__)
 
@@ -171,6 +172,18 @@ async def upload_telemetry_traces(
                 detail=f"Invalid tag IDs: {list(invalid_tags)}"
             )
 
+    # Check SPU limits before saving (1 SPU per trace)
+    traces_to_save = len(traces_upload.traces)
+    if traces_to_save > 0:
+        try:
+            await ad.payments.check_spu_limits(organization_id, traces_to_save)
+        except SPUCreditException as e:
+            logger.warning(f"Insufficient SPU credits for telemetry traces: {str(e)}")
+            raise HTTPException(
+                status_code=402,
+                detail=f"Insufficient SPU credits: {str(e)}"
+            )
+
     uploaded_traces = []
 
     for trace in traces_upload.traces:
@@ -203,6 +216,18 @@ async def upload_telemetry_traces(
             "tag_ids": trace.tag_ids,
             "metadata": trace.metadata
         })
+
+    # Record SPU usage for monitoring (1 SPU per trace)
+    if len(uploaded_traces) > 0:
+        try:
+            await ad.payments.record_spu_usage_mon(
+                org_id=organization_id,
+                spus=len(uploaded_traces),
+                operation="telemetry_trace",
+                source="telemetry"
+            )
+        except Exception as e:
+            logger.error(f"Error recording SPU usage for telemetry traces: {e}")
 
     return {"traces": uploaded_traces}
 
@@ -285,6 +310,18 @@ async def upload_telemetry_metrics(
                 detail=f"Invalid tag IDs: {list(invalid_tags)}"
             )
 
+    # Check SPU limits before saving (1 SPU per metric)
+    metrics_to_save = len(metrics_upload.metrics)
+    if metrics_to_save > 0:
+        try:
+            await ad.payments.check_spu_limits(organization_id, metrics_to_save)
+        except SPUCreditException as e:
+            logger.warning(f"Insufficient SPU credits for telemetry metrics: {str(e)}")
+            raise HTTPException(
+                status_code=402,
+                detail=f"Insufficient SPU credits: {str(e)}"
+            )
+
     uploaded_metrics = []
 
     for metric in metrics_upload.metrics:
@@ -322,6 +359,18 @@ async def upload_telemetry_metrics(
             tag_ids=metric.tag_ids,
             metadata=metric.metadata
         ))
+
+    # Record SPU usage for monitoring (1 SPU per metric)
+    if len(uploaded_metrics) > 0:
+        try:
+            await ad.payments.record_spu_usage_mon(
+                org_id=organization_id,
+                spus=len(uploaded_metrics),
+                operation="telemetry_metric",
+                source="telemetry"
+            )
+        except Exception as e:
+            logger.error(f"Error recording SPU usage for telemetry metrics: {e}")
 
     return {"metrics": uploaded_metrics}
 
@@ -444,6 +493,18 @@ async def upload_telemetry_logs(
                 detail=f"Invalid tag IDs: {list(invalid_tags)}"
             )
 
+    # Check SPU limits before saving (1 SPU per log)
+    logs_to_save = len(logs_upload.logs)
+    if logs_to_save > 0:
+        try:
+            await ad.payments.check_spu_limits(organization_id, logs_to_save)
+        except SPUCreditException as e:
+            logger.warning(f"Insufficient SPU credits for telemetry logs: {str(e)}")
+            raise HTTPException(
+                status_code=402,
+                detail=f"Insufficient SPU credits: {str(e)}"
+            )
+
     uploaded_logs = []
 
     for log in logs_upload.logs:
@@ -481,6 +542,18 @@ async def upload_telemetry_logs(
             tag_ids=log.tag_ids,
             metadata=log.metadata
         ))
+
+    # Record SPU usage for monitoring (1 SPU per log)
+    if len(uploaded_logs) > 0:
+        try:
+            await ad.payments.record_spu_usage_mon(
+                org_id=organization_id,
+                spus=len(uploaded_logs),
+                operation="telemetry_log",
+                source="telemetry"
+            )
+        except Exception as e:
+            logger.error(f"Error recording SPU usage for telemetry logs: {e}")
 
     return {"logs": uploaded_logs}
 

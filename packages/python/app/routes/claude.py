@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 import analytiq_data as ad
 from app.auth import get_current_user, get_org_id_from_token, get_org_user
 from app.models import User
+from app.routes.payments import SPUCreditException
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +137,6 @@ async def claude_log_handler(
         upload_timestamp = datetime.now(UTC)
     
     # Process transcript records using backward-then-forward deduplication strategy
-    saved_count = 0
     records = log_request.transcript_records
 
     # Find the last index that already exists (searching backwards)
@@ -154,7 +154,22 @@ async def claude_log_handler(
             last_existing_index = idx
             break
 
+    # Calculate how many records will be saved (1 SPU per record)
+    records_to_save = len(records) - (last_existing_index + 1)
+    
+    # Check SPU limits before saving
+    if records_to_save > 0:
+        try:
+            await ad.payments.check_spu_limits(organization_id, records_to_save)
+        except SPUCreditException as e:
+            logger.warning(f"Insufficient SPU credits for Claude logs: {str(e)}")
+            raise HTTPException(
+                status_code=402,
+                detail=f"Insufficient SPU credits: {str(e)}"
+            )
+
     # Insert forward all records after last_existing_index
+    saved_count = 0
     for idx in range(last_existing_index + 1, len(records)):
         transcript_record = records[idx]
 
@@ -169,6 +184,18 @@ async def claude_log_handler(
         saved_count += 1
     
     logger.info(f"Claude logs saved: {saved_count} transcript records for org: {organization_id}")
+    
+    # Record SPU usage for monitoring (1 SPU per log record)
+    if saved_count > 0:
+        try:
+            await ad.payments.record_spu_usage_mon(
+                org_id=organization_id,
+                spus=saved_count,
+                operation="claude_log",
+                source="claude"
+            )
+        except Exception as e:
+            logger.error(f"Error recording SPU usage for Claude logs: {e}")
     
     return ClaudeLogResponse(
         log_id=f"batch_{saved_count}_records"
@@ -253,11 +280,32 @@ async def claude_hook_handler(
         "upload_timestamp": datetime.now(UTC),
     }
     
+    # Check SPU limits before saving (1 SPU per hook)
+    try:
+        await ad.payments.check_spu_limits(organization_id, 1)
+    except SPUCreditException as e:
+        logger.warning(f"Insufficient SPU credits for Claude hook: {str(e)}")
+        raise HTTPException(
+            status_code=402,
+            detail=f"Insufficient SPU credits: {str(e)}"
+        )
+    
     # Save to claude_hooks collection and get the generated _id
     result = await db.claude_hooks.insert_one(hook_metadata)
     hook_id = str(result.inserted_id)
     
     logger.info(f"Claude hook saved: {hook_id} for org: {organization_id}")
+    
+    # Record SPU usage for monitoring (1 SPU per hook)
+    try:
+        await ad.payments.record_spu_usage_mon(
+            org_id=organization_id,
+            spus=1,
+            operation="claude_hook",
+            source="claude"
+        )
+    except Exception as e:
+        logger.error(f"Error recording SPU usage for Claude hook: {e}")
     
     return ClaudeHookResponse(
         hook_id=hook_id

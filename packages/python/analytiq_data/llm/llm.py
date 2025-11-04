@@ -428,7 +428,7 @@ async def run_llm(analytiq_client,
     actual_cost = litellm.completion_cost(completion_response=response)
 
     # 8. Deduct credits with actual metrics
-    await ad.payments.record_spu_usage(
+    await ad.payments.record_spu_usage_llm(
         org_id, 
         total_spu_needed,
         llm_provider=llm_provider,

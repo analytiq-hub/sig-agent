@@ -30,22 +30,37 @@ async def check_spu_limits(org_id: str, spus: int) -> bool:
     # Otherwise, payments are not enabled
     return True
 
-async def record_spu_usage(org_id: str, spus: int, 
-                          llm_provider: str = None,
-                          llm_model: str = None,
-                          prompt_tokens: int = None, 
-                          completion_tokens: int = None, 
-                          total_tokens: int = None, 
-                          actual_cost: float = None) -> bool:
-    """Record SPU usage with LLM metrics"""
+async def record_spu_usage_llm(org_id: str, spus: int, 
+                              llm_provider: str = None,
+                              llm_model: str = None,
+                              prompt_tokens: int = None, 
+                              completion_tokens: int = None, 
+                              total_tokens: int = None, 
+                              actual_cost: float = None) -> bool:
+    """Record SPU usage for LLM operations with 10x multiplier"""
 
     # Apply 10x multiplier for LLM usage
-    if llm_provider is not None or llm_model is not None:
-        spus = spus * 10
+    spus = spus * 10
+
+    logger.info(f"Recording {spus} spu usage (10x multiplier applied) for LLM, org_id: {org_id}, provider: {llm_provider}, model: {llm_model}")
 
     # If a hook is set, use it to record payment usage
     if record_payment_usage:
-        await record_payment_usage(org_id, spus, llm_provider, llm_model, prompt_tokens, completion_tokens, total_tokens, actual_cost)
+        await record_payment_usage(org_id, spus, llm_provider, llm_model, prompt_tokens, completion_tokens, total_tokens, actual_cost, operation="document_processing", source="backend")
+
+    # Otherwise, payments are not enabled
+    return True
+
+async def record_spu_usage_mon(org_id: str, spus: int = 1, 
+                              operation: str = "monitoring",
+                              source: str = "monitoring") -> bool:
+    """Record SPU usage for monitoring/logging operations"""
+    
+    logger.info(f"Recording {spus} spu usage for monitoring, org_id: {org_id}, operation: {operation}, source: {source}")
+
+    # If a hook is set, use it to record payment usage
+    if record_payment_usage:
+        await record_payment_usage(org_id, spus, llm_provider=None, llm_model=None, operation=operation, source=source)
 
     # Otherwise, payments are not enabled
     return True
