@@ -2045,14 +2045,14 @@ async def get_subscription_info(
             f"${format_price_per_spu(individual_price_per_spu)} per SPU",
             f"{individual_included_spus:,} SPUs per month",
             "Basic agent monitoring",
-            f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
+            f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.3f} each"
         ]
         team_features = [
             f"${format_price_per_spu(team_price_per_spu)} per SPU",
             f"{team_included_spus:,} SPUs per month",
             "Advanced agent monitoring",
             "Team collaboration features",
-            f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.2f} each"
+            f"Additional SPUs at ${CREDIT_CONFIG['price_per_credit']:.3f} each"
         ]
     else:
         individual_features = [
