@@ -60,9 +60,21 @@ export class TestFixtures {
     });
 
     await testDb.collection('payments_customers').insertOne({
-      organization_id: orgId,
-      stripe_customer_id: `cus_test_${uniqueSuffix}`,
-      created_at: new Date()
+      _id: new ObjectId(),
+      org_id: orgId,
+      user_id: memberId,
+      stripe_customer_id: null,
+      user_name: 'Org Member',
+      user_email: `member-${uniqueSuffix}@example.com`,
+      created_at: new Date(),
+      updated_at: new Date(),
+      purchased_credits: 0,
+      purchased_credits_used: 0,
+      granted_credits: 100000,
+      granted_credits_used: 0,
+      subscription_spus_used: 0,
+      stripe_current_billing_period_start: null,
+      stripe_current_billing_period_end: null
     });
 
     const adminToken = await this.createJWTTokenFromAPI(adminId, 'System Administrator', adminEmail, baseURL);
