@@ -39,6 +39,16 @@ MONGO_URI = None
 ENV = None
 STRIPE_PRODUCT_TAG = None
 
+# Global list of available SPU usage operation names
+SPU_USAGE_OPERATIONS = [
+    "llm",              # LLM calls and document processing
+    "claude_log",       # Claude API logging
+    "claude_hook",      # Claude webhook handling
+    "telemetry_trace",  # Telemetry traces
+    "telemetry_metric", # Telemetry metrics
+    "telemetry_log"     # Telemetry logs
+]
+
 # Global db variable removed - use dependency injection instead
 
 class SPUCreditException(Exception):
@@ -2450,35 +2460,6 @@ async def get_usage_range(
     except Exception as e:
         logger.error(f"Error getting usage range: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-class OperationsResponse(BaseModel):
-    operations: List[str]  # List of available operation names
-
-@payments_router.get("/v0/orgs/{organization_id}/payments/usage/operations")
-async def get_usage_operations(
-    organization_id: str,
-    current_user: User = Depends(get_current_user)
-) -> OperationsResponse:
-    """Get list of all available SPU usage operation names"""
-    
-    # Check if user has access to this organization
-    if not await is_organization_admin(org_id=organization_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Org admin access required for org_id: {organization_id}"
-        )
-
-    # Return static list of known operations
-    operations = [
-        "llm", # LLM calls and document processing
-        "claude_log",          # Claude API logging
-        "claude_hook",         # Claude webhook handling
-        "telemetry_trace",     # Telemetry traces
-        "telemetry_metric",    # Telemetry metrics
-        "telemetry_log"        # Telemetry logs
-    ]
-    
-    return OperationsResponse(operations=operations)
 
 @payments_router.get("/v0/orgs/{organization_id}/payments/usage")
 async def get_current_usage(

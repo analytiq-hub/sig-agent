@@ -18,8 +18,6 @@ interface ProcessedDataPoint {
   date: string;
   spus: number;
   cumulative_spus: number;
-  operation: string;
-  source: string;
 }
 
 const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ organizationId, refreshKey, defaultBillingPeriod }) => {
@@ -136,8 +134,6 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
               date: `${monthKey}-01`, // Use first day of month for display
               spus: data.spus,
               cumulative_spus: cumulative,
-              operation: data.operations[0] || 'unknown',
-              source: data.sources[0] || 'unknown'
             };
           });
         }
@@ -455,7 +451,6 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
                       <div className="font-medium">{formatDate(point.date)}</div>
                       <div>SPUs: {value.toLocaleString()}</div>
-                      <div>Operation: {point.operation}</div>
                     </div>
                   </div>
                   
