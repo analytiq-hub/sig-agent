@@ -18,6 +18,7 @@ sys.path.append(f"{cwd}/..")
 
 # Third-party imports
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -149,6 +150,12 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Content-Disposition"] # Needed to expose the Content-Disposition header to the frontend
 )
+
+@app.get("/")
+async def root():
+    """Redirect root URL to frontend"""
+    frontend_url = NEXTAUTH_URL or "http://localhost:3000"
+    return RedirectResponse(url=frontend_url)
 
 app.include_router(payments_router)
 app.include_router(documents_router)
