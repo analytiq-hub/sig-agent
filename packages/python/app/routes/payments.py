@@ -163,7 +163,6 @@ class UsageData(BaseModel):
     subscription_type: Optional[str]
     usage_unit: str
     period_metered_usage: int
-    total_metered_usage: int
     remaining_included: int
     purchased_credits: int
     purchased_credits_used: int
@@ -2452,6 +2451,35 @@ async def get_usage_range(
         logger.error(f"Error getting usage range: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+class OperationsResponse(BaseModel):
+    operations: List[str]  # List of available operation names
+
+@payments_router.get("/v0/orgs/{organization_id}/payments/usage/operations")
+async def get_usage_operations(
+    organization_id: str,
+    current_user: User = Depends(get_current_user)
+) -> OperationsResponse:
+    """Get list of all available SPU usage operation names"""
+    
+    # Check if user has access to this organization
+    if not await is_organization_admin(org_id=organization_id, user_id=current_user.user_id) and not await is_system_admin(user_id=current_user.user_id):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Org admin access required for org_id: {organization_id}"
+        )
+
+    # Return static list of known operations
+    operations = [
+        "llm", # LLM calls and document processing
+        "claude_log",          # Claude API logging
+        "claude_hook",         # Claude webhook handling
+        "telemetry_trace",     # Telemetry traces
+        "telemetry_metric",    # Telemetry metrics
+        "telemetry_log"        # Telemetry logs
+    ]
+    
+    return OperationsResponse(operations=operations)
+
 @payments_router.get("/v0/orgs/{organization_id}/payments/usage")
 async def get_current_usage(
     organization_id: str,
@@ -2514,17 +2542,17 @@ async def get_current_usage(
         granted_used = customer.get("granted_credits_used", 0)
         granted_remaining = max(granted_credits - granted_used, 0)
 
-        # --- Calculate both period and total metered usage ---
+        # --- Calculate period metered usage ---
+        # Metered usage is all usage tracked (not just overage)
+        # Only calculate for current billing period (always use time range to avoid long queries)
         period_metered_usage = 0
-        total_metered_usage = 0
         
-        # Period metered usage (paid usage for current billing period)
+        # Period metered usage (all usage for current billing period)
         if period_start and period_end:
             period_agg = await db.payments_usage_records.aggregate([
                 {
                     "$match": {
                         "org_id": organization_id,
-                        "operation": "paid_usage",
                         "timestamp": {
                             "$gte": datetime.fromtimestamp(period_start),
                             "$lte": datetime.fromtimestamp(period_end)
@@ -2535,20 +2563,11 @@ async def get_current_usage(
             ]).to_list(1)
             if period_agg and period_agg[0].get("total"):
                 period_metered_usage = period_agg[0]["total"]
-        
-        # Total metered usage (all paid usage ever)
-        total_agg = await db.payments_usage_records.aggregate([
-            {"$match": {"org_id": organization_id, "operation": "paid_usage"}},
-            {"$group": {"_id": None, "total": {"$sum": "$spus"}}}
-        ]).to_list(1)
-        if total_agg and total_agg[0].get("total"):
-            total_metered_usage = total_agg[0]["total"]
 
         return UsageResponse(
             usage_source="stripe",
             data=UsageData(
                 period_metered_usage=period_metered_usage,
-                total_metered_usage=total_metered_usage,
                 remaining_included=subscription_spus_remaining,  # Now shows subscription SPU remaining
                 subscription_type=subscription_type,
                 usage_unit=usage_unit,
@@ -2762,7 +2781,7 @@ async def update_customer_balances(db, customer_id: str, consumption: Dict[str, 
         )
 
 async def save_complete_usage_record(db, org_id: str, spus: int, consumption: Dict[str, int], 
-                                   operation: str = "document_processing", source: str = "backend",
+                                   operation: str = "llm", source: str = "backend",
                                    llm_provider: str = None,
                                    llm_model: str = None,
                                    prompt_tokens: int = None,
@@ -2793,10 +2812,6 @@ async def save_complete_usage_record(db, org_id: str, spus: int, consumption: Di
         usage_record["actual_cost"] = actual_cost
     
     await db.payments_usage_records.insert_one(usage_record)
-    
-    # Also save paid usage record if there's overage (for compatibility with existing queries)
-    if consumption["from_paid"] > 0:
-        await save_usage_record(db, org_id, consumption["from_paid"], operation="paid_usage", source=source)
     
     return usage_record
 
@@ -2836,7 +2851,7 @@ async def record_payment_usage(org_id: str, spus: int,
                               completion_tokens: int = None, 
                               total_tokens: int = None, 
                               actual_cost: float = None,
-                              operation: str = "document_processing",
+                              operation: str = "llm",
                               source: str = "backend") -> Dict[str, int]:
     """Record payment usage with proper SPU consumption order and atomic updates"""
     if spus <= 0:
