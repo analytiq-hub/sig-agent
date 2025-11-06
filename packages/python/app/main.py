@@ -151,11 +151,17 @@ app.add_middleware(
     expose_headers=["Content-Disposition"] # Needed to expose the Content-Disposition header to the frontend
 )
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 async def root():
     """Redirect root URL to frontend"""
     frontend_url = NEXTAUTH_URL or "http://localhost:3000"
     return RedirectResponse(url=frontend_url)
+
+@app.get("/settings/user/developer/organization-access-tokens", include_in_schema=False)
+async def redirect_organization_access_tokens():
+    """Redirect organization access tokens URL to frontend"""
+    frontend_url = NEXTAUTH_URL or "http://localhost:3000"
+    return RedirectResponse(url=f"{frontend_url}/settings/user/developer/organization-access-tokens")
 
 app.include_router(payments_router)
 app.include_router(documents_router)
