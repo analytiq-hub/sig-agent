@@ -4,15 +4,17 @@ import { signOut } from "next-auth/react";
 import { useAppSession } from '@/contexts/AppSessionContext';
 import { Typography, Button, Box } from '@mui/material';
 import { ExitToApp as LogoutIcon } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 function AuthButton() {
   const { session } = useAppSession();
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleLogin = () => {
-    // Directly navigate to our custom signin page instead of using signIn()
-    router.push('/auth/signin');
+    // Preserve the current URL as callbackUrl so user returns here after login
+    const callbackUrl = encodeURIComponent(pathname);
+    router.push(`/auth/signin?callbackUrl=${callbackUrl}`);
   };
 
   const handleLogout = () => {

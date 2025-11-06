@@ -208,7 +208,15 @@ export const authOptions: NextAuthOptions = {
             
             return appSession;
         },
-        async redirect({ baseUrl }) {
+        async redirect({ url, baseUrl }) {
+            // If a callbackUrl is provided, use it (relative URLs are resolved against baseUrl)
+            if (url.startsWith('/')) {
+                return `${baseUrl}${url}`;
+            }
+            // If it's a full URL on the same origin, use it
+            if (new URL(url).origin === baseUrl) {
+                return url;
+            }
             // Default to homepage for safety
             return baseUrl;
         },

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 
 export default function SigninPage() {
@@ -14,7 +14,15 @@ export default function SigninPage() {
     name: ''
   });
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  // Get the callback URL from query params, default to /dashboard
+  // Handle both full URLs and relative paths
+  const rawCallbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const callbackUrl = rawCallbackUrl.startsWith('http') 
+    ? new URL(rawCallbackUrl).pathname + new URL(rawCallbackUrl).search
+    : rawCallbackUrl;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -38,12 +46,14 @@ export default function SigninPage() {
         email,
         password,
         redirect: false,
+        callbackUrl: callbackUrl,
       });
 
       if (result?.error) {
         setError(result.error);
       } else {
-        router.push('/dashboard');
+        // Redirect to the original URL or default to /dashboard
+        router.push(callbackUrl);
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -75,7 +85,7 @@ export default function SigninPage() {
   };
 
   const handleSocialLogin = (provider: string) => {
-    signIn(provider, { callbackUrl: '/dashboard' });
+    signIn(provider, { callbackUrl: callbackUrl });
   };
 
   return (

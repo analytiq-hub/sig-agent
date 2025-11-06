@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAppSession } from '@/contexts/AppSessionContext';
 import { SigAgentAccountApi } from '@/utils/api';
 import { AppSession } from '@/types/AppSession';
@@ -9,6 +9,7 @@ import { toast } from 'react-toastify';
 
 export default function DashboardRedirect() {
   const router = useRouter();
+  const pathname = usePathname();
   const { session, status } = useAppSession();
   const sigAgentAccountApi = useMemo(() => new SigAgentAccountApi(), []);
 
@@ -37,12 +38,14 @@ export default function DashboardRedirect() {
           router.push('/settings/organizations');
         }
       } else if (status === 'unauthenticated') {
-        router.push('/auth/signin');
+        // Preserve the current URL as callbackUrl so user returns here after login
+        const callbackUrl = encodeURIComponent(pathname);
+        router.push(`/auth/signin?callbackUrl=${callbackUrl}`);
       }
     };
 
     redirectToDashboard();
-  }, [router, status, session, sigAgentAccountApi]);
+  }, [router, status, session, sigAgentAccountApi, pathname]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">
