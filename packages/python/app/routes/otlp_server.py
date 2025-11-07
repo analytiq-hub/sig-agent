@@ -173,7 +173,7 @@ async def export_metrics(request: ExportMetricsServiceRequest, context, organiza
         metrics_to_save = len(metrics)
         if metrics_to_save > 0:
             try:
-                await ad.payments.check_spu_limits(organization_id, metrics_to_save)
+                await ad.payments.check_spu_limits(organization_id, 1)
             except SPUCreditException as e:
                 logger.warning(f"Insufficient SPU credits for OTLP metrics: {str(e)}")
                 context.set_code(grpc.StatusCode.RESOURCE_EXHAUSTED)
@@ -220,7 +220,7 @@ async def export_metrics(request: ExportMetricsServiceRequest, context, organiza
             try:
                 await ad.payments.record_spu_usage_mon(
                     org_id=organization_id,
-                    spus=len(uploaded_metrics),
+                    spus=1,
                     operation="telemetry_metric",
                     source=source
                 )
@@ -318,7 +318,7 @@ async def export_logs(request: ExportLogsServiceRequest, context, organization_i
         logs_to_save = len(logs)
         if logs_to_save > 0:
             try:
-                await ad.payments.check_spu_limits(organization_id, logs_to_save)
+                await ad.payments.check_spu_limits(organization_id, 1)
             except SPUCreditException as e:
                 logger.warning(f"Insufficient SPU credits for OTLP logs: {str(e)}")
                 context.set_code(grpc.StatusCode.RESOURCE_EXHAUSTED)
@@ -366,7 +366,7 @@ async def export_logs(request: ExportLogsServiceRequest, context, organization_i
             try:
                 await ad.payments.record_spu_usage_mon(
                     org_id=organization_id,
-                    spus=len(uploaded_logs),
+                    spus=1,
                     operation="telemetry_log",
                     source=source
                 )

@@ -497,7 +497,7 @@ async def upload_telemetry_logs(
     logs_to_save = len(logs_upload.logs)
     if logs_to_save > 0:
         try:
-            await ad.payments.check_spu_limits(organization_id, logs_to_save)
+            await ad.payments.check_spu_limits(organization_id, 1)
         except SPUCreditException as e:
             logger.warning(f"Insufficient SPU credits for telemetry logs: {str(e)}")
             raise HTTPException(
@@ -548,7 +548,7 @@ async def upload_telemetry_logs(
         try:
             await ad.payments.record_spu_usage_mon(
                 org_id=organization_id,
-                spus=len(uploaded_logs),
+                spus=1,
                 operation="telemetry_log",
                 source="telemetry"
             )
