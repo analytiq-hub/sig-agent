@@ -248,7 +248,8 @@ async def test_usage_range_per_operation(org_and_users, test_db):
         params={
             "start_date": base_time.isoformat(),
             "end_date": (base_time + timedelta(days=3)).isoformat(),
-            "per_operation": False
+            "per_operation": False,
+            "timezone": "UTC"
         },
         headers={"Authorization": f"Bearer {admin_token}"}
     )
@@ -278,7 +279,8 @@ async def test_usage_range_per_operation(org_and_users, test_db):
         params={
             "start_date": base_time.isoformat(),
             "end_date": (base_time + timedelta(days=3)).isoformat(),
-            "per_operation": True
+            "per_operation": True,
+            "timezone": "UTC"
         },
         headers={"Authorization": f"Bearer {admin_token}"}
     )
@@ -313,6 +315,96 @@ async def test_usage_range_per_operation(org_and_users, test_db):
     for data_point in data2['data_points']:
         operation = data_point.get('operation')
         assert operation in SPU_USAGE_OPERATIONS, f"Invalid operation: {operation}"
+
+
+@pytest.mark.asyncio
+async def test_usage_range_with_timezone(org_and_users, test_db):
+    """Test the timezone parameter in get_usage_range endpoint."""
+    from datetime import timedelta
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    org_id = org_and_users["org_id"]
+    admin_token = org_and_users["admin"]["token"]
+
+    # Create test client
+    client = TestClient(app)
+
+    # Insert test usage records at specific UTC times that cross date boundaries
+    # We'll use a time that's 23:00 UTC on one day
+    base_time_utc = datetime(2025, 1, 15, 23, 0, 0, tzinfo=UTC)  # 23:00 UTC on Jan 15
+
+    test_records = [
+        # Record at 23:00 UTC (Jan 15)
+        {"org_id": org_id, "spus": 100, "operation": "llm", "timestamp": base_time_utc, "source": "test"},
+        # Record at 01:00 UTC next day (Jan 16)
+        {"org_id": org_id, "spus": 200, "operation": "llm", "timestamp": base_time_utc + timedelta(hours=2), "source": "test"},
+    ]
+
+    await test_db.payments_usage_records.insert_many(test_records)
+
+    # Test 1: Query with UTC timezone (default)
+    response_utc = client.get(
+        f"/v0/orgs/{org_id}/payments/usage/range",
+        params={
+            "start_date": (base_time_utc - timedelta(days=1)).isoformat(),
+            "end_date": (base_time_utc + timedelta(days=2)).isoformat(),
+            "per_operation": False,
+            "timezone": "UTC"
+        },
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+
+    assert response_utc.status_code == 200, f"Expected 200, got {response_utc.status_code}: {response_utc.text}"
+    data_utc = response_utc.json()
+
+    # In UTC, should have 2 data points (one for Jan 15, one for Jan 16)
+    assert len(data_utc['data_points']) == 2, f"Expected 2 data points in UTC, got {len(data_utc['data_points'])}"
+    assert data_utc['total_spus'] == 300
+
+    # Test 2: Query with America/Los_Angeles timezone (UTC-8)
+    # 23:00 UTC = 15:00 PST (same day)
+    # 01:00 UTC next day = 17:00 PST (same day)
+    response_pst = client.get(
+        f"/v0/orgs/{org_id}/payments/usage/range",
+        params={
+            "start_date": (base_time_utc - timedelta(days=1)).isoformat(),
+            "end_date": (base_time_utc + timedelta(days=2)).isoformat(),
+            "per_operation": False,
+            "timezone": "America/Los_Angeles"
+        },
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+
+    assert response_pst.status_code == 200, f"Expected 200, got {response_pst.status_code}: {response_pst.text}"
+    data_pst = response_pst.json()
+
+    # In PST, both records should be on Jan 15, so only 1 data point
+    assert len(data_pst['data_points']) == 1, f"Expected 1 data point in PST, got {len(data_pst['data_points'])}"
+    assert data_pst['data_points'][0]['spus'] == 300, "Both records should be aggregated on Jan 15 PST"
+    assert data_pst['total_spus'] == 300
+
+    # Test 3: Query with Europe/Paris timezone (UTC+1)
+    # 23:00 UTC = 00:00 CET next day (Jan 16)
+    # 01:00 UTC next day = 02:00 CET (Jan 16)
+    response_cet = client.get(
+        f"/v0/orgs/{org_id}/payments/usage/range",
+        params={
+            "start_date": (base_time_utc - timedelta(days=1)).isoformat(),
+            "end_date": (base_time_utc + timedelta(days=2)).isoformat(),
+            "per_operation": False,
+            "timezone": "Europe/Paris"
+        },
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+
+    assert response_cet.status_code == 200, f"Expected 200, got {response_cet.status_code}: {response_cet.text}"
+    data_cet = response_cet.json()
+
+    # In CET, both records should be on Jan 16, so only 1 data point
+    assert len(data_cet['data_points']) == 1, f"Expected 1 data point in CET, got {len(data_cet['data_points'])}"
+    assert data_cet['data_points'][0]['spus'] == 300, "Both records should be aggregated on Jan 16 CET"
+    assert data_cet['total_spus'] == 300
 
 
 if __name__ == "__main__":
