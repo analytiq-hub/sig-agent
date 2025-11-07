@@ -81,13 +81,13 @@ export interface CreditUpdateResponse {
 export interface UsageRangeRequest {
   start_date: string;  // ISO date string (required)
   end_date: string;    // ISO date string (required)
+  per_operation?: boolean; // Whether to return data per operation
 }
 
 export interface UsageDataPoint {
   date: string;                         // ISO date string
   spus: number;                         // SPUs used on this date
-  operation: string;                    // Type of operation
-  source: string;                       // Source of usage
+  operation?: string | null;            // Type of operation (only included if filtering by operation)
 }
 
 export interface UsageRangeResponse {

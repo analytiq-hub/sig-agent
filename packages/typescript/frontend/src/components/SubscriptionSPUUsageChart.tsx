@@ -107,23 +107,20 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
           });
         } else {
           // Aggregate to monthly data
-          const monthlyMap = new Map<string, { spus: number; operations: string[]; sources: string[] }>();
-          
+          const monthlyMap = new Map<string, { spus: number; operations: string[] }>();
+
           sortedData.forEach(point => {
             const date = new Date(point.date);
             const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            
+
             if (!monthlyMap.has(monthKey)) {
-              monthlyMap.set(monthKey, { spus: 0, operations: [], sources: [] });
+              monthlyMap.set(monthKey, { spus: 0, operations: [] });
             }
-            
+
             const monthData = monthlyMap.get(monthKey)!;
             monthData.spus += point.spus;
-            if (!monthData.operations.includes(point.operation)) {
+            if (point.operation && !monthData.operations.includes(point.operation)) {
               monthData.operations.push(point.operation);
-            }
-            if (!monthData.sources.includes(point.source)) {
-              monthData.sources.push(point.source);
             }
           });
 

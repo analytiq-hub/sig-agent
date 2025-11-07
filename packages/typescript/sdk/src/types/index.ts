@@ -441,6 +441,7 @@ export interface CreditUpdateResponse {
 export interface UsageRangeRequest {
   start_date: string;
   end_date: string;
+  per_operation?: boolean;
 }
 
 export interface UsageRangeResponse {
@@ -757,13 +758,13 @@ export interface UsageResponse {
 export interface UsageRangeRequest {
   start_date: string;
   end_date: string;
+  per_operation?: boolean;
 }
 
 export interface UsageDataPoint {
   date: string;
   spus: number;
-  operation: string;
-  source: string;
+  operation?: string | null;
 }
 
 export interface UsageRangeResponse {
