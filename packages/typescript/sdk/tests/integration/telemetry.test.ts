@@ -335,13 +335,14 @@ describe('Telemetry Integration Tests', () => {
 
       // Test timestamp filtering - get metrics from last hour only
       const startTime = new Date(baseTime.getTime() - 60 * 60 * 1000).toISOString(); // 1 hour ago
-      const endTime = baseTime.toISOString(); // Now
-      
-      const filtered = await client.listMetrics({ 
-        start_time: startTime, 
-        end_time: endTime 
+      // Add 1 second buffer to ensure we include the metric at exactly baseTime
+      const endTime = new Date(baseTime.getTime() + 1000).toISOString(); // Now + 1 second
+
+      const filtered = await client.listMetrics({
+        start_time: startTime,
+        end_time: endTime
       });
-      
+
       expect(filtered.metrics.length).toBeGreaterThanOrEqual(2); // Should include recent and current metrics
       
       // Verify we can find our recent and current metrics
