@@ -2539,21 +2539,19 @@ async def get_current_usage(
             if period_agg and period_agg[0].get("total"):
                 period_metered_usage = period_agg[0]["total"]
 
-        # Convert float values to integers for Pydantic validation
-        # This handles cases where fractional SPUs are used (e.g., 0.1 SPU per metric/log)
         return UsageResponse(
             usage_source="stripe",
             data=UsageData(
-                period_metered_usage=int(round(period_metered_usage)),
-                remaining_included=int(round(subscription_spus_remaining)),  # Now shows subscription SPU remaining
+                period_metered_usage=period_metered_usage,
+                remaining_included=subscription_spus_remaining,  # Now shows subscription SPU remaining
                 subscription_type=subscription_type,
                 usage_unit=usage_unit,
-                purchased_credits=int(round(purchased_credits)),
-                purchased_credits_used=int(round(purchased_used)),
-                purchased_credits_remaining=int(round(purchased_remaining)),
-                granted_credits=int(round(granted_credits)),
-                granted_credits_used=int(round(granted_used)),
-                granted_credits_remaining=int(round(granted_remaining)),
+                purchased_credits=purchased_credits,
+                purchased_credits_used=purchased_used,
+                purchased_credits_remaining=purchased_remaining,
+                granted_credits=granted_credits,
+                granted_credits_used=granted_used,
+                granted_credits_remaining=granted_remaining,
                 period_start=period_start,
                 period_end=period_end,
             )
