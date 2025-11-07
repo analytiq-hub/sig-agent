@@ -18,6 +18,7 @@ interface ProcessedDataPoint {
   date: string;
   spus: number;
   cumulative_spus: number;
+  operations?: { operation: string; spus: number }[];
 }
 
 const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ organizationId, refreshKey, defaultBillingPeriod }) => {
@@ -69,7 +70,8 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
         
         const request: UsageRangeRequest = {
           start_date: dateRange.start,
-          end_date: dateRange.end
+          end_date: dateRange.end,
+          per_operation: true
         };
         
         const response = await sigAgentAccountApi.getUsageRange(organizationId, request);
@@ -97,30 +99,54 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
         let cumulative = 0;
 
         if (granularity === 'daily') {
-          // Use daily data as-is
-          processed = sortedData.map(point => {
-            cumulative += point.spus;
+          // Group by date and aggregate operations
+          const dailyMap = new Map<string, { spus: number; operations: Map<string, number> }>();
+
+          sortedData.forEach(point => {
+            if (!dailyMap.has(point.date)) {
+              dailyMap.set(point.date, { spus: 0, operations: new Map() });
+            }
+
+            const dayData = dailyMap.get(point.date)!;
+            dayData.spus += point.spus;
+
+            if (point.operation) {
+              const currentSpus = dayData.operations.get(point.operation) || 0;
+              dayData.operations.set(point.operation, currentSpus + point.spus);
+            }
+          });
+
+          // Convert to processed data points
+          processed = Array.from(dailyMap.entries()).map(([date, data]) => {
+            cumulative += data.spus;
             return {
-              ...point,
-              cumulative_spus: cumulative
+              date,
+              spus: data.spus,
+              cumulative_spus: cumulative,
+              operations: Array.from(data.operations.entries()).map(([operation, spus]) => ({
+                operation,
+                spus
+              })).sort((a, b) => b.spus - a.spus) // Sort by SPUs descending
             };
           });
         } else {
           // Aggregate to monthly data
-          const monthlyMap = new Map<string, { spus: number; operations: string[] }>();
+          const monthlyMap = new Map<string, { spus: number; operations: Map<string, number> }>();
 
           sortedData.forEach(point => {
             const date = new Date(point.date);
             const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
             if (!monthlyMap.has(monthKey)) {
-              monthlyMap.set(monthKey, { spus: 0, operations: [] });
+              monthlyMap.set(monthKey, { spus: 0, operations: new Map() });
             }
 
             const monthData = monthlyMap.get(monthKey)!;
             monthData.spus += point.spus;
-            if (point.operation && !monthData.operations.includes(point.operation)) {
-              monthData.operations.push(point.operation);
+
+            if (point.operation) {
+              const currentSpus = monthData.operations.get(point.operation) || 0;
+              monthData.operations.set(point.operation, currentSpus + point.spus);
             }
           });
 
@@ -131,6 +157,10 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
               date: `${monthKey}-01`, // Use first day of month for display
               spus: data.spus,
               cumulative_spus: cumulative,
+              operations: Array.from(data.operations.entries()).map(([operation, spus]) => ({
+                operation,
+                spus
+              })).sort((a, b) => b.spus - a.spus) // Sort by SPUs descending
             };
           });
         }
@@ -445,9 +475,20 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
                     ></div>
                     
                     {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                      <div className="font-medium">{formatDate(point.date)}</div>
-                      <div>SPUs: {value.toLocaleString()}</div>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10 shadow-lg">
+                      <div className="font-medium mb-1">{formatDate(point.date)}</div>
+                      <div className="font-bold mb-1">Total: {value.toLocaleString()} SPUs</div>
+                      {point.operations && point.operations.length > 0 && (
+                        <div className="border-t border-gray-600 pt-1 mt-1">
+                          <div className="text-gray-300 mb-1">By Operation:</div>
+                          {point.operations.map((op, idx) => (
+                            <div key={idx} className="flex justify-between gap-3">
+                              <span className="text-gray-300">{op.operation}:</span>
+                              <span className="font-medium">{op.spus.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   

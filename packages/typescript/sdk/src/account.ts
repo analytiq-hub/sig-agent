@@ -283,6 +283,7 @@ export class SigAgentAccount {
     const queryParams = new URLSearchParams();
     if (request.start_date) queryParams.append('start_date', request.start_date);
     if (request.end_date) queryParams.append('end_date', request.end_date);
+    if (request.per_operation) queryParams.append('per_operation', request.per_operation.toString());
     return this.http.get<UsageRangeResponse>(`/v0/orgs/${orgId}/payments/usage/range?${queryParams.toString()}`);
   }
 
