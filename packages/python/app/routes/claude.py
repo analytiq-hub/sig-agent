@@ -190,7 +190,7 @@ async def claude_log_handler(
         try:
             await ad.payments.record_spu_usage_mon(
                 org_id=organization_id,
-                spus=1,
+                spus=.1,
                 operation="claude_log",
                 source="claude"
             )
@@ -300,7 +300,7 @@ async def claude_hook_handler(
     try:
         await ad.payments.record_spu_usage_mon(
             org_id=organization_id,
-            spus=1,
+            spus=.1,
             operation="claude_hook",
             source="claude"
         )

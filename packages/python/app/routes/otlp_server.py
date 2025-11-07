@@ -220,7 +220,7 @@ async def export_metrics(request: ExportMetricsServiceRequest, context, organiza
             try:
                 await ad.payments.record_spu_usage_mon(
                     org_id=organization_id,
-                    spus=1,
+                    spus=.1,
                     operation="telemetry_metric",
                     source=source
                 )
@@ -366,7 +366,7 @@ async def export_logs(request: ExportLogsServiceRequest, context, organization_i
             try:
                 await ad.payments.record_spu_usage_mon(
                     org_id=organization_id,
-                    spus=1,
+                    spus=.1,
                     operation="telemetry_log",
                     source=source
                 )

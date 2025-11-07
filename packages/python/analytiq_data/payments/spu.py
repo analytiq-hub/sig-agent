@@ -30,7 +30,7 @@ async def check_spu_limits(org_id: str, spus: int) -> bool:
     # Otherwise, payments are not enabled
     return True
 
-async def record_spu_usage_llm(org_id: str, spus: int, 
+async def record_spu_usage_llm(org_id: str, spus: float, 
                               llm_provider: str = None,
                               llm_model: str = None,
                               prompt_tokens: int = None, 
@@ -51,7 +51,7 @@ async def record_spu_usage_llm(org_id: str, spus: int,
     # Otherwise, payments are not enabled
     return True
 
-async def record_spu_usage_mon(org_id: str, spus: int = 1, 
+async def record_spu_usage_mon(org_id: str, spus: float, 
                                operation: str = None,
                                source: str = None) -> bool:
     """Record SPU usage for monitoring/logging operations"""

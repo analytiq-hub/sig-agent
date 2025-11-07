@@ -172,14 +172,14 @@ class SubscriptionResponse(BaseModel):
 class UsageData(BaseModel):
     subscription_type: Optional[str]
     usage_unit: str
-    period_metered_usage: int
-    remaining_included: int
-    purchased_credits: int
-    purchased_credits_used: int
-    purchased_credits_remaining: int
-    granted_credits: int
-    granted_credits_used: int
-    granted_credits_remaining: int
+    period_metered_usage: float
+    remaining_included: float
+    purchased_credits: float
+    purchased_credits_used: float
+    purchased_credits_remaining: float
+    granted_credits: float
+    granted_credits_used: float
+    granted_credits_remaining: float
     period_start: Optional[int] = None  # Unix timestamp
     period_end: Optional[int] = None    # Unix timestamp
 
@@ -210,12 +210,12 @@ class UsageRangeRequest(BaseModel):
 
 class UsageDataPoint(BaseModel):
     date: str                         # ISO date string
-    spus: int                         # SPUs used on this date
+    spus: float                       # SPUs used on this date
     operation: Optional[str] = None   # Type of operation (only included if filtering by operation)
 
 class UsageRangeResponse(BaseModel):
     data_points: List[UsageDataPoint]
-    total_spus: int                   # Total SPUs in the period
+    total_spus: float                 # Total SPUs in the period
 
 # Dynamic configuration - populated from Stripe at startup
 CREDIT_CONFIG = {
@@ -2539,19 +2539,21 @@ async def get_current_usage(
             if period_agg and period_agg[0].get("total"):
                 period_metered_usage = period_agg[0]["total"]
 
+        # Convert float values to integers for Pydantic validation
+        # This handles cases where fractional SPUs are used (e.g., 0.1 SPU per metric/log)
         return UsageResponse(
             usage_source="stripe",
             data=UsageData(
-                period_metered_usage=period_metered_usage,
-                remaining_included=subscription_spus_remaining,  # Now shows subscription SPU remaining
+                period_metered_usage=int(round(period_metered_usage)),
+                remaining_included=int(round(subscription_spus_remaining)),  # Now shows subscription SPU remaining
                 subscription_type=subscription_type,
                 usage_unit=usage_unit,
-                purchased_credits=purchased_credits,
-                purchased_credits_used=purchased_used,
-                purchased_credits_remaining=purchased_remaining,
-                granted_credits=granted_credits,
-                granted_credits_used=granted_used,
-                granted_credits_remaining=granted_remaining,
+                purchased_credits=int(round(purchased_credits)),
+                purchased_credits_used=int(round(purchased_used)),
+                purchased_credits_remaining=int(round(purchased_remaining)),
+                granted_credits=int(round(granted_credits)),
+                granted_credits_used=int(round(granted_used)),
+                granted_credits_remaining=int(round(granted_remaining)),
                 period_start=period_start,
                 period_end=period_end,
             )
@@ -2757,7 +2759,7 @@ async def update_customer_balances(db, customer_id: str, consumption: Dict[str, 
 
 async def save_complete_usage_record(db, 
                                      org_id: str, 
-                                     spus: int, 
+                                     spus: float, 
                                      consumption: Dict[str, int], 
                                      operation: str, 
                                      source: str = "backend",
@@ -2827,7 +2829,7 @@ async def reset_billing_period(db, customer: Dict[str, Any], period_start: int, 
     logger.info(f"Reset billing period for customer {customer['_id']}: {period_start} to {period_end}")
 
 async def record_payment_usage(org_id: str, 
-                               spus: int,
+                               spus: float,
                                llm_provider: str = None,
                                llm_model: str = None,
                                prompt_tokens: int = None, 
