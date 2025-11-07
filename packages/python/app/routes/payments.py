@@ -1175,6 +1175,9 @@ async def save_usage_record(db, org_id: str, spus: int, operation: str, source: 
     
     logger.info(f"save_usage_record() called with org_id: {org_id}, spus: {spus}, operation: {operation}, source: {source}")
 
+    if operation not in SPU_USAGE_OPERATIONS:
+        raise ValueError(f"Invalid operation: {operation}")
+
     # Store usage record (no Stripe dependencies)
     usage_record = {
         "org_id": org_id,
@@ -2761,14 +2764,21 @@ async def update_customer_balances(db, customer_id: str, consumption: Dict[str, 
             {"$inc": update_operations}
         )
 
-async def save_complete_usage_record(db, org_id: str, spus: int, consumption: Dict[str, int], 
-                                   operation: str = "llm", source: str = "backend",
-                                   llm_provider: str = None,
-                                   llm_model: str = None,
-                                   prompt_tokens: int = None,
-                                   completion_tokens: int = None,
-                                   total_tokens: int = None,
-                                   actual_cost: float = None) -> Dict[str, Any]:
+async def save_complete_usage_record(db, 
+                                     org_id: str, 
+                                     spus: int, 
+                                     consumption: Dict[str, int], 
+                                     operation: str, 
+                                     source: str = "backend",
+                                     llm_provider: str = None,
+                                     llm_model: str = None,
+                                     prompt_tokens: int = None,
+                                     completion_tokens: int = None,
+                                     total_tokens: int = None,
+                                     actual_cost: float = None) -> Dict[str, Any]:
+    if operation not in SPU_USAGE_OPERATIONS:
+        raise ValueError(f"Invalid operation: {operation}")
+
     """Save complete usage record with breakdown and LLM metrics"""
     usage_record = {
         "org_id": org_id,
@@ -2825,16 +2835,21 @@ async def reset_billing_period(db, customer: Dict[str, Any], period_start: int, 
     
     logger.info(f"Reset billing period for customer {customer['_id']}: {period_start} to {period_end}")
 
-async def record_payment_usage(org_id: str, spus: int,
-                              llm_provider: str = None,
-                              llm_model: str = None,
-                              prompt_tokens: int = None, 
-                              completion_tokens: int = None, 
-                              total_tokens: int = None, 
-                              actual_cost: float = None,
-                              operation: str = "llm",
-                              source: str = "backend") -> Dict[str, int]:
+async def record_payment_usage(org_id: str, 
+                               spus: int,
+                               llm_provider: str = None,
+                               llm_model: str = None,
+                               prompt_tokens: int = None, 
+                               completion_tokens: int = None, 
+                               total_tokens: int = None, 
+                               actual_cost: float = None,
+                               operation: str = None,
+                               source: str = "backend") -> Dict[str, int]:
     """Record payment usage with proper SPU consumption order and atomic updates"""
+    
+    if operation not in SPU_USAGE_OPERATIONS:
+        raise ValueError(f"Invalid operation: {operation}")
+
     if spus <= 0:
         logger.warning(f"Invalid SPU amount: {spus} for org_id: {org_id}")
         return {"from_subscription": 0, "from_purchased": 0, "from_granted": 0, "from_paid": 0}
