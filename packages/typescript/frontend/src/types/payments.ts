@@ -82,6 +82,7 @@ export interface UsageRangeRequest {
   start_date: string;  // ISO date string (required)
   end_date: string;    // ISO date string (required)
   per_operation?: boolean; // Whether to return data per operation
+  timezone?: string;   // IANA timezone string (e.g., "America/Los_Angeles")
 }
 
 export interface UsageDataPoint {

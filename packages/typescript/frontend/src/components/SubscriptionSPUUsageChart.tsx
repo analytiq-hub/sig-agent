@@ -68,10 +68,14 @@ const SubscriptionSPUUsageChart: React.FC<SubscriptionSPUUsageChartProps> = ({ o
       try {
         setLoading(true);
         
+        // Get user's local timezone
+        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
         const request: UsageRangeRequest = {
           start_date: dateRange.start,
           end_date: dateRange.end,
-          per_operation: true
+          per_operation: true,
+          timezone: userTimezone
         };
         
         const response = await sigAgentAccountApi.getUsageRange(organizationId, request);

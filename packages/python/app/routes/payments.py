@@ -206,6 +206,7 @@ class UsageRangeRequest(BaseModel):
     start_date: str                   # ISO date string (required)
     end_date: str                     # ISO date string (required)
     per_operation: bool = False       # Whether to return data per operation
+    timezone: str = "UTC"             # IANA timezone string (e.g., "America/Los_Angeles")
 
 class UsageDataPoint(BaseModel):
     date: str                         # ISO date string
@@ -2385,10 +2386,11 @@ async def get_usage_range(
         }
 
         # Build group _id based on per_operation flag
+        # Use timezone conversion for date extraction
         group_id = {
-            "year": {"$year": "$timestamp"},
-            "month": {"$month": "$timestamp"},
-            "day": {"$dayOfMonth": "$timestamp"}
+            "year": {"$year": {"date": "$timestamp", "timezone": request.timezone}},
+            "month": {"$month": {"date": "$timestamp", "timezone": request.timezone}},
+            "day": {"$dayOfMonth": {"date": "$timestamp", "timezone": request.timezone}}
         }
 
         # When per_operation is True, group by operation as well

@@ -442,6 +442,7 @@ export interface UsageRangeRequest {
   start_date: string;
   end_date: string;
   per_operation?: boolean;
+  timezone?: string; // IANA timezone string (e.g., "America/Los_Angeles")
 }
 
 export interface UsageRangeResponse {
@@ -759,6 +760,7 @@ export interface UsageRangeRequest {
   start_date: string;
   end_date: string;
   per_operation?: boolean;
+  timezone?: string; // IANA timezone string (e.g., "America/Los_Angeles")
 }
 
 export interface UsageDataPoint {
