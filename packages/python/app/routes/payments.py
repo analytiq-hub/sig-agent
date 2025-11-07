@@ -205,14 +205,12 @@ class CheckoutSessionRequest(BaseModel):
 class UsageRangeRequest(BaseModel):
     start_date: str                   # ISO date string (required)
     end_date: str                     # ISO date string (required)
-    operation: Optional[str] = None  # Optional filter by operation type
-    source: Optional[str] = None      # Optional filter by source
+    per_operation: bool = False       # Whether to return data per operation
 
 class UsageDataPoint(BaseModel):
     date: str                         # ISO date string
     spus: int                         # SPUs used on this date
     operation: Optional[str] = None   # Type of operation (only included if filtering by operation)
-    source: Optional[str] = None      # Source of usage (only included if filtering by source)
 
 class UsageRangeResponse(BaseModel):
     data_points: List[UsageDataPoint]
@@ -2377,7 +2375,7 @@ async def get_usage_range(
         start_dt = datetime.fromisoformat(request.start_date.replace('Z', '+00:00'))
         end_dt = datetime.fromisoformat(request.end_date.replace('Z', '+00:00'))
         
-        # Build match stage with optional filters
+        # Build match stage
         match_stage = {
             "org_id": organization_id,
             "timestamp": {
@@ -2385,27 +2383,30 @@ async def get_usage_range(
                 "$lt": end_dt
             }
         }
-        
-        # Add optional filters
-        if request.operation:
-            match_stage["operation"] = request.operation
-        if request.source:
-            match_stage["source"] = request.source
-        
-        # Build group _id based on which filters are applied
+
+        # Build group _id based on per_operation flag
         group_id = {
             "year": {"$year": "$timestamp"},
             "month": {"$month": "$timestamp"},
             "day": {"$dayOfMonth": "$timestamp"}
         }
-        
-        # Include operation/source in grouping if filtering by them
-        if request.operation:
+
+        # When per_operation is True, group by operation as well
+        if request.per_operation:
             group_id["operation"] = "$operation"
-        if request.source:
-            group_id["source"] = "$source"
-        
-        # Aggregate usage data by day (and optionally by operation/source)
+
+        # Build sort stage
+        sort_stage = {
+            "_id.year": 1,
+            "_id.month": 1,
+            "_id.day": 1
+        }
+
+        # When grouping by operation, also sort by operation
+        if request.per_operation:
+            sort_stage["_id.operation"] = 1
+
+        # Aggregate usage data by day (and optionally by operation)
         pipeline = [
             {
                 "$match": match_stage
@@ -2417,42 +2418,30 @@ async def get_usage_range(
                 }
             },
             {
-                "$sort": {
-                    "_id.year": 1,
-                    "_id.month": 1,
-                    "_id.day": 1
-                }
+                "$sort": sort_stage
             }
         ]
-        
-        # Add operation/source to sort if filtering by them
-        if request.operation:
-            pipeline[2]["$sort"]["_id.operation"] = 1
-        if request.source:
-            pipeline[2]["$sort"]["_id.source"] = 1
-        
+
         results = await db.payments_usage_records.aggregate(pipeline).to_list(length=None)
-        
+
         # Process results
         data_points = []
         total_spus = 0
-        
+
         for result in results:
             # Format date as YYYY-MM-DD
             date_str = f"{result['_id']['year']:04d}-{result['_id']['month']:02d}-{result['_id']['day']:02d}"
-            
+
             spus = result['total_spus']
             total_spus += spus
-            
-            # Only include operation/source if filtering by them
-            operation = result['_id'].get('operation') if request.operation else None
-            source = result['_id'].get('source') if request.source else None
-            
+
+            # Extract operation if we're grouping by operation
+            operation_value = result['_id'].get('operation') if request.per_operation else None
+
             data_points.append(UsageDataPoint(
                 date=date_str,
                 spus=spus,
-                operation=operation,
-                source=source
+                operation=operation_value
             ))
         
         return UsageRangeResponse(

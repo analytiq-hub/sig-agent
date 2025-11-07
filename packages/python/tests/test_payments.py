@@ -205,9 +205,114 @@ async def test_individual_workspace_plan_setup(individual_workspace, test_db):
 async def test_workspace_without_payment_customer_fails(test_db):
     """Test that payment limits fail for non-existent customer."""
     fake_org_id = str(ObjectId())
-    
+
     with pytest.raises(ValueError, match="No customer found"):
         await check_payment_limits(fake_org_id, 10)
+
+
+@pytest.mark.asyncio
+async def test_usage_range_per_operation(org_and_users, test_db):
+    """Test the per_operation parameter in get_usage_range endpoint."""
+    from datetime import timedelta
+    from app.routes.payments import SPU_USAGE_OPERATIONS
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    org_id = org_and_users["org_id"]
+    admin_token = org_and_users["admin"]["token"]
+
+    # Create test client
+    client = TestClient(app)
+
+    # Insert test usage records with different operations across 2 days
+    base_time = datetime.now(UTC) - timedelta(days=2)
+
+    test_records = [
+        # Day 1: llm operations
+        {"org_id": org_id, "spus": 10, "operation": "llm", "timestamp": base_time, "source": "test"},
+        {"org_id": org_id, "spus": 20, "operation": "llm", "timestamp": base_time + timedelta(hours=1), "source": "test"},
+        # Day 1: claude_log operation
+        {"org_id": org_id, "spus": 5, "operation": "claude_log", "timestamp": base_time + timedelta(hours=2), "source": "test"},
+
+        # Day 2: llm operation
+        {"org_id": org_id, "spus": 15, "operation": "llm", "timestamp": base_time + timedelta(days=1), "source": "test"},
+        # Day 2: telemetry_trace operation
+        {"org_id": org_id, "spus": 8, "operation": "telemetry_trace", "timestamp": base_time + timedelta(days=1, hours=1), "source": "test"},
+    ]
+
+    await test_db.payments_usage_records.insert_many(test_records)
+
+    # Test 1: Query WITHOUT per_operation (should aggregate all operations per day)
+    response1 = client.get(
+        f"/v0/orgs/{org_id}/payments/usage/range",
+        params={
+            "start_date": base_time.isoformat(),
+            "end_date": (base_time + timedelta(days=3)).isoformat(),
+            "per_operation": False
+        },
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+
+    assert response1.status_code == 200, f"Expected 200, got {response1.status_code}: {response1.text}"
+    data1 = response1.json()
+
+    # Should have 2 data points (one per day)
+    assert len(data1['data_points']) == 2, f"Expected 2 data points, got {len(data1['data_points'])}"
+
+    # Day 1 should have 35 SPUs total (10+20+5)
+    assert data1['data_points'][0]['spus'] == 35, f"Day 1 expected 35 SPUs, got {data1['data_points'][0]['spus']}"
+
+    # Day 2 should have 23 SPUs total (15+8)
+    assert data1['data_points'][1]['spus'] == 23, f"Day 2 expected 23 SPUs, got {data1['data_points'][1]['spus']}"
+
+    # Total should be 58
+    assert data1['total_spus'] == 58, f"Expected 58 total SPUs, got {data1['total_spus']}"
+
+    # Operation should be None when per_operation=False
+    assert data1['data_points'][0]['operation'] is None, "Operation should be None when per_operation=False"
+    assert data1['data_points'][1]['operation'] is None, "Operation should be None when per_operation=False"
+
+    # Test 2: Query WITH per_operation (should break down by operation per day)
+    response2 = client.get(
+        f"/v0/orgs/{org_id}/payments/usage/range",
+        params={
+            "start_date": base_time.isoformat(),
+            "end_date": (base_time + timedelta(days=3)).isoformat(),
+            "per_operation": True
+        },
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+
+    assert response2.status_code == 200, f"Expected 200, got {response2.status_code}: {response2.text}"
+    data2 = response2.json()
+
+    # Should have 4 data points (breakdown by operation)
+    assert len(data2['data_points']) == 4, f"Expected 4 data points with per_operation, got {len(data2['data_points'])}"
+
+    # Total should still be 58
+    assert data2['total_spus'] == 58, f"Expected 58 total SPUs, got {data2['total_spus']}"
+
+    # Verify each breakdown (sorted by date then operation)
+    # Day 1, claude_log: 5 SPUs
+    assert data2['data_points'][0]['operation'] == 'claude_log', f"Expected claude_log, got {data2['data_points'][0]['operation']}"
+    assert data2['data_points'][0]['spus'] == 5
+
+    # Day 1, llm: 30 SPUs (10+20)
+    assert data2['data_points'][1]['operation'] == 'llm', f"Expected llm, got {data2['data_points'][1]['operation']}"
+    assert data2['data_points'][1]['spus'] == 30
+
+    # Day 2, llm: 15 SPUs
+    assert data2['data_points'][2]['operation'] == 'llm', f"Expected llm, got {data2['data_points'][2]['operation']}"
+    assert data2['data_points'][2]['spus'] == 15
+
+    # Day 2, telemetry_trace: 8 SPUs
+    assert data2['data_points'][3]['operation'] == 'telemetry_trace', f"Expected telemetry_trace, got {data2['data_points'][3]['operation']}"
+    assert data2['data_points'][3]['spus'] == 8
+
+    # Verify all operations are valid
+    for data_point in data2['data_points']:
+        operation = data_point.get('operation')
+        assert operation in SPU_USAGE_OPERATIONS, f"Invalid operation: {operation}"
 
 
 if __name__ == "__main__":
