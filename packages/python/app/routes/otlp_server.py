@@ -28,6 +28,7 @@ from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import (
 from datetime import datetime, UTC
 from bson import ObjectId
 import analytiq_data as ad
+from app.routes.payments import SPUCreditException
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +169,17 @@ async def export_metrics(request: ExportMetricsServiceRequest, context, organiza
                     }
                     metrics.append(metric_data)
 
+        # Check SPU limits before saving (1 SPU per metric)
+        metrics_to_save = len(metrics)
+        if metrics_to_save > 0:
+            try:
+                await ad.payments.check_spu_limits(organization_id, metrics_to_save)
+            except SPUCreditException as e:
+                logger.warning(f"Insufficient SPU credits for OTLP metrics: {str(e)}")
+                context.set_code(grpc.StatusCode.RESOURCE_EXHAUSTED)
+                context.set_details(f"Insufficient SPU credits: {str(e)}")
+                return ExportMetricsServiceResponse()
+
         # Store in database
         analytiq_client = ad.common.get_analytiq_client()
         db = ad.common.get_async_db(analytiq_client)
@@ -202,6 +214,18 @@ async def export_metrics(request: ExportMetricsServiceRequest, context, organiza
                 "tag_ids": metric_data["tag_ids"],
                 "metadata": metric_data["metadata"]
             })
+
+        # Record SPU usage for monitoring (1 SPU per metric)
+        if len(uploaded_metrics) > 0:
+            try:
+                await ad.payments.record_spu_usage_mon(
+                    org_id=organization_id,
+                    spus=len(uploaded_metrics),
+                    operation="telemetry_metric",
+                    source=source
+                )
+            except Exception as e:
+                logger.error(f"Error recording SPU usage for OTLP metrics: {e}")
 
         return ExportMetricsServiceResponse(partial_success=None)
 
@@ -290,6 +314,17 @@ async def export_logs(request: ExportLogsServiceRequest, context, organization_i
 
         logger.info(f"Converted {len(logs)} log records for database storage")
 
+        # Check SPU limits before saving (1 SPU per log)
+        logs_to_save = len(logs)
+        if logs_to_save > 0:
+            try:
+                await ad.payments.check_spu_limits(organization_id, logs_to_save)
+            except SPUCreditException as e:
+                logger.warning(f"Insufficient SPU credits for OTLP logs: {str(e)}")
+                context.set_code(grpc.StatusCode.RESOURCE_EXHAUSTED)
+                context.set_details(f"Insufficient SPU credits: {str(e)}")
+                return ExportLogsServiceResponse()
+
         # Store in database
         analytiq_client = ad.common.get_analytiq_client()
         db = ad.common.get_async_db(analytiq_client)
@@ -325,6 +360,18 @@ async def export_logs(request: ExportLogsServiceRequest, context, organization_i
                 "tag_ids": log_data["tag_ids"],
                 "metadata": log_data["metadata"]
             })
+
+        # Record SPU usage for monitoring (1 SPU per log)
+        if len(uploaded_logs) > 0:
+            try:
+                await ad.payments.record_spu_usage_mon(
+                    org_id=organization_id,
+                    spus=len(uploaded_logs),
+                    operation="telemetry_log",
+                    source=source
+                )
+            except Exception as e:
+                logger.error(f"Error recording SPU usage for OTLP logs: {e}")
 
         logger.info(f"OTLP logs export completed: {len(uploaded_logs)} logs saved to database for org {organization_id}")
         return ExportLogsServiceResponse(partial_success=None)
