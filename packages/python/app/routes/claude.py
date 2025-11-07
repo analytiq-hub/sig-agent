@@ -160,7 +160,7 @@ async def claude_log_handler(
     # Check SPU limits before saving
     if records_to_save > 0:
         try:
-            await ad.payments.check_spu_limits(organization_id, records_to_save)
+            await ad.payments.check_spu_limits(organization_id, 1)
         except SPUCreditException as e:
             logger.warning(f"Insufficient SPU credits for Claude logs: {str(e)}")
             raise HTTPException(
@@ -190,7 +190,7 @@ async def claude_log_handler(
         try:
             await ad.payments.record_spu_usage_mon(
                 org_id=organization_id,
-                spus=saved_count,
+                spus=1,
                 operation="claude_log",
                 source="claude"
             )
