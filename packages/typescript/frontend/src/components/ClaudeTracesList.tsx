@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { SigAgentOrgApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
-import { DataGrid, GridColDef, GridFilterInputValueProps } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridFilterInputValueProps, GridRowProps, GridRow } from '@mui/x-data-grid';
 import { 
   TextField, 
   InputAdornment, 
@@ -44,12 +44,10 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import { ClaudeLogItem } from '@sigagent/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 import { 
-  ToolInfoTooltip as BaseToolInfoTooltip,
-  PromptTooltip as BasePromptTooltip,
-  TextContentTooltip,
-  SummaryTooltip,
-  type ToolInfo,
-  type PromptInfo
+  renderTodoData,
+  formatToolResponse,
+  tooltipContainerStyles,
+  codeBlockStyles
 } from '@/utils/tooltip';
 
 type ClaudeTrace = ClaudeLogItem & {
@@ -744,30 +742,177 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
     return colors[positiveHash % colors.length];
   };
 
-  // Wrapper components that adapt the generic tooltips to work with traces
-  const PromptTooltip: React.FC<{ trace: ClaudeTrace; children: React.ReactElement }> = ({ trace, children }) => {
-    const info = getSalientInfo(trace);
+  // Custom row component that wraps each row with a tooltip
+  const CustomRow = React.forwardRef<HTMLDivElement, GridRowProps>((props, ref) => {
+    const { row, ...otherProps } = props;
+    const info = getSalientInfo(row as ClaudeTrace);
     
-    if (info.messageType !== 'user') {
-      return <>{children}</>;
+    // Build tooltip content based on row data
+    let tooltipContent: React.ReactNode = null;
+    
+    // User messages with text content
+    if (info.messageType === 'user' && info.contentType === 'text' && info.textContent) {
+      tooltipContent = (
+        <Box sx={{ maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+            User Message
+          </Typography>
+          <Box 
+            component="pre" 
+            sx={{ 
+              ...codeBlockStyles,
+              maxHeight: 200,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderLeft: '3px solid',
+              borderLeftColor: 'primary.main',
+            }}
+          >
+            {info.textContent}
+          </Box>
+        </Box>
+      );
     }
-
-    const promptInfo: PromptInfo = { prompt: info.prompt };
-    return <BasePromptTooltip info={promptInfo}>{children}</BasePromptTooltip>;
-  };
-
-  const ToolInfoTooltip: React.FC<{ trace: ClaudeTrace; children: React.ReactElement }> = ({ trace, children }) => {
-    const info = getSalientInfo(trace);
+    // Assistant text messages
+    else if (info.messageType === 'assistant' && info.contentType === 'text' && info.textContent) {
+      tooltipContent = (
+        <Box sx={{ maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+            Assistant Message
+          </Typography>
+          <Box 
+            component="pre" 
+            sx={{ 
+              ...codeBlockStyles,
+              maxHeight: 200,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderLeft: '3px solid',
+              borderLeftColor: 'success.main',
+            }}
+          >
+            {info.textContent}
+          </Box>
+        </Box>
+      );
+    }
+    // Tool use or tool result messages
+    else if ((info.contentType === 'tool_use' || info.contentType === 'tool_result') && (info.toolInput || info.toolResponse)) {
+      const renderedInput = renderTodoData(info.toolInput);
+      const renderedResponse = renderTodoData(info.toolResponse);
+      
+      tooltipContent = (
+        <Box sx={{ maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+            {info.toolName}
+          </Typography>
+          
+          {info.toolInput && !Boolean(renderedResponse) && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                Input:
+              </Typography>
+              {Boolean(renderedInput) ? (
+                <Box sx={{ marginTop: 0.5 }}>
+                  {renderedInput}
+                </Box>
+              ) : (
+                <Box 
+                  component="pre" 
+                  sx={{ 
+                    ...codeBlockStyles,
+                    marginTop: 0.5,
+                    maxHeight: 120,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderLeft: '3px solid',
+                    borderLeftColor: 'primary.main',
+                  }}
+                >
+                  {typeof info.toolInput === 'string' 
+                    ? info.toolInput 
+                    : JSON.stringify(info.toolInput, null, 2)
+                  }
+                </Box>
+              )}
+            </Box>
+          )}
+          
+          {Boolean(info.toolResponse) && (
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                Response:
+              </Typography>
+              {Boolean(renderedResponse) ? (
+                <Box sx={{ marginTop: 0.5 }}>
+                  {renderedResponse}
+                </Box>
+              ) : (
+                <Box 
+                  component="pre" 
+                  sx={{ 
+                    ...codeBlockStyles,
+                    marginTop: 0.5,
+                    maxHeight: 120,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderLeft: '3px solid',
+                    borderLeftColor: 'success.main',
+                  }}
+                >
+                  {formatToolResponse(info.toolResponse)}
+                </Box>
+              )}
+            </Box>
+          )}
+        </Box>
+      );
+    }
+    // Summary messages
+    else if (info.messageType === 'summary') {
+      const summary = (row as ClaudeTrace).transcript_record?.summary;
+      if (summary && typeof summary === 'string' && summary.length > 0) {
+        tooltipContent = (
+          <Box sx={{ maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+              Summary
+            </Typography>
+            <Box 
+              component="pre" 
+              sx={{ 
+                ...codeBlockStyles,
+                maxHeight: 200,
+              }}
+            >
+              {summary}
+            </Box>
+          </Box>
+        );
+      }
+    }
     
-    const toolInfo: ToolInfo = {
-      toolName: info.toolName,
-      toolInput: info.toolInput,
-      toolResponse: info.toolResponse
-    };
+    if (tooltipContent) {
+      return (
+        <Tooltip
+          title={tooltipContent}
+          arrow
+          placement="top"
+          enterDelay={300}
+          leaveDelay={0}
+          componentsProps={{
+            tooltip: {
+              sx: tooltipContainerStyles
+            }
+          }}
+        >
+          <GridRow ref={ref} row={row} {...otherProps} />
+        </Tooltip>
+      );
+    }
     
-    return <BaseToolInfoTooltip info={toolInfo}>{children}</BaseToolInfoTooltip>;
-  };
-
+    return <GridRow ref={ref} row={row} {...otherProps} />;
+  });
+  CustomRow.displayName = 'CustomRow';
 
   // Helper function to get icon for message type with color coding
   // Color scheme based on transcript message types:
@@ -895,78 +1040,68 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
         
-        // Show tool name for tool_use messages with tooltip sourced from transcript
+        // Show tool name for tool_use messages
         if (info.contentType === 'tool_use' && info.toolName !== '-') {
           const displayName = info.toolName.length > 40 ? info.toolName.substring(0, 40) + '...' : info.toolName;
           return (
-            <ToolInfoTooltip trace={params.row}>
-              <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
-                <span className="text-sm font-mono">
-                  {displayName}
-                </span>
-              </Box>
-            </ToolInfoTooltip>
+            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+              <span className="text-sm font-mono">
+                {displayName}
+              </span>
+            </Box>
           );
         }
         
-        // Show content preview for user text messages with tooltip for full content (blue/primary for input)
+        // Show content preview for user text messages
         if (info.messageType === 'user' && info.contentType === 'text' && info.textContent) {
           const content = info.textContent;
           const preview = content.length > 50 ? content.substring(0, 50) + '...' : content;
           return (
-            <TextContentTooltip content={content} title="User Message" variant="primary">
-              <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
-                <span className="text-sm">
-                  {preview}
-                </span>
-              </Box>
-            </TextContentTooltip>
+            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+              <span className="text-sm">
+                {preview}
+              </span>
+            </Box>
           );
         }
         
-        // Show content preview for assistant text messages with tooltip for full content (green/success for response)
+        // Show content preview for assistant text messages
         if (info.messageType === 'assistant' && info.contentType === 'text' && info.textContent) {
           const content = info.textContent;
           const preview = content.length > 50 ? content.substring(0, 50) + '...' : content;
           return (
-            <TextContentTooltip content={content} title="Assistant Message" variant="success">
-              <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
-                <span className="text-sm">
-                  {preview}
-                </span>
-              </Box>
-            </TextContentTooltip>
+            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+              <span className="text-sm">
+                {preview}
+              </span>
+            </Box>
           );
         }
         
-        // Show tool result info: display tool name if available, with tooltip
+        // Show tool result info: display tool name if available
         if (info.contentType === 'tool_result') {
           const displayName = info.toolName && info.toolName !== '-' ? (
             info.toolName.length > 40 ? info.toolName.substring(0, 40) + '...' : info.toolName
           ) : 'Tool Result';
           return (
-            <ToolInfoTooltip trace={params.row}>
-              <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
-                <span className="text-sm font-mono">
-                  {displayName}
-                </span>
-              </Box>
-            </ToolInfoTooltip>
+            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+              <span className="text-sm font-mono">
+                {displayName}
+              </span>
+            </Box>
           );
         }
         
-        // Show summary info with tooltip
+        // Show summary info
         if (info.messageType === 'summary') {
           const summary = params.row.transcript_record?.summary || '';
           const preview = summary.length > 50 ? summary.substring(0, 50) + '...' : summary;
           return (
-            <SummaryTooltip info={{ summary }}>
-              <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
-                <span className="text-sm">
-                  {preview}
-                </span>
-              </Box>
-            </SummaryTooltip>
+            <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
+              <span className="text-sm">
+                {preview}
+              </span>
+            </Box>
           );
         }
         
@@ -1024,86 +1159,6 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
         const isFiltered = filteredSessionId === info.sessionId;
         const sessionColor = getSessionColor(info.sessionId);
         
-        // Determine which tooltip to use for the session cell
-        const getSessionTooltip = () => {
-          if (info.messageType === 'user' && info.prompt) {
-            return (
-              <PromptTooltip trace={params.row}>
-                <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px', width: '100%' }}>
-                  <span className="text-xs font-mono">
-                    {info.sessionId.substring(0, 12)}...
-                  </span>
-                  <Tooltip title={isFiltered ? "Clear session filter" : "Filter by this session ID"}>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent row click
-                        handleFilterBySession(info.sessionId);
-                      }}
-                      sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        backgroundColor: isFiltered ? sessionColor : 'grey.100',
-                        color: isFiltered ? 'white' : sessionColor,
-                        boxShadow: isFiltered ? 2 : 1,
-                        '&:hover': {
-                          backgroundColor: isFiltered ? sessionColor : 'grey.200',
-                          color: isFiltered ? 'white' : sessionColor,
-                          boxShadow: 3
-                        }
-                      }}
-                    >
-                      <FilterListIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </PromptTooltip>
-            );
-          } else if (info.toolInput || info.toolResponse) {
-            return (
-              <ToolInfoTooltip trace={params.row}>
-                <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px', width: '100%' }}>
-                  <span className="text-xs font-mono">
-                    {info.sessionId.substring(0, 12)}...
-                  </span>
-                  <Tooltip title={isFiltered ? "Clear session filter" : "Filter by this session ID"}>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent row click
-                        handleFilterBySession(info.sessionId);
-                      }}
-                      sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        backgroundColor: isFiltered ? sessionColor : 'grey.100',
-                        color: isFiltered ? 'white' : sessionColor,
-                        boxShadow: isFiltered ? 2 : 1,
-                        '&:hover': {
-                          backgroundColor: isFiltered ? sessionColor : 'grey.200',
-                          color: isFiltered ? 'white' : sessionColor,
-                          boxShadow: 3
-                        }
-                      }}
-                    >
-                      <FilterListIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </ToolInfoTooltip>
-            );
-          }
-          return null;
-        };
-
-        const tooltipContent = getSessionTooltip();
-        if (tooltipContent) {
-          return tooltipContent;
-        }
-
-        // Default session cell without tooltip
         return (
           <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px', width: '100%' }}>
             <span className="text-xs font-mono">
@@ -1235,6 +1290,9 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
         disableRowSelectionOnClick
         onRowClick={(params) => handleTraceClick(params.row)}
         autoHeight
+        slots={{
+          row: CustomRow,
+        }}
         sx={{
           '& .MuiDataGrid-cell': {
             padding: '8px',
