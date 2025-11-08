@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { SigAgentOrgApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
 import { DataGrid, GridColDef, GridFilterInputValueProps } from '@mui/x-data-grid';
@@ -24,7 +24,9 @@ import {
   TableRow,
   Paper,
   IconButton,
-  Tooltip
+  Tooltip,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
@@ -179,6 +181,8 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedLogIndex, setSelectedLogIndex] = useState<number>(-1);
   const [selectedTab, setSelectedTab] = useState<number>(0);
+  const [showRawData, setShowRawData] = useState(false);
+  const rawDataRef = useRef<HTMLDivElement>(null);
 
   // Handle date range filter from DataGrid
   const handleDateRangeFilter = useCallback((filterValue: string) => {
@@ -263,6 +267,22 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
     setSelectedLog(null);
     setSelectedLogIndex(-1);
     setSelectedTab(0);
+    setShowRawData(false);
+  };
+
+  const handleToggleRawData = () => {
+    const newShowRawData = !showRawData;
+    setShowRawData(newShowRawData);
+    
+    // If toggling on, scroll to raw data after a short delay to allow DOM update
+    if (newShowRawData && rawDataRef.current) {
+      setTimeout(() => {
+        rawDataRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 100);
+    }
   };
 
   const handleNavigateLog = async (direction: 'prev' | 'next') => {
@@ -1036,10 +1056,6 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                   </Box>
                 </Box>
                 <Box mt={2}>
-                  {/* Debug info - remove this later */}
-                  <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                    Debug: Selected tab = {selectedTab}
-                  </Typography>
                   {renderTabContent(selectedLog)}
                 </Box>
               </Box>
@@ -1056,6 +1072,97 @@ const TelemetryLogsList: React.FC<{ organizationId: string }> = ({ organizationI
                         size="small"
                       />
                     ))}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Raw Toggle at bottom left when closed */}
+              {!showRawData && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'flex-start', 
+                  mt: 2, 
+                  pt: 2, 
+                  borderTop: '1px solid', 
+                  borderColor: 'divider' 
+                }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={showRawData}
+                        onChange={handleToggleRawData}
+                        size="small"
+                        color="primary"
+                      />
+                    }
+                    label={
+                      <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
+                        Raw
+                      </Typography>
+                    }
+                    sx={{ 
+                      margin: 0,
+                      '& .MuiFormControlLabel-label': {
+                        marginLeft: 0.5
+                      }
+                    }}
+                  />
+                </Box>
+              )}
+
+              {/* Raw Data Display */}
+              {showRawData && (
+                <Box ref={rawDataRef} mt={3}>
+                  {/* Raw Toggle at top of raw data when open */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'flex-start', 
+                    mb: 2, 
+                    pb: 1, 
+                    borderBottom: '1px solid', 
+                    borderColor: 'divider' 
+                  }}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={showRawData}
+                          onChange={handleToggleRawData}
+                          size="small"
+                          color="primary"
+                        />
+                      }
+                      label={
+                        <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
+                          Raw
+                        </Typography>
+                      }
+                      sx={{ 
+                        margin: 0,
+                        '& .MuiFormControlLabel-label': {
+                          marginLeft: 0.5
+                        }
+                      }}
+                    />
+                  </Box>
+                  <Typography variant="h6" gutterBottom>Raw Data</Typography>
+                  <Box 
+                    component="pre" 
+                    sx={{ 
+                      fontSize: '0.75rem', 
+                      fontFamily: 'monospace',
+                      backgroundColor: 'grey.200',
+                      color: 'text.primary',
+                      padding: 2,
+                      borderRadius: 1,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      maxHeight: '50vh',
+                      overflow: 'auto',
+                      border: '1px solid',
+                      borderColor: 'divider'
+                    }}
+                  >
+                    {JSON.stringify(selectedLog, null, 2)}
                   </Box>
                 </Box>
               )}
