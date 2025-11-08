@@ -373,7 +373,7 @@ async def list_claude_logs(
     total = await db.claude_logs.count_documents(query)
     
     # Get logs
-    cursor = db.claude_logs.find(query).skip(skip).limit(limit).sort("upload_timestamp", -1)
+    cursor = db.claude_logs.find(query).skip(skip).limit(limit).sort("_id", -1)
     logs = []
     
     async for log in cursor:
