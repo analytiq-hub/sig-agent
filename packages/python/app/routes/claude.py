@@ -454,7 +454,7 @@ async def list_claude_hooks(
     total = await db.claude_hooks.count_documents(query)
     
     # Get hooks
-    cursor = db.claude_hooks.find(query).skip(skip).limit(limit).sort("hook_timestamp", -1)
+    cursor = db.claude_hooks.find(query).skip(skip).limit(limit).sort("_id", -1)
     hooks = []
     
     async for hook in cursor:
