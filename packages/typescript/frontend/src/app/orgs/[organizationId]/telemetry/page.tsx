@@ -7,7 +7,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 export default function TelemetryPage({ params }: { params: { organizationId: string } }) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const tab = searchParams.get('tab') || 'metrics';
+  const tab = searchParams.get('tab') || 'logs';
 
   const handleTabChange = (newValue: string) => {
     router.push(`/orgs/${params.organizationId}/telemetry?tab=${newValue}`);
@@ -18,16 +18,6 @@ export default function TelemetryPage({ params }: { params: { organizationId: st
       <div className="border-b border-gray-200 mb-6">
         <div className="flex gap-8">
           <button
-            onClick={() => handleTabChange('metrics')}
-            className={`pb-4 px-1 relative font-semibold text-base ${
-              tab === 'metrics'
-                ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Metrics
-          </button>
-          <button
             onClick={() => handleTabChange('logs')}
             className={`pb-4 px-1 relative font-semibold text-base ${
               tab === 'logs'
@@ -36,6 +26,16 @@ export default function TelemetryPage({ params }: { params: { organizationId: st
             }`}
           >
             Logs
+          </button>
+          <button
+            onClick={() => handleTabChange('metrics')}
+            className={`pb-4 px-1 relative font-semibold text-base ${
+              tab === 'metrics'
+                ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Metrics
           </button>
         </div>
       </div>
