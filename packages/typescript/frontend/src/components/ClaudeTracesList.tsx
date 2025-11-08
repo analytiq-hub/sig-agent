@@ -1129,7 +1129,7 @@ const ClaudeTracesList: React.FC<{ organizationId: string }> = ({ organizationId
     },
     {
       field: 'usage',
-      headerName: 'Usage',
+      headerName: 'Tokens',
       width: 120,
       filterable: false,
       sortable: false,
