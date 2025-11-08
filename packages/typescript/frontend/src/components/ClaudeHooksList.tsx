@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { SigAgentOrgApi } from '@/utils/api';
 import { getApiErrorMsg } from '@/utils/api';
-import { DataGrid, GridColDef, GridFilterInputValueProps } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridFilterInputValueProps, GridRowProps, GridRow } from '@mui/x-data-grid';
 import { 
   TextField, 
   InputAdornment, 
@@ -45,10 +45,12 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import { ClaudeHookItem } from '@sigagent/sdk';
 import { formatLocalDateWithTZ } from '@/utils/date';
 import { 
-  ToolInfoTooltip as BaseToolInfoTooltip,
   PromptTooltip as BasePromptTooltip,
-  type ToolInfo,
-  type PromptInfo
+  type PromptInfo,
+  renderTodoData,
+  formatToolResponse,
+  tooltipContainerStyles,
+  codeBlockStyles
 } from '@/utils/tooltip';
 
 type ClaudeHook = ClaudeHookItem;
@@ -506,7 +508,7 @@ const ClaudeHooksList: React.FC<{ organizationId: string }> = ({ organizationId 
     return colors[positiveHash % colors.length];
   };
 
-  // Wrapper components that adapt the generic tooltips to work with hooks
+  // Wrapper component that adapts the generic tooltip to work with hooks (used in detail modal)
   const PromptTooltip: React.FC<{ hook: ClaudeHook; children: React.ReactElement }> = ({ hook, children }) => {
     const info = getSalientInfo(hook);
     
@@ -518,17 +520,127 @@ const ClaudeHooksList: React.FC<{ organizationId: string }> = ({ organizationId 
     return <BasePromptTooltip info={promptInfo}>{children}</BasePromptTooltip>;
   };
 
-  const ToolInfoTooltip: React.FC<{ hook: ClaudeHook; children: React.ReactElement }> = ({ hook, children }) => {
-    const info = getSalientInfo(hook);
+  // Custom row component that wraps each row with a tooltip
+  const CustomRow = React.forwardRef<HTMLDivElement, GridRowProps>((props, ref) => {
+    const { row, ...otherProps } = props;
+    const info = getSalientInfo(row as ClaudeHook);
     
-    const toolInfo: ToolInfo = {
-      toolName: info.toolName,
-      toolInput: info.toolInput,
-      toolResponse: info.toolResponse
-    };
+    // Build tooltip content based on row data
+    let tooltipContent: React.ReactNode = null;
     
-    return <BaseToolInfoTooltip info={toolInfo}>{children}</BaseToolInfoTooltip>;
-  };
+    if (info.hookEventName === 'UserPromptSubmit' && info.prompt) {
+      // Build prompt tooltip content
+      tooltipContent = (
+        <Box sx={{ maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+            User Prompt
+          </Typography>
+          <Box 
+            component="pre" 
+            sx={{ 
+              ...codeBlockStyles,
+              maxHeight: 200,
+            }}
+          >
+            {info.prompt}
+          </Box>
+        </Box>
+      );
+    } else if (info.toolInput || info.toolResponse) {
+      // Build tool info tooltip content
+      const renderedInput = renderTodoData(info.toolInput);
+      const renderedResponse = renderTodoData(info.toolResponse);
+      
+      tooltipContent = (
+        <Box sx={{ maxWidth: 400, maxHeight: 300, overflow: 'auto' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+            {info.toolName}
+          </Typography>
+          
+          {info.toolInput && !Boolean(renderedResponse) && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                Input:
+              </Typography>
+              {Boolean(renderedInput) ? (
+                <Box sx={{ marginTop: 0.5 }}>
+                  {renderedInput}
+                </Box>
+              ) : (
+                <Box 
+                  component="pre" 
+                  sx={{ 
+                    ...codeBlockStyles,
+                    marginTop: 0.5,
+                    maxHeight: 120,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderLeft: '3px solid',
+                    borderLeftColor: 'primary.main',
+                  }}
+                >
+                  {typeof info.toolInput === 'string' 
+                    ? info.toolInput 
+                    : JSON.stringify(info.toolInput, null, 2)
+                  }
+                </Box>
+              )}
+            </Box>
+          )}
+          
+          {Boolean(info.toolResponse) && (
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                Response:
+              </Typography>
+              {Boolean(renderedResponse) ? (
+                <Box sx={{ marginTop: 0.5 }}>
+                  {renderedResponse}
+                </Box>
+              ) : (
+                <Box 
+                  component="pre" 
+                  sx={{ 
+                    ...codeBlockStyles,
+                    marginTop: 0.5,
+                    maxHeight: 120,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderLeft: '3px solid',
+                    borderLeftColor: 'success.main',
+                  }}
+                >
+                  {formatToolResponse(info.toolResponse)}
+                </Box>
+              )}
+            </Box>
+          )}
+        </Box>
+      );
+    }
+    
+    if (tooltipContent) {
+      return (
+        <Tooltip
+          title={tooltipContent}
+          arrow
+          placement="top"
+          enterDelay={300}
+          leaveDelay={0}
+          componentsProps={{
+            tooltip: {
+              sx: tooltipContainerStyles
+            }
+          }}
+        >
+          <GridRow ref={ref} row={row} {...otherProps} />
+        </Tooltip>
+      );
+    }
+    
+    return <GridRow ref={ref} row={row} {...otherProps} />;
+  });
+  CustomRow.displayName = 'CustomRow';
 
   // Helper function to get icon for event type with color coding
   // Color scheme:
@@ -623,7 +735,7 @@ const ClaudeHooksList: React.FC<{ organizationId: string }> = ({ organizationId 
       renderCell: (params) => {
         const info = getSalientInfo(params.row);
         const icon = getEventIcon(info.hookEventName);
-        const eventContent = (
+        return (
           <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px', width: '100%' }}>
             {icon}
             <span className="text-sm font-medium">
@@ -631,17 +743,6 @@ const ClaudeHooksList: React.FC<{ organizationId: string }> = ({ organizationId 
             </span>
           </Box>
         );
-
-        // Wrap UserPromptSubmit events with prompt tooltip
-        if (info.hookEventName === 'UserPromptSubmit' && info.prompt) {
-          return (
-            <PromptTooltip hook={params.row}>
-              {eventContent}
-            </PromptTooltip>
-          );
-        }
-
-        return eventContent;
       }
     },
     {
@@ -654,24 +755,13 @@ const ClaudeHooksList: React.FC<{ organizationId: string }> = ({ organizationId 
         const info = getSalientInfo(params.row);
         const toolName = info.toolName;
         const displayName = toolName.length > 35 ? toolName.substring(0, 35) + '...' : toolName;
-        const toolContent = (
+        return (
           <Box sx={{ height: '100%', minHeight: '52px', width: '100%', display: 'flex', alignItems: 'center' }}>
             <span className="text-sm font-mono">
               {displayName}
             </span>
           </Box>
         );
-
-        // Wrap tool events with tool info tooltip
-        if (info.toolInput || info.toolResponse) {
-          return (
-            <ToolInfoTooltip hook={params.row}>
-              {toolContent}
-            </ToolInfoTooltip>
-          );
-        }
-
-        return toolContent;
       }
     },
     {
@@ -723,86 +813,6 @@ const ClaudeHooksList: React.FC<{ organizationId: string }> = ({ organizationId 
         const isFiltered = filteredSessionId === info.sessionId;
         const sessionColor = getSessionColor(info.sessionId);
         
-        // Determine which tooltip to use for the session cell
-        const getSessionTooltip = () => {
-          if (info.hookEventName === 'UserPromptSubmit' && info.prompt) {
-            return (
-              <PromptTooltip hook={params.row}>
-                <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px', width: '100%' }}>
-                  <span className="text-xs font-mono">
-                    {info.sessionId.substring(0, 12)}...
-                  </span>
-                  <Tooltip title={isFiltered ? "Clear session filter" : "Filter by this session ID"}>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent row click
-                        handleFilterBySession(info.sessionId);
-                      }}
-                      sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        backgroundColor: isFiltered ? sessionColor : 'grey.100',
-                        color: isFiltered ? 'white' : sessionColor,
-                        boxShadow: isFiltered ? 2 : 1,
-                        '&:hover': {
-                          backgroundColor: isFiltered ? sessionColor : 'grey.200',
-                          color: isFiltered ? 'white' : sessionColor,
-                          boxShadow: 3
-                        }
-                      }}
-                    >
-                      <FilterListIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </PromptTooltip>
-            );
-          } else if (info.toolInput || info.toolResponse) {
-            return (
-              <ToolInfoTooltip hook={params.row}>
-                <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px', width: '100%' }}>
-                  <span className="text-xs font-mono">
-                    {info.sessionId.substring(0, 12)}...
-                  </span>
-                  <Tooltip title={isFiltered ? "Clear session filter" : "Filter by this session ID"}>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent row click
-                        handleFilterBySession(info.sessionId);
-                      }}
-                      sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        backgroundColor: isFiltered ? sessionColor : 'grey.100',
-                        color: isFiltered ? 'white' : sessionColor,
-                        boxShadow: isFiltered ? 2 : 1,
-                        '&:hover': {
-                          backgroundColor: isFiltered ? sessionColor : 'grey.200',
-                          color: isFiltered ? 'white' : sessionColor,
-                          boxShadow: 3
-                        }
-                      }}
-                    >
-                      <FilterListIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </ToolInfoTooltip>
-            );
-          }
-          return null;
-        };
-
-        const tooltipContent = getSessionTooltip();
-        if (tooltipContent) {
-          return tooltipContent;
-        }
-
-        // Default session cell without tooltip
         return (
           <Box display="flex" alignItems="center" gap={0.5} sx={{ height: '100%', minHeight: '52px', width: '100%' }}>
             <span className="text-xs font-mono">
@@ -989,6 +999,9 @@ const ClaudeHooksList: React.FC<{ organizationId: string }> = ({ organizationId 
         disableRowSelectionOnClick
         onRowClick={(params) => handleHookClick(params.row)}
         autoHeight
+        slots={{
+          row: CustomRow,
+        }}
         sx={{
           '& .MuiDataGrid-cell': {
             padding: '8px',
