@@ -59,11 +59,11 @@ SES_FROM_EMAIL = os.getenv("SES_FROM_EMAIL")
 
 logger = logging.getLogger(__name__)
 
-logger.debug(f"ENV: {ENV}")
-logger.debug(f"NEXTAUTH_URL: {NEXTAUTH_URL}")
-logger.debug(f"FASTAPI_ROOT_PATH: {FASTAPI_ROOT_PATH}")
-logger.debug(f"MONGODB_URI: {MONGODB_URI}")
-logger.debug(f"SES_FROM_EMAIL: {SES_FROM_EMAIL}")
+logger.info(f"ENV: {ENV}")
+logger.info(f"NEXTAUTH_URL: {NEXTAUTH_URL}")
+logger.info(f"FASTAPI_ROOT_PATH: {FASTAPI_ROOT_PATH}")
+logger.info(f"MONGODB_URI: {MONGODB_URI}")
+logger.info(f"SES_FROM_EMAIL: {SES_FROM_EMAIL}")
 
 # JWT settings
 NEXTAUTH_SECRET = os.getenv("NEXTAUTH_SECRET")
@@ -140,7 +140,7 @@ if NEXTAUTH_URL:
     CORS_ORIGINS_DEF.append(NEXTAUTH_URL)
 
 cors_origins = os.getenv("CORS_ORIGINS", ",".join(CORS_ORIGINS_DEF)).split(",")
-logger.debug(f"CORS allowed origins: {cors_origins}")
+logger.info(f"CORS allowed origins: {cors_origins}")
 
 app.add_middleware(
     CORSMiddleware,
