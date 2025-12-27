@@ -102,6 +102,9 @@ async def lifespan(app):
     db = ad.common.get_async_db(analytiq_client)
     await init_payments(db)
 
+    # Initialize telemetry indexes
+    await startup.init_telemetry(db)
+
     # Start OTLP gRPC server (always enabled for all organizations)
     try:
         logger.info("Starting OTLP gRPC server...")

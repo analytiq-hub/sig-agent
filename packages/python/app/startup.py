@@ -9,6 +9,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(f"{cwd}/..")
 
 import analytiq_data as ad
+from app.db_utils import ensure_index
 
 logger = logging.getLogger(__name__)
 
@@ -136,3 +137,33 @@ async def setup_api_creds(analytiq_client):
             
     except Exception as e:
         logger.error(f"Failed to set up API credentials: {e}")
+
+async def init_telemetry(db):
+    """
+    Initialize indexes for telemetry collections
+    """
+    try:
+        # Initialize index for telemetry_logs collection
+        await ensure_index(
+            collection=db.telemetry_logs,
+            index_spec=[("organization_id", 1), ("timestamp", -1)],
+            index_name="org_timestamp_idx"
+        )
+        
+        # Initialize index for telemetry_traces collection
+        await ensure_index(
+            collection=db.telemetry_traces,
+            index_spec=[("organization_id", 1), ("upload_date", -1)],
+            index_name="org_upload_date_idx"
+        )
+        
+        # Initialize index for telemetry_metrics collection
+        await ensure_index(
+            collection=db.telemetry_metrics,
+            index_spec=[("organization_id", 1), ("upload_date", -1)],
+            index_name="org_upload_date_idx"
+        )
+            
+    except Exception as e:
+        logger.error(f"Error managing indexes on telemetry collections: {e}")
+        raise

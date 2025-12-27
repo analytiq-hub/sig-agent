@@ -20,6 +20,7 @@ from app.auth import (
     is_organization_member
 )
 from app.models import User
+from app.db_utils import ensure_index
 
 import asyncio
 import stripe
@@ -275,6 +276,13 @@ async def init_payments(db):
     # Initialize dynamic configuration from Stripe
     await get_credit_config()
     await get_tier_limits()
+
+    # Create indexes for payments_usage_records collection
+    await ensure_index(
+        collection=db.payments_usage_records,
+        index_spec=[("org_id", 1), ("timestamp", 1)],
+        index_name="org_timestamp_idx"
+    )
 
     await sync_all_customers(db)
     logger.info("Stripe customers synced")
