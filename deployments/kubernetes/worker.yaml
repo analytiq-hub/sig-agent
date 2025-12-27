@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doc-router-worker
+  namespace: doc-router
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: doc-router-worker
+  template:
+    metadata:
+      labels:
+        app: doc-router-worker
+    spec:
+      containers:
+      - name: worker
+        image: analytiqhub/doc-router-backend:latest
+        imagePullPolicy: Always
+        env:
+        - name: ENV
+          valueFrom:
+            configMapKeyRef:
+              name: doc-router-config
+              key: ENV
+        - name: N_WORKERS
+          valueFrom:
+            configMapKeyRef:
+              name: doc-router-config
+              key: N_WORKERS
+        - name: MONGODB_URI
+          valueFrom:
+            configMapKeyRef:
+              name: doc-router-config
+              key: MONGODB_URI
+        - name: NEXTAUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: NEXTAUTH_SECRET
+        - name: STRIPE_PRODUCT_TAG
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: STRIPE_PRODUCT_TAG
+              optional: true
+        command: ["sh", "-c"]
+        args: ["cd /app/packages/python/worker && python3 worker.py"]
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+

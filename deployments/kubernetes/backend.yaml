@@ -1,0 +1,184 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doc-router-backend
+  namespace: doc-router
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: doc-router-backend
+  template:
+    metadata:
+      labels:
+        app: doc-router-backend
+    spec:
+      containers:
+      - name: backend
+        image: analytiqhub/doc-router-backend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+        - containerPort: 4317
+          name: otlp
+        env:
+        - name: ENV
+          valueFrom:
+            configMapKeyRef:
+              name: doc-router-config
+              key: ENV
+        - name: MONGODB_URI
+          valueFrom:
+            configMapKeyRef:
+              name: doc-router-config
+              key: MONGODB_URI
+        - name: FASTAPI_ROOT_PATH
+          valueFrom:
+            configMapKeyRef:
+              name: doc-router-config
+              key: FASTAPI_ROOT_PATH
+        - name: NEXTAUTH_URL
+          valueFrom:
+            configMapKeyRef:
+              name: doc-router-config
+              key: NEXTAUTH_URL
+        - name: FASTAPI_BACKEND_URL
+          valueFrom:
+            configMapKeyRef:
+              name: doc-router-config
+              key: FASTAPI_BACKEND_URL
+        - name: CORS_ORIGINS
+          valueFrom:
+            configMapKeyRef:
+              name: doc-router-config
+              key: CORS_ORIGINS
+              optional: true
+        - name: NEXTAUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: NEXTAUTH_SECRET
+        - name: ADMIN_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: ADMIN_EMAIL
+              optional: true
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: ADMIN_PASSWORD
+              optional: true
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: OPENAI_API_KEY
+              optional: true
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: ANTHROPIC_API_KEY
+              optional: true
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: GEMINI_API_KEY
+              optional: true
+        - name: GROQ_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: GROQ_API_KEY
+              optional: true
+        - name: MISTRAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: MISTRAL_API_KEY
+              optional: true
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: AWS_ACCESS_KEY_ID
+              optional: true
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: AWS_SECRET_ACCESS_KEY
+              optional: true
+        - name: AWS_S3_BUCKET_NAME
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: AWS_S3_BUCKET_NAME
+              optional: true
+        - name: SES_FROM_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: SES_FROM_EMAIL
+              optional: true
+        - name: STRIPE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: STRIPE_SECRET_KEY
+              optional: true
+        - name: STRIPE_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: STRIPE_WEBHOOK_SECRET
+              optional: true
+        - name: STRIPE_PRODUCT_TAG
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: STRIPE_PRODUCT_TAG
+              optional: true
+        command: ["sh", "-c"]
+        args: ["cd /app/packages/python && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: doc-router-backend
+  namespace: doc-router
+spec:
+  selector:
+    app: doc-router-backend
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http
+  - port: 4317
+    targetPort: 4317
+    name: otlp
+  type: ClusterIP
+

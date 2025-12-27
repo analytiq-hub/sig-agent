@@ -1,0 +1,45 @@
+# Ingress configuration example for doc-router
+# This is a template - customize based on your ingress controller
+#
+# For NGINX Ingress Controller:
+#   kubectl apply -f ingress.yaml
+#
+# For other ingress controllers, adjust the annotations accordingly
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: doc-router-ingress
+  namespace: doc-router
+  annotations:
+    # NGINX Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # For cert-manager (if using Let's Encrypt)
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - doc-router.yourdomain.com
+    secretName: doc-router-tls
+  rules:
+  - host: doc-router.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: doc-router-frontend
+            port:
+              number: 3000
+      - path: /fastapi
+        pathType: Prefix
+        backend:
+          service:
+            name: doc-router-backend
+            port:
+              number: 8000
+

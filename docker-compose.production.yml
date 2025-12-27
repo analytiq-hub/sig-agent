@@ -1,0 +1,155 @@
+# Production Docker Compose configuration for doc-router
+# This file is designed for customer deployments using pre-built images
+#
+# Usage:
+#   1. Copy .env.example to .env and configure your environment variables
+#   2. Run: docker compose -f docker-compose.production.yml up -d
+#
+# For MongoDB, you can either:
+#   - Use the embedded MongoDB service (included below)
+#   - Use an external MongoDB instance (set MONGODB_URI in .env)
+
+version: '3.8'
+
+services:
+  frontend:
+    image: analytiqhub/doc-router-frontend:latest
+    container_name: doc-router-frontend
+    environment:
+      - ENV=${ENV:-prod}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://admin:admin@mongodb:27017?authSource=admin}
+      - FASTAPI_BACKEND_URL=${FASTAPI_BACKEND_URL:-http://backend:8000}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - AUTH_GITHUB_ID=${AUTH_GITHUB_ID}
+      - AUTH_GITHUB_SECRET=${AUTH_GITHUB_SECRET}
+      - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
+      - AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET}
+      - NEXT_PUBLIC_FASTAPI_FRONTEND_URL=${NEXT_PUBLIC_FASTAPI_FRONTEND_URL:-http://localhost:8000}
+    command: sh -c "cd /app/packages/typescript/frontend && npm run start"
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    networks:
+      - doc-router-network
+    depends_on:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  backend:
+    image: analytiqhub/doc-router-backend:latest
+    container_name: doc-router-backend
+    environment:
+      - ENV=${ENV:-prod}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://admin:admin@mongodb:27017?authSource=admin}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - FASTAPI_SECRET=${FASTAPI_SECRET:-${NEXTAUTH_SECRET}}
+      - FASTAPI_ROOT_PATH=${FASTAPI_ROOT_PATH:-/fastapi}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - SES_FROM_EMAIL=${SES_FROM_EMAIL}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_PRODUCT_TAG=${STRIPE_PRODUCT_TAG}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+    command: sh -c "cd /app/packages/python && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+      - "${OTLP_PORT:-4317}:4317"
+    networks:
+      - doc-router-network
+    depends_on:
+      - mongodb
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  worker:
+    image: analytiqhub/doc-router-backend:latest
+    container_name: doc-router-worker
+    environment:
+      - ENV=${ENV:-prod}
+      - N_WORKERS=${N_WORKERS:-1}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://admin:admin@mongodb:27017?authSource=admin}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - STRIPE_PRODUCT_TAG=${STRIPE_PRODUCT_TAG}
+    command: sh -c "cd /app/packages/python/worker && python3 worker.py"
+    restart: unless-stopped
+    networks:
+      - doc-router-network
+    depends_on:
+      - backend
+      - mongodb
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # Optional: Embedded MongoDB for development/testing
+  # For production, consider using an external MongoDB instance
+  mongodb:
+    image: mongo:7.0
+    container_name: doc-router-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin}
+    ports:
+      - "${MONGODB_PORT:-27017}:27017"
+    networks:
+      - doc-router-network
+    volumes:
+      - doc-router-mongodb-data:/data/db
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  doc-router-network:
+    driver: bridge
+
+volumes:
+  doc-router-mongodb-data:
+    driver: local
+

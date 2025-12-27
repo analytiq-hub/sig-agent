@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doc-router-frontend
+  namespace: doc-router
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: doc-router-frontend
+  template:
+    metadata:
+      labels:
+        app: doc-router-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: analytiqhub/doc-router-frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: ENV
+          valueFrom:
+            configMapKeyRef:
+              name: doc-router-config
+              key: ENV
+        - name: MONGODB_URI
+          valueFrom:
+            configMapKeyRef:
+              name: doc-router-config
+              key: MONGODB_URI
+        - name: FASTAPI_BACKEND_URL
+          valueFrom:
+            configMapKeyRef:
+              name: doc-router-config
+              key: FASTAPI_BACKEND_URL
+        - name: NEXTAUTH_URL
+          valueFrom:
+            configMapKeyRef:
+              name: doc-router-config
+              key: NEXTAUTH_URL
+        - name: NEXT_PUBLIC_FASTAPI_FRONTEND_URL
+          valueFrom:
+            configMapKeyRef:
+              name: doc-router-config
+              key: NEXT_PUBLIC_FASTAPI_FRONTEND_URL
+        - name: NEXTAUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: NEXTAUTH_SECRET
+        - name: AUTH_GITHUB_ID
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: AUTH_GITHUB_ID
+              optional: true
+        - name: AUTH_GITHUB_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: AUTH_GITHUB_SECRET
+              optional: true
+        - name: AUTH_GOOGLE_ID
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: AUTH_GOOGLE_ID
+              optional: true
+        - name: AUTH_GOOGLE_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: doc-router-secret
+              key: AUTH_GOOGLE_SECRET
+              optional: true
+        command: ["sh", "-c"]
+        args: ["cd /app/packages/typescript/frontend && npm run start"]
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: doc-router-frontend
+  namespace: doc-router
+spec:
+  selector:
+    app: doc-router-frontend
+  ports:
+  - port: 3000
+    targetPort: 3000
+    name: http
+  type: ClusterIP
+
