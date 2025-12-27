@@ -9,7 +9,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(f"{cwd}/..")
 
 import analytiq_data as ad
-from app.db_utils import ensure_index
+from analytiq_data.mongodb import ensure_index
 
 logger = logging.getLogger(__name__)
 

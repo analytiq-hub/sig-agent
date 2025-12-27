@@ -20,7 +20,7 @@ from app.auth import (
     is_organization_member
 )
 from app.models import User
-from app.db_utils import ensure_index
+from analytiq_data.mongodb import ensure_index
 
 import asyncio
 import stripe
